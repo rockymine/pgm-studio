@@ -80,4 +80,67 @@ public sealed class GroundCoverageTests
         await Assert.That(res.DeadCells).IsEqualTo(0);
         await Assert.That(res.DeadPatches).IsEmpty();
     }
+
+    // A ring: spawn on one arm, wool on the other, a hole between them and both ways round it the same length.
+    private static Dict RingBoard => new()
+    {
+        ["regions"] = new Dict { ["spawn"] = Rect(0, 10, 2, 12) },
+        ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+        ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(40, 11) } },
+    };
+
+    private static HashSet<(int, int)> RingGround()
+    {
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x <= 40; x++) for (var z = 0; z <= 4; z++) surface.Add((x, z));       // north arm
+        for (var x = 0; x <= 40; x++) for (var z = 18; z <= 22; z++) surface.Add((x, z));     // south arm
+        for (var x = 0; x <= 4; x++) for (var z = 0; z <= 22; z++) surface.Add((x, z));       // west end
+        for (var x = 36; x <= 40; x++) for (var z = 0; z <= 22; z++) surface.Add((x, z));     // east end
+        return surface;                                                                       // hole: 5..35 x 5..17
+    }
+
+    [Test]
+    public async Task The_two_arms_of_a_ring_are_read_alike_whichever_way_the_walk_goes()
+    {
+        var res = GroundCoverage.Read(RingBoard, RingGround(), null, [], bbox: (-8, -8, 48, 30));
+        int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
+
+        // The two arms are the same length, so whatever the corridor makes of one it must make of the other:
+        // a measure that carried a side would be picking one by tie-break, which is the failure the ribbon
+        // exists to avoid. (Both currently read the same *because* neither is claimed — the hole between them
+        // has no apply rule over it and so reads bridgeable, so the cheapest walk goes straight across it and
+        // both arms become detours. That is `B247`, not this measure; when it lands, both arms gain traffic
+        // together and this assertion still holds.)
+        for (var x = 8; x <= 32; x += 4)
+            await Assert.That(res.Traffic[At(x, 2)]).IsEqualTo(res.Traffic[At(x, 20)])
+                .Because($"the arms are mirror images at x {x}");
+    }
+
+    [Test]
+    public async Task Traffic_counts_the_journeys_rather_than_answering_whether_any()
+    {
+        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+        int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
+
+        await Assert.That(res.Journeys).IsGreaterThan(0);
+        await Assert.That(res.Traffic.Length).IsEqualTo(res.Cells.Length);
+        await Assert.That(res.Traffic[At(30, 3)]).IsGreaterThan(0).Because("the strip carries the journey");
+        await Assert.That(res.Traffic[At(30, 30)]).IsEqualTo(0).Because("the plateau carries none");
+        await Assert.That(res.Traffic.Max()).IsLessThanOrEqualTo(res.Journeys)
+            .Because("a cell cannot be covered by more journeys than there are");
+    }
+
+    [Test]
+    public async Task A_long_way_round_is_out_of_the_corridor_however_reachable_it_is()
+    {
+        // The plateau is walkable and hangs off the middle of the strip: reaching it and coming back costs
+        // far more than the twenty blocks a player will spend, so no journey claims it.
+        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+        int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
+
+        await Assert.That(res.Cells[At(30, 30)]).IsEqualTo(GroundCoverage.Dead);
+        await Assert.That(res.DeadCells).IsGreaterThan(0);
+        await Assert.That(res.DeadPatches).IsNotEmpty();
+        await Assert.That(res.DeadPatches[0].Area).IsGreaterThan(100).Because("the plateau is one named place");
+    }
 }

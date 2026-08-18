@@ -25,9 +25,25 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class GroundCoverage
 {
-    /// <summary>How far either side of a walked route the match reaches — fights drift off the line, so a
-    /// route claims a corridor the way a path's band claims more than its centerline.</summary>
-    public const int CorridorMargin = 6;
+    /// <summary>How far out of their way a player will go, in blocks: a journey claims every cell on a walk
+    /// no more than this much longer than the shortest. Since visiting a cell <c>m</c> blocks off the direct
+    /// line and coming back costs about <c>2m</c>, ten blocks of allowance is a lane about ten blocks wide —
+    /// and a there-and-back down some spur is charged the same way, which is what keeps a corridor off ground
+    /// that leads nowhere.
+    ///
+    /// <para>An <b>allowance</b>, not a fraction of the distance. A 30% budget on a long walk is a hundred
+    /// blocks of slack and admits nearly everything: on the traced maps the share of ground no journey covers
+    /// runs 26.1% under the geodesics and <b>0% at both 15% and 30%</b>. A ratio that erases the measure is
+    /// not a wider reading of it.</para>
+    ///
+    /// <para><b>Ten is calibrated, not assumed.</b> It is the value that reproduces the author's own reading
+    /// of the one board known to carry dead ground — run 4's `wheal-hazel`, whose eighty-block neutral bar
+    /// crosses a twenty-block build zone. Against the author's marks: `works-lo-w` and `west-spur` dead
+    /// (100%, 100%), `works-yard` and `moor` about half (50%, 50%), the bar about two thirds (62%, and the
+    /// original review measured 60.2% at block resolution). Its rebuild `wheal-hazel-v2` reads <b>0%</b>. A
+    /// tolerance for going out of one's way is not the same quantity as the width of a lane a player spreads
+    /// across, and it is the smaller of the two.</para></summary>
+    public const int CorridorAllowance = 10;
 
     /// <summary>The ground a waypoint claims for itself — the ring a fight over it happens on, the same ten
     /// blocks the goal standoff keeps props out of.</summary>
@@ -59,11 +75,18 @@ public static class GroundCoverage
     public sealed record Patch(int Area, int CentroidX, int CentroidZ, int NearestReachedBlocks);
 
     /// <summary>The read: the class of every ground cell (<see cref="Cells"/>, codes above, row-major over
-    /// the grid), the shares, and the dead patches worth naming, largest first.</summary>
+    /// the grid), the shares, and the dead patches worth naming, largest first.
+    ///
+    /// <para><see cref="Traffic"/> is how many of the <see cref="Journeys"/> cover each cell, row-major on the
+    /// same grid — the number the classification throws away. Ground carried by one journey and ground carried
+    /// by all of them are both <see cref="Reached"/>, and on a played map the busiest cell sees twenty to a
+    /// hundred and sixty times what the quietest does, so membership is the coarse half of the answer and this
+    /// is the other one. It is also what says which way round a hole is preferred and which is not.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int Width, int Height, byte[] Cells,
         int GroundCells, int ReachedCells, int DecoratedCells, int DeadCells,
-        double DeadShare, IReadOnlyList<Patch> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes);
+        double DeadShare, IReadOnlyList<Patch> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes,
+        int[] Traffic, int Journeys);
 
     /// <summary>Read the coverage of a map: its document for the waypoints and rules, the built world's
     /// surface and Y=0 columns for the ground, and the dressing's prop cells for the decorated class.</summary>
@@ -82,18 +105,33 @@ public static class GroundCoverage
         foreach (var (point, _) in Traversability.NavigationPoints(data, (minX, minZ, minX + nx, minZ + nz)))
             if (Cells.SnapToWalkable((point.X, point.Z), navigable, 3) is { } seat) waypoints.Add(seat);
 
-        // The traffic skeleton: a shortest walk between every pair of waypoints. All pairs rather than a
-        // curated set, because defenders travel to defend, attackers rotate goal to goal, and mid fights
-        // happen between spawns — every pair is a journey someone makes.
+        // The traffic skeleton: a corridor between every pair of waypoints. All pairs rather than a curated
+        // set, because defenders travel to defend, attackers rotate goal to goal, and mid fights happen
+        // between spawns — every pair is a journey someone makes, and every one aims at a place the map
+        // actually has rather than at open ground.
+        //
+        // A corridor and not a fattened line. One shortest path must commit to one side of a hole, so the
+        // other side reads unused however many players take it — and going round a hole is the single most
+        // valuable thing a shape does. The ribbon carries both, and carries them in proportion.
         var routeCells = new HashSet<(int X, int Z)>();
+        var traffic = new Dictionary<(int X, int Z), int>();
+        var journeys = 0;
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
+            {
+                var ribbon = Cells.Corridor(waypoints[i], waypoints[j], navigable, CorridorAllowance);
+                if (ribbon.Count == 0) continue;
+                journeys++;
+                foreach (var cell in ribbon) traffic[cell] = traffic.GetValueOrDefault(cell) + 1;
                 if (Cells.ShortestPath(waypoints[i], waypoints[j], navigable) is { } path)
                     foreach (var cell in path) routeCells.Add(cell);
+            }
 
-        // The ground the match uses: the corridors dilated once (cheaper than probing every ground cell
-        // against them), plus each waypoint's own ring.
-        var used = Dilated(routeCells, CorridorMargin);
+        // The ground the match uses: every cell some journey's corridor covers, plus each waypoint's own ring.
+        // The COUNT is kept rather than the union — a cell one journey clips and a cell every journey runs
+        // down are both "reached", and which of the two a piece of ground is is most of what a coverage read
+        // was wanted for.
+        var used = new HashSet<(int X, int Z)>(traffic.Keys);
         used.UnionWith(Dilated([.. waypoints], PoiRadius));
 
         // Classify every ground cell. Ground is standing terrain only — a bridgeable gap is crossable, but
@@ -150,10 +188,14 @@ public static class GroundCoverage
             for (var dx = -1; dx <= 1; dx++)
                 if (InGrid(x + dx, z + dz)) cells[At(x + dx, z + dz)] = Waypoint;
 
+        var trafficGrid = new int[nx * nz];
+        foreach (var (cell, count) in traffic)
+            if (InGrid(cell.X, cell.Z)) trafficGrid[At(cell.X, cell.Z)] = count;
+
         return new Result(minX, minZ, nx, nz, cells,
             groundCells, reached, decorated, dead,
             groundCells == 0 ? 0 : (double)dead / groundCells,
-            patches, unnamed, routeCells.Count > 0);
+            patches, unnamed, routeCells.Count > 0, trafficGrid, journeys);
 
         static HashSet<(int X, int Z)> Dilated(IReadOnlyCollection<(int X, int Z)> seeds, int radius)
         {

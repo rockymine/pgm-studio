@@ -638,6 +638,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The coverage read runs on corridors and keeps how busy each cell is (WS1).** `GroundCoverage` walked one
+  shortest path per waypoint pair, dilated it six blocks and unioned the lot — so a hole's two ways could only
+  ever have one of them counted, and a cell one journey clips read the same as a cell every journey runs down.
+  It now claims a **ribbon** per pair (every cell on a walk within `CorridorAllowance` of the shortest, an
+  allowance in blocks rather than a fraction that admits a hundred blocks of slack on a long walk) and keeps
+  the **per-cell count**, which is what says which way round a hole is preferred and which is the one players
+  decline. `GET /map/{slug}/coverage` carries the traffic grid beside the classes with `journeys` and
+  `busiest`. Ten blocks is calibrated, not assumed: it reproduces the author's own reading of `wheal-hazel`
+  — `works-lo-w` and `west-spur` dead, `works-yard` and `moor` about half, the bar about two thirds — and
+  reads its rebuild `wheal-hazel-v2` at **0%**.
 - **A plan is walkable ground, and a journey across it can be read before anything is built (WS1, WS2).**
   Every gate that ran before a build answered over pieces — `ContactGraph` classifies whether two rectangles
   touch, `FannedGraph` whether one reaches another — and neither could say how far apart two places are, how

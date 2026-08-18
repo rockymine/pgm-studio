@@ -117,12 +117,18 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
         var rows = Enumerable.Range(0, res.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, res.Width)
                 .Select(ix => (char)('0' + res.Cells[iz * res.Width + ix])))).ToList();
+        // base-36 a digit at a time, so the traffic grid travels the same shape as the class grid
+        static char Digit(int n) => n <= 0 ? '0' : n < 10 ? (char)('0' + n) : n < 36 ? (char)('a' + n - 10) : 'z';
+        var traffic = Enumerable.Range(0, res.Height)
+            .Select(iz => string.Concat(Enumerable.Range(0, res.Width)
+                .Select(ix => Digit(res.Traffic[iz * res.Width + ix])))).ToList();
         await Send.OkAsync(new CoverageDto(
             new BoundsDto(res.MinX, res.MinZ, res.MinX + res.Width, res.MinZ + res.Height),
             res.Width, res.Height, GroundCoverage.Classes, GroundCoverage.ClassColors, rows,
             res.GroundCells, res.ReachedCells, res.DecoratedCells, res.DeadCells, res.DeadShare,
             res.DeadPatches.Select(p => new CoveragePatchDto(p.Area, p.CentroidX, p.CentroidZ, p.NearestReachedBlocks)).ToList(),
-            res.UnnamedDeadPatches, res.HaveRoutes), ct);
+            res.UnnamedDeadPatches, res.HaveRoutes,
+            traffic, res.Journeys, res.Traffic.Length == 0 ? 0 : res.Traffic.Max()), ct);
     }
 }
 

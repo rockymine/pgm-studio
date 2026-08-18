@@ -155,6 +155,29 @@ public static class Cells
         return ribbon;
     }
 
+    /// <summary>The corridor under an <b>absolute</b> allowance — every cell on a route no more than
+    /// <paramref name="allowance"/> steps longer than the shortest. The fractional form scales with the
+    /// journey and so admits more of a board the further apart its ends are; a board is walked in blocks and
+    /// a player's willingness to go out of their way does not grow with the map. Twenty blocks of allowance
+    /// is a lane about twenty blocks wide, because a cell <c>m</c> off the direct line costs about
+    /// <c>2m</c> to visit.
+    ///
+    /// <para>This is the form a coverage read wants: a two-hundred-block detour across ground nobody goes to
+    /// is excluded by construction rather than by a ratio that happens to be tight enough.</para></summary>
+    public static HashSet<(int X, int Z)> Corridor((int X, int Z) from, (int X, int Z) to,
+        IReadOnlySet<(int X, int Z)> within, int allowance)
+    {
+        var ribbon = new HashSet<(int X, int Z)>();
+        var fromField = DistanceField([from], within);
+        if (!fromField.TryGetValue(to, out var shortest)) return ribbon;
+        var toField = DistanceField([to], within);
+
+        var budget = shortest + Math.Max(0, allowance);
+        foreach (var (cell, near) in fromField)
+            if (toField.TryGetValue(cell, out var far) && near + far <= budget) ribbon.Add(cell);
+        return ribbon;
+    }
+
     /// <summary>Whether a route from <paramref name="from"/> to <paramref name="to"/> may pass on
     /// <b>either</b> side of <paramref name="hole"/>, or must commit to one — the topological test, not a cut
     /// count. A ray is cast from the hole to the set's boundary on one side and the ends are asked whether they

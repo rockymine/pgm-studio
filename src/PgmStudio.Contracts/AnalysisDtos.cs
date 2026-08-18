@@ -22,11 +22,17 @@ public sealed record TraversabilityDto(
 /// every ground cell as digit rows (indexes into <c>Classes</c>), the shares, and the dead patches worth
 /// naming, largest first, each with the coordinates to check it in-game.</summary>
 public sealed record CoveragePatchDto(int Area, int CentroidX, int CentroidZ, int NearestReachedBlocks);
+/// <summary><c>Traffic</c> is one row per grid row like <c>Rows</c>, each character a base-36 digit giving how
+/// many of the <c>Journeys</c> cover that cell (<c>z</c> for 35 or more) — the number the class codes throw
+/// away. A cell one journey clips and a cell every journey runs down are both <c>reached</c>, and which of the
+/// two a piece of ground is says which way round a hole is preferred. <c>Busiest</c> is the highest count on
+/// the board, so a caller can scale without walking the grid.</summary>
 public sealed record CoverageDto(
     BoundsDto Bbox, int Width, int Height,
     IReadOnlyList<string> Classes, IReadOnlyDictionary<string, string> Colors, IReadOnlyList<string> Rows,
     int GroundCells, int ReachedCells, int DecoratedCells, int DeadCells, double DeadShare,
-    IReadOnlyList<CoveragePatchDto> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes);
+    IReadOnlyList<CoveragePatchDto> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes,
+    IReadOnlyList<string> Traffic, int Journeys, int Busiest);
 
 /// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
 public sealed record PreflightCheckDto(string Key, string Label, string Status, string Detail);

@@ -953,28 +953,16 @@ place.
   `TraversabilityRender` derives bridgeable the honest way, off the map's own `deny(void)` apply rule
   (`BridgeableColumns`), so the picture and the gate disagree about the same board.*
 
-- [ ] **WS1 — The corridor has two definitions twenty points apart, and the studio needs the absolute one.**
-  `match-flow.md` §2 defines a corridor as every cell on a route no more than 30% longer than the shortest;
-  `GroundCoverage.Read` dilates a single `Cells.ShortestPath` by `CorridorMargin = 6` **blocks**. Those are
-  not the same measure and at plan scale they are not close — 30% of a 41-cell walk is twelve cells of slack
-  on a board twenty-six cells across, so the ribbon covers nearly everything.
+- [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
+  `GroundCoverage` now reads a ribbon at an absolute `CorridorAllowance` of 10 blocks, calibrated against
+  `wheal-hazel` and its rebuild (`FEATURES.md`). What is left is the one thing the author flagged and the
+  calibration cannot settle: **10 blocks is right for a board of that size, and maps exist with thinner ways**.
+  A lane genuinely 8 blocks wide pays the same allowance a 40-block one does, so a route treats the thin map
+  as loosely as the wide one.
 
-  **Measured, same boards and same journeys, only the width changing** (share of navigable cells no journey
-  covers): geodesics 26.1% · slack 5% 13.7% · slack 15% 0% · slack 30% 0% · one path +1 cell 20.6%. The 30%
-  ribbon erases the measure. So the primitive is right and the parameter is not: **keep the corridor as a
-  ribbon — a set, not a fattened line, which is what carries both sides of a hole — and read it at a
-  small absolute width, not a ratio.** ≈20 blocks is the author's figure for a board of kanto's size, and it
-  wants restating relative to the lane actually available where a map runs thinner (author).
-
-  The ribbon primitives shipped (`Cells.DistanceField` · `Corridor` · `CostCorridor`, `PlanRouteCost`). What
-  is open here is the **swap**: point `GroundCoverage`'s corridor at them, at the settled width, and restate
-  §2 so one number is quoted in one place.
-
-  *Two things not to carry over. The `reached`/`dead` classification is a coarse gate, not a score — real
-  dead ground on played maps is 1.0% (kanto), 3.4% (outback), 3.2% (townside), while the busiest cell runs
-  20–166× the quietest, so intensity is the signal and membership is not. And a build zone is not always
-  void to bridge: on `pirates_i` it is one layer of water with lily pads, walkable, and charging for it makes
-  the read worse (ρ 0.232 free against 0.208 charged).*
+  The likely shape is to scale the allowance by the clearance actually available across the lane the journey
+  is in — `Cells.Clearance` already answers that per cell — rather than by a constant. It wants a traced board
+  with thin ways to test against; nothing in `tools/seeds/traced/` has one measured.
 
 - [ ] **WS3 — A board has fork points, plural, they belong to a demand set, and `RouteFork` reports one.**
   `PlanRoutes.Fork` takes the last cell common to *every* option and the first common to every option from the
