@@ -118,7 +118,12 @@ public static class WorldViews
     /// <summary>The highest block of each column: what the roof does, its hole and whether its eave oversails
     /// the walls, and nothing else.</summary>
     public static string Plan(VoxelWorld world, BlockBox box, int cell = 9)
-        => SvgRaster.Raster(box.Width, box.Depth, cell, (column, row) =>
+        => PlanRaster(world, box, cell).Svg();
+
+    /// <summary>The same picture before an encoding is chosen, so the SVG a card shows and the PNG an agent
+    /// saves are one derivation rather than two renders that agree today.</summary>
+    public static CellRaster PlanRaster(VoxelWorld world, BlockBox box, int cell = 9)
+        => new(box.Width, box.Depth, cell, (column, row) =>
         {
             for (var y = box.MaxY; y >= box.MinY; y--)
             {
@@ -141,9 +146,13 @@ public static class WorldViews
     /// stands — so a doorway reads as an opening rather than as a hole in the picture. A projection rather
     /// than a cut, so a door on the near wall does not hide the wall behind it.</summary>
     public static string Section(VoxelWorld world, BlockBox box, int cell = 9)
+        => SectionRaster(world, box, cell).Svg();
+
+    /// <summary>The section before an encoding is chosen — see <see cref="PlanRaster"/>.</summary>
+    public static CellRaster SectionRaster(VoxelWorld world, BlockBox box, int cell = 9)
     {
         var view = BlockSideView.Project(world, box.MinX, box.MaxX, box.MinZ, box.MaxZ, box.MinY, box.MaxY);
-        return SvgRaster.Raster(view.Columns, box.Height, cell, (column, row) =>
+        return new CellRaster(view.Columns, box.Height, cell, (column, row) =>
             view.At(view.FromX + column, box.MaxY - row) is { } block
                 ? BlockPalette.Hex(block.Id, block.Data, block.Depth)
                 : null);

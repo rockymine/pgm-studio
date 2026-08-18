@@ -40,7 +40,7 @@ public static class HouseStyleJson
         var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
         Upgrade(node);
         RefuseStatedNulls(node, typeof(HouseStyle), "");
-        return JsonSerializer.Deserialize<HouseStyle>(node, Options)!;
+        return Read(node);
     }
 
     /// <summary>Read a style and say what of it went unread. The upgrade above removes every retired name it
@@ -53,7 +53,7 @@ public static class HouseStyleJson
         var node = JsonNode.Parse(json) ?? throw new JsonException("empty house style JSON");
         Upgrade(node);
         RefuseStatedNulls(node, typeof(HouseStyle), "");
-        var style = JsonSerializer.Deserialize<HouseStyle>(node, Options)!;
+        var style = Read(node);
         unread = PgmStudio.Domain.DocumentShape.Unread(node, style);
         return style;
     }
@@ -219,6 +219,16 @@ public static class HouseStyleJson
     /// <summary>A stored style, or <paramref name="fallback"/> when the text is absent or cannot be read. A
     /// snapshot is a hand-editable leaf inside a map's layout, so a malformed one is a map that exports with
     /// the built-in shell rather than a map that refuses to export.</summary>
+    /// <summary>Deserialize, carrying a material's missing <c>kind</c> across as the refusal it is. A style's
+    /// courses are terrain materials, so the same fault reaches this reader as reaches the theme's, and
+    /// System.Text.Json reports it as <see cref="NotSupportedException"/> — the one type the endpoints' catch
+    /// does not name, which sent it to the unhandled-fault middleware as the studio's own.</summary>
+    private static HouseStyle Read(JsonNode node)
+    {
+        try { return JsonSerializer.Deserialize<HouseStyle>(node, Options)!; }
+        catch (NotSupportedException ex) { throw new JsonException(TerrainThemeJson.MaterialKindFault, ex); }
+    }
+
     public static HouseStyle DeserializeOr(string? json, HouseStyle fallback)
     {
         if (string.IsNullOrWhiteSpace(json)) return fallback;

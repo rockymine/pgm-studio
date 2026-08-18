@@ -329,7 +329,12 @@ public sealed record WallFrameMaterial(TerrainMaterial Edge, TerrainMaterial Fil
 public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMaterial Odd) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
-        => (Parity(in ctx, Size) == 0 ? Even : Odd).Resolve(in ctx);
+    {
+        // Either square left unstated is a document fault rather than a crash — the same fall-through a
+        // voronoi with no bands takes, with the reader's unread walk naming whatever field was written instead.
+        var square = Parity(in ctx, Size) == 0 ? Even : Odd;
+        return square?.Resolve(in ctx) ?? (Blocks.Stone, 0);
+    }
 
     /// <summary>Which of the two squares a cell falls on, in the face the board is laid in. Shared with
     /// <see cref="LogCheckerMaterial"/>, which lays the same board and varies a log's axis over it rather than

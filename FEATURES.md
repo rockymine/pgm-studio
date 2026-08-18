@@ -638,6 +638,46 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **How a model actually drives the studio, written down, and the one driver (B253).** Six independent
+  drivers existed across `pgm-studio-mapgen` and none of them printed a finding: every one read the status
+  code and dropped the `warnings[]` the pipeline had been answering with for several runs, which is why each
+  run re-discovered the same declines by hand. The account is `reports/opus5-run4.md` there, the errata it
+  measured is `GENERATION-NOTES.md` §17, and the decision is that the one driver lives **beside the specs**
+  rather than beside `tools/mapgen` — it drives the HTTP API a person also drives, while `mapgen` builds
+  from a spec through `ComposeSketch` and cannot repaint a compiled shape at all. `tools/drive.py` is it,
+  `tools/README.md` is the document no driver had, and `tools/drive.ps1` is retired. Four boards were
+  authored to produce it, one per objective shape the system carries.
+- **A malformed terrain material is refused by name rather than answering 500 (B253).** A
+  material carrying no `kind` nested inside a theme or a house style, a `layered` with no `stack`, a
+  `checker` with no `even`/`odd`, and a `teamTint` with no `neutral` each took the whole request down as
+  `RQ2` — *the fault is its own rather than the document's* — when the fault was the document's. The bare
+  material reader already translated System.Text.Json's missing-discriminator `NotSupportedException` into a
+  named `JsonException`; that translation is now written once and shared by the theme and the style readers,
+  so a nested one answers 400 carrying the same sentence and a link to `GET /terrain/patterns`. The three
+  patterns fall through to stone the way `VoronoiMaterial` already did, so painting — which runs per column
+  — cannot take a request down, and the reader's `unread` walk names whatever field was written instead.
+- **The export ships its decline report, not just its provenance (B253).** `BuildWorldZip`
+  wrote `region/dressing-report.json` into its temp region directory and then added only `provenance.json`
+  to the archive, so the file was deleted with the folder and an HTTP caller had never seen one. The two
+  sidecars are the two halves of one census — provenance says what landed, the report says what did not —
+  and a caller with only the first cannot tell a prop that was never authored from one the pass refused.
+- **A building answers PNG, which is the picture the checklists ask for (B253).** The five
+  `*-styles/preview*` routes ignored `?format=png&view=` and answered SVG-inside-JSON, dropping the query
+  rather than refusing it — so the one preview family that draws a *building* was the one an agent could not
+  open, while `AD-S6` and the reviewer's `C14` both say to look at a house in section before it stands on a
+  map. `WorldViews.Plan`/`Section` now answer a `CellRaster`, whose whole purpose is that the SVG a card
+  shows and the PNG an agent saves are one derivation; the string methods delegate to them, and
+  `?format=png&view=plan|section` answers raw bytes. The isometric and the cutaway draw a block as its own
+  shape rather than as a filled cell, so they have no raster to encode and are refused by name.
+- **A shape naming a theme the registry does not carry is a complaint, and the merge write answers its
+  complaints at all (B253).**  `SketchLayoutCheck` reported a shape kind nobody has, a mirror
+  mode nobody has, an island listing a shape that is not there and a relief keyed to an island that is not
+  there — and said nothing about a **theme** name matching nothing, which is the same class and the quietest
+  fault a finish has: those cells take the map default and the board looks built. Reported once per name
+  rather than once per shape. And `PUT …/sketch/from-plan` ran no document gate at all, answering
+  `{ok, orphaned}` while the plain write answered its warnings — so the road every headless driver takes was
+  the road nothing was reported on. It now runs the same gate over the **merged** document, which is the one
+  actually stored.
 - **A request fault answers the one envelope, whichever route it arrived at (RP2, first half).** 24 sites
   hand-rolled a bare `{error}` — six *malformed plan JSON*, five *invalid plan structure*, three *invalid
   JSON*, and a dozen parameter faults each phrased its own way — so a caller could not write one parser for

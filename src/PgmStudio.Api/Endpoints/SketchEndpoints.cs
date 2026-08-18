@@ -232,8 +232,16 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
 
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
+
+        // The same gate the plain PUT runs, over the document that is actually stored — which is the merged
+        // one, not the posted one, since the carry is what decides whether a shape's theme has a registry to
+        // find. This road is the one an agent drives (compile, patch, put), so a board whose names match
+        // nothing used to be told on the road nobody takes.
+        var document = SketchLayoutCheck.Check(merged);
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+
         await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, Encoding.UTF8.GetBytes(merged), ct);
-        await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
+        await Send.OkAsync(new { ok = true, orphaned = orphans, warnings = Refusals.Dtos(document.Complaints) }, ct);
     }
 }
 

@@ -10,6 +10,32 @@ using PgmStudio.Minecraft.Houses;
 
 namespace PgmStudio.Api.Endpoints;
 
+/// <summary>The <c>?format=png&amp;view=…</c> half the two room-style previews share, over
+/// <see cref="PngAnswer"/> — written once because both endpoints answer the same picture from a style they
+/// reached two different ways.</summary>
+internal static class StylePngAnswer
+{
+    /// <summary>Answer the request as a PNG if one was asked for, and say whether it did. A view name the
+    /// preview cannot raster is a 400 naming the ones it can, the same contract the terrain previews keep.
+    /// </summary>
+    public static async Task<bool> SendStylePngAsync<TEndpoint>(
+        this TEndpoint endpoint, HouseStyle style, CancellationToken ct)
+        where TEndpoint : IEndpoint
+    {
+        var http = endpoint.HttpContext;
+        if (!PngAnswer.Wanted(http)) return false;
+        if (RoomStylePreview.Png(style, PngAnswer.View(http, "section")) is { } png)
+        {
+            await PngAnswer.WriteAsync(http, png, ct);
+            return true;
+        }
+        http.Response.StatusCode = 400;
+        await http.Response.WriteAsJsonAsync(
+            new { errors = new[] { RoomStylePreview.PngViews } }, ct);
+        return true;
+    }
+}
+
 /// <summary>Row ↔ wire-DTO mapping for the room-style library (G34b), the sibling of
 /// <see cref="ThemeLibraryMapping"/>.</summary>
 internal static class RoomStyleMapping
@@ -130,7 +156,11 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
     public override void Configure() { Post("/room-styles/preview"); AllowAnonymous(); }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(RoomStylePreview.Views(await library.ComposeDraftAsync(req, ct)), ct);
+    {
+        var style = await library.ComposeDraftAsync(req, ct);
+        if (await this.SendStylePngAsync(style, ct)) return;
+        await Send.OkAsync(RoomStylePreview.Views(style), ct);
+    }
 }
 
 /// <summary>GET /api/room-styles/{id}/json — the room style assembled into the stamper's own JSON: the form
@@ -161,6 +191,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest
         try
         {
             var style = HouseStyleJson.Deserialize(json, out var unread);
+            if (await this.SendStylePngAsync(style, ct)) return;
             await Send.OkAsync(RoomStylePreview.Views(style) with { Warnings = Refusals.Unread(unread) }, ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid room style JSON", ex, ct); }

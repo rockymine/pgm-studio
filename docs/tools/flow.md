@@ -93,12 +93,19 @@ themes, room shells, dressing and any author-corrected structural height are car
 Relief is the exception — it is keyed by island id and island identity is derived from the geometry, so a
 recompile that re-fuses the board produces different islands and hand-authored terrain has nowhere correct to
 land. That case answers **409** in the refusal envelope, one `SK1` finding per island it would orphan, and
-`?force=true` accepts the loss. It is the author's call, not the server's.
+`?force=true` accepts the loss. It is the author's call, not the server's. Both write paths answer what the
+stored document names and does not have (`SK3`/`SK4`/`SK5`) as complaints on the success, the merge path over
+the document the merge produced rather than the one that was posted.
 
-**Intent onto a map.** `PUT /api/map/{slug}/intent/from-plan` carries much less: the map's **authors and
-contributors**, and nothing else. The plan owns the map's structure, so a rebuild is meant to replace its
-teams, spawns, wools and build zones; what it was silently destroying was the credits, since a compiled intent
-states `authors` and leaves it empty.
+**Intent onto a map.** `PUT /api/map/{slug}/intent/from-plan` carries much less: the **authors and
+contributors the stored intent already held**, and nothing else. The plan owns the map's structure, so a
+rebuild is meant to replace its teams, spawns, wools and build zones; what it was silently destroying was the
+credits, since a compiled intent states `authors` and leaves it empty.
+
+**The carry is intent-to-intent, which decides the order on a first build.** There is no stored intent to
+carry from the first time, and storing one *projects the map document from the intent's own `meta`* — so a
+`PATCH /api/map/{slug}/metadata` that set the authors earlier is overwritten by the projection. Set them
+after. On every rebuild afterwards the carry does its job and the order stops mattering.
 
 Two slices that look like they should ride across deliberately do not, and it is worth knowing because both
 are Configure's work. **`islandTeams`** is a derivation rather than a decision, and island ids are positional,

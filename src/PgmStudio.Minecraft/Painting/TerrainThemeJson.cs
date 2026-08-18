@@ -25,14 +25,14 @@ public static class TerrainThemeJson
     /// <summary>Read a theme, upgrading anything written before the model it names existed. See
     /// <see cref="Upgrade"/> for what is carried forward and why.</summary>
     public static TerrainTheme Deserialize(string json)
-        => JsonSerializer.Deserialize<TerrainTheme>(Upgraded(json), Options)!;
+        => Read<TerrainTheme>(Upgraded(json));
 
     /// <summary>Read a theme and say what of it went unread — see
     /// <see cref="PgmStudio.Domain.DocumentShape"/> for why that is a complaint and not a refusal.</summary>
     public static TerrainTheme Deserialize(string json, out IReadOnlyList<string> unread)
     {
         var node = Upgraded(json);
-        var theme = JsonSerializer.Deserialize<TerrainTheme>(node, Options)!;
+        var theme = Read<TerrainTheme>(node);
         unread = PgmStudio.Domain.DocumentShape.Unread(node, theme);
         return theme;
     }
@@ -125,9 +125,17 @@ public static class TerrainThemeJson
     /// a difference in how System.Text.Json reports it, not in what went wrong, so it is carried across here.
     /// Without this a misspelled <c>kind</c> left the gate above as a stack trace while a misspelled field name
     /// was accepted in silence, which is the wrong way round.</summary>
-    public static TerrainMaterial DeserializeMaterial(string json)
+    public static TerrainMaterial DeserializeMaterial(string json) => Read<TerrainMaterial>(Upgraded(json));
+
+    /// <summary>Deserialize, carrying the kind fault across whatever depth it was found at. A material is
+    /// polymorphic on <c>kind</c>, and System.Text.Json reports a missing discriminator as
+    /// <see cref="NotSupportedException"/> rather than <see cref="JsonException"/> — a difference in how it is
+    /// reported, not in what went wrong. Every reader that can contain a material goes through here, because a
+    /// material nested inside a theme or a style is the same fault as one posted on its own and was answering
+    /// 500 while the bare one answered 400.</summary>
+    private static T Read<T>(JsonNode node)
     {
-        try { return JsonSerializer.Deserialize<TerrainMaterial>(Upgraded(json), Options)!; }
+        try { return JsonSerializer.Deserialize<T>(node, Options)!; }
         catch (NotSupportedException ex) { throw new JsonException(KindFault, ex); }
     }
 
@@ -145,7 +153,11 @@ public static class TerrainThemeJson
     }
 
     /// <summary>What a material whose <c>kind</c> cannot be resolved is refused with. Named once so the
-    /// endpoints and their tests read the same sentence.</summary>
+    /// endpoints, the style reader and their tests read the same sentence.</summary>
     internal const string KindFault =
         "a material names no kind, or names one that does not exist — see GET /api/terrain/patterns";
+
+    /// <summary>The same sentence, for the readers outside this assembly's painting namespace that can also
+    /// contain a material — a house style's courses.</summary>
+    public const string MaterialKindFault = KindFault;
 }

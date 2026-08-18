@@ -111,6 +111,29 @@ public static class SketchLayoutCheck
                 + "elevation is not built",
                 Severity.Complaint, Field: $"relief.{orphan}"));
 
+        // A theme scope resolves shape → map default, and a shape naming a registry entry that is not there
+        // falls all the way through to whatever the map default happens to be — which paints a board and says
+        // nothing, exactly the silence the three names above are reported for. Reported once per name rather
+        // than once per shape: a board that mistyped one key wants one sentence, not thirty.
+        var themes = new HashSet<string>(
+            (IEnumerable<string>?)layout.Themes?.Keys ?? [], StringComparer.Ordinal);
+        var missing = new SortedDictionary<string, List<string>>(StringComparer.Ordinal);
+        foreach (var (shape, _) in Shapes(layout))
+            if (shape.Theme is { Length: > 0 } named && !themes.Contains(named))
+                (missing.TryGetValue(named, out var on) ? on : missing[named] = []).Add(shape.Id);
+        foreach (var (named, on) in missing)
+            findings.Add(new Finding(SketchRules.NamesNothing,
+                $"{on.Count} shape{(on.Count == 1 ? "" : "s")} paint with theme '{named}', which the layout's "
+                + $"registry does not carry{(themes.Count == 0 ? " (it states no themes at all)" : "")} — those "
+                + "cells take the map default instead",
+                Severity.Complaint, Field: "themes", Subjects: [.. on.Where(id => id.Length > 0)]));
+
+        if (layout.MapTheme is { Length: > 0 } mapTheme && !themes.Contains(mapTheme))
+            findings.Add(new Finding(SketchRules.NamesNothing,
+                $"the map default is theme '{mapTheme}', which the layout's registry does not carry — every "
+                + "cell no shape scope claims takes the built-in default instead",
+                Severity.Complaint, Field: "mapTheme"));
+
         void Cover((double MinX, double MinZ, double MaxX, double MaxZ) box)
             => extent = (Math.Min(extent.MinX, box.MinX), Math.Min(extent.MinZ, box.MinZ),
                          Math.Max(extent.MaxX, box.MaxX), Math.Max(extent.MaxZ, box.MaxZ));

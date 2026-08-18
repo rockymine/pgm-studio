@@ -61,6 +61,27 @@ public static class RoomStylePreview
             WorldViews.Elevation(world, Inner(style), CutawayPlane(world, Inner(style)), Math.Max(8, cell * 2)));
     }
 
+    /// <summary>One view of the sample room as PNG bytes, or null for a view name this endpoint does not
+    /// answer in that form. <c>plan</c> and <c>section</c> are cell rasters and encode either way; the
+    /// isometric and the cutaway draw a block as its own shape rather than as a filled cell — a stair
+    /// lattice's whole trick is the quarter each stair is missing — so they have no raster to encode and stay
+    /// SVG. Every other preview in the studio answers <c>?format=png</c>, and a building is the one picture
+    /// the reviewer's checklist asks to be looked at, so the two that can are offered.</summary>
+    public static byte[]? Png(HouseStyle style, string view, int cell = 6)
+    {
+        var world = Stamped(style);
+        var box = Outer(style);
+        return view switch
+        {
+            "plan" => WorldViews.PlanRaster(world, box, cell).Png(),
+            "section" => WorldViews.SectionRaster(world, box, cell).Png(),
+            _ => null,
+        };
+    }
+
+    /// <summary>The view names <see cref="Png"/> answers, for the refusal that names them.</summary>
+    public const string PngViews = "view must be plan or section (isometric and cutaway are SVG only)";
+
     /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
     /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
     private static VoxelWorld Stamped(HouseStyle style)

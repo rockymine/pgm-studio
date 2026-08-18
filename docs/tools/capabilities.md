@@ -214,11 +214,25 @@ terrain into architecture.
 
 The first is height without a way over it. `BuildIntent.MaxHeight` becomes the map's `max_build_height`
 (`BuildGenerator`), and PGM will not let a block be placed above that line — so a bridge cannot be built over
-anything standing higher. Ground whose top clears the cap is therefore not merely tall: it cannot be climbed,
-cannot be bridged past, and cannot be built on top of. A shape given a `height_mode` of `level` at an
-absolute height above the cap, or a `base_height` that reaches past it, is a wall made of terrain, and it
-holds whatever line its outline is drawn along. The same fact is what makes a marker above the cap
-ungriefable, which is the whole of why B89 puts one there.
+anything standing higher.
+
+**A shape cannot put itself above that line, and this is the part an author has to know before reaching for
+the technique.** The cap is derived at build time as twenty blocks over the highest ground the world actually
+builds — `BuildCeiling.Of(terrain.SurfaceTop.Values.Max())` in `SketchWorldBuilder`, the rule `plan.md`
+states as `G6` amendment 14 — and an erected shape **is** one of those columns. Raising a wall of terrain
+therefore raises the ceiling that would have capped it, by exactly the same twenty blocks, and hands the rest
+of the board that ceiling too. Measured on `pgm-studio-mapgen`'s `alabaster-rake`: five pillars topping at
+y43 over ground topping at y14 wrote `<maxbuildheight>64</maxbuildheight>`, twenty-one blocks of clear air
+over the picket they were meant to stand above.
+
+So what a tall shape buys is real but narrower than "a wall nobody passes": ground whose top clears a climb
+**cannot be climbed and cannot be walked through**, and it holds whatever line its outline is drawn along —
+which is a colonnade, a picket or a spine that costs an attacker the material and the visible time a bridge
+takes. It is not a barrier bridging cannot answer. What *is* above the cap by construction is a stamped
+marker, which is why B89 puts one there: a stamp is not terrain and does not enter the measurement.
+
+Whether erected terrain should be excluded from that derivation — which would make the blocker composition
+above real — is a question about how a map plays and belongs to the author.
 
 The second is that the top need not be flat. `anchor_heights` states a height per vertex on a polygon or
 lasso, TIN-interpolated across the footprint, so a shape's surface tilts rather than stepping. A rectangle
@@ -458,10 +472,15 @@ one theme and every odd step another — so the flight reads as built masonry ra
 happens to be quantised. The two ways of making ground are meant to share a board: a stepped quarter that is
 plainly a platform against a solved quarter that is plainly a hillside.
 
-**An erected cube as a blocker, themed as its own thing.** A shape with a `height_mode` and a top above
-`max_build_height` is an obstacle rather than terrain, and because paint scopes to the shape, that obstacle
+**An erected cube as a blocker, themed as its own thing.** A shape with a `height_mode` and a top well over
+the ground beside it is an obstacle rather than terrain, and because paint scopes to the shape, that obstacle
 takes its own material — so a line of them is a colonnade, a wall or a set of pillars, and nothing about it
-is scenery. Tilted with `anchor_heights` it leans; below the cap the same tilt is a ramp.
+is scenery. Tilted with `anchor_heights` it leans; a shallower tilt is a ramp. It bounds where players may
+**walk**, not where they may build: see the ceiling note above for why a shape cannot stand over the cap.
+Two further facts make the pillar read as one: the theme's `fill` is what fills the column below the surface
+bucket's stated depth, so a banded riser wants the same `layered` stack in both or the bands stop a few
+courses down; and `relief_scope: exclude` keeps the shape out of its island's solve so it holds the height it
+was drawn at.
 
 **A building used as a boundary rather than as a place.** A `HouseStyle` takes `RoofForm.Flat` — the lid form
 — and its courses take any material, bedrock included, so a house can be authored as a sealed slab-topped

@@ -475,7 +475,7 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent, warnings}`, each half serialized with its consumer's options so both can be posted on verbatim | 422 `{findings}` structural or completeness errors · 400 malformed |
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef` | 409 one `SK1` finding per orphaned island, subject = island id (`?force=true` accepts the loss) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok, orphaned, warnings}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` is what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers | 409 one `SK1` finding per orphaned island, subject = island id (`?force=true` accepts the loss) · 422 `SK2` · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure` | 422 the layout rasterizes to no ground |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 |
 | `GET /map/{slug}/export` | — | the world ZIP | non-2xx with a message |
@@ -497,6 +497,15 @@ PUT    /api/map/voidwatch/intent/from-plan   <intent verbatim>
 the compile, with no map in existence, and are the cheapest way to find out whether a board is well-formed.
 `GET /api/map/{slug}/layers` before the build says whether this is an origination or a rebuild. `GET
 /api/map/{slug}/export` afterwards returns the world.
+
+**Two further calls belong after the intent, and the order is load-bearing.**
+`POST /api/map/{slug}/sketch/columns` answers every prop the dressing pass declined, under `warnings` — and
+`DR-KEEP` among them reads the spawn doors' approaches and the goal rings, which come off the **intent**, so
+the same call asked before it answers a shorter list. `PATCH /api/map/{slug}/metadata` is where the map's
+authors are set, and it has to follow for a different reason: storing an intent projects the document from
+the intent's own `meta`, whose `authors` a compiled intent leaves empty, so a name written earlier is
+overwritten rather than kept. `intent/from-plan` carries authors from a **previously stored intent**, which a
+first build does not have.
 
 The smallest plan that survives the gate needs one generating piece, one spawn marker, and — for a CTW map —
 a wool that is reachable from every capturing team's spawn by a route that does not pass through a spawn piece.

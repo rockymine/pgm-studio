@@ -105,24 +105,20 @@ repo's history); the counts below are re-measured against today's tree. The stor
 
 ### Agentic Map Authoring
 
-- [ ] **B253 — How a model actually drives the studio: read the six drivers and the fifteen reports, then
-decide what the one driver is.** Nobody authored a map the same way twice. The `pgm-studio-mapgen` repository carries
-**six** independent drivers — `tools/drive.ps1` (a thin poster, hand-authored layouts), `tools/drive.py`
-(compiles the plan through the API, then patches the compiled layout by tier height), two per-spec
-`assemble.ps1`, and `build.py`/`reconstruct.py` under `coldharbour`, `coldharbour_v2`, `quernstone` and
-`thunder-series` — plus `tools/build.cs` and `world-build.cs`, against `tools/mapgen` in this repo. Two
-point at different ports. Each was written because the one before it did not fit, and none of that reached
-a document.
+- [ ] **RP4 — The export's own objective gates have no pre-flight, and an agent pays a whole build for
+  each.** `OB17` (a goal overhanging void, in a spawn, in a wool room) and `OB19` (a tree, boulder or
+  building inside a goal's clearance) are refusals raised by `MapExportComposer` over the rasterized ground,
+  so the first time a driver hears one is `GET /map/{slug}/export` answering 409 — after the world has been
+  built. Run 4 hit them three times across four boards; nothing in `/plan/evaluate`, `/plan/compile` or
+  `sketch/columns` predicts either, and the compile gate is deliberately silent about an absolutely-placed
+  goal because it has no ground truth to judge against. The ground exists as soon as `sketch/finish` has
+  run: answer both over it, on the read an agent already makes (`POST …/sketch/columns`, beside the `DR-*`
+  complaints), as complaints there and refusals where they are now.
 
-**Read them against the `reports/` (15) and `review/` (29) records** and answer three things. *What every
-driver had to do itself* — the call order, the fanning, the `@style` resolution, the wait-and-look step —
-is the shape of the driver the studio should ship. *What each model reached for and could not find* is
-where the endpoints are unreachable rather than absent, which is `B109`'s and `B245`'s subject. *What a
-driver had to know that no document says* is the gap `AUTHORING-BRIEF.md` should close.
-
-The output is a finding, not a refactor: one written account of the authoring loop as it is actually
-driven, and a decision on whether the one driver belongs in `pgm-studio` beside `tools/mapgen` or in
-`pgm-studio-mapgen` beside the specs. Worth doing before `B245` and `B249`, which both assume an answer.
+  *Evidence: `hollowbank` placed a destroyable at `(0, 45)` on a plan piece and cut a sally port through
+  that piece in the layout — compile 200, export 409 `OB17`. `alabaster-rake` put a shed run at
+  `x 15..24, z 58..62` against a goal anchored `(5, 47)`; the keep-out is a 10-block square about the anchor
+  tested against the footprint plus its eaves, and neither cycle was predictable before the build.*
 
 ### The author's override: building a board the gates refuse
 

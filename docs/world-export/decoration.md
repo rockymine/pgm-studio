@@ -543,7 +543,15 @@ claimed`. The first claimant keeps a cell, so that owner is the one that actuall
 The declines travel three ways: back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
 `warnings` beside the payload, which is the loop an agent actually drives; as `region/dressing-report.json`
 beside the provenance sidecar (written only when something dropped, deleted on a rebuild that dropped
-nothing); and as one stderr line per decline from `tools/mapgen`. A path's per-cell skips stay unreported; a
+nothing), **inside the export zip as well as beside a `tools/mapgen` build** — the two sidecars are the two
+halves of one census, provenance saying what landed and this saying what did not, and an HTTP caller that
+got only the first could not tell a prop that was never authored from one the pass refused; and as one
+stderr line per decline from `tools/mapgen`.
+
+**One of those three is ordered, and the order is not obvious.** `DR-KEEP` reads the spawn doors' approaches
+and the goal rings, and those come off the map's **intent** — so `sketch/columns` asked before
+`PUT …/intent/from-plan` answers a shorter list than the same call asked after it. A driver that reads the
+declines at the end of the sketch stage sees every rule but that one. A path's per-cell skips stay unreported; a
 route crossing kept-clear ground one cell at a time is the ordinary shape of a path, not a decision an author
 needs restated.
 

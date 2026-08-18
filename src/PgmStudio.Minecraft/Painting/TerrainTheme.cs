@@ -119,6 +119,10 @@ public sealed record LayeredMaterial(
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
     {
+        // A stated layered carrying no stack is a document fault, not a crash: it falls through to the same
+        // answer a voronoi with no bands gives, and the reader's unread walk is what names the field that was
+        // written instead. Painting is called per column, so a throw here is a 500 on a whole request.
+        if (Stack is null) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
         var step = Axis == BandAxis.Inward ? ctx.Inset : ctx.DepthFromTop;
         // Off the footprint the inward axis has no answer, which is not the same as being past the last band:
         // there is no ring to be in, so the stack never gets asked.
@@ -150,7 +154,10 @@ internal static class MaterialHash
 public sealed record TeamTintedMaterial(int BlockId, TerrainMaterial Neutral) : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
-        => ctx.HasTeam ? (BlockId, ctx.TeamData) : Neutral.Resolve(in ctx);
+        // A tint stated with no neutral is a document fault rather than a crash: it takes the same
+        // fall-through a voronoi with no bands takes, and the reader's unread walk names the field that was
+        // written instead. Painting runs per column, so a throw here is a 500 over a whole request.
+        => ctx.HasTeam ? (BlockId, ctx.TeamData) : Neutral?.Resolve(in ctx) ?? (Blocks.Stone, 0);
 }
 
 /// <summary>A top-claiming bucket's spec (TP7/TP11/TP12): the material its courses resolve through, how many

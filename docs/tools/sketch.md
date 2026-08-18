@@ -674,9 +674,13 @@ in the export's shared sketch leg, so a headless driver meets the same measure t
 **What the document names and does not have is said rather than swallowed.** The rasterizer is set algebra
 over shapes, so a shape it cannot read contributes no ground instead of failing — which means a defect in the
 document reads exactly like a smaller drawing. `SketchLayoutCheck` says so, as complaints riding on the
-success under `warnings`: `SK3` for a name that matches nothing — a shape kind nobody has, a **mirror mode**
-nobody has (which fans the board onto itself, so a map stating two halves stands on one), an island listing a
-shape id the layout does not carry, a relief keyed to an island that does not exist — `SK4` for a shape that
+success under `warnings` — **on both write paths**, since the merge is the road a headless driver takes and
+the gate runs over the merged document rather than the posted one: `SK3` for a name that matches nothing — a
+shape kind nobody has, a **mirror mode** nobody has (which fans the board onto itself, so a map stating two
+halves stands on one), an island listing a shape id the layout does not carry, a relief keyed to an island
+that does not exist, and a **theme** the registry does not carry, on a shape or as the map default (which
+paints those cells with whatever the default happens to be and is otherwise the quietest fault a finish has —
+one reported per name rather than one per shape) — `SK4` for a shape that
 draws no ground (a polygon under three vertices, a circle or path of no width, a rectangle of no area), and
 `SK5` for a column the world cannot hold. Each carries the document path that named nothing in its `field`
 and the shape's id as its subject.
@@ -699,7 +703,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{ok: true, warnings}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` is what the document names and does not have (`SK3`/`SK4`/`SK5`) | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned, warnings}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
@@ -772,11 +776,18 @@ plateau plus a top-down swatch per bucket. `POST /terrain/prop-preview` and the 
 (`/terrain/path-styles`, `/water-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
 built. `POST /room-styles/preview`, its `-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`,
 `/porch-styles/preview` answer a building in plan, section, isometric and cutaway. The default is **SVG text
-inside JSON**, which the client renders inline — and the three finish previews also answer
+inside JSON**, which the client renders inline — and every one of them also answers
 **`?format=png&view=…`** with one named view as raw `image/png` bytes, the form an agent saves and looks at:
-`view=plan|section` on `material-preview` and `prop-preview`, `view=section|rim|surface|wall|fill` on
-`theme-preview`. Both encodings come off one `CellRaster` per picture, so they cannot disagree; a view name an
-endpoint does not have is a 400 naming the ones it does.
+`view=plan|section` on `material-preview`, `prop-preview` and the **room-style previews**,
+`view=section|rim|surface|wall|fill` on `theme-preview`. Both encodings come off one `CellRaster` per
+picture, so they cannot disagree; a view name an endpoint does not have is a 400 naming the ones it does.
+
+A building's **isometric and cutaway stay SVG**, and the reason is the picture rather than the plumbing: both
+draw a block as its own shape rather than as a filled cell — a stair lattice's whole trick is the quarter each
+of its four stairs is missing, and a renderer that fills the cell shows that window as a solid patch. There is
+no raster to encode, so those two views are refused by name. The plan and the section are cell rasters and
+answer either way, which is what matters: `AD-S6` and the reviewer's `C14` both ask for a building to be
+looked at **in section** before it stands on a map, and an agent that can only open a raster could not.
 
 **After Finish**, the map holds rasterized world geometry and three more reads open up:
 `GET /map/{slug}/layers/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and

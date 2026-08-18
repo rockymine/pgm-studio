@@ -81,9 +81,14 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
                 AddFile(archive, Path.Combine(tmp, "level.dat"), $"{slug}/level.dat");
                 foreach (var mca in Directory.GetFiles(regionDir, "*.mca"))
                     AddFile(archive, mca, $"{slug}/region/{Path.GetFileName(mca)}");
-                var provenanceFile = Path.Combine(regionDir, "provenance.json");
-                if (File.Exists(provenanceFile))
-                    AddFile(archive, provenanceFile, $"{slug}/region/provenance.json");
+                // Both sidecars travel: provenance says what landed, the decline report says what did not,
+                // and the second is the only record an HTTP caller ever gets of a dropped prop. The report is
+                // written only when something dropped, so its absence is the answer "everything stood".
+                foreach (var sidecar in new[] { "provenance.json", "dressing-report.json" })
+                {
+                    var path = Path.Combine(regionDir, sidecar);
+                    if (File.Exists(path)) AddFile(archive, path, $"{slug}/region/{sidecar}");
+                }
             }
             return ms.ToArray();
         }
