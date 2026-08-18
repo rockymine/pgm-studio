@@ -40,15 +40,18 @@ internal static class IntentWrite
         var intent = (string.IsNullOrWhiteSpace(body) ? null : JsonSerializer.Deserialize<MapIntent>(body, MapArtifactStore.Json)) ?? new MapIntent();
 
         await artifacts.SaveJsonAsync(mapId, ArtifactKind.MapIntentJson, intent, ct);
-        // Authors/contributors are usernames → resolve to uuids here (async, outside the pure generator).
+        // A stated name is looked up here (async, outside the pure generator) so an account gets its uuid.
         var authors = await ResolveAuthorsAsync(mojang, intent, ct);
         return await WriteSupport.RunEditAsync(repo, reader, writer, slug,
             doc => { IntentGenerator.Apply(doc, intent); if (authors is not null) doc["authors"] = authors; return new Dict(); }, ct);
     }
 
-    // Resolve each author/contributor username to {uuid, name, role, contribution}; unresolved names
-    // are skipped (mirrors MetadataEndpoint, which drops entries without a uuid). Null = leave authors
-    // untouched.
+    // Turn each stated author/contributor into {uuid, name, role, contribution}. PGM takes a person as an
+    // account — a `uuid` it resolves to a player — or a pseudonym, the element's own text, and either alone
+    // is a whole author, so a name Mojang does not know is kept as a pseudonym rather than dropped: the
+    // intent already models one (`AuthorIntentJson` reads a bare string into `Name`) and the codec already
+    // writes one (`XmlWriter.WriteAuthors` emits `<author>Name</author>` when the uuid is empty), so
+    // discarding it here lost a stated author in silence. Null = leave authors untouched.
     private static async Task<List<object?>?> ResolveAuthorsAsync(MojangClient mojang, MapIntent intent, CancellationToken ct)
     {
         if (intent.Meta is not { } m) return null;
@@ -57,16 +60,15 @@ internal static class IntentWrite
         {
             foreach (var person in people.Where(p => p.Name.Trim().Length > 0))
             {
-                try
+                var stated = person.Name.Trim();
+                var (uuid, name) = ("", stated);
+                try { (uuid, name) = await mojang.LookupAsync(stated, ct); }
+                catch { /* not an account — the stated name stands on its own as a pseudonym */ }
+                resolved.Add(new Dict
                 {
-                    var (uuid, canonical) = await mojang.LookupAsync(person.Name.Trim(), ct);
-                    resolved.Add(new Dict
-                    {
-                        ["uuid"] = uuid, ["name"] = canonical, ["role"] = role,
-                        ["contribution"] = person.Contribution,
-                    });
-                }
-                catch { /* unknown username / lookup failed — skip this entry */ }
+                    ["uuid"] = uuid, ["name"] = name, ["role"] = role,
+                    ["contribution"] = person.Contribution,
+                });
             }
         }
         await Add(m.Authors, "author");

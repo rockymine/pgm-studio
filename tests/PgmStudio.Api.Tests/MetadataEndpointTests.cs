@@ -10,8 +10,9 @@ using PgmStudio.Migrations;
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
-/// B6 integration tests: PATCH /api/map/{slug}/metadata persists authors/contributors to the
-/// <c>author</c> table (the bug was that the endpoint dropped them), and GET reads them back.
+/// PATCH /api/map/{slug}/metadata persists authors/contributors to the <c>author</c> table and GET
+/// reads them back. A person is an account (a <c>uuid</c>) or a pseudonym (a name, carried as the
+/// element's own text), and either alone is a whole author.
 /// Runs against the <c>pgm_studio_test</c> schema (override with <c>PGM_STUDIO_TEST_DB</c>); each
 /// test resets the schema and seeds one map, so they run serially.
 /// </summary>
@@ -47,7 +48,7 @@ public sealed class MetadataEndpointTests
     }
 
     [Test]
-    public async Task Patch_skips_authors_without_a_uuid()
+    public async Task Patch_keeps_a_pseudonym_and_skips_an_empty_entry()
     {
         using var client = await SeedAsync("bmap");
 
@@ -55,14 +56,20 @@ public sealed class MetadataEndpointTests
         {
             authors = new object[]
             {
-                new { uuid = "", name = "typed-but-unresolved", role = "author" },
+                new { uuid = "", name = "Opus 5", role = "author" },
+                "a bare string",
+                new { uuid = "", name = "", role = "author" },
                 new { uuid = "069a79f4-44e9-4726-a5be-fca90e38aaf5", name = "Notch", role = "author" },
             },
         });
 
         var authors = await GetAuthorsAsync(client, "bmap");
-        await Assert.That(authors.Count).IsEqualTo(1);
-        await Assert.That(Field(authors[0], "name")).IsEqualTo("Notch");
+        await Assert.That(authors.Count).IsEqualTo(3);
+
+        var pseudonym = authors.Single(a => Field(a, "name") == "Opus 5");
+        await Assert.That(Field(pseudonym, "uuid")).IsEqualTo("");
+        await Assert.That(authors.Any(a => Field(a, "name") == "a bare string")).IsTrue();
+        await Assert.That(authors.Any(a => Field(a, "uuid") == "069a79f4-44e9-4726-a5be-fca90e38aaf5")).IsTrue();
     }
 
     [Test]

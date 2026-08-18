@@ -27,6 +27,17 @@ intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are lan
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit. Only
 the focus-integration polish remains.
 
+- [ ] **TC2 — The Identity editor cannot state a pseudonym, and drops one in silence.** PGM takes a person
+  as an account (a `uuid`) or a pseudonym (the element's own text), and both codec halves plus
+  `PATCH /map/{slug}/metadata` accept either. The editor does not: `AuthorsEditor.ResolveName` clears the
+  uuid and sets `Error` when Mojang does not know the typed value, and `IdentityPhase.razor.cs:59` then
+  filters the row out with `p.Uuid.Length > 0` — so `Opus 5` is typed, flagged, and dropped without a word
+  reaching the saved intent. Decide what a pseudonym row looks like (an accepted unresolved name, or an
+  explicit "pseudonym" toggle beside the lookup), then stop the silent filter: an unusable row is refused
+  out loud or it is kept. `Components/Forms/AuthorsEditor.razor.cs`, `Features/Configure/IdentityPhase.razor.cs`,
+  `Features/Edit/`. Evidence: `PUT /map/x/intent` with `meta.authors = ["Opus 5"]` round-trips to
+  `<author>Opus 5</author>`; the same name typed into Configure Identity never reaches the intent.
+
 - [ ] **N08 — Monument Y via side-view + per-side focus.** The side-view (`SliceView`) already sets Y on
   **spawn** and **wool-spawn** (`SpawnStep`/`WoolSpawnStep`, `FEATURES.md`); the open slice is the rest:
   (a) wire the side-view into **`WoolMonumentsStep`** so a monument's Y is editable, not read-only

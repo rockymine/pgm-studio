@@ -55,7 +55,7 @@ null `cores` and nothing about cores is generated or cleared.
 
 | Slice | Holds |
 |---|---|
-| `meta` | name, authors, contributors — usernames, resolved to uuids server-side |
+| `meta` | name, authors, contributors — an account (a `uuid`) or a pseudonym (a bare name) |
 | `symmetry` | the confirmed mode and centre; drives orbit-fill |
 | `teams` · `maxPlayers` | the teams to generate and the shared per-team cap |
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
@@ -170,10 +170,12 @@ this tool and the Edit tool.
 
 ### Identity
 
-One form: the map's display name and its authors and contributors. Authors are Minecraft **usernames**,
-resolved to uuids as they are typed; only a resolved name is written, so a typo is caught at the source rather
-than reaching the generated map. The phase is complete with a name and at least one author, and that is the
-one gate that blocks the very first Next.
+One form: the map's display name and its authors and contributors. PGM takes a person as an **account** — a
+`uuid` it resolves to a player — **or** a **pseudonym**, the element's own text, and either alone is a whole
+author; `PUT /map/{slug}/intent` and `PATCH /map/{slug}/metadata` both accept either. The editor offers only
+the account half: a typed value is looked up against Mojang on blur and a miss is flagged, so a name Mojang
+does not know cannot be entered here and a pseudonym has to be written through the API (`TC2`). The phase is
+complete with a name and at least one author, and that is the one gate that blocks the very first Next.
 
 ### World — Scan · Islands · Symmetry
 

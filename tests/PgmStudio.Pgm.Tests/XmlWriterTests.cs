@@ -67,6 +67,32 @@ public sealed class XmlWriterTests
         await Assert.That(reparsed.Authors[0].Uuid).IsEqualTo("");
     }
 
+    /// <summary>A pseudonym may still say what it did. PGM's own documentation writes the case as
+    /// <c>&lt;contributor contribution="A contribution"&gt;aHelper&lt;/contributor&gt;</c> — the name is the
+    /// element's text and the contribution is an attribute beside it, so the two are independent and neither
+    /// implies an account.</summary>
+    [Test]
+    public async Task A_pseudonym_keeps_its_contribution()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Authors =
+            [
+                new Author { Role = "contributor", Name = "aHelper", Contribution = "A contribution" },
+            ],
+        };
+        var xml = XmlWriter.ToXml(m);
+
+        await Assert.That(xml).Contains("<contributor contribution=\"A contribution\">aHelper</contributor>");
+        await Assert.That(xml).DoesNotContain("uuid");
+
+        var reparsed = MapParser.ParseXmlString(xml);
+        await Assert.That(reparsed.Authors.Single().Name).IsEqualTo("aHelper");
+        await Assert.That(reparsed.Authors.Single().Contribution).IsEqualTo("A contribution");
+        await Assert.That(reparsed.Authors.Single().Uuid).IsEqualTo("");
+    }
+
     /// <summary>A person carrying neither an account nor a name is something PGM refuses outright, so the
     /// writer drops them rather than emitting an element that fails the map.</summary>
     [Test]
