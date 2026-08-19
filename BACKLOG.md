@@ -987,16 +987,6 @@ place.
 
   *Filed under `S` and living here because the measure is what blocks it; the id does not move with the heading.*
 
-- [ ] **TN1 — The driver reads two of the four plan-level answers, and the two it skips are the ones that
-  need no build.** `tools/drive.py` (`pgm-studio-mapgen`) posts `/plan/evaluate` and `/plan/inspect` before a
-  map row exists and prints every finding — `B109`'s ask, and done. Two reads that cost no build are not on
-  it: `GET /map/{slug}/plan/ascii`, the grid a relation between two rectangles is legible in, and
-  `GET /map/{slug}/plan/flow`, what the board asks of the two sides and what that leaves unused. Both are
-  documented in `AUTHORING-BRIEF.md` and `tools/README.md` and neither is called, which is the same reach
-  gap `B109` was filed for. The slot is after `PUT /map/{slug}/plan` and before the compile — both read the
-  **stored** plan, so neither can run at the driver's first step. `tools/README.md`'s "four places a finding
-  can appear" gains a fifth read that raises none, beside `coverage`.
-
 - [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
   (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
   connects regardless of surface delta, while `Components` unions an overlap only at `SurfaceDelta == 0`.

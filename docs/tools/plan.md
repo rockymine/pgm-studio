@@ -484,6 +484,12 @@ glance. `GET /map/{slug}/plan/ascii` answers it as `text/plain`, which is also t
 no image reader can act on. Terrain takes a letter per piece, a build zone is `+`, a water lane `~`, an
 enclosed void `o`, open void a space, and markers overprint their ground.
 
+**The grid and the flow read the stored plan, and neither refuses anything**, which is what makes them the
+two an authoring loop forgets: a call that cannot fail is a call nobody is made to run. So they are on the
+driver rather than left to be remembered — `pgm-studio-mapgen`'s `tools/drive.py` prints both between the
+`PUT …/plan` and the compile, which is the first moment either can answer and the last one before a board's
+shape is committed to a world.
+
 **Reading a plan.** All three take **the plan document itself as the body** — unwrapped, exactly the shape
 `GET /map/{slug}/plan` hands back — and store nothing, so they can be asked of a document that has never been
 posted anywhere. That is what makes them the cheapest way to find out whether a board is well formed.

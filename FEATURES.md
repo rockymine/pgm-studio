@@ -708,7 +708,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   row exists: `POST /plan/evaluate` for the score, `valid` and the whole `lint[]` table, and
   `POST /plan/inspect` for each goal's two spawn walks against `GO1`, the island gaps against `CT12`, the
   frontline runs and the wall rects. `--dry` stops there, so a board can be read for the price of no build
-  at all. The account is `reports/opus5-run4.md` there, the errata it
+  at all.
+- **The three reads that refuse nothing are on the driver, so no run has to remember them (`TN1`).** A read
+  that raises no finding is the one nobody runs: `tools/drive.py` printed one of the three — `coverage`, at
+  the far end — and the two that cost no build at all were documented in the brief and in the driver's own
+  README and never called. `GET /map/{slug}/plan/ascii` and `GET /map/{slug}/plan/flow` print together now,
+  after the plan is stored and before anything is compiled, which is the first moment either can answer:
+  both read the **stored** plan, so there is nothing to ask before the `PUT`. The grid is asked at 1:1 — a
+  route or a seam one cell wide is sampled away by any other step — and re-asked downsampled only when the
+  board comes back wider than a screen, measured on the grid's own rows, since the key under them wraps at
+  its own width and measuring the whole render measures the key. Coverage gains the sentence it was missing:
+  where a board has no two waypoints to join, silence read as "nothing dead" and meant "never measured".
+  Driven end to end on `specs/opus5-hollowbank`: the flow called 15% of the board dead off the plan alone,
+  at `(-35, 35)` and `(30, -40)`, and the coverage read at the far end found the same two patches at
+  `(-37, 36)` and `(35, -38)` once a world existed to measure — the pair working, one saying why while the
+  board is still rectangles and the other saying that it happened. The account is `reports/opus5-run4.md` there, the errata it
   measured is `GENERATION-NOTES.md` §17, and the decision is that the one driver lives **beside the specs**
   rather than beside `tools/mapgen` — it drives the HTTP API a person also drives, while `mapgen` builds
   from a spec through `ComposeSketch` and cannot repaint a compiled shape at all. `tools/drive.py` is it,
