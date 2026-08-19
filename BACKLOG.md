@@ -286,10 +286,16 @@ owns.
   `sketch/relief` and `sketch/relief/read` each call `SketchLayoutCheck.Check` and hand the result to
   `Refusals.StopAsync`, which writes **refusals only** — so `SK2` stops them and every complaint is dropped,
   on the three endpoints an author actually looks at the board through. All three answer an object, so each
-  can carry `warnings` exactly as `sketch/columns` already does. `sketch/finish` is the fourth and runs no
-  check at all: it rasterizes and refuses only where *nothing* is drawn, which is the one place a **refusal**
-  would be coherent, since finishing is the step that says the drawing is done. Whether it should refuse
-  there is the author's.
+  can carry `warnings` exactly as `sketch/columns` already does, and `sketch/relief/read` is on the driver's
+  own road. `sketch/finish` is the fourth and runs no check at all: it rasterizes and refuses only where
+  *nothing* is drawn, which is the one place a **refusal** would be coherent, since finishing is the step
+  that says the drawing is done. Whether it should refuse there is the author's.
+
+  **The cause is that nothing says a caller of `StopAsync` owes the complaints anywhere.** The helper writes
+  `findings.Refusals` and answers false, which is right — a complaint must never arrive dressed as a refusal.
+  What is missing is the other half of the sentence: an endpoint that ran a gate has an answer in its hand,
+  and four of them decide what to do with it independently. Fix the four, and state the rule in
+  `docs/refusals.md` where `StopAsync` is described, or the fifth endpoint written will drop them too.
 
   *re-probed 2026-08-19 against the running API, `b141-probe` — one good rectangle plus one shape carrying no
   `type`: `PUT …/sketch` **200 with the `SK3` warning**, naming `layout.shapes[1].type` and the shape id;
@@ -297,6 +303,22 @@ owns.
   warning; `POST …/sketch/finish` **200**. The `{"islands":[]}` is not the fault — a control layout with the
   bad shape removed answers it too, because `relief/read` answers per stated `relief` block and this document
   states none.*
+
+- [ ] **TN2 — `structural-integrity` carries one sentence where several refusals fired.** The term folds
+  every `PlanValidator` refusal into one hard violation, and where there is more than one its message is
+  `"{n} structural errors ({first})"` — so `/plan/evaluate` tells an agent the count and one of them, and the
+  other n−1 arrive only at the compile's 422 a stage later. The evidence rides already: `SubjectIds` is the
+  union over all of them, so the count and the subjects are right and only the sentences are dropped. Carry
+  them — a violation already wraps a `Finding`, so either the term answers the list or the DTO gains the rest
+  beside the one it names. `StructuralTerms.cs:22-32`.
+
+- [ ] **TN3 — The driver states two bands as literals the studio already serves.** `tools/drive.py`
+  (`pgm-studio-mapgen`) prints `(GO1 wants 3.0-4.0)` beside each goal ratio and `(CT12 wants 15-40 on a
+  direct strait)` beside each island gap, both hard-coded in the f-string. `GET /api/rules/terms` answers
+  `{"term":"goal-spawn-ratio","rule":"GO1","band":[3,4],"bandSource":"authored"}` — the enforced number,
+  read through the scorer's own resolution — and `GET /api/rules?rule=CT12` answers the rule's own sentence.
+  A band the author moves leaves the driver telling every future run the old one. Read them once at the top
+  of the run and print what came back.
 
 - [ ] **B143 — `SP1` must say that a plan declares no build zone, not that its wools are unreachable.** The
   rule needs a declared zone before it has frontline pieces to start from, so a zone-less plan has **all** its
