@@ -85,6 +85,24 @@ public sealed class CoreSuggestionsEndpointTests
     }
 
     [Test]
+    public async Task A_box_that_cannot_be_read_is_refused_rather_than_ignored()
+    {
+        // The filter is optional, so a failed parse used to skip it and answer every casing the map has
+        // under a 200 — a mistyped box reading as "this volume holds them all". Absent still means no
+        // filter; stated and unreadable is RQ1, the same fault the monument route already named.
+        var (client, slug, mapId) = await SetUpAsync();
+        await WriteAsync(mapId, Core(0, 0), Core(500, 500));
+
+        var refused = await client.GetAsync($"/api/map/{slug}/core-suggestions?box=garbage");
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        var body = await refused.Content.ReadFromJsonAsync<JsonElement>();
+        var finding = body.GetProperty("findings").EnumerateArray().Single();
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("box");
+    }
+
+    [Test]
     public async Task The_casing_defaults_come_back_even_when_nothing_was_found()
     {
         // A map with no proposals still needs them: a core placed by hand takes its size, shell, float and

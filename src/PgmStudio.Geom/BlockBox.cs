@@ -38,6 +38,35 @@ public readonly record struct BlockBox(int MinX, int MinY, int MinZ, int MaxX, i
 
     public bool Contains(int x, int y, int z) => x >= MinX && x <= MaxX && y >= MinY && y <= MaxY && z >= MinZ && z <= MaxZ;
 
+    /// <summary>Whether two volumes share any block. Inclusive on both bounds, like everything else here.</summary>
+    public bool Intersects(BlockBox other) =>
+        MinX <= other.MaxX && MaxX >= other.MinX
+        && MinY <= other.MaxY && MaxY >= other.MinY
+        && MinZ <= other.MaxZ && MaxZ >= other.MinZ;
+
+    /// <summary>The wire form a caller states a volume in: six comma-separated integers,
+    /// <c>x0,y0,z0,x1,y1,z1</c>. The corners are read in either order and normalised, because a box drawn
+    /// from the far corner is the same volume and refusing it would be arithmetic pedantry.
+    /// <para>It lives on the type rather than at the routes that read it: two endpoints had copied the same
+    /// six lines and then disagreed about what an unreadable one means, which is how a mistyped filter came
+    /// to read as no filter at all on one of them.</para></summary>
+    public static bool TryParse(string? text, out BlockBox box)
+    {
+        box = default;
+        if (text is null) return false;
+        var parts = text.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length != 6) return false;
+        var corners = new int[6];
+        for (var index = 0; index < 6; index++)
+            if (!int.TryParse(parts[index], System.Globalization.NumberStyles.Integer,
+                              System.Globalization.CultureInfo.InvariantCulture, out corners[index]))
+                return false;
+        box = new BlockBox(
+            Math.Min(corners[0], corners[3]), Math.Min(corners[1], corners[4]), Math.Min(corners[2], corners[5]),
+            Math.Max(corners[0], corners[3]), Math.Max(corners[1], corners[4]), Math.Max(corners[2], corners[5]));
+        return true;
+    }
+
     /// <summary>The same box grown by <paramref name="margin"/> blocks on every face.</summary>
     public BlockBox Expand(int margin) =>
         new(MinX - margin, MinY - margin, MinZ - margin, MaxX + margin, MaxY + margin, MaxZ + margin);

@@ -435,7 +435,7 @@ as though they were top level; they are not.
 | `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain |
 | `POST /map/{slug}/wool-sources` | wool colours and their source clusters inside a drawn rectangle |
 | `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence |
-| `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults |
+| `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
 
 **Finishing**

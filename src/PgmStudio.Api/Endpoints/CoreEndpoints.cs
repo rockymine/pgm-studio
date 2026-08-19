@@ -30,9 +30,21 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db) : Endp
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
+        // The filter is optional and an unreadable one is not the same as an absent one: skipping the filter
+        // on a box that cannot be read answers every casing the map has under a 200, which reads as "this
+        // volume holds them all". Stated and unreadable is a refusal; absent is no filter.
+        var stated = HttpContext.Request.Query["box"].ToString();
+        if (stated.Length > 0 && !BlockBox.TryParse(stated, out _))
+        {
+            await Refusals.UnreadableAsync(HttpContext, "box unreadable",
+                "the volume to filter by is stated as box=x0,y0,z0,x1,y1,z1; leave it off to read them all",
+                ct, field: "box");
+            return;
+        }
+
         var cores = await CoreCandidateStore.ReadAsync(db, map.Id, ct);
-        if (TryParseBox(HttpContext.Request.Query["box"].ToString(), out var box))
-            cores = [.. cores.Where(core => Intersects(core.Casing, box))];
+        if (BlockBox.TryParse(stated, out var box))
+            cores = [.. cores.Where(core => core.Casing.Intersects(box))];
 
         await Send.OkAsync(new Dict
         {
@@ -63,19 +75,4 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db) : Endp
         }, ct);
     }
 
-    private static bool Intersects(BlockBox a, BlockBox b) =>
-        a.MinX <= b.MaxX && a.MaxX >= b.MinX && a.MinY <= b.MaxY && a.MaxY >= b.MinY && a.MinZ <= b.MaxZ && a.MaxZ >= b.MinZ;
-
-    private static bool TryParseBox(string s, out BlockBox box)
-    {
-        box = default;
-        var parts = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length != 6) return false;
-        var n = new int[6];
-        for (var i = 0; i < 6; i++) if (!int.TryParse(parts[i], out n[i])) return false;
-        box = new BlockBox(
-            Math.Min(n[0], n[3]), Math.Min(n[1], n[4]), Math.Min(n[2], n[5]),
-            Math.Max(n[0], n[3]), Math.Max(n[1], n[4]), Math.Max(n[2], n[5]));
-        return true;
-    }
 }

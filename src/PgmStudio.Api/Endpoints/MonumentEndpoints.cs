@@ -30,7 +30,7 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : 
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Send.NotFoundAsync(ct); return; }
 
-        if (!TryParseBox(HttpContext.Request.Query["box"].ToString(), out var box))
+        if (!BlockBox.TryParse(HttpContext.Request.Query["box"].ToString(), out var box))
         {
             await Refusals.UnreadableAsync(HttpContext, "no box given",
                 "the volume to search is required, as box=x0,y0,z0,x1,y1,z1", ct, field: "box");
@@ -49,19 +49,6 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : 
             ["sign"] = s.SignX is null ? null : new Dict { ["x"] = s.SignX, ["y"] = s.SignY, ["z"] = s.SignZ },
             ["evidence"] = s.Evidence,
         }).ToList(), ct);
-    }
-
-    private static bool TryParseBox(string s, out BlockBox box)
-    {
-        box = default;
-        var p = s.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (p.Length != 6) return false;
-        var n = new int[6];
-        for (var i = 0; i < 6; i++) if (!int.TryParse(p[i], out n[i])) return false;
-        box = new BlockBox(
-            Math.Min(n[0], n[3]), Math.Min(n[1], n[4]), Math.Min(n[2], n[5]),
-            Math.Max(n[0], n[3]), Math.Max(n[1], n[4]), Math.Max(n[2], n[5]));
-        return true;
     }
 
     private static MonumentStyle ParseStyle(string s)
