@@ -1206,6 +1206,27 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **RP26 — The subject axis, and the four cases a draft cannot settle.** `RP14` ships the category; this
+  is the other half, and it needs the author because the vocabulary is the domain's. The axis answers **which
+  dimension of the map to go and change**, and the author's model gives the list: `request` · `plan` (rough
+  geometry, and where the intent is stated) · `intent` (how the map is played; says nothing about how it
+  looks) · `objective` (single-action for a destroyable or a core; staged for a wool — a spawner, its
+  protection and a monument) · `terrain` (the ground the sketch refines) · `theme` (what colours terrain and
+  props alike) · `dressing` (what is placed on the ground) · `world` (the built voxels and the `map.xml`) ·
+  `studio` (the tool's own limits — `CO1`, and `feasibility`'s whole report).
+
+  Four rules a draft cannot place, which is what makes this the author's:
+
+  | Rule | The question |
+  |---|---|
+  | `PL9` wool unreachable | plan geometry about an objective — is the subject the thing at fault or the document you edit? |
+  | `WX6` wool room unreachable | it refuses a plan *piece* with no entrance, while the room itself is an optional building |
+  | `HS1` a block named for a geometric role is not that kind | a house style's **materials** — theme, or dressing? |
+  | `DC3` a goal built in the wrong material | the same question on the objective side |
+
+  Settle those four and the rest follow mechanically. Additive when it lands: a finding gains a field and
+  nothing moves.
+
 - [ ] **RP25 — Every gate can say no and nothing can show a yes.** A run that hit `PL11`, `WX6` and `SP1` on a
   capture-the-wool plan reported what it did next — *"rather than iterate extensively, I simplified to a basic
   destroy board"* — and named what would have prevented it: "a working example to follow". The examples exist

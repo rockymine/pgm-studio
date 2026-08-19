@@ -100,17 +100,21 @@ The studio declares **71 rule constants in 14 families**, and answers `GET /api/
 constant's own XML docstring — so a rule's meaning has one home and no catalogue can fall out of step with
 it. That mechanism is right, and it is the best thing in the codebase.
 
-The taxonomy it serves is not. A family prefix names **which subsystem asked**, not **what kind of fault it
-is**, and the two are different questions. The catalogue's own stated principle, in `refusals.md`, is that
-"ids are grouped by what they are about, never by which gate happens to ask" — and the catalogue breaks it:
+What it lacks is a **class**. A caller that wants to know whether to fix the request, change the design,
+change the map or report a bug has to know all 71 ids to find out, because the only machine-legible thing a
+finding carries is the id itself. That is the defect, and it is the whole of it.
 
-| Rule | Its own sentence |
-|---|---|
-| `PL2` | *No spawn: PGM has nowhere to put a player and the map cannot be entered.* |
-| `EX2` | *Nobody can enter the map: it declares no spawn of any kind.* |
+The family prefix is *not* the defect, though it reads like one at first. `PL2` and `EX2` carry nearly the
+same sentence — *no spawn, nobody can enter the map* — and look like one fault under two ids until their
+`fix` lines are read: `PL2` says *add an entry in `placements.spawns`*, `EX2` says *give the intent at least
+one spawn*. Two documents, two things to go and change, correctly two rules. The same holds for the five ids
+that all mean *a name that resolves to nothing* — `PL5` and `PL10` over the plan, `SK3` over the layout,
+`ED1` over the map document, `RQ4` over the request. One category, four documents, and the prefix is doing
+real work.
 
-One fault, two ids, because the plan gate and the export gate each asked it. The same happens to *a name that
-resolves to nothing*, which is `PL5`, `PL10`, `SK3`, `ED1` and `RQ4` depending on who noticed.
+So the prefix is close to a **subject** axis already, because for most families the subsystem that asks *is*
+the document at fault. What is missing beside it is the category, and the two together are what let a caller
+read `PL2` as *unplayable, in the plan* and `EX2` as *unplayable, in the intent* without knowing either id.
 
 **Rules are stated three ways, and only two of them can be checked.** The 71 constants are one; the layout
 law in `docs/generator/rules.md`, embedded and parsed, is a second, and both are answered by `/api/rules`.

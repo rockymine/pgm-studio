@@ -33,15 +33,16 @@ is the author's call and the trade is stated: this is one coherent programme wit
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Six of the twenty-two carry a question only the author can answer
+## Five of the twenty-two carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
-the file and line are named. These six are not, and each is blocked on a decision rather than on work.
+the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
+is kept in the table with the answer beside it, because the answer is the part an implementer needs.
 
 | Entry | The question |
 |---|---|
-| `RP13` | **How big is one operation, and where do they live?** One per HTTP route (167 of them), or one per thing a person would name — *compile a plan*, *finish a sketch*, *export a map* (roughly 30)? And a new project, or a folder inside `Api`? A boundary chosen by whoever implements it first is the failure this whole board is about. |
-| `RP14` | Sign-off on the six categories. The ids do not move, but a category is as stable as an id once a caller branches on it. The `subject` axis is dropped from this task — its vocabulary is the domain's and the first draft mixed containers with things. |
+| `RP13` | *Answered by the author: **its own project**, and an operation is a step of the pipeline — the thing that builds the map, callable from two sides with no dependency on the UI running.* What is left is naming the steps, which the implementer states in the commit. |
+| `RP14` | Sign-off on the six categories. The ids do not move, but a category is as stable as an id once a caller branches on it. The `subject` axis is `RP26`'s and needs the author's vocabulary; `RP14` ships without it. |
 | `RP15` | What **is** `WX9`? It is stated as a rule in two documents and fired by nothing. Declaring it and retiring it are both one commit, and only the author knows which. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
@@ -158,35 +159,31 @@ Independent of the first two and the cheapest of the four: a change to `Finding`
 constants. The ids do not move.
 
 - [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 71 to branch once.** The
-  family prefix names which subsystem asked, not what kind of fault it is, and `refusals.md`'s own stated
-  principle — *ids are grouped by what they are about, never by which gate happens to ask* — is already
-  broken by the catalogue: `PL2` is *"No spawn: PGM has nowhere to put a player"* and `EX2` is *"Nobody can
-  enter the map: it declares no spawn of any kind"*. Five ids cover *a name that resolves to nothing*
-  (`PL5`, `PL10`, `SK3`, `ED1`, `RQ4`).
+  only machine-legible thing a finding carries is the id. A caller deciding whether to fix the request,
+  change the design, change the map or report a bug has no field to read it off, so every driver either
+  learns 71 ids or guesses from the sentence.
 
-  **The fix is additive; no id changes and no rename.** `Finding` gains one field and `RuleDoc` a second.
-  **`category`** is a closed six — `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`,
-  `internal` — and is the only thing a caller branches on: it says whether to fix the request, change the
-  design, change the map, or report a bug. **`name`** is the rule constant's own identifier kebab-cased,
-  which the catalogue already carries buried inside `owner` (`…PlanRules.NoSpawn` → `no-spawn`), so `WX6`
-  reads `room-unreachable · unplayable` with no new authoring at all. `?category=` narrows `/api/rules`,
-  and `PL2` against `EX2` becomes one query rather than a hunt. Answer the envelope as RFC 9457 Problem
-  Details in the same commit, whose `type` URI is the `/api/rules` lookup that already exists.
+  **The fix is additive; no id changes and no rename.** `Finding` gains **`category`**, a closed six —
+  `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`, `internal` — which is the only thing a
+  caller branches on. `RuleDoc` gains **`name`**, the rule constant's own identifier kebab-cased, which the
+  catalogue already carries buried inside `owner` (`…PlanRules.NoSpawn` → `no-spawn`), so `WX6` reads
+  `room-unreachable · unplayable` with no new authoring. `?category=` narrows `/api/rules`. Answer the
+  envelope as RFC 9457 Problem Details in the same commit, whose `type` URI is the `/api/rules` lookup that
+  already exists.
 
-  **A third field, `subject`, is deliberately not part of this.** The vocabulary it would need is the
-  domain's, and the domain says the first attempt was wrong: a wool room, a monument, a destroyable and a
-  core are all **objectives**, so splitting `room` from `goal` names a container against a thing; `plan`
-  against `board` is a document against what it describes and is far too fine to branch on; `building` is
-  either a house style or the whole dressing pass depending on which family asks; and `terrain` could mean
-  relief, ground or paint. That is the same axis-mixing the prefixes are being criticised for. If a subject
-  axis is wanted later it starts from the vocabulary the repo already has — `flow.md`'s four levels and
-  `ObjectiveRules`' own words — not a parallel one, and `world` means the export.
+  **The family prefix is not the defect.** `PL2` and `EX2` read as one fault under two ids until their
+  `fix` lines are compared — *add an entry in `placements.spawns`* against *give the intent at least one
+  spawn*. Two documents, correctly two rules; the same holds for the five ids meaning *a name that resolves
+  to nothing*, which sit over the plan, the layout, the map document and the request. The prefix is already
+  most of a **subject** axis.
 
-  *Parked decision, the author's: whether to **rename** the ids as well. The abbreviations are opaque
-  (`WX`, `HJ`, `DC`, `CO`) and `DR-KEEP`/`DR-SITE` show what a readable one looks like — but an id is cited
-  by every commit, by `GENERATION-NOTES.md` and the mapgen briefs, and by `rules.md`, which is amended only
-  by its own protocol. The author's ruling so far is that the ids stay; `name` makes them readable without
-  moving one.*
+  *Parked decision, the author's: the **subject** axis itself. The author's model — a destroyable and a core
+  are single-action objectives; a wool is staged (touch, then capture) and is a spawner, its protection and
+  a monument, with the room an optional building beside it; theming colours terrain and props alike;
+  dressing places them; the plan is rough geometry and where intent is stated; the intent is how the map is
+  played and says nothing about how it looks — is the vocabulary it must be drawn from. `RP26` carries the
+  draft and the cases it cannot settle. Ship `category` and `name` without waiting for it; `subject` is
+  additive again when it lands.*
 
 - [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
   nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
