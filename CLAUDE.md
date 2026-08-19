@@ -196,6 +196,10 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
 - **`./tools/dev.sh restart`** (`:7894`) — builds once and runs the binary, because `dotnet run` cold-start on
   the VirtualBox shared folder is slow and the first WASM load takes seconds. After a host reboot MariaDB
   comes back but the dotnet process does not, and the claude-in-chrome MCP needs reconnecting.
+- **`/api-docs`** is the whole API surface in the browser — every route, its parameters and its response
+  schema, expandable and sendable without a client — over the document at `/api/openapi/v1.json`, which is
+  generated from the routes and the DTOs. A route that declares no request type appears there with no body
+  schema, which is the honest reading of `RP12`.
 - **`dotnet test` is not the path** on the .NET 10 SDK (the VSTest bridge is gone) — run a project directly:
   `dotnet run --project tests/<Project>`.
 - **`./tools/e2e.sh all`** is the browser gate (icons · paint · plan refusals · smoke), on its own port and

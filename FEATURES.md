@@ -4336,6 +4336,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   callers doing it four ways, and `RawBody` is the one body reader. `RefusalEnvelopeTests` asserts the shape
   over the kinds of failure and that every id the edge cites is in the catalogue.
 
+- **The API describes itself, and the description is browsable (RP11, first half).** The wire contract was
+  kept by hand in four places — 167 route attributes, 152 route strings in the Blazor client, the endpoint
+  tables in eight `docs/tools/` documents, and per-component `JsonElement` parsing — and generated in none, so
+  a route could only be looked at by writing a client or a `curl`. `GET /api/openapi/v1.json` is now generated
+  from the routes and the DTOs — **131 paths, 167 operations, 61 schemas** — with `/api-docs` the page over
+  it, where a route expands and sends without a client. Tags group by the first path segment (the resource:
+  `map`, `plan`, `terrain`, `room-styles`) and all nineteen carry a sentence saying what the group is for; each
+  endpoint's own `<summary>` is carried into the document out of the XML documentation file, so the page reads
+  as the docstring rather than as a list of paths. Everything is served from the app's own assets — no CDN tag,
+  which the vendoring rule forbids and a restricted-egress container would break. **What the document can say
+  is bounded by what is declared**: the 110 endpoints that take no request type appear with a path, a verb and
+  no body schema, which is `RP12` stated by the schema itself rather than by prose.
+
 - **The Edit tool's write routes answer the envelope too, and the request's ids moved down to reach them
   (TE1).** `EditException(status, message)` was thrown at **74** sites across `Pgm/Editing`, and
   `WriteSupport.RunEditAsync` turned every one of them into a bare `{error: ex.Message}` for the 36 routes

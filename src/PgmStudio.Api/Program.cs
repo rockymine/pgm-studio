@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text.Json;
 using FastEndpoints;
+using FastEndpoints.Swagger;
 using PgmStudio.Domain;
 using PgmStudio.Api.Http;
 using PgmStudio.Data.Features;
@@ -31,6 +32,60 @@ builder.Configuration
     .AddEnvironmentVariables();
 
 builder.Services.AddFastEndpoints();
+
+// The API describes itself, at /api-docs, from the routes and DTOs rather than from a table anyone keeps by
+// hand. Two audiences read it. A person opens the page, expands a route and sends a request without writing a
+// client — which is the only way to look at what a route answers short of curl. An agent reads
+// /api/openapi/v1.json and gets the paths, the verbs and the shapes it may post, so what the studio accepts
+// is discoverable from the studio instead of from prose that nothing verifies.
+//
+// The XML documentation files carry each endpoint's own <summary> into the document, which is why the
+// generated page reads as the endpoint's docstring rather than as a list of paths.
+builder.Services.SwaggerDocument(o =>
+{
+    o.DocumentSettings = doc =>
+    {
+        doc.DocumentName = "v1";
+        doc.Title = "pgm-studio";
+        doc.Version = "v1";
+        doc.Description =
+            "The studio's whole surface. Every route is anonymous and rooted at /api. A refusal answers "
+            + "{error, message, findings[]} whichever route raised it — GET /api/rules explains any rule id "
+            + "a finding carries. docs/tools/flow.md is the map over the four levels a map is described at.";
+    };
+    // Group by the first path segment under the prefix — the resource the route is about: `map`, `plan`,
+    // `terrain`, `room-styles`. The segment after it is a route parameter across most of the surface and
+    // would tag half the page `{Slug}`.
+    o.AutoTagPathSegmentIndex = 1;
+    o.ShortSchemaNames = true;
+    // Keyed on the tag exactly as the generator emits it, which title-cases the path segment.
+    o.TagDescriptions = tags =>
+    {
+        tags["Map"] = "One map, at every level it is described at: the document and its entities, the plan, "
+                    + "the sketch, the intent, the analysis reads over its ground, and the world and map.xml "
+                    + "it exports to.";
+        tags["Maps"] = "The map list, and what originates one.";
+        tags["Plan"] = "The board as cell rectangles, answered without storing anything — compile, evaluate, "
+                     + "inspect, feasibility, columns. This is the loop a plan is iterated in.";
+        tags["Plans"] = "The stored plan library, the generator's kept candidates included.";
+        tags["Compose"] = "The layout generator: roll a board from a player count, a symmetry and a seed.";
+        tags["Shapes"] = "The shape vocabulary a composed board is built from.";
+        tags["Terrain"] = "Materials, themes, patterns, and the previews over them.";
+        tags["Themes"] = "The terrain-theme library, shared across every map.";
+        tags["Room-Styles"] = "The room-style library — what a wool cage or a spawn hall is built out of.";
+        tags["Rules"] = "Every rule the studio can cite, with what it means and what to do about it: the "
+                      + "answer to an id carried by any finding.";
+        tags["Configure"] = "The Configure wizard's own state.";
+        tags["Objectives"] = "The objective vocabulary a map may state.";
+        tags["Sketch"] = "Originating a map from a drawing rather than from a plan.";
+        tags["Styles"] = "The terrain-style library — a stack of materials a theme's bucket paints with.";
+        tags["Storey-Styles"] = "House-part library: one storey of a building, its wall and its openings.";
+        tags["Roof-Styles"] = "House-part library: a roof's form, pitch and materials.";
+        tags["Porch-Styles"] = "House-part library: what stands in front of a door.";
+        tags["Minecraft"] = "The block palette and what the studio knows about each block.";
+        tags["Health"] = "Liveness.";
+    };
+});
 
 // Data access: one DataOptions (singleton) + a scoped PgmDb/readers per request. The connection string
 // is a secret — it comes from User Secrets in dev (dotnet user-secrets) or the ConnectionStrings__PgmStudio
@@ -173,6 +228,17 @@ app.UseFastEndpoints(c =>
     // wire boundary itself invariant rather than leaning on the process-wide pin above.
     c.Binding.UseInvariantNumbers();
 });
+
+// The generated document and the page over it. Both are served from the app's own assets — nothing is
+// fetched at view time — and they are registered before the SPA fallback so it does not claim them.
+app.UseSwaggerGen(
+    c => c.Path = "/api/openapi/{documentName}.json",
+    c =>
+    {
+        c.Path = "/api-docs";
+        c.DocumentPath = "/api/openapi/v1.json";
+        c.DocExpansion = "list";
+    });
 
 // SPA fallback: anything not matched by an API route or a static file serves the Blazor host page.
 app.MapFallbackToFile("index.html");

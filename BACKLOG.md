@@ -1069,13 +1069,14 @@ in the order listed: the contract first, because the request shape and the clien
 application layer second, because it is where a gate stops belonging to a door; the fault class third; the
 lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
 
-- [ ] **RP11 — The wire contract is kept by hand in three places and generated in none.** There is no
-  OpenAPI document and no Swagger generation configured, so the 167 route attributes in `Api/Endpoints`,
-  the **152 route strings** written out in the Blazor client and the endpoint tables in the eight
-  `docs/tools/` documents are three copies of one fact. The client reads **59 responses as `JsonElement`**
-  against 16 typed, across 38 files. Turn on FastEndpoints' Swagger generation, generate the client from it,
-  and render the endpoint tables from the schema rather than typing them. `TC1` — three heavily used
-  analysis routes in no table at all — is the symptom, not a separate task, and it closes with this.
+- [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
+  `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
+  **152 route strings** and parses **59 responses as `JsonElement`** against 16 typed, across 38 files; the
+  endpoint tables in the eight `docs/tools/` documents are typed by hand and `TC1` is what that costs.
+  Generate a typed client from the document (NSwag's generator is already in the tree as the Swagger
+  package's dependency) and render the endpoint tables from it, so the two copies become one derivation.
+  `DocumentedBodyTests` posts 8 documented bodies against 93 write routes today and is the natural place to
+  assert the tables against the schema.
 
 - [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
   `EndpointWithoutRequest` and **51 call sites read the body as `Dictionary<string, object?>`**. So
@@ -1097,9 +1098,23 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   principle — *ids are grouped by what they are about, never by which gate happens to ask* — is already
   broken by the catalogue: `PL2` is *"No spawn: PGM has nowhere to put a player"* and `EX2` is *"Nobody can
   enter the map: it declares no spawn of any kind"*. Five ids cover *a name that resolves to nothing*
-  (`PL5`, `PL10`, `SK3`, `ED1`, `RQ4`). Add a closed `Category` beside `Finding.Rule` — malformed,
-  not-found, conflict, unresolved, unsatisfiable, internal — and answer the envelope as RFC 9457 Problem
-  Details, whose `type` URI is the `/api/rules` lookup that already exists.
+  (`PL5`, `PL10`, `SK3`, `ED1`, `RQ4`).
+
+  **The fix is additive; no id changes.** `Finding` gains two fields and `RuleDoc` a third:
+  **`category`**, a closed six — `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`,
+  `internal` — which is what an agent branches on; **`subject`**, what it is about (`request`, `plan`,
+  `board`, `goal`, `spawn`, `room`, `building`, `terrain`, `world`), which is the axis the prefix should
+  have been; and **`name`**, the rule constant's own identifier kebab-cased, which the catalogue already
+  carries buried inside `owner` (`…PlanRules.NoSpawn` → `no-spawn`). `WX6` then reads
+  `room-unreachable · unplayable · room`. `?category=` and `?subject=` narrow `/api/rules`, and the
+  collisions become one query rather than a hunt. Answer the envelope as RFC 9457 Problem Details in the
+  same commit, whose `type` URI is the `/api/rules` lookup that already exists.
+
+  *Parked decision, the author's: whether to **rename** the ids as well. The abbreviations are opaque
+  (`WX`, `HJ`, `DC`, `CO`) and `DR-KEEP`/`DR-SITE` show what a readable one looks like — but an id is cited
+  by every commit, by `GENERATION-NOTES.md` and the mapgen briefs, and by `rules.md`, which is amended only
+  by its own protocol. The three fields above make them readable without renaming; renaming is a codemod
+  plus a doc sweep and is cheaper now than later.*
 
 - [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
   nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
@@ -1108,6 +1123,25 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   `WX9` beside it is never fired at all. Declare `WX8` where `RoomFrameRules` lives or retire it, decide
   what `WX9` is, and add the assertion that runs the other way: every id any gate or lint can emit resolves
   in the catalogue. `RulesEndpointTests` only checks that declared rules carry a sentence.
+
+- [ ] **RP17 — The check that catches a field nothing read runs on two endpoint files.**
+  `DocumentShape.Unread` walks a parsed document beside the value it deserialized to and names every property
+  nothing could keep, as `RQ3` on the success response. It is wired to the room-style library and the terrain
+  previews. The **sketch layout, the plan and the intent** — the three documents an author or an agent
+  actually writes — have no unread check, which is why a misspelled field in one of them is silence:
+  `pgm-studio-mapgen`'s `GENERATION-NOTES.md` §11 records fourteen rectangles keyed `x`/`z`/`w`/`h` instead of
+  `min_x`/`min_z`/`max_x`/`max_z` covering no ground under a `{"ok": true}`, and `relief` written one level
+  too deep dropped without a word. Wire it into `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`,
+  `PUT …/plan` and `POST /plan/compile`. The mechanism exists; only the call sites are missing.
+
+- [ ] **TN4 — The cheapest read of a plan is the one that needs a map row first.** `PlanBoardAscii.Render`
+  is reachable through `GET /map/{slug}/plan/ascii` and `GET /plans/{id}/ascii` — both requiring stored
+  state — while `compile`, `evaluate`, `inspect`, `feasibility` and `columns` all answer a posted plan with
+  nothing stored. The grid is the read that shows a *relation between two rectangles*, which is what the
+  other five cannot: `pgm-studio-mapgen`'s own notes name a sixteen-cell bar reached by a four-cell build
+  zone as the whole of a 60%-dead landform, "visible at a glance and invisible in the render that was
+  actually looked at". Because the render needs a row, `tools/board.py` is a 94-line Python reimplementation
+  of it. Add `POST /plan/ascii` beside the other five and delete the third copy.
 
 - [ ] **RP16 — The lifecycle is a column nothing reads and 716 lines of prose.** `map.stage` holds
   `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other
