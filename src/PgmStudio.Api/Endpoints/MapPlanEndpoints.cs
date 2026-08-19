@@ -6,6 +6,7 @@ using LinqToDB.Async;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
 
@@ -103,6 +104,35 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
 
         HttpContext.Response.ContentType = "text/plain; charset=utf-8";
         await HttpContext.Response.WriteAsync(PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/plan/flow — what the board asks of the two sides, and what that leaves
+/// unused, in prose.
+///
+/// <para>The companion to the coverage picture and meant to be read <b>before</b> it: a render says where
+/// ground is dead and only the flow says why. It answers off the plan alone, so it costs no build.</para>
+///
+/// <para>Routes are read for a capture board only — a wool is carried back, so the two sides meet somewhere
+/// definite and a split, a merge and the defender's relation to them mean something. A destroy board gets
+/// the ground read and no invented flow. 404 when the map or its plan is missing, 422 when the stored
+/// document cannot be read.</para></summary>
+public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+{
+    public override void Configure() { Get("/map/{slug}/plan/flow"); AllowAnonymous(); }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
+        if (data is null) { await Send.NotFoundAsync(ct); return; }
+
+        var plan = PlanModel.Parse(Encoding.UTF8.GetString(data));
+        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+
+        HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await HttpContext.Response.WriteAsync(PlanFlow.Describe(PlanFlow.Read(plan)), ct);
     }
 }
 

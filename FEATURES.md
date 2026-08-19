@@ -650,6 +650,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   map says "the build zone is in here", and it is the only way the studio's own generator says it: it writes
   `no-void` over the `not-build-area` negative, so the build area itself is covered by no rule and any reading
   based on coverage alone would call it ungranted.
+- **A board says how it plays, not just where it is empty (WS1).** `GET /map/{slug}/plan/flow` answers the
+  account in prose, off the plan and before any build: each objective's attacker walk against its defender
+  walk and the ratio the corpus reads match length off, how many ways in there are, where they part and meet,
+  how far short of the objective that merge sits, and whether a split or merge is narrower than a doorway.
+  Then the relation that decides whether a board can be held — the defender's own walk running **through** the
+  attackers' merge (both sides up the same road, the defence pushed forward to hold it) against going round
+  being shorter (the defence arriving **from behind** while the attack arrives at the front). Read against the
+  boards that taught it: kanto from behind by 20 blocks at 0% dead, townside the same road at a 0.72 ratio,
+  `wheal-hazel` one way in and 40% dead named piece by piece, its rebuild every block on somebody's way.
+  Routes are a capture board's question — a destroy board has no carry, so it gets the ground read and no
+  invented flow.
 - **The coverage read runs on corridors and keeps how busy each cell is (WS1).** `GroundCoverage` walked one
   shortest path per waypoint pair, dilated it six blocks and unioned the lot — so a hole's two ways could only
   ever have one of them counted, and a cell one journey clips read the same as a cell every journey runs down.

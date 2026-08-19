@@ -443,6 +443,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `PUT /map/{slug}/plan` | the document | `{ok: true}` | 400 non-JSON · 404 unknown map |
 | `GET /map/{slug}/layers` | — | `{plan, sketch, world, intent}` — which layers the map holds | 404 |
 | `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
+| `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: each objective's two walks and the ratio between them, where the ways in part and meet, whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
 | `GET /map/{slug}` · `PATCH /map/{slug}/metadata` | `{name, authors[]}` | the map's identity | 404 |
 
 **The candidate pool** (the bare `/plan-editor` route)
@@ -454,6 +455,23 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `GET /plans/{id}/ascii[?every=N]` | — | the same grid for a candidate, by id rather than slug | 404 · 422 |
 | `POST /plans` | `{planJson, sourceId?}` | the saved row — an authored source is updated in place, a generated or imported one forks into a new authored row | 400 malformed plan |
 | `DELETE /plans/{id}` | — | 204; forks survive with a null parent | — |
+
+**The flow.** A render says *where* ground is dead; only the flow says *why*, and a model handed a red
+rectangle with no account of it will move the rectangle rather than the reason. `GET /map/{slug}/plan/flow`
+answers that account in prose, off the plan alone, so it costs no build and can be read before the picture.
+
+For each enemy objective it states the attacker's walk and the defender's, and the ratio between them — the
+quantity the corpus reads match length off before any other geometry (`match-flow.md` §6.10). It says how many
+ways in there are, where they part and where they meet again, and how far short of the objective that merge
+sits. Then the relation that decides whether a board can be held: whether the defender's own shortest walk
+runs **through** that merge, so both sides come up the same road and the defence must be pushed forward to
+hold it, or whether going round is shorter, so the defence arrives **from behind** the objective while the
+attack arrives at its front. It flags a split or a merge narrower than `TightPassage` (8 blocks), which is a
+doorway rather than a place to fight over.
+
+Routes are a **capture board's** question. A wool is carried back, so the same ground is walked out and in and
+the two sides meet somewhere definite. A destroy board has no carry, so it gets the ground read and no
+invented flow.
 
 **The grid.** A plan is a list of rectangles measured in cells, and most of what goes wrong with one is a
 relation between two of them — a landform wider than the band that reaches it, a wall on the only throat, a
