@@ -73,9 +73,9 @@ public sealed record DressingContext(
 /// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
 /// skips are not here — those are the ordinary shape of a route crossing ground the map keeps clear, not a
 /// decision an author needs restated one cell at a time — only the whole-prop causes that used to be silent:
-/// a house whose wings make no building, a house that collides with something already standing, a house with
-/// no ground under any of its cells, and a tree or a boulder whose site finds no ground, lands on a column
-/// kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
+/// a house whose wings make no building, a house that collides with something already standing, a house with a
+/// cell of its footprint over no ground at all, and a tree or a boulder whose site finds no ground, lands on a
+/// column kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
 /// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a
 /// <c>DR-*</c> rule, one sentence carrying the cell and the cause, the prop's id as its subject, and
 /// <see cref="Severity.Complaint"/> — the world was built, and some props are not standing in it.</para></param>
@@ -503,7 +503,7 @@ public static class Decorator
                     Severity.Complaint, Subjects: [house.Id]));
                 return [];
             }
-            if (FirstOverlap(image, claims) is { } collision)
+            if (FirstOverlap(ClaimedCells(image, house.Style), claims) is { } collision)
             {
                 declined.Add(new Finding(DressingRules.GroundTaken,
                     $"building '{house.Id}' stands on ({collision.X}, {collision.Z}), "
@@ -511,11 +511,15 @@ public static class Decorator
                     Severity.Complaint, Subjects: [house.Id]));
                 return [];
             }
-            var floorY = Ground(context, image);
+            var (floorY, bare) = Ground(context, image);
             if (floorY is null)
             {
                 declined.Add(new Finding(DressingRules.NoGround,
-                    $"building '{house.Id}' has no ground under any of its cells",
+                    bare is { } column
+                        ? $"building '{house.Id}' has no ground under ({column.X}, {column.Z}), which is "
+                          + "inside its footprint — the building would seat on its lowest column and hang off "
+                          + "the rest"
+                        : $"building '{house.Id}' has no ground under any of its cells",
                     Severity.Complaint, Subjects: [house.Id]));
                 return [];
             }
@@ -541,7 +545,8 @@ public static class Decorator
                 world, image, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
 
-            foreach (var (x, z) in image.Cells()) claims.Claim(x, z, ClaimKind.Structure, house.Id);
+            foreach (var (x, z) in HeldCells(image, house.Style))
+                claims.Claim(x, z, ClaimKind.Structure, house.Id);
 
             // The claim is made here, after the stamp and inside the same loop, so it cannot outlive a drop:
             // every early return above leaves this list empty and the caller claims nothing. The cells are the
@@ -562,6 +567,29 @@ public static class Decorator
         [.. image.Wings
             .SelectMany(wing => HouseStamper.StampedCells((wing.MinX, wing.MinZ, wing.MaxX, wing.MaxZ), style))
             .Distinct()];
+
+    /// <summary>The ground a raised building <b>holds</b>: what its stamp writes
+    /// (<see cref="ClaimedCells"/>), grown <see cref="DressingRules.StructureClearance"/> blocks outward.
+    ///
+    /// <para>Every other placement already reserves ground around itself — a goal keeps props off its
+    /// standoff, a door keeps its approach open, a tree stands off the road — and a building reserved
+    /// nothing, so a verge overhung ground the pass believed free and the next prop seated under it. What is
+    /// <em>tested</em> against the claims is the stamped extent rather than this, which is what makes the ring
+    /// one block of clearance between two buildings and not two.</para></summary>
+    private static IReadOnlyList<(int X, int Z)> HeldCells(BuildingPlan image, HouseStyle style)
+    {
+        var reach = Math.Max(0, DressingRules.StructureClearance);
+        return [.. ClaimedCells(image, style)
+            .SelectMany(cell => Around(cell.X, cell.Z, reach))
+            .Distinct()];
+
+        static IEnumerable<(int X, int Z)> Around(int x, int z, int reach)
+        {
+            for (var dx = -reach; dx <= reach; dx++)
+                for (var dz = -reach; dz <= reach; dz++)
+                    yield return (x + dx, z + dz);
+        }
+    }
 
     /// <summary>The <paramref name="image"/>-th image of a plan: every wing's own two corners turned round the
     /// orbit and rebuilt as a <see cref="Wing"/>, so a quarter turn swaps each wing's width and depth exactly as
@@ -601,12 +629,15 @@ public static class Decorator
         return along is RoomEdge.PosX or RoomEdge.NegX ? RidgeAxis.AlongX : RidgeAxis.AlongZ;
     }
 
-    /// <summary>The first cell of a plan already claimed by something else, or null where nothing collides —
-    /// the building half of MG7's overlap rule, tested over the whole union of its wings rather than a resting
-    /// subset, because a building has no other level: the floor it stamps covers every column of it.</summary>
-    private static (int X, int Z)? FirstOverlap(BuildingPlan plan, GroundClaims claims)
+    /// <summary>The first of <paramref name="cells"/> already claimed by something else, or null where
+    /// nothing collides — the building half of MG7's overlap rule, tested over the whole extent a building
+    /// stamps rather than a resting subset, because a building has no other level: the floor it stamps covers
+    /// every column of it. The <em>stamped</em> extent and not the ground it holds
+    /// (<see cref="HeldCells"/>): the ring is what makes the clearance, and testing it too would spend the
+    /// ring twice and hold two buildings two blocks apart.</summary>
+    private static (int X, int Z)? FirstOverlap(IEnumerable<(int X, int Z)> cells, GroundClaims claims)
     {
-        foreach (var (x, z) in plan.Cells())
+        foreach (var (x, z) in cells)
             if (claims.HoldsOtherThan(x, z, ClaimKind.Route)) return (x, z);
         return null;
     }
@@ -649,14 +680,23 @@ public static class Decorator
         }
     }
 
-    /// <summary>The course a building's floor sits at: one below the lowest ground its plan covers, or null
-    /// where that plan has no ground at all.</summary>
-    private static int? Ground(DressingContext context, BuildingPlan plan)
+    /// <summary>The course a building's floor sits at — one below the lowest ground its plan covers — or no
+    /// floor and the first column of that plan with no ground under it.
+    ///
+    /// <para><b>Every cell, not any cell.</b> A building seats on its lowest column, so a plan with one cell
+    /// on land and ten over void used to seat on that one and hang off the rest; nothing else covers it,
+    /// since the passage walk reads the bands <em>outside</em> the footprint and the excavation skips a
+    /// missing column rather than refusing it. Half a building on solid ground is worse than none, so the
+    /// quantifier is what a refusal is made of and the column it stopped at is what the refusal names.</para></summary>
+    private static (int? Floor, (int X, int Z)? Bare) Ground(DressingContext context, BuildingPlan plan)
     {
         var lowest = int.MaxValue;
         foreach (var (x, z) in plan.Cells())
-            if (context.SurfaceTop.TryGetValue((x, z), out var top)) lowest = Math.Min(lowest, top);
-        return lowest == int.MaxValue || lowest < 2 ? null : lowest - 1;
+        {
+            if (!context.SurfaceTop.TryGetValue((x, z), out var top)) return (null, (x, z));
+            lowest = Math.Min(lowest, top);
+        }
+        return lowest == int.MaxValue || lowest < 2 ? (null, null) : (lowest - 1, null);
     }
 
     /// <summary>Carve the terrain standing above a building's floor out of its footprint, before the stamp.

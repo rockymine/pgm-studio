@@ -57,7 +57,7 @@ public static class HouseStyleValidation
         for (var at = 0; at < style.Storeys.Count; at++)
             if (style.Storeys[at].Windows is { } storeyWindows)
                 CheckWindow($"storeys[{at}].windows", storeyWindows, findings);
-        CheckRoofMaterials(style, findings);
+        findings.AddRange(CheckRoof(style.Roof));
         CheckDoorClearance(style.Doorway, findings);
         return findings;
     }
@@ -123,11 +123,20 @@ public static class HouseStyleValidation
 
     // ── a roof's own materials ─────────────────────────────────────────────────────────────────────────────
 
-    private static void CheckRoofMaterials(HouseStyle style, List<Finding> findings)
+    /// <summary>Every fault a roof's own materials can name: a slab block that is not a slab, a slab named as
+    /// a whole-block roof, and a log or a ground material standing in for the roof or the verge.
+    ///
+    /// <para>Asked of the <see cref="RoofStyle"/> rather than of a whole house, because a roof <em>part</em>
+    /// in the library is one of these and nothing else — it carries its own form, its pitch and its own
+    /// half-course slab, which is what lets the slab/pitch pairing run there as well as on a house. The whole
+    /// gate rather than half of it, since a roof saved on its own is stamped exactly as a roof bound onto a
+    /// house is.</para></summary>
+    public static Findings CheckRoof(RoofStyle roof)
     {
-        if (style.Roof.Slab >= 0 && !BlockFamilies.IsSlab(style.Roof.Slab))
+        var findings = new List<Finding>();
+        if (roof.Slab >= 0 && !BlockFamilies.IsSlab(roof.Slab))
             findings.Add(new Finding(HouseStyleRules.BlockKind,
-                $"roofSlab ({style.Roof.Slab}) is not a single slab. A half-course roof steps in the slab's own " +
+                $"roofSlab ({roof.Slab}) is not a single slab. A half-course roof steps in the slab's own " +
                 "half on every odd course; anything else — a double slab included — comes out a full cube and " +
                 "the slope stops climbing by halves.",
                 Field: "roofSlab"));
@@ -135,24 +144,14 @@ public static class HouseStyleValidation
         // A slab belongs in a roof only on a half-course rise (RoofSlab set). Naming one in Roof itself while
         // RoofSlab is unset asks for a whole block of rise in a material that only fills half its cube, which
         // is the see-through roof HouseStyle.Roof's own docstring warns about.
-        if (style.Roof.Slab < 0 && SolidId(style.Roof.Body) is { } roofId && BlockFamilies.IsSlab(roofId))
+        if (roof.Slab < 0 && SolidId(roof.Body) is { } roofId && BlockFamilies.IsSlab(roofId))
             findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                 $"roof ({roofId}) is a slab and roofSlab is unset (-1). A course of slabs at a whole block of " +
                 "rise leaves an open half between every pair and the roof reads see-through — set roofSlab to " +
                 "a real slab and let roof carry the whole-block half, or choose a whole block for roof.",
                 Field: "roof"));
 
-        findings.AddRange(CheckRoofFamily(style.Roof.Body, style.Roof.Verge));
-    }
-
-    /// <summary>Whether <paramref name="roof"/> or <paramref name="verge"/> is a log or a ground material —
-    /// standalone, because a roof <em>part</em> in the library carries these two on their own, with no
-    /// <see cref="HouseStyle.RoofSlab"/> alongside them to pair a slab against, so it is checked as far as it
-    /// can be checked in isolation rather than not at all.</summary>
-    public static Findings CheckRoofFamily(TerrainMaterial roof, TerrainMaterial verge)
-    {
-        var findings = new List<Finding>();
-        foreach (var (field, material) in new[] { ("roof", roof), ("verge", verge) })
+        foreach (var (field, material) in new[] { ("roof", roof.Body), ("verge", roof.Verge) })
         {
             if (SolidId(material) is not { } id) continue;
             if (BlockFamilies.IsLog(id))

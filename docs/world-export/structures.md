@@ -162,6 +162,14 @@ structure, and structures never fuse.
   resolver produces — the currency pairwise separation rules and the preview read —
   never a common stamper interface. `IronResolution` is that record's first instance.
 
+- **WX10** *A bound shell stands under the build ceiling.* A room style is authored geometry subject to no
+  cap of its own, while the goal marker over it hangs `BuildCeiling.MarkerOver` blocks above a ceiling
+  `BuildCeiling.OverGround` over the ground — so a tall storey stack swallows the very sign that says where
+  the goal is. The shell's height is measured on the **smallest** room there is (WX2's 6×6), since every
+  sloped form only climbs further on a bigger footprint: a style refused here has no footprint it could have
+  been stamped on. It refuses where the style is **bound** — `PUT /api/map/{slug}/sketch`, 400 — rather than
+  correcting at stamp time, because silently shortening a building the author drew is the worse answer.
+
 ## 6. The code shape — frame, shell, furnishers, style
 
 The layering follows the destroyable/core precedent — one box function that the world build **and**
@@ -340,12 +348,20 @@ ridge axis from its own proportions — and the volumes are laid one after anoth
 against itself. `RoofField` needs no changes to serve it, which is the finding the whole arrangement rests on.
 
 Three rules carry the rest. A wing's roof reaches **its own walls plus its own overhang and no further**, so no
-stub of roof hangs outside a wall it never touched. **No roof block sits below the wall top of whatever covers
-that cell** — under a wall is inside the building — which is what makes a one-storey wing stop against a
-two-storey one instead of pushing a slope through its standing wall. And **walls outrank roofs**: every volume
-is laid before any wall is, so a wing standing against another does not have the other's slope written over it.
-That shows on a building of one wing too — a steep eave's riser used to reach into the top course of its own
-wall, and the wall now keeps it.
+stub of roof hangs outside a wall it never touched. **No roof block sits below the wall top of a wing whose
+roof it is not** — under someone else's wall is inside their building — which is what makes a one-storey wing
+stop against a two-storey one instead of pushing a slope through its standing wall. And **walls outrank
+roofs**: every volume is laid before any wall is, so a wing standing against another does not have the other's
+slope written over it.
+
+**Over its own wall, though, the eave wins.** A column writes down to its underside, which is its crown less
+the drop to the deepest neighbour the roof covers — and at the eave line that neighbour is the overhang, a
+pitch lower, so the eave reaches `pitch − 1` courses under its own wall top by construction. Those courses are
+the roof coming down to meet the wall. Clamped away and then written over by the wall pass, they came out wall
+material instead, and the stripe of wall showing under the overhang grew a course with every unit of pitch:
+nothing was missing, so no gate caught it. So the clamp exempts the wing the roof belongs to, and the wall pass
+stops under whatever course the roof has already claimed there. Wings never share a cell, so nothing else
+moves — a marched or projected column stands inside *another* wing and is clamped exactly as before.
 
 **Only the highest roof over a cell is written there**, and that one comparison is what makes the union a
 building rather than two roofs in the same place. Where two wings' plans overlap the lower surface stands
@@ -462,9 +478,9 @@ means taking cells out of a shape rather than moving one side of a rectangle in.
 
 A roof has **no thickness knob**, and the height field is why: a column writes as many courses as the step down
 to its neighbours needs, so how deep the roof runs at a given cell is answered by the slope rather than by a
-number beside it. A flat lid is one course because a flat lid has no step to close. The `roof_thickness` and
-`thickness` columns are read by nothing (B72); a roof laid half a block at a time is B69, and that is the shape
-of the knob if one is ever wanted.
+number beside it. A flat lid is one course because a flat lid has no step to close. Two columns did carry such
+a number — `room_style.roof_thickness` and `roof_style.thickness` — and nothing ever read either; both are
+dropped. A roof laid half a block at a time is a `roofSlab` and its own pitch, which the roof part states.
 
 ### 7.2 The floor is divided in plan as well as in depth
 
@@ -706,11 +722,18 @@ corners. What closes the storey underneath is its ceiling, which is the deck. An
 same way the walls were: a `Flat` roof laid in air writes nothing, so the stack's top storey is open to the
 sky. The ladder is already there, because a slab has to have a way through it.
 
-Two things about it are not free. The storey carrying the parapet still **states a clear of three** — a room
-has to be stood up in and a storey cannot say it is not a room — so the building reserves two courses it never
-writes, and `TopLayerOver` answers for the reservation rather than for the highest block actually laid (G171).
-And a parapet is the wall's own stack rather than a rail of its own, so it is as wide as the wall line and
-sits over it, which is what a parapet is and is not what a rail set in from the edge would be.
+One thing about it costs something. The storey carrying the parapet still **states a clear of three** — a room has
+to be stood up in and a storey cannot say it is not a room — so the building reserves courses it never writes.
+What it does not cost is the number every caller reserves against: `TopLayerOver` answers where the highest
+block **lands**, walking the wall stack down past whatever courses resolve to air and dropping the roof's own
+contribution where all three of its materials are air. The reservation is still what the roof is seated on, so
+nothing about the geometry moves; what moves is that a terraced building is no longer refused headroom it does
+not need, and no longer previewed under a band of empty sky. A storey's post answers beside its wall, because
+four columns standing on the deck at the corners are blocks laid at that course even where the wall between
+them is air.
+
+A parapet is the wall's own stack rather than a rail of its own, so it is as wide as the wall line and sits
+over it, which is what a parapet is and is not what a rail set in from the edge would be.
 
 ### 7.7 The beams a seam leaves long
 

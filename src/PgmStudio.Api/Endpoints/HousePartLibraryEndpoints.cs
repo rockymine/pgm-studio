@@ -13,8 +13,9 @@ namespace PgmStudio.Api.Endpoints;
 internal static class HousePartMapping
 {
     public static RoofStyleDetail ToDetail(RoofStyleRow row, IReadOnlyList<RoofStyleCourseRow> courses) =>
-        new(row.Id, row.Name, row.Form, row.Thickness, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
-            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))]);
+        new(row.Id, row.Name, row.Form, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
+            [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))],
+            row.RoofSlab, row.RoofSlabData);
 
     /// <summary>What a saved roof comes back as — read off the <em>row</em> it composes to rather than off the
     /// request, so the clamps the row applies are the numbers the editor is handed back.</summary>
@@ -75,10 +76,11 @@ public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithout
     }
 }
 
-/// <summary>POST /api/roof-styles. 400 `{error, findings}` when the roof or the verge is a log or a ground
-/// material — the one part of <see cref="HouseStyleValidation.Check"/> a roof part can answer on its own,
-/// since <see cref="HouseStyle.RoofSlab"/> is a house-level knob a roof style carries no column for and
-/// checking the slab/pitch pairing here would refuse a roof meant to pair with one set later.</summary>
+/// <summary>POST /api/roof-styles. 400 `{error, findings}` on anything
+/// <see cref="HouseStyleValidation.CheckRoof"/> names — a roof or a verge that is a log or a ground material,
+/// a slab block that is not a slab, and a slab named as a whole-block roof. The whole roof gate rather than
+/// half of it: a roof part states its own <c>roofSlab</c>, so the slab/pitch pairing has both numbers here
+/// and a roof saved on its own is held to what a roof bound onto a house is held to.</summary>
 public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibrary library)
     : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
 {
@@ -87,7 +89,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof.Body, composed.Roof.Verge);
+        var findings = HouseStyleValidation.CheckRoof(composed.Roof);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = await store.CreateRoofAsync(
             HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
@@ -104,7 +106,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
         var composed = await library.ComposeRoofDraftAsync(req, ct);
-        var findings = HouseStyleValidation.CheckRoofFamily(composed.Roof.Body, composed.Roof.Verge);
+        var findings = HouseStyleValidation.CheckRoof(composed.Roof);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(

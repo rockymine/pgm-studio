@@ -18,7 +18,7 @@ namespace PgmStudio.Api.Tests;
 public sealed class RoomStyleLibraryEndpointsTests
 {
     private static RoomStyleSaveRequest Draft(string name, params RoomCourseDto[] courses) => new(
-        name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
+        name, FloorDepth: 1, WallHeight: 7,
         RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
         BorderWidth: 1, InlayInset: 2, Storeys: 1, StoreyClear: 0,
         Windows: new RoomWindowDto(WindowForms.None, Blocks.GlassPane, 0, 2, 2, 2, 3), Porch: null,
@@ -109,10 +109,6 @@ public sealed class RoomStyleLibraryEndpointsTests
         // A shell that grows upward is a taller picture — the section is cropped to the shell it drew.
         await Assert.That(Height((await Preview(client, plain with { WallHeight = 11 })).Section))
             .IsGreaterThan(Height(baseline.Section));
-        // A roof is one course, so its stored thickness changes nothing — the column is still carried by the
-        // row and still offered by the form, and the shell ignores it.
-        await Assert.That(Height((await Preview(client, plain with { RoofThickness = 3 })).Section))
-            .IsEqualTo(Height(baseline.Section));
         // And one that grows downward: a deeper floor is drawn from further down.
         await Assert.That(Height((await Preview(client, plain with { FloorDepth = 4 })).Section))
             .IsGreaterThan(Height(baseline.Section));

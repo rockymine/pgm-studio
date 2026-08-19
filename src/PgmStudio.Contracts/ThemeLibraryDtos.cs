@@ -108,12 +108,15 @@ public sealed record RoofStyleSummary(long Id, string Name, string Preview);
 /// <summary>A roof style: everything above the eave. Its courses are the <c>roof</c>, <c>verge</c> and
 /// <c>gable</c> parts.</summary>
 public sealed record RoofStyleDetail(
-    long Id, string Name, string Form, int Thickness, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses);
+    long Id, string Name, string Form, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0);
 
+/// <summary>Create or replace a roof style. <paramref name="RoofSlab"/> is the block a half-course rise steps
+/// on every odd course, or -1 for a roof laid in whole blocks — the roof's own, since a roof style owns
+/// everything above the eave, and the number the slab/pitch pairing is checked against.</summary>
 public sealed record RoofStyleSaveRequest(
-    string Name, string Form, int Thickness, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses);
+    string Name, string Form, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0);
 
 /// <summary>One row in the storey library, with the room it stamps. <paramref name="Clear"/> rides along
 /// because a house binding a stack of these has to say how tall the stack comes out, and asking the server
@@ -153,7 +156,7 @@ public sealed record RoomStoreyDto(long StoreyStyleId, int Clear);
 /// does.</summary>
 public sealed record RoomStyleDetail(
     long Id, string Name,
-    int FloorDepth, int WallHeight, int RoofThickness,
+    int FloorDepth, int WallHeight,
     string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
     int BorderWidth, int InlayInset,
     int Storeys, int StoreyClear,
@@ -169,7 +172,7 @@ public sealed record RoomStyleDetail(
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
 public sealed record RoomStyleSaveRequest(
     string Name,
-    int FloorDepth, int WallHeight, int RoofThickness,
+    int FloorDepth, int WallHeight,
     string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
     int BorderWidth, int InlayInset,
     int Storeys, int StoreyClear,

@@ -93,7 +93,7 @@ public partial class HousePartComposer
         switch (kind.Id)
         {
             case PartKindInfo.Roof:
-                roof = new RoofStyleSaveRequest("", RoofForms.Gable, 1, 1, 1, false, false, []);
+                roof = new RoofStyleSaveRequest("", RoofForms.Gable, 1, 1, false, false, []);
                 break;
             case PartKindInfo.Storey:
                 storey = new StoreyStyleSaveRequest("", 3, 1, 2, NoWindows, []);
@@ -122,8 +122,9 @@ public partial class HousePartComposer
                 if (await Library.RoofStyleAsync(id) is not { } roofDetail) { note = Unreadable; return; }
                 (editingId, draftName) = (roofDetail.Id, roofDetail.Name);
                 roof = new RoofStyleSaveRequest(
-                    roofDetail.Name, roofDetail.Form, roofDetail.Thickness, roofDetail.Pitch,
-                    roofDetail.Overhang, roofDetail.RoofHole, roofDetail.RidgeCap, roofDetail.Courses);
+                    roofDetail.Name, roofDetail.Form, roofDetail.Pitch,
+                    roofDetail.Overhang, roofDetail.RoofHole, roofDetail.RidgeCap, roofDetail.Courses,
+                    roofDetail.RoofSlab, roofDetail.RoofSlabData);
                 break;
             case PartKindInfo.Storey:
                 if (await Library.StoreyStyleAsync(id) is not { } storeyDetail) { note = Unreadable; return; }

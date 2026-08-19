@@ -628,7 +628,7 @@ Dressing does not repaint the Blocks overlay, which shows the painter's surface 
 ## Refusals and complaints
 
 The sketch has almost no gate, and that is deliberate: an unfinished drawing is a legitimate state, and the
-tool saves it. Seven things nonetheless refuse — and beside them sits a second list, of what the document says
+tool saves it. Eight things nonetheless refuse — and beside them sits a second list, of what the document says
 that the build cannot honour, which **complains** rather than refusing because the board still builds.
 
 **A bound room style is checked before the layout is stored.** `PUT .../sketch` reads `roomStyles.cage` and
@@ -640,6 +640,14 @@ lattice or a slab band window is allowed on either, as it is on any house, so lo
 form needs. Answers **400** `{error: "invalid house style", message, findings[]}` (`docs/refusals.md`), one finding per fault, and writes nothing. A layout with no
 `roomStyles`, or one whose snapshot does not parse as a house style at all, is not this gate's business and
 saves as it always did — only a well-formed style that is wrong is refused.
+
+**And a bound shell taller than the build ceiling is refused there too** (`WX10`,
+`docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while
+the goal marker over it hangs five blocks above a ceiling twenty over the ground — so a tall storey stack
+swallows the very sign that says where the goal is. The height is measured on the smallest room there is, 6×6,
+since every sloped roof only climbs further on a bigger footprint: a style refused here has no footprint it
+could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.cage` or
+`roomStyles.spawn`.
 
 **Finish refuses an empty board.** `POST .../sketch/finish` answers 422 when there is no stored layout at all,
 and again when the layout rasterizes to no ground. It does *not* ask for two islands: an island is a connected

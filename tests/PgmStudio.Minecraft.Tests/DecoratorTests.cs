@@ -804,6 +804,52 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task Two_buildings_keep_a_block_of_clear_ground_between_their_eaves()
+    {
+        // A building holds what it stamps plus one block outward, and is *tested* on what it stamps — so two
+        // that merely fail to overlap are refused and two with a block between them both stand. Before the
+        // ring, the claim was the wall rectangle: a verge overhung ground the pass believed free.
+        var (world, top) = Plateau();
+        var open = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } };
+        HouseProp At(string id, int minX, int maxX) =>
+            new() { Id = id, Wings = [new AuthoredWing([[minX, 10], [maxX, 18]])], Style = open };
+
+        // Overhang 1, so the first stamps x9…19 and the second x20…30 — adjacent, with nothing between them.
+        var flush = Decorator.Decorate(world, Context(top, [At("h1", 10, 18), At("h2", 21, 29)]));
+        await Assert.That(flush.Houses).IsEqualTo(1);
+        var drop = flush.Declines.Single(d => d.SubjectIds.Contains("h2"));
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.GroundTaken);
+
+        // One block further out and the eaves have a course of ground between them.
+        var (clean, cleanTop) = Plateau();
+        var spaced = Decorator.Decorate(clean, Context(cleanTop, [At("h1", 10, 18), At("h2", 22, 30)]));
+        await Assert.That(spaced.Houses).IsEqualTo(2);
+        await Assert.That(spaced.Declines).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_building_with_a_column_of_its_footprint_over_nothing_is_refused()
+    {
+        // A building seats on the lowest column its plan covers, so a footprint half on land used to seat on
+        // that half and hang off the rest. The refusal names the first bare column, which is what makes it
+        // checkable against the board.
+        var (world, top) = Plateau(size: 20);              // ground is x,z 0…19
+        var house = new HouseProp
+        {
+            Id = "h",
+            Wings = [new AuthoredWing([[15, 5], [23, 13]])],   // runs off the east edge
+            Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
+        };
+
+        var tally = Decorator.Decorate(world, Context(top, [house]));
+
+        await Assert.That(tally.Houses).IsEqualTo(0);
+        var drop = tally.Declines.Single();
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.NoGround);
+        await Assert.That(drop.Message).Contains("(20, 5)");
+    }
+
+    [Test]
     public async Task Two_boulders_do_not_share_the_ground_they_rest_on()
     {
         // The first boulder claims its footprint; the second, anchored at the same spot, has nowhere of its

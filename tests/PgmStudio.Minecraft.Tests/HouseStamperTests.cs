@@ -1571,6 +1571,49 @@ public sealed class HouseStamperTests
             .IsEquivalentTo(expected.OrderBy(c => c.X).ThenBy(c => c.Z));
     }
 
+    [Test]
+    [Arguments(1, 0)]
+    [Arguments(2, 1)]
+    [Arguments(3, 2)]
+    [Arguments(4, 3)]
+    public async Task The_eave_takes_the_roofs_own_material_the_courses_it_reaches_into_the_wall(
+        int pitch, int overlap)
+    {
+        // A column's underside is its crown less the drop to the deepest neighbour the roof covers, and at the
+        // eave that neighbour is the overhang a pitch lower — so the eave reaches pitch − 1 courses under the
+        // wall top. The invariant is that those courses are roof and not wall, however steep the roof gets:
+        // walls outranking roofs there showed a stripe of wall under the overhang that grew with the pitch.
+        var wall = new SolidMaterial(Blocks.Planks);
+        var roof = new SolidMaterial(Blocks.Cobblestone);
+        var style = new HouseStyle
+        {
+            Wall = RoomPart.Of(wall, 5),
+            Post = null,
+            Roof = new RoofStyle { Pitch = pitch, Overhang = 1, Body = roof, Verge = roof },
+        };
+        var world = new VoxelWorld();
+        HouseStamper.Stamp(world, 0, 0, 12, 9, FloorY, style);
+
+        var wallTop = FloorY + style.WallCourses;
+        for (var course = 0; course < overlap; course++)
+            await Assert.That(world.GetBlock(7, wallTop - course, 0).Id).IsEqualTo(Blocks.Cobblestone);
+        // And no further: the course under the overlap is still wall, so the roof came down to the wall
+        // rather than through it.
+        await Assert.That(world.GetBlock(7, wallTop - overlap, 0).Id).IsEqualTo(Blocks.Planks);
+    }
+
+    [Test]
+    public async Task A_steep_eave_still_leaves_the_house_sealed()
+    {
+        // The eave courses change hands, so the one thing that must not change is that they are still filled.
+        var world = House(12, 9, new HouseStyle
+        {
+            Roof = new RoofStyle { Pitch = 4, Overhang = 1 },
+            Doorway = new Doorway { Door = DoorMaterial.StainedGlass },
+        });
+        await Assert.That(Leaks(world, 12, 9)).IsFalse();
+    }
+
     private static IEnumerable<(int X, int Z)> Cells(int width, int depth)
     {
         for (var x = 0; x < width; x++)

@@ -478,9 +478,22 @@ after paths and before the props that scatter around them — and the path's own
 does not check, because a road is meant to run to a porch (§4): a house collides with water or with another
 house, never with pavement.
 
+**What it claims is what it stamps, grown one block outward.** Every other placement already reserves ground
+around itself — a goal keeps props off its standoff, a door keeps its approach open, a tree stands three
+blocks off the road — and a building used to claim the *wall* rectangles alone, so a verge overhung ground the
+pass believed free and the next prop seated under it. The claim is the extent the stamp writes, eaves
+included, plus a block of ring; what a placement is **tested** against is the stamped extent rather than the
+ring, so the ring is spent once between a pair and two buildings end up with one block of clear ground between
+them rather than two. A trunk near enough to drop its crown through a roof is refused as `DR-CLAIM`, and the
+owner a later decline names is the ground the building really holds.
+
 What it does need is ground, and that is physics rather than policy: it seats on the **lowest** column of its
-own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side. An
-image with no ground under it at all raises nothing.
+own footprint, one course down, so it settles into a slope instead of standing on stilts over the low side.
+That seat is why the ground is required under **every** cell of the footprint and not merely under one:
+a plan with one cell on land and ten over void would seat on that one and hang off the rest, and nothing else
+covers it — the passage walk reads the bands *outside* the footprint, and the excavation skips a missing
+column rather than refusing it. Half a building on solid ground is worse than none, so the first bare column
+declines the whole prop as `DR-SITE` and the finding names that column.
 
 **It must leave a way past itself (`DR-PASS`).** Beside a building there must be **five blocks** of passable
 ground along at least one of its four sides — the whole run of that side, extended one step past each
@@ -527,7 +540,8 @@ The shell is a **snapshot** on the prop, not a library id — the rule a map's b
 rebuild a map's scenery.
 
 **Every whole-prop decline is a `Finding`, in the shape everything else says no in.** A house whose wings
-make no building, a house whose ground something already claimed, a house over no ground, with no way past it
+make no building, a house whose ground something already claimed, a house with a cell of its footprint over no
+ground, with no way past it
 or standing in a door's approach, a tree or a boulder whose site finds no ground, lands on a column the map
 keeps clear or one already claimed, or breaks its kind's road standoff — each appends one finding to
 `DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-SIZE`, or

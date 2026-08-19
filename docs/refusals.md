@@ -73,11 +73,11 @@ a rule that changed its name between the two would be two rules.
 |---|---|---|
 | `PL*` | the plan's own structure | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
 | `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes | `Domain/ObjectiveRules.cs` |
-| `WX*` | room frames — the shell, the pad, the doors, the iron | `Domain/RoomFrames.cs` → `RoomFrameRules` |
+| `WX*` | room frames — the shell, the pad, the doors, the iron, and the shell's height against the build ceiling | `Domain/RoomFrames.cs` → `RoomFrameRules` |
 | `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
 | `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |
-| `DR-*` | the dressing pass's own — `DR-DOC` a document that will not parse, `DR-ROAD` a prop resting nearer to the road than its kind's standoff (the numbers live on `PlacedProp.RouteStandoff`), `DR-PASS` a building leaving no five-block passage beside any side, `DR-SIZE` a building whose box is under 5×5 blocks, `DR-KEEP` a prop resting on ground the map keeps clear (a spawn, a wool room, a stated structure, a built column, a door's approach), `DR-CLAIM` a prop resting on ground something already standing holds, `DR-SITE` a prop with no ground to rest on. Every one of them is a **complaint on a built world**: the prop does not land, the world does | `Minecraft/Dressing/DressingJson.cs` · `Minecraft/Dressing/GroundClaims.cs` → `DressingRules` |
+| `DR-*` | the dressing pass's own — `DR-DOC` a document that will not parse, `DR-ROAD` a prop resting nearer to the road than its kind's standoff (the numbers live on `PlacedProp.RouteStandoff`), `DR-PASS` a building leaving no five-block passage beside any side, `DR-SIZE` a building whose box is under 5×5 blocks, `DR-KEEP` a prop resting on ground the map keeps clear (a spawn, a wool room, a stated structure, a built column, a door's approach), `DR-CLAIM` a prop resting on ground something already standing holds (a building holds what it stamps plus a block of ring beyond it), `DR-SITE` a prop with no ground to rest on — a building is held to every cell of its footprint, and the finding names the first bare column. Every one of them is a **complaint on a built world**: the prop does not land, the world does | `Minecraft/Dressing/DressingJson.cs` · `Minecraft/Dressing/GroundClaims.cs` → `DressingRules` |
 | `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry, `EX4` an objective with no team to contest it | `Export/MapExportComposer.cs` → `ExportRules` |
 | `SK*` | the sketch document's own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it; `SK2` a board whose extent is past what the studio will realize (the one refusal; the ceiling is a constant and deliberately appears in no message — a stated one is a target); `SK3` a name matching nothing (a shape kind, a mirror mode, an island's shape id, a relief's island, a shape's or the map's theme); `SK4` a shape that draws no ground; `SK5` a column the world cannot hold. `SK3`–`SK5` are **complaints on a built board**: the rasterizer is set algebra, so what it cannot read contributes no ground rather than failing, and without these a defect in the document reads as a smaller drawing | `Pgm/Sketch/SketchRules.cs` · `Pgm/Sketch/SketchLayoutCheck.cs` |
 | `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
@@ -131,6 +131,8 @@ type, because the interesting question is not how many findings there are.
 | a placed building | `house.Check()` |
 | how two wings meet | `WingJoints.Check(plan)` |
 | a sketch's bound room styles | `SketchRoomStyleGate.Check(layoutJson)` |
+| a bound shell against the build ceiling | `RoomStyleScope.Check(style, field)` |
+| a roof's own materials | `HouseStyleValidation.CheckRoof(roof)` |
 
 A gate takes whatever it needs to answer — a plan alone, or goals plus the ground they stand on — so there is
 no interface, and forcing one would only make the context-carrying gates lie about what they read. What is

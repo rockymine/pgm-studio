@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Houses;
@@ -31,6 +32,34 @@ public static class RoomStyleScope
     {
         var bound = layout?.RoomStyles;
         return (Shell(bound?.Wool, HouseStyle.Wool), Shell(bound?.Spawn, HouseStyle.Spawn));
+    }
+
+    /// <summary>What a bound shell's own height refuses (<see cref="RoomFrameRules.ShellOverCeiling"/>): a
+    /// style that cannot stand under the build ceiling on <b>any</b> footprint a room may take.
+    ///
+    /// <para>A goal marker hangs <see cref="BuildCeiling.MarkerOver"/> blocks over the ceiling and a wool
+    /// room's shell is authored geometry subject to no cap, so a tall stack swallows the marker standing over
+    /// it. Nothing else compares the two — the world builder clamps a shell's floor against the world's own
+    /// 255 and never against this — and a correction at stamp time would silently shorten a building the
+    /// author drew, so this refuses at the point the style is bound.</para>
+    ///
+    /// <para><b>Asked on the smallest shell a room may be</b> (<see cref="RoomFrames.MinShellSpan"/>). Every
+    /// sloped form climbs with the span it crosses, so a style's height is at its lowest there and a bigger
+    /// footprint only ever raises it: a style refused here is one no footprint could have saved.</para></summary>
+    public static Findings Check(HouseStyle? style, string field)
+    {
+        if (style is null) return Findings.None;       // open ground carries no shell to be too tall
+        var span = RoomFrames.MinShellSpan;
+        var reach = style.TopLayerOver(span, span);
+        if (reach <= BuildCeiling.OverGround) return Findings.None;
+        return new List<Finding>
+        {
+            new(RoomFrameRules.ShellOverCeiling,
+                $"the shell stands {reach} courses over its floor even on the smallest room there is "
+                + $"({span}×{span}), past the {BuildCeiling.OverGround}-course build ceiling — and the goal "
+                + $"marker hangs {BuildCeiling.MarkerOver} courses above that, inside the building",
+                Field: field),
+        };
     }
 
     private static HouseStyle? Shell(JsonElement? snapshot, HouseStyle builtIn) => snapshot?.ValueKind switch

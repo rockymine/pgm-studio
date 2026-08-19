@@ -272,4 +272,70 @@ public sealed class HouseStoreyTests
         await Assert.That(read.Storeys[0].Deck).IsNull();
         await Assert.That(read).IsEqualTo(style);
     }
+
+    /// <summary>A roof terrace (§7.6): a parapet storey — one course of fence over two of air, with air at
+    /// its corners too — under a flat lid laid in air. Nothing is stamped over the deck, so the height every
+    /// caller reserves against has to be where the parapet is and not where the stack reserved to.</summary>
+    [Test]
+    public async Task A_terrace_reports_the_parapet_it_writes_rather_than_the_air_it_reserves()
+    {
+        var air = new SolidMaterial(Blocks.Air);
+        var terrace = new HouseStyle
+        {
+            Storeys =
+            [
+                new Storey { Clear = 4 },
+                new Storey
+                {
+                    Clear = 3,
+                    Wall = new RoomPart(new BandStack(
+                        [new Band(new SolidMaterial(Blocks.OakFence)), new Band(air, 2)]), 3),
+                    Post = air,
+                },
+            ],
+            Roof = new RoofStyle { Form = RoofForm.Flat, Body = air, Verge = air },
+        };
+
+        // Reserved: 5 courses for the ground storey with its slab, 3 for the parapet storey, a lid over that.
+        await Assert.That(terrace.WallCourses).IsEqualTo(8);
+        // Written: the parapet's one course, standing on the upper storey's own base.
+        await Assert.That(terrace.HighestWallCourse).IsEqualTo(6);
+        await Assert.That(terrace.TopLayer).IsEqualTo(6);
+        await Assert.That(terrace.TopLayerOver(10, 10)).IsEqualTo(6);
+
+        // And the stamp agrees: nothing at all stands over the parapet course.
+        var world = House(11, 9, terrace);
+        for (var y = FloorY + 7; y < FloorY + 20; y++)
+            for (var x = -1; x <= 11; x++)
+                for (var z = -1; z <= 9; z++)
+                    await Assert.That(world.GetBlock(x, y, z).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary>Corner posts are blocks like any other: a parapet storey that keeps its posts writes at its
+    /// top course, so the reservation and the written height agree again.</summary>
+    [Test]
+    public async Task A_post_standing_through_a_storey_of_air_still_counts_as_written()
+    {
+        var posted = new HouseStyle
+        {
+            Storeys =
+            [
+                new Storey { Clear = 4 },
+                new Storey
+                {
+                    Clear = 3,
+                    Wall = new RoomPart(new BandStack(
+                        [new Band(new SolidMaterial(Blocks.OakFence)),
+                         new Band(new SolidMaterial(Blocks.Air), 2)]), 3),
+                },
+            ],
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Flat,
+                Body = new SolidMaterial(Blocks.Air), Verge = new SolidMaterial(Blocks.Air),
+            },
+        };
+
+        await Assert.That(posted.HighestWallCourse).IsEqualTo(posted.WallCourses);
+    }
 }

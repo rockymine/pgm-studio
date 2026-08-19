@@ -269,7 +269,6 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             Name: house.Name,
             FloorDepth: style.Foundation.Depth,
             WallHeight: Math.Max(1, style.Wall.Extent),
-            RoofThickness: 1,
             RoofForm: RoofForms.Canonical(NameOf(style.Roof.Form)),
             Pitch: style.Roof.Pitch,
             Overhang: style.Roof.Overhang,

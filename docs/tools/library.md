@@ -266,10 +266,13 @@ one style per bucket plus a theme binding them.
 One composer serves all three, because they are the same act — pick a kind, bind styles to that kind's parts,
 turn that kind's knobs — and what differs between them is data rather than a third editor.
 
-A **roof** is everything above the eave: its form, thickness, pitch and overhang, whether it carries a hole and
-a ridge cap, and a material for each of its `roof`, `verge` and `gable` parts. None of the three stacks: a
-course stack counts upward from its part's own base, which a wall has and a roof does not, since a slope's
-depth at a cell is however many courses close the step down to its neighbour.
+A **roof** is everything above the eave: its form, pitch and overhang, whether it carries a hole and a ridge
+cap, the `roofSlab` a half-course rise steps on every odd course, and a material for each of its `roof`,
+`verge` and `gable` parts. It has no thickness: a course stack counts upward from its part's own base, which a
+wall has and a roof does not, since a slope's depth at a cell is however many courses close the step down to
+its neighbour. The slab is the roof's own rather than the house's, which is what lets the slab/pitch pairing be
+checked here as well as on a whole shell — and what makes a house binding a roof take that roof's answer, the
+way it takes its form and its pitch.
 
 A **storey** is one room: the `clear` a player stands in — never under three, because a room has to be stood up
 in — the floor's border width and inlay inset, its windows, and courses for the `wall` (which does stack) plus
@@ -285,9 +288,8 @@ never the house around it.
 
 ### A room is a building made of parts and styles
 
-A `room_style` carries the extents and knobs of a whole shell — floor depth, wall height, roof thickness, roof
-form, pitch, overhang, border and inlay, door and door head, beams, windows and gable windows, an optional
-porch — plus three ways of composing: per-part **course stacks**, optional bound **roof and porch style ids**,
+A `room_style` carries the extents and knobs of a whole shell — floor depth, wall height, roof form, pitch,
+overhang, border and inlay, door and door head, beams, windows and gable windows, an optional porch — plus three ways of composing: per-part **course stacks**, optional bound **roof and porch style ids**,
 and a **storey stack** whose position in the list is the position in the building, ground first, so there is no
 ordinal on the wire. Reordering the list reorders the house.
 
@@ -394,13 +396,16 @@ style's courses cascade, and the styles they bound stay. That asymmetry is delib
 else depends on are protected, and the things nothing depends on are the author's to discard.
 
 **A house style that names the wrong kind of block is refused where it is saved.** `PgmStudio.Minecraft`'s
-`HouseStyleValidation.Check` runs on every `POST`/`PUT` to `/room-styles` (over the composed shell), the two
-`/roof-styles` verbs (over the roof and the verge — the two materials a roof part carries on their own) and the
-two `/storey-styles` verbs (over the storey's own window), and on the two other doors a `HouseStyle` snapshot
-enters the studio through: `PUT /map/{slug}/sketch`'s bound `roomStyles.cage` and `roomStyles.spawn`
-(`docs/tools/sketch.md`'s Refusals) — the wool cage and the spawn checked identically, since nothing about a
-spawn asks for a different rule. Every finding names one of three stable rule ids
-(`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing `message`:
+`HouseStyleValidation.Check` runs on every `POST`/`PUT` to `/room-styles` (over the composed shell) and the
+two `/storey-styles` verbs (over the storey's own window); the two `/roof-styles` verbs run
+`HouseStyleValidation.CheckRoof` over the composed roof, which is the whole roof gate rather than half of it —
+a roof part states its own `roofSlab`, so the slab/pitch pairing has both numbers there. The same checks run
+on the two other doors a `HouseStyle` snapshot enters the studio through: `PUT /map/{slug}/sketch`'s bound
+`roomStyles.cage` and `roomStyles.spawn` (`docs/tools/sketch.md`'s Refusals) — the wool cage and the spawn
+checked identically, since nothing about a spawn asks for a different rule, and there against the build
+ceiling as well (`WX10`, `docs/world-export/structures.md`). Every style finding names one of three stable
+rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing
+`message`:
 
 - **`HS1` — a stair or a slab, unchecked.** `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
   must be a single slab; a `windows.block` under `stairLattice` or `arched` must be a stair, and under
@@ -441,7 +446,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /themes/{id}/json` | the painter-ready theme JSON — the form a map snapshots — as `{themeJson: "…"}`, the document itself being the **string** in that field |
 | `POST /themes/import` | lift a whole theme JSON in: one style per bucket plus a theme. Body `{name?, themeJson}` — the **mirror of the `GET` above**, the theme being the *stringified* document in `themeJson` rather than an object, and `name` optional (an unnamed import becomes "Imported theme"). 400, never 500, on bad JSON |
 | `DELETE /themes/{id}` | forget a theme; its bindings cascade, its styles stay |
-| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof/verge or the window (Refusals, above); porches carry nothing the gate checks |
+| `GET`·`POST`·`PUT`·`DELETE /roof-styles[/{id}]` · `…/storey-styles` · `…/porch-styles` | the three part libraries; each `POST …/preview` renders a draft on a sample building. `POST`/`PUT …/roof-styles` and `…/storey-styles` answer 400 `{error, message, findings[]}` (`docs/refusals.md`) when the house-style gate refuses the roof (its materials, its `roofSlab`, and the slab against its pitch) or the window (Refusals, above); porches carry nothing the gate checks |
 | `GET /room-styles` · `GET /room-styles/{id}` | the room library and one room style's parts and courses |
 | `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |

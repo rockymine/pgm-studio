@@ -95,6 +95,22 @@ public sealed record SolidMaterial(int Id, int Data = 0) : TerrainMaterial
     public override (int Id, int Data) Resolve(in BucketContext ctx) => (Id, Data);
 }
 
+/// <summary>What a material can be asked <b>without a cell to ask it at</b>.</summary>
+public static class Materials
+{
+    /// <summary>Whether this material certainly writes nothing, wherever it is asked: nothing at all, or a
+    /// bare air <see cref="SolidMaterial"/>. Air is a gap rather than a block everywhere in a style, so a
+    /// stack's air courses are courses the stamp skips — which is what a parapet is made of, and what a
+    /// reserved height that counted them was over-reserving by.
+    ///
+    /// <para><b>Certainly, not possibly.</b> A pattern resolves per cell and may answer air at some of them,
+    /// and nothing outside a build knows which — so a patterned material answers false here and is treated as
+    /// writing. The question this exists for is a reservation, where over-reserving is a small cost and
+    /// under-reserving is a stamp clipped at the ceiling.</para></summary>
+    public static bool IsAir(this TerrainMaterial? material) =>
+        material is null or SolidMaterial { Id: Blocks.Air };
+}
+
 /// <summary>
 /// A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11), or a
 /// cobble rim then two rings of stone brick then a field.

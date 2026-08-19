@@ -43,7 +43,7 @@ internal static class RoomStyleMapping
     public static RoomStyleDetail ToDetail(
         RoomStyleRow row, IReadOnlyList<RoomStyleCourseRow> courses,
         IReadOnlyList<RoomStyleStoreyRow>? stack = null) =>
-        new(row.Id, row.Name, row.FloorDepth, row.WallHeight, row.RoofThickness,
+        new(row.Id, row.Name, row.FloorDepth, row.WallHeight,
             row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
             row.BorderWidth, row.InlayInset, row.Storeys, row.StoreyClear,
             new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,

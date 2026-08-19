@@ -44,6 +44,16 @@ public static class RoomFrameRules
     /// <summary>A wool room with no seam and no abutting build zone has nothing to enter it by.</summary>
     /// <remarks>Give the wool room a border with a neighbouring piece, or place a build zone against it. A room nothing abuts has no door that can be cut.</remarks>
     public const string RoomUnreachable = "WX6";
+
+    /// <summary>A bound room style builds a shell taller than the build ceiling — <see cref="BuildCeiling"/>'s
+    /// clearance over the ground it stands on. A room's shell is authored geometry and is subject to no cap of
+    /// its own, so a tall storey stack swallows the goal marker that hangs
+    /// <see cref="BuildCeiling.MarkerOver"/> blocks over that ceiling, and the map's own sky sign ends up
+    /// inside the building it points at. Measured on the <b>smallest</b> shell a room may be, since every
+    /// sloped roof only climbs further on a bigger footprint: a style refused here has no footprint it could
+    /// have been stamped on.</summary>
+    /// <remarks>Take courses out of the shell — a storey off the stack, a shallower roof pitch, or a lower clear — until it stands under the build ceiling. The cap is the same one players build under, and a marker hanging above it is what makes a goal readable across the map.</remarks>
+    public const string ShellOverCeiling = "WX10";
 }
 
 /// <summary>One iron marker's resolution beside a spawn room (WX8/WX9): the cube footprint min corner and

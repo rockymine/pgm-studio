@@ -506,7 +506,6 @@ public sealed class RoomStyleRow
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("floor_depth")] public int FloorDepth { get; set; } = 1;
     [Column("wall_height")] public int WallHeight { get; set; } = 7;
-    [Column("roof_thickness")] public int RoofThickness { get; set; } = 1;
     [Column("roof_form"), NotNull] public string RoofForm { get; set; } = "flat";
     [Column("pitch")] public int Pitch { get; set; } = 1;
     [Column("overhang")] public int Overhang { get; set; }
@@ -578,7 +577,8 @@ public sealed class RoofStyleRow
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("name"), NotNull] public string Name { get; set; } = "";
     [Column("form"), NotNull] public string Form { get; set; } = "gable";
-    [Column("thickness")] public int Thickness { get; set; } = 1;
+    [Column("roof_slab")] public int RoofSlab { get; set; } = -1;
+    [Column("roof_slab_data")] public int RoofSlabData { get; set; }
     [Column("pitch")] public int Pitch { get; set; } = 1;
     [Column("overhang")] public int Overhang { get; set; } = 1;
     [Column("roof_hole")] public bool RoofHole { get; set; }

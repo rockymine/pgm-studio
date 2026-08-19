@@ -65,6 +65,11 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
                 Overhang = Math.Max(0, row.Overhang),
                 Hole = row.RoofHole,
                 RidgeCap = row.RidgeCap,
+                // The half-course slab is the roof's own, so a house binding one takes the roof's answer the
+                // way it takes its form and its pitch. Everything above the eave belongs to this part, and a
+                // slab a house named under a bound roof would be a second opinion on the same course.
+                Slab = row.RoofSlab,
+                SlabData = Math.Clamp(row.RoofSlabData, 0, 15),
             },
         };
     }
@@ -73,7 +78,8 @@ public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
     {
         Name = req.Name,
         Form = RoofForms.Canonical(req.Form),
-        Thickness = Math.Max(1, req.Thickness),
+        RoofSlab = req.RoofSlab,
+        RoofSlabData = Math.Clamp(req.RoofSlabData, 0, 15),
         Pitch = Math.Clamp(req.Pitch, 1, 4),
         Overhang = Math.Clamp(req.Overhang, 0, 4),
         RoofHole = req.RoofHole,

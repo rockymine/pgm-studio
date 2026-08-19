@@ -78,7 +78,7 @@ public partial class RoomStyleComposer
     /// and no porch — so the first thing an author sees is what the export builds today and every knob turned
     /// from here is a visible change to it.</summary>
     private RoomStyleSaveRequest EmptyDraft(string name) => new(
-        name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
+        name, FloorDepth: 1, WallHeight: 7,
         RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
         BorderWidth: 1, InlayInset: 2, Storeys: 1, StoreyClear: 0,
         Windows: NoWindows, Porch: null,
@@ -112,7 +112,7 @@ public partial class RoomStyleComposer
         draftName = detail.Name;
         note = null;
         draft = new RoomStyleSaveRequest(
-            detail.Name, detail.FloorDepth, detail.WallHeight, detail.RoofThickness,
+            detail.Name, detail.FloorDepth, detail.WallHeight,
             detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.RidgeCap,
             detail.BorderWidth, detail.InlayInset, detail.Storeys, detail.StoreyClear,
             detail.Windows, detail.Porch,

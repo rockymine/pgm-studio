@@ -452,8 +452,10 @@ in the Draw dock draws one, so it is reachable only in a document written outsid
 One consequence is worth keeping here because it is about what the stamper does rather than about play. A
 prop writes only into air, so a tree can never replace a wall, a roof or a post, and leaves resting
 **against** a house are correct — an author pastes a tree beside a building masked against the building's own
-blocks and expects exactly that. What nothing does yet is clear the leaves that landed **inside** a building
-through its roof (`B166`). A tree rooted inside a structure is a fault; a canopy leaning on one is not.
+blocks and expects exactly that. A tree rooted inside a structure is a fault, and one it can no longer be: a
+building holds the ground it stamps plus a block of ring beyond it, so a trunk near enough to drop its crown
+through a roof is refused as `DR-CLAIM` rather than planted. A canopy reaching a roof from further off is not
+a fault, and nothing clears the leaves it rests on.
 
 ### What these combine into, which is where the width actually is
 

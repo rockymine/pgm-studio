@@ -202,6 +202,14 @@ public static class HouseStamper
         // stay where the author drew them — the hall's far wall is the hall's, and the gable simply stands on
         // it — so the extension is the roof's plan alone, taken along the wing's own ridge, which is the axis a
         // gable's rise is not measured over and so lengthens the roof without raising it.
+        //
+        // <b>The walls stop under whatever a roof claimed at their cell.</b> Walls are laid after every roof
+        // volume and outrank them, which is what stops a low wing's slope crossing a tall wing's wall — but a
+        // wing's own eave comes down past its own wall top by construction (see <c>Lay</c>), and writing wall
+        // over those courses is what put a stripe of wall under the overhang. So each column records the
+        // lowest course its roof occupies, and the wall pass reads it.
+        var roofFloor = new Dictionary<(int X, int Z), int>();
+
         var joints = WingJoints.Of(body);
         var roofs = body.Wings.Select((wing, index) =>
         {
@@ -241,7 +249,7 @@ public static class HouseStamper
                     // higher and the eave gives way — which it must, since an eave under a verge has no slope
                     // above it to catch anything from.
                     if (Overtopped(wing, field, x, z)) continue;
-                    Lay(field, x, z, body, slab);
+                    Lay(field, x, z, body, slab, index);
                 }
 
 
@@ -268,7 +276,7 @@ public static class HouseStamper
         // rather than one that stopped at a wall.
         foreach (var (_, index, _, field, _, slab) in roofs)
             foreach (var (x, z) in marched[index].Keys)
-                Lay(field, x, z, body, slab);
+                Lay(field, x, z, body, slab, index);
 
         // ── the walls ─────────────────────────────────────────────────────────────────────────────────
         // Storey by storey, each counting its own courses up from its own floor — so a band written at a
@@ -285,6 +293,11 @@ public static class HouseStamper
                     {
                         if (!plan.OnPerimeter(x, z)) continue;
                         var y = floorY + bases[level] + course;
+                        // The eave wins its own courses. Walls outrank roofs everywhere else — that is what
+                        // this pass running last is for — but where a wing's own slope has already come down
+                        // past its wall top, writing wall over it is what put a stripe of wall under the
+                        // overhang instead of the roof meeting it.
+                        if (roofFloor.TryGetValue((x, z), out var roofBase) && y >= roofBase) continue;
                         // Both kinds of turn take the post: the ones the building turns away at, and the one
                         // where two wings meet, which is a corner the walls running into it turn at even
                         // though neither runs through it.
@@ -484,7 +497,7 @@ public static class HouseStamper
 
         // One column of a roof: its tread and whatever riser it needs under it, bordered on the roof's own
         // outermost ring and capped along the ridge when the style asks for a capped one.
-        void Lay(RoofField field, int x, int z, BuildingPlan ring, int slabBlock)
+        void Lay(RoofField field, int x, int z, BuildingPlan ring, int slabBlock, int? owner = null)
         {
             var crown = field.Crown(x, z);
             // <b>The rim is the building's, not the wing's.</b> A verge and an eave are the outer edge of a
@@ -497,20 +510,35 @@ public static class HouseStamper
                 ? style.Roof.Verge
                 : style.Roof.Body;
 
-            // <b>No roof block below the wall top of whatever covers this cell.</b> Under a wall is inside the
-            // building, and that is not where a roof goes — it is what makes a one-storey wing stop against a
-            // two-storey one instead of pushing through it. A wing's own roof already starts above its own
-            // wall, so on a building of one wing this decides nothing.
-            var lowest = WallTopOver(x, z) + 1;
+            // <b>No roof block below the wall top of a wing whose roof this is not.</b> Under someone else's
+            // wall is inside their building, and that is not where a roof goes — it is what makes a one-storey
+            // wing stop against a two-storey one instead of pushing through it.
+            //
+            // <b>Over its own wall the clamp is lifted, and that is the eave.</b> A column's underside is its
+            // crown less the drop to the deepest neighbour the roof covers, and at the eave line that
+            // neighbour is the overhang, a pitch lower — so the eave column reaches pitch − 1 courses under
+            // the wall top by construction. Those courses are the roof coming down to meet the wall, and
+            // clamping them away left the long wall showing through beneath the eave, one course further with
+            // every unit of pitch. Two wings never share a cell, so nothing else moves: a marched or projected
+            // column stands inside <em>another</em> wing and is clamped exactly as it was.
+            var lowest = WallTopOver(x, z, owner) + 1;
 
             // On a half course the topmost cell is a slab rather than a cube — written straight, the way a
             // window's pieces are, because which half it fills is geometry and not something a material may
             // resolve. The cubes under it are the roof's own material like any other course.
             var slab = field.Half(x, z);
-            for (var y = Math.Max(field.Underside(x, z), lowest); y <= (slab ? crown - 1 : crown); y++)
+            var from = Math.Max(field.Underside(x, z), lowest);
+            for (var y = from; y <= (slab ? crown - 1 : crown); y++)
                 Put(x, y, z, material, ring);
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
                 world.SetBlock(x, crown, z, slabBlock, style.Roof.SlabData & 0x7);
+
+            // The course the walls under this column have to stop below. The wall pass runs after every roof
+            // volume is laid and deliberately outranks it, so without this the eave courses the roof has just
+            // come down into are written back over in wall material — the same overlap the clamp above stops
+            // manufacturing, arriving from the other side. The lowest wins where two roofs reach one cell.
+            if (crown >= from)
+                roofFloor[(x, z)] = roofFloor.TryGetValue((x, z), out var already) ? Math.Min(already, from) : from;
         }
 
         /// <summary>The rectangle a wing's roof draws over: its own walls, lengthened along its own ridge to the
@@ -636,12 +664,14 @@ public static class HouseStamper
 
         /// <summary>The highest <see cref="WallTopOf"/> of any wing standing on this cell, or a course below
         /// every roof where none does — so a cell out past the walls is gated by nothing and keeps its
-        /// overhang.</summary>
-        int WallTopOver(int x, int z)
+        /// overhang. <paramref name="owner"/> indexes the wing whose roof is asking, which never answers for
+        /// itself: a roof coming down onto the wall it stands on is an eave, not an intrusion.</summary>
+        int WallTopOver(int x, int z, int? owner = null)
         {
             var highest = int.MinValue;
-            foreach (var wing in body.Wings)
-                if (wing.Holds(x, z)) highest = Math.Max(highest, WallTopOf(wing));
+            for (var at = 0; at < body.Wings.Count; at++)
+                if (at != owner && body.Wings[at].Holds(x, z))
+                    highest = Math.Max(highest, WallTopOf(body.Wings[at]));
             return highest;
         }
 

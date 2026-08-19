@@ -367,28 +367,24 @@ author.
 
 ### The house: what it stamps, where it stands, and what an author can say
 
-One object with three unfinished sides. The **stamper** decides what blocks come out, and two passes still
-resolve the same courses against each other; **placement** decides where a building may stand and what it
-reserves, which is the half the dressing pass answers loosest; and **authoring** is what a style can state and
-what a library shows back, where the model has outgrown the editor. The three share `HouseStyle`,
-`HouseStamper` and `BuildingPlan`, so a pass over any one of them opens the others.
+One object with three unfinished sides. The **stamper** decides what blocks come out, and how a wing's roof
+meets a neighbour's is still argued rather than drawn; **placement** decides where a building may stand and
+what it reserves; and **authoring** is what a style can state and what a library shows back, where the model
+has outgrown the editor. The three share `HouseStyle`, `HouseStamper` and `BuildingPlan`, so a pass over any
+one of them opens the others.
 
 **The stamper.**
 
-- [ ] **B165 — At the eave, the roof's own riser courses must beat the wall they reach into.** `Riser` is the
-  drop to the deepest neighbour the roof covers, and at the eave column that neighbour is the **overhang**,
-  `pitch` courses lower — so the eave column's `Underside` reaches `pitch − 1` courses down into the wall.
-  `HouseStamper`'s last pass is deliberately *walls outrank roofs*, so the overlap resolves to wall material
-  every time and grows with the pitch: the long wall shows through under the eave instead of the roof coming
-  down to it. Nothing is missing — the wall makes it watertight — so no gate catches it. **The fix (author):
-  those courses take the roof's material**, narrowly enough that the cross-wing ordering (`Overtopped` /
-  `OtherRoofCrownOver`) is untouched, since that is what the rule was written for. Settle at the same time
-  whether the eave should descend by `pitch` at all — the overhang tip drops a course per unit of pitch while
-  the wall top stays put, so a steeper roof reaches further down the wall rather than sitting on it.
+- [ ] **WE2 — Settle whether the eave should descend by `pitch` at all** (author). Distances are measured from
+  the wall line and go negative, so the overhang tip drops one course per unit of pitch while the wall top
+  stays put: a steeper roof reaches further down the wall rather than sitting on it. The eave courses are the
+  roof's material now, so nothing shows through — the open question is the geometry, and it is a question
+  about what a roof looks like rather than one the code can answer. If the answer is that it should not, the
+  change is in `RoofField.Rise`, holding the distance at zero outside the wall line instead of letting it go
+  negative; the overhang then runs flat at the wall's own course.
 
-  *author, 2026-08-14 · measured on a 12×9 wing, `overhang: 1`, wall 5 courses on a floor at y8 (wall top y12,
-  `Crown` y13): pitch 1 overlaps 0 courses, pitch 2 overlaps 1 (y12), pitch 3 overlaps 2 (y11–y12). Probed at
-  `(7, 12, 2)` and `(7, 11, 2)`. `RoofField.Riser`/`Underside` · `HouseStamper.cs:349-356`.*
+  *measured on a 12×9 wing, `overhang: 1`, wall 5 courses on a floor at y8 (wall top y13): pitch 2 puts the
+  overhang tip at y12, pitch 3 at y11, pitch 4 at y10 — probed at `(7, y, −1)`.*
 
 - [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
   `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
@@ -400,27 +396,6 @@ what a library shows back, where the model has outgrown the editor. The three sh
   and the overhanging wing's is never asked. Whether a course marching under a neighbour's verge should stop
   there is a question about what a roof looks like, so it wants a built figure rather than an argument:
   stamp a wing whose march runs beneath another's gable overhang and read the valley.
-
-- [ ] **B190 — Add `roof_slab` to `roof_style`, so `HS3` can run where a roof is saved on its own.** `HS3`
-  refuses a `Roof` named as a slab while `RoofSlab` is unset — the fault that gave six Weirgate houses a roof
-  you can see straight through — but it can only run where a **whole house style** is posted, because
-  `RoofStyleRow` has no column for the field it reads. Only `CheckRoofFamily`'s log/ground half runs at the
-  part level today. Pairing the two without the column would false-positive on a roof meant to pair with a
-  `RoofSlab` set on the house later. Wants a column and a migration; do it with other `roof_style` schema work.
-
-  *found implementing `B168`, 2026-08-14 · `RoofStyleRow` · `HouseStyleValidation.CheckRoofFamily`.*
-
-- [ ] **G171 — A building's reported height is its reservation, not its highest block.** `TopLayerOver` adds
-  up every storey's headroom and answers where the roof would sit, which is right for a building whose storeys
-  are rooms and wrong for one whose top storey is a roof terrace (`structures.md` §7.6): a parapet storey
-  states the clear of three a storey may not go under, writes one course of wall and leaves two courses of air,
-  and the answer overshoots the highest block laid by exactly those two. Nothing is stamped up there, so the
-  building is correct — what is wrong is every consumer of the number. The dressing prop clamps its placement
-  against the world ceiling with it, so a tall terraced building is refused a little sooner than it needs to
-  be, and the preview views frame to it, so a terrace is drawn with a band of empty sky over it. The fix is to
-  answer from what the stamp would actually write rather than from what the stack reserves — the wall stack
-  already knows which of its courses resolve to air — which also makes the number right for the stilt house,
-  whose ground storey is air for the same reason.
 
 - [ ] **B92 — Give `HouseStyle` a fill material, so a building can be a mass rather than a place.**
   `HouseStamper` leaves the volume its walls enclose as air, which is right for a village and wrong for a
@@ -436,51 +411,6 @@ what a library shows back, where the model has outgrown the editor. The three sh
   stamped building, so nothing downstream needs teaching.
 
 **Placement — where a building may stand, and what it reserves.**
-
-- [ ] **B166 — A house claims its stamped extent grown one block outward, and the claim excludes everything.**
-  Every other placement already reserves ground around itself: a goal keeps props 10 blocks from its marker
-  and out of its footprint clearance (`OB19`, `DressingScope.GoalStandoff`), a spawn door keeps its first 20
-  blocks open and a wool entry its first 10 (`DressingScope.ApproachAt`), a tree stands 3 blocks off the road and a boulder 2
-  (`DR-ROAD`). A house reserves nothing: `Decorator.PlaceHouse` joins the claims as `image.Cells()` — the
-  **wall** rectangles — while the extent the stamp actually writes is computed one line below as
-  `ClaimedCells(image, house.Style)` and used only for provenance. So a verge overhangs ground the pass
-  believes is free, and the next prop seats under it.
-
-  Claim the cells the stamp writes, **grown one block outward** (the author's number), as `ClaimKind.Structure`.
-  One change, three consequences: two buildings keep a block of clearance, eaves included, rather than merely
-  not overlapping; a tree can no longer root close enough to drop its crown through a roof into the room
-  below; and the claim the census reports is the ground the building really holds. A breach is a complaint
-  naming the cell, not a silent build.
-
-  *author, 2026-08-14 · Corvid Hollow's spawn piece `x −15…15, z −90…−75` against the house at
-  `x −18…−6, z −74…−66`: flush, and `"overhang": 2` puts its eaves at `z −76`, two blocks inside the spawn
-  building's wall. Not the same-style merge `G172` absorbs — spawn is `hip`, the house `gable`, two blocks
-  apart in height.*
-
-- [ ] **B187 — Refuse a building whose footprint is not wholly on ground.** `Decorator.Ground` takes the
-  **lowest** column its plan covers and answers null only when *no* cell has ground, so a house with one column
-  on land and ten over void seats on that one and hangs. Nothing else covers it: `DR-PASS` walks the bands
-  *outside* the footprint, and `B233`'s excavation skips a missing column rather than refusing it. Change the
-  quantifier — every cell, or a stated share — and drop the prop with a `DroppedProp` reason naming the first
-  bare column, the shape every other decline takes. A refusal rather than a skip: half a building on solid
-  ground is worse than none. `ART-DIRECTION.md` AD-S5 marks this *unenforced*; closing it deletes that
-  parenthesis.
-
-  *author, 2026-08-14 · `quillon-saltworks`' `h1` spans `x −80…−70, z −60…−55`; probed at `(−78,−58)`,
-  `(−75,−58)` and `(−78,−56)` — two solid blocks each, the house's own floor with no terrain under it. Ground
-  begins about `x −72`.*
-
-- [ ] **B159 — Refuse a bound room style whose shell stands taller than the map's build ceiling.** A goal
-  marker hangs at `BuildCeiling.Of(highestGround) + 5` (`ST7`), and a wool building's shell is authored
-  geometry not subject to that cap — so a multi-storey room style over 25 courses swallows its own marker.
-  Nothing compares the two: `SketchWorldBuilder.SafeFloor` clamps a shell against the *world* ceiling (255) via
-  `HouseStyle.TopLayerOver`, and no gate reads that number against `BuildCeiling`. A refusal at bind time, not
-  a correction at stamp time.
-
-  *author's construction argument: terrain, trees and monuments cannot reach the marker — a tree stays under
-  the cap and may stand in neither a monument's nor a core's clearance — so the wool room is the only case
-  left. The original symptom (`sable-marsh`, cap 20, marker y24–26, roof y31) had a different cause, closed by
-  `B105`.*
 
 - [ ] **B178 — Give a spawn building its own stated footprint, so the plan piece describes only the ground.**
   The piece does two jobs at once — the ground a spawn stands on, and the building raised on it — so an author
@@ -540,13 +470,6 @@ what a library shows back, where the model has outgrown the editor. The three sh
   proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
   author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
   square, long, narrow — rather than one bigger square.
-
-- [ ] **B72 — Two roof-thickness columns nothing reads.** `room_style.roof_thickness` (M0012) and
-  `roof_style.thickness` (M0018) are written, clamped and round-tripped through the DTOs, and no stamper has
-  ever read either: a roof's depth at a cell comes from the height field's own step down to its neighbours
-  (`RoofField.Riser`), so there is nothing for a stored number to say. The composer offers no knob for it,
-  which is the only reason it has not misled an author yet. Drop both columns and their DTO fields, or give
-  the number a meaning under B69 — but not leave a third state where a row carries it and nothing looks.
 
 - [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
   (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it

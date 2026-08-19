@@ -475,6 +475,35 @@ public sealed record HouseStyle
         }
     }
 
+    /// <summary>The topmost course of wall the stamp actually <b>writes</b>, as a layer above the floor, or
+    /// 0 for a stack that writes no wall at all. <see cref="WallCourses"/> is what the geometry
+    /// <em>reserves</em> — every storey's headroom, whatever each course resolves to — and the two differ
+    /// wherever a stack ends in air: a roof terrace is a storey whose wall is one course of parapet over two
+    /// of air (docs/world-export/structures.md §7.6), so it reserves two courses nothing is laid in.
+    ///
+    /// <para>Walked from the top down, storey by storey, and a storey's <see cref="Storey.Post"/> answers
+    /// beside its wall — four columns standing on the deck at the corners are blocks laid at that course even
+    /// where the wall between them is air.</para></summary>
+    [JsonIgnore]
+    public int HighestWallCourse
+    {
+        get
+        {
+            var levels = Levels;
+            var bases = LevelBases;
+            for (var level = levels.Count - 1; level >= 0; level--)
+            {
+                var storey = levels[level];
+                var wall = storey.Wall ?? Wall;
+                var post = storey.Post ?? Post;
+                for (var course = storey.Courses(level == levels.Count - 1); course >= 1; course--)
+                    if (!post.IsAir() || !wall.At(course - 1).Material.IsAir())
+                        return bases[level] + course;
+            }
+            return 0;
+        }
+    }
+
     /// <summary>The course each storey's own floor sits at, as a layer above the building's floor — 0 for the
     /// ground storey, and the slab course for every storey over it.</summary>
     [JsonIgnore]
@@ -515,10 +544,11 @@ public sealed record HouseStyle
     public Doorway Doorway { get; init; } = new();
 
     /// <summary>The highest course a flat lid reaches, as a layer above the floor. A gable climbs with the
-    /// footprint it spans, so ask <see cref="HouseHeights.TopLayerOver"/> for one of those. Derived, so a
-    /// snapshot does not carry it.</summary>
+    /// footprint it spans, so ask <see cref="HouseHeights.TopLayerOver"/> for one of those — which is what
+    /// this asks, over a footprint with no run to climb, so the two can never answer differently about the
+    /// same style. Derived, so a snapshot does not carry it.</summary>
     [JsonIgnore]
-    public int TopLayer => WallCourses + 1;
+    public int TopLayer => this.TopLayerOver(0, 0);
 
     /// <summary>Two styles are the same style when every piece of them matches, the storey stack included
     /// <b>course for course</b>. Spelled out for the same reason <see cref="RoomPart.Equals(RoomPart)"/> is:
@@ -597,7 +627,13 @@ public sealed record HouseStyle
 /// reserves headroom for and what a preview draws to. A flat lid is one course over the wall whatever the
 /// footprint; every sloped form climbs with the span it crosses, so the question is asked about a footprint
 /// rather than about the style alone, and it is asked of the roof itself rather than of a formula beside it —
-/// there are six forms and a second copy of their arithmetic is how one of them comes to be drawn short.</summary>
+/// there are six forms and a second copy of their arithmetic is how one of them comes to be drawn short.
+///
+/// <para><b>It answers where the highest block lands, not what the stack reserves.</b> Air is a gap rather
+/// than a block everywhere in a style, so a building can reserve courses it never writes — a roof terrace is
+/// a parapet storey under a flat lid laid in air, and nothing at all is stamped over its deck. Answering from
+/// the reservation refused a tall terraced building headroom it did not need and drew it under a band of
+/// empty sky.</para></summary>
 public static class HouseHeights
 {
     /// <param name="front">The wall the doors are cut through. A <see cref="RoofForm.Gable"/>, a
@@ -609,13 +645,29 @@ public static class HouseHeights
     /// a house with no doors picks for itself, so the default answer is a real one rather than a guess.</param>
     public static int TopLayerOver(this HouseStyle style, int width, int depth, RoomEdge? front = null)
     {
+        // The roof stands on what the walls reserve, air courses and all — the stamper seats it at
+        // WallCourses whatever those courses resolve to — so the reservation is what the field is built over
+        // and only the answer is trimmed.
         var wallTop = style.WallCourses;
-        if (style.Roof.Form == RoofForm.Flat) return wallTop + 1;
-        var field = new RoofField(
-            style.Roof.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
-            Math.Max(0, style.Roof.Overhang), wallTop + 1, Math.Max(1, style.Roof.Pitch),
-            front ?? style.Porch?.Edge ?? style.Front ?? HouseStamper.DefaultFront(width, depth),
-            style.Roof.InHalves);
-        return field.Peak;
+        var peak = style.Roof.Form == RoofForm.Flat
+            ? wallTop + 1
+            : new RoofField(
+                style.Roof.Form, 0, 0, Math.Max(0, width - 1), Math.Max(0, depth - 1),
+                Math.Max(0, style.Roof.Overhang), wallTop + 1, Math.Max(1, style.Roof.Pitch),
+                front ?? style.Porch?.Edge ?? style.Front ?? HouseStamper.DefaultFront(width, depth),
+                style.Roof.InHalves).Peak;
+        return WritesOverTheWall(style) ? peak : style.HighestWallCourse;
+    }
+
+    /// <summary>Whether anything at all is laid above the wall top: the roof's own two materials, and — under
+    /// a sloped roof, which leaves a triangle of wall to close — the gable face, which is the style's own
+    /// where it names one and the top storey's last course carried up where it does not. All three air is a
+    /// roof terrace, and then the highest block is the wall's.</summary>
+    private static bool WritesOverTheWall(HouseStyle style)
+    {
+        if (!style.Roof.Body.IsAir() || !style.Roof.Verge.IsAir()) return true;
+        if (style.Roof.Form == RoofForm.Flat) return false;
+        var topWall = style.Levels[^1].Wall ?? style.Wall;
+        return !(style.Roof.Gable ?? topWall.At(topWall.Extent - 1).Material).IsAir();
     }
 }

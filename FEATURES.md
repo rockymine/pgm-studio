@@ -789,8 +789,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The dressing pass reports every whole-prop decline with a reason (`region/dressing-report.json`, the
   mapgen stderr lines; `WE1` later made each a `DR-*` finding and returned them from the build endpoints) — B37's report-first slice, and what **closes B142**: a tree over void is now a named
   drop with its coordinates rather than a document count reporting 34 trees when one of them stood nowhere.
-  (B187's silence is not closed by it — a house needs ground under *one* cell, so a partly-hung building is
-  still stamped.) And the task board's collapsed headings were repaired so its own structure stops misleading
+  And the task board's collapsed headings were repaired so its own structure stops misleading
   the next reader. Earlier the same session: `PL12` (mixed fanned/non-fanned landmass refused by name), the
   prop preview refusing `HJ*`/`HP*` compositions the build would drop, and **the per-team objective line
   (`B152`)** — `MetaGenerator.Objective` divides by the team count, so one destroyable per team reads
@@ -839,6 +838,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   stops the prop instead of the map and dropped the exemption.) And `OB19`'s prop keep-out now reaches ten
   blocks from a goal's *marker*
   (`DressingScope.GoalStandoff`) beyond the footprint-grown clearance the cover rule keeps.
+- **A building holds the ground it stamps, grown a block outward (`B166`).** Every other placement reserved
+  ground around itself and a house reserved none: the claim joined was the *wall* rectangles while the extent
+  the stamp writes was computed one line below and used only for provenance, so a verge overhung ground the
+  pass believed free and the next prop seated under it. The claim is now the stamped extent plus a
+  one-block ring (`DressingRules.StructureClearance`, the author's number), and what a placement is *tested*
+  against stays the stamped extent — so the ring is spent once between a pair and two buildings keep one block
+  of clear ground between them rather than two. A trunk near enough to drop its crown through a roof is a
+  `DR-CLAIM` naming the cell rather than a silent build.
+- **A building needs ground under every cell of its footprint (`B187`, `DR-SITE`).** `Decorator.Ground` took
+  the *lowest* column its plan covered and answered null only when no cell had ground at all, so a house with
+  one column on land and ten over void seated on that one and hung off the rest — and nothing else covered it,
+  since `DR-PASS` walks the bands outside the footprint and the excavation skips a missing column rather than
+  refusing it. The quantifier changed; the first bare column declines the whole prop and the finding names it.
 - **A building must leave a way past itself (`B236`, `DR-PASS`).** At least one of a house's four sides must
   carry five blocks of passable ground along its whole run, one step past each corner included — the rule
   that stops a house corking a land leg with void on both flanks, while a coast house against the map's own
@@ -4011,6 +4023,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `{error: "invalid house style", findings: [{rule, field, message}]}`, one finding per fault, `rule` a stable
   id (`HouseStyleRules`) rather than this task's own; nothing is substituted for the author.
   (`docs/tools/library.md`, `docs/tools/sketch.md`)
+- **A bound shell that would swallow its own marker is refused at bind time (`B159`, `WX10`).** A goal marker
+  hangs `BuildCeiling.MarkerOver` blocks over a ceiling `BuildCeiling.OverGround` over the ground, and a wool
+  room's shell is authored geometry subject to no cap — so a tall storey stack put the map's own sky sign
+  inside the building it points at. Nothing compared the two: `SketchWorldBuilder.SafeFloor` clamps a shell
+  against the *world* ceiling at 255 and no gate read that number against the build ceiling. `RoomStyleScope.
+  Check` runs beside the house-style gate on `PUT /map/{slug}/sketch`, over the smallest room there is (WX2's
+  6×6) — every sloped form only climbs further on a bigger footprint, so a style refused there has no
+  footprint it could have been stamped on and the refusal is never a false one. A refusal rather than a
+  correction at stamp time, since silently shortening a building the author drew is the worse answer.
+  (`docs/world-export/structures.md`, `docs/tools/sketch.md`)
 - **A door's clear height is a rule of its own, not an accident of a genuine slab (B161).** A door head is
   written into the doorway's top course, so a three-course door with no head clears three and one with a head
   clears two plus half a block only when the fill is *genuinely* an upper slab — `HouseStyleValidation.
@@ -4034,9 +4056,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `HousePresets.Diorite`'s inverse (`Roof` a whole block, `RoofSlab` the slab, on a half-course rise) is the
   shape that passes clean. A log or a ground material named as `roof` or `verge` is refused outright wherever it
   is asked to fill either role — six Weirgate houses named a log verge, three of `quillon-barrow`'s named a
-  grass roof over a podzol verge. `CheckRoofFamily` is the standalone half of the check a roof-style *part*
-  runs on its own, since `roofSlab` is a house-level knob a roof part carries no column for and cannot be
-  paired against in isolation.
+  grass roof over a podzol verge.
+- **A roof part states its own slab, so the whole roof gate runs where a roof is saved alone (`B190`).** `HS3`
+  could only refuse the see-through roof over a *whole* style, because `roof_style` had no column for the
+  number the pairing reads and refusing on its absence would have refused a roof meant to pair with a slab set
+  on the house later — so the part level ran the family half alone. `roof_style` carries `roof_slab` and
+  `roof_slab_data` now (M0021), a house binding a roof takes the roof's answer the way it takes its form and
+  its pitch, and the seven names for what a roof is checked with collapsed into one: `CheckRoof(RoofStyle)`,
+  which `HouseStyleValidation.Check` and both `/roof-styles` verbs call.
+- **The two roof-thickness columns are gone (`B72`).** `room_style.roof_thickness` (M0012) and
+  `roof_style.thickness` (M0018) were written, clamped and round-tripped through the DTOs, and no stamper ever
+  read either: a roof's depth at a cell comes from its own height field's step down to its neighbours, so
+  there was nothing for a stored number to say. Neither was ever offered as a knob, which is the only reason a
+  stored value never misled an author. Dropped in the same migration the roof slab arrives in, with their DTO
+  fields and their client sites (M0021).
 - **A wall bends where the walked ring does, and it is one measurement (G172).** A house answered `Arc`, `Turn`
   and `Run` off its own rectangle in closed form while the terrain painter walked the same outline through
   `Geom.GridBoundary` — one idea with two implementations, which is what the symmetry rule exists to prevent.
@@ -4405,6 +4438,29 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the neighbour's surface never rises to meet it. Caught by a printed cut, one plane at a time, of both
   reproducing footprints; the flood-fill seal test that gates a hole in a roof's body passed on both before the
   fix, which is why the cut and not the seal test is what the fix was checked against. (G172)
+- **The eave takes the roof's own material where it comes down onto its wall (`B165`).** A column writes down
+  to its underside — its crown less the drop to the deepest neighbour the roof covers — and at the eave line
+  that neighbour is the overhang a pitch lower, so the eave reaches `pitch − 1` courses under its own wall top
+  by construction. Those courses were clamped away and then written over by the wall pass, which is deliberate
+  everywhere else (*walls outrank roofs* is what stops a low wing's slope crossing a tall wing's wall), and
+  the result was a stripe of wall showing under the overhang that grew a course with every unit of pitch, with
+  nothing missing for a gate to catch. The clamp now exempts the wing whose roof is being laid, and the wall
+  pass stops under whatever course a roof has already claimed at that cell. Wings never share a cell, so the
+  cross-wing ordering (`Overtopped`, `OtherRoofCrownOver`) is untouched — a marched or projected column stands
+  inside *another* wing and is clamped exactly as before. Whether the eave should descend by the pitch at all
+  is the author's, and is `WE2`.
+- **A style's reported height is where its highest block lands, not what its stack reserves (`G171`).** Air is
+  a gap rather than a block everywhere in a style, so a building can reserve courses it never writes: a roof
+  terrace is a parapet storey — one course of fence over two of air, air at its corners — under a flat lid
+  laid in air, and `TopLayerOver` answered for the reservation. Every consumer of the number paid for it: the
+  dressing prop clamped its placement against the world ceiling with it, so a tall terraced building was
+  refused a little sooner than it needed to be, and the preview views framed to it, so a terrace was drawn
+  under a band of empty sky. `HouseStyle.HighestWallCourse` walks the stack down past whatever courses
+  certainly resolve to air — a storey's post answering beside its wall, since four columns on the deck are
+  blocks laid at that course — and `TopLayerOver` drops the roof's contribution where all three of its
+  materials are air. `TopLayer` is the same derivation over a footprint with no run to climb, so the two
+  cannot answer differently about one style. Certainly-air only: a patterned material resolves per cell, so it
+  counts as writing, and the number over-reserves rather than clipping a stamp.
 - **A building prop states a list of touching rectangles, and `Decorator` composes them into one house before
   stamping (G177).** `HouseProp.Wings` replaces the single pair of corners a placed building used to carry, so
   an L, a T or a U is authorable directly — by an agent writing `dressing.props`, and today only by one, since

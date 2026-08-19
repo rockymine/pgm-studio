@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.RegularExpressions;
 using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 
@@ -22,7 +23,7 @@ public sealed class HousePartLibraryEndpointsTests
         long? roofStyleId = null, long? porchStyleId = null,
         IReadOnlyList<RoomStoreyDto>? stack = null,
         params RoomCourseDto[] courses) => new(
-        name, FloorDepth: 1, WallHeight: 7, RoofThickness: 1,
+        name, FloorDepth: 1, WallHeight: 7,
         RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
         BorderWidth: 1, InlayInset: 2, Storeys: 1, StoreyClear: 0,
         Windows: new RoomWindowDto(WindowForms.None, Blocks.GlassPane, 0, 2, 2, 2, 3), Porch: null,
@@ -31,7 +32,7 @@ public sealed class HousePartLibraryEndpointsTests
 
     private static RoofStyleSaveRequest Roof(string name, string form = RoofForms.Gable,
         params RoomCourseDto[] courses)
-        => new(name, form, Thickness: 1, Pitch: 1, Overhang: 1, RoofHole: false, RidgeCap: false, courses);
+        => new(name, form, Pitch: 1, Overhang: 1, RoofHole: false, RidgeCap: false, Courses: courses);
 
     private static StoreyStyleSaveRequest Storey(string name, int clear = 3, params RoomCourseDto[] courses)
         => new(name, clear, BorderWidth: 1, InlayInset: 2,
@@ -78,6 +79,35 @@ public sealed class HousePartLibraryEndpointsTests
         var listed = await client.GetFromJsonAsync<List<RoofStyleSummary>>("/api/roof-styles");
         await Assert.That(listed!.Count).IsEqualTo(1);
         await Assert.That(Fills(listed[0].Preview)).Contains(BlockPalette.Hex(Blocks.Stone, 0));
+    }
+
+    /// <summary>A roof part carries its own half-course slab, which is what lets the slab/pitch pairing run
+    /// here: a slab named as a whole-block roof leaves an open half between every pair and the roof reads
+    /// see-through, and a roof saved on its own is stamped exactly as one bound onto a house is.</summary>
+    [Test]
+    public async Task A_roof_states_its_own_slab_and_a_slab_roof_with_none_is_refused()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var slabs = await StyleAsync(client, "slabs", Blocks.WoodenSlab);
+
+        // A slab body with roofSlab unset (-1) is the see-through roof.
+        var refused = await client.PostAsJsonAsync("/api/roof-styles",
+            Roof("see-through", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, slabs, 1)));
+        await Assert.That((int)refused.StatusCode).IsEqualTo(400);
+        var envelope = await refused.Content.ReadFromJsonAsync<RefusalDto>();
+        await Assert.That(envelope!.Findings.Select(f => f.Rule)).Contains(HouseStyleRules.RoofMaterial);
+
+        // The same roof with the slab named pairs correctly, and the number round-trips.
+        var paired = Roof("shingled", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, slabs, 1))
+            with { RoofSlab = Blocks.WoodenSlab, RoofSlabData = 2 };
+        var created = await (await client.PostAsJsonAsync("/api/roof-styles", paired))
+            .Content.ReadFromJsonAsync<RoofStyleDetail>();
+
+        var detail = await client.GetFromJsonAsync<RoofStyleDetail>($"/api/roof-styles/{created!.Id}");
+        await Assert.That(detail!.RoofSlab).IsEqualTo(Blocks.WoodenSlab);
+        await Assert.That(detail.RoofSlabData).IsEqualTo(2);
     }
 
     [Test]

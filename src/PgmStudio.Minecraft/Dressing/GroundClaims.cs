@@ -42,13 +42,23 @@ public static class DressingRules
 
     /// <summary>A prop rests on ground something already standing has claimed — a channel, a road, a building
     /// or an earlier prop. The pass places in priority order and the first claimant keeps the cell, so this is
-    /// the collision itself rather than a near miss; the finding names the cell and what holds it.</summary>
+    /// the collision itself rather than a near miss; the finding names the cell and what holds it. A building
+    /// holds the ground it stamps <em>and</em> <see cref="StructureClearance"/> blocks of ring beyond it, so a
+    /// prop seating under an eave is this fault rather than a silent build.</summary>
     /// <remarks>Move the prop off the claimed ground, or move whatever holds it. Two authored things wanting the same cell is the author's to resolve — the pass never shifts a placement to make room.</remarks>
     public const string GroundTaken = "DR-CLAIM";
 
+    /// <summary>How far past what it stamps a building holds the ground, in blocks — the author's number, and
+    /// the one thing that separates two buildings that merely fail to overlap from two that leave a block of
+    /// clear ground between them. What a placement is <em>tested</em> against is the stamped extent, so the
+    /// ring is spent once between a pair rather than twice.</summary>
+    public const int StructureClearance = 1;
+
     /// <summary>A prop has no ground to rest on: one of the cells it rests at is off the map's terrain
-    /// altogether, so there is no column to seat it in.</summary>
-    /// <remarks>Move the prop onto drawn ground. A prop whose orbit image falls off the board fails this way too — the whole prop is declined at the first image that finds no ground, since a rock standing on one half of a mirrored map and missing from the other is worse than neither.</remarks>
+    /// altogether, so there is no column to seat it in. A building is held to <b>every</b> cell of its
+    /// footprint — it seats on its lowest column, so one cell on land and the rest over void builds a house
+    /// hanging off a corner — and the finding names the first bare column it stopped at.</summary>
+    /// <remarks>Move the prop onto drawn ground. A building needs drawn ground under its whole footprint, not merely under part of it. A prop whose orbit image falls off the board fails this way too — the whole prop is declined at the first image that finds no ground, since a rock standing on one half of a mirrored map and missing from the other is worse than neither.</remarks>
     public const string NoGround = "DR-SITE";
 }
 
@@ -82,7 +92,8 @@ public enum ClaimKind
     Water,
     /// <summary>A path's paved cells. The one kind a building ignores, and the one a standoff measures to.</summary>
     Route,
-    /// <summary>A raised building's stamped footprint.</summary>
+    /// <summary>A raised building's stamped footprint, plus the <see cref="DressingRules.StructureClearance"/>
+    /// ring it holds around it.</summary>
     Structure,
     /// <summary>A seated tree's or boulder's cells — each an exclusion for the props after it.</summary>
     Scatter,

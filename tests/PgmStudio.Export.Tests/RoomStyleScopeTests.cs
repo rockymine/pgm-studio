@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
@@ -159,6 +160,53 @@ public sealed class RoomStyleScopeTests
         var red = Count(built.World, -20, 0, Blocks.Sandstone);
         await Assert.That(red).IsGreaterThan(0);
         await Assert.That(Count(built.World, 20, 0, Blocks.Sandstone)).IsEqualTo(red);
+    }
+
+    // ── the shell against the build ceiling (WX10) ─────────────────────────────────────────────────
+    [Test]
+    public async Task The_shipped_shells_stand_under_the_build_ceiling()
+    {
+        await Assert.That(RoomStyleScope.Check(HouseStyle.Wool, "roomStyles.cage")).IsEmpty();
+        await Assert.That(RoomStyleScope.Check(HouseStyle.Spawn, "roomStyles.spawn")).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_shell_asked_for_no_building_at_all_has_no_height_to_refuse()
+    {
+        await Assert.That(RoomStyleScope.Check(null, "roomStyles.cage")).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_stack_that_would_swallow_its_own_marker_is_refused_at_bind_time()
+    {
+        // A goal marker hangs BuildCeiling.MarkerOver over the ceiling, and a room's shell is authored
+        // geometry no cap reaches — so without this the marker ends up inside the building it points at.
+        var tower = HouseStyle.Wool with
+        {
+            Storeys = [.. Enumerable.Repeat(new Storey { Clear = 5 }, 5)],
+        };
+
+        var refused = RoomStyleScope.Check(tower, "roomStyles.cage");
+
+        await Assert.That(refused.Refuses).IsTrue();
+        var finding = refused.Single();
+        await Assert.That(finding.Rule).IsEqualTo(RoomFrameRules.ShellOverCeiling);
+        await Assert.That(finding.Field).IsEqualTo("roomStyles.cage");
+        await Assert.That(finding.Message).Contains(BuildCeiling.OverGround.ToString());
+    }
+
+    [Test]
+    public async Task A_shell_at_the_ceiling_itself_stands()
+    {
+        // The cap is what a player may build to, so a shell reaching exactly that far is legal: the refusal
+        // is for one that goes past it.
+        var atTheCap = HouseStyle.Wool with
+        {
+            Wall = HouseStyle.Wool.Wall with { Extent = BuildCeiling.OverGround - 1 },
+        };
+
+        await Assert.That(atTheCap.TopLayer).IsEqualTo(BuildCeiling.OverGround);
+        await Assert.That(RoomStyleScope.Check(atTheCap, "roomStyles.cage")).IsEmpty();
     }
 
     /// <summary>How many blocks of one kind stand in one room's own footprint — a count rather than a set, so a
