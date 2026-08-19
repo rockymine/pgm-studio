@@ -91,8 +91,10 @@ await page.waitForSelector(".workspace", { timeout: 20000 });
 const casing = await page.textContent(".workspace");
 checks.add("the Casing step shows the region it will export",
            casing.includes(`${CASING.minX}, ${CASING.minY}, ${CASING.minZ}`));
-// leak 9 over float 6 — three blocks of digging (DC2), stated rather than left to arithmetic.
-checks.add("the dig depth is spelled out", /digging 3 blocks/.test(casing));
+// leak 9 over float 6 — four blocks of digging (DC2), stated rather than left to arithmetic. The lava
+// free-falls to the first air cell over the terrain and PGM tests its centre, so a block resting exactly at
+// the leak level is half a block too high and the core leaks one course lower than the number reads.
+checks.add("the dig depth is spelled out", /digging 4 blocks/.test(casing));
 
 checks.add("the Cores phase raised nothing", featureFaults().length === 0, featureFaults().join(" | "));
 
