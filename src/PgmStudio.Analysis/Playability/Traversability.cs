@@ -60,8 +60,13 @@ public static class Traversability
         var b = Buildability.Compute(data, y0Columns, grid, margin);
         int nx = b.Width, nz = b.Height, minX = b.MinX, minZ = b.MinZ, n = nx * nz;
 
+        // Navigable ground is what a player can stand on: terrain, plus the build zone they may bridge across.
+        // A cell is only bridgeable if the map GRANTS building there — some apply rule's region covers it and
+        // does not deny it. Reading an ungoverned cell as buildable made every cell outside every rule
+        // walkable, so a board could pass "all objectives connected" over void nobody can cross (B247).
         var navigable = new bool[n];
-        for (var i = 0; i < n; i++) navigable[i] = b.Verdict[i] == 0 || b.Verdict[i] == 3;   // bridgeable
+        for (var i = 0; i < n; i++)
+            navigable[i] = b.Governed[i] && (b.Verdict[i] == 0 || b.Verdict[i] == 3);   // bridgeable
         if (surfaceColumns is not null)
             foreach (var (x, z) in surfaceColumns)
             {

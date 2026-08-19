@@ -100,20 +100,24 @@ public sealed class GroundCoverageTests
     }
 
     [Test]
-    public async Task The_two_arms_of_a_ring_are_read_alike_whichever_way_the_walk_goes()
+    public async Task Both_ways_round_a_hole_are_walked_where_one_path_would_pick_a_side()
     {
         var res = GroundCoverage.Read(RingBoard, RingGround(), null, [], bbox: (-8, -8, 48, 30));
         int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
 
-        // The two arms are the same length, so whatever the corridor makes of one it must make of the other:
-        // a measure that carried a side would be picking one by tie-break, which is the failure the ribbon
-        // exists to avoid. (Both currently read the same *because* neither is claimed — the hole between them
-        // has no apply rule over it and so reads bridgeable, so the cheapest walk goes straight across it and
-        // both arms become detours. That is `B247`, not this measure; when it lands, both arms gain traffic
-        // together and this assertion still holds.)
+        // The two arms are the two ways round. A dilated single geodesic has to commit to one of them, and
+        // the other then reads unused however many players walk it; the ribbon carries both.
         for (var x = 8; x <= 32; x += 4)
+        {
+            await Assert.That(res.Traffic[At(x, 2)]).IsGreaterThan(0).Because($"the north arm at x {x}");
+            await Assert.That(res.Traffic[At(x, 20)]).IsGreaterThan(0).Because($"the south arm at x {x}");
             await Assert.That(res.Traffic[At(x, 2)]).IsEqualTo(res.Traffic[At(x, 20)])
-                .Because($"the arms are mirror images at x {x}");
+                .Because("the arms are the same length, so neither is picked by a tie-break");
+        }
+
+        // and the hole between them is not a shortcut: no rule grants building over it, so it is not ground
+        await Assert.That(res.Cells[At(20, 11)]).IsEqualTo(GroundCoverage.Void);
+        await Assert.That(res.DeadCells).IsEqualTo(0).Because("a ring is all lane");
     }
 
     [Test]

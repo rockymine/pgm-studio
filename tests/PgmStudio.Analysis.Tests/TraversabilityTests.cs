@@ -142,26 +142,26 @@ public sealed class TraversabilityTests
     }
 
     [Test]
-    public async Task A_water_lane_under_a_void_deny_is_not_a_route_but_an_open_build_zone_over_void_is()
+    public async Task A_declared_build_zone_over_void_is_a_route_and_a_void_denied_lane_is_not()
     {
         // The author's ruling (2026-08-16): before the lane timer fills it, a water lane is a void a player
         // falls into, so a map whose only spawn→wool route crosses one must refuse — the lane's columns have
-        // no Y=0 ground and its deny(void) rule means nothing can be bridged across them. The same gap with
-        // no rule over it is the opposite thing: a build zone over void is *meant* to be crossed, block by
-        // placed block, so it reads navigable and the chain connects.
+        // no Y=0 ground and its deny(void) rule means nothing can be bridged across them. A build zone over
+        // the same gap is the opposite thing: it is *meant* to be crossed, block by placed block, so it reads
+        // navigable and the chain connects.
         var regions = new Dict
         {
             ["spawn"] = Rect(0, 0, 4, 4),
             ["lane"] = Rect(10, -5, 21, 10),
         };
-        Dict Data(bool laneDenied) => new()
+        Dict Data(string? laneRule) => new()
         {
             ["regions"] = regions,
             ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["location"] = Xz(26, 2) } },
-            ["apply_rules"] = laneDenied
-                ? new List<object?> { new Dict { ["region"] = "lane", ["block_place"] = "deny(void)" } }
-                : new List<object?>(),
+            ["apply_rules"] = laneRule is null
+                ? new List<object?>()
+                : new List<object?> { new Dict { ["region"] = "lane", ["block_place"] = laneRule } },
         };
 
         // Ground on both banks, nothing across the lane: the surface walk ends at x=9 and resumes at x=21.
@@ -170,12 +170,36 @@ public sealed class TraversabilityTests
         for (var x = 21; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
         var grounded = new HashSet<(int, int)>(surface);
 
-        var open = Traversability.Check(Data(laneDenied: false), surface, grounded, bbox: (-5, -5, 35, 10));
-        await Assert.That(open.Connected).IsTrue();
+        var built = Traversability.Check(Data("always"), surface, grounded, bbox: (-5, -5, 35, 10));
+        await Assert.That(built.Connected).IsTrue().Because("a granted build zone is bridged across");
 
-        var denied = Traversability.Check(Data(laneDenied: true), surface, grounded, bbox: (-5, -5, 35, 10));
+        var denied = Traversability.Check(Data("deny(void)"), surface, grounded, bbox: (-5, -5, 35, 10));
         await Assert.That(denied.Connected).IsFalse();
         await Assert.That(denied.Isolated.Select(i => i.Kind)).Contains("wool");
+    }
+
+    [Test]
+    public async Task A_gap_no_rule_mentions_is_void_and_not_a_crossing()
+    {
+        // B247. A map grants building by naming a region; ground nobody named is not a grant. Before this,
+        // the verdict grid started at "buildable" and a rule only ever wrote a denial over it, so every cell
+        // outside every apply rule read buildable and therefore walkable — and a board could pass "all
+        // objectives connected" across a void it cannot cross. The two banks below are 11 blocks apart with
+        // nothing over the gap and nothing said about it.
+        var data = new Dict
+        {
+            ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 4, 4) },
+            ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["region"] = "spawn" } },
+            ["wools"] = new List<object?> { new Dict { ["color"] = "blue", ["location"] = Xz(26, 2) } },
+            ["apply_rules"] = new List<object?>(),
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 10; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+        for (var x = 21; x < 30; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, surface, new HashSet<(int, int)>(surface), bbox: (-5, -5, 35, 10));
+        await Assert.That(res.Connected).IsFalse();
+        await Assert.That(res.Isolated.Select(i => i.Kind)).Contains("wool");
     }
 
     [Test]

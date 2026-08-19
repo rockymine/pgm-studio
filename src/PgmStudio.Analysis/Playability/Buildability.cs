@@ -22,9 +22,28 @@ public static class Buildability
     private const byte Never = 1, Void = 2, Restricted = 3;
     private static readonly string[] BlockEvents = ["block_place", "block"];
 
+    /// <summary><see cref="Governed"/> marks the cells some apply rule's region actually covers — the map's
+    /// declared <b>build zone</b>, whatever each rule then says about it.
+    ///
+    /// <para>It exists because <see cref="Verdict"/> alone cannot answer "may a player build here". The
+    /// verdict starts at <c>buildable</c> and a rule only ever writes a <em>denial</em> over it, so a cell no
+    /// rule mentions and a cell a rule explicitly allows are the same byte. Reading that byte as permission
+    /// makes every cell outside every rule buildable — and, downstream, walkable — which is how a board came
+    /// to pass "all objectives connected" across void it cannot cross. A map grants building by naming a
+    /// region; ground nobody named is not a grant.</para>
+    ///
+    /// <para><b>A grant is usually written as a denial, and that is PGM's shape rather than the studio's.</b>
+    /// Ground at y=0 is buildable to PGM without anyone saying so, so a map never has to declare where you
+    /// <em>may</em> build — only where you may not, which is the void it does not want bridged. The studio's
+    /// own generator therefore states its build zone by putting it <em>inside</em> a <c>negative</c> the void
+    /// rule then applies to (<c>no-void</c> over <c>not-build-area</c>): the region an author drew as the
+    /// positive thing arrives in the document as the child of its own complement. So a void denial is read
+    /// here as granting the ground it does <em>not</em> cover, which recovers the author's rectangle from
+    /// PGM's encoding of it — and covers the corpus's exclusion form and a bare <c>everywhere</c> denial by
+    /// the same arithmetic. An <b>allow</b> rule, or one gated on a region, grants where it applies.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int MaxX, int MaxZ, int Width, int Height,
-        byte[] Verdict, Dictionary<string, int> Counts, bool HasY0);
+        byte[] Verdict, bool[] Governed, Dictionary<string, int> Counts, bool HasY0);
 
     /// <summary>Classify a block-filter value → never | void | allow | other.</summary>
     public static string ClassifyFilter(string value, Dict filters, HashSet<string>? seen = null)
@@ -94,6 +113,7 @@ public static class Buildability
         }
 
         var verdict = new byte[n];
+        var governed = new bool[n];
 
         bool[]? Mask(object? refVal)
         {
@@ -110,24 +130,38 @@ public static class Buildability
                 if (rule.GetValueOrDefault(ev) is not string val || val.Length == 0) continue;
                 if (regions.ContainsKey(val))
                 {
+                    // "build only what is inside region X" — a permission with a spatial condition
                     var gate = Mask(val);
                     if (gate is not null)
                         for (var i = 0; i < n; i++) if (inreg[i] && !gate[i]) verdict[i] = Never;
+                    for (var i = 0; i < n; i++) if (inreg[i]) governed[i] = true;
                     continue;
                 }
                 var kind = ClassifyFilter(val, filters);
                 if (kind == "never")
                     for (var i = 0; i < n; i++) { if (inreg[i]) verdict[i] = Never; }
                 else if (kind == "void" && voidMask is not null)
+                {
                     for (var i = 0; i < n; i++) { if (inreg[i] && voidMask[i]) verdict[i] = Void; }
-                else if (kind == "other")
-                    for (var i = 0; i < n; i++) { if (inreg[i]) verdict[i] = Restricted; }
+                    // A void denial is stated as its own complement: "you may not build over void OUT THERE"
+                    // is how a map says "the build zone is in HERE". The studio's own generator writes exactly
+                    // that — `no-void` over the `not-build-area` negative — so the build area it means is the
+                    // ground this rule does not cover, and nothing else in the document names it.
+                    for (var i = 0; i < n; i++) if (!inreg[i]) governed[i] = true;
+                }
+                else
+                    for (var i = 0; i < n; i++)
+                    {
+                        if (!inreg[i]) continue;
+                        governed[i] = true;                       // allow, or a restriction that still permits
+                        if (kind == "other") verdict[i] = Restricted;
+                    }
             }
         }
 
         var counts = new Dictionary<string, int>();
         for (byte c = 0; c < Classes.Length; c++) counts[Classes[c]] = verdict.Count(v => v == c);
-        return new Result(minX, minZ, maxX, maxZ, nx, nz, verdict, counts, hasY0);
+        return new Result(minX, minZ, maxX, maxZ, nx, nz, verdict, governed, counts, hasY0);
     }
 
     /// <summary>One region's footprint over a grid, as a cell mask — the rasterization every apply-rule reader

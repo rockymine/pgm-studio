@@ -939,20 +939,6 @@ place.
   world held in memory, `SegmentIndex`'s own spans for one scanned off region files. What they lack is one
   shape to answer it in — the sets are the only thing they agree on today.*
 
-- [ ] **B247 — Void that no apply rule covers reads bridgeable, so routes cross holes nobody can cross.**
-  `Buildability.Compute` starts `verdict` at `0` = **buildable** and only ever writes `Never`, `Void` or
-  `Restricted` where a rule's region covers a cell. `Traversability.Ground` then takes `verdict 0 or 3` as
-  navigable. So every cell outside every apply rule is walkable, ground or not — and the traversability
-  **gate** shares that set, so a board can pass "all objectives connected" over void it cannot cross. A
-  generated board is partly saved by `BuildGenerator` writing `deny(void)` over its build region; the margins
-  and a hand-authored board with sparse rules are not. Default an uncovered cell to *not bridgeable* and
-  require a rule to open it.
-
-  *measured: a document with one region and no apply rules, over a 40×40 grid where only 100 cells carry a
-  world-floor block — `Buildability` returns **buildable 1600 / 1600**, and all 1600 read navigable.
-  `TraversabilityRender` derives bridgeable the honest way, off the map's own `deny(void)` apply rule
-  (`BridgeableColumns`), so the picture and the gate disagree about the same board.*
-
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `CorridorAllowance` of 10 blocks, calibrated against
   `wheal-hazel` and its rebuild (`FEATURES.md`). What is left is the one thing the author flagged and the

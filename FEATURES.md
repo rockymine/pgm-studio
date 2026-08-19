@@ -638,6 +638,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **Ground nobody granted is not walkable (B247).** `Buildability`'s verdict grid starts at *buildable* and a
+  rule only ever writes a denial over it, so a cell no rule mentions and a cell a rule allows were the same
+  byte — and `Traversability` read that byte as permission, making every cell outside every apply rule
+  walkable. A board could pass "all objectives connected" across void it cannot cross, and a coverage read
+  could route through it. The verdict now travels with a `Governed` mask saying whether the map granted
+  building there at all, and navigable ground is terrain plus the granted build zone.
+
+  A grant takes two forms and both are read. An **allow** rule (or one gated on a region) grants where it
+  applies. A **void denial** grants its own *complement* — "you may not build over void out there" is how a
+  map says "the build zone is in here", and it is the only way the studio's own generator says it: it writes
+  `no-void` over the `not-build-area` negative, so the build area itself is covered by no rule and any reading
+  based on coverage alone would call it ungranted.
 - **The coverage read runs on corridors and keeps how busy each cell is (WS1).** `GroundCoverage` walked one
   shortest path per waypoint pair, dilated it six blocks and unioned the lot — so a hole's two ways could only
   ever have one of them counted, and a cell one journey clips read the same as a cell every journey runs down.
