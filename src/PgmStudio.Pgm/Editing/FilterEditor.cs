@@ -39,7 +39,7 @@ public static class FilterEditor
             while (filters.ContainsKey($"{ftype}_{i}")) i++;
             fid = $"{ftype}_{i}";
         }
-        else if (filters.ContainsKey(fid)) throw EditException.Conflict($"filter id '{fid}' already in use");
+        else if (filters.ContainsKey(fid)) throw EditException.Conflict($"filter id '{fid}' already in use", [fid]);
 
         Validate(data, payload, fid);
         filters[fid] = new Dict(payload) { ["id"] = fid };
@@ -49,7 +49,7 @@ public static class FilterEditor
     public static Dict UpdateFilter(Dict data, string fid, Dict payload)
     {
         var filters = Filters(data);
-        if (!filters.TryGetValue(fid, out var existing)) throw EditException.NotFound($"no filter '{fid}'");
+        if (!filters.TryGetValue(fid, out var existing)) throw EditException.NoSuchSubject($"no filter '{fid}'");
         var merged = new Dict(payload) { ["id"] = fid };
         if (!merged.ContainsKey("type")) merged["type"] = (existing as Dict)?.GetValueOrDefault("type");
         Validate(data, merged, fid);
@@ -60,10 +60,13 @@ public static class FilterEditor
     public static Dict DeleteFilter(Dict data, string fid)
     {
         var filters = Filters(data);
-        if (Builtins.Contains(fid)) throw EditException.Conflict($"filter '{fid}' is a builtin and cannot be deleted");
-        if (!filters.ContainsKey(fid)) throw EditException.NotFound($"no filter '{fid}'");
+        if (Builtins.Contains(fid)) throw EditException.Conflict($"filter '{fid}' is a builtin and cannot be deleted", [fid]);
+        if (!filters.ContainsKey(fid)) throw EditException.NoSuchSubject($"no filter '{fid}'");
         var refs = References(data, fid);
-        if (refs.Count > 0) throw EditException.Conflict($"filter '{fid}' is referenced by {refs.Count} item(s); unwire them first");
+        if (refs.Count > 0)
+            throw EditException.Conflict(
+                $"filter '{fid}' is referenced by {refs.Count} item(s); unwire them first",
+                [.. refs.Select(ReferenceId).Where(id => id.Length > 0)]);
         filters.Remove(fid);
         return new Dict { ["id"] = fid };
     }
@@ -101,19 +104,24 @@ public static class FilterEditor
         return refs;
     }
 
+    /// <summary>What a reference is called, for the subjects of a refusal that names what is in the way:
+    /// an apply-rule and a filter carry an id, a renewable and a block-drop rule the region they are on.</summary>
+    private static string ReferenceId(Dict reference) =>
+        (reference.GetValueOrDefault("id") ?? reference.GetValueOrDefault("region"))?.ToString() ?? "";
+
     private static void Validate(Dict data, Dict payload, string selfId)
     {
         if (payload.GetValueOrDefault("type") is not string ftype || !KnownTypes.Contains(ftype))
-            throw EditException.BadRequest($"unknown filter type '{payload.GetValueOrDefault("type")}'");
+            throw EditException.Unreadable($"unknown filter type '{payload.GetValueOrDefault("type")}'", "type");
         var filters = Filters(data);
         foreach (var r in FilterFilterRefs(payload))
         {
-            if (r == selfId) throw EditException.BadRequest($"filter '{r}' cannot reference itself");
-            if (!filters.ContainsKey(r) && !Builtins.Contains(r)) throw EditException.BadRequest($"references unknown filter '{r}'");
+            if (r == selfId) throw EditException.Unresolved($"filter '{r}' cannot reference itself");
+            if (!filters.ContainsKey(r) && !Builtins.Contains(r)) throw EditException.Unresolved($"references unknown filter '{r}'");
         }
         var regions = data.GetValueOrDefault("regions") as Dict ?? new Dict();
         foreach (var r in FilterRegionRefs(payload))
-            if (!regions.ContainsKey(r)) throw EditException.BadRequest($"references unknown region '{r}'");
+            if (!regions.ContainsKey(r)) throw EditException.Unresolved($"references unknown region '{r}'");
     }
 
     private static Dict Filters(Dict data)

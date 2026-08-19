@@ -129,10 +129,25 @@ at nothing. That one is the **client's** guard rather than the server's: the end
 the panel is what knows a rule is attached. A primitive will not ungroup either — it has no children — and
 fewer than two selected regions will not group.
 
-**The endpoints refuse what the document model refuses**: 400 on a malformed payload, 404 on an unknown map
-or region, 409 on an id already in use, and — for filters alone — 409 on deleting one something still
-references. A refusal shows as a toast and leaves the screen as it was; a rejected canvas edit reloads the
-canvas so the shape on screen goes back to the shape on the map.
+**The endpoints refuse what the document model refuses, in the studio's one envelope.** Every write route
+answers `{error, message, findings[]}` — the shape `docs/refusals.md` states — so the toast reads the
+findings' sentence rather than a status, and an agent keys on a rule id. There are eight faults behind the
+thirty-six routes, and six of them are the request's own rather than the editors': an id naming nothing in the
+document is `RQ4` at **404**, a required field absent or a value outside a closed set or a number that is not
+one is `RQ1` at **400**, an id already taken or a row something still references is `RQ5` at **409** — and
+`RQ5`'s finding names what is in the way in its `subjects`, so the apply-rules still binding a filter come
+back with the refusal rather than having to be hunted.
+
+Two faults are the editors' own, because both are about the **document** rather than the request: the payload
+is well-formed and everything it names exists, and the edit still cannot be applied.
+
+| Rule | Refused | Status |
+|---|---|---|
+| `ED1` | a reference the document cannot resolve — an apply-rule or filter naming a region or filter that is not in the registry and is not a builtin, or a filter naming itself | 400 |
+| `ED2` | an edit the document is not in a state to take — a group with fewer children than its type takes, a compound with no children to remove one from, a region that is not the kind the operation applies to, an apply-rule carrying no region, filter or action | 400 |
+
+A refusal shows as a toast and leaves the screen as it was; a rejected canvas edit reloads the canvas so the
+shape on screen goes back to the shape on the map.
 
 There is no pre-flight, no completeness gate and no export gate. Nothing here asks whether the map is
 playable.
@@ -154,11 +169,12 @@ document directly, which is what separates them from Configure's single intent P
 
 **Writing**
 
-Their failure codes are uniform, because they all run through one path: **400** for a malformed payload,
-**404** for an unknown map, region, team or wool, and **409** for an id already in use. The one 409 that is
-not an id collision is deleting a filter that something still references, or a built-in one. Payload
-validation runs **before** the lookup, so a malformed body aimed at something that does not exist answers 400
-rather than 404.
+Their failure codes are uniform, because they all run through one path — `WriteSupport.RunEditAsync`, which
+turns the editor's refusal into the envelope: **400** (`RQ1`, `ED1`, `ED2`) for a payload the document will
+not take, **404** (`RQ4`) for an unknown map, region, team, wool, monument, spawn, filter or apply-rule, and
+**409** (`RQ5`) for an id already in use. The one 409 that is not an id collision is deleting a filter that
+something still references, or a built-in one. Payload validation runs **before** the lookup, so a malformed
+body aimed at something that does not exist answers 400 rather than 404.
 
 | Endpoint | Does |
 |---|---|
@@ -202,9 +218,23 @@ GET   /api/map/sentient/xml                        → the rendered map.xml
 room pointing at it. `{"bounds": {min_x, min_z, max_x, max_z}}` moves the 2-D footprint of any region and
 answers the new bounds. `{"coords": {…}}` sets the type's own fields, and **for a `cuboid` that means `min_y`
 and `max_y` only** — sending `min_x` under `coords` to a cuboid is accepted and silently ignored, because a
-cuboid's footprint is `bounds`. A flat payload is a 400 saying *provide 'id', 'bounds', or 'coords'*, and that
-check runs before the region lookup, so a flat body aimed at a region that does not exist answers 400 rather
-than 404.
+cuboid's footprint is `bounds`. A flat payload is a 400 carrying `RQ1` and the sentence *provide 'id',
+'bounds', or 'coords'*, and that check runs before the region lookup, so a flat body aimed at a region that
+does not exist answers 400 rather than 404.
+
+**A refusal comes back in the studio's one envelope, whichever of the thirty-six routes produced it**, so one
+parser reads them all and the rule id says which fault it was:
+
+```
+POST /api/map/sentient/apply-rules  {}
+→ 400 { "error":    "edit not applicable",
+        "message":  "apply-rule has no region, filter, or action",
+        "findings": [ { "rule": "ED2", "message": "apply-rule has no region, filter, or action",
+                        "severity": "refusal" } ] }
+```
+
+`GET /api/rules?rule=ED2` answers what that id means and what to do about it, and the same holds for the
+`RQ*` ids the write routes cite.
 
 The ids in that example are real — `sentient` carries `red-spawn-point`, `blue-spawn-point`, `spawns`,
 `obs-spawn-point`, `wool-rooms` and a monument per colour — and `blue-spawn-point` is a `cuboid`.

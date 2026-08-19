@@ -260,9 +260,25 @@ harnesses live under `tools/`, not `tests/` — and only where they meet the bar
   joint records a selection, and one name for both hid that they are different quantities.
 
 ## Code comments
-Comments stay **purely functional** — what the code does and why. **Never** an attribution to what a piece of
-code was ported from, and **never** an implementation-phase or task id (`NS`, `N00`, `B8`, `P5`, `ND2`, …).
-The port attributions are swept; the task-id half is still open on the board.
+Comments stay **purely functional** — what the code does and why, in the present tense, about the code as it
+stands.
+
+**A comment never carries history. Ever.** Not what the code used to do, not how many sites there used to be,
+not what was wrong before, not what a refactor replaced, not "this used to be…", "each had grown its own…",
+"until now…", "the old…", "N of them did X". History lives in **git** — in the commit message, in
+`FEATURES.md`, in the task board — and a docstring is not any of those. A comment recounting the state a
+change removed is worse than no comment: it describes a system nobody reading the file can see, it goes stale
+the moment the next change lands, and it buries the sentence a reader actually came for under an account of a
+problem that no longer exists. The reason a thing is shaped the way it is can always be stated as a **fact
+about the shape** — *the ids live in the lowest project every caller reaches, because a second `const`
+aliasing one that exists is two rules* — with no before-and-after in it.
+
+Also **never** an attribution to what a piece of code was ported from, and **never** an implementation-phase
+or task id (`NS`, `N00`, `B8`, `P5`, `ND2`, …). The port attributions are swept; the task-id half is still
+open on the board, and so is the history half (`RP10`).
+
+The same rule already governs prose under `docs/` — *How a document is written*: state mechanism as fact, no
+changelog. It is one rule, and the two halves are not allowed to disagree.
 
 ## Reporting findings
 **A world finding needs coordinates.** Report what a scan or an analysis found as a per-item table with the

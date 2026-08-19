@@ -15,7 +15,7 @@ public static class RegionEditor
     public static Dict CreateRegion(Dict data, Dict payload)
     {
         var type = payload.GetValueOrDefault("type") as string ?? "rectangle";
-        if (!CreateTypes.Contains(type)) throw EditException.BadRequest($"unsupported type '{type}'");
+        if (!CreateTypes.Contains(type)) throw EditException.Unreadable($"unsupported type '{type}'", "type");
         var regions = Regions(data);
 
         var id = ((payload.GetValueOrDefault("id") as string) ?? "").Trim();
@@ -25,11 +25,11 @@ public static class RegionEditor
             var i = 1; while (regions.ContainsKey($"{prefix}_{i}")) i++;
             id = $"{prefix}_{i}";
         }
-        else if (regions.ContainsKey(id)) throw EditException.Conflict($"id '{id}' already in use");
+        else if (regions.ContainsKey(id)) throw EditException.Conflict($"id '{id}' already in use", [id]);
 
         try { regions[id] = RegionBuilder.BuildRegionDict(type, payload, id); }
         catch (EditException) { throw; }
-        catch (Exception ex) { throw EditException.BadRequest($"missing or invalid field: {ex.Message}"); }
+        catch (Exception ex) { throw EditException.Unreadable($"missing or invalid field: {ex.Message}"); }
 
         TrackCategory(data, payload.GetValueOrDefault("category") as string ?? "other", id);
         return new Dict { ["id"] = id };
@@ -39,19 +39,19 @@ public static class RegionEditor
     {
         var compType = ((payload.GetValueOrDefault("type") as string) ?? "union").Trim();
         if (compType.Length == 0) compType = "union";
-        if (!CompoundTypes.Contains(compType)) throw EditException.BadRequest($"'{compType}' is not a compound type");
+        if (!CompoundTypes.Contains(compType)) throw EditException.Unreadable($"'{compType}' is not a compound type", "type");
 
         var childIds = (payload.GetValueOrDefault("child_ids") as List<object?> ?? []).Select(c => c?.ToString() ?? "").ToList();
         var minChildren = compType == "negative" ? 1 : 2;
-        if (childIds.Count < minChildren) throw EditException.BadRequest($"{compType} requires at least {minChildren} region(s)");
+        if (childIds.Count < minChildren) throw EditException.Inapplicable($"{compType} requires at least {minChildren} region(s)");
 
         var regions = Regions(data);
         var missing = childIds.Where(c => !regions.ContainsKey(c)).ToList();
-        if (missing.Count > 0) throw EditException.NotFound($"unknown region(s): {string.Join(", ", missing)}");
+        if (missing.Count > 0) throw EditException.NoSuchSubject($"unknown region(s): {string.Join(", ", missing)}", missing);
 
         var compoundId = ((payload.GetValueOrDefault("id") as string) ?? "").Trim();
         if (compoundId.Length == 0) { var i = 1; while (regions.ContainsKey($"{compType}_{i}")) i++; compoundId = $"{compType}_{i}"; }
-        else if (regions.ContainsKey(compoundId)) throw EditException.Conflict($"id '{compoundId}' already in use");
+        else if (regions.ContainsKey(compoundId)) throw EditException.Conflict($"id '{compoundId}' already in use", [compoundId]);
 
         var (bounds, minX, minZ, maxX, maxZ) = RegionBuilder.BuildUnionBounds(childIds.Select(c => (Dict)regions[c]!));
         var compound = new Dict { ["id"] = compoundId, ["type"] = compType, ["children"] = childIds.Cast<object?>().ToList() };
@@ -64,10 +64,10 @@ public static class RegionEditor
     public static Dict ChangeRegionType(Dict data, string regionId, Dict payload)
     {
         var newType = ((payload.GetValueOrDefault("type") as string) ?? "").Trim();
-        if (newType.Length == 0) throw EditException.BadRequest("type required");
-        if (!CompoundTypes.Contains(newType)) throw EditException.BadRequest($"'{newType}' is not a compound type");
+        if (newType.Length == 0) throw EditException.Unreadable("type required", "type");
+        if (!CompoundTypes.Contains(newType)) throw EditException.Unreadable($"'{newType}' is not a compound type", "type");
         var region = Region(data, regionId);
-        if (!CompoundTypes.Contains(region.GetValueOrDefault("type") as string ?? "")) throw EditException.BadRequest($"region '{regionId}' is not a compound type");
+        if (!CompoundTypes.Contains(region.GetValueOrDefault("type") as string ?? "")) throw EditException.Inapplicable($"region '{regionId}' is not a compound type");
         region["type"] = newType;
         return new Dict();
     }
@@ -75,11 +75,11 @@ public static class RegionEditor
     public static Dict RemoveFromGroup(Dict data, string regionId, Dict payload)
     {
         var childId = ((payload.GetValueOrDefault("child_id") as string) ?? "").Trim();
-        if (childId.Length == 0) throw EditException.BadRequest("child_id required");
+        if (childId.Length == 0) throw EditException.Unreadable("child_id required", "child_id");
         var region = Region(data, regionId);
-        if (region.GetValueOrDefault("children") is not List<object?> children) throw EditException.BadRequest($"region '{regionId}' has no children");
+        if (region.GetValueOrDefault("children") is not List<object?> children) throw EditException.Inapplicable($"region '{regionId}' has no children");
         var idx = children.FindIndex(c => ChildId(c) == childId);
-        if (idx < 0) throw EditException.NotFound($"child '{childId}' not found in '{regionId}'");
+        if (idx < 0) throw EditException.NoSuchSubject($"child '{childId}' not found in '{regionId}'");
         children.RemoveAt(idx);
         EnsureCategorised(data, childId);
         return new Dict();
@@ -88,12 +88,12 @@ public static class RegionEditor
     public static Dict SetBaseChild(Dict data, string regionId, Dict payload)
     {
         var childId = ((payload.GetValueOrDefault("child_id") as string) ?? "").Trim();
-        if (childId.Length == 0) throw EditException.BadRequest("child_id required");
+        if (childId.Length == 0) throw EditException.Unreadable("child_id required", "child_id");
         var region = Region(data, regionId);
-        if (region.GetValueOrDefault("type") as string != "complement") throw EditException.BadRequest($"region '{regionId}' is not a complement");
+        if (region.GetValueOrDefault("type") as string != "complement") throw EditException.Inapplicable($"region '{regionId}' is not a complement");
         var children = region.GetValueOrDefault("children") as List<object?> ?? [];
         var idx = children.FindIndex(c => ChildId(c) == childId);
-        if (idx < 0) throw EditException.NotFound($"child '{childId}' not found in complement '{regionId}'");
+        if (idx < 0) throw EditException.NoSuchSubject($"child '{childId}' not found in complement '{regionId}'");
         if (idx != 0) { var c = children[idx]; children.RemoveAt(idx); children.Insert(0, c); }
         return new Dict();
     }
@@ -101,11 +101,11 @@ public static class RegionEditor
     public static Dict UngroupRegion(Dict data, Dict payload)
     {
         var regionId = ((payload.GetValueOrDefault("region_id") as string) ?? "").Trim();
-        if (regionId.Length == 0) throw EditException.BadRequest("region_id required");
+        if (regionId.Length == 0) throw EditException.Unreadable("region_id required", "region_id");
         var regions = Regions(data);
-        if (!regions.TryGetValue(regionId, out var compObj) || compObj is not Dict compound) throw EditException.NotFound($"region '{regionId}' not found");
+        if (!regions.TryGetValue(regionId, out var compObj) || compObj is not Dict compound) throw EditException.NoSuchSubject($"region '{regionId}' not found");
         var compType = compound.GetValueOrDefault("type") as string ?? "";
-        if (!CompoundTypes.Contains(compType)) throw EditException.BadRequest($"region '{regionId}' is not a compound region");
+        if (!CompoundTypes.Contains(compType)) throw EditException.Inapplicable($"region '{regionId}' is not a compound region");
 
         var childIds = (compound.GetValueOrDefault("children") as List<object?> ?? []).Select(ChildId).Where(x => x.Length > 0).ToList();
         regions.Remove(regionId);
@@ -120,7 +120,7 @@ public static class RegionEditor
     public static Dict DeleteRegion(Dict data, string regionId)
     {
         var regions = Regions(data);
-        if (!regions.ContainsKey(regionId)) throw EditException.NotFound($"region '{regionId}' not found");
+        if (!regions.ContainsKey(regionId)) throw EditException.NoSuchSubject($"region '{regionId}' not found");
 
         var subtreeIds = CollectSubtreeIds(regions, regionId);
         var category = "other";
@@ -140,11 +140,11 @@ public static class RegionEditor
         var rootId = snapshot.GetValueOrDefault("root_id") as string ?? "";
         var category = snapshot.GetValueOrDefault("category") as string ?? "other";
         if (rootId.Length == 0 || snapshot.GetValueOrDefault("region_entries") is not Dict entries || entries.Count == 0)
-            throw EditException.BadRequest("invalid snapshot");
+            throw EditException.Unreadable("invalid snapshot", "snapshot");
 
         var regions = Regions(data);
         var conflicts = entries.Keys.Where(regions.ContainsKey).ToList();
-        if (conflicts.Count > 0) throw EditException.Conflict($"id(s) already in use: {string.Join(", ", conflicts)}");
+        if (conflicts.Count > 0) throw EditException.Conflict($"id(s) already in use: {string.Join(", ", conflicts)}", conflicts);
         foreach (var (rid, r) in entries) regions[rid] = r;
         TrackCategory(data, category, rootId);
         return new Dict { ["id"] = rootId };
@@ -155,15 +155,15 @@ public static class RegionEditor
         var bounds = payload.GetValueOrDefault("bounds") as Dict;
         var coords = payload.GetValueOrDefault("coords") as Dict;
         if (string.IsNullOrEmpty(payload.GetValueOrDefault("id") as string) && bounds is null && coords is null)
-            throw EditException.BadRequest("provide 'id', 'bounds', or 'coords'");
+            throw EditException.Unreadable("provide 'id', 'bounds', or 'coords'");
 
         var regions = Regions(data);
-        if (!regions.TryGetValue(regionId, out var regObj) || regObj is not Dict region) throw EditException.NotFound($"region '{regionId}' not found");
+        if (!regions.TryGetValue(regionId, out var regObj) || regObj is not Dict region) throw EditException.NoSuchSubject($"region '{regionId}' not found");
 
         var newId = ((payload.GetValueOrDefault("id") as string) ?? "").Trim();
         if (newId.Length > 0 && newId != regionId)
         {
-            if (regions.ContainsKey(newId)) throw EditException.Conflict($"id '{newId}' already in use");
+            if (regions.ContainsKey(newId)) throw EditException.Conflict($"id '{newId}' already in use", [newId]);
             regions[newId] = region; regions.Remove(regionId); region["id"] = newId;
             foreach (var (_, ids) in Categories(data)) for (var i = 0; i < ids.Count; i++) if (ids[i] as string == regionId) ids[i] = newId;
             foreach (var r in regions.Values.OfType<Dict>()) RenameInChildren(r, regionId, newId);
@@ -209,7 +209,7 @@ public static class RegionEditor
     }
 
     private static Dict Region(Dict data, string id)
-        => Regions(data).GetValueOrDefault(id) as Dict ?? throw EditException.NotFound($"region '{id}' not found");
+        => Regions(data).GetValueOrDefault(id) as Dict ?? throw EditException.NoSuchSubject($"region '{id}' not found");
 
     private static string ChildId(object? child) => child switch { string s => s, Dict d => d.GetValueOrDefault("id") as string ?? "", _ => "" };
 

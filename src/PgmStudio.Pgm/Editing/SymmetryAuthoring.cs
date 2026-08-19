@@ -19,7 +19,7 @@ public static class SymmetryAuthoring
     public static Dict CreateCounterpart(Dict data, string sourceId, string mode, double cx, double cz, string category = "other")
     {
         var regions = Regions(data);
-        if (!regions.ContainsKey(sourceId)) throw EditException.BadRequest($"source region '{sourceId}' not found");
+        if (!regions.ContainsKey(sourceId)) throw EditException.NoSuchSubject($"source region '{sourceId}' not found");
 
         if (Symmetry.Normal(mode) is not null)
         {
@@ -37,8 +37,9 @@ public static class SymmetryAuthoring
             var rid = BakeRot90(data, sourceId, cx, cz, category);
             return Result(rid, rid);
         }
-        throw EditException.BadRequest(
-            $"unsupported mode '{mode}' (n-fold rot_n is out of scope; use mirror_x/z/d1/d2, rot_180, or rot_90)");
+        throw EditException.Unreadable(
+            $"unsupported mode '{mode}' (n-fold rot_n is out of scope; use mirror_x/z/d1/d2, rot_180, or rot_90)",
+            "mode");
     }
 
     /// <summary>
@@ -50,7 +51,7 @@ public static class SymmetryAuthoring
     public static Dict CreateOrbit(Dict data, string sourceId, string mode, double cx, double cz, string category = "other")
     {
         var regions = Regions(data);
-        if (!regions.ContainsKey(sourceId)) throw EditException.BadRequest($"source region '{sourceId}' not found");
+        if (!regions.ContainsKey(sourceId)) throw EditException.NoSuchSubject($"source region '{sourceId}' not found");
 
         var created = new List<object?>();
         if (mode == "rot_90")
@@ -95,7 +96,7 @@ public static class SymmetryAuthoring
         var src = (Dict)regions[sourceId]!;
         var stype = src.GetValueOrDefault("type") as string ?? "";
         if (!Bakeable.Contains(stype))
-            throw EditException.BadRequest($"rot_90 bake not supported for region type '{stype}' (primitives only; group/transform sources are out of scope)");
+            throw EditException.Inapplicable($"rot_90 bake not supported for region type '{stype}' (primitives only; group/transform sources are out of scope)");
 
         var newId = FreshId(regions, stype);
         var region = new Dict { ["id"] = newId, ["type"] = stype };

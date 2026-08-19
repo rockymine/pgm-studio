@@ -18,9 +18,9 @@ public static class WoolEditor
     {
         EnsureGrouped(data);
         var color = Slug(payload.GetValueOrDefault("color") as string ?? "white");
-        if (!ValidColors.Contains(color)) throw EditException.BadRequest($"invalid wool color '{color}'");
+        if (!ValidColors.Contains(color)) throw EditException.Unreadable($"invalid wool color '{color}'", "color");
         if (Wools(data).OfType<Dict>().Any(w => w.GetValueOrDefault("color") as string == color))
-            throw EditException.BadRequest($"wool color '{color}' already exists");
+            throw EditException.Conflict($"wool color '{color}' already exists", [color]);
         var wool = new Dict
         {
             ["id"] = color, ["color"] = color, ["team"] = null, ["location"] = null,
@@ -37,9 +37,9 @@ public static class WoolEditor
         if (payload.ContainsKey("color"))
         {
             var color = Slug(payload["color"] as string ?? "");
-            if (!ValidColors.Contains(color)) throw EditException.BadRequest($"invalid wool color '{color}'");
+            if (!ValidColors.Contains(color)) throw EditException.Unreadable($"invalid wool color '{color}'", "color");
             if (color != wool.GetValueOrDefault("color") as string && Wools(data).OfType<Dict>().Any(w => !ReferenceEquals(w, wool) && w.GetValueOrDefault("color") as string == color))
-                throw EditException.BadRequest($"wool color '{color}' already exists");
+                throw EditException.Conflict($"wool color '{color}' already exists", [color]);
             wool["color"] = color;
             wool["id"] = color;
             foreach (var mon in Monuments(wool)) mon["id"] = MonumentId(color, mon.GetValueOrDefault("team") as string ?? "");
@@ -55,7 +55,7 @@ public static class WoolEditor
         EnsureGrouped(data);
         var wools = Wools(data);
         if (!wools.OfType<Dict>().Any(w => w.GetValueOrDefault("id") as string == woolId))
-            throw EditException.NotFound($"wool '{woolId}' not found");
+            throw EditException.NoSuchSubject($"wool '{woolId}' not found");
         data["wools"] = wools.Where(w => (w as Dict)?.GetValueOrDefault("id") as string != woolId).ToList();
         return new Dict();
     }
@@ -66,7 +66,7 @@ public static class WoolEditor
         var wool = FindWool(data, woolId);
         var team = payload.GetValueOrDefault("team") as string ?? "";
         if (team.Length > 0 && Monuments(wool).Any(m => m.GetValueOrDefault("team") as string == team))
-            throw EditException.BadRequest($"monument for team '{team}' already exists on this wool");
+            throw EditException.Conflict($"monument for team '{team}' already exists on this wool", [team]);
         var mon = new Dict
         {
             ["id"] = MonumentId(wool.GetValueOrDefault("color") as string ?? "", team),
@@ -87,7 +87,7 @@ public static class WoolEditor
         {
             var newTeam = payload["team"] as string ?? "";
             if (newTeam != mon.GetValueOrDefault("team") as string && Monuments(wool).Any(m => !ReferenceEquals(m, mon) && m.GetValueOrDefault("team") as string == newTeam))
-                throw EditException.BadRequest($"monument for team '{newTeam}' already exists on this wool");
+                throw EditException.Conflict($"monument for team '{newTeam}' already exists on this wool", [newTeam]);
             mon["team"] = newTeam;
             mon["id"] = MonumentId(wool.GetValueOrDefault("color") as string ?? "", newTeam);
         }
@@ -101,7 +101,7 @@ public static class WoolEditor
         EnsureGrouped(data);
         var wool = FindWool(data, woolId);
         if (!Monuments(wool).Any(m => m.GetValueOrDefault("id") as string == monId))
-            throw EditException.NotFound($"monument '{monId}' not found in wool '{woolId}'");
+            throw EditException.NoSuchSubject($"monument '{monId}' not found in wool '{woolId}'");
         wool["monuments"] = Monuments(wool).Where(m => m.GetValueOrDefault("id") as string != monId).Cast<object?>().ToList();
         return new Dict();
     }
@@ -156,11 +156,11 @@ public static class WoolEditor
     // ── helpers ───────────────────────────────────────────────────────────────────
     private static Dict FindWool(Dict data, string woolId)
         => Wools(data).OfType<Dict>().FirstOrDefault(w => w.GetValueOrDefault("id") as string == woolId)
-           ?? throw EditException.NotFound($"wool '{woolId}' not found");
+           ?? throw EditException.NoSuchSubject($"wool '{woolId}' not found");
 
     private static Dict FindMonument(Dict wool, string monId)
         => Monuments(wool).FirstOrDefault(m => m.GetValueOrDefault("id") as string == monId)
-           ?? throw EditException.NotFound($"monument '{monId}' not found in wool '{wool.GetValueOrDefault("id")}'");
+           ?? throw EditException.NoSuchSubject($"monument '{monId}' not found in wool '{wool.GetValueOrDefault("id")}'");
 
     private static List<object?> Wools(Dict data) => data.GetValueOrDefault("wools") as List<object?> ?? [];
     private static List<Dict> Monuments(Dict wool) => (wool.GetValueOrDefault("monuments") as List<object?> ?? []).OfType<Dict>().ToList();

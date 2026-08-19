@@ -287,8 +287,7 @@ public partial class TeamsPhase
         error = null;
         var resp = await call;
         if (resp.IsSuccessStatusCode) return true;
-        try { var d = await resp.Content.ReadFromJsonAsync<JsonElement>(); error = d.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}"; }
-        catch { error = $"error {(int)resp.StatusCode}"; }
+        error = await ServerRefusal.SentenceAsync(resp);
         StateHasChanged();
         return false;
     }

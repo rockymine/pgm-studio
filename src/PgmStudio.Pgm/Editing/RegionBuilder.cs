@@ -52,7 +52,7 @@ public static class RegionBuilder
                 double cx = F(body["center_x"]), cz = F(body["center_z"]), r = F(body["radius"]);
                 return new Dict { ["id"] = regionId, ["type"] = "circle", ["center"] = new Dict { ["x"] = cx, ["z"] = cz }, ["radius"] = r, ["bounds_2d"] = Bounds(cx - r, cz - r, cx + r, cz + r) };
             }
-            default: throw EditException.BadRequest($"unsupported type '{type}'");
+            default: throw EditException.Unreadable($"unsupported type '{type}'", "type");
         }
     }
 

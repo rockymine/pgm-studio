@@ -146,8 +146,8 @@ app.Use(async (ctx, next) =>
             document ? 400 : 500,
             document ? "unreadable document" : "unhandled fault",
             [new Finding(
-                document ? PgmStudio.Api.Endpoints.RequestRules.Unreadable
-                         : PgmStudio.Api.Endpoints.RequestRules.Unhandled,
+                document ? PgmStudio.Domain.RequestRules.Unreadable
+                         : PgmStudio.Domain.RequestRules.Unhandled,
                 document
                     ? ex.Message
                     : "the studio failed to answer this request, and the fault is its own rather than the "

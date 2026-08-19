@@ -167,9 +167,8 @@ public partial class RegionsPhase
     private async Task<JsonElement?> Ok(HttpResponseMessage resp)
     {
         error = null;
-        var el = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        if (resp.IsSuccessStatusCode) return el;
-        error = el.TryGetProperty("error", out var e) ? e.GetString() : $"error {(int)resp.StatusCode}";
+        if (resp.IsSuccessStatusCode) return await resp.Content.ReadFromJsonAsync<JsonElement>();
+        error = await ServerRefusal.SentenceAsync(resp);
         StateHasChanged();
         return null;
     }

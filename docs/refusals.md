@@ -64,8 +64,9 @@ tables carry which.
 
 **The edge answers it too, not only the gates.** No route under `/api` answers a failure in a shape of its
 own, and none answers one with no body at all: `Refusals` writes every one of them, so a caller writes one
-parser for a refusal — which is the only reason to have one envelope. The single exception left is the Edit
-tool's `EditException` pass-through, which answers `{error}` with no rule id (`TE1`).
+parser for a refusal — which is the only reason to have one envelope. The Edit tool's thirty-six write routes
+answer it through one path: `EditException` carries the finding, and `WriteSupport.RunEditAsync` writes
+`Refusals.Of` with it.
 
 Complaints travel the same way but on a **success** response, under `warnings`, since nothing was refused —
 and the response carries them whether or not the endpoint thought to, which is *What a success carries* below.
@@ -89,7 +90,8 @@ a rule that changed its name between the two would be two rules.
 | `SK*` | the sketch document's own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it; `SK2` a board whose extent is past what the studio will realize (the one refusal; the ceiling is a constant and deliberately appears in no message — a stated one is a target); `SK3` a name matching nothing (a shape kind, a mirror mode, an island's shape id, a relief's island, a shape's or the map's theme); `SK4` a shape that draws no ground; `SK5` a column the world cannot hold; `SK6` nothing stored to finish and `SK7` a stored board that rasterizes to no ground — the two the finish stage owns, and the one place the sketch's complaints become fatal, since finishing is what declares the drawing done. `SK3`–`SK5` are **complaints on a built board**: the rasterizer is set algebra, so what it cannot read contributes no ground rather than failing, and without these a defect in the document reads as a smaller drawing | `Pgm/Sketch/SketchRules.cs` · `Pgm/Sketch/SketchLayoutCheck.cs` |
 | `IM*` | the import's own — `IM1` a host the import does not fetch from (the SSRF allowlist), `IM2` an archive the host did not serve, `IM3` one past the download cap, `IM4` one that is not a zip, `IM5` one carrying no `region/*.mca`, `IM6` a folder that is a map already rather than a world to originate from | `Api/Endpoints/ImportEndpoints.cs` → `ImportRules` |
 | `CO1` | the composer's — a well-formed descriptor naming a board it cannot emit; the sentence carries which knob and which value, because the emitter that stopped is the only thing that knows | `Pgm/Compose/ComposeException.cs` → `ComposeRules` |
-| `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
+| `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Domain/RequestRules.cs` |
+| `ED*` | the document editors' own two — `ED1` a reference the document cannot resolve (an apply-rule naming an unknown filter, a filter naming itself), `ED2` an edit the document is not in a state to take (a group with fewer children than its type takes, an apply-rule with no region, filter or action). The other six an edit is refused for are the request's, above | `Pgm/Editing/EditRules.cs` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 
 The structural plan rules, in full:
@@ -191,10 +193,15 @@ studio logs it as an error against the route rather than dropping it in silence.
 `/plan/feasibility` a per-box one, and in both the findings are the answer being asked for rather than a remark
 alongside one, so they stay named fields of the documents they belong to.
 
-## The six the edge asks
+## The six the request asks
 
 None of these is a gate's. A gate reads a document it understood and says what is wrong with the map; these
 six are about the **request**, and they exist because the shape above held everywhere except at the door.
+
+They are stated in `Domain` rather than at the door that raises most of them, because the door is not the only
+place that knows one. The document editors behind the Edit tool refuse an id naming nothing, an id already
+taken and a value outside a closed set from inside `Pgm.Editing`, and copying the ids down to reach them would
+be the second `const` aliasing one that exists — the failure *Adding one* names below.
 
 **`RQ1` — the document could not be read.** Absent, empty, malformed, or naming a kind that does not exist. It
 is 400, and it carries the field where the reader knew one: a part stated as `null` where the record cannot
@@ -213,8 +220,8 @@ a sentence rather than an exception: a query parameter a route cannot work witho
 and `z` of a column), a value outside a closed set (`symmetry=rot_90` where the composer builds two, a shape
 family that is not one), a body that is not the document the route takes. All of them are one fault — *the
 request could not be acted on* — so all of them are `RQ1`, at 400, with `field` naming the parameter where it
-has a name. Twenty-four sites hand-rolled a bare `{error}` for exactly this until they were converted; a
-caller writing one parser for the studio is the whole point of there being one envelope.
+has a name. A caller writing one parser for the studio is the whole point of there being one envelope, and a
+route phrasing its own parameter fault costs exactly that.
 
 **`RQ3` — a field went unread.** The document carried a property the reader had nowhere to keep. It is a
 **complaint**, so it rides on the success response under `warnings` and the work still happens: the readers

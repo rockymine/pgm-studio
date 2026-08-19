@@ -64,7 +64,7 @@ public static class FilterWiring
 
     private static Dict ApplyBuildVoidEnforcement(Dict data, List<string> buildRegionIds)
     {
-        if (buildRegionIds.Count == 0) throw EditException.BadRequest("no build regions to enforce");
+        if (buildRegionIds.Count == 0) throw EditException.Inapplicable("no build regions to enforce");
         var neg = RegionEditor.GroupRegions(data, new Dict { ["child_ids"] = buildRegionIds.Cast<object?>().ToList(), ["type"] = "negative" });
         var res = ApplyRuleEditor.CreateApplyRule(data, new Dict { ["region"] = neg["id"], ["block_place"] = "deny(void)", ["message"] = "You may not build here!" });
         return new Dict { ["region_id"] = neg["id"], ["rule_id"] = res["id"] };
@@ -79,14 +79,14 @@ public static class FilterWiring
             "wool_room_defense"      => ApplyWoolRoomDefense(data, Str(p, "region"), Str(p, "owner")),
             "wool_room_edit"         => ApplyWoolRoomEdit(data, Str(p, "region"), Str(p, "owner")),
             "build_void_enforcement" => ApplyBuildVoidEnforcement(data, StrList(p, "build_region_ids")),
-            _ => throw EditException.BadRequest($"unknown template '{template}'"),
+            _ => throw EditException.Unreadable($"unknown template '{template}'", "template"),
         };
         return new Dict(result) { ["template"] = template };
     }
 
     private static string Str(Dict p, string k) => p.GetValueOrDefault(k) as string
-        ?? throw EditException.BadRequest($"missing param '{k}'");
+        ?? throw EditException.Unreadable($"missing param '{k}'", k);
     private static List<string> StrList(Dict p, string k) =>
-        (p.GetValueOrDefault(k) as List<object?> ?? throw EditException.BadRequest($"missing param '{k}'"))
+        (p.GetValueOrDefault(k) as List<object?> ?? throw EditException.Unreadable($"missing param '{k}'", k))
         .Select(x => x?.ToString() ?? "").Where(x => x.Length > 0).ToList();
 }

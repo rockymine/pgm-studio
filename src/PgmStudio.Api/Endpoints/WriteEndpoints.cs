@@ -35,7 +35,7 @@ internal static class WriteSupport
             await writer.SaveDocAsync(map.Id, doc, ct);
             return (200, result);
         }
-        catch (EditException ex) { return (ex.Status, new Dict { ["error"] = ex.Message }); }
+        catch (EditException ex) { return (ex.Status, Refusals.Of(ex.Error, [ex.Finding])); }
     }
 }
 

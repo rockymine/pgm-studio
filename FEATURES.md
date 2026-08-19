@@ -4336,6 +4336,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   callers doing it four ways, and `RawBody` is the one body reader. `RefusalEnvelopeTests` asserts the shape
   over the kinds of failure and that every id the edge cites is in the catalogue.
 
+- **The Edit tool's write routes answer the envelope too, and the request's ids moved down to reach them
+  (TE1).** `EditException(status, message)` was thrown at **74** sites across `Pgm/Editing`, and
+  `WriteSupport.RunEditAsync` turned every one of them into a bare `{error: ex.Message}` for the 36 routes
+  behind it — the last surface in the studio answering a refusal in a shape of its own, with no rule id a
+  caller could key on. The 74 are **eight faults**, and six of them belong to the request rather than to the
+  editors: **24** an id naming nothing in the document (`RQ4`, 404), **23** a required field absent, a value
+  outside a closed set or a number that is not one (`RQ1`, 400), **14** an id already taken or a row something
+  still binds (`RQ5`, 409). Two are the document's and are new — **`ED1`** a reference it cannot resolve (an
+  apply-rule or filter naming a region or filter that is not in the registry, a filter naming itself; 5) and
+  **`ED2`** an edit it is not in a state to take (a group with fewer children than its type takes, a region
+  that is not the kind the operation applies to, an apply-rule carrying no region, filter or action; 8).
+  `EditException` carries a `Finding` and `RunEditAsync` answers `Refusals.Of`. **`RequestRules` moved to
+  `Domain`** beside `Finding` for it: a rule id copied down into `Pgm` to reach the editors would have been the
+  second `const` aliasing one that exists, which is the failure `docs/refusals.md` names under *Adding one*.
+  Two statuses that disagreed with the twenty sites around them are corrected in the same pass — a symmetry
+  source region that is not there answers 404 rather than 400, and a wool colour or monument team already taken
+  answers 409 rather than 400 — and `RQ5`'s subjects now name what is in the way, the apply-rules still binding
+  a filter included. On the client the four Edit phases each read the envelope's `error` — the gate's *label* —
+  into their toast while the sentence sits in `message`; `ServerRefusal.SentenceAsync` is the one reader that
+  replaces those four copies.
+
 - **One box parser, and a stated box that cannot be read is refused (TC3).** `TryParseBox` was copied verbatim
   into two endpoints that then disagreed: monument-suggestions refused a malformed `box=`, core-suggestions
   dropped the filter and answered every casing the map has under a 200, so a mistyped box read as *this volume

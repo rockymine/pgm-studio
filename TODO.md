@@ -26,10 +26,12 @@ type. `StructureClaim` — now `PlacementClaim` — carries the rule the whole f
 from the placement, never rebuilt beside it*. It has since caught the same defect twice more, in a goal's
 anchor and in a room's claim rectangle, neither of which failed a test while it was wrong.
 
-The board's open work is the same shape one layer out. A prop the dressing pass declines, a refusal crossing
-the API, an artifact read from the database, a gate in the export chain — each is one concept given a
-different form at each surface that touches it, so nothing downstream can read all of them. That is what the
-first three groups below are, and the reason an agent driving the studio meets one on every loop.
+The board's open work is the same shape one layer out. A prop the dressing pass declines, a gate in the export
+chain, a refusal an author meant to make anyway — each is one concept given a different form at each surface
+that touches it, so nothing downstream can read all of them. That is what the groups below are, and the reason
+an agent driving the studio meets one on every loop. Two of the family have closed the same way: one
+`MapArtifactStore` for every artifact read from the database, and one refusal envelope for every failure
+crossing the API, the Edit tool's thirty-six write routes included.
 
 The one open question that governs a whole group is the author's (`B212`): a distance is the **walk over the
 walkable surface, never the straight line**, and the walk under every measure is still flat (`B246`), so the
@@ -66,28 +68,13 @@ thresholds stated in it want restating before anything enforces them.
 
   *moved here by the human because it sounds related and no other category fits*
 
-### The API layer: one envelope, one gate chain
+### The gate chain a driver meets, and what it can ask before paying for a build
 
-An agent driving the studio meets one of these on every loop, and they share a cause: the same answer is
-given a different shape at each surface, so nothing downstream can read all of them. Fable's run-3 review
-named the layer (`pgm-studio-mapgen/reports/fable-run3-architecture.md`). The store it named is settled — one
-`MapArtifactStore` keyed on the artifact kind — and so is the envelope; what is left is the gate chain.
-
-- [ ] **TE1 — The Edit tool answers every refusal as `{error: "…"}`, and it is the last surface that does.**
-  `EditException(status, message)` is thrown at 74 sites across `Pgm/Editing`, and `WriteSupport.RunEditAsync`
-  (`Api/Endpoints/WriteEndpoints.cs:38`) turns each into `{error: ex.Message}` for the 36 endpoints routing
-  through it. The 74 are eight faults, not 74, and six of the eight already have ids: **24** an id naming
-  nothing in the document (`RQ4`), **13** a value outside a closed set and **11** a required field absent and
-  **2** a number that is not one (`RQ1`), **12** an id already taken and **2** a row something still
-  references (`RQ5`). Only two want new ones: **5** a cross-reference the document cannot resolve (an
-  apply-rule naming an unknown filter, a filter referencing itself) and **5** an edit the document is not in a
-  state to take (a group of one child, a complement with none, an apply-rule with no region, filter or
-  action). So: `EditException` carries a `Finding`, `RunEditAsync` answers `Refusals.Of`, and
-  `docs/tools/edit.md` gains the shape and the two `ED*` rules in the same commit.
-
-  *Two statuses disagree with the twenty sites around them and are corrected by the same pass:
-  `SymmetryAuthoring:22,53` answer 400 for `source region '…' not found` where six other sites answer 404, and
-  `WoolEditor:23,42,69,90` answer 400 for `already exists` where eight other sites answer 409.*
+Fable's run-3 review named the layer these came out of (`pgm-studio-mapgen/reports/fable-run3-architecture.md`),
+and two thirds of it are settled: one `MapArtifactStore` keyed on the artifact kind, and one refusal envelope
+every route under `/api` now answers in. What is left is the chain of gates in front of an export — which of
+them a caller reaches depends on the door they came through, and the ones an agent trips hardest cannot be
+asked about until a world has been built.
 
 - [ ] **RP3 — The gate chain's completeness depends on which entry point a caller came through.**
   `MapExportComposer.Compose` runs `OB20` (`RefuseUnknownGamemode`) and the traversability judgement before
@@ -97,8 +84,6 @@ named the layer (`pgm-studio-mapgen/reports/fable-run3-architecture.md`). The st
   reason about, and it is the residue of the finding that `mapgen` shipped maps the HTTP export would
   refuse. Move both down into `ComposeSketch` so the chain is caller-independent, leaving `Compose` the
   doc-assembly leg it already reads as.
-
-### Agentic Map Authoring
 
 - [ ] **RP4 — The export's own objective gates have no pre-flight, and an agent pays a whole build for
   each.** `OB17` (a goal overhanging void, in a spawn, in a wool room) and `OB19` (a tree, boulder or

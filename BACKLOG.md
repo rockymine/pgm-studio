@@ -1148,6 +1148,47 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **RP10 — Sweep the history out of the code comments.** `CLAUDE.md` § *Code comments* states the rule —
+  a comment says what the code does and why, in the present tense, and never what it used to do — and the
+  tree does not keep it. **18 files** carry a docstring or inline comment whose subject is a state that no
+  longer exists: `RulesEndpoint.cs:16` ("until now nothing answered…"), `MetaGenerator.cs:12` ("the studio's
+  boilerplate used to say…"), `TeamUnitAllocator.cs:56` ("it used to be rounded to even…"),
+  `FillProfiles.cs:8` ("in place of the per-kind logic that used to be scattered…"),
+  `StructureFinder.cs:24`, `HouseStyle.cs:444`, `HouseStamper.cs:17,118`, `Decorator.cs:75`,
+  `EvaluationDto.cs:42`, `SketchEndpoints.cs:243` and the rest of the 18. Each one is a before-and-after
+  where a fact about the present shape would say the same thing shorter. Sweep them the way the port
+  attributions were swept: rewrite as the fact, delete where the fact is already stated above it. The grep
+  that finds them is `used to |had grown|until now|was (previously|formerly)|no longer (does|did)`, and it is
+  worth leaving in the commit message so the next sweep starts from the same list.
+
+- [ ] **RP9 — The two refusal envelopes have drifted, and both docstrings say they must not.**
+  `Finding.Envelope` (`Domain`) writes `{rule, message, severity}` plus `field`, `cites` and `subjects` only
+  where there is something to say; `Refusals.Of` (`Api/Endpoints`) renders `FindingDto`, which serializes
+  every null *and* the record's two computed properties. So one route answers
+  `{"rule":"RQ4","message":"team 'nope' not found","severity":"refusal"}` and the next answers the same
+  finding as `{…,"field":null,"subjects":null,"cites":null,"subjectIds":[],"refuses":true}` — a caller can
+  tell which layer refused, which is exactly what `Finding.Envelope`'s own docstring says must never happen.
+  `subjectIds` and `refuses` are derived from the other fields and belong to the record rather than to the
+  wire: `[JsonIgnore]` on both, and the same write-only-what-there-is rule as `Wire()`. `RefusalEnvelopeTests`
+  asserts the keys that are present and nothing about the ones that should not be, which is why nothing
+  caught it.
+
+  *Evidence: `DELETE /api/map/{slug}/teams/nope` against a seeded map, body above, taken from the running
+  test host.*
+
+- [ ] **RP8 — `project-structure.md`'s census disagrees with the tree it describes.** The size table at
+  §"Project sizes" is a snapshot nothing regenerates, and every row of it has drifted: measured over
+  `src/**/*.cs` (excluding `bin`/`obj`) the true counts are `Geom` 44/5,362 (stated 44/4,967), `Domain`
+  27/2,515 (25/2,252), `Contracts` 15/1,026 (13/965), `Migrations` 22/1,513 (21/1,469), `Minecraft`
+  79/15,456 (74/14,307), `Pgm` 148/22,838 (137/20,641), `Analysis` 17/3,035 (16/2,609), `Export` 8/1,575
+  (7/1,171), `Api` 67/9,595 (69/8,675) and `Client` 82 (80). The folder breakdowns are worse than stale —
+  they are counted at one level where the folders nest, so `Pgm/Compose` reads 42 against 28 direct children,
+  and the "48 files are the codec / 85 files and 11,522 lines are the generator" split the §7.1 argument
+  rests on cannot be reproduced from either number. A table nobody can regenerate is a table that is wrong
+  between every pair of commits, so the fix is a counter, not a re-count: one script under `tools/` that
+  writes the table (the `envelope-stats` pattern — a generator of a committed artifact), and the prose
+  reworded to cite the shape rather than the totals.
+
 
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
 (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created

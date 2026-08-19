@@ -47,7 +47,7 @@ public static partial class ApplyRuleEditor
     {
         var rules = EnsureRuleIds(data);
         var idx = rules.FindIndex(r => (r as Dict)?.GetValueOrDefault("id") as string == ruleId);
-        if (idx < 0) throw EditException.NotFound($"no apply-rule '{ruleId}'");
+        if (idx < 0) throw EditException.NoSuchSubject($"no apply-rule '{ruleId}'");
         rules.RemoveAt(idx);
         return new Dict { ["id"] = ruleId };
     }
@@ -74,25 +74,25 @@ public static partial class ApplyRuleEditor
 
     private static Dict Find(Dict data, string ruleId)
         => EnsureRuleIds(data).OfType<Dict>().FirstOrDefault(r => r.GetValueOrDefault("id") as string == ruleId)
-           ?? throw EditException.NotFound($"no apply-rule '{ruleId}'");
+           ?? throw EditException.NoSuchSubject($"no apply-rule '{ruleId}'");
 
     private static void Validate(Dict data, Dict payload)
     {
         var hasSomething = RuleFilterKeys.Concat(ActionKeys).Append("region")
             .Any(k => payload.GetValueOrDefault(k) is string s && s.Length > 0);
-        if (!hasSomething) throw EditException.BadRequest("apply-rule has no region, filter, or action");
+        if (!hasSomething) throw EditException.Inapplicable("apply-rule has no region, filter, or action");
 
         var regions = data.GetValueOrDefault("regions") as Dict ?? new Dict();
         var filters = data.GetValueOrDefault("filters") as Dict ?? new Dict();
 
         if (payload.GetValueOrDefault("region") is string region && region.Length > 0 && IsSimpleRef(region)
             && !regions.ContainsKey(region) && !BuiltinRegions.Contains(region))
-            throw EditException.BadRequest($"references unknown region '{region}'");
+            throw EditException.Unresolved($"references unknown region '{region}'", "region");
 
         foreach (var key in RuleFilterKeys)
             if (payload.GetValueOrDefault(key) is string val && val.Length > 0 && IsSimpleRef(val)
                 && !filters.ContainsKey(val) && !regions.ContainsKey(val) && !BuiltinFilters.Contains(val))
-                throw EditException.BadRequest($"{key} references unknown filter/region '{val}'");
+                throw EditException.Unresolved($"{key} references unknown filter/region '{val}'", key);
     }
 
     private static bool IsSimpleRef(string value) => SimpleRef().IsMatch(value);

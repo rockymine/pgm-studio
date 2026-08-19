@@ -8,12 +8,12 @@ public static class SpawnEditor
     public static Dict AddSpawnLink(Dict data, Dict payload)
     {
         var regionId = ((payload.GetValueOrDefault("region_id") as string) ?? "").Trim();
-        if (regionId.Length == 0) throw EditException.BadRequest("region_id is required");
-        if (!RegionsDict(data).ContainsKey(regionId)) throw EditException.NotFound($"region '{regionId}' not found");
+        if (regionId.Length == 0) throw EditException.Unreadable("region_id is required", "region_id");
+        if (!RegionsDict(data).ContainsKey(regionId)) throw EditException.NoSuchSubject($"region '{regionId}' not found");
 
         var spawns = EnsureList(data, "spawns");
         if (spawns.OfType<Dict>().Any(s => SpawnRegionId(s) == regionId))
-            throw EditException.Conflict($"spawn for region '{regionId}' already exists");
+            throw EditException.Conflict($"spawn for region '{regionId}' already exists", [regionId]);
 
         spawns.Add(new Dict
         {
@@ -28,7 +28,7 @@ public static class SpawnEditor
     public static Dict UpdateSpawnLink(Dict data, string regionId, Dict payload)
     {
         var spawn = ListOf(data, "spawns").OfType<Dict>().FirstOrDefault(s => SpawnRegionId(s) == regionId)
-                    ?? throw EditException.NotFound($"no spawn for region '{regionId}'");
+                    ?? throw EditException.NoSuchSubject($"no spawn for region '{regionId}'");
         if (payload.ContainsKey("team")) spawn["team"] = payload["team"]?.ToString() ?? "";
         if (payload.ContainsKey("yaw")) spawn["yaw"] = CoerceFloat(payload["yaw"], "yaw", 0.0);
         if (payload.ContainsKey("kit")) spawn["kit"] = payload["kit"]?.ToString() ?? "";
@@ -39,7 +39,7 @@ public static class SpawnEditor
     {
         var spawns = ListOf(data, "spawns");
         if (!spawns.OfType<Dict>().Any(s => SpawnRegionId(s) == regionId))
-            throw EditException.NotFound($"no spawn for region '{regionId}'");
+            throw EditException.NoSuchSubject($"no spawn for region '{regionId}'");
         data["spawns"] = spawns.Where(s => SpawnRegionId(s as Dict) != regionId).ToList();
         return new Dict();
     }
@@ -47,8 +47,8 @@ public static class SpawnEditor
     public static Dict SetObserverSpawn(Dict data, Dict payload)
     {
         var regionId = ((payload.GetValueOrDefault("region_id") as string) ?? "").Trim();
-        if (regionId.Length == 0) throw EditException.BadRequest("region_id is required");
-        if (!RegionsDict(data).ContainsKey(regionId)) throw EditException.NotFound($"region '{regionId}' not found");
+        if (regionId.Length == 0) throw EditException.Unreadable("region_id is required", "region_id");
+        if (!RegionsDict(data).ContainsKey(regionId)) throw EditException.NoSuchSubject($"region '{regionId}' not found");
 
         data["observer_spawn"] = new Dict
         {
@@ -62,7 +62,7 @@ public static class SpawnEditor
 
     public static Dict DeleteObserverSpawn(Dict data)
     {
-        if (data.GetValueOrDefault("observer_spawn") is not Dict) throw EditException.NotFound("no observer spawn defined");
+        if (data.GetValueOrDefault("observer_spawn") is not Dict) throw EditException.NoSuchSubject("no observer spawn defined");
         data["observer_spawn"] = null;
         return new Dict();
     }
@@ -90,6 +90,6 @@ public static class SpawnEditor
         long l => l,
         int i => i,
         string s when double.TryParse(s, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var p) => p,
-        _ => throw EditException.BadRequest($"{field} must be a number"),
+        _ => throw EditException.Unreadable($"{field} must be a number", field),
     };
 }
