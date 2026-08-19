@@ -1124,6 +1124,53 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   what `WX9` is, and add the assertion that runs the other way: every id any gate or lint can emit resolves
   in the catalogue. `RulesEndpointTests` only checks that declared rules carry a sentence.
 
+- [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
+  `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule
+  law (score + lint), `feasibility` judges the **composer** rather than the map ("could the composer have
+  produced this plan" — its own docstring calls the report "a live map of composer gaps"), `inspect` derives
+  geometry (distances, wall rects, the canvas overlays) and `columns` projects the world the plan would build.
+  Two judgements, one transform, two projections — a real grouping that appears in no document, so a caller
+  reads five summaries to learn that only one of them changes anything and only one of them is about the
+  generator. Name the kinds in `plan.md`'s endpoint table and in the OpenAPI tag, and say plainly that
+  `feasibility` answers a question about the studio, not about the map.
+
+- [ ] **RP18 — The schema publishes a path and a verb and, for most routes, nothing about the answer.**
+  Measured on the generated document: **114 of 167 operations declare no response content at all**, 53 declare
+  `application/json`, and **none declares an image** — though `PngAnswer` serves `image/png` on six routes, the
+  ascii boards serve `text/plain` on three and the export serves `application/zip`. So `/api-docs` cannot
+  render a theme swatch inline, and a caller cannot tell a JSON route from a PNG route without trying it. The
+  cause is `RP12`'s on the other side: an `EndpointWithoutRequest` with no response type states nothing for the
+  generator to publish. Give each route its response type, and `Produces`/`ProducesProblem` where the media
+  type is not JSON, starting with the six PNG routes an author most wants to look at.
+
+- [ ] **WE11 — The world builder is named for the tool whose document happens to reach it.**
+  `SketchWorldBuilder` (`Export`) synthesises the voxel world, the world spawn and the resolved intent for
+  **every** map — a plan compiles to a layout and arrives here too — and `MapExportComposer.ComposeSketch` is
+  the composition every export runs, while the method called `Compose` is the doc-assembly leg in front of it.
+  `SketchTerrainBuilder` (`Minecraft/Stamping`) is the same misnaming one layer down. The loop's four names
+  are settled and none of these three is one of them: rename to what they build — the world — and leave
+  `SketchLayout`, `SketchRasterizer` and the sketch endpoints alone, because those genuinely belong to the
+  drawing. 12 identifiers across `Export` and `Minecraft`; the `Pgm`, `Api` and `Client` ones are the tool's
+  and stay.
+
+- [ ] **WS5 — Objective suggestion is map-contract analysis living in the world package.**
+  `Minecraft/Suggest/` holds `MonumentSuggester` and `CoreSuggester`; the first names a monument, a wool, an
+  objective or a core **44 times**. `CLAUDE.md` charters `Minecraft` as "the world" and `Analysis` as the
+  derivations over it, and `docs/world-scan/` already owns this subject — *monument and objective suggestion*
+  — as a documentation folder. Move both to `Analysis`, where the other reads of a scanned world sit, and the
+  package charter stops needing an exception. Its consumers are `Api/Endpoints/MonumentEndpoints` and the two
+  candidate stores in `Data`, all of which already reference `Analysis`.
+
+- [ ] **RP19 — `tools/relief` is 120 KB that generates nothing committed.** Its README calls it "the live twin
+  of `docs/world-export/relief.md` — every figure and every number in that document is emitted by this tool",
+  and `relief.md` carries **no image references at all**; `out/` is gitignored, so nothing it draws is kept.
+  Against `CLAUDE.md` § *Investigation stays local* it is neither a gate, nor a generator of a committed
+  artifact, nor an operational tool. It also carries its own `Mirror`/`Fold`/`SymmetryError`
+  (`Terrain.cs:186,205,219`), which is the third copy of the transform the Traps section says must stay one
+  leaf plus the JS twin — and the same folder is on record for having drifted from the shipped solver once.
+  Either commit the ten figures it draws so `relief.md` shows them and the tool earns its bar, or delete it
+  and keep the measurements the document already states.
+
 - [ ] **RP17 — The check that catches a field nothing read runs on two endpoint files.**
   `DocumentShape.Unread` walks a parsed document beside the value it deserialized to and names every property
   nothing could keep, as `RQ3` on the success response. It is wired to the room-style library and the terrain

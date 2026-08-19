@@ -47,12 +47,21 @@ across `Pgm/Editing` are, read as a group, a request schema: a field is absent, 
 set, a number is not one. Those are declarations, written as 74 `throw` statements because the request they
 guard has no declared shape to hang them on.
 
+**A response is described even less than a request.** Of the 167 operations, **114 declare no response
+content at all** and 53 declare `application/json`; **none declares an image**, though six routes answer
+`image/png` through `PngAnswer`, three answer `text/plain` and the export answers `application/zip`. So the
+page cannot render a theme swatch beside the route that draws it, and a caller cannot tell a JSON route from
+a PNG route without sending one.
+
 **The wire contract is generated once and kept by hand twice more.** The route attributes in
 `Api/Endpoints` are the generator's source. Beside them sit **152 route strings** written out in the Blazor
 client and the endpoint tables in the eight `docs/tools/` documents, neither of which is derived from the
 schema. The client reads **59 responses as `JsonElement`** against 16 typed reads, across 38 files, so the
 response shape is a third copy living in per-component parsing code; `Contracts` carries 15 DTOs for 167
-endpoints. `TC1` — three heavily used analysis routes appearing in no endpoint table — is not a documentation
+endpoints. The split across the client's features says which half of the studio was built against a declared
+shape: **Catalog 3 typed / 0 untyped and Generator 3 / 0**, against **Configure 1 / 27** and **Edit 0 / 14**.
+The two pages with a typed contract are the two newest, and they are what the rest would look like read
+through a generated client. `TC1` — three heavily used analysis routes appearing in no endpoint table — is not a documentation
 lapse; it is what a hand-maintained copy of a machine-readable fact does, and the schema is now what a
 generated table would read.
 
