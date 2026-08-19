@@ -144,7 +144,12 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
 public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
     : Endpoint<RoomStyleSaveRequest, RoomStylePreviewDto>
 {
-    public override void Configure() { Post("/room-styles/preview"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/room-styles/preview");
+        AllowAnonymous();
+        Description(b => b.AlsoPng());
+    }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
     {
@@ -172,9 +177,14 @@ public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWi
 /// it stamps. What a map's <b>bound</b> style is previewed through: the binding is a snapshot rather than a
 /// library id (structures.md §9), so the picture has to come from the snapshot too — reading the library row
 /// would show what that row looks like now, which is exactly the drift the snapshot exists to prevent.</summary>
-public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest
+public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<RoomStylePreviewDto>
 {
-    public override void Configure() { Post("/room-styles/preview-snapshot"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/room-styles/preview-snapshot");
+        AllowAnonymous();
+        Description(b => b.AlsoPng());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

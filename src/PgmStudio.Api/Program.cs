@@ -221,9 +221,18 @@ app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.RoutePrefix = "api";
-    // A field the DTO declares non-nullable and the body did not carry is refused by name before any handler
-    // reads it — see RequiredFields for why the annotation alone does not hold.
-    c.Endpoints.Configurator = ep => ep.PreProcessor<PgmStudio.Api.Endpoints.RequiredFields>(Order.Before);
+    c.Endpoints.Configurator = ep =>
+    {
+        // A field the DTO declares non-nullable and the body did not carry is refused by name before any
+        // handler reads it — see RequiredFields for why the annotation alone does not hold.
+        ep.PreProcessor<PgmStudio.Api.Endpoints.RequiredFields>(Order.Before);
+        // And the two answers every route can give whatever else it does, so the document says so once
+        // rather than leaving each endpoint to remember: a document that will not read is 400 and the
+        // studio's own fault is 500, both in the envelope the middleware above guarantees.
+        ep.Description(b => b
+            .Produces<PgmStudio.Contracts.RefusalDto>(400, "application/json")
+            .Produces<PgmStudio.Contracts.RefusalDto>(500, "application/json"));
+    };
     // Query/route/form values bind through the ambient culture unless told otherwise; this makes the
     // wire boundary itself invariant rather than leaning on the process-wide pin above.
     c.Binding.UseInvariantNumbers();

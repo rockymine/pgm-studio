@@ -91,9 +91,14 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
 /// <summary>GET /api/map/{slug}/coverage — where the ground is lived on and where it is dead: the traffic
 /// corridors between every pair of waypoints, each waypoint's own ring, the prop-decorated fringe, and the
 /// dead patches named with coordinates. <c>?format=png</c> answers the same grid as the coverage picture.</summary>
-public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest<CoverageDto>
 {
-    public override void Configure() { Get("/map/{slug}/coverage"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/coverage");
+        AllowAnonymous();
+        Description(b => b.AlsoPng());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

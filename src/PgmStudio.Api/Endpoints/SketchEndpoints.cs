@@ -261,7 +261,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
 /// bridge's <c>getState()</c>, not the stored blob — so the overlay tracks unsaved edits; the stored intent
 /// supplies team ownership, which is what a team-tinted material reads. Empty payload when nothing is
 /// drawn; 400 on unparseable JSON.</summary>
-public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
     public override void Configure() { Post("/map/{slug}/sketch/paint"); AllowAnonymous(); }
 
@@ -305,7 +305,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// pass declined, as a <c>DR-*</c> finding naming the rule, the cell and the prop. The build succeeded, so
 /// these are complaints rather than refusals — but a caller looking at a preview with no tree in it needs to
 /// be told the tree was declined, not left to notice.</para></summary>
-public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<WorldColumnsDto>
 {
     public override void Configure() { Post("/map/{slug}/sketch/columns"); AllowAnonymous(); }
 
@@ -322,7 +322,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
-        Dictionary<string, object?> payload;
+        WorldColumnsDto payload;
         try
         {
             var built = SketchWorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));

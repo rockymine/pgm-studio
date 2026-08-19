@@ -24,7 +24,12 @@ using PgmStudio.Minecraft.Anvil;
 /// </summary>
 public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/export"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/export");
+        AllowAnonymous();
+        Description(b => b.WorldZipOrMapXml());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

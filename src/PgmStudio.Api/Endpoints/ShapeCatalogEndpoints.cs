@@ -12,7 +12,7 @@ namespace PgmStudio.Api.Endpoints;
 /// <c>family</c> query filters narrow the returned cards; the counts always describe the <b>whole</b> catalog,
 /// so a chip can say what it would show before it is picked.
 /// </summary>
-public sealed class ShapeCatalogEndpoint : EndpointWithoutRequest
+public sealed class ShapeCatalogEndpoint : EndpointWithoutRequest<CatalogPage>
 {
     /// <summary>The card render scale — smaller than a board card because a shape is a handful of cells and the
     /// grid shows dozens at once.</summary>

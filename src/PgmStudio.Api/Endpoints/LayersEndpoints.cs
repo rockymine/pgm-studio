@@ -10,13 +10,14 @@ using PgmStudio.Minecraft;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Contracts;
 using PgmStudio.Minecraft.Palette;
 
 /// <summary>Shared surface-parquet → pixels / block-types projection (B4 + B9).</summary>
 internal static class LayerData
 {
     /// <summary>Parallel xs/zs/colors arrays + bounds for a column set (caller ensures non-empty).</summary>
-    public static Dict Pixels(IReadOnlyList<SurfaceCell> cells)
+    public static BlockPixelsDto Pixels(IReadOnlyList<SurfaceCell> cells)
     {
         var xs = new int[cells.Count];
         var zs = new int[cells.Count];
@@ -32,20 +33,12 @@ internal static class LayerData
             if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
             if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
         }
-        return new Dict
-        {
-            ["xs"] = xs, ["zs"] = zs, ["colors"] = colors,
-            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
-        };
+        return new BlockPixelsDto(minX, minZ, maxX, maxZ, Xs: xs, Zs: zs, Colors: colors);
     }
 
     /// <summary>The payload for no cells at all — a degenerate zero-span box, so a client can decode it with
     /// the same code path and simply blit nothing rather than branch on a null.</summary>
-    public static Dict EmptyPixels() => new()
-    {
-        ["xs"] = Array.Empty<int>(), ["zs"] = Array.Empty<int>(), ["colors"] = Array.Empty<string>(),
-        ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = -1, ["max_z"] = -1,
-    };
+    public static BlockPixelsDto EmptyPixels() => new(0, 0, -1, -1, Xs: [], Zs: [], Colors: []);
 
     /// <summary>
     /// A painted footprint in whichever of the two block-pixel encodings is smaller for it — the client decodes
@@ -59,11 +52,10 @@ internal static class LayerData
     /// <para><b>Cells</b> (<c>xs</c>/<c>zs</c>/<c>color_idx</c>) is the fallback, for a footprint so scattered
     /// that its runs cost more than its cells, or one whose bounding box is too large to raster at all.</para>
     /// </summary>
-    public static Dict PalettePixels(IReadOnlyList<SurfaceCell> cells)
+    public static BlockPixelsDto PalettePixels(IReadOnlyList<SurfaceCell> cells)
     {
-        var byCell = CellPixels(cells);
         var asRuns = RunPixels(cells);
-        return asRuns is not null && ((int[])asRuns["runs"]!).Length < 3 * cells.Count ? asRuns : byCell;
+        return asRuns is not null && asRuns.Runs!.Count < 3 * cells.Count ? asRuns : CellPixels(cells);
     }
 
     // The largest bounding box worth rastering to find runs. A footprint is normally compact, but nothing stops
@@ -71,7 +63,7 @@ internal static class LayerData
     private const long MaxRunRasterCells = 4_000_000;
 
     /// <summary>The run encoding, or null when the footprint's bounding box is too large to raster.</summary>
-    private static Dict? RunPixels(IReadOnlyList<SurfaceCell> cells)
+    private static BlockPixelsDto? RunPixels(IReadOnlyList<SurfaceCell> cells)
     {
         int minX = int.MaxValue, minZ = int.MaxValue, maxX = int.MinValue, maxZ = int.MinValue;
         foreach (var c in cells)
@@ -108,18 +100,14 @@ internal static class LayerData
         }
         runs.Add(value); runs.Add(length);
 
-        return new Dict
-        {
-            ["palette"] = palette, ["runs"] = runs.ToArray(),
-            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
-        };
+        return new BlockPixelsDto(minX, minZ, maxX, maxZ, Palette: palette, Runs: runs);
     }
 
     /// <summary>One entry per painted cell: parallel <c>xs</c>/<c>zs</c> plus a <c>color_idx</c> into the shared
     /// palette. Terrain is built from a handful of blocks, so repeating an 8-character hex per cell was most of
     /// the response before the palette went in — 657 KB on a 200×200 board, 440 KB of it the same few strings.
     /// </summary>
-    private static Dict CellPixels(IReadOnlyList<SurfaceCell> cells)
+    private static BlockPixelsDto CellPixels(IReadOnlyList<SurfaceCell> cells)
     {
         var colorCache = new Dictionary<(int, int), int>();
         var palette = new List<string>();
@@ -141,42 +129,9 @@ internal static class LayerData
             if (c.X < minX) minX = c.X; if (c.X > maxX) maxX = c.X;
             if (c.Z < minZ) minZ = c.Z; if (c.Z > maxZ) maxZ = c.Z;
         }
-        return new Dict
-        {
-            ["xs"] = xs, ["zs"] = zs, ["palette"] = palette, ["color_idx"] = idx,
-            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
-        };
+        return new BlockPixelsDto(minX, minZ, maxX, maxZ, Xs: xs, Zs: zs, Palette: palette, ColorIdx: idx);
     }
 
-    /// <summary>One entry per distinct block_id (count summed across data variants, colour/name from
-    /// the dominant variant), sorted by count desc.</summary>
-    public static List<Dict> BlockTypes(IReadOnlyList<SurfaceCell> cells)
-    {
-        var pairCounts = new Dictionary<(int id, int data), int>();
-        foreach (var c in cells) pairCounts[(c.BlockId, c.BlockData)] = pairCounts.GetValueOrDefault((c.BlockId, c.BlockData)) + 1;
-
-        var totals = new Dictionary<int, int>();
-        var dominant = new Dictionary<int, (int data, int count)>();
-        // Iterate (id, data) ascending so ties pick the lowest data variant (matches pandas stable sort).
-        foreach (var ((id, data), count) in pairCounts.OrderBy(kv => kv.Key.id).ThenBy(kv => kv.Key.data))
-        {
-            totals[id] = totals.GetValueOrDefault(id) + count;
-            if (!dominant.TryGetValue(id, out var cur) || count > cur.count) dominant[id] = (data, count);
-        }
-
-        return totals.OrderByDescending(kv => kv.Value).ThenBy(kv => kv.Key)
-            .Select(kv =>
-            {
-                var data = dominant[kv.Key].data;
-                return new Dict
-                {
-                    ["block_id"] = kv.Key,
-                    ["name"] = BlockPalette.Name(kv.Key, data),
-                    ["color"] = BlockPalette.Hex(kv.Key, data),
-                    ["count"] = kv.Value,
-                };
-            }).ToList();
-    }
 }
 
 /// <summary>
@@ -185,7 +140,7 @@ internal static class LayerData
 /// returns parallel xs/zs/colors arrays + the bounds. Mirrors the reference <c>layer_top_surface</c>;
 /// unblocks the "Blocks" canvas overlay (C6).
 /// </summary>
-public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
     public override void Configure() { Get("/map/{slug}/layers/top-surface"); AllowAnonymous(); }
 

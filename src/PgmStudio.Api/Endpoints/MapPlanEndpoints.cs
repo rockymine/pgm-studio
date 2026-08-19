@@ -90,7 +90,12 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
 /// plan is missing, 422 when the stored document cannot be read.</summary>
 public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/plan/ascii"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/plan/ascii");
+        AllowAnonymous();
+        Description(b => b.PlainText());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -119,7 +124,12 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
 /// document cannot be read.</para></summary>
 public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/plan/flow"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/plan/flow");
+        AllowAnonymous();
+        Description(b => b.PlainText());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

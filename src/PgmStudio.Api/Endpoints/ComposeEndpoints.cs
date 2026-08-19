@@ -22,7 +22,7 @@ namespace PgmStudio.Api.Endpoints;
 /// and the seeds scanned (matched = card count); a low match rate under a strict filter is the signal to
 /// promote it to a held target (G98). Teams fixed at 2 this pass; an unsupported symmetry is answered 400.
 /// </summary>
-public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest
+public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
 {
     private static readonly string[] Supported = ["rot_180", "mirror_z"];
 
@@ -242,7 +242,12 @@ public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest
 /// plan is missing, 422 when the stored document cannot be read.</para></summary>
 public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/plans/{id}/ascii"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/plans/{id}/ascii");
+        AllowAnonymous();
+        Description(b => b.PlainText());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -262,7 +267,12 @@ public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
 /// what the plan looks like. 404 when the plan is missing.</summary>
 public sealed class PlanPngEndpoint(PlanStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/plans/{id}/png"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/plans/{id}/png");
+        AllowAnonymous();
+        Description(b => b.Png());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

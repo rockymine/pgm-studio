@@ -14,7 +14,7 @@ namespace PgmStudio.Api.Endpoints;
 /// rather than an error. <see cref="FillResult"/> already carries every reason as data; this only flattens it
 /// for the wire, passing the emitter's own message through rather than rewording it.
 /// </summary>
-public sealed class ShapeProbeEndpoint : EndpointWithoutRequest
+public sealed class ShapeProbeEndpoint : EndpointWithoutRequest<ShapeProbeResult>
 {
     /// <summary>The probe render scale — larger than a catalog card, since one shape has the panel to itself.</summary>
     private const int ProbeScale = 12;
@@ -80,7 +80,7 @@ public sealed class ShapeProbeEndpoint : EndpointWithoutRequest
 /// minimum box, which optional knobs it accepts, and whether the production menu admits it. Served rather than
 /// restated client-side so a family gaining a knob does not need a matching edit in the page.
 /// </summary>
-public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest
+public sealed class ShapeProbeSchemaEndpoint : EndpointWithoutRequest<ShapeProbeSchema>
 {
     public override void Configure() { Get("/shapes/probe/schema"); AllowAnonymous(); }
 

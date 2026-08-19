@@ -97,9 +97,14 @@ internal static class PngAnswer
 /// views of it (top-down and cut open). What a style editor re-renders on every edit — see
 /// <see cref="StylePreview"/> for why one material needs two views. <c>?format=png&amp;view=plan|section</c>
 /// answers that one view as PNG bytes instead.</summary>
-public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
+public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPreviewDto>
 {
-    public override void Configure() { Post("/terrain/material-preview"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/terrain/material-preview");
+        AllowAnonymous();
+        Description(b => b.AlsoPng());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -119,9 +124,14 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
 /// <summary>POST /api/terrain/theme-preview — body is a serialized terrain-paint theme (a <c>TerrainTheme</c>
 /// JSON); returns the sample plateau painted with it and cut open, plus a top-down swatch per themeable bucket,
 /// so a theme editor previews the whole finish and each brush as it is edited (TP10).</summary>
-public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
+public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDto>
 {
-    public override void Configure() { Post("/terrain/theme-preview"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/terrain/theme-preview");
+        AllowAnonymous();
+        Description(b => b.AlsoPng());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -143,7 +153,12 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
 /// what the paint leaves on top is what decides whether flora grows at all and what a path may repaint.</summary>
 public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingPreviewDto>
 {
-    public override void Configure() { Post("/terrain/prop-preview"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/terrain/prop-preview");
+        AllowAnonymous();
+        Description(b => b.AlsoPng());
+    }
 
     public override async Task HandleAsync(PropPreviewRequest req, CancellationToken ct)
     {

@@ -139,7 +139,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 /// <para><b>What did not land comes back with what did</b>, under <c>warnings</c>: every prop the dressing
 /// pass declined, as a <c>DR-*</c> finding naming the rule, the cell and the prop. Complaints on a success —
 /// the world was built and some of what was authored is not standing in it.</para></summary>
-public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
+public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto>
 {
     public override void Configure() { Post("/plan/columns"); AllowAnonymous(); }
 
@@ -147,7 +147,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
     {
         var body = await RawBody.ReadAsync(HttpContext, ct);
 
-        Dictionary<string, object?> payload;
+        WorldColumnsDto payload;
         try
         {
             if (PlanWorld.Compile(body) is not { } compiled)
@@ -254,7 +254,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 /// complements — not replaces — <c>/plan/inspect</c>'s derived-structure geometry. A malformed body is answered
 /// 400, never 500.
 /// </summary>
-public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
+public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
 {
     public override void Configure() { Post("/plan/evaluate"); AllowAnonymous(); }
 
@@ -353,7 +353,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
 /// <c>boxes</c> annotation, so a plan without them reads empty rather than erroring. A malformed body is answered
 /// 400, never 500.</para>
 /// </summary>
-public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
+public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<FeasibilityDto>
 {
     public override void Configure() { Post("/plan/feasibility"); AllowAnonymous(); }
 

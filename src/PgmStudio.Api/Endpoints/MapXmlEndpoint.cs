@@ -23,7 +23,12 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/xml"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/xml");
+        AllowAnonymous();
+        Description(b => b.MapXml());
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
