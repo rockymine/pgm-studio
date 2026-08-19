@@ -443,7 +443,7 @@ public sealed record CoreIntent
 
     /// <summary>How many blocks players must dig into the terrain under the core before its lava can leak.
     /// Zero when breaching the casing is enough on its own.</summary>
-    public int DigDepth => Math.Max(0, Leak - Float);
+    public int DigDepth => ObjectiveDefaults.DigDepth(Leak, Float);
 }
 
 /// <summary>A world point (spawn location).</summary>

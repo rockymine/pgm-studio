@@ -90,7 +90,7 @@ public sealed class ObjectiveStamperTests
     {
         var world = World();
         var box = ObjectiveStamper.DestroyableBox(FlatSurface(), 0, 0, DestroyableStyle.Cube3);
-        ObjectiveStamper.StampDestroyable(world, box, DestroyableStyle.Cube3, Blocks.EmeraldBlock, bedrockCentre: true);
+        ObjectiveStamper.StampDestroyable(world, box, DestroyableStyle.Cube3, Blocks.EmeraldBlock);
 
         var (cx, cy, cz) = (box.MinX + 1, box.MinY + 1, box.MinZ + 1);
         await Assert.That(world.GetBlock(cx, cy, cz).Id).IsEqualTo(Blocks.Bedrock);
@@ -105,13 +105,33 @@ public sealed class ObjectiveStamperTests
         await Assert.That(emerald).IsEqualTo(26);
     }
 
+    /// <summary>The centre follows the style and nothing else: there is no flag to leave unset, which is what
+    /// made it a stamp no authoring path ever reached. A pillar has no inside to hollow, so it keeps every
+    /// block it was given.</summary>
     [Test]
-    public async Task A_cube_without_a_bedrock_centre_is_solid()
+    public async Task A_pillar_has_no_centre_to_hollow()
     {
         var world = World();
-        var box = ObjectiveStamper.DestroyableBox(FlatSurface(), 0, 0, DestroyableStyle.Cube3);
-        ObjectiveStamper.StampDestroyable(world, box, DestroyableStyle.Cube3, Blocks.GoldBlock);
-        await Assert.That(world.GetBlock(box.MinX + 1, box.MinY + 1, box.MinZ + 1).Id).IsEqualTo(Blocks.GoldBlock);
+        var box = ObjectiveStamper.DestroyableBox(FlatSurface(), 0, 0, DestroyableStyle.Pillar3);
+        ObjectiveStamper.StampDestroyable(world, box, DestroyableStyle.Pillar3, Blocks.Obsidian);
+
+        for (var y = box.MinY; y <= box.MaxY; y++)
+            await Assert.That(world.GetBlock(0, y, 0).Id).IsEqualTo(Blocks.Obsidian);
+    }
+
+    [Test]
+    public async Task A_four_cube_takes_a_two_by_two_bedrock_centre()
+    {
+        var world = World();
+        var box = ObjectiveStamper.DestroyableBox(FlatSurface(), 0, 0, DestroyableStyle.Cube4);
+        ObjectiveStamper.StampDestroyable(world, box, DestroyableStyle.Cube4, Blocks.EndStone);
+
+        var bedrock = 0;
+        for (var x = box.MinX; x <= box.MaxX; x++)
+        for (var y = box.MinY; y <= box.MaxY; y++)
+        for (var z = box.MinZ; z <= box.MaxZ; z++)
+            if (world.GetBlock(x, y, z).Id == Blocks.Bedrock) bedrock++;
+        await Assert.That(bedrock).IsEqualTo(8);      // 2×2×2, and 64 − 8 = 56 blocks of goal
     }
 
     // ── the ender stone column (DT4) ────────────────────────────────────────────────
@@ -196,11 +216,16 @@ public sealed class ObjectiveStamperTests
     }
 
     // ── leak and float are one knob (DC2) ───────────────────────────────────────────
+    /// <summary>PGM's leak region is tested against the lava block's <b>centre</b>, so a block resting exactly
+    /// at <c>B − leak</c> is half a block too high: the core leaks one course lower than the leak level reads,
+    /// and the dig is <c>leak + 1 − float</c> rather than <c>leak − float</c>. PGM's own <c>leakRequired</c>
+    /// (<c>lavaBottom − (B − leak) + 1</c>) says the same thing arithmetically.</summary>
     [Test]
     [Arguments(5, 6, 0)]    // the corpus centre: the lava lands below the leak level on its own
-    [Arguments(5, 2, 3)]    // a shallow float makes digging part of the capture
-    [Arguments(3, 3, 0)]    // leak == float leaks the moment the casing is breached
+    [Arguments(5, 2, 4)]    // a shallow float makes digging part of the capture
+    [Arguments(3, 3, 1)]    // leak == float still needs the one course the block centre costs
     [Arguments(2, 7, 0)]    // never negative
-    public async Task Dig_depth_is_leak_minus_float_never_negative(int leak, int floatBlocks, int expected)
+    [Arguments(8, 5, 4)]    // basalt-reach's authored pair
+    public async Task Dig_depth_is_leak_plus_one_minus_float_never_negative(int leak, int floatBlocks, int expected)
         => await Assert.That(ObjectiveStamper.DigDepth(leak, floatBlocks)).IsEqualTo(expected);
 }

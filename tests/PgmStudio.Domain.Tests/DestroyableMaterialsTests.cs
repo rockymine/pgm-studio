@@ -88,4 +88,85 @@ public sealed class DestroyableMaterialsTests
         await Assert.That(DestroyableMaterials.IsBuildable("gold block;iron block")).IsTrue();
         await Assert.That(DestroyableMaterials.IsBuildable("iron block;coal block")).IsFalse();
     }
+
+    // ── what a style may be built in ───────────────────────────────────────────────────────────────
+    [Test]
+    [Arguments(DestroyableStyle.Pillar1)]
+    [Arguments(DestroyableStyle.Pillar2)]
+    [Arguments(DestroyableStyle.Pillar3)]
+    public async Task A_pillar_keeps_the_obsidian_it_asked_for(DestroyableStyle style)
+    {
+        // One to three blocks is what obsidian is for, and what half the corpus builds.
+        var (materials, correction) = DestroyableMaterials.Resolve(style, "obsidian");
+        await Assert.That(materials).IsEqualTo("obsidian");
+        await Assert.That(correction).IsNull();
+    }
+
+    [Test]
+    [Arguments(DestroyableStyle.Cube3, 27)]
+    [Arguments(DestroyableStyle.Cube4, 64)]
+    [Arguments(DestroyableStyle.ColumnPlus, 15)]
+    public async Task A_goal_bigger_than_obsidian_is_worth_is_built_in_ender_stone(
+        DestroyableStyle style, int blocks)
+    {
+        var (materials, correction) = DestroyableMaterials.Resolve(style, "obsidian");
+        await Assert.That(materials).IsEqualTo(DestroyableMaterials.Bulk);
+        await Assert.That(correction).IsNotNull();
+        await Assert.That(correction!).Contains(blocks.ToString());
+        await Assert.That(correction!).Contains(DestroyableMaterials.ObsidianLimit.ToString());
+    }
+
+    [Test]
+    public async Task A_cube_in_a_material_it_may_carry_is_left_alone()
+    {
+        // The cap is obsidian's, not the cube's: emerald and gold are exactly what the corpus builds them in.
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Cube3, "emerald block").Correction)
+            .IsNull();
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Cube4, "gold block").Materials)
+            .IsEqualTo("gold block");
+    }
+
+    [Test]
+    public async Task A_name_the_stamper_cannot_build_is_corrected_and_said_so()
+    {
+        // The silence this closes: BlockId falls back to obsidian while the name goes into the map.xml
+        // verbatim, so the declared material matches nothing in its own region and the goal loads at zero
+        // health. The correction is what the blocks were always going to be.
+        var (materials, correction) = DestroyableMaterials.Resolve(DestroyableStyle.Pillar3, "diamond block");
+        await Assert.That(materials).IsEqualTo("obsidian");
+        await Assert.That(correction!).Contains("diamond block");
+    }
+
+    [Test]
+    public async Task An_unbuildable_name_on_a_cube_takes_both_corrections_at_once()
+    {
+        // Correcting the first fault produces the second — obsidian on a 27-block cube — so one resolve
+        // answers both and the caller writes one complaint.
+        var (materials, correction) = DestroyableMaterials.Resolve(DestroyableStyle.Cube3, "diamond block");
+        await Assert.That(materials).IsEqualTo(DestroyableMaterials.Bulk);
+        await Assert.That(correction!).Contains("diamond block");
+        await Assert.That(correction!).Contains("27 blocks");
+    }
+
+    [Test]
+    public async Task A_compound_match_is_judged_on_the_block_it_would_actually_lay()
+    {
+        // BlockId takes the first buildable pattern, so `gold block;obsidian` builds gold — correcting it
+        // would be correcting something that never happens. The other order really does build obsidian.
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Cube3, "gold block;obsidian").Correction)
+            .IsNull();
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Cube3, "obsidian;gold block").Materials)
+            .IsEqualTo(DestroyableMaterials.Bulk);
+    }
+
+    [Test]
+    public async Task An_unstated_material_is_the_default_and_no_complaint_on_a_pillar()
+    {
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Pillar3, null).Correction).IsNull();
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Pillar3, null).Materials)
+            .IsEqualTo("obsidian");
+        // …and on a cube it is the default that is over the cap, so the correction is still made.
+        await Assert.That(DestroyableMaterials.Resolve(DestroyableStyle.Cube3, null).Materials)
+            .IsEqualTo(DestroyableMaterials.Bulk);
+    }
 }

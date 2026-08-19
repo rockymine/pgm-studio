@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 namespace PgmStudio.Client.Features.Configure;
 
 using Ctx = AuthoringContext;
+using PgmStudio.Client.Components;
 using PgmStudio.Geom;
 
 // The core slice (intent.cores) the two Cores steps (Objectives / Casing) share, the wool slice's shape with
@@ -36,7 +37,7 @@ public static class CoreAuthoring
         public int Lava;
 
         /// <summary>How many blocks players must dig under the casing before its lava can leak (DC2).</summary>
-        public int DigDepth => Math.Max(0, Leak - Float);
+        public int DigDepth => CoreDig.Depth(Leak, Float);
     }
 
     public static List<Core> ParseCores(JsonObject intent)

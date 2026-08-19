@@ -72,7 +72,7 @@ a rule that changed its name between the two would be two rules.
 | Family | Owns | Where |
 |---|---|---|
 | `PL*` | the plan's own structure | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
-| `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes | `Domain/ObjectiveRules.cs` |
+| `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes. Two are **complaints on a built world**: `DC3` a goal built in a material its own size is wrong for, `OB23` a goal topping out over the build ceiling — the world is built and the goal stands | `Domain/ObjectiveRules.cs` |
 | `WX*` | room frames — the shell, the pad, the doors, the iron, and the shell's height against the build ceiling | `Domain/RoomFrames.cs` → `RoomFrameRules` |
 | `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |

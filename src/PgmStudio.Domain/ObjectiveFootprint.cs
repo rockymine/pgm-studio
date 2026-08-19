@@ -29,6 +29,16 @@ public static class ObjectiveFootprint
         _ => (1, 1, 1),
     };
 
+    /// <summary>How many blocks a destroyable of this style is made of — the number PGM counts its health in,
+    /// and what decides which materials it may be built from. A plus-section column is five blocks a layer
+    /// rather than its footprint filled, which is the whole difference between it and a cube.</summary>
+    public static int BlockCount(DestroyableStyle style, int columnHeight = 3)
+    {
+        if (style == DestroyableStyle.ColumnPlus) return 5 * Math.Max(0, columnHeight);
+        var (width, height, depth) = Destroyable(style, columnHeight);
+        return width * height * depth;
+    }
+
     /// <summary>A core's casing is square in plan, so its footprint is its size both ways.</summary>
     public static (int Width, int Depth) Core(int size) => (size, size);
 

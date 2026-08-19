@@ -207,8 +207,11 @@ default removes the key rather than freezing the number.
 
 Destroyable styles are `pillar-1`, `pillar-2`, `pillar-3`, `cube-3`, `cube-4` and `column-plus`; an unknown
 slug is an error rather than a silent fallback. A core's `float` and `leak` are one knob — escaping lava
-free-falls to the terrain at `float` below the casing while the core leaks at `leak` below it, so together
-they state how far players must dig, `max(0, leak − float)` — and authoring one without the other is refused.
+free-falls to the terrain at `float` below the casing while the core leaks one course below `leak` below it
+(the leak region is tested against the lava block's own centre), so together they state how far players must
+dig, `max(0, leak + 1 − float)` — and authoring one without the other is refused. Either goal's `float` is
+capped at **12**: the defaults are floors, and a goal higher than that is reached by building a tower to it
+(`OB22`).
 
 ### Walls
 

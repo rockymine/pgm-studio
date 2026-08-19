@@ -5228,6 +5228,49 @@ these are the ones that shipped a map that could not be played as intended, and 
   second rule. **A destroyable stands on a one-block-thick 5×5 bedrock platform (B88)** so it cannot be
   undermined. **Every goal carries a marker above `max_build_height` (B89)** — a cube over a wool room, a
   cross over a destroyable or core, coloured to the goal — placed where it cannot be reached or griefed.
+- **The dig a core's float/leak pair asks for was one course short, on every board that stated its own
+  (`B135`).** PGM's leak region is tested against the lava block's **centre** and is inclusive at its max, so a
+  block resting exactly at `region.min.y − leak` sits half a block too high to be inside it: a core leaks one
+  course lower than its leak level reads. PGM's own `leakRequired` — `lavaBottom − (min.y − leak) + 1` —
+  says the same thing from the other side, and `updateLeak` reaches it only at `min.y − leak − 1`. So the dig
+  is `max(0, leak + 1 − float)`, not `max(0, leak − float)`, which is why nothing ever caught it: both
+  readings answer 0 at the shipped pair (`float 6`, `leak 5`) and part company only where an author states
+  their own. Settled by reading `Core.java`/`CoreMatchModule.java` rather than by reasoning from the
+  measurement. The arithmetic had **four** copies — the generator's, the intent's, and one in each of the two
+  client steps that read it live; the two server copies now delegate to `ObjectiveDefaults.DigDepth`, the two
+  client ones collapsed into `CoreDig.Depth` (the WASM half cannot reach `Domain`), and a drift gate in the
+  one project that sees both sweeps the whole authorable range so the pair cannot part again.
+- **A goal floats no further than twelve blocks, and says when it tops out over the build ceiling (`B104`,
+  `OB22`/`OB23`).** Both float defaults are floors — enough that a goal reads as a monument rather than as
+  terrain — and nothing stated the other end, so one authored number put a goal wherever it was typed. The cap
+  is the author's twelve, refused at the compile gate against the **stated** value, for a destroyable and a
+  core alike. The derived half needs terrain a plan has not solved yet, so it is asked at the build against
+  the goal's own box (the same one the region declares, OB8): a structure topping out over
+  `BuildCeiling.Of(highestGround)` is a **complaint** carrying its own top course and the ceiling it passed —
+  the blocks above the line can still be broken, so nothing is unwinnable; what is wrong is a goal contested
+  from ground nobody may build up to reach. It takes both knobs to get there, which is the point of having
+  both rules: at the most a goal may float, only a casing taller than the clearance leaves can cross the line.
+- **A goal is built in a material its own size is worth, and a cube is hollow by its style (`B162`, `DC3`).**
+  Obsidian is the slowest block in the game to break, which is what makes it right for the one-to-three-block
+  pillar half the corpus builds and wrong for a 27-block cube — a grind rather than a raid — and nothing
+  checked: there was no style↔material rule anywhere, and `DestroyableMaterials.IsBuildable` had no callers at
+  all, so an unrecognised material went into the map.xml verbatim while the stamper quietly laid obsidian and
+  PGM loaded a goal at zero health (OB3). One resolve answers both faults, because correcting the first
+  produces the second, and the goal is **built in ender stone** with a complaint naming the size and the cap
+  rather than refused — the map.xml then declares what was actually laid. Swept over 21 authored folders:
+  `basalt-reach` and `corvid-hollow` carried 27 obsidian on `cube-3`, `tallow-mirefast` 15 on `column-plus`.
+  The other half is the bedrock centre (DT2), which was a defaulted stamper parameter no authoring path could
+  reach and no caller ever passed, so every generated cube came out solid: it follows the **style** now
+  (author), which is also what closes `G77` — there is no knob left to thread.
+- **A goal's plate is buried three courses down, and a defence chest stands in the space that opens
+  (`B184`).** The 5×5 bedrock plate under a destroyable sat one course beneath the ground's own surface
+  block; the author's depth is three. At one course there is nowhere to stand a chest between the surface and
+  the rock, and at three there is — so the chest stands on the plate at the footprint's centre, the course
+  over it is carved so the lid opens, and the surface course above that is left whole: a defender breaks one
+  block of ground and drops onto the supply. It is the same 27-slot loadout an approach wall carries, which is
+  what renamed `WallDefenseChest` to `DefenseChest`: two places, both ground a team holds, one chest. **A core
+  gets the plate and the chest too** — it is a goal a team defends, and the ground under it is as much worth
+  holding — which caps the diggable depth under one at three courses and leaves `WE3` for the author.
 - **Every stage answers with a picture (B90).** A plan now renders as a raster as well as SVG
   (`GET /plans/{id}/png`), both drawn from one shared `PlanBoardScene` so the two encodings cannot disagree;
   the PNG encoder moved down to `PgmStudio.Geom`, four world read-backs moved from the round-trip tool into

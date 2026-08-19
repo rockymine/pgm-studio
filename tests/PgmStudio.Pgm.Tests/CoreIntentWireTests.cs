@@ -54,8 +54,8 @@ public sealed class CoreIntentWireTests
         await Assert.That(core.Float).IsEqualTo(6);
         await Assert.That(core.Leak).IsEqualTo(9);
         await Assert.That(core.OpenTop).IsTrue();
-        // leak 9 over float 6 — capturing this core means digging three blocks out from under it (DC2).
-        await Assert.That(core.DigDepth).IsEqualTo(3);
+        // leak 9 over float 6 — capturing this core means digging four blocks out from under it (DC2).
+        await Assert.That(core.DigDepth).IsEqualTo(4);
     }
 
     [Test]

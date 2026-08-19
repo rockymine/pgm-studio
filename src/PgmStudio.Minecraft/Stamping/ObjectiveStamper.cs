@@ -45,12 +45,16 @@ public static class ObjectiveStamper
     }
 
     /// <summary>
-    /// Place a destroyable's blocks inside <paramref name="box"/>. The cubes take an optional concentric
-    /// bedrock centre so players cannot hollow one out and hide inside; it costs nothing to model because
-    /// <c>materials</c> names only the outer block, leaving the bedrock invisible to the goal — neither
-    /// counted in its health nor breakable.
+    /// Place a destroyable's blocks inside <paramref name="box"/>.
+    ///
+    /// <para><b>A cube is hollowed by its style, not by a flag</b> (author, DT2). Both cube families take a
+    /// concentric bedrock centre — 1×1×1 inside a <c>cube-3</c>, 2×2×2 inside a <c>cube-4</c> — so players
+    /// cannot mine one out and stand inside their own goal. It costs nothing to model because
+    /// <c>materials</c> names only the outer block, leaving the bedrock invisible to the goal: neither
+    /// counted in its health nor breakable. Deciding it by style is what makes it happen at all — as a
+    /// defaulted parameter it was reachable from no authoring path and no caller ever passed it.</para>
     /// </summary>
-    public static void StampDestroyable(VoxelWorld world, BlockBox box, DestroyableStyle style, int material, bool bedrockCentre = false)
+    public static void StampDestroyable(VoxelWorld world, BlockBox box, DestroyableStyle style, int material)
     {
         for (var x = box.MinX; x <= box.MaxX; x++)
         for (var z = box.MinZ; z <= box.MaxZ; z++)
@@ -60,7 +64,7 @@ public static class ObjectiveStamper
             world.SetBlock(x, y, z, material);
         }
 
-        if (bedrockCentre && style is DestroyableStyle.Cube3 or DestroyableStyle.Cube4)
+        if (style is DestroyableStyle.Cube3 or DestroyableStyle.Cube4)
             FillBox(world, Inset(box, 1), Blocks.Bedrock);
     }
 

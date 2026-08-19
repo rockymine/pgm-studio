@@ -102,4 +102,58 @@ public sealed class BuildCeilingTests
         await Assert.That(built.World.GetBlock(-10, floor + 1, 10).Id).IsEqualTo(Blocks.Wool);
         await Assert.That(built.World.GetBlock(-10, floor - 1, 10).Id).IsEqualTo(Blocks.Air);
     }
+
+    /// <summary>The derived half of the cap (OB23): a goal's own structure standing over the line players may
+    /// build to. The blocks above it can still be broken, so nothing is unwinnable — what is wrong is a goal
+    /// contested from ground nobody may build up to reach — which is why it is a complaint on a built world
+    /// rather than a refusal, and why it is asked here rather than at the plan gate: the ceiling is twenty
+    /// over the terrain the map <em>actually built</em>, which a plan has not solved yet.</summary>
+    [Test]
+    public async Task A_goal_over_the_cap_is_a_complaint_naming_its_top_and_the_ceiling()
+    {
+        // It takes both knobs to reach the line, which is why the float cap alone does not cover this: at the
+        // most a goal may float, only a structure taller than the clearance leaves can top out over the
+        // ceiling — a tall core casing, since a destroyable's own styles stop at four courses.
+        var floated = Intent() with
+        {
+            Cores =
+            [
+                new CoreIntent
+                {
+                    Owner = "red", Name = "Red Core", Anchor = new Pt(0, 0, 0),
+                    Size = 5, Height = 10, Shell = 1,
+                    Float = ObjectiveDefaults.MaxFloat, Leak = ObjectiveDefaults.CoreLeak,
+                },
+            ],
+        };
+        var built = SketchWorldBuilder.Build(Flat, floated);
+        var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
+        var top = built.ResolvedIntent.Cores![0].Box!.Value.MaxY;
+
+        // The fixture only says anything if the goal really does stand over the line.
+        await Assert.That(top).IsGreaterThan(cap);
+
+        var complaint = built.Declines.Single(f => f.Rule == ObjectiveRules.OverBuildCeiling);
+        await Assert.That(complaint.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(complaint.Message).Contains($"y{top}");
+        await Assert.That(complaint.Message).Contains($"y{cap}");
+    }
+
+    [Test]
+    public async Task A_goal_under_the_cap_says_nothing()
+    {
+        var seated = Intent() with
+        {
+            Destroyables =
+            [
+                new DestroyableIntent
+                {
+                    Owner = "red", Name = "Red Monument", Style = "pillar-3",
+                    Anchor = new Pt(0, 0, 0), Float = ObjectiveDefaults.DestroyableFloat,
+                },
+            ],
+        };
+        var built = SketchWorldBuilder.Build(Flat, seated);
+        await Assert.That(built.Declines.Any(f => f.Rule == ObjectiveRules.OverBuildCeiling)).IsFalse();
+    }
 }

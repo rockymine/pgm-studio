@@ -41,10 +41,61 @@ public sealed class DestroyableWorldTests
 
     private static (VoxelWorld World, MapIntent Resolved) Build(string json)
     {
+        var built = Built(json);
+        return (built.World, built.ResolvedIntent);
+    }
+
+    private static SketchWorld Built(string json)
+    {
         var plan = PlanModel.Parse(json)!;
         var (layout, intent) = PlanCompiler.Compile(plan);
-        var built = SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
-        return (built.World, built.ResolvedIntent);
+        return SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
+    }
+
+    // The authored marker, and the same marker restated with fields on it.
+    private const string Marker = """{ "piece": "bar-w", "at": [2, 2] }""";
+
+    // ── the material a goal's size is built for (DC3) ──────────────────────────────────────────────
+    [Test]
+    public async Task A_cube_asking_for_obsidian_is_built_in_ender_stone_and_says_so()
+    {
+        // The fault this closes: three of the corpus's own generated boards carry 27 obsidian on a cube-3,
+        // which is a grind rather than a raid. The world is built and the goal stands — in ender stone — so
+        // it is a complaint, and the map.xml declares what was actually laid.
+        var built = Built(Json.Replace(Marker,
+            """{ "piece": "bar-w", "at": [2, 2], "style": "cube-3", "materials": "obsidian" }"""));
+
+        var complaints = built.Declines.Where(f => f.Rule == ObjectiveRules.StyleMaterial).ToList();
+        await Assert.That(complaints.Count).IsEqualTo(2);          // one per orbit image
+        await Assert.That(complaints.All(f => f.Severity == Severity.Complaint)).IsTrue();
+        await Assert.That(complaints[0].Message).Contains("27 blocks");
+
+        // The correction rides into the resolved intent, so the XML declares the blocks that were laid.
+        await Assert.That(built.ResolvedIntent.Destroyables!.All(
+            destroyable => destroyable.Materials == DestroyableMaterials.Bulk)).IsTrue();
+        var box = built.ResolvedIntent.Destroyables![0].Box!.Value;
+        await Assert.That(built.World.GetBlock(box.MinX, box.MinY, box.MinZ).Id).IsEqualTo(Blocks.EndStone);
+    }
+
+    [Test]
+    public async Task A_pillar_in_obsidian_draws_no_complaint()
+    {
+        // The default board: a pillar-3 in obsidian is exactly what obsidian is for, and half the corpus.
+        var built = Built(Json);
+        await Assert.That(built.Declines.Any(f => f.Rule == ObjectiveRules.StyleMaterial)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_material_the_studio_cannot_build_is_corrected_rather_than_written_through()
+    {
+        var built = Built(Json.Replace(Marker,
+            """{ "piece": "bar-w", "at": [2, 2], "materials": "diamond block" }"""));
+
+        var complaint = built.Declines.First(f => f.Rule == ObjectiveRules.StyleMaterial);
+        await Assert.That(complaint.Message).Contains("diamond block");
+        // A declared material matching nothing inside its own region is a goal at zero health (OB3).
+        await Assert.That(built.ResolvedIntent.Destroyables!.All(
+            destroyable => destroyable.Materials == "obsidian")).IsTrue();
     }
 
     [Test]
@@ -102,10 +153,10 @@ public sealed class DestroyableWorldTests
     }
 
     [Test]
-    public async Task Each_destroyable_stands_on_a_buried_5x5_bedrock_platform()
+    public async Task Each_destroyable_stands_on_a_buried_5x5_bedrock_platform_with_a_chest_over_it()
     {
-        // MG23/B88: a one-block-thick 5×5 plate, seated one course beneath the ground under the goal, so
-        // the goal cannot be undermined from below.
+        // MG23/B88: a one-block-thick 5×5 plate, seated three courses beneath the ground under the goal, so
+        // the goal cannot be undermined from below — and a defence chest in the space that depth opens.
         var (world, resolved) = Build(Json);
         await Assert.That(resolved.Destroyables!.Count).IsEqualTo(2);
 
@@ -113,15 +164,19 @@ public sealed class DestroyableWorldTests
         {
             var anchorX = (int)Math.Round(destroyable.Anchor.X, MidpointRounding.AwayFromZero);
             var anchorZ = (int)Math.Round(destroyable.Anchor.Z, MidpointRounding.AwayFromZero);
-            // The piece surfaces at y=12, so the ground's own top block is y=11 and the buried plate is y=10.
+            // The piece surfaces at y=12, so the ground's own top block is y=11 and the buried plate is y=8.
             var count = 0;
             for (var x = anchorX - 2; x <= anchorX + 2; x++)
             for (var z = anchorZ - 2; z <= anchorZ + 2; z++)
-                if (world.GetBlock(x, 10, z).Id == Blocks.Bedrock) count++;
+                if (world.GetBlock(x, 8, z).Id == Blocks.Bedrock) count++;
             await Assert.That(count).IsEqualTo(25);
 
-            // The ground's own surface course is untouched — the plate is buried a course down, not built up.
+            // The chest stands on the plate, the course over it is carved so the lid opens, and the ground's
+            // own surface course above that is left whole — one block to break, and the supply is under it.
+            await Assert.That(world.GetBlock(anchorX, 9, anchorZ).Id).IsEqualTo(Blocks.Chest);
+            await Assert.That(world.GetBlock(anchorX, 10, anchorZ).Id).IsEqualTo(Blocks.Air);
             await Assert.That(world.GetBlock(anchorX, 11, anchorZ).Id).IsNotEqualTo(Blocks.Bedrock);
+            await Assert.That(world.GetBlock(anchorX, 11, anchorZ).Id).IsNotEqualTo(Blocks.Air);
         }
     }
 

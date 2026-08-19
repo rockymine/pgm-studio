@@ -20,10 +20,12 @@ namespace PgmStudio.Export;
 /// carry the answer itself — a caller writing the world to disk persists it alongside
 /// (<see cref="WorldProvenanceFile"/>) so a render reading the region back gets the same recorded answer a
 /// render taken right after the build already would.</summary>
-/// <param name="Declined">Every prop the dressing pass did not place, and why — a <c>DR-*</c> finding each,
-/// carrying the prop's id as its subject. Complaints rather than refusals: the world was built, and some of
-/// what was authored is not standing in it, which is a thing the caller that asked for the build has to be
-/// told rather than something to go looking for in a sidecar.
+/// <param name="Declined">Everything the build could not do as it was authored: a goal whose material its own
+/// size is wrong for or whose structure reaches over the build ceiling (<c>DC3</c>, <c>OB23</c>), and every
+/// prop the dressing pass did not place (a <c>DR-*</c> each), carrying the goal's or the prop's id as its
+/// subject. Complaints rather than refusals: the world was built, and some of what was authored is not
+/// standing in it as asked, which is a thing the caller that asked for the build has to be told rather than
+/// something to go looking for in a sidecar.
 /// <para>Null when nothing was declined, the same convention the pass itself answers in — read
 /// <see cref="Declines"/>, which never is.</para></param>
 public sealed record SketchWorld(
@@ -246,8 +248,16 @@ public static class SketchWorldBuilder
 
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
-        var resolvedDestroyables = StampDestroyables(world, terrain.SurfaceTop, intent.Destroyables, teams, markerFloor, provenance);
-        var resolvedCores = StampCores(world, terrain.SurfaceTop, intent.Cores, teams, markerFloor, provenance);
+        // What a goal could not be built as it was authored. Complaints, never refusals: the world is built
+        // and the goal stands, in a material the author did not name or over the height players may build to,
+        // and that is a thing the caller has to be told rather than a reason to stop.
+        var goalComplaints = new List<Finding>();
+        var resolvedDestroyables = StampDestroyables(
+            world, terrain.SurfaceTop, intent.Destroyables, teams, markerFloor, maxBuildHeight, provenance,
+            goalComplaints);
+        var resolvedCores = StampCores(
+            world, terrain.SurfaceTop, intent.Cores, teams, markerFloor, maxBuildHeight, provenance,
+            goalComplaints);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -319,7 +329,12 @@ public static class SketchWorldBuilder
             Cores = resolvedCores,
         };
 
-        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, dressed.Declined);
+        // One list, in build order: what the goals could not be built as authored, then what the dressing
+        // pass did not place. Both are complaints on a world that exists, so a caller reads one channel.
+        List<Finding>? complaints = goalComplaints.Count > 0 || dressed.Declines.Count > 0
+            ? [.. goalComplaints, .. dressed.Declines]
+            : null;
+        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).
@@ -351,7 +366,7 @@ public static class SketchWorldBuilder
         foreach (var w in s.Walls)
         {
             StructureStamper.StampWall(world, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.TopY);
-            WallDefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.ChestOnMinFace);
+            DefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.ChestOnMinFace);
         }
         foreach (var ic in s.IronCubes)
             StructureStamper.StampIronCube(world, surface, ic.X, ic.Z);
@@ -400,7 +415,8 @@ public static class SketchWorldBuilder
     // wrong structure would hide that.
     private static List<DestroyableIntent>? StampDestroyables(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<DestroyableIntent>? destroyables,
-        IReadOnlyList<TeamDef> teams, int markerFloor, WorldProvenance provenance)
+        IReadOnlyList<TeamDef> teams, int markerFloor, int maxBuildHeight, WorldProvenance provenance,
+        List<Finding> complaints)
     {
         if (destroyables is null) return null;
         var resolved = new List<DestroyableIntent>(destroyables.Count);
@@ -413,8 +429,20 @@ public static class SketchWorldBuilder
             // block the plan validator measured and on the mirror of its own orbit image.
             var (ax, az) = ObjectiveFootprint.AnchorCell(b.Anchor.X, b.Anchor.Z);
             var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
-            ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(b.Materials));
+
+            // What the goal is actually built in. A material its size is wrong for, or one this studio does
+            // not build at all, is corrected rather than refused — and the correction rides into the resolved
+            // intent, so the map.xml declares what was laid instead of a name matching nothing in its own
+            // region (OB3).
+            var (materials, correction) = DestroyableMaterials.Resolve(style, b.Materials);
+            if (correction is { } why)
+                complaints.Add(new Finding(ObjectiveRules.StyleMaterial,
+                    $"destroyable '{GoalName(b.Name, b.Owner)}': {why}",
+                    Severity.Complaint, Subjects: [owner.Unit]));
+
+            ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(materials));
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
+            OverCeiling(complaints, "destroyable", GoalName(b.Name, b.Owner), owner, box, maxBuildHeight);
 
             // A buried bedrock plate under the goal, one course beneath the ground's own surface, so the
             // monument cannot be undermined from below and the ground under it cannot be mined away.
@@ -429,7 +457,7 @@ public static class SketchWorldBuilder
 
             resolved.Add(new DestroyableIntent
             {
-                Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = b.Materials,
+                Owner = b.Owner, Name = b.Name, Style = b.Style, Materials = materials,
                 Anchor = b.Anchor, Float = b.Float, Box = box,
             });
         }
@@ -441,7 +469,8 @@ public static class SketchWorldBuilder
     // corpus is effectively unanimous.
     private static List<CoreIntent>? StampCores(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<CoreIntent>? cores,
-        IReadOnlyList<TeamDef> teams, int markerFloor, WorldProvenance provenance)
+        IReadOnlyList<TeamDef> teams, int markerFloor, int maxBuildHeight, WorldProvenance provenance,
+        List<Finding> complaints)
     {
         if (cores is null) return null;
         var resolved = new List<CoreIntent>(cores.Count);
@@ -453,6 +482,14 @@ public static class SketchWorldBuilder
             var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
+            OverCeiling(complaints, "core", GoalName(c.Name, c.Owner), owner, box, maxBuildHeight);
+
+            // The same buried plate and defence chest a destroyable stands over: a core is a goal a team
+            // defends, and the ground under it is as much worth holding.
+            var (plateMinX, plateMinZ, plateMaxX, plateMaxZ) =
+                ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
+            StructureStamper.StampPlatform(world, surface, plateMinX, plateMinZ, plateMaxX, plateMaxZ);
+            provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenanceLayer.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross);
@@ -467,6 +504,23 @@ public static class SketchWorldBuilder
         }
         return resolved;
     }
+
+    /// <summary>A goal standing over the height players may build to (OB23). The blocks above the line can
+    /// still be broken, so nothing is unwinnable; what is wrong is that a goal is contested from ground
+    /// nobody may build up to reach.</summary>
+    private static void OverCeiling(
+        List<Finding> complaints, string kind, string name, StampId owner, BlockBox box, int maxBuildHeight)
+    {
+        if (box.MaxY <= maxBuildHeight) return;
+        complaints.Add(new Finding(ObjectiveRules.OverBuildCeiling,
+            $"{kind} '{name}' tops out at y{box.MaxY}, over the map's build ceiling of y{maxBuildHeight}",
+            Severity.Complaint, Subjects: [owner.Unit]));
+    }
+
+    /// <summary>What a goal is called in a complaint: its own name where it has one, else its owning team's,
+    /// so the sentence points at something the author can find rather than at a list index.</summary>
+    private static string GoalName(string? name, string? owner)
+        => !string.IsNullOrWhiteSpace(name) ? name : owner ?? "?";
 
     /// <summary>The XZ footprints (min/max inclusive) of the renewable iron cubes — the regions the map.xml
     /// renewables wiring covers so the mined ore regrows (ST2): every placeable spawn-side cube (WX8) plus

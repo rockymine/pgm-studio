@@ -116,24 +116,41 @@ public static class StructureStamper
     /// on it.</summary>
     public const int PlatformSize = 5;
 
-    /// <summary>Bury a one-block-thick bedrock plate under a footprint, one course beneath the ground's own
-    /// surface block: the goal's foundation stands on ordinary terrain, and this sits a further course down,
-    /// so a tunnel dug up from below meets unbreakable rock before it reaches daylight and the ground the
-    /// goal stands on cannot be mined out from under it. One course is deliberately the whole of it — a
-    /// thicker slab reads as a wall grown out of the floor rather than a plate under it. Footprint is
-    /// inclusive on every side; sampling the whole footprint (rather than a single anchor column) is what
-    /// keeps the plate level and survives the symmetry orbit the same way every other structure here does.
-    /// No-ops where the terrain is too shallow to bury a course under.</summary>
+    /// <summary>How many courses of ordinary terrain a goal's plate is buried under, counted from the
+    /// ground's own top block (the author's number). One is enough to stop an undermine and leaves nothing
+    /// between the surface and the rock; three opens a two-course space under the goal, which is where its
+    /// defence chest stands.</summary>
+    public const int PlatformDepth = 3;
+
+    /// <summary>Bury a one-block-thick bedrock plate under a footprint, <see cref="PlatformDepth"/> courses
+    /// beneath the ground's own surface block, and set a defence chest into the space that opens over it: the
+    /// goal's foundation stands on ordinary terrain, and this sits below it, so a tunnel dug up from below
+    /// meets unbreakable rock before it reaches daylight and the ground the goal stands on cannot be mined
+    /// out from under it. One course is deliberately the whole of the plate — a thicker slab reads as a wall
+    /// grown out of the floor rather than a plate under it. Footprint is inclusive on every side; sampling
+    /// the whole footprint (rather than a single anchor column) is what keeps the plate level and survives
+    /// the symmetry orbit the same way every other structure here does. No-ops where the terrain is too
+    /// shallow to bury the plate under.
+    ///
+    /// <para><b>The chest is a cache under the monument</b>, reached by digging straight down rather than
+    /// through a face, which is why it takes <see cref="DefenseChest.Embed"/> directly instead of the wall's
+    /// own placement: it stands on the plate at the centre of the footprint, the course over it is carved to
+    /// air so the lid opens, and the surface course above that is left whole — so a defender breaks one
+    /// block of ground and drops onto the supply.</para></summary>
     public static void StampPlatform(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
     {
         var groundTop = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
-        var plateY = groundTop - 2;   // one course below the ground's own top (solid) block
+        var plateY = groundTop - 1 - PlatformDepth;   // PlatformDepth courses below the ground's top block
         if (plateY < 0) return;
         for (var x = minX; x <= maxX; x++)
         for (var z = minZ; z <= maxZ; z++)
             world.SetBlock(x, plateY, z, Blocks.Bedrock);
+
+        // The centre of the plate, which is the goal's own anchor column on every footprint this is called
+        // with. Facing is the default: there is no approach to front, since the way in is from above.
+        DefenseChest.Embed(world, (minX + maxX) / 2, plateY + 1, (minZ + maxZ) / 2, DefenseChest.Facing(0, 1));
     }
 
     /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 up to <paramref name="topY"/>

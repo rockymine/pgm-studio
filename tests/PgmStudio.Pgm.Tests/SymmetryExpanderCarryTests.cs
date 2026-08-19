@@ -125,7 +125,7 @@ public sealed class SymmetryExpanderCarryTests
         await Assert.That(mirrored.OpenTop).IsTrue();
         await Assert.That(mirrored.Float).IsEqualTo(6);
         await Assert.That(mirrored.Leak).IsEqualTo(9);
-        await Assert.That(mirrored.DigDepth).IsEqualTo(3);
+        await Assert.That(mirrored.DigDepth).IsEqualTo(4);
 
         // rot_180 about the origin: the anchor and the casing box both invert.
         await Assert.That((mirrored.Anchor.X, mirrored.Anchor.Z)).IsEqualTo((-40d, -40d));

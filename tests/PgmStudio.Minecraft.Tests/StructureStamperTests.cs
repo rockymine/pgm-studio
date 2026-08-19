@@ -104,32 +104,50 @@ public sealed class StructureStamperTests
     }
 
     [Test]
-    public async Task Platform_is_a_5x5_bedrock_plate_one_course_beneath_the_ground()
+    public async Task Platform_is_a_5x5_bedrock_plate_three_courses_beneath_the_ground()
     {
         var w = new VoxelWorld();
         var surf = FlatSurface(-10, -10, 10, 10, top: 20);   // ground surface (solid) block at y=19
         StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
 
-        // One course below the ground's own top block (19 - 1 = 18), full 5×5 footprint.
+        // Three courses below the ground's own top block (19 - 3 = 16), full 5×5 footprint.
         for (var x = -2; x <= 2; x++)
         for (var z = -2; z <= 2; z++)
-            await Assert.That(w.GetBlock(x, 18, z).Id).IsEqualTo(Blocks.Bedrock);
+            await Assert.That(w.GetBlock(x, 16, z).Id).IsEqualTo(Blocks.Bedrock);
 
         // Nothing at the ground's own surface course, and nothing a course further down either — one
-        // course is the whole of it.
+        // course is the whole of the plate.
         await Assert.That(w.GetBlock(0, 19, 0).Id).IsEqualTo(Blocks.Air);
-        await Assert.That(w.GetBlock(0, 17, 0).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(0, 15, 0).Id).IsEqualTo(Blocks.Air);
         // Outside the 5×5 footprint, nothing is touched even at the plate's own course.
-        await Assert.That(w.GetBlock(3, 18, 0).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(3, 16, 0).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary>The space the depth opens is what the chest is for: it stands on the plate at the footprint's
+    /// centre, the course over it is carved so the lid can open, and the ground's own surface course above
+    /// that is left whole — so a defender breaks one block and drops onto the supply.</summary>
+    [Test]
+    public async Task Platform_sets_a_defence_chest_into_the_space_it_opens()
+    {
+        var w = new VoxelWorld();
+        var surf = FlatSurface(-10, -10, 10, 10, top: 20);
+        StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+
+        await Assert.That(w.GetBlock(0, 17, 0).Id).IsEqualTo(Blocks.Chest);
+        await Assert.That(w.GetBlock(0, 18, 0).Id).IsEqualTo(Blocks.Air);      // the lid's own air
+        await Assert.That(w.GetBlock(1, 17, 0).Id).IsEqualTo(Blocks.Air);      // one chest, not a row
+        // The plate itself is still whole under it: the chest stands on the bedrock, not in it.
+        await Assert.That(w.GetBlock(0, 16, 0).Id).IsEqualTo(Blocks.Bedrock);
     }
 
     [Test]
     public async Task Platform_noops_when_the_terrain_is_too_shallow_to_bury_a_course_under()
     {
         var w = new VoxelWorld();
-        var surf = FlatSurface(-10, -10, 10, 10, top: 1);   // ground surface at y=0 — nothing to bury under
+        var surf = FlatSurface(-10, -10, 10, 10, top: 3);   // ground surface at y=2 — nothing to bury under
         StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
 
         await Assert.That(w.GetBlock(0, 0, 0).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.IsEmpty).IsTrue();      // no plate means no chest either
     }
 }

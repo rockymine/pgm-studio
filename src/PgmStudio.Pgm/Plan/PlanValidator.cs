@@ -170,9 +170,25 @@ public static class PlanValidator
         foreach (var b in plan.Placements.Destroyables) CheckInside(d, "destroyable", b.Piece, b.At, findings, allowAbsolute: true);
         foreach (var c in plan.Placements.Cores) CheckInside(d, "core", c.Piece, c.At, findings, allowAbsolute: true);
 
+        // OB22 — how far a goal may float. Both defaults are floors — enough that a goal reads as a monument
+        // rather than as terrain — and a stated float had no ceiling at all, so one number put a goal wherever
+        // an author typed. Asked of the stated value, which is what a plan knows: the derived question, whether
+        // the structure's own box clears the map's build ceiling, needs terrain the plan has not solved yet and
+        // is answered at the build (OB23).
+        foreach (var b in plan.Placements.Destroyables)
+            if (b.Float is { } floated && floated > ObjectiveDefaults.MaxFloat)
+                Error(ObjectiveRules.FloatCap,
+                    $"destroyable float {floated} is over the {ObjectiveDefaults.MaxFloat} a goal may float — "
+                    + "a goal that high is reached by building a tower to it", b.Piece);
+        foreach (var c in plan.Placements.Cores)
+            if (c.Float is { } floated && floated > ObjectiveDefaults.MaxFloat)
+                Error(ObjectiveRules.FloatCap,
+                    $"core float {floated} is over the {ObjectiveDefaults.MaxFloat} a goal may float — "
+                    + "a goal that high is reached by building a tower to it", c.Piece);
+
         // DC2 — float and leak are one knob: together they say how far players must dig under the core
-        // (max(0, leak − float)). Authoring one alone silently pairs it with the other's default, which is a
-        // dig depth nobody chose — so ask for both or neither.
+        // (max(0, leak + 1 − float)). Authoring one alone silently pairs it with the other's default, which is
+        // a dig depth nobody chose — so ask for both or neither.
         foreach (var c in plan.Placements.Cores)
             if (c.Float is null != c.Leak is null)
                 Error(ObjectiveRules.PairedKnobs,

@@ -560,7 +560,7 @@ the stat corpus.
   which is what lets the stone itself be short enough that both halves of the lane still read as
   one place. Corpus pattern (11 walls over 5 seeds): walls sit on **gentle seams** — every marked
   interface has Δ ∈ {0, ±2} and border 10–15; nobody walls a cliff. Narrow seams are legal wall
-  carriers. Each wall carries a **defence chest** set into **one** face (`WallDefenseChest`): the
+  carriers. Each wall carries a **defence chest** set into **one** face (`DefenseChest`): the
   chest replaces the one bedrock block at the approach's ground level and the block above it is
   carved to air so the lid opens — a niche, not a box in front of the wall. Only that one face is
   opened, and the column **behind** each chest is left as bedrock, so a full vertical bedrock wall

@@ -700,60 +700,19 @@ and what a `subtract` takes away.
 ### The destroy stamps: what a goal is built out of, and what sits under it
 
 A destroyable and a core are the one structure the studio builds from a marker rather than a footprint, and
-every entry here is about the blocks around that marker: what it may be made of, how far it floats, what its
-plate and its chest are, and what an author is allowed to ask for.
+every entry here is about the blocks around that marker: what an author may ask for, and what the editor lets
+them ask for it with.
 
-- [ ] **B135 — `PlanTool.CoreDigDepth` is off by one, so the studio misreports the dig it asks for.** It
-  computes `max(0, leak − float)`. PGM sets `leakRequired = lavaBottom − (coreBottom − leak) + 1` and the lava
-  sits one course above the casing floor, so the true depth is **`leak + 1 − float`**. Both formulas give 0 at
-  the shipped default pair (`CoreFloat 6`, `CoreLeak 5`), which is why it has never been visible: the error
-  appears only where an author states their own pair. `ObjectiveDefaults.DigDepth` carries the same arithmetic
-  and moves with it.
+- [ ] **WE3 — A core's plate caps the dig its own float/leak pair can ask for** (author). The goal's bedrock
+  plate sits three courses under the ground (`StructureStamper.PlatformDepth`), so the diggable terrain under
+  a core is three courses and a `float`/`leak` pair stating a deeper dig states one the bedrock refuses —
+  `DC2`'s `max(0, leak + 1 − float)` is unbounded above. Two numbers, one of them the author's, so which gives
+  is a ruling rather than a derivation: cap the pair at the plate's depth and refuse past it, deepen the plate
+  to whatever the dig asks for, or drop the plate under cores and keep it under destroyables. The check, once
+  ruled, is a plan rule beside `DC2` in `PlanValidator` — both numbers are stated there.
 
-  *on `basalt-reach` (`float 5`, `leak 8`) the studio reports a 3-block dig and the real one is 4; at
-  `leak 5, float 4` it says 1 where `stone_fields` measures 2. A zero dig is legitimate and is not the fault:
-  ten corpus `dtcm` maps use `leak` 3–6, median 5, and `fungi_grove` suspends its core over a chasm so the
-  whole task is breaking the shell.*
-
-- [ ] **B104 — Cap a destroy goal's float at 12 blocks, and refuse a goal box that reaches over the build
-  height.** Two numbers, one entry. `ObjectiveDefaults.DestroyableFloat = 4` is a **minimum** — enough that a
-  goal reads as a monument rather than terrain, and that breaking it means committing to the climb (`DT3`) —
-  and nothing states a maximum, so an authored `float` can put a goal anywhere. The author's ceiling is **12
-  blocks above the floor it stands over**. Then the derived check: a goal's own **bounding box**
-  (`ObjectiveStamper.DestroyableBox` / `CoreBox`, carried as `DestroyableIntent.Box` / `CoreIntent.Box`) must
-  not reach above the map's build height, which is `BuildCeiling.Of(highestGround)` — the highest terrain
-  column the world actually builds, plus 20. A box over that line is a complaint naming the goal and both
-  numbers; blocks above the cap can still be broken, so it is not unwinnable, but a goal belongs under the
-  ceiling players may build to.
-
-  *`duskfell`'s gold destroyable stands at y21–23 against a cap of 20; `corvale`'s emerald at y18–20 against
-  the same. Both predate `B105`, which made the cap the built terrain's rather than the plan's flat nominal
-  `Surface + Headroom` — so the cause is closed and this is the check that was never written.*
-
-- [ ] **B162 — Pair a destroyable's style with its material, and fill a cube's centre with bedrock.** Two
-  halves, one file each. **The pairing:** obsidian caps at **three blocks** (author), so only the pillar styles
-  may carry it; `cube-3`, `cube-4` and `column-plus` are for end stone, gold and emerald. Nothing checks —
-  there is no style↔material rule anywhere, and `DestroyableMaterials.IsBuildable` has no callers at all, so
-  an unrecognised material is written into the XML verbatim while `BlockId` silently stamps obsidian. Reach
-  that predicate while adding the rule. **The centre:** `ObjectiveStamper.StampDestroyable` takes
-  `bool bedrockCentre = false` and fills a cube's inset — 1×1×1 under `cube-3`, 2×2×2 under `cube-4` — and its
-  only caller never passes it. Wire it by style rather than by a knob (author), which is also what makes a
-  27-block cube an honest three-block goal.
-
-  *author, 2026-08-14 · swept over all 21 folders by parsing the intent JSON, probed at each cube's own centre.
-  `basalt-reach` and `corvid-hollow` carry 27 obsidian on `cube-3`, `tallow-mirefast` 15 on `column-plus`; only
-  `ashfall-scar` is right, on `pillar-3`. `ObjectiveStamper.cs:53,63` · `SketchWorldBuilder.cs:354`.*
-
-- [ ] **B184 — Seat the goal's bedrock plate three blocks below the ground, and put a defence chest in the
-  space that opens.** `StructureStamper.StampPlatform` lays its 5×5 plate at `plateY = groundTop − 2`, one
-  course of ground below the surface; the author's depth is `groundTop − 4`. The doc comment above it states
-  the current depth in prose, so both move together. At one course down there is nowhere to stand a chest
-  between the surface and the bedrock; at three there is, and a defence chest belongs under the core and the
-  destroyable. Reuse `WallDefenseChest`'s `Embed` and its 27-slot contents — planks and crafting tables, end
-  stone and a redstone block, two Efficiency pickaxes — not its `Stamp`, which is written against a wall's
-  thin/long footprint and `onMinFace` side.
-
-  *author, 2026-08-14 · `StructureStamper.cs:93–116` · `SketchWorldBuilder.cs:327–331` · `WallDefenseChest.cs`.*
+  *the shipped pair asks for no dig at all (`float 6`, `leak 5`), so nothing built today trips it; `leak 9`
+  over `float 6` asks for 4 and gets 3.*
 
 - [ ] **G161 — the casing panel lets an author build a core the compiler will refuse.** `G160` put the
   casing knobs in the plan's marker panel, clamped independently — size 1..64, shell 1..16 — so a 5×5 casing
@@ -769,7 +728,6 @@ plate and its chest are, and what an author is allowed to ask for.
 
 - **G76** — the marker inspector exposes a structure's knobs (destroyable styles, core size/shell,
   wool colour) instead of silently defaulting.
-- **G77** — `bedrockCentre` is a stamp no authoring path can reach: thread it through.
 
 ### Trees: what a species means, and what a grown one is made of
 

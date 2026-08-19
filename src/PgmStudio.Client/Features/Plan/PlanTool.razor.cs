@@ -644,7 +644,7 @@ public partial class PlanTool
 
     /// <summary>How far players must dig under the casing before its lava can leak — the whole point of the
     /// float/leak pair, which says nothing when either is read alone.</summary>
-    private int CoreDigDepth => Math.Max(0, CoreLeak - CoreFloat);
+    private int CoreDigDepth => CoreDig.Depth(CoreLeak, CoreFloat);
 
     private sealed class ObjectiveVocabulary
     {

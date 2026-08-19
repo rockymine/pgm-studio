@@ -75,11 +75,41 @@ public sealed class PlanCoresTests
         await Assert.That((c.Float, c.Leak)).IsEqualTo((3, 4));
     }
 
+    // ── OB22 — how far a goal may float ─────────────────────────────────────────────────
+    [Test]
+    public async Task A_float_over_the_cap_is_refused_and_the_cap_itself_stands()
+    {
+        var over = Json.Replace(Marker, Marked(ObjectiveDefaults.MaxFloat + 1));
+        var findings = Validate(over);
+        await Assert.That(findings.Any(f => f.Rule == ObjectiveRules.FloatCap)).IsTrue();
+        await Assert.That(Errors(findings, ObjectiveDefaults.MaxFloat.ToString())).IsTrue();
+
+        // At the cap exactly, a goal stands: the number is what a goal may float, not what it may not reach.
+        var atCap = Json.Replace(Marker, Marked(ObjectiveDefaults.MaxFloat));
+        await Assert.That(Validate(atCap).Any(f => f.Rule == ObjectiveRules.FloatCap)).IsFalse();
+
+        static string Marked(int floatBlocks) =>
+            $$"""{ "piece": "bar-w", "at": [1, 1], "float": {{floatBlocks}}, "leak": 5 }""";
+    }
+
+    [Test]
+    public async Task A_destroyables_float_is_capped_by_the_same_number()
+    {
+        // One rule over both goal kinds: the cap is about how far a player will climb, which does not depend
+        // on what is at the top of the climb.
+        var high = ObjectiveDefaults.MaxFloat + 4;
+        var json = Json
+            .Replace("\"cores\":", "\"destroyables\":")
+            .Replace(Marker, $$"""{ "piece": "bar-w", "at": [1, 1], "float": {{high}} }""");
+        await Assert.That(Validate(json).Any(f => f.Rule == ObjectiveRules.FloatCap)).IsTrue();
+    }
+
     // DC2 — the pair is one knob: together they say how far players dig to make the lava leak.
     [Test]
-    [Arguments(6, 5, 0)]    // the defaults: leak ≤ float, so a breached casing leaks on its own
-    [Arguments(2, 5, 3)]    // leak > float: digging is part of the capture
-    [Arguments(0, 5, 5)]    // resting on the floor (27% of the corpus) — the full leak depth to dig
+    [Arguments(6, 5, 0)]    // the defaults: leak < float, so a breached casing leaks on its own
+    [Arguments(2, 5, 4)]    // leak > float: digging is part of the capture
+    [Arguments(0, 5, 6)]    // resting on the floor (27% of the corpus) — the full leak depth to dig
+    [Arguments(5, 5, 1)]    // leak == float still costs the one course the block centre does
     public async Task Float_and_leak_together_state_the_dig_depth(int floatBlocks, int leak, int expected)
     {
         var json = Json.Replace(Marker,

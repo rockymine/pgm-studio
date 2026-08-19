@@ -56,11 +56,16 @@ the world inside its region: the **casing** (blocks matching `material`) and the
 is `team`, not `owner` — a PGM inconsistency with a standing TODO in their source; the studio mirrors the XML
 and calls the field `Owner` in code (OB1).
 
-**OB2 — a core leaks when a lava block reaches `Y ≤ region.min.y − leak`, within ±15 blocks horizontally of
-the core bounds.** (`CoreMatchModule.leakCheck` tests the lava's XZ against the leak region, then its actual
-Y; `Core.java:82-88` builds that region as the core bounds inflated ±15 in XZ, spanning
-`y = 0 … region.min.y − leak`.) The `leak/leakRequired` pair on `Core` is the progress readout only — it does
-not gate completion.
+**OB2 — a core leaks when a lava block reaches `Y ≤ region.min.y − leak − 1`, within ±15 blocks horizontally
+of the core bounds.** (`CoreMatchModule.leakCheck` tests the lava's XZ against the leak region, then its actual
+Y; `Core.java` builds that region as the core bounds inflated ±15 in XZ, spanning `y = 0 … region.min.y −
+leak`.) **The `− 1` is the whole of the correction and it is not a slack.** The region is tested against
+`BlockVectors.center` — the lava block's own centre, `y + 0.5` — against a `Bounds` that is inclusive at its
+max, so a block resting exactly at `region.min.y − leak` sits half a block too high to be inside it and the
+core does not leak. PGM's own arithmetic says the same thing from the other side: `leakRequired` is
+`lavaRegion.min.y − (region.min.y − leak) + 1`, and `updateLeak` reaches it only at
+`y = region.min.y − leak − 1`. The `leak/leakRequired` pair is the progress readout — it does not gate
+completion — but it is the readout of the same line the region draws, which is what makes it evidence.
 
 **OB3 — both objectives only *warn* when the world doesn't back the XML.** An empty casing, missing lava, or
 a destroyable whose region contains none of its `materials` logs a warning and yields a degenerate goal
@@ -293,6 +298,20 @@ destroyable in the corpus** (riverbank's monuments are literally `<block>-4,9,30
 is the default; `cube-3` and `column-plus` are the alternatives. Bespoke sculpture above 4³ (DT4) is not
 reproduced.
 
+**DC3 — obsidian is worth three blocks, and the studio will not build more.** The table's material column is
+a rule rather than a tally. Obsidian is the slowest block in the game to break, which is exactly what makes it
+right for the one-to-three-block pillar half the corpus builds — a raid — and wrong for anything bigger: 27
+obsidian on a `cube-3` is a grind nobody performs, and the corpus agrees, building its cubes and its columns
+in emerald, gold and ender stone. So a goal of more than **three blocks** carrying obsidian is built in
+**ender stone** instead (DT4's own material), and the build says so.
+
+It is a **complaint on a built world**, not a refusal: the goal stands, in a material the author did not name,
+and the `map.xml` declares what was actually laid rather than what was asked for. The same correction catches
+the other half of the same silence — a `materials` naming nothing the studio builds is written into the XML
+verbatim while the stamper quietly lays obsidian, so the declared material matches nothing inside its own
+region and PGM loads a goal at zero health (OB3). Correcting the first fault can produce the second, so one
+resolve answers both (`DestroyableMaterials.Resolve`) and one complaint is written.
+
 The material vocabulary is also what a team's kit is paired to: an iron pickaxe breaks obsidian, it just does
 not drop it, so a destroy map's kit still upgrades its pickaxe to match the goal's material — obsidian to
 diamond, anything softer to iron (`MiningTiers`, `DestroyKitPairing.RequiredPickaxe`) — because that pairing
@@ -355,10 +374,15 @@ a TNT/cannon archetype, DT5 is the rule that says the obelisk comes *with* it.
 
 ### DT2 — the bedrock core is inert by construction
 
-The cubes take an optional concentric bedrock centre (1×1×1 inside `cube-3`, 2×2×2 inside `cube-4`) so players
-cannot hollow one out and hide inside. It costs nothing to model: `materials` names only the emerald/gold, so
-**the bedrock is invisible to the goal** — neither counted in `maxHealth` nor breakable. The corpus confirms it
-is real and common: a 26-block `cube-3` (27 − 1) is the modal non-pillar block count.
+The cubes take a concentric bedrock centre (1×1×1 inside `cube-3`, 2×2×2 inside `cube-4`) so players cannot
+hollow one out and hide inside. It costs nothing to model: `materials` names only the emerald/gold, so **the
+bedrock is invisible to the goal** — neither counted in `maxHealth` nor breakable. The corpus confirms it is
+real and common: a 26-block `cube-3` (27 − 1) is the modal non-pillar block count.
+
+**It follows the style and is not a knob** (author). As a defaulted stamper parameter it was reachable from no
+authoring path at all and no caller ever passed it, so every generated cube came out solid — a flag whose only
+possible value was the one nobody set. Both cube families take it now because both cube families are what it
+is for; a pillar has no inside to hollow.
 
 ```
    y=B+2   E E E
@@ -370,6 +394,12 @@ is real and common: a 26-block `cube-3` (27 − 1) is the modal non-pillar block
 
 The **generator** floats a destroyable 3–5 blocks; default `float = 4`, and a `pillar-1` floating alone is a
 normal output, not an error.
+
+**OB22 — and it floats no further than twelve** (author). The defaults are floors: enough that a goal reads as
+a monument rather than as terrain, and that breaking it means committing to the climb. Nothing stated the
+other end, so a single authored number put a goal wherever it was typed — and a goal high enough to need a
+tower under it is reached by a build project rather than by a raid. The cap is read against the **stated**
+value, which is what a plan knows, so it refuses at the compile gate for a destroyable and a core alike.
 
 **The corpus does not do this**, and the difference is worth stating because a detector that expects a gap will
 miss most real structures. Measured on the declared blocks themselves (not the cluster containing them), across
@@ -418,14 +448,19 @@ With `openTop = true` the cap layer is omitted and the lava rises to `y = B+4`, 
 bimodal: **27% of cores rest directly on a solid floor** (no gap at all — the lava must spread or players
 breach the floor), and the rest cluster at 2–7 blocks of air.
 
-With the core floating `F` blocks above the surface and leak level `L`, escaping lava free-falls to `y = B − F`
-(it lands on terrain). By OB2 the core leaks at `y ≤ B − L`. Therefore:
+With the core floating `F` blocks above the surface and leak level `L`, escaping lava free-falls to the first
+air cell over the terrain, which the float puts at `y = B − F`. By OB2 the core leaks at `y ≤ B − L − 1` —
+one course lower than the leak level reads, because the region is tested against the lava block's own centre.
+Therefore:
 
-> **players must dig `max(0, L − F)` blocks into the terrain below the core.**
+> **players must dig `max(0, L + 1 − F)` blocks into the terrain below the core.**
 
-`L ≤ F` leaks on its own the moment the casing is breached; `L > F` makes digging part of the capture. Both are
+`L < F` leaks on its own the moment the casing is breached; `L ≥ F` makes digging part of the capture — and
+`L = F` is the case the `+ 1` decides, costing exactly the one course the block centre does. Both are
 legitimate and both occur; the author picks. **Defaults: `float = 6`, `leak = 5`** — no dig, matching the
-corpus centre. The two must be authored together, because neither means anything alone.
+corpus centre, which is why the correction was invisible for as long as it stood: both readings answer 0 at
+the shipped pair and part company only where an author states their own. The two must be authored together,
+because neither means anything alone.
 
 ### OB8 — one box function, two consumers
 
@@ -498,6 +533,15 @@ none of its declared material), so it catches real breakage.
 **The check is "at least one matching block", never "the region is full".** By OB12 a region legitimately
 contains mostly air — a 3×3×3 region holding a 1×3×1 pillar is correct and common. Anything stricter would
 reject most of the corpus.
+
+**OB23 — a goal standing over the height players may build to.** The build ceiling is twenty blocks over the
+highest ground the map *actually builds* (`BuildCeiling`), which is a number the plan does not have: it comes
+from the terrain the rasterizer produced, after the relief solve. So this is asked at the build rather than at
+the compile gate, against the goal's own bounding box — the same box the stamper used and the region declares
+(OB8). It is a **complaint**, not a refusal: blocks above the line can still be broken, so nothing is
+unwinnable; what is wrong is a goal contested from ground nobody may build up to reach. It takes both knobs to
+get there — at the most a goal may float (OB22), only a structure taller than the clearance leaves can top out
+over the ceiling, which in practice means a tall core casing rather than a destroyable.
 
 **OB17 — a goal may stand almost anywhere, and there are exactly three places it may not.** A destroyable and
 a core are unlike a wool in how freely they sit: no room, no per-team monument, nothing that binds them to a

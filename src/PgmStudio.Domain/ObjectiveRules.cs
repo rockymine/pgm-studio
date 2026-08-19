@@ -15,6 +15,14 @@ public static class ObjectiveRules
     /// <remarks>Raise the casing's <c>height</c> or lower its <c>shell</c> until an interior remains. A shell as thick as half the casing leaves solid stone, and a core with no lava inside it can never leak.</remarks>
     public const string Casing = "DC1";
 
+    /// <summary>A destroyable is built in a material its size is wrong for: obsidian is worth at most three
+    /// blocks, so a cube or a plus-section column carrying it is a grind rather than a raid — or the material
+    /// names nothing the studio builds at all, which writes into the map.xml verbatim while the blocks come
+    /// out obsidian, and a declared material matching nothing in its own region is a goal at zero health
+    /// (OB3).</summary>
+    /// <remarks>Name a material the goal's size is built for: obsidian for a pillar, ender stone, gold or emerald for a cube or a column. This is a <b>complaint</b> — the world is built and the goal stands, in ender stone rather than in what was named, and the map.xml declares what was actually laid.</remarks>
+    public const string StyleMaterial = "DC3";
+
     /// <summary>A core's <c>float</c> and <c>leak</c> are one knob: together they say how far players must dig
     /// under it, and either alone says nothing.</summary>
     /// <remarks>State <c>float</c> and <c>leak</c> together, or neither. Their difference is how far players must dig under the core, so one without the other says nothing about the objective.</remarks>
@@ -34,6 +42,19 @@ public static class ObjectiveRules
     /// grown by four blocks, and never nearer than ten blocks to the marker itself (the author's numbers).</summary>
     /// <remarks>Move the tree, boulder or building the finding names, or move the goal. Nothing is dropped for you, because a prop deleted silently is a placement the author can still see on the canvas.</remarks>
     public const string PropInClearance = "OB19";
+
+    /// <summary>A goal is authored floating further over the ground than a goal may float. The stated
+    /// <c>float</c> is a distance from whatever the relief leaves under the column, and without a maximum it
+    /// puts a goal anywhere — including where reaching it is a build project rather than a raid.</summary>
+    /// <remarks>Lower the goal's <c>float</c>. The floor is what makes a goal read as a monument rather than as terrain; the ceiling is how far a player will climb for it.</remarks>
+    public const string FloatCap = "OB22";
+
+    /// <summary>A goal's own structure reaches above the height players may build to — the build ceiling over
+    /// the terrain the map actually builds. The blocks above it can still be broken, so the map is not
+    /// unwinnable; a goal standing over the line players may reach by building is a goal contested from
+    /// nowhere.</summary>
+    /// <remarks>Lower the goal's <c>float</c>, shorten its structure, or raise the ground under it. This is a <b>complaint</b> on a built world: the finding carries the goal's own top course and the ceiling it passed.</remarks>
+    public const string OverBuildCeiling = "OB23";
 
     /// <summary>A declared <c>&lt;gamemode&gt;</c> is outside PGM's own closed enum, so the map fails to load
     /// however clean everything else is.</summary>

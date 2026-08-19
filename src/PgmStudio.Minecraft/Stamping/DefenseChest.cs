@@ -5,19 +5,22 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
 
 /// <summary>
-/// The defence chest a bedrock approach wall (ST4) carries: a full 27-slot supply of building material and the
-/// tools to place it, set into <b>one</b> face of the wall. The wall is a team's line to hold, and a chest at it
-/// turns the wall from a bare slab into a place a defence is built — planks and crafting tables to wall up, end
-/// stone and a redstone block to reinforce, and a pair of Efficiency pickaxes to cut back through when the line
-/// moves.
+/// The defence chest the map's two unbreakable structures carry: a full 27-slot supply of building material and
+/// the tools to place it — planks and crafting tables to wall up, end stone and a redstone block to reinforce,
+/// and a pair of Efficiency pickaxes to cut back through when the line moves.
 ///
-/// <para>Only one face is touched, so the wall stays a wall. The chest replaces the one bedrock block at the
-/// approach's ground level and the block over it is carved to air so the lid opens (a solid block directly above
-/// a chest blocks it) — a niche, not a box in front. Crucially the column <em>behind</em> the chest is left as
-/// bedrock, and so is the whole far face, so a full vertical bedrock wall still stands: break the chest and you
-/// meet bedrock, not a way through. One or two chests ride the face by how wide the lane is.</para>
+/// <para>It sits at <b>two</b> places, and both are ground a team holds. A bedrock approach wall (ST4) takes one
+/// or two set into a single face: the wall is a team's line, and a chest at it turns a bare slab into a place a
+/// defence is built. A goal's buried bedrock plate takes one in the space the plate opens under the terrain,
+/// which is a cache under the monument a team is defending.</para>
+///
+/// <para><see cref="Embed"/> is what both go through, and the niche is the same at either: the chest replaces one
+/// block and the block over it is carved to air so the lid opens, since a solid block directly above a chest
+/// blocks it. Nothing else is touched — at the wall the column behind the chest stays bedrock and so does the
+/// whole far face, so a full vertical bedrock wall still stands: break the chest and meet bedrock, not a way
+/// through.</para>
 /// </summary>
-public static class WallDefenseChest
+public static class DefenseChest
 {
     // A chest slot is loaded to a half-stack, the map's chosen ration; 27 half-stacks (plus the two pickaxes,
     // one to a slot) is exactly a full single chest.
@@ -30,7 +33,7 @@ public static class WallDefenseChest
     /// <summary>A lane this wide or narrower carries one chest; a wider one carries two.</summary>
     public const int SingleChestMaxLane = 10;
 
-    /// <summary>Set one or two defence chests into a single face of the wall over <c>[minX, maxX) × [minZ, maxZ)</c>,
+    /// <summary>Set one or two defence chests into a single face of a bedrock approach wall over <c>[minX, maxX) × [minZ, maxZ)</c>,
     /// resting at the approach's own ground level. The wall is thin across the seam and long along it (the lane);
     /// the number of chests follows the lane width, and only one face is opened so a full bedrock wall stands
     /// behind them. <paramref name="onMinFace"/> is which face that is — the low-coordinate side across the seam,
@@ -66,25 +69,35 @@ public static class WallDefenseChest
     }
 
     // Set a chest into the face column (faceX, faceZ), fronting the approach (the direction dirX/dirZ points).
-    // It sits at the approach's ground Y, with the block above carved to air so the lid can open. Only this
-    // column is touched, so the column behind it (deeper into the wall) stays bedrock.
+    // It sits at the approach's ground Y, so it is reached from the ground rather than from the middle of the
+    // wall. Only this column is touched, so the column behind it (deeper into the wall) stays bedrock.
     private static void Embed(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int faceX, int faceZ, int dirX, int dirZ)
     {
-        // The approach column is one block out from the face; its first air is the Y a player stands on, and the
-        // height the chest sits at so it is reached from the ground rather than the middle of the wall.
+        // The approach column is one block out from the face; its first air is the Y a player stands on.
         var groundTop = surfaceTop.TryGetValue((faceX + dirX, faceZ + dirZ), out var outside)
             ? outside
             : surfaceTop.GetValueOrDefault((faceX, faceZ), 1);
         if (groundTop < 1 || groundTop >= VoxelWorld.MaxHeight - 1) return;
-
-        // A chest's facing data is the direction its front points — out towards the approach.
-        var facing = dirX == -1 ? 4 : dirX == 1 ? 5 : dirZ == -1 ? 2 : 3;
-        world.SetBlock(faceX, groundTop, faceZ, Blocks.Chest, facing);
-        world.SetBlock(faceX, groundTop + 1, faceZ, Blocks.Air);   // the one air block that lets the lid open
-        world.AddTileEntity(faceX, faceZ, ChestBuilder.Chest(faceX, groundTop, faceZ, Contents()));
+        Embed(world, faceX, groundTop, faceZ, Facing(dirX, dirZ));
     }
+
+    /// <summary>Set one chest at <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/>, facing
+    /// <paramref name="facing"/>, and carve the block over it to air so the lid can open. Two blocks and one
+    /// tile entity, and nothing else — where the niche goes is the caller's, because the wall and the goal's
+    /// plate open it in two different ways.</summary>
+    public static void Embed(VoxelWorld world, int x, int y, int z, int facing)
+    {
+        if (y < 1 || y >= VoxelWorld.MaxHeight - 1) return;
+        world.SetBlock(x, y, z, Blocks.Chest, facing);
+        world.SetBlock(x, y + 1, z, Blocks.Air);   // the one air block that lets the lid open
+        world.AddTileEntity(x, z, ChestBuilder.Chest(x, y, z, Contents()));
+    }
+
+    /// <summary>A chest's facing data: the direction its front points. A chest with no approach to front — the
+    /// one under a goal's plate, reached by digging straight down — takes the default.</summary>
+    public static int Facing(int dirX, int dirZ) => dirX == -1 ? 4 : dirX == 1 ? 5 : dirZ == -1 ? 2 : 3;
 
     /// <summary>The 27-slot loadout, assigned to slots in order: dark-oak and spruce planks and crafting tables
     /// to build with, end stone and a redstone block to reinforce, and two Efficiency II iron pickaxes.</summary>

@@ -18,7 +18,8 @@ public static class ObjectiveDefaults
     public const string Materials = "obsidian";
 
     /// <summary>Blocks of air under a destroyable (DT3): enough that it reads as a monument rather than
-    /// terrain, and that breaking it means committing to the climb.</summary>
+    /// terrain, and that breaking it means committing to the climb. A <b>minimum</b> in spirit —
+    /// <see cref="MaxFloat"/> is the other end.</summary>
     public const int DestroyableFloat = 4;
 
     // ── core (DTC) ─────────────────────────────────────────────────────────────────────────────────────
@@ -37,12 +38,27 @@ public static class ObjectiveDefaults
     /// default. Pairs with <see cref="CoreFloat"/> (DC2).</summary>
     public const int CoreLeak = 5;
 
+    /// <summary>How high over the ground a goal may float, in blocks (the author's ceiling). The other end of
+    /// <see cref="DestroyableFloat"/> and <see cref="CoreFloat"/>, which are both floors: without a maximum an
+    /// authored <c>float</c> puts a goal anywhere, and a goal high enough to need a tower under it is a goal
+    /// nobody reaches. Read against the <em>stated</em> number, which is why it is a plan rule rather than a
+    /// world one — the derived check the built terrain makes possible is the goal's box against
+    /// <see cref="BuildCeiling"/>.</summary>
+    public const int MaxFloat = 12;
+
     /// <summary>
     /// How many blocks players must dig into the terrain under a core before its lava can leak (DC2).
-    /// Escaping lava free-falls to the terrain at <c>B − float</c> while the core leaks at <c>y ≤ B − leak</c>,
-    /// so a core with <c>leak ≤ float</c> leaks the moment its casing is breached and one with
-    /// <c>leak &gt; float</c> makes digging part of the capture. Both are legitimate; the author picks. The
-    /// defaults here give 0 — no dig, matching the corpus centre.
+    ///
+    /// <para>Escaping lava free-falls to the first air cell over the terrain, which the float puts at
+    /// <c>B − float</c>, and PGM's leak is one course lower than the leak level reads: its leak region spans
+    /// up to <c>y = B − leak</c> and is tested against the lava block's <b>centre</b>, so a block at
+    /// <c>B − leak</c> is half a block too high and the core leaks at <c>y ≤ B − leak − 1</c>. PGM's own
+    /// <c>leakRequired</c> says the same thing arithmetically — <c>lavaBottom − (B − leak) + 1</c>, reached
+    /// only at <c>y = B − leak − 1</c> (<c>Core.java</c>, <c>CoreMatchModule.leakCheck</c>).</para>
+    ///
+    /// <para>So a core with <c>leak &lt; float</c> leaks the moment its casing is breached and one with
+    /// <c>leak ≥ float</c> makes digging part of the capture. Both are legitimate; the author picks. The
+    /// defaults here give 0 — no dig, matching the corpus centre.</para>
     /// </summary>
-    public static int DigDepth(int leak, int floatBlocks) => Math.Max(0, leak - floatBlocks);
+    public static int DigDepth(int leak, int floatBlocks) => Math.Max(0, leak + 1 - floatBlocks);
 }
