@@ -1060,6 +1060,63 @@ place.
   **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
   actually slow in use; otherwise close.
 
+## The boundary: one contract, one use case, one class of fault
+
+`docs/architecture.md` is the survey these came out of. The studio has two front doors — 167 HTTP endpoints
+and `tools/mapgen`, which links the libraries and speaks no HTTP — and one pipeline behind them, and every
+entry here is a fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
+in the order listed: the contract first, because the request shape and the client both hang off it; the
+application layer second, because it is where a gate stops belonging to a door; the fault class third; the
+lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
+
+- [ ] **RP11 — The wire contract is kept by hand in three places and generated in none.** There is no
+  OpenAPI document and no Swagger generation configured, so the 167 route attributes in `Api/Endpoints`,
+  the **152 route strings** written out in the Blazor client and the endpoint tables in the eight
+  `docs/tools/` documents are three copies of one fact. The client reads **59 responses as `JsonElement`**
+  against 16 typed, across 38 files. Turn on FastEndpoints' Swagger generation, generate the client from it,
+  and render the endpoint tables from the schema rather than typing them. `TC1` — three heavily used
+  analysis routes in no table at all — is the symptom, not a separate task, and it closes with this.
+
+- [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
+  `EndpointWithoutRequest` and **51 call sites read the body as `Dictionary<string, object?>`**. So
+  `RequiredFields`, the one global input gate, returns on its first line for all of them: the promise it
+  makes holds for 22 routes. The Edit tool's 74 refusal sites in `Pgm/Editing` are a request schema written
+  by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
+  hand-written field checks go with it. Needs `RP11` first, which is what makes the shapes checkable.
+
+- [ ] **RP13 — The use case is the HTTP handler, so a second driver needs a second copy of it.**
+  `Api/Endpoints` holds **4,753 lines** against `Api/Services`' 1,169, and `Services/` is read-model
+  builders. `SketchFinishEndpoint.HandleAsync` *is* the finish use case — load, gate, rasterize, detect,
+  write, advance the stage — and nothing but an HTTP request can reach it, which is why `tools/mapgen` has
+  its own. Add an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests
+  as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one. `RP3` is the
+  instance this dissolves; it goes with this.
+
+- [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 71 to branch once.** The
+  family prefix names which subsystem asked, not what kind of fault it is, and `refusals.md`'s own stated
+  principle — *ids are grouped by what they are about, never by which gate happens to ask* — is already
+  broken by the catalogue: `PL2` is *"No spawn: PGM has nowhere to put a player"* and `EX2` is *"Nobody can
+  enter the map: it declares no spawn of any kind"*. Five ids cover *a name that resolves to nothing*
+  (`PL5`, `PL10`, `SK3`, `ED1`, `RQ4`). Add a closed `Category` beside `Finding.Rule` — malformed,
+  not-found, conflict, unresolved, unsatisfiable, internal — and answer the envelope as RFC 9457 Problem
+  Details, whose `type` URI is the `/api/rules` lookup that already exists.
+
+- [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
+  nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
+  states, and **`WX8` is declared nowhere** — fired by the lint, stated as a rule in
+  `docs/world-export/structures.md`, cited in `docs/tools/plan.md`, and absent from `GET /api/rules`.
+  `WX9` beside it is never fired at all. Declare `WX8` where `RoomFrameRules` lives or retire it, decide
+  what `WX9` is, and add the assertion that runs the other way: every id any gate or lint can emit resolves
+  in the catalogue. `RulesEndpointTests` only checks that declared rules carry a sentence.
+
+- [ ] **RP16 — The lifecycle is a column nothing reads and 716 lines of prose.** `map.stage` holds
+  `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other
+  read is the dashboard's filter. No endpoint refuses on it and none answers what a map at a stage may be
+  asked for — `docs/tools/capabilities.md` answers that question in prose that nothing verifies. Give it a
+  transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver
+  reads its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
+  to hold.
+
 ## The remainder: work no concept above has claimed
 
 ### User Experience and Graphical User Interface

@@ -107,7 +107,7 @@ document rather than what a reader is looking for.
 | `pgm/` | the map contract — destroyables/cores, water lanes, regions and filters, include resolution, what the studio refuses to read, the intent model, `template.xml`. |
 | `client/` | the browser half: the canvas JS layer, the component vocabulary, routing and how the client is served. |
 | `gameplay/` | what a map is played for — `approaches.md` (what the ground around an objective does, and the one document whose claims are the author's), the match-flow account, the traffic ground truth. |
-| root | whole-repo notes: `project-structure`, `design-decisions`, `refusals` (how every gate says no, and the rule-id catalogue), `cloud-setup`, `doc-status`. |
+| root | whole-repo notes: `project-structure` (the package map — where a piece of code belongs), `architecture` (the boundary — how a request becomes work, and what the studio can say about itself), `design-decisions`, `refusals` (how every gate says no, and the rule-id catalogue), `cloud-setup`, `doc-status`. |
 
 A document is deleted when a subject folder's document owns its subject; corpus **measurements** are kept even
 when the design around them has landed, because nothing else can re-derive them.
@@ -273,9 +273,18 @@ problem that no longer exists. The reason a thing is shaped the way it is can al
 about the shape** — *the ids live in the lowest project every caller reaches, because a second `const`
 aliasing one that exists is two rules* — with no before-and-after in it.
 
+**A comment is shorter than the code it describes, or it is in the wrong file.** A docstring says what a
+reader needs at the call site: what this does, what it answers, what it refuses. The *argument* for a design
+— why this shape and not that one, what the corpus said, which alternative was weighed — is a document's job,
+and `docs/` is named for subjects so that there is somewhere to put it. Comments are **27% of `src/`**
+(19,306 lines), and the offenders are the ones where the case for a decision was written above the code that
+implements it. Two things are deliberately not this: a `*Rules` constant's `<summary>` and `<remarks>` **are**
+the `/api/rules` payload, so their length is the answer's length; and a `Traps` note earning its place by
+having cost hours. Everything else: state it, then stop.
+
 Also **never** an attribution to what a piece of code was ported from, and **never** an implementation-phase
-or task id (`NS`, `N00`, `B8`, `P5`, `ND2`, …). The port attributions are swept; the task-id half is still
-open on the board, and so is the history half (`RP10`).
+or task id (`NS`, `N00`, `B8`, `P5`, `ND2`, …) — 62 comment lines across 44 files still carry one. The port
+attributions are swept; the task-id half is still open on the board, and so is the history half (`RP10`).
 
 The same rule already governs prose under `docs/` — *How a document is written*: state mechanism as fact, no
 changelog. It is one rule, and the two halves are not allowed to disagree.
