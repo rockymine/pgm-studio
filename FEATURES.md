@@ -700,10 +700,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   SVG do, one character per cell, with an overlay channel for a route or a corridor and a `Compare` that lays
   two cell sets on the same rows. A plan is a list of rectangles and most of what goes wrong with one is a
   relation between two of them; a render of the built world cannot show that, and a grid is one glance.
-- **How a model actually drives the studio, written down, and the one driver (B253).** Six independent
-  drivers existed across `pgm-studio-mapgen` and none of them printed a finding: every one read the status
-  code and dropped the `warnings[]` the pipeline had been answering with for several runs, which is why each
-  run re-discovered the same declines by hand. The account is `reports/opus5-run4.md` there, the errata it
+- **How a model actually drives the studio, written down, and the one driver (B253, closing B109).** Six
+  independent drivers existed across `pgm-studio-mapgen` and none of them printed a finding: every one read
+  the status code and dropped the `warnings[]` the pipeline had been answering with for several runs, which
+  is why each run re-discovered the same declines by hand. That is `B109`'s ask as well — the plan-level
+  reads existed and nothing *invoked* them — and `tools/drive.py` answers it at its first step, before a map
+  row exists: `POST /plan/evaluate` for the score, `valid` and the whole `lint[]` table, and
+  `POST /plan/inspect` for each goal's two spawn walks against `GO1`, the island gaps against `CT12`, the
+  frontline runs and the wall rects. `--dry` stops there, so a board can be read for the price of no build
+  at all. The account is `reports/opus5-run4.md` there, the errata it
   measured is `GENERATION-NOTES.md` §17, and the decision is that the one driver lives **beside the specs**
   rather than beside `tools/mapgen` — it drives the HTTP API a person also drives, while `mapgen` builds
   from a spec through `ComposeSketch` and cannot repaint a compiled shape at all. `tools/drive.py` is it,

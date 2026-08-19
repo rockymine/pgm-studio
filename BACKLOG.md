@@ -987,15 +987,15 @@ place.
 
   *Filed under `S` and living here because the measure is what blocks it; the id does not move with the heading.*
 
-- [ ] **B109 — Give the authoring loop a driver that checks a plan before it costs a build.**
-  `POST /plan/inspect` and `POST /plan/evaluate` both answer a plan without building it — evaluate carries the
-  validator's whole lint table as `lint[]`, inspect answers each destroy goal's spawn walks — and nothing
-  *invokes* them ahead of a build. An agent authoring two boards by hand found them only by reading source,
-  and re-implemented `ContactGraph.Classify` in a throwaway script to check adjacency rather than spend a
-  build cycle. So this is reach, not absence: a driver step, before the world is built, that posts the plan
-  and prints what came back. `docs/tools/plan.md:417` documents both endpoints.
-
-  *placed here by the human because it might be answered already*
+- [ ] **TN1 — The driver reads two of the four plan-level answers, and the two it skips are the ones that
+  need no build.** `tools/drive.py` (`pgm-studio-mapgen`) posts `/plan/evaluate` and `/plan/inspect` before a
+  map row exists and prints every finding — `B109`'s ask, and done. Two reads that cost no build are not on
+  it: `GET /map/{slug}/plan/ascii`, the grid a relation between two rectangles is legible in, and
+  `GET /map/{slug}/plan/flow`, what the board asks of the two sides and what that leaves unused. Both are
+  documented in `AUTHORING-BRIEF.md` and `tools/README.md` and neither is called, which is the same reach
+  gap `B109` was filed for. The slot is after `PUT /map/{slug}/plan` and before the compile — both read the
+  **stored** plan, so neither can run at the driver's first step. `tools/README.md`'s "four places a finding
+  can appear" gains a fifth read that raises none, beside `coverage`.
 
 - [ ] **G65 — FannedGraph ↔ ContactGraph adjacency reconcile (deferred from G59).** `FannedGraph.LandAdjacent`
   (reachability) still diverges from the rect-layer authority `ContactGraph` on one count: any area overlap
