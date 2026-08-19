@@ -33,6 +33,24 @@ is the author's call and the trade is stated: this is one coherent programme wit
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
+## Six of the twenty-two carry a question only the author can answer
+
+The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
+the file and line are named. These six are not, and each is blocked on a decision rather than on work.
+
+| Entry | The question |
+|---|---|
+| `RP13` | What is the unit, and where does it live — its own project, or a folder in `Api`? An application layer is a boundary, and a boundary chosen by whoever implements it first is the failure this whole board is about. |
+| `RP14` | Sign-off on the six categories and the subject list. The ids do not move, but a category is as stable as an id once a caller branches on it. |
+| `RP15` | What **is** `WX9`? It is stated as a rule in two documents and fired by nothing. Declaring it and retiring it are both one commit, and only the author knows which. |
+| `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
+| `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
+| `RP22` | Does the export become a job the caller polls, and if so what happens to the UI's Export button? That is a product call about waiting, not a plumbing one. |
+
+Two more carry a smaller one, which an implementer may make and state rather than ask: `RP12` (how far to
+push declared request shapes in one pass — the write surface is the useful half) and `RP21` (whether a
+version is per map document or per artifact).
+
 ## Phase 1 — say what the surface is
 
 Cheap, mechanical, and everything after it reads better for having landed. The schema is generated; what it
@@ -220,8 +238,12 @@ hears a late gate early.
   geometry (distances, wall rects, the canvas overlays) and `columns` projects the world the plan would build.
   Two judgements, one transform, two projections — a real grouping that appears in no document, so a caller
   reads five summaries to learn that only one of them changes anything and only one of them is about the
-  generator. Name the kinds in `plan.md`'s endpoint table and in the OpenAPI tag, and say plainly that
-  `feasibility` answers a question about the studio, not about the map.
+  generator. Name the kinds in `plan.md`'s endpoint table and in the OpenAPI tag.
+
+  *The author's ruling on `feasibility`: it reports the composer's own limits, so it belongs to the studio
+  and not to the authoring loop. Keep the route, mark it a diagnostic, and keep it out of the agent-facing
+  surface the way `B249`'s override is kept out — an agent shown a report of what the generator cannot do
+  will treat it as a statement about its board.*
 
 ## Phase 5 — the names, and what the survey turned up beside them
 

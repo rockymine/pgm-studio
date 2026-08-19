@@ -359,6 +359,31 @@ landed, the rest is the idea.
   strong opening against a hopeless second phase describes neither. The played account is in
   `docs/gameplay/match-flow.md` §4.8.
 
+### Authoring together — a person and an agent on one board
+
+Not the current goal and not on the board; kept here because both entries describe the same shape and the
+shape is worth having written down when the loop is ready for it. Both need the studio to answer for itself
+first — the schema, the use cases and the affordances the `TODO.md` programme is building — because an agent
+asked to add to a board has to be able to learn what a board can hold.
+
+- **G188 — a plan the author starts and an agent continues.** The author draws pieces in the plan tool and
+  asks for the rest in words — *put the second wool at the end of the east spur, and give it an approach the
+  wall can guard*. The agent posts a patched `PlanModel` and the canvas shows what changed. The whole of it
+  rests on the plan being small, semantic and answerable with rule ids, which it already is: `evaluate`,
+  `inspect` and `compile` all take a posted document and store nothing, so a proposal can be scored before
+  anyone accepts it. What is missing is a diff a canvas can render and an accept/reject step, not a model.
+
+- **G189 — draw a box, say what goes in it, and let the composer fill it.** Detection of what a drawn box
+  could be already exists (the box pipeline classifies a body and names its family); the other half is
+  taking a rect plus a sentence and emitting the unit inside it. It is the composer's own vocabulary reached
+  from the outside, and it is the most useful shape an agent could be handed: bounded, verifiable against
+  the box's own gates, and impossible to spread across the rest of the board. `feasibility` is the read that
+  already answers *could the composer produce this* — the missing verb is *produce it*.
+
+  The composer's vocabulary is the limit and it is uneven: wool approaches are described in detail, and
+  **nothing describes how a mid island is composed**. That gap is why the focus moved from the generator to
+  the authoring loop, and it is what would have to be filled before a box could be asked for by name.
+
 ### The generator in the studio (G117–G120) — parked while the authoring loop is the focus
 
 The box pipeline is **the** composer and the emitted layouts are good enough to work *with*, so the

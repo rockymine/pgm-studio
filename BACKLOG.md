@@ -1206,6 +1206,16 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **RP24 — `FEATURES.md` is 6,238 lines that nothing reads.** 531 entries, each a paragraph restating
+  the commit message that shipped it, and the two things it is actually used for are adding to it and
+  checking whether an id is taken. The traceability it claims is already in git — 30 of the last 40 commit
+  subjects carry their ids, and `git log --grep=TE1` finds the commit without it. Two of its jobs are real:
+  it is the id registry that keeps `grep <id>` honest across the three boards, and it is where `CLAUDE.md`
+  § *Code comments* sends history so a docstring does not carry it. Neither needs a paragraph. Reduce an
+  entry to **one line — id, one sentence, the commit** — and generate it from the log rather than writing it
+  by hand, which is the same move as `RP8` and `RP11`. Decide first whether the long-form entries are worth
+  keeping as an archive or whether the commit bodies already are one.
+
 - [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
   `docs/tools/capabilities.md` is 716 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB
   of the same question next door, and the two were written by different hands from the same code. Once
