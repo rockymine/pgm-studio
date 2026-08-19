@@ -75,16 +75,19 @@ named the layer (`pgm-studio-mapgen/reports/fable-run3-architecture.md`). The st
 
 - [ ] **TE1 — The Edit tool answers every refusal as `{error: "…"}`, and it is the last surface that does.**
   `EditException(status, message)` is thrown at 74 sites across `Pgm/Editing`, and `WriteSupport.RunEditAsync`
-  (`Api/Endpoints/WriteEndpoints.cs:38`) turns each into `new Dict { ["error"] = ex.Message }` with the
-  exception's status, for the 36 endpoints that route through it — the whole Edit surface. So the tool with
-  the most refusals in the studio is the one with no rule ids: a region id already in use, a filter something
-  still references, a coordinate that is not an integer all arrive as prose an agent can only regex. Give the
-  family its own ids (`ED*`, catalogued in `docs/refusals.md`), have `EditException` carry a `Finding` rather
-  than a string, and answer `Refusals.Of` from `RunEditAsync`. `docs/tools/edit.md` names the statuses it
-  refuses with and never the body, so it gains the shape in the same commit.
+  (`Api/Endpoints/WriteEndpoints.cs:38`) turns each into `{error: ex.Message}` for the 36 endpoints routing
+  through it. The 74 are eight faults, not 74, and six of the eight already have ids: **24** an id naming
+  nothing in the document (`RQ4`), **13** a value outside a closed set and **11** a required field absent and
+  **2** a number that is not one (`RQ1`), **12** an id already taken and **2** a row something still
+  references (`RQ5`). Only two want new ones: **5** a cross-reference the document cannot resolve (an
+  apply-rule naming an unknown filter, a filter referencing itself) and **5** an edit the document is not in a
+  state to take (a group of one child, a complement with none, an apply-rule with no region, filter or
+  action). So: `EditException` carries a `Finding`, `RunEditAsync` answers `Refusals.Of`, and
+  `docs/tools/edit.md` gains the shape and the two `ED*` rules in the same commit.
 
-  *`grep -c "EditException\.\(BadRequest\|NotFound\|Conflict\)" -r src/` = 74; every other endpoint in the
-  studio answers `{error, message, findings[]}`.*
+  *Two statuses disagree with the twenty sites around them and are corrected by the same pass:
+  `SymmetryAuthoring:22,53` answer 400 for `source region '…' not found` where six other sites answer 404, and
+  `WoolEditor:23,42,69,90` answer 400 for `already exists` where eight other sites answer 409.*
 
 - [ ] **RP3 — The gate chain's completeness depends on which entry point a caller came through.**
   `MapExportComposer.Compose` runs `OB20` (`RefuseUnknownGamemode`) and the traversability judgement before
