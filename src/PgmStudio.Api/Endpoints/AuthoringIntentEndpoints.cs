@@ -37,13 +37,22 @@ internal static class IntentWrite
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang,
         string slug, long mapId, string body, CancellationToken ct)
     {
-        var intent = (string.IsNullOrWhiteSpace(body) ? null : JsonSerializer.Deserialize<MapIntent>(body, MapArtifactStore.Json)) ?? new MapIntent();
+        var intent = Stated(body) ?? new MapIntent();
 
         await artifacts.SaveJsonAsync(mapId, ArtifactKind.MapIntentJson, intent, ct);
         // A stated name is looked up here (async, outside the pure generator) so an account gets its uuid.
         var authors = await ResolveAuthorsAsync(mojang, intent, ct);
         return await WriteSupport.RunEditAsync(repo, reader, writer, slug,
             doc => { IntentGenerator.Apply(doc, intent); if (authors is not null) doc["authors"] = authors; return new Dict(); }, ct);
+    }
+
+    /// <summary>What a body states as an intent, or null where it states none. A body that will not read as
+    /// one is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
+    public static MapIntent? Stated(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<MapIntent>(json, MapArtifactStore.Json); }
+        catch (JsonException) { return null; }
     }
 
     // Turn each stated author/contributor into {uuid, name, role, contribution}. PGM takes a person as an
@@ -90,6 +99,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
         if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var body = await RawBody.ReadAsync(HttpContext, ct);
+        Complaints.Unread(HttpContext, body, IntentWrite.Stated(body));
 
         var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug, map.Id, body, ct);
         await Send.ResponseAsync(resp!, status, ct);
@@ -120,6 +130,9 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
         if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var compiled = await RawBody.ReadAsync(HttpContext, ct);
+        // Over the posted document rather than the merged one: the carry only adds back this map's own
+        // credits, so a field named here is one the caller wrote and can correct.
+        Complaints.Unread(HttpContext, compiled, IntentWrite.Stated(compiled));
 
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
         var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));

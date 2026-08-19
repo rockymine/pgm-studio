@@ -1,5 +1,7 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
@@ -39,6 +41,12 @@ public static class DocumentShape
 
     private static void Walk(JsonNode? node, object? value, string path, List<string> unread)
     {
+        // A member typed as raw JSON keeps whatever was written under it — a sketch's dressing and each
+        // entry of its theme registry are held that way — so nothing below one can be a name nobody read.
+        // Walking in would compare the document against the properties of JsonElement itself and report
+        // every field of a document that was kept whole.
+        if (value is JsonElement or JsonNode or JsonDocument) return;
+
         switch (node)
         {
             // A dictionary's keys are data, not property names — a theme's buckets are named by the author,
@@ -50,7 +58,7 @@ public static class DocumentShape
 
             case JsonObject obj when value is not null:
                 var type = value.GetType();
-                var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+                var fields = Fields(type);
                 var discriminator = Discriminator(type);
                 foreach (var (name, child) in obj)
                 {
@@ -59,9 +67,7 @@ public static class DocumentShape
                     // value in every document — the false-positive flood that teaches an author to ignore
                     // the warnings, and then the real one goes past too.
                     if (string.Equals(name, discriminator, StringComparison.OrdinalIgnoreCase)) continue;
-                    var property = properties.FirstOrDefault(
-                        p => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase));
-                    if (property is null) { unread.Add(Join(path, name)); continue; }
+                    if (!fields.TryGetValue(name, out var property)) { unread.Add(Join(path, name)); continue; }
                     Walk(child, Read(property, value), Join(path, name), unread);
                 }
                 return;
@@ -76,6 +82,34 @@ public static class DocumentShape
                 return;
         }
     }
+
+    /// <summary>
+    /// Where a document's fields can land on a type, keyed by the name the <b>document</b> uses: the
+    /// <see cref="JsonPropertyNameAttribute"/>'s name where one renames a property, and the property's own
+    /// name otherwise. Matching on the CLR name alone reports every renamed field as unread — a sketch shape
+    /// states <c>min_x</c> and the property is <c>MinX</c> — which is the whole document for the three
+    /// models an author writes.
+    ///
+    /// <para>A property the serializer skips outright (<see cref="JsonIgnoreAttribute"/> with no condition)
+    /// is not a landing place, so a document naming one is naming something nothing reads. A conditional
+    /// ignore is about <i>writing</i> and still reads, which is why only the unconditional form is dropped.</para>
+    ///
+    /// <para>Cached per type, because the walk asks this once for every object in the document and a board
+    /// carries thousands of shapes.</para>
+    /// </summary>
+    private static readonly ConcurrentDictionary<Type, Dictionary<string, PropertyInfo>> FieldsByType = new();
+
+    private static Dictionary<string, PropertyInfo> Fields(Type type) => FieldsByType.GetOrAdd(type, static t =>
+    {
+        var fields = new Dictionary<string, PropertyInfo>(StringComparer.OrdinalIgnoreCase);
+        foreach (var property in t.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (property.GetCustomAttribute<JsonIgnoreAttribute>() is { Condition: JsonIgnoreCondition.Always })
+                continue;
+            fields[property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name ?? property.Name] = property;
+        }
+        return fields;
+    });
 
     /// <summary>A property that throws when read tells us nothing about the document, so it is passed over
     /// rather than allowed to fail a read that was only ever asking about field names.</summary>

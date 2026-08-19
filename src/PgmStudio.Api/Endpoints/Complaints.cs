@@ -46,6 +46,26 @@ internal static class Complaints
             if (!finding.Refuses) carried.Add(finding);
     }
 
+    /// <summary>
+    /// The same reading taken from the body as posted: what <paramref name="value"/> — whatever the route's
+    /// reader produced from it — has nowhere to keep.
+    ///
+    /// <para>It is taken at the edge, over the document the caller actually wrote, because that is the only
+    /// document they can correct. A route that merges what it was posted into what it already holds asks
+    /// this <b>before</b> the merge, or it reports a field the caller never sent.</para>
+    ///
+    /// <para>A body that will not parse says nothing here. That is the request's own fault (<c>RQ1</c>) and
+    /// is answered where the body is read, so a document that is not JSON at all reaches this and is passed
+    /// over rather than reported twice.</para>
+    /// </summary>
+    public static void Unread(HttpContext http, string json, object? value)
+    {
+        JsonNode? node;
+        try { node = JsonNode.Parse(json); }
+        catch (JsonException) { return; }
+        Unread(http, DocumentShape.Unread(node, value));
+    }
+
     /// <summary>The fields a reader had nowhere to keep, as <c>RQ3</c> complaints. The reading is the same
     /// wherever a document is deserialized, so it is stated once here rather than at each reader's endpoint.</summary>
     public static void Unread(HttpContext http, IReadOnlyList<string> fields) =>

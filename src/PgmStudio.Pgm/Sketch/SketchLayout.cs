@@ -51,6 +51,15 @@ public sealed class SketchLayout
     public string ToJson() => JsonSerializer.Serialize(this, Json);
     public static SketchLayout? Parse(string json) => JsonSerializer.Deserialize<SketchLayout>(json, Json);
 
+    /// <summary>What a body states as a layout, or null where it states none. A body that will not read as
+    /// one is the request's own fault (<c>RQ1</c>), answered where the body is read — so a reader only
+    /// asking what the board says takes it this way, and <see cref="Parse"/> stays the read that raises.</summary>
+    public static SketchLayout? Stated(string json)
+    {
+        try { return Parse(json); }
+        catch (JsonException) { return null; }
+    }
+
     /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry and the
     /// map default, the two bound room shells, and every placed prop. A plan states where the ground is and
     /// nothing about how it looks, so a layout compiled from one carries none of them.</summary>

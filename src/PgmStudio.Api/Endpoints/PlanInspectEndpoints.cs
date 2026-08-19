@@ -36,9 +36,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
     {
         var body = await RawBody.ReadAsync(HttpContext, ct);
 
-        PlanModel? plan;
-        try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
-        catch (JsonException) { plan = null; }
+        var plan = PlanModel.Stated(body);
         if (plan is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
@@ -192,15 +190,16 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
     {
         var body = await RawBody.ReadAsync(HttpContext, ct);
 
-        PlanModel? plan;
-        try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
-        catch (JsonException) { plan = null; }
+        var plan = PlanModel.Stated(body);
         if (plan is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
                 "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
             return;
         }
+        // The one-way gate is where a plan stops being editable text, so a field the compiler had nowhere to
+        // read is said here rather than discovered as ground the built map does not have.
+        Complaints.Unread(HttpContext, body, plan);
 
         SketchLayout layout;
         MapIntent intent;
@@ -263,9 +262,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
     {
         var body = await RawBody.ReadAsync(HttpContext, ct);
 
-        PlanModel? plan;
-        try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
-        catch (JsonException) { plan = null; }
+        var plan = PlanModel.Stated(body);
         if (plan is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
@@ -364,9 +361,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
     {
         var body = await RawBody.ReadAsync(HttpContext, ct);
 
-        PlanModel? plan;
-        try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
-        catch (JsonException) { plan = null; }
+        var plan = PlanModel.Stated(body);
         if (plan is null)
         {
             await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",

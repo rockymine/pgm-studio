@@ -21,6 +21,17 @@ public sealed class DocumentShapeTests
     private sealed record House(string Name, Roof Roof, IReadOnlyList<Roof> Wings);
     private sealed record Themed(IReadOnlyDictionary<string, Roof> Buckets);
 
+    private sealed record Bounds(
+        [property: System.Text.Json.Serialization.JsonPropertyName("min_x")] double MinX,
+        [property: System.Text.Json.Serialization.JsonPropertyName("max_x")] double MaxX);
+
+    private sealed record Dressed(System.Text.Json.JsonElement Dressing);
+
+    private sealed record Derived(string Name)
+    {
+        [System.Text.Json.Serialization.JsonIgnore] public int Length => Name.Length;
+    }
+
     /// <summary>The case the whole thing exists for: a name no property has.</summary>
     [Test]
     public async Task A_property_the_value_cannot_keep_is_named()
@@ -111,6 +122,51 @@ public sealed class DocumentShapeTests
         var node = JsonNode.Parse("{\"kind\":\"shed\",\"form\":\"gable\"}");
 
         await Assert.That(DocumentShape.Unread(node, new Shed("gable"))).IsEmpty();
+    }
+
+    /// <summary>A renamed property is matched by the name the <em>document</em> uses. The three models an
+    /// author writes — the plan, the sketch layout and the intent — rename most of their fields, so a walk
+    /// over CLR names alone reports a correct document as almost entirely unread.</summary>
+    [Test]
+    public async Task A_renamed_property_is_matched_by_the_documents_name()
+    {
+        var node = JsonNode.Parse("""{"min_x":-10,"max_x":10}""");
+
+        await Assert.That(DocumentShape.Unread(node, new Bounds(-10, 10))).IsEmpty();
+    }
+
+    /// <summary>And the property's own name is then <b>not</b> a name the document may use, because the
+    /// serializer will not bind it either — a shape stating <c>minX</c> loses the value.</summary>
+    [Test]
+    public async Task The_clr_name_of_a_renamed_property_is_unread()
+    {
+        var node = JsonNode.Parse("""{"minX":-10,"max_x":10}""");
+
+        await Assert.That(DocumentShape.Unread(node, new Bounds(0, 10))).IsEquivalentTo(["minX"]);
+    }
+
+    /// <summary>A property the serializer skips outright is not a place a field can land, so a document
+    /// naming one is naming something nothing reads.</summary>
+    [Test]
+    public async Task A_field_naming_an_ignored_property_is_unread()
+    {
+        var node = JsonNode.Parse("""{"name":"a","length":1}""");
+
+        await Assert.That(DocumentShape.Unread(node, new Derived("a"))).IsEquivalentTo(["length"]);
+    }
+
+    /// <summary>A member held as raw JSON keeps everything written under it, so nothing under one can be
+    /// unread. Walking in compares the document against <c>JsonElement</c>'s own properties and reports every
+    /// field of a document that was kept whole.</summary>
+    [Test]
+    public async Task Nothing_under_a_raw_json_member_is_unread()
+    {
+        var json = """{"dressing":{"props":[{"kind":"tree","at":[3,4]}]}}""";
+
+        await Assert.That(DocumentShape.Unread(
+            JsonNode.Parse(json), System.Text.Json.JsonSerializer.Deserialize<Dressed>(
+                json, new System.Text.Json.JsonSerializerOptions(System.Text.Json.JsonSerializerDefaults.Web))))
+            .IsEmpty();
     }
 
     /// <summary>Nothing to walk against means nothing to say. A null value cannot be interrogated for property

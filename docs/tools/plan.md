@@ -291,7 +291,7 @@ its island, else a wool's owner, else neutral — so Configure opens pre-assigne
 Two steps, and only on the map-backed route. **Identity** is the display name and the authors, loaded once from
 `GET /api/map/{slug}` and saved with `PATCH /api/map/{slug}/metadata`; the name is live-synced into the plan
 document as it is typed because the compile reads it. **Settings** is the globals form — symmetry, cell size,
-base surface, surface step, max build height, max players — writing straight through to the live document. Continue on
+base surface, surface step, max players — writing straight through to the live document. Continue on
 the last step advances to Draw. A blank map-backed plan opens here (`?phase=info`); an existing one opens on
 Draw.
 
@@ -443,7 +443,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `POST /plan` | `{name?}` | `{slug}` — a new `map` row at `stage=plan`, gamemode `ctw`, empty plan artifact | — |
 | `POST /plan/{planId}/author` | — | `{slug}` — a map row seeded from a generator candidate | 404 unknown candidate |
 | `GET /map/{slug}/plan` | — | the stored document, or `{}` | 404 unknown map |
-| `PUT /map/{slug}/plan` | the document | `{ok: true}` | 400 non-JSON · 404 unknown map |
+| `PUT /map/{slug}/plan` | the document | `{ok: true}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read | 400 non-JSON · 404 unknown map |
 | `GET /map/{slug}/layers` | — | `{plan, sketch, world, intent}` — which layers the map holds | 404 |
 | `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
 | `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: each objective's two walks and the ratio between them, where the ways in part and meet, whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
@@ -456,7 +456,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `GET /plans[?origin=generated\|authored\|imported]` | — | summaries, newest touched first, each with its composer descriptor and whether that descriptor still reproduces it | — |
 | `GET /plans/{id}` | — | the row plus its `planJson` | 404 |
 | `GET /plans/{id}/ascii[?every=N]` | — | the same grid for a candidate, by id rather than slug | 404 · 422 |
-| `POST /plans` | `{planJson, sourceId?}` | the saved row — an authored source is updated in place, a generated or imported one forks into a new authored row | 400 malformed plan |
+| `POST /plans` | `{planJson, sourceId?}` | the saved row — an authored source is updated in place, a generated or imported one forks into a new authored row; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`) | 400 malformed plan |
 | `DELETE /plans/{id}` | — | 204; forks survive with a null parent | — |
 
 **The flow.** A render says *where* ground is dead; only the flow says *why*, and a model handed a red
@@ -510,9 +510,9 @@ posted anywhere. That is what makes them the cheapest way to find out whether a 
 
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
-| `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective) | 422 `{findings}` structural or completeness errors · 400 malformed |
+| `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok, orphaned}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers | 409 one `SK1` finding per orphaned island, subject = island id (`?force=true` accepts the loss) · 422 `SK2` · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{ok, orphaned}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`) | 409 one `SK1` finding per orphaned island, subject = island id (`?force=true` accepts the loss) · 422 `SK2` · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 |
 | `GET /map/{slug}/export` | — | the world ZIP | non-2xx with a message |

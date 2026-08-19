@@ -4316,6 +4316,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   would refuse every snapshot written before the last shape change. Two exemptions keep it worth reading — a
   dictionary's keys are the author's words, and the type discriminator is the serializer's, not the record's.
   On `material-preview`, `theme-preview` and `room-styles/preview-snapshot`.
+- **And on the three documents an author actually writes (RP17).** The plan, the sketch layout and the intent
+  each go into the studio as a blob stored verbatim, so a field the reader had nowhere to keep was stored with
+  it and read by nothing: fourteen rectangles keyed `x`/`z`/`w`/`h` covered no ground under an `{"ok": true}`,
+  and a `relief` written one level too deep dropped without a word. The walk is asked at the edge over the body
+  **as posted** — `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`, `PUT …/intent/from-plan`,
+  `PUT …/plan`, `POST /plans`, `POST /plan/compile` — before any of them merges what it was sent into what the
+  map holds, because the posted document is the only one a caller can correct. Two exemptions were needed to
+  make it usable on those three: a field is matched by the name the **document** uses rather than the
+  property's (a shape states `min_x` and the property is `MinX`, so CLR-name matching reported a correct
+  layout as twelve unread fields), and everything under a member held as **raw JSON** is kept whole — a
+  sketch's dressing and each entry of its theme registry. A property the serializer ignores outright is not a
+  landing place, so a document naming one is reported.
+- **The plan editor's build-height control wrote a global nothing read (RP17).** `docs/tools/plan.md` states
+  the ruling — the ceiling is measured twenty blocks over the highest ground the world actually builds, and a
+  plan-level number would be a second source for one value — but the editor still rendered a **Max build
+  height** field and wrote `globals.maxBuildHeight` into every plan. `PlanGlobals` has no such property, so
+  every value an author typed there was dropped on parse. Found by the walk above on the first real document
+  it saw; the control, the parameter, the client DTO property and the JS default are gone.
 
 - **One envelope for every failure, the edge included (RP2, RP5, RP6, RP7, TL1).** The gates answered
   `{error, message, findings[]}` and the boundary in front of them did not: 122 sites wrote a bare `{error}`

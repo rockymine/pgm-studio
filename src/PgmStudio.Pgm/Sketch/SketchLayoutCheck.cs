@@ -39,13 +39,7 @@ public static class SketchLayoutCheck
 
     /// <summary>Read a layout as posted. A body that is not a layout at all is not this gate's to report —
     /// that is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
-    public static Findings Check(string layoutJson)
-    {
-        SketchLayout? layout;
-        try { layout = SketchLayout.Parse(layoutJson); }
-        catch (System.Text.Json.JsonException) { return Findings.None; }
-        return Check(layout);
-    }
+    public static Findings Check(string layoutJson) => Check(SketchLayout.Stated(layoutJson));
 
     public static Findings Check(SketchLayout? layout)
     {

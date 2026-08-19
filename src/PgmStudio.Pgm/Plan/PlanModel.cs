@@ -144,6 +144,16 @@ public sealed class PlanModel
         return model;
     }
 
+    /// <summary>What a body states as a plan, or null where it states none. A body that will not read as one
+    /// is the request's own fault (<c>RQ1</c>), answered where the body is read — so a reader only asking
+    /// what the plan says takes it this way, and <see cref="Parse"/> stays the read that raises.</summary>
+    public static PlanModel? Stated(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return Parse(json); }
+        catch (JsonException) { return null; }
+    }
+
     /// <summary>Fold legacy/unknown piece roles down to their canonical value, so plans authored under the
     /// earlier role model (<c>lane</c>/<c>hub</c>/<c>mid</c>) load cleanly as anonymous pieces, and unknown
     /// box kinds and zone kinds down to theirs.</summary>

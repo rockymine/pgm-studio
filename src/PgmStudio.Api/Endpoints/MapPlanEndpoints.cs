@@ -153,6 +153,11 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
 
+        // The blob is stored verbatim, so a field the plan reader has nowhere to keep is stored too and
+        // silently ignored by everything downstream. Said here, where the author can still act on it.
+        var planJson = Encoding.UTF8.GetString(bytes);
+        Complaints.Unread(HttpContext, planJson, PlanModel.Stated(planJson));
+
         await artifacts.SaveAsync(map.Id, ArtifactKind.PlanJson, bytes, ct);
         await Send.OkAsync(new { ok = true }, ct);
     }

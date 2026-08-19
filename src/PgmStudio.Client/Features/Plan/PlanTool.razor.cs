@@ -157,7 +157,7 @@ public partial class PlanTool
     // Globals mirrored from the plan document (the JS bridge is the source of truth; these drive the form).
     private string planName = "Untitled plan";
     private string symmetry = "rot_180";
-    private double cell = 5, surface = 9, maxBuildHeight = 20, maxPlayers = 12;
+    private double cell = 5, surface = 9, maxPlayers = 12;
 
     // Surface-stepper increment (blocks per ± click on a piece's surface). An editor preference persisted by
     // the bridge (default 2 per EL1), not part of the plan.
@@ -550,7 +550,6 @@ public partial class PlanTool
 
     private Task OnCell(double v) { cell = v; return SetGlobal("cell", v); }
     private Task OnSurface(double v) { surface = v; return SetGlobal("surface", v); }
-    private Task OnMaxBuildHeight(double v) { maxBuildHeight = v; return SetGlobal("maxBuildHeight", v); }
     private Task OnMaxPlayers(double v) { maxPlayers = v; return SetGlobal("maxPlayers", v); }
 
     private Task SetGlobal(string key, double value)
@@ -835,7 +834,6 @@ public partial class PlanTool
         symmetry = m.Globals.Symmetry ?? "rot_180";
         cell = m.Globals.Cell;
         surface = m.Globals.Surface;
-        maxBuildHeight = m.Globals.MaxBuildHeight;
         maxPlayers = m.Globals.MaxPlayers;
 
         var r = m.Reference;
@@ -1221,7 +1219,6 @@ public partial class PlanTool
         [JsonPropertyName("symmetry")] public string? Symmetry { get; set; }
         [JsonPropertyName("maxPlayers")] public int MaxPlayers { get; set; } = 12;
         [JsonPropertyName("surface")] public int Surface { get; set; } = 9;
-        [JsonPropertyName("maxBuildHeight")] public int MaxBuildHeight { get; set; } = 20;
     }
 
     private sealed class OverlayDto

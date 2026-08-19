@@ -149,7 +149,9 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         // The document's own gate: a board too large to realize is refused here, where it is stored, rather
         // than at the preview that would have to walk it. What it merely names and does not have rides back
         // on the success as complaints — the layout is saved, and the author is told what will not be built.
-        var document = SketchLayoutCheck.Check(layoutJson);
+        var layout = SketchLayout.Stated(layoutJson);
+        Complaints.Unread(HttpContext, layoutJson, layout);
+        var document = SketchLayoutCheck.Check(layout);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
         await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, bytes, ct);
@@ -233,6 +235,10 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 Subjects: [island]))], ct);
             return;
         }
+
+        // Over the posted document rather than the merged one: the carry only ever adds keys this map already
+        // held, so a field named here is one the caller wrote and can correct.
+        Complaints.Unread(HttpContext, compiled, SketchLayout.Stated(compiled));
 
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);

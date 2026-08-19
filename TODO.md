@@ -73,16 +73,6 @@ can publish is bounded by what the code declares, which today is a path and a ve
   by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
   hand-written field checks go with it. Needs `RP11` first, which is what makes the shapes checkable.
 
-- [ ] **RP17 — The check that catches a field nothing read runs on two endpoint files.**
-  `DocumentShape.Unread` walks a parsed document beside the value it deserialized to and names every property
-  nothing could keep, as `RQ3` on the success response. It is wired to the room-style library and the terrain
-  previews. The **sketch layout, the plan and the intent** — the three documents an author or an agent
-  actually writes — have no unread check, which is why a misspelled field in one of them is silence:
-  `pgm-studio-mapgen`'s `GENERATION-NOTES.md` §11 records fourteen rectangles keyed `x`/`z`/`w`/`h` instead of
-  `min_x`/`min_z`/`max_x`/`max_z` covering no ground under a `{"ok": true}`, and `relief` written one level
-  too deep dropped without a word. Wire it into `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`,
-  `PUT …/plan` and `POST /plan/compile`. The mechanism exists; only the call sites are missing.
-
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
   `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
   **152 route strings** and parses **59 responses as `JsonElement`** against 16 typed, across 38 files; the

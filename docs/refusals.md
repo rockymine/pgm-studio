@@ -260,10 +260,22 @@ the last shape change. What is left *after* the upgrade has run — a name no re
 — is the honest remainder, and that is what is reported, by path (`roof.pich`, `wings[1].ptch`).
 
 The walk goes down the **value** rather than the declared type, so a polymorphic member is checked against
-what it actually became. Two things are deliberately exempt, and both are false positives that would have made
-the warning worthless: a dictionary's keys, which are the author's words rather than the record's — a theme
-names its own buckets — and the **type discriminator**, which the serializer reads to choose the very type
-being walked and which no concrete record carries a property for.
+what it actually became, and it matches a field by the name the **document** uses rather than the property's
+own — a sketch shape states `min_x` and the property is `MinX`. Four things are deliberately exempt, and every
+one of them is a false positive that would have made the warning worthless: a dictionary's keys, which are the
+author's words rather than the record's — a theme names its own buckets; the **type discriminator**, which the
+serializer reads to choose the very type being walked and which no concrete record carries a property for;
+everything under a member held as **raw JSON**, which keeps whatever was written into it — a sketch's dressing
+and each entry of its theme registry are held that way; and a property the serializer **ignores** outright,
+which is not a landing place at all, so a document naming one is naming something nothing reads.
+
+**It is asked on every write that takes one of the documents an author writes.** The two library readers take
+it inside themselves, after their upgrade has run, because only they know when the retired names have been
+carried forward. The plan, the sketch layout and the intent have no upgrade step, so the reading is taken at
+the edge — `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`, `PUT …/intent/from-plan`,
+`PUT …/plan`, `POST /plans` and `POST /plan/compile` — over the body **as posted**, before any of them merges
+what it was sent into what the map already holds, because the posted document is the only one the caller can
+correct.
 
 **`RQ4` — the route names a subject the studio does not have.** A slug no map is stored under, an id no
 library row carries, an artifact a stage has not produced yet. It is **404 with a body**, because an empty one
