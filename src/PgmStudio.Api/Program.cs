@@ -156,6 +156,12 @@ app.Use(async (ctx, next) =>
     }
 });
 
+// And the mirror of that guarantee on the other severity: a complaint an endpoint's gate produced rides on
+// whatever success the endpoint answers, put there here rather than by each endpoint deciding. Three sketch
+// previews computed SK3/SK4 and dropped them, which nothing could catch because a dropped complaint fails
+// nothing (docs/refusals.md, "What a success carries").
+app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
+
 // All API endpoints live under /api.
 app.UseFastEndpoints(c =>
 {

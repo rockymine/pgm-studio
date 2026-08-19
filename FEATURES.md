@@ -4317,6 +4317,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   dictionary's keys are the author's words, and the type discriminator is the serializer's, not the record's.
   On `material-preview`, `theme-preview` and `room-styles/preview-snapshot`.
 
+- **A complaint reaches the caller whether or not the endpoint thought to pass it on (B141).** `StopAsync`
+  writes the refusals and answers false, and nothing said what an endpoint owed the complaints it was left
+  holding — so each decided for itself, and three of the four sketch previews decided by dropping the list:
+  `sketch/paint`, `sketch/relief` and `sketch/relief/read` computed `SK3`/`SK4`/`SK5` and answered a body with
+  nowhere to put them, on exactly the surfaces an author looks at the board through. A dropped complaint fails
+  nothing, so the fix is a channel rather than three patches. Complaints are handed to `Complaints`
+  (`Api/Endpoints`) — by `StopAsync` itself for a gate, by `Complaints.Add`/`Unread` for the props a dressing
+  pass declined and the fields a reader had nowhere to keep — and one middleware puts them on whatever success
+  the endpoint goes on to answer, so the guarantee costs an endpoint nothing to have and cannot be forgotten.
+  **One key and one rule for when it appears**: a 2xx JSON object carries `warnings` when something was
+  complained about and no such key when nothing was, which is what makes an absent one mean the single thing
+  it now means rather than the four it used to. The typed twin of the key is gone from the three preview DTOs
+  and `sketch/finish` runs the document gate, so the stage that declares a drawing done is also the last one
+  to say what will not be built. A complaint that genuinely cannot ride — a PNG, an ASCII board — is logged
+  against its route rather than dropped in silence. `docs/refusals.md`, *What a success carries*.
+
 - **The API boundary keeps the shape its gates already kept (B214).** Nine endpoints answered a raw .NET
   stack trace to a body they could not read — one of them MariaDB's own `Column 'name' cannot be null` —
   because every catch named `JsonException` alone while `JsonNode.Parse` raises `ArgumentNullException` on a

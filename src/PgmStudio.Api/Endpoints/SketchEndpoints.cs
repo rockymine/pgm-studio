@@ -153,7 +153,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
         await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, bytes, ct);
-        await Send.OkAsync(new { ok = true, warnings = Refusals.Dtos(document.Complaints) }, ct);
+        await Send.OkAsync(new { ok = true }, ct);
     }
 }
 
@@ -246,7 +246,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
         await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, Encoding.UTF8.GetBytes(merged), ct);
-        await Send.OkAsync(new { ok = true, orphaned = orphans, warnings = Refusals.Dtos(document.Complaints) }, ct);
+        await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
     }
 }
 
@@ -321,7 +321,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         {
             var built = SketchWorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
             payload = WorldColumnPayload.Of(built.World);
-            payload["warnings"] = Refusals.Dtos([.. document.Complaints, .. built.Declines]);
+            Complaints.Add(HttpContext, built.Declines);
         }
         // A dressing document that will not read is refused by name, exactly as the export refuses it — the
         // preview and the export cannot disagree about what a malformed prop list is.
@@ -484,7 +484,14 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         if (data is null) { await Send.ResponseAsync(new { error = "No sketch layout to finish." }, 422, ct); return; }
 
-        var cells = SketchRasterizer.RasterizeColumns(Encoding.UTF8.GetString(data));
+        // The document's own gate, run where the drawing is declared done: what the board names and does not
+        // have contributes no ground, so an island the author expected can be missing from the artifacts this
+        // writes. The complaints ride on the success — this is the last stage that can still say so.
+        var layoutJson = Encoding.UTF8.GetString(data);
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+                SketchLayoutCheck.Check(layoutJson), ct)) return;
+
+        var cells = SketchRasterizer.RasterizeColumns(layoutJson);
         var islands = IslandDetector.Detect(cells.Select(c => (c.X, c.Z)), minIslandSize: 1);
         if (islands.Count == 0)
         {

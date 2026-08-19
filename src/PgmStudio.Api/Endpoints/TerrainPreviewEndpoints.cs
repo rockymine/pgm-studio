@@ -97,6 +97,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
         try
         {
             var material = TerrainThemeJson.DeserializeMaterial(json, out var unread);
+            Complaints.Unread(HttpContext, unread);
             if (PngAnswer.Wanted(HttpContext))
             {
                 if (StylePreview.MaterialPng(material, PngAnswer.View(HttpContext, "plan")) is not { } png)
@@ -108,7 +109,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
                 await PngAnswer.WriteAsync(HttpContext, png, ct);
                 return;
             }
-            await Send.OkAsync(StylePreview.Views(material) with { Warnings = Refusals.Unread(unread) }, ct);
+            await Send.OkAsync(StylePreview.Views(material), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
     }
@@ -138,7 +139,7 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
                 await PngAnswer.WriteAsync(HttpContext, png, ct);
                 return;
             }
-            await Send.OkAsync(StylePreview.ThemeViews(theme) with { Warnings = Refusals.Unread(unread) }, ct);
+            await Send.OkAsync(StylePreview.ThemeViews(theme), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
     }

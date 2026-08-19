@@ -275,34 +275,10 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
-Four gates, four ways of being wrong about their own verdict: one whose answer is computed and discarded, one
-that misreports its cause, one that cannot see half the board, and one that refuses what the rule document
-recommends. They are the last of the `B141`–`B188` audit findings that are not about a house, a distance, a
-tree, a destroy stamp or the plan model — everything else from that pool has moved to the heading its subject
-owns.
-
-- [~] **B141 — Four sketch endpoints compute the document check and throw its complaints away.** `SK3`/`SK4`
-  answer a shape that rasterizes to nothing, but only three callers pass them on. `sketch/paint`,
-  `sketch/relief` and `sketch/relief/read` each call `SketchLayoutCheck.Check` and hand the result to
-  `Refusals.StopAsync`, which writes **refusals only** — so `SK2` stops them and every complaint is dropped,
-  on the three endpoints an author actually looks at the board through. All three answer an object, so each
-  can carry `warnings` exactly as `sketch/columns` already does, and `sketch/relief/read` is on the driver's
-  own road. `sketch/finish` is the fourth and runs no check at all: it rasterizes and refuses only where
-  *nothing* is drawn, which is the one place a **refusal** would be coherent, since finishing is the step
-  that says the drawing is done. Whether it should refuse there is the author's.
-
-  **The cause is that nothing says a caller of `StopAsync` owes the complaints anywhere.** The helper writes
-  `findings.Refusals` and answers false, which is right — a complaint must never arrive dressed as a refusal.
-  What is missing is the other half of the sentence: an endpoint that ran a gate has an answer in its hand,
-  and four of them decide what to do with it independently. Fix the four, and state the rule in
-  `docs/refusals.md` where `StopAsync` is described, or the fifth endpoint written will drop them too.
-
-  *re-probed 2026-08-19 against the running API, `b141-probe` — one good rectangle plus one shape carrying no
-  `type`: `PUT …/sketch` **200 with the `SK3` warning**, naming `layout.shapes[1].type` and the shape id;
-  `POST …/sketch/columns` 200 carrying the same; `POST …/sketch/relief/read` 200 `{"islands":[]}` and no
-  warning; `POST …/sketch/finish` **200**. The `{"islands":[]}` is not the fault — a control layout with the
-  bad shape removed answers it too, because `relief/read` answers per stated `relief` block and this document
-  states none.*
+Three gates, three ways of being wrong about their own verdict: one that misreports its cause, one that cannot
+see half the board, and one that refuses what the rule document recommends. They are the last of the
+`B141`–`B188` audit findings that are not about a house, a distance, a tree, a destroy stamp or the plan
+model — everything else from that pool has moved to the heading its subject owns.
 
 - [ ] **TN2 — `structural-integrity` carries one sentence where several refusals fired.** The term folds
   every `PlanValidator` refusal into one hard violation, and where there is more than one its message is

@@ -61,7 +61,8 @@ well-formed but conflicts with the map's state, **422** for one that cannot be p
 the request rather than about the fault, so each endpoint names its own — the tool documents' endpoint tables
 carry which.
 
-Complaints travel the same way but on a **success** response, under `warnings`, since nothing was refused.
+Complaints travel the same way but on a **success** response, under `warnings`, since nothing was refused —
+and the response carries them whether or not the endpoint thought to, which is *What a success carries* below.
 
 ## The rule ids
 
@@ -155,6 +156,34 @@ a release, which is the shape this whole section exists to remove.
 
 An endpoint gates in one line — `if (await Refusals.StopAsync(http, 400, "invalid house style", findings, ct))
 return;` — which writes only the refusals, so a complaint never arrives dressed as one.
+
+## What a success carries
+
+**Running the gate is the whole of an endpoint's duty.** `StopAsync` writes the refusals and answers false,
+which is right; what was missing was the other half of the sentence, because an endpoint that ran a gate holds
+the complaints too and nothing said what it owed them. Each of them answered that question for itself, and
+three of the four sketch previews answered it by dropping the list — `SK3` and `SK4` computed and thrown away
+on exactly the surfaces an author looks at the board through. A dropped complaint fails nothing, which is why
+the fix is a channel rather than three patches: the complaints are handed to `Complaints` (`Api/Endpoints`),
+one middleware puts them on whatever success the endpoint goes on to answer, and an endpoint written tomorrow
+gets the same guarantee without knowing it exists. A finding produced away from a gate — the props a dressing
+pass declined, the fields a reader had nowhere to keep — is handed over the same way, by
+`Complaints.Add`/`Complaints.Unread`, and travels the same road from there.
+
+**One key, and one rule for when it appears.** A 2xx JSON object answers `warnings` when something was
+complained about and carries no such key when nothing was. That is what makes an absent `warnings` readable:
+it used to mean four things a caller could not tell apart — an endpoint with no gate, an endpoint whose gate
+found nothing, an endpoint that dropped what its gate found, and an endpoint answering a shape with nowhere to
+put it — and it now means the one. A caller reads `warnings ?? []` and is done.
+
+Two cases sit outside that rule, and both are honest. A **refusal** carries refusals only, in the envelope's
+`findings`: the work did not happen, so nothing rode along with it. And a success that is **not JSON** — a
+rendered PNG, an ASCII board, a parquet stream — has nowhere to put one; where that loses a complaint the
+studio logs it as an error against the route rather than dropping it in silence.
+
+**A report whose subject is findings is not this.** `/plan/evaluate` answers a `lint` list and
+`/plan/feasibility` a per-box one, and in both the findings are the answer being asked for rather than a remark
+alongside one, so they stay named fields of the documents they belong to.
 
 ## The two the edge asks
 

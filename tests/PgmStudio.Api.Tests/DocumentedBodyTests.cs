@@ -64,7 +64,7 @@ public sealed class DocumentedBodyTests
         var body = await resp.Content.ReadFromJsonAsync<CompileBody>();
 
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
-        await Assert.That(body!.Warnings).IsEmpty()
+        await Assert.That(body!.Warnings ?? []).IsEmpty()
             .Because("plan.md says this document compiles with no errors and no warnings");
     }
 
@@ -125,5 +125,5 @@ public sealed class DocumentedBodyTests
     }
 
     private sealed record Originated(string Slug);
-    private sealed record CompileBody(IReadOnlyList<string> Warnings);
+    private sealed record CompileBody(IReadOnlyList<string>? Warnings);
 }

@@ -163,9 +163,10 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
             var built = SketchWorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
             payload = WorldColumnPayload.Of(built.World);
             // The compiled layout's own complaints ride with the dressing's: a plan that compiles to a board
-            // naming something the studio does not have is still a plan whose picture is missing it.
-            payload["warnings"] = Refusals.Dtos(
-                [.. SketchLayoutCheck.Check(compiled.LayoutJson).Complaints, .. built.Declines]);
+            // naming something the studio does not have is still a plan whose picture is missing it. This
+            // route gates nothing, so it is the one that hands them over rather than StopAsync.
+            Complaints.Add(HttpContext, SketchLayoutCheck.Check(compiled.LayoutJson).Complaints);
+            Complaints.Add(HttpContext, built.Declines);
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
                                       or IndexOutOfRangeException or JsonException)
@@ -239,8 +240,11 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
         // Completeness complaints that did not block (today: no objective). Carried on the success response so
         // a compile that produced a playable-but-goalless map still says so rather than passing in silence.
-        var warnings = Refusals.Dtos(completeness.Complaints);
-        await Send.OkAsync(new { layout = layoutEl, intent = intentEl, warnings }, ct);
+        // The structural gate's own complaints are the lint feed, which /plan/evaluate answers under `lint`
+        // and which an author reads while writing rather than at the one-way gate — so this hands over the
+        // completeness half only, and the two surfaces do not report the same list twice.
+        Complaints.Add(HttpContext, completeness.Complaints);
+        await Send.OkAsync(new { layout = layoutEl, intent = intentEl }, ct);
     }
 }
 

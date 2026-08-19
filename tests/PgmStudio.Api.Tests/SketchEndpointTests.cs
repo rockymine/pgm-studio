@@ -39,7 +39,7 @@ public sealed class SketchEndpointTests
     }
 
     [Test]
-    public async Task The_3D_preview_answers_a_clean_board_with_an_empty_warning_list()
+    public async Task The_3D_preview_answers_a_clean_board_with_no_warnings_key()
     {
         // The regression this exists for: the declines the preview carries are null when nothing was
         // declined, and spreading that null threw straight into the endpoint's catch-all — so every board
@@ -65,8 +65,9 @@ public sealed class SketchEndpointTests
 
         var payload = await columns.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(payload.GetProperty("cols").GetArrayLength()).IsGreaterThan(0);
-        // The field is always there and empty, so a caller reads one shape whether or not anything was said.
-        await Assert.That(payload.GetProperty("warnings").GetArrayLength()).IsEqualTo(0);
+        // A clean board said nothing, so the key is absent: `warnings` appears when there is something in it
+        // and never otherwise, which is what makes an absent one readable as "nothing was complained about".
+        await Assert.That(payload.TryGetProperty("warnings", out _)).IsFalse();
     }
 
     [Test]

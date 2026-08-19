@@ -74,18 +74,6 @@ internal static class Refusals
         HttpContext http, string error, string message, CancellationToken ct, string? field = null) =>
         WriteAsync(http, 400, error, [new Finding(RequestRules.Unreadable, message, Field: field)], ct);
 
-    /// <summary>The fields a reader had nowhere to keep, as complaints to ride on a success response under
-    /// <c>warnings</c>. Null when the document was read whole, so a response carries the field only when there
-    /// is something in it to say.</summary>
-    public static IReadOnlyList<FindingDto>? Unread(IReadOnlyList<string> fields) =>
-        fields.Count == 0
-            ? null
-            : Dtos(fields.Select(field => new Finding(
-                RequestRules.Unread,
-                $"field '{field}' was not read — no part of this document has that name, and no upgrade "
-                + "claimed it, so whatever it was meant to say was not said",
-                Severity.Complaint, Field: field)));
-
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints
     /// included.
@@ -93,13 +81,22 @@ internal static class Refusals
     /// <para>An endpoint asking <c>findings.Count &gt; 0</c> instead is asking the wrong question, and it is
     /// right only by accident of which gate it happens to be calling: a gate that reports complaints as well as
     /// refusals answers a non-empty list for a perfectly good document, and the endpoint would refuse it. Only
-    /// the refusals are written, so a complaint never arrives dressed as one.</para></summary>
+    /// the refusals are written, so a complaint never arrives dressed as one.</para>
+    ///
+    /// <para><b>The complaints are not the caller's to keep or drop.</b> They are handed to
+    /// <see cref="Complaints"/> here, and the pipeline puts them on whatever success the endpoint goes on to
+    /// answer — so running the gate is the whole of an endpoint's duty, and one that forgets to think about
+    /// complaints reports them anyway.</para></summary>
     public static async Task<bool> StopAsync(
         HttpContext http, int status, string error, Findings findings, CancellationToken ct)
     {
-        if (!findings.Refuses) return false;
-        await WriteAsync(http, status, error, findings.Refusals, ct);
-        return true;
+        if (findings.Refuses)
+        {
+            await WriteAsync(http, status, error, findings.Refusals, ct);
+            return true;
+        }
+        Complaints.Add(http, findings.Complaints);
+        return false;
     }
 }
 

@@ -191,8 +191,9 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest
         try
         {
             var style = HouseStyleJson.Deserialize(json, out var unread);
+            Complaints.Unread(HttpContext, unread);
             if (await this.SendStylePngAsync(style, ct)) return;
-            await Send.OkAsync(RoomStylePreview.Views(style) with { Warnings = Refusals.Unread(unread) }, ct);
+            await Send.OkAsync(RoomStylePreview.Views(style), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid room style JSON", ex, ct); }
     }

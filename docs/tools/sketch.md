@@ -682,8 +682,10 @@ in the export's shared sketch leg, so a headless driver meets the same measure t
 **What the document names and does not have is said rather than swallowed.** The rasterizer is set algebra
 over shapes, so a shape it cannot read contributes no ground instead of failing — which means a defect in the
 document reads exactly like a smaller drawing. `SketchLayoutCheck` says so, as complaints riding on the
-success under `warnings` — **on both write paths**, since the merge is the road a headless driver takes and
-the gate runs over the merged document rather than the posted one: `SK3` for a name that matches nothing — a
+success under `warnings` — on **every** surface that runs it, the two write paths and the four reads alike,
+because the complaints are carried by the pipeline rather than by the endpoint (`docs/refusals.md`, *What a
+success carries*). Both writes run the gate over the merged document rather than the posted one, since the
+merge is the road a headless driver takes: `SK3` for a name that matches nothing — a
 shape kind nobody has, a **mirror mode** nobody has (which fans the board onto itself, so a map stating two
 halves stands on one), an island listing a shape id the layout does not carry, a relief keyed to an island
 that does not exist, and a **theme** the registry does not carry, on a shape or as the map default (which
@@ -710,20 +712,22 @@ Every endpoint is anonymous and rooted at `/api`.
 |---|---|---|---|
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{ok: true, warnings}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` is what the document names and does not have (`SK3`/`SK4`/`SK5`) | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned, warnings}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
-| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure` | 422 no layout, or no ground |
+| `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
+| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built | 422 no layout, or no ground · 422 `board too large` `SK2` |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
 **Previews over a live layout.** All four take the working document as the body rather than reading the stored
 blob, so they track unsaved edits, and all four answer 400 rather than 500 on a layout they cannot process.
+All four run the document gate, so all four answer `SK3`/`SK4`/`SK5` under `warnings` beside whatever else they
+carry — the board an author is looking at is the one place those complaints are worth reading.
 
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
-| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z, warnings}` — the whole built world as per-column runs, which the 3-D preview meshes; `warnings` carries every prop the dressing pass declined (`DR-*`) beside what the document names and does not have (`SK3`/`SK4`/`SK5`), complaints on a success: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, complaints on a success: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
 
 **The column payload** is one flat integer array walked by its own counts:
 `cols = [x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]`, with `palette` a list of `#rrggbb`.
