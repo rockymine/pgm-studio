@@ -138,7 +138,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
 
 /// <summary>GET /api/map/{slug}/kit-reach — can a fresh spawn bridge to each wool with only the
 /// placeable blocks its spawn kit grants? (budget-aware traversability).</summary>
-public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
+public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<KitReach.Result>
 {
     public override void Configure() { Get("/map/{slug}/kit-reach"); AllowAnonymous(); }
 
@@ -197,7 +197,7 @@ public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader re
 
 /// <summary>POST /api/map/{slug}/wool-sources — wool colours found inside a drawn rectangle
 /// (body: <c>{ bounds: { minX, minZ, maxX, maxZ } }</c>).</summary>
-public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
+public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolSourcesResponseDto>
 {
     public override void Configure() { Post("/map/{slug}/wool-sources"); AllowAnonymous(); }
 
@@ -250,7 +250,7 @@ public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader
 
 /// <summary>POST /api/map/{slug}/resources — iron/gold/diamond blocks (optionally in a drawn rect,
 /// body <c>{ bounds?: { minX, minZ, maxX, maxZ } }</c>) + how many a &lt;renewable&gt; already covers.</summary>
-public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest
+public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<ResourceSourcesResponseDto>
 {
     public override void Configure() { Post("/map/{slug}/resources"); AllowAnonymous(); }
 

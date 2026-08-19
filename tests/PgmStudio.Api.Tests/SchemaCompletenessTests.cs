@@ -24,7 +24,7 @@ public sealed class SchemaCompletenessTests
     /// that says nothing about what a request actually returns.</summary>
     /// <summary>The count still to declare. It only ever goes down: a route added without a response type
     /// pushes it up and fails here, which is the whole point of a number rather than a list of exceptions.</summary>
-    private const int StillUndeclared = 94;
+    private const int StillUndeclared = 91;
 
     [Test]
     public async Task Every_operation_declares_what_it_answers()
