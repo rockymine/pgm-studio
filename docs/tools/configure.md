@@ -354,6 +354,13 @@ path, water, tree, boulder, flora, house."* A prop's own enum fields (`style`, `
 case-insensitively, so this never fires on a case difference — only on a `kind` the reader does not know, a
 `kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Dressing section).
 
+**Which gate runs does not depend on which door the caller came through.** A sketch map's whole chain —
+`OB20`, `SK2`, `OB17`, `EX1`, `OB19`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, so the
+headless driver, which links that method and speaks no HTTP, is judged by exactly what `GET /export` is
+judged by. The traversability judgement is asked there over the ground **this build** rasterizes rather than
+over the segments the last `sketch/finish` stored, which is the same reason `OB17` is: a subtract cut, a
+relief solve or an edit after the finish each move where ground is without re-entering that stage.
+
 **The gate cannot open on a map with no scanned world.** Without a world there are no surface or `y=0`
 columns, so buildability reports *skip* and traversability has no walkable ground to connect anything
 across — every spawn and wool reads as isolated whatever the build areas say. Measured on a hand-authored
@@ -361,7 +368,7 @@ intent with no world: round-trip and mirror pass, buildability skips, traversabi
 `GET /xml` answers 409. Configure writes the XML for a world that exists; it cannot author one in a vacuum.
 
 **Every export checks its declared `<gamemode>` first, regardless of origin.** `MapExportComposer` reads the
-document's own `gamemode` list before anything else in `Compose` — no world, no resolved intent, nothing
+document's own `gamemode` list before anything else on either leg — no world, no resolved intent, nothing
 sketch-specific — and answers **409** with an `OB20` finding the moment one of the author's own
 ids falls outside PGM's closed enum (`destroyables-and-cores.md` §1, `OB7`, which states it in full: PGM
 parses `<gamemode>` as a repeated element and fails the whole map to load on the first id `Gamemode.byId`
@@ -369,7 +376,7 @@ cannot resolve). The studio's own generator never writes an id outside that set;
 hand-edited label or a corpus-derived one the export would otherwise ship straight into a load failure.
 
 **A sketch-origin map's export answers two more 409s, from `MapExportComposer` itself rather than from
-pre-flight.** They exist because `Compose` already builds that map's world and holds its resolved
+pre-flight.** They exist because `ComposeSketch` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
 rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
 re-enters the compile gate, and the case a map begun in Sketch never reaches at all.

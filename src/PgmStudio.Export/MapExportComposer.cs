@@ -52,31 +52,27 @@ public static class MapExportComposer
         Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
         IReadOnlySet<int>? surfacePalette, IReadOnlyList<(string Type, int X, int Y, int Z)> resources)
     {
-        // OB20 — every declared <gamemode> against PGM's own closed enum. Checked first, and against every
-        // map regardless of origin or world state: it needs no ground and no built intent, and an id outside
-        // PGM's enum fails the whole map to load (MapInfoImpl.parseGamemodes) however clean everything else is.
-        if (RefuseUnknownGamemode(doc) is { } gamemodeRefusal) return gamemodeRefusal;
-
-        // Playability gate: intent-authored maps must be traversable before they can export (§9).
-        if (isIntent)
-        {
-            var trav = Traversability.Check(doc, segments?.SurfaceColumns(), segments?.Y0Columns());
-            if (!trav.Connected)
-                return Refuse("not traversable",
-                [
-                    new Finding(ExportRules.NotTraversable, trav.Message,
-                        Subjects: [.. trav.Isolated.Select(isolated => isolated.For is { } team
-                            ? $"{isolated.Kind} {isolated.Name} (for {team})"
-                            : $"{isolated.Kind} {isolated.Name}")]),
-                ]);
-        }
-
         try
         {
             // Sketch-originated: synthesise the world, re-project the resolved intent so the XML agrees with
-            // it, then compose (no scanned surface/resources for a sketch map).
+            // it, then compose (no scanned surface/resources for a sketch map). Every gate a sketch map is
+            // held to is inside that call rather than in front of it, so a driver reaching it directly is
+            // judged by the same chain this route is.
             if (layoutBytes is not null)
                 return ComposeSketch(doc, Encoding.UTF8.GetString(layoutBytes), intent!);
+
+            // OB20 — every declared <gamemode> against PGM's own closed enum. Checked first on this leg, and
+            // against every map regardless of origin or world state: it needs no ground and no built intent,
+            // and an id outside PGM's enum fails the whole map to load (MapInfoImpl.parseGamemodes) however
+            // clean everything else is.
+            if (RefuseUnknownGamemode(doc) is { } gamemodeRefusal) return gamemodeRefusal;
+
+            // EX1 — an intent-authored map must be traversable before it can export (§9), judged over the
+            // world scanned into the store. A map that ships its own world has no authored ground to be held
+            // to, so it is exempt.
+            if (isIntent
+                && RefuseUntraversable(doc, segments?.SurfaceColumns(), segments?.Y0Columns()) is { } cutOff)
+                return cutOff;
 
             // EX2 — asked of an intent-authored map that is not sketch-originated, where there is a document
             // to read and no resolved intent to compare it against. A corpus map is exempt for the reason the
@@ -102,15 +98,23 @@ public static class MapExportComposer
     }
 
     /// <summary>The sketch leg of the export, one chain shared by the HTTP export and the headless mapgen
-    /// driver so neither can drift past the other's gates: build the world, gate the goals against the ground
-    /// the rasterizer actually produced, project the resolved intent, judge the document, compose the XML.
+    /// driver so neither can drift past the other's gates: refuse an unloadable gamemode, build the world,
+    /// gate the goals against the ground the rasterizer actually produced, project the resolved intent, judge
+    /// what the document says and whether it can be walked, compose the XML.
     /// <paramref name="decorate"/> runs after the intent is projected and before the document is judged —
     /// where a driver states identity the intent does not carry (name, version, objective, authors).
     /// Exceptions propagate; <see cref="Compose"/> is the caller that turns them into structured errors, and
-    /// a headless driver keeps its own crash semantics.</summary>
+    /// a headless driver keeps its own crash semantics.
+    /// <para><b>Every gate a sketch map is held to is in this chain</b>, so which door a caller came through
+    /// cannot change what it is judged by.</para></summary>
     public static ExportComposition ComposeSketch(
         Dict doc, string layoutJson, MapIntent intent, Action<Dict>? decorate = null)
     {
+        // OB20 — every declared <gamemode> against PGM's own closed enum. First, because it needs no ground
+        // and no built intent, and an id outside PGM's enum fails the whole map to load
+        // (MapInfoImpl.parseGamemodes) however clean everything else is.
+        if (RefuseUnknownGamemode(doc) is { } gamemodeRefusal) return gamemodeRefusal;
+
         // SK2 — a board whose extent is past what the studio will realize is refused before the build, not
         // during it: the cost is paid per column of the extent whether or not ground is drawn there. Asked in
         // the shared leg, so a headless driver is refused by the same measure the HTTP export is.
@@ -120,14 +124,24 @@ public static class MapExportComposer
         var built = SketchWorldBuilder.Build(layoutJson, intent);
         var goals = built.ResolvedIntent;
 
-        // OB17 — asked against the ground the rasterizer actually produced, not the plan's rectangles: a
-        // subtract cut, a relief solve, or a sketch edited after its compile all move where ground is, and
-        // none of them re-enters the compile gate. A map begun in Sketch never passes that gate at all, so
-        // this is the only place every export is checked.
-        if (RefuseObjectivePlacement(layoutJson, goals) is { } placementRefusal) return placementRefusal;
+        // The ground this export ships, read once and answered to by both gates that need it. A sketch map's
+        // stored segments are whatever the last `sketch/finish` rasterized, and a subtract cut, a relief solve
+        // or an edit after the finish each move where ground is without re-entering that stage — so the
+        // layout in hand is the only reading that describes the world about to be written.
+        var columns = SketchRasterizer.RasterizeColumns(layoutJson);
+
+        // OB17 — asked against the ground the rasterizer actually produced, not the plan's rectangles. A map
+        // begun in Sketch never passes the compile gate at all, so this is the only place every export is
+        // checked.
+        if (RefuseObjectivePlacement(columns, goals) is { } placementRefusal) return placementRefusal;
 
         IntentGenerator.Apply(doc, goals);
         decorate?.Invoke(doc);
+
+        // EX1 — the map must be walkable from its spawns to everything a match needs (§9), over the ground
+        // above and the document the projection has just written. It reads the spawns, wools and goals the
+        // slices emit, so it cannot be asked before them.
+        if (RefuseUntraversable(doc, Surface(columns), AtY0(columns)) is { } cutOff) return cutOff;
 
         // OB19 — a tree, boulder or building may not stand inside a goal's clearance. Refused rather than
         // dropped: these three are authored, and dropping one would silently discard a placement the author
@@ -265,11 +279,43 @@ public static class MapExportComposer
         ]);
     }
 
+    // ── EX1 — can the map be walked? ──────────────────────────────────────────────────────────────────────
+
+    /// <summary>The traversability judgement, in the one shape both legs answer it in: the columns a player
+    /// can stand on and the columns that reach <c>y=0</c>, against the spawns, wools and goals the document
+    /// declares. Null when everything a match needs can reach everything else.</summary>
+    private static ExportComposition? RefuseUntraversable(
+        Dict doc, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns)
+    {
+        var walk = Traversability.Check(doc, surfaceColumns, y0Columns);
+        if (walk.Connected) return null;
+
+        return Refuse("not traversable",
+        [
+            new Finding(ExportRules.NotTraversable, walk.Message,
+                Subjects: [.. walk.Isolated.Select(isolated => isolated.For is { } team
+                    ? $"{isolated.Kind} {isolated.Name} (for {team})"
+                    : $"{isolated.Kind} {isolated.Name}")]),
+        ]);
+    }
+
+    /// <summary>Every column the board draws — a walkable surface, the same reading a scanned map's
+    /// <c>layer_segment</c> rows give.</summary>
+    private static HashSet<(int, int)> Surface(List<(int X, int Z, int YFloor, int YTop)> columns)
+        => [.. columns.Select(column => (column.X, column.Z))];
+
+    /// <summary>The columns whose span reaches the world floor, which is what tells ground apart from a
+    /// bridge or a platform standing over void.</summary>
+    private static HashSet<(int, int)> AtY0(List<(int X, int Z, int YFloor, int YTop)> columns)
+        => [.. columns.Where(column => column.YFloor <= 0 && 0 <= column.YTop)
+                      .Select(column => (column.X, column.Z))];
+
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
 
-    private static ExportComposition? RefuseObjectivePlacement(string layoutJson, MapIntent goals)
+    private static ExportComposition? RefuseObjectivePlacement(
+        List<(int X, int Z, int YFloor, int YTop)> columns, MapIntent goals)
     {
-        var groundColumns = SketchRasterizer.RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).ToHashSet();
+        var groundColumns = Surface(columns);
         bool IsLand(int x, int z) => groundColumns.Contains((x, z));
         var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals)).ToList();
 

@@ -41,12 +41,14 @@ public sealed class MapArtifactStore(PgmDb db)
     public Task<bool> HasAsync(long mapId, string kind, CancellationToken ct = default)
         => db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == kind, ct);
 
-    /// <summary>Replace the map's artifact of this kind with these bytes.</summary>
-    public async Task SaveAsync(long mapId, string kind, byte[] data, CancellationToken ct = default)
-    {
-        await DeleteAsync(mapId, kind, ct);
-        await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = kind, Data = data }, token: ct);
-    }
+    /// <summary>Replace the map's artifact of this kind with these bytes, in one write — a fault between the
+    /// delete and the insert would otherwise leave the map holding neither the old document nor the new.</summary>
+    public Task SaveAsync(long mapId, string kind, byte[] data, CancellationToken ct = default)
+        => db.InOneWriteAsync(async () =>
+        {
+            await DeleteAsync(mapId, kind, ct);
+            await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = kind, Data = data }, token: ct);
+        }, ct);
 
     /// <summary>Replace the map's artifact of this kind with this document, serialized.</summary>
     public Task SaveJsonAsync<T>(long mapId, string kind, T value, CancellationToken ct = default)

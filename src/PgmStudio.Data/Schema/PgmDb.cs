@@ -48,6 +48,27 @@ public sealed class PgmDb : DataConnection
     public ITable<StoreyStyleCourseRow> StoreyStyleCourses => this.GetTable<StoreyStyleCourseRow>();
     public ITable<PorchStyleRow> PorchStyles => this.GetTable<PorchStyleRow>();
     public ITable<RoomStyleStoreyRow> RoomStyleStoreys => this.GetTable<RoomStyleStoreyRow>();
+
+    /// <summary>
+    /// Run <paramref name="write"/> as one unit: either everything it writes lands or none of it does.
+    ///
+    /// <para>The studio replaces rather than patches — a document, a map's features and an artifact are each
+    /// stored by deleting what is there and writing what was posted — so a fault between the two halves
+    /// leaves a map with its old state gone and its new state half written, which no read can tell from a
+    /// map that was authored that way.</para>
+    ///
+    /// <para><b>Nesting joins rather than fails.</b> A connection carries one transaction and
+    /// <see cref="DataConnection.BeginTransactionAsync"/> throws on a second, but one writer legitimately
+    /// calls another over the same connection — a finished sketch writes its feature rows and its artifacts
+    /// through two of them — so the outermost call owns the boundary and an inner one runs inside it.</para>
+    /// </summary>
+    public async Task InOneWriteAsync(Func<Task> write, CancellationToken ct = default)
+    {
+        if (Transaction is not null) { await write(); return; }
+        await using var tx = await BeginTransactionAsync(ct);
+        await write();
+        await tx.CommitAsync(ct);
+    }
 }
 
 /// <summary>Builds linq2db <see cref="DataOptions"/> for the MariaDB/MySqlConnector provider.</summary>

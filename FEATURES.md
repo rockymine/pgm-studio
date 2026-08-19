@@ -4445,6 +4445,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   to the caller. Eleven `PL*` ids were minted for the plan's own structural errors, which had carried
   `rule: null`. `docs/refusals.md` is the catalogue and the shape; the tool documents' endpoint tables cite it
   rather than each describing an envelope of its own.
+- **The export's gate chain does not depend on which door a caller came through (RP3).** `Compose` ran the
+  unknown-gamemode refusal and the traversability judgement in front of the branch and `ComposeSketch` ran
+  the rest, so `tools/mapgen` — which links `ComposeSketch` and speaks no HTTP — met the second half only.
+  A sketch map's whole chain now sits in `ComposeSketch`: `OB20`, `SK2`, `OB17`, `EX1`, `OB19`, then
+  `EX2`/`EX3`/`EX4`. `EX1` moved with a second consequence: on the sketch leg it reads the ground **this
+  build** rasterizes rather than the segments the last `sketch/finish` stored, which is the reason `OB17`
+  already gave — a subtract cut, a relief solve or an edit after the finish each move where ground is
+  without re-entering that stage. One rasterization now serves both gates where there had been two.
+  `Compose` keeps the leg a map that ships its own world takes, and asks `EX1` there over its scanned
+  segments.
+- **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
+  and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
+  five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a
+  fault between the halves left a map whose old state was gone and whose new state was half there, which no
+  read can tell from a map that really has less in it. `PgmDb.InOneWriteAsync` is the boundary and all three
+  ask it by that name. It **joins** rather than opens where one is already running, because a connection
+  carries a single transaction and `BeginTransactionAsync` throws on a second — and a finished sketch
+  legitimately writes its segment rows and its three artifacts through two writers over one connection.
 - **Wings abut, the hall is derived, and the joint is the wing's own choice (G185, G186).** The author's model,
   in the author's vocabulary: two footprints **abut** when no block belongs to both and no gap lies between
   them, they **overlap** when blocks are shared, and only the first makes a building. Where they abut they

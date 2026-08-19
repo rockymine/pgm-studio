@@ -105,26 +105,7 @@ The step that stops a gate from belonging to a door, and the only one here that 
   builders. `SketchFinishEndpoint.HandleAsync` *is* the finish use case — load, gate, rasterize, detect,
   write, advance the stage — and nothing but an HTTP request can reach it, which is why `tools/mapgen` has
   its own. Add an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests
-  as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one. `RP3` is the
-  instance this dissolves; it goes with this.
-
-- [ ] **RP3 — The gate chain's completeness depends on which entry point a caller came through.**
-  `MapExportComposer.Compose` runs `OB20` (`RefuseUnknownGamemode`) and the traversability judgement before
-  handing on; `ComposeSketch` runs the rest. `tools/mapgen` calls `ComposeSketch` directly
-  (`Program.cs:141`) and so skips both. It cannot trip `OB20` today — it writes no gamemodes — so this is
-  shape rather than a live defect, but a gate that fires on one of two entry points is one nobody can
-  reason about, and it is the residue of the finding that `mapgen` shipped maps the HTTP export would
-  refuse. Move both down into `ComposeSketch` so the chain is caller-independent, leaving `Compose` the
-  doc-assembly leg it already reads as.
-
-- [ ] **RP20 — Two writers delete before they write, and only one of the three does it in a transaction.**
-  `MapWriter.SaveDocAsync` opens one around its delete-then-insert. `WorldFeatureWriter.WriteAsync` does the
-  same shape with none — one `DeleteAsync` across `wool_block`, `resource_block`, `chest_item`,
-  `spawner_block` and `layer_segment`, then five `BulkCopyAsync` calls — and its four callers
-  (`PipelineEndpoints:47`, `ImportEndpoints:177,376`, `SketchEndpoints:517`) open none either, so a fault
-  between the delete and the copies leaves a map with its old features gone and its new ones half written.
-  `MapArtifactStore.SaveAsync` is delete-then-insert with no transaction on the same reasoning. Wrap both,
-  the way the writer that already does it is wrapped.
+  as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one.
 
 - [ ] **RP21 — Two writers to one map is a silent lost update.** There is no `ETag`, no `If-Match`, no
   version column and no row check anywhere in `Api` or `Data`. Every Edit route reads the whole document,

@@ -118,6 +118,12 @@ rasterize into something that does not; `DR-PASS` re-opens it after a house land
 walkable; and coverage asks the question the four gates never do — not *can* a player get there, but *does
 any route go*. A board can pass every gate above it and read a third dead.
 
+**Where a gate is asked decides who meets it.** The export's whole chain for a sketch map — `OB20`, `SK2`,
+`OB17`, `EX1`, `OB19`, then `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, the method the
+headless driver links directly, so a gate cannot fire on one front door and not the other. `Compose` keeps
+only the leg a map that ships its own world takes, and asks `EX1` there over the scanned segments; the sketch
+leg asks it over the ground that build just rasterized, because that is the world about to be written.
+
 **A finer grain exists only because a coarser one does.** `DR-PASS`'s five blocks are meaningful because the
 plan already said this ground is walked; `PL9`'s answer is meaningful because the intent already said which
 team captures which wool. Collapsing the four documents into one would not simplify the rules — it would

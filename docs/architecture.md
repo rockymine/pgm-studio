@@ -17,11 +17,11 @@ The pipeline has two entry points. `PgmStudio.Api` exposes **167 endpoint classe
 speaks no HTTP at all. Both compile a plan, rasterize a layout, dress a world and write a `map.xml`.
 
 That is one pipeline with two independent front doors, and the consequence is structural rather than
-incidental: **a gate belongs to whichever door someone put it behind.** `MapExportComposer.Compose` runs the
-unknown-gamemode refusal and the traversability judgement and then hands on to `ComposeSketch`, which runs
-the rest; `mapgen` calls `ComposeSketch` and so runs the second half only. The board files that as `RP3` and
-frames it as a chain to be reordered. It is not — reordering the chain fixes this instance and leaves the
-mechanism, because nothing about the arrangement stops the next gate from landing on one door again.
+incidental: **a gate belongs to whichever door someone put it behind.** The export is where that was visible
+and where it is now closed — every gate a sketch map is judged by sits inside `MapExportComposer.ComposeSketch`,
+so `mapgen`, which links that method directly, meets the chain the HTTP export meets. But closing an instance
+is not closing the mechanism: nothing about the arrangement stops the next gate from landing on one door
+again, because a use case that *is* an HTTP handler has no other place for one to live. That is `RP13`.
 
 ## The boundary carries no schema
 
@@ -181,12 +181,15 @@ an absent request shape looks like, on exactly the documents that matter most.
 Beside the shape questions above sit three that are about the *behaviour* of a write, and all three matter
 more now that a second caller drives the same map.
 
-**A delete-then-write is transactional in one of the three places it happens.**
-`MapWriter.SaveDocAsync` opens a transaction around its delete and its inserts.
-`WorldFeatureWriter.WriteAsync` performs the same shape — one delete across five tables, then five
-`BulkCopyAsync` calls — inside none, and neither do its four callers; `MapArtifactStore.SaveAsync` is a
-delete followed by an insert on the same reasoning. A fault between the two halves leaves a map with its old
-rows gone and its new ones partly written.
+**A delete-then-write lands whole or not at all, and one verb says so.** The studio stores by replacing —
+`MapWriter.SaveDocAsync` drops a map's entities and rewrites them, `WorldFeatureWriter` drops six tables and
+fills five, `MapArtifactStore.SaveAsync` deletes a row and inserts one — so the window between the two halves
+is a state no author authored and no read can tell from a map that really has less in it. All three ask
+`PgmDb.InOneWriteAsync`, which owns the boundary. It joins rather than opens where one is already running,
+because a connection carries a single transaction and a finished sketch legitimately writes its segment rows
+and its three artifacts through two writers over one of them. The nine library-store writes still open theirs
+by hand (`RP27`); each is a leaf nothing calls into, so they are a second shape rather than a second
+guarantee.
 
 **Nothing anywhere carries a version.** There is no `ETag`, no `If-Match` and no row check in `Api` or
 `Data`. Every Edit route reads the whole document, patches it and writes the whole document back, so two
@@ -226,7 +229,7 @@ answer already and stopped one step short of the form that makes it machine-read
 |---|---|---|
 | a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, `TC1`, and most of the doc-rot rule's hardest half |
 | a declared request shape | a request record per route, bound at the edge — parse rather than validate | 145 unguarded routes, and most of the Edit tool's 74 hand-written checks |
-| a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | the second pipeline in `tools/mapgen`, `RP3`, and the 49-fold load-or-404 prologue |
+| a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | the second pipeline in `tools/mapgen`, and the 49-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 71 ids to branch once |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
 | a lifecycle that is enforced | a state machine over `MapStage` with a transition table, and the allowed transitions on the map's own response | `capabilities.md` as the only answer to a runtime question, and an agent that learns the pipeline by trying it |

@@ -1259,6 +1259,16 @@ braces, worth having once the studio is used by someone who did not write it.
   **monument** (where it is delivered). A player spawn is a **spawn point**, a **protection region** so the
   enemy cannot enter, and an optional **housing**. Source, protection, optional structure, twice over.
 
+- [ ] **RP27 — Nine library writes still open a transaction by hand.** `PgmDb.InOneWriteAsync` is the verb
+  for "this replacement lands whole or not at all", and the three map-level writers ask it by that name.
+  The style, theme and house-part stores do not: `RoomStyleStore` (2), `HousePartStore` (4), `ThemeStore` (2)
+  and `MapMetadataEndpoint` (`WriteEndpoints.cs:58`) each write `await using var tx = await
+  db.BeginTransactionAsync(ct)` and commit at the end. They are correct today — every one is a leaf write
+  nothing calls into — but `BeginTransactionAsync` throws on a second transaction over one connection, so
+  the first caller that puts one inside another gets a runtime fault rather than a joined write, and one
+  concept with two call shapes is what the shared verb exists to stop. Convert them; the four that return a
+  value mid-body need the `Func<Task<T>>` overload, which does not exist yet.
+
 - [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
   `docs/tools/capabilities.md` is 716 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB
   of the same question next door, and the two were written by different hands from the same code. Once

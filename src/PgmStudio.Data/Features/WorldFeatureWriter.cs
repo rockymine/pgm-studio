@@ -43,10 +43,9 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// this; a freshly imported world has none, and passes <see cref="PhantomErasure.None"/>.</param>
     public async Task<Counts> WriteAsync(long mapId, string regionDir, PhantomErasure erased, CancellationToken ct = default)
     {
-        // Materialise once — the region files are re-enumerated by each extractor.
+        // Materialise once — the region files are re-enumerated by each extractor. Read before the write
+        // opens, so the scan itself is not holding a transaction while it walks the world.
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
-
-        await DeleteAsync(mapId, ct);
 
         var wool = FeatureExtractors.Wools(chunks)
             .Select(w => new WoolBlockRow { MapId = mapId, WorldX = w.WorldX, WorldZ = w.WorldZ, WorldY = w.WorldY, Color = w.Color }).ToList();
@@ -66,23 +65,33 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         var segs = FeatureExtractors.Segments(chunks)
             .Select(s => new LayerSegmentRow { MapId = mapId, WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList();
 
-        if (wool.Count > 0) await db.BulkCopyAsync(wool, ct);
-        if (res.Count > 0) await db.BulkCopyAsync(res, ct);
-        if (chests.Count > 0) await db.BulkCopyAsync(chests, ct);
-        if (spawners.Count > 0) await db.BulkCopyAsync(spawners, ct);
-        if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
-
         // Gather monument candidates over the whole world (F9) so the authoring tier can Score
         // suggestions without re-reading the .mca — idempotent delete-then-insert, like the features.
         var monuments = MonumentSuggester.Gather(chunks, WorldBox(chunks));
-        var monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
 
         // Cores are gathered in the same pass and for the same reason: the signature needs block materials,
         // which nothing persisted afterwards carries.
         var cores = CoreSuggester.Gather(chunks);
-        var coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
 
-        var islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
+        // The whole replacement is one write. It drops six tables before it fills five of them, so a fault
+        // between the two halves leaves a map whose features are gone and whose new ones are half there —
+        // and a half-written scan reads exactly like a world that has less in it.
+        int monCount = 0, coreCount = 0, islands = 0;
+        await db.InOneWriteAsync(async () =>
+        {
+            await DeleteAsync(mapId, ct);
+
+            if (wool.Count > 0) await db.BulkCopyAsync(wool, ct);
+            if (res.Count > 0) await db.BulkCopyAsync(res, ct);
+            if (chests.Count > 0) await db.BulkCopyAsync(chests, ct);
+            if (spawners.Count > 0) await db.BulkCopyAsync(spawners, ct);
+            if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
+
+            monCount = await MonumentCandidateStore.WriteAsync(db, mapId, monuments, ct);
+            coreCount = await CoreCandidateStore.WriteAsync(db, mapId, cores, ct);
+            islands = await WriteArtifactsAsync(mapId, chunks, erased, ct);
+        }, ct);
+
         return new Counts(wool.Count, res.Count, chests.Count, spawners.Count, segs.Count, islands, monCount, coreCount);
     }
 
@@ -95,8 +104,6 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// </summary>
     public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<(int X, int Z, int YFloor, int YTop)> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
     {
-        await DeleteAsync(mapId, ct);
-
         // Surface layer = one row per (x,z) at its highest top (stacked layers can repeat a column); the
         // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in layer_segment.
         var layerRows = cells.GroupBy(c => (c.X, c.Z))
@@ -109,7 +116,6 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         }
 
         var segs = cells.Select(c => new LayerSegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = c.YFloor, WorldYEnd = c.YTop }).ToList();
-        if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
 
         var config = new JsonObject
         {
@@ -120,11 +126,19 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             ["bounding_box"] = SurfaceBbox(cells.Select(c => (c.X, c.Z))),
         };
 
-        await StoreArtifactAsync(mapId, ArtifactKind.LayerParquet, layerBytes, ct);
-        await StoreArtifactAsync(mapId, ArtifactKind.IslandsJson,
-            System.Text.Encoding.UTF8.GetBytes(IslandDetector.SerializeJson(islands)), ct);
-        await StoreArtifactAsync(mapId, ArtifactKind.MapConfigJson,
-            System.Text.Encoding.UTF8.GetBytes(config.ToJsonString()), ct);
+        // One write, for the reason the scan above is one: the three artifacts and the segment rows are the
+        // finished board, and a map holding some of them is a map whose geometry disagrees with itself.
+        await db.InOneWriteAsync(async () =>
+        {
+            await DeleteAsync(mapId, ct);
+            if (segs.Count > 0) await db.BulkCopyAsync(segs, ct);
+
+            await StoreArtifactAsync(mapId, ArtifactKind.LayerParquet, layerBytes, ct);
+            await StoreArtifactAsync(mapId, ArtifactKind.IslandsJson,
+                System.Text.Encoding.UTF8.GetBytes(IslandDetector.SerializeJson(islands)), ct);
+            await StoreArtifactAsync(mapId, ArtifactKind.MapConfigJson,
+                System.Text.Encoding.UTF8.GetBytes(config.ToJsonString()), ct);
+        }, ct);
     }
 
     /// <summary>The whole-world scan box for the monument gather (full chunk extent × full height).</summary>
