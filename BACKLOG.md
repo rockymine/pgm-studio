@@ -1206,6 +1206,16 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **RP25 — Every gate can say no and nothing can show a yes.** A run that hit `PL11`, `WX6` and `SP1` on a
+  capture-the-wool plan reported what it did next — *"rather than iterate extensively, I simplified to a basic
+  destroy board"* — and named what would have prevented it: "a working example to follow". The examples exist
+  and neither store is reachable from the tool. `tools/seeds/` holds four full plan/layout/intent triples
+  (`base-2island`, `base-2wool`, `base-4team`, `ruediger`) whose job is seeding the library, and
+  `pgm-studio-mapgen/specs/` holds **17 plan+finish pairs** of boards that were built and reviewed. Serve
+  them: a route that lists worked plans by gamemode and answers one, so *start from a board that passes and
+  perturb it* is a call rather than a repository someone has to know about. Cheapest reduction in first-build
+  failures on the board, and it needs no new geometry.
+
 - [ ] **RP24 — `FEATURES.md` is 6,238 lines that nothing reads.** 531 entries, each a paragraph restating
   the commit message that shipped it, and the two things it is actually used for are adding to it and
   checking whether an id is taken. The traceability it claims is already in git — 30 of the last 40 commit

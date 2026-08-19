@@ -384,6 +384,15 @@ asked to add to a board has to be able to learn what a board can hold.
   **nothing describes how a mid island is composed**. That gap is why the focus moved from the generator to
   the authoring loop, and it is what would have to be filled before a box could be asked for by name.
 
+- **G190 — a refusal that carries a candidate, not only a diagnosis.** A gate states what is wrong and, in
+  its `fix`, what would satisfy it in words — `WX6`'s is *"give the wool room a border with a neighbouring
+  piece, or place a build zone against it"*. For the geometric refusals that sentence describes an enumerable
+  set: the neighbouring pieces that could carry a border, the rects a build zone could occupy. A gate that
+  answered two or three of them beside the finding would turn the hardest class of refusal — plan geometry a
+  weaker driver gives up on — into a choice. Speculative because it is not one change: each rule that could
+  carry a candidate has to derive it, and most cannot. Worth trying on `WX6`, `PL11` and `SP1` first, which
+  are the three that refused a board into being a different board.
+
 ### The generator in the studio (G117–G120) — parked while the authoring loop is the focus
 
 The box pipeline is **the** composer and the emitted layouts are good enough to work *with*, so the
