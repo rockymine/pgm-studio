@@ -275,22 +275,28 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
-Four gates, four ways of being wrong about their own verdict: one that never runs, one that misreports its
-cause, one that cannot see half the board, and one that refuses what the rule document recommends. They are
-the last of the `B141`–`B188` audit findings that are not about a house, a distance, a tree, a destroy stamp
-or the plan model — everything else from that pool has moved to the heading its subject owns.
+Four gates, four ways of being wrong about their own verdict: one whose answer is computed and discarded, one
+that misreports its cause, one that cannot see half the board, and one that refuses what the rule document
+recommends. They are the last of the `B141`–`B188` audit findings that are not about a house, a distance, a
+tree, a destroy stamp or the plan model — everything else from that pool has moved to the heading its subject
+owns.
 
-- [ ] **B141 — Validate a sketch shape's required fields, so a shape that rasterizes to nothing is refused.**
-  `SketchShape.Type` defaults to `""` and `RingOf` returns `[]` for an unknown type, so the shape contributes
-  no cells and every stage reports success. `RequiredFields` (`B214`) does not reach it — that guards a **DTO**
-  field the body omitted, and the sketch blob is posted as raw JSON to an `EndpointWithoutRequest`. Same family
-  as `B140`, which shipped one level up: the export gate compares the intent against the document, so a dead
-  shape reaches a refusal only if it costs the map its spawn.
+- [~] **B141 — Four sketch endpoints compute the document check and throw its complaints away.** `SK3`/`SK4`
+  answer a shape that rasterizes to nothing, but only three callers pass them on. `sketch/paint`,
+  `sketch/relief` and `sketch/relief/read` each call `SketchLayoutCheck.Check` and hand the result to
+  `Refusals.StopAsync`, which writes **refusals only** — so `SK2` stops them and every complaint is dropped,
+  on the three endpoints an author actually looks at the board through. All three answer an object, so each
+  can carry `warnings` exactly as `sketch/columns` already does. `sketch/finish` is the fourth and runs no
+  check at all: it rasterizes and refuses only where *nothing* is drawn, which is the one place a **refusal**
+  would be coherent, since finishing is the step that says the drawing is done. Whether it should refuse
+  there is the author's.
 
-  *probed 2026-08-16 against the running API — a layout with one good rectangle and one shape carrying no
-  `type`: `PUT …/sketch` 200 `{"ok":true}`, `GET …/sketch` intact, `POST …/sketch/relief/read` 200
-  `{"islands":[]}`, `POST …/sketch/finish` **200** with a `configureUrl`. The only refusal on the path is
-  `finish`'s 422 "Nothing is drawn", and it fires only when the whole layout is empty.*
+  *re-probed 2026-08-19 against the running API, `b141-probe` — one good rectangle plus one shape carrying no
+  `type`: `PUT …/sketch` **200 with the `SK3` warning**, naming `layout.shapes[1].type` and the shape id;
+  `POST …/sketch/columns` 200 carrying the same; `POST …/sketch/relief/read` 200 `{"islands":[]}` and no
+  warning; `POST …/sketch/finish` **200**. The `{"islands":[]}` is not the fault — a control layout with the
+  bad shape removed answers it too, because `relief/read` answers per stated `relief` block and this document
+  states none.*
 
 - [ ] **B143 — `SP1` must say that a plan declares no build zone, not that its wools are unreachable.** The
   rule needs a declared zone before it has frontline pieces to start from, so a zone-less plan has **all** its
