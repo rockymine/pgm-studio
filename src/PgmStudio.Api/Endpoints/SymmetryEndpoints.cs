@@ -141,13 +141,13 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var existing = await SymmetryStore.LoadAsync(db, map.Id, ct);
         if (existing is not null) { await Send.OkAsync(SymmetryStore.ToJson(existing), ct); return; }
 
         var islandsJson = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct);
-        if (islandsJson is null) { await Send.NotFoundAsync(ct); return; }
+        if (islandsJson is null) { await Refusals.NotFoundAsync(HttpContext, "island decomposition", ct); return; }
 
         var exclude = await ScanConfig.ExcludedIslandsAsync(artifacts, map.Id, ct);
         var islands = SymmetrySupport.ParseIslands(islandsJson, exclude);
@@ -171,10 +171,9 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
         var payload = (JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body) as JsonObject) ?? new JsonObject();
 
         var row = await SymmetryStore.LoadAsync(db, map.Id, ct)

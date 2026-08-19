@@ -47,9 +47,8 @@ public readonly record struct BlockBox(int MinX, int MinY, int MinZ, int MaxX, i
     /// <summary>The wire form a caller states a volume in: six comma-separated integers,
     /// <c>x0,y0,z0,x1,y1,z1</c>. The corners are read in either order and normalised, because a box drawn
     /// from the far corner is the same volume and refusing it would be arithmetic pedantry.
-    /// <para>It lives on the type rather than at the routes that read it: two endpoints had copied the same
-    /// six lines and then disagreed about what an unreadable one means, which is how a mistyped filter came
-    /// to read as no filter at all on one of them.</para></summary>
+    /// <para>It lives on the type rather than at the routes that read it, so that every route reads a stated
+    /// volume the same way and answers the same thing for one it cannot read.</para></summary>
     public static bool TryParse(string? text, out BlockBox box)
     {
         box = default;

@@ -32,7 +32,7 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (_, doc) = loaded.Value;
 
         var facets = RegionCategorizer.DeriveFacets(doc);
@@ -51,7 +51,7 @@ public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, F
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var y0 = (await feature.SegmentsAsync(map.Id, ct))?.Y0Columns();
@@ -76,7 +76,7 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
@@ -98,7 +98,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
@@ -108,11 +108,10 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
             : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));
         var res = GroundCoverage.Read(doc, segs?.SurfaceColumns() ?? [], segs?.Y0Columns(), decor);
 
-        if (PngAnswer.Wanted(HttpContext))
-        {
-            await PngAnswer.WriteAsync(HttpContext, CoverageRender.Png(res), ct);
-            return;
-        }
+        // One picture, so the view name has nothing to select and is not read — this is the one PNG route
+        // with no view to get wrong.
+        if (await PngAnswer.AnsweredAsync(HttpContext, "coverage", "it draws one view",
+                _ => CoverageRender.Png(res), ct)) return;
 
         var rows = Enumerable.Range(0, res.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, res.Width)
@@ -141,7 +140,7 @@ public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, Featu
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
@@ -161,7 +160,7 @@ public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reade
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var have = await feature.HasScanAsync(map.Id, ct);
@@ -181,7 +180,7 @@ public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader re
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
@@ -200,11 +199,10 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
-        using var sr = new StreamReader(HttpContext.Request.Body);
-        var b = (JsonNode.Parse(await sr.ReadToEndAsync(ct)) as JsonObject)?["bounds"] as JsonObject;
+        var b = (JsonNode.Parse(await RawBody.ReadAsync(HttpContext, ct)) as JsonObject)?["bounds"] as JsonObject;
         if (b?["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
         {
             // Naming the four fields alone read as though they were the body; they are nested, and a caller
@@ -234,7 +232,7 @@ public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
         var have = await feature.HasScanAsync(map.Id, ct);
@@ -254,12 +252,11 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var (map, doc) = loaded.Value;
 
-        using var sr = new StreamReader(HttpContext.Request.Body);
         (double, double, double, double)? bounds = null;
-        if ((JsonNode.Parse(await sr.ReadToEndAsync(ct)) as JsonObject)?["bounds"] is JsonObject b)   // bounds is optional
+        if ((JsonNode.Parse(await RawBody.ReadAsync(HttpContext, ct)) as JsonObject)?["bounds"] is JsonObject b)   // bounds is optional
         {
             if (b["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
             {

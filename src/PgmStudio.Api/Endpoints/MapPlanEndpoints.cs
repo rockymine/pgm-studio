@@ -55,7 +55,7 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
     {
         var planId = Route<long>("planId");
         var candidate = await db.Plans.FirstOrDefaultAsync(p => p.Id == planId, ct);
-        if (candidate is null) { await Send.NotFoundAsync(ct); return; }
+        if (candidate is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
         var name = string.IsNullOrWhiteSpace(candidate.Name) ? "Untitled plan" : candidate.Name.Trim();
         var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(string.IsNullOrWhiteSpace(name) ? "plan" : name), ct);
@@ -78,7 +78,7 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
     }
@@ -95,12 +95,12 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
-        if (data is null) { await Send.NotFoundAsync(ct); return; }
+        if (data is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
         var plan = PlanModel.Parse(Encoding.UTF8.GetString(data));
-        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
 
         HttpContext.Response.ContentType = "text/plain; charset=utf-8";
         await HttpContext.Response.WriteAsync(PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
@@ -124,12 +124,12 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
-        if (data is null) { await Send.NotFoundAsync(ct); return; }
+        if (data is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
         var plan = PlanModel.Parse(Encoding.UTF8.GetString(data));
-        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
 
         HttpContext.Response.ContentType = "text/plain; charset=utf-8";
         await HttpContext.Response.WriteAsync(PlanFlow.Describe(PlanFlow.Read(plan)), ct);
@@ -144,7 +144,7 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         using var ms = new MemoryStream();
         await HttpContext.Request.Body.CopyToAsync(ms, ct);

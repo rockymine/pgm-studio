@@ -87,9 +87,9 @@ public sealed class CoreSuggestionsEndpointTests
     [Test]
     public async Task A_box_that_cannot_be_read_is_refused_rather_than_ignored()
     {
-        // The filter is optional, so a failed parse used to skip it and answer every casing the map has
-        // under a 200 — a mistyped box reading as "this volume holds them all". Absent still means no
-        // filter; stated and unreadable is RQ1, the same fault the monument route already named.
+        // The filter is optional, so a failed parse must not read as an absent one: skipping it answers every
+        // casing the map has under a 200, which is a mistyped box reading as "this volume holds them all".
+        // Absent means no filter; stated and unreadable is RQ1, the same fault the monument route names.
         var (client, slug, mapId) = await SetUpAsync();
         await WriteAsync(mapId, Core(0, 0), Core(500, 500));
 

@@ -21,7 +21,7 @@ public sealed class GetMapEndpoint(MapReader reader) : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var doc = await reader.ReadDocAsync(Route<string>("slug")!, ct);
-        if (doc is null) { await Send.NotFoundAsync(ct); return; }
+        if (doc is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         await Send.OkAsync(doc, ct);
     }
 }
@@ -36,7 +36,7 @@ public sealed class MapLayersEndpoint(MapRepository repo, MapArtifactStore artif
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var kinds = await artifacts.KindsAsync(map.Id, ct);
         await Send.OkAsync(new MapLayers(

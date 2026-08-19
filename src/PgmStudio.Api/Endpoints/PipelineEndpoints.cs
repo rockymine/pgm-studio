@@ -23,12 +23,15 @@ public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter wri
     {
         var slug = Route<string>("slug")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var regionDir = roots.RegionDir(slug);
         if (regionDir is null)
         {
-            await Send.ResponseAsync(new Dict { ["error"] = $"no world found for '{slug}' under configured maps roots" }, 404, ct);
+            await Refusals.WriteAsync(HttpContext, 404, "no world for this map",
+                [new Finding(RequestRules.NoSuchSubject,
+                    $"no world folder for '{slug}' under the configured maps roots, so there is nothing on "
+                    + "disk to read")], ct);
             return;
         }
 

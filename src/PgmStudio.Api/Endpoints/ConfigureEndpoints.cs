@@ -51,7 +51,7 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var cfg = await ScanConfig.LoadAsync(artifacts, map.Id, ct);
 
         // Step 3 = symmetry: configure is complete once the user confirms/rejects the detection.
@@ -77,9 +77,8 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db,
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
-        using var r = new StreamReader(HttpContext.Request.Body);
-        var body = JsonDocument.Parse(await r.ReadToEndAsync(ct)).RootElement;
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        var body = JsonDocument.Parse(await RawBody.ReadAsync(HttpContext, ct)).RootElement;
         var islandId = body.GetProperty("island_id").GetInt32();
         var excluded = body.GetProperty("excluded").GetBoolean();
 

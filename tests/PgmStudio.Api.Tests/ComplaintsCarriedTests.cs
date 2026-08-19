@@ -8,12 +8,10 @@ namespace PgmStudio.Api.Tests;
 /// A complaint a gate produced reaches the caller on every surface that ran the gate, and it does so without
 /// the endpoint having decided to pass it on.
 ///
-/// <para>The regression: <c>sketch/paint</c>, <c>sketch/relief</c> and <c>sketch/relief/read</c> each ran
-/// <c>SketchLayoutCheck</c>, handed the answer to <c>StopAsync</c> — which writes refusals only — and then
-/// answered a body with nowhere for a complaint to sit, so <c>SK3</c> was computed and dropped on the three
-/// surfaces an author actually looks at the board through. Nothing failed while it was, which is why the test
-/// asserts the invariant over the whole set rather than the fix on one route: a sixth sketch endpoint added
-/// tomorrow gets the same guarantee from the pipeline, and one added <em>without</em> it fails here.</para>
+/// <para>A dropped complaint fails nothing on its own — the status is the same, the body is still valid, and
+/// the board simply reads as cleaner than it is — so the guarantee has to be asserted over the whole set
+/// rather than route by route. A sketch endpoint added tomorrow gets it from the pipeline; one that somehow
+/// answers outside the pipeline fails here.</para>
 ///
 /// <para>The board is one good rectangle plus one shape stating a kind nobody draws. It builds — that is the
 /// point of a complaint — and the drawing is one shape smaller than the document asked for.</para>

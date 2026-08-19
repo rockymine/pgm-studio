@@ -28,7 +28,7 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         if (!BlockBox.TryParse(HttpContext.Request.Query["box"].ToString(), out var box))
         {
@@ -74,10 +74,9 @@ public sealed class MonumentOrbitEndpoint(MapRepository repo, PgmDb db) : Endpoi
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = JsonNode.Parse(await reader.ReadToEndAsync(ct)) as JsonObject ?? new JsonObject();
+        var body = JsonNode.Parse(await RawBody.ReadAsync(HttpContext, ct)) as JsonObject ?? new JsonObject();
 
         var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
         var mode = symRow?.PrimaryType;

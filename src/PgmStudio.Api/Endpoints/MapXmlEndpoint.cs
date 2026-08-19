@@ -29,7 +29,7 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
     {
         var slug = Route<string>("slug")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var doc = await reader.ReadDocAsync(map, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);

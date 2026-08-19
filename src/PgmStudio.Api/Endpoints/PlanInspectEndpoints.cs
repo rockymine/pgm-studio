@@ -34,8 +34,7 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
 
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
@@ -148,8 +147,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
 
         Dictionary<string, object?> payload;
         try
@@ -192,8 +190,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
 
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
@@ -264,8 +261,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
 
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }
@@ -366,8 +362,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
 
         PlanModel? plan;
         try { plan = string.IsNullOrWhiteSpace(body) ? null : PlanModel.Parse(body); }

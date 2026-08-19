@@ -4317,6 +4317,32 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   dictionary's keys are the author's words, and the type discriminator is the serializer's, not the record's.
   On `material-preview`, `theme-preview` and `room-styles/preview-snapshot`.
 
+- **One envelope for every failure, the edge included (RP2, RP5, RP6, RP7, TL1).** The gates answered
+  `{error, message, findings[]}` and the boundary in front of them did not: 122 sites wrote a bare `{error}`
+  with no rule id, FastEndpoints' own `{errors}`, or nothing at all behind a bodiless 404 — so a caller could
+  not write one parser for a refusal, which is the only reason to have one envelope. Every one of them now
+  answers through `Refusals`, with a rule id `GET /api/rules` explains. Three families were added for faults
+  the edge owns and nothing named: **`RQ4`** a subject the route names and the studio does not have (404 **with
+  a body**, because an empty one cannot say whether the identifier was wrong or the route was — 79 sites);
+  **`RQ5`** a request conflicting with what is stored, its subjects naming what is in the way; **`RQ6`** a
+  document the studio stored and cannot read back, which is 422 rather than a 400 blaming the request that
+  merely asked to read it. Beside them **`IM1`–`IM6`** for the import (a host off the allowlist, an archive
+  that never arrived, one too large, one that is not a zip, one carrying no world, a folder that is a map
+  already), **`CO1`** for a descriptor the composer cannot emit — carrying the emitter's own sentence, which
+  names the knob and the value — and **`SK6`/`SK7`** for the finish stage's two. Five `catch`-alls that turned
+  any exception into a 400 now filter by the faults a document can cause and answer `RQ1` with the reader's
+  message; everything else reaches the middleware as `RQ2` with its trace logged, and the export composer's
+  own catch-all is gone for the same reason. `PngAnswer` refuses an unknown `?view=` once instead of four
+  callers doing it four ways, and `RawBody` is the one body reader. `RefusalEnvelopeTests` asserts the shape
+  over the kinds of failure and that every id the edge cites is in the catalogue.
+
+- **One box parser, and a stated box that cannot be read is refused (TC3).** `TryParseBox` was copied verbatim
+  into two endpoints that then disagreed: monument-suggestions refused a malformed `box=`, core-suggestions
+  dropped the filter and answered every casing the map has under a 200, so a mistyped box read as *this volume
+  holds them all*. The parse is the type's — `BlockBox.TryParse`, corners in either order and normalised, with
+  `BlockBox.Intersects` beside it, which the edge had also grown a private copy of. The filter stays optional:
+  absent is no filter, stated and unreadable is `RQ1`.
+
 - **A complaint reaches the caller whether or not the endpoint thought to pass it on (B141).** `StopAsync`
   writes the refusals and answers false, and nothing said what an endpoint owed the complaints it was left
   holding — so each decided for itself, and three of the four sketch previews decided by dropping the list:

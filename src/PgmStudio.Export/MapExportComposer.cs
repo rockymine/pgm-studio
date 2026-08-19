@@ -96,10 +96,9 @@ public static class MapExportComposer
             // refused by name rather than silently read as though nothing had been placed.
             return Refuse("dressing document invalid", [ex.Finding], 422);
         }
-        catch (Exception ex)
-        {
-            return new(500, new Dict { ["error"] = ex.Message }, null, null);
-        }
+        // Anything else is not this gate's to name, so it propagates: the API's middleware logs the trace and
+        // answers RQ2, and the headless driver gets the exception it can debug. Catching it here would answer
+        // the studio's own fault as the caller's, and this composer has no logger to keep the trace in.
     }
 
     /// <summary>The sketch leg of the export, one chain shared by the HTTP export and the headless mapgen

@@ -65,7 +65,7 @@ public sealed class SketchEndpointTests
 
         var payload = await columns.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(payload.GetProperty("cols").GetArrayLength()).IsGreaterThan(0);
-        // A clean board said nothing, so the key is absent: `warnings` appears when there is something in it
+        // A clean board says nothing, so the key is absent: `warnings` appears when there is something in it
         // and never otherwise, which is what makes an absent one readable as "nothing was complained about".
         await Assert.That(payload.TryGetProperty("warnings", out _)).IsFalse();
     }

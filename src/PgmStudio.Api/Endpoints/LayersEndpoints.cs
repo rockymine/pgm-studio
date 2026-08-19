@@ -192,13 +192,13 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.LayerParquet, ct);
-        if (layer is null) { await Send.NotFoundAsync(ct); return; }
+        if (layer is null) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
 
         var cells = await SurfaceLayer.ReadAsync(layer);
-        if (cells.Count == 0) { await Send.NotFoundAsync(ct); return; }
+        if (cells.Count == 0) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
         await Send.OkAsync(LayerData.Pixels(cells), ct);
     }
 }
@@ -224,7 +224,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         }
 
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         // Optional world-window filter (xmin/xmax/zmin/zmax) → a localised slice for the mini side-view
         // (a point's column + neighbours, or a rectangle's footprint). Absent params = the whole map.
@@ -238,7 +238,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 
         var rows = await q.ToListAsync(ct);
         var result = SideView.Build(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)), axis);
-        if (result is null) { await Send.ResponseAsync(new Dict { ["error"] = "no segment data" }, 404, ct); return; }
+        if (result is null) { await Refusals.NotFoundAsync(HttpContext, "segment data", ct); return; }
 
         await Send.OkAsync(new Dict
         {
@@ -265,7 +265,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         if (!int.TryParse(HttpContext.Request.Query["x"], out var x) || !int.TryParse(HttpContext.Request.Query["z"], out var z))
         {
             await Refusals.UnreadableAsync(HttpContext, "column not named",

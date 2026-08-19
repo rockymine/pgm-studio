@@ -1,6 +1,8 @@
 using FastEndpoints;
 using PgmStudio.Api.Services;
 
+using PgmStudio.Domain;
+
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
@@ -32,7 +34,9 @@ public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutR
         }
         catch (Exception ex)
         {
-            await Send.ResponseAsync(new Dict { ["error"] = ex.Message }, 404, ct);
+            await Refusals.WriteAsync(HttpContext, 404, "no player",
+                [new Finding(RequestRules.NoSuchSubject,
+                    $"the Mojang lookup for '{query}' did not answer a player: {ex.Message}")], ct);
         }
     }
 }

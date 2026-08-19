@@ -37,7 +37,7 @@ public sealed class IslandReviewGetEndpoint(MapRepository repo, MapArtifactStore
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var flag = await IslandReview.LoadAsync(artifacts, map.Id, ct);
         await Send.OkAsync((object?)flag ?? new { }, ct);
     }
@@ -51,7 +51,7 @@ public sealed class IslandReviewPutEndpoint(MapRepository repo, MapArtifactStore
     public override async Task HandleAsync(IslandReview.Flag req, CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         // "ok"/blank status means "nothing to review" → leave the flag cleared (drops it from the queue).
         if (string.IsNullOrWhiteSpace(req.Status) || req.Status == "ok")
@@ -82,7 +82,7 @@ public sealed class IslandHealthEndpoint(MapRepository repo, MapReader reader, P
     {
         var slug = Route<string>("slug")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var islands = IslandRoleData.ParseIslands(await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct));
         var teams = await db.Teams.CountAsync(t => t.MapId == map.Id, ct);

@@ -28,7 +28,7 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db) : Endp
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         // The filter is optional and an unreadable one is not the same as an absent one: skipping the filter
         // on a box that cannot be read answers every casing the map has under a 200, which reads as "this

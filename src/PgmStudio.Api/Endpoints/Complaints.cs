@@ -9,19 +9,19 @@ namespace PgmStudio.Api.Endpoints;
 /// endpoint that happened to ask.
 ///
 /// <para><b>Why this is not the endpoint's job.</b> <see cref="Refusals.StopAsync"/> writes the refusals and
-/// answers false, which is right — a complaint must never arrive dressed as a refusal. What was missing was the
-/// other half of the sentence: an endpoint that ran a gate holds the complaints too, and each of them decided
-/// independently what to do with them. Three of the four sketch previews decided nothing, so <c>SK3</c>/<c>SK4</c>
-/// were computed and dropped on exactly the surfaces an author looks at the board through. Nothing failed while
-/// they were, which is why the answer is a channel rather than three patches: complaints are handed over here,
-/// and the response carries them whether or not the endpoint remembered to.</para>
+/// answers false, which is only half the sentence: an endpoint that ran a gate is left holding the complaints
+/// too. Leaving that to each endpoint makes carrying them a thing to remember, and a dropped complaint fails
+/// nothing — no test breaks, no status changes, the board simply reads as cleaner than it is. So the
+/// complaints are handed over here and the response carries them whether or not the endpoint thought about
+/// them; running the gate is the whole of an endpoint's duty.</para>
 ///
 /// <para><b>One key, one rule for when it appears.</b> A 2xx JSON object answers <c>warnings</c> when anything
-/// was complained about and carries no such key when nothing was — so an absent <c>warnings</c> means one thing
-/// to a caller instead of the four it used to (an endpoint with no gate, an endpoint whose gate found nothing,
-/// an endpoint that dropped what its gate found, and an endpoint answering a shape with nowhere to put it).
-/// A refusal carries refusals only, in <see cref="Contracts.RefusalDto"/>'s <c>findings</c>: the work did not
-/// happen, so nothing rode along with it.</para>
+/// was complained about and carries no such key when nothing was. That single rule is what makes an absent
+/// <c>warnings</c> readable: without it the key's absence covers an endpoint with no gate, one whose gate
+/// found nothing, one that dropped what its gate found and one answering a shape with nowhere to put it — four
+/// states a caller cannot tell apart. A refusal carries refusals only, in
+/// <see cref="Contracts.RefusalDto"/>'s <c>findings</c>: the work did not happen, so nothing rides along with
+/// it.</para>
 ///
 /// <para><b>A report whose subject is findings is not this.</b> <c>/plan/evaluate</c>'s <c>lint</c> and
 /// <c>/plan/feasibility</c>'s per-box findings are the answer being asked for rather than a remark alongside

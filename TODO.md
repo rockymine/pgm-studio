@@ -70,29 +70,21 @@ thresholds stated in it want restating before anything enforces them.
 
 An agent driving the studio meets one of these on every loop, and they share a cause: the same answer is
 given a different shape at each surface, so nothing downstream can read all of them. Fable's run-3 review
-named the layer and re-verified it after its own fixes landed
-(`pgm-studio-mapgen/reports/fable-run3-architecture.md`, with the author's follow-up ask recorded in this
-repo's history); the counts below are re-measured against today's tree. The store it named is settled — one
-`MapArtifactStore` keyed on the artifact kind — and what is left is the envelope and the chain.
+named the layer (`pgm-studio-mapgen/reports/fable-run3-architecture.md`). The store it named is settled — one
+`MapArtifactStore` keyed on the artifact kind — and so is the envelope; what is left is the gate chain.
 
-- [~] **RP2 — Twenty-one hand-rolled refusals are left, and each needs a rule id nobody has ruled on.** The
-  request faults are converted (24 sites, all `RQ1`). What remains, re-counted against today's tree:
+- [ ] **TE1 — The Edit tool answers every refusal as `{error: "…"}`, and it is the last surface that does.**
+  `EditException(status, message)` is thrown at 74 sites across `Pgm/Editing`, and `WriteSupport.RunEditAsync`
+  (`Api/Endpoints/WriteEndpoints.cs:38`) turns each into `new Dict { ["error"] = ex.Message }` with the
+  exception's status, for the 36 endpoints that route through it — the whole Edit surface. So the tool with
+  the most refusals in the studio is the one with no rule ids: a region id already in use, a filter something
+  still references, a coordinate that is not an integer all arrive as prose an agent can only regex. Give the
+  family its own ids (`ED*`, catalogued in `docs/refusals.md`), have `EditException` carry a `Finding` rather
+  than a string, and answer `Refusals.Of` from `RunEditAsync`. `docs/tools/edit.md` names the statuses it
+  refuses with and never the body, so it gains the shape in the same commit.
 
-  **The work failed on a document that read** — `could not paint layout`, `could not build layout`, `could not
-  solve relief` (×2), `could not render plan`, `composition failed for this descriptor`. Measured (`TS14`):
-  the only authored thing reaching them was a malformed dressing document, which now answers `DR-DOC` by
-  name, so what is left in the `catch` is a studio bug wearing a 400. `RQ1` says *could not be read*, which
-  these are not; `RQ2` says the fault is the studio's and answers 500. The ruling wanted is whether they
-  become that.
-
-  **Two are real sketch gates** wanting ids beside `SK1`–`SK5`: *No sketch layout to finish*, *Nothing is
-  drawn*. **Two are the stored row, not the request** (`stored plan is unreadable`, 422). **Three are a
-  library part in use** (409, carrying `used`) — the library has no rule family. **Import** answers through a
-  `Fail(code, msg)` helper **written twice in one file**, standing in front of 19 call sites across
-  8×400 · 403 · 404 · 409 · 413 · 415 · 3×422 · 2×500 · 502, which wants a family of its own. **And the
-  edges**: three 404s carrying a sentence, `WriteEndpoints`' 404 + `EditException` pass-through, and
-  `MapExportComposer`'s 500 `Dict` — which cannot see `Api`'s `RequestRules`, so `RQ2` would have to move to
-  `Domain` beside `Finding.Envelope`.
+  *`grep -c "EditException\.\(BadRequest\|NotFound\|Conflict\)" -r src/` = 74; every other endpoint in the
+  studio answers `{error, message, findings[]}`.*
 
 - [ ] **RP3 — The gate chain's completeness depends on which entry point a caller came through.**
   `MapExportComposer.Compose` runs `OB20` (`RefuseUnknownGamemode`) and the traversability judgement before

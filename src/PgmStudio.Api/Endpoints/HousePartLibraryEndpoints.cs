@@ -71,7 +71,7 @@ public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithout
     {
         var id = Route<long>("id");
         var row = await store.GetRoofAsync(id, ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "roof style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetRoofCoursesAsync(id, ct)), ct);
     }
 }
@@ -111,7 +111,7 @@ public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibra
         var id = Route<long>("id");
         var updated = await store.UpdateRoofAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.RoofCourseRowsOf(req), ct);
-        if (!updated) { await Send.NotFoundAsync(ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "roof style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -136,7 +136,13 @@ public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWith
     {
         var id = Route<long>("id");
         var used = await store.UsingRoofAsync(id, ct);
-        if (used.Count > 0) { await Send.ResponseAsync(new { error = "in use", used }, 409, ct); return; }
+        if (used.Count > 0)
+        {
+            await Refusals.ConflictAsync(HttpContext, "roof style in use",
+                $"{used.Count} room style(s) still bind this roof style — unbind them before forgetting it", ct,
+                holding: [.. used.Select(name => name.ToString()!)]);
+            return;
+        }
         await store.DeleteRoofAsync(id, ct);
         await Send.NoContentAsync(ct);
     }
@@ -165,7 +171,7 @@ public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWitho
     {
         var id = Route<long>("id");
         var row = await store.GetStoreyAsync(id, ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "storey style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row, await store.GetStoreyCoursesAsync(id, ct)), ct);
     }
 }
@@ -201,7 +207,7 @@ public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
         var id = Route<long>("id");
         var updated = await store.UpdateStoreyAsync(
             id, HousePartLibrary.RowOf(req), HousePartLibrary.StoreyCourseRowsOf(req), ct);
-        if (!updated) { await Send.NotFoundAsync(ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "storey style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -223,7 +229,13 @@ public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWi
     {
         var id = Route<long>("id");
         var used = await store.UsingStoreyAsync(id, ct);
-        if (used.Count > 0) { await Send.ResponseAsync(new { error = "in use", used }, 409, ct); return; }
+        if (used.Count > 0)
+        {
+            await Refusals.ConflictAsync(HttpContext, "storey style in use",
+                $"{used.Count} room style(s) still bind this storey style — unbind them before forgetting it", ct,
+                holding: [.. used.Select(name => name.ToString()!)]);
+            return;
+        }
         await store.DeleteStoreyAsync(id, ct);
         await Send.NoContentAsync(ct);
     }
@@ -249,7 +261,7 @@ public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithou
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetPorchAsync(Route<long>("id"), ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(row), ct);
     }
 }
@@ -270,7 +282,8 @@ public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<Po
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
     {
         var id = Route<long>("id");
-        if (!await store.UpdatePorchAsync(id, HousePartLibrary.RowOf(req), ct)) { await Send.NotFoundAsync(ct); return; }
+        if (!await store.UpdatePorchAsync(id, HousePartLibrary.RowOf(req), ct))
+        { await Refusals.NotFoundAsync(HttpContext, "porch style", ct); return; }
         await Send.OkAsync(HousePartMapping.ToDetail(id, req), ct);
     }
 }
@@ -291,7 +304,13 @@ public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWit
     {
         var id = Route<long>("id");
         var used = await store.UsingPorchAsync(id, ct);
-        if (used.Count > 0) { await Send.ResponseAsync(new { error = "in use", used }, 409, ct); return; }
+        if (used.Count > 0)
+        {
+            await Refusals.ConflictAsync(HttpContext, "porch style in use",
+                $"{used.Count} room style(s) still bind this porch style — unbind them before forgetting it", ct,
+                holding: [.. used.Select(name => name.ToString()!)]);
+            return;
+        }
         await store.DeletePorchAsync(id, ct);
         await Send.NoContentAsync(ct);
     }

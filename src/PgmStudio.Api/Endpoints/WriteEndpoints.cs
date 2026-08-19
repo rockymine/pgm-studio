@@ -2,6 +2,7 @@ using FastEndpoints;
 using LinqToDB;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Editing;
 
@@ -15,8 +16,7 @@ internal static class WriteSupport
     /// <summary>Read the JSON request body into the doc-tree dict (only the provided keys → partial edits).</summary>
     public static async Task<Dict> ReadPayloadAsync(HttpContext ctx, CancellationToken ct)
     {
-        using var reader = new StreamReader(ctx.Request.Body);
-        var body = await reader.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(ctx, ct);
         return string.IsNullOrWhiteSpace(body) ? new Dict() : JsonTree.FromJson(body) as Dict ?? new Dict();
     }
 
@@ -25,7 +25,9 @@ internal static class WriteSupport
         MapRepository repo, MapReader reader, MapWriter writer, string slug, Func<Dict, Dict> edit, CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) return (404, new Dict { ["error"] = "map not found" });
+        if (map is null)
+            return (404, Refusals.Of("no such map",
+                [new Finding(RequestRules.NoSuchSubject, $"no map is stored under '{slug}'")]));
         var doc = await reader.ReadDocAsync(map, ct);
         try
         {
@@ -50,7 +52,7 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
 
         await using var tx = await db.BeginTransactionAsync(ct);

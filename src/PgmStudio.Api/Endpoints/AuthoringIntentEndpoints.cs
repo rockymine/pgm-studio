@@ -18,7 +18,7 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         await Send.OkAsync(await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct), ct);
     }
 }
@@ -87,10 +87,9 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
     {
         var slug = Route<string>("slug")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var sr = new StreamReader(HttpContext.Request.Body);
-        var body = await sr.ReadToEndAsync(ct);
+        var body = await RawBody.ReadAsync(HttpContext, ct);
 
         var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug, map.Id, body, ct);
         await Send.ResponseAsync(resp!, status, ct);
@@ -118,10 +117,9 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
     {
         var slug = Route<string>("slug")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var sr = new StreamReader(HttpContext.Request.Body);
-        var compiled = await sr.ReadToEndAsync(ct);
+        var compiled = await RawBody.ReadAsync(HttpContext, ct);
 
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
         var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));

@@ -56,10 +56,16 @@ for one that wants to act:
 fault itself, which is what the findings are for; it exists so a client can show something useful before it has
 looked at a single finding. `message` is the findings' sentences joined with `; `.
 
-The status code stays the gate's own: **400** for a document that is wrong as posted, **409** for one that is
-well-formed but conflicts with the map's state, **422** for one that cannot be processed. That is a fact about
-the request rather than about the fault, so each endpoint names its own — the tool documents' endpoint tables
-carry which.
+The status code stays the gate's own: **400** for a document that is wrong as posted, **404** for a subject
+the route names and the studio does not have, **409** for one that is well-formed but conflicts with the map's
+state, **422** for one that cannot be processed, **500** for a fault that is the studio's own. That is a fact
+about the request rather than about the fault, so each endpoint names its own — the tool documents' endpoint
+tables carry which.
+
+**The edge answers it too, not only the gates.** No route under `/api` answers a failure in a shape of its
+own, and none answers one with no body at all: `Refusals` writes every one of them, so a caller writes one
+parser for a refusal — which is the only reason to have one envelope. The single exception left is the Edit
+tool's `EditException` pass-through, which answers `{error}` with no rule id (`TE1`).
 
 Complaints travel the same way but on a **success** response, under `warnings`, since nothing was refused —
 and the response carries them whether or not the endpoint thought to, which is *What a success carries* below.
@@ -80,8 +86,10 @@ a rule that changed its name between the two would be two rules.
 | `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |
 | `DR-*` | the dressing pass's own — `DR-DOC` a document that will not parse, `DR-ROAD` a prop resting nearer to the road than its kind's standoff (the numbers live on `PlacedProp.RouteStandoff`), `DR-PASS` a building leaving no five-block passage beside any side, `DR-SIZE` a building whose box is under 5×5 blocks, `DR-KEEP` a prop resting on ground the map keeps clear (a spawn, a wool room, a stated structure, a built column, a door's approach), `DR-CLAIM` a prop resting on ground something already standing holds (a building holds what it stamps plus a block of ring beyond it), `DR-SITE` a prop with no ground to rest on — a building is held to every cell of its footprint, and the finding names the first bare column. Every one of them is a **complaint on a built world**: the prop does not land, the world does | `Minecraft/Dressing/DressingJson.cs` · `Minecraft/Dressing/GroundClaims.cs` → `DressingRules` |
 | `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry, `EX4` an objective with no team to contest it | `Export/MapExportComposer.cs` → `ExportRules` |
-| `SK*` | the sketch document's own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it; `SK2` a board whose extent is past what the studio will realize (the one refusal; the ceiling is a constant and deliberately appears in no message — a stated one is a target); `SK3` a name matching nothing (a shape kind, a mirror mode, an island's shape id, a relief's island, a shape's or the map's theme); `SK4` a shape that draws no ground; `SK5` a column the world cannot hold. `SK3`–`SK5` are **complaints on a built board**: the rasterizer is set algebra, so what it cannot read contributes no ground rather than failing, and without these a defect in the document reads as a smaller drawing | `Pgm/Sketch/SketchRules.cs` · `Pgm/Sketch/SketchLayoutCheck.cs` |
-| `RQ*` | the request itself — a document that could not be read, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
+| `SK*` | the sketch document's own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it; `SK2` a board whose extent is past what the studio will realize (the one refusal; the ceiling is a constant and deliberately appears in no message — a stated one is a target); `SK3` a name matching nothing (a shape kind, a mirror mode, an island's shape id, a relief's island, a shape's or the map's theme); `SK4` a shape that draws no ground; `SK5` a column the world cannot hold; `SK6` nothing stored to finish and `SK7` a stored board that rasterizes to no ground — the two the finish stage owns, and the one place the sketch's complaints become fatal, since finishing is what declares the drawing done. `SK3`–`SK5` are **complaints on a built board**: the rasterizer is set algebra, so what it cannot read contributes no ground rather than failing, and without these a defect in the document reads as a smaller drawing | `Pgm/Sketch/SketchRules.cs` · `Pgm/Sketch/SketchLayoutCheck.cs` |
+| `IM*` | the import's own — `IM1` a host the import does not fetch from (the SSRF allowlist), `IM2` an archive the host did not serve, `IM3` one past the download cap, `IM4` one that is not a zip, `IM5` one carrying no `region/*.mca`, `IM6` a folder that is a map already rather than a world to originate from | `Api/Endpoints/ImportEndpoints.cs` → `ImportRules` |
+| `CO1` | the composer's — a well-formed descriptor naming a board it cannot emit; the sentence carries which knob and which value, because the emitter that stopped is the only thing that knows | `Pgm/Compose/ComposeException.cs` → `ComposeRules` |
+| `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Api/Endpoints/Refusals.cs` → `RequestRules` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 
 The structural plan rules, in full:
@@ -160,21 +168,19 @@ return;` — which writes only the refusals, so a complaint never arrives dresse
 ## What a success carries
 
 **Running the gate is the whole of an endpoint's duty.** `StopAsync` writes the refusals and answers false,
-which is right; what was missing was the other half of the sentence, because an endpoint that ran a gate holds
-the complaints too and nothing said what it owed them. Each of them answered that question for itself, and
-three of the four sketch previews answered it by dropping the list — `SK3` and `SK4` computed and thrown away
-on exactly the surfaces an author looks at the board through. A dropped complaint fails nothing, which is why
-the fix is a channel rather than three patches: the complaints are handed to `Complaints` (`Api/Endpoints`),
-one middleware puts them on whatever success the endpoint goes on to answer, and an endpoint written tomorrow
-gets the same guarantee without knowing it exists. A finding produced away from a gate — the props a dressing
-pass declined, the fields a reader had nowhere to keep — is handed over the same way, by
-`Complaints.Add`/`Complaints.Unread`, and travels the same road from there.
+which is half the sentence: an endpoint that ran a gate is left holding the complaints too. That half is not
+left to the endpoint, because a dropped complaint fails nothing — the status is the same, the body is still
+valid, and the board reads as cleaner than it is, so nothing catches one. The complaints are handed to
+`Complaints` (`Api/Endpoints`) and one middleware puts them on whatever success the endpoint goes on to
+answer, which is how an endpoint gets the guarantee without knowing the channel exists. A finding produced
+away from a gate — the props a dressing pass declined, the fields a reader had nowhere to keep — is handed
+over the same way, by `Complaints.Add`/`Complaints.Unread`, and travels the same road from there.
 
 **One key, and one rule for when it appears.** A 2xx JSON object answers `warnings` when something was
-complained about and carries no such key when nothing was. That is what makes an absent `warnings` readable:
-it used to mean four things a caller could not tell apart — an endpoint with no gate, an endpoint whose gate
-found nothing, an endpoint that dropped what its gate found, and an endpoint answering a shape with nowhere to
-put it — and it now means the one. A caller reads `warnings ?? []` and is done.
+complained about and carries no such key when nothing was. The single rule is what makes an absent `warnings`
+readable: without it the key's absence covers four states a caller cannot tell apart — an endpoint with no
+gate, one whose gate found nothing, one that dropped what its gate found, and one answering a shape with
+nowhere to put it. A caller reads `warnings ?? []` and is done.
 
 Two cases sit outside that rule, and both are honest. A **refusal** carries refusals only, in the envelope's
 `findings`: the work did not happen, so nothing rode along with it. And a success that is **not JSON** — a
@@ -185,10 +191,10 @@ studio logs it as an error against the route rather than dropping it in silence.
 `/plan/feasibility` a per-box one, and in both the findings are the answer being asked for rather than a remark
 alongside one, so they stay named fields of the documents they belong to.
 
-## The two the edge asks
+## The six the edge asks
 
-`RQ1` and `RQ2` are not a gate's. A gate reads a document it understood and says what is wrong with the map;
-these two are about the **request**, and they exist because the shape above held everywhere except at the door.
+None of these is a gate's. A gate reads a document it understood and says what is wrong with the map; these
+six are about the **request**, and they exist because the shape above held everywhere except at the door.
 
 **`RQ1` — the document could not be read.** Absent, empty, malformed, or naming a kind that does not exist. It
 is 400, and it carries the field where the reader knew one: a part stated as `null` where the record cannot
@@ -223,10 +229,35 @@ the warning worthless: a dictionary's keys, which are the author's words rather 
 names its own buckets — and the **type discriminator**, which the serializer reads to choose the very type
 being walked and which no concrete record carries a property for.
 
+**`RQ4` — the route names a subject the studio does not have.** A slug no map is stored under, an id no
+library row carries, an artifact a stage has not produced yet. It is **404 with a body**, because an empty one
+cannot say whether the identifier was wrong or the route was — `PUT /map/typo/sketch` and
+`PUT /map/voidwatch/skecth` are otherwise the same answer, and the second is the one a caller cannot guess at.
+The finding names what was looked for and the identifier it was looked for under.
+
+**`RQ5` — the request conflicts with what is stored.** A slug already taken, a library row something still
+binds. **409**, and the finding's subjects name what is in the way — the styles still binding a roof, the map
+already holding the slug — so a caller can act rather than guess. It is the one refusal where nothing is wrong
+with the request at all.
+
+**`RQ6` — a document the studio stored will not read back.** A plan row, an artifact, a snapshot written under
+a shape no reader claims. **422** rather than 500, because it is data rather than a defect and writing the
+document again clears it; and deliberately not `RQ1`, which would blame the request that merely asked to read
+it — an agent told its own posted document is unreadable looks in the wrong place.
+
 **`RQ2` — the fault is the studio's own.** Something escaped an endpoint that no gate refused. It stays a
 **500**, because dressing a defect as a bad request sends an author hunting a mistake they did not make; what
 it buys is that the caller gets this envelope instead of a .NET stack trace, and the trace goes to the log. It
 should never be seen, and one appearing is a bug report rather than an authoring problem.
+
+**A `catch` around a build or a solve names the faults a document can cause, and nothing else.** Catching
+everything and answering 400 dresses a defect as the author's mistake: a null dereference in the rasterizer
+reaches them as a fault in their board, and the exception's own sentence goes nowhere. So each of the five
+preview and render endpoints filters by type — `JsonException`, `ArgumentException`,
+`InvalidOperationException`, `FormatException`, `OverflowException`, `KeyNotFoundException` — and answers
+`RQ1` **carrying the reader's message**; anything else reaches the middleware, which logs the trace and
+answers `RQ2`. The export's composer lets the exception propagate for the same reason: it has no logger of its
+own, so swallowing one loses the only copy.
 
 **A gate never returns null and never throws.** The one exception is a document that will not parse, which
 cannot carry on to collect a second fault; it throws, and the exception carries its finding so the gate above

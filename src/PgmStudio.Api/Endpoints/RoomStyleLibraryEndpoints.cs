@@ -22,17 +22,8 @@ internal static class StylePngAnswer
         this TEndpoint endpoint, HouseStyle style, CancellationToken ct)
         where TEndpoint : IEndpoint
     {
-        var http = endpoint.HttpContext;
-        if (!PngAnswer.Wanted(http)) return false;
-        if (RoomStylePreview.Png(style, PngAnswer.View(http, "section")) is { } png)
-        {
-            await PngAnswer.WriteAsync(http, png, ct);
-            return true;
-        }
-        http.Response.StatusCode = 400;
-        await http.Response.WriteAsJsonAsync(
-            new { errors = new[] { RoomStylePreview.PngViews } }, ct);
-        return true;
+        return await PngAnswer.AnsweredAsync(endpoint.HttpContext, "section", RoomStylePreview.PngViews,
+            view => RoomStylePreview.Png(style, view), ct);
     }
 }
 
@@ -101,7 +92,7 @@ public sealed class RoomStyleGetEndpoint(RoomStyleStore store) : EndpointWithout
     {
         var id = Route<long>("id");
         var row = await store.GetAsync(id, ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(
             row, await store.GetCoursesAsync(id, ct), await store.GetStoreysAsync(id, ct)), ct);
     }
@@ -143,7 +134,7 @@ public sealed class RoomStyleUpdateEndpoint(RoomStyleStore store, RoomStyleLibra
         var updated = await store.UpdateAsync(
             id, RoomStyleLibrary.RowOf(req), RoomStyleLibrary.CourseRowsOf(req),
             RoomStyleLibrary.StoreyRowsOf(req), ct);
-        if (!updated) { await Send.NotFoundAsync(ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
         await Send.OkAsync(RoomStyleMapping.ToDetail(id, req), ct);
     }
 }
@@ -172,7 +163,7 @@ public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWi
     public override async Task HandleAsync(CancellationToken ct)
     {
         var style = await library.ComposeAsync(Route<long>("id"), ct);
-        if (style is null) { await Send.NotFoundAsync(ct); return; }
+        if (style is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
         await Send.OkAsync(new { styleJson = HouseStyleJson.Serialize(style) }, ct);
     }
 }

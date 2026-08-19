@@ -45,4 +45,16 @@ public static class SketchRules
     /// what stands is not what the document asked for.</summary>
     /// <remarks>Bring the shape's floor and base_height inside 0..255 — a Minecraft world is 256 blocks tall, and a column stated past either end is silently cut to fit.</remarks>
     public const string UnbuildableHeight = "SK5";
+
+    /// <summary>Nothing has been stored to finish. The map is at the sketch stage and no layout has been
+    /// written for it, so there is no document to rasterize into world geometry. 422.</summary>
+    /// <remarks>Draw the board and store it (<c>PUT /api/map/{slug}/sketch</c>, or the Sketch tool's save) before finishing. A map originated from a plan is written by <c>PUT …/sketch/from-plan</c>.</remarks>
+    public const string NothingStored = "SK6";
+
+    /// <summary>The stored layout rasterizes to no ground at all. Every shape in it draws nothing — an empty
+    /// document, or one whose shapes are all of the kinds <c>SK3</c> and <c>SK4</c> report — so finishing it
+    /// would write a world with no land in it. 422, and the one place the sketch's complaints become fatal:
+    /// finishing is what declares the drawing done.</summary>
+    /// <remarks>Draw at least one shape that encloses ground. Where shapes are present, the <c>warnings</c> on this same response name the ones that drew nothing and why.</remarks>
+    public const string NothingDrawn = "SK7";
 }

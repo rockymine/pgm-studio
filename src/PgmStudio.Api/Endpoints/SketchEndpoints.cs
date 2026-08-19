@@ -116,7 +116,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
     }
@@ -133,7 +133,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         using var ms = new MemoryStream();
         await HttpContext.Request.Body.CopyToAsync(ms, ct);
@@ -213,10 +213,9 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var compiled = await reader.ReadToEndAsync(ct);
+        var compiled = await RawBody.ReadAsync(HttpContext, ct);
         try { using var _ = JsonDocument.Parse(compiled); }   // reject non-JSON; don't store garbage
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
@@ -263,17 +262,19 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var layoutJson = await reader.ReadToEndAsync(ct);
+        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
         if (await Refusals.StopAsync(HttpContext, 422, "board too large",
                 SketchLayoutCheck.Check(layoutJson), ct)) return;
 
         IReadOnlyList<SurfaceCell> cells;
         try { cells = TerrainPreview.SketchPaintCells(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct)); }
-        catch { await Send.ResponseAsync(new { error = "could not paint layout" }, 400, ct); return; }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not paint layout", fault.Message, ct); return; }
 
         await Send.OkAsync(cells.Count == 0 ? LayerData.EmptyPixels() : LayerData.PalettePixels(cells), ct);
     }
@@ -305,10 +306,9 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var layoutJson = await reader.ReadToEndAsync(ct);
+        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
         Findings document;
         try { document = SketchLayoutCheck.Check(layoutJson); }
@@ -327,7 +327,10 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         // preview and the export cannot disagree about what a malformed prop list is.
         catch (DressingParseException fault)
         { await Refusals.WriteAsync(HttpContext, 422, "dressing document invalid", [fault.Finding], ct); return; }
-        catch { await Send.ResponseAsync(new { error = "could not build layout" }, 400, ct); return; }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not build layout", fault.Message, ct); return; }
 
         await Send.OkAsync(payload, ct);
     }
@@ -356,10 +359,9 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var layoutJson = await reader.ReadToEndAsync(ct);
+        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
         var interval = Query<double>("interval", isRequired: false);
         if (interval <= 0) interval = 1;
@@ -377,7 +379,10 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
                 (island, footprint) => warm.WarmStart(map.Id, island, footprint),
                 (island, solved) => warm.Remember(map.Id, island, solved));
         }
-        catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
 
         var islands = fields.Select(entry => new
         {
@@ -419,10 +424,9 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        using var reader = new StreamReader(HttpContext.Request.Body);
-        var layoutJson = await reader.ReadToEndAsync(ct);
+        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
         if (await Refusals.StopAsync(HttpContext, 422, "board too large",
                 SketchLayoutCheck.Check(layoutJson), ct)) return;
@@ -436,7 +440,10 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
                 (island, footprint) => warm.WarmStart(map.Id, island, footprint),
                 (island, solved) => warm.Remember(map.Id, island, solved));
         }
-        catch { await Send.ResponseAsync(new { error = "could not solve relief" }, 400, ct); return; }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
 
         var mode = state?.Setup?.MirrorMode;
         var cx = state?.Setup?.Center?.Cx ?? 0;
@@ -479,10 +486,16 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        if (data is null) { await Send.ResponseAsync(new { error = "No sketch layout to finish." }, 422, ct); return; }
+        if (data is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nothing to finish",
+                [new Finding(SketchRules.NothingStored,
+                    "this map has no stored sketch layout, so there is no drawing to rasterize")], ct);
+            return;
+        }
 
         // The document's own gate, run where the drawing is declared done: what the board names and does not
         // have contributes no ground, so an island the author expected can be missing from the artifacts this
@@ -495,7 +508,9 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
         var islands = IslandDetector.Detect(cells.Select(c => (c.X, c.Z)), minIslandSize: 1);
         if (islands.Count == 0)
         {
-            await Send.ResponseAsync(new { error = "Nothing is drawn: the layout rasterizes to no ground. Draw a shape first." }, 422, ct);
+            await Refusals.WriteAsync(HttpContext, 422, "nothing is drawn",
+                [new Finding(SketchRules.NothingDrawn,
+                    "the stored layout rasterizes to no ground at all — draw a shape that encloses some")], ct);
             return;
         }
 

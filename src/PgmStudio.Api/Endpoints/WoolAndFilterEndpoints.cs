@@ -90,7 +90,7 @@ public sealed class FiltersListEndpoint(MapRepository repo, MapReader reader) : 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var loaded = await AnalysisLoad.LoadAsync(repo, reader, Route<string>("slug")!, ct);
-        if (loaded is null) { await Send.NotFoundAsync(ct); return; }
+        if (loaded is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         await Send.OkAsync(FilterEditor.ListFilters(loaded.Value.doc), ct);
     }
 }

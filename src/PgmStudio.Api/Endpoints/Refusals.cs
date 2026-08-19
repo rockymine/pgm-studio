@@ -74,6 +74,42 @@ internal static class Refusals
         HttpContext http, string error, string message, CancellationToken ct, string? field = null) =>
         WriteAsync(http, 400, error, [new Finding(RequestRules.Unreadable, message, Field: field)], ct);
 
+    /// <summary>
+    /// The route's subject does not exist: 404, in the envelope, naming what was looked for and the
+    /// identifier it was looked for under.
+    ///
+    /// <para>The body is what makes the two kinds of 404 tellable apart. <c>PUT /map/typo/sketch</c> and
+    /// <c>PUT /map/voidwatch/skecth</c> are the same status, and only one of them is a slug the caller can
+    /// correct; an empty answer leaves them to guess which they are looking at.</para>
+    /// </summary>
+    public static Task NotFoundAsync(
+        HttpContext http, string what, CancellationToken ct, string? named = null)
+    {
+        named ??= http.Request.RouteValues.TryGetValue("slug", out var slug) ? slug?.ToString()
+                : http.Request.RouteValues.TryGetValue("id", out var id) ? id?.ToString()
+                : null;
+        return WriteAsync(http, 404, $"no such {what}",
+            [new Finding(RequestRules.NoSuchSubject,
+                named is { Length: > 0 }
+                    ? $"no {what} is stored under '{named}'"
+                    : $"this route has no {what} to answer for")], ct);
+    }
+
+    /// <summary>The request conflicts with what is stored — a name already taken, a row something still
+    /// binds. 409, with the things in the way as the finding's subjects so a caller can act on them.</summary>
+    public static Task ConflictAsync(
+        HttpContext http, string error, string message, CancellationToken ct, IReadOnlyList<string>? holding = null) =>
+        WriteAsync(http, 409, error,
+            [new Finding(RequestRules.Conflict, message, Subjects: holding)], ct);
+
+    /// <summary>A document the studio stored will not read back. 422, because it is data rather than a defect
+    /// and writing the document again clears it.</summary>
+    public static Task StoredUnreadableAsync(HttpContext http, string what, CancellationToken ct) =>
+        WriteAsync(http, 422, $"stored {what} is unreadable",
+            [new Finding(RequestRules.StoredUnreadable,
+                $"the {what} this map has stored will not read back — it was written under a shape no reader "
+                + "understands, so save it again from the tool that writes it")], ct);
+
     /// <summary>The whole gate in one line: <c>if (await Refusals.StopAsync(…)) return;</c>. True when the
     /// findings refuse and the response has been written; false when there was nothing to stop for, complaints
     /// included.
@@ -101,11 +137,12 @@ internal static class Refusals
 }
 
 /// <summary>
-/// The two rules the API boundary itself fires, as opposed to a gate reading a document it understood.
+/// The rules the API boundary itself fires, as opposed to a gate reading a document it understood.
 ///
-/// <para>Every other family in <c>docs/refusals.md</c> is owned by the gate that asks it. These two are owned
-/// by the edge, because they are about the <b>request</b> rather than about the map: one document that could
-/// not be read at all, and one fault that is the studio's own.</para>
+/// <para>Every other family in <c>docs/refusals.md</c> is owned by the gate that asks it. These are owned by
+/// the edge, because they are about the <b>request</b> rather than about the map: a document that could not be
+/// read at all, a subject the route names and the studio does not have, a request that conflicts with what is
+/// stored, a stored document the studio cannot read back, and a fault that is the studio's own.</para>
 /// </summary>
 internal static class RequestRules
 {
@@ -129,4 +166,25 @@ internal static class RequestRules
     /// retired names an upgrade carries forward. See <see cref="Domain.DocumentShape"/>.</summary>
     /// <remarks>Check the spelling of the field the finding names against the document shape the tool's document names. The work succeeded without it, so whatever that field was meant to say was not said.</remarks>
     public const string Unread = "RQ3";
+
+    /// <summary>The route names a subject the studio does not have — a slug no map is stored under, an id no
+    /// library row carries, an artifact a map has not produced yet. It answers <b>404</b> with a body, because
+    /// an empty one cannot say whether the identifier was wrong or the route was, and only one of those is
+    /// something the caller can correct.</summary>
+    /// <remarks>Check the identifier in the path against what the studio holds — <c>GET /api/maps</c> lists the maps, and each library has its own list route. Where the subject is an artifact rather than a row, the stage that produces it has not been run for this map.</remarks>
+    public const string NoSuchSubject = "RQ4";
+
+    /// <summary>The request is well-formed and conflicts with what is stored: a name already taken, or a row
+    /// something still binds. It answers <b>409</b>, and the finding names what is in the way — the maps or
+    /// styles still referencing it, so the caller can act rather than guess.</summary>
+    /// <remarks>Nothing is wrong with the request itself. Either choose another name, or release what still holds the thing being removed — the finding's subjects name them.</remarks>
+    public const string Conflict = "RQ5";
+
+    /// <summary>A document the <b>studio</b> stored will not read back — a plan row, an artifact, a snapshot
+    /// written under a shape no upgrade claims. It answers <b>422</b> rather than 500 because it is data
+    /// rather than a defect and the author clears it by writing the document again; and deliberately not
+    /// <c>RQ1</c>, which would blame the request that merely asked to read it and send the author looking at
+    /// what they just posted.</summary>
+    /// <remarks>The stored copy is the problem, not what was just posted: open the tool that writes it and save it again, which replaces the unreadable copy with one in the current shape.</remarks>
+    public const string StoredUnreadable = "RQ6";
 }

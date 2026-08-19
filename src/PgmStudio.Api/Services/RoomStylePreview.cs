@@ -80,7 +80,7 @@ public static class RoomStylePreview
     }
 
     /// <summary>The view names <see cref="Png"/> answers, for the refusal that names them.</summary>
-    public const string PngViews = "view must be plan or section (isometric and cutaway are SVG only)";
+    public const string PngViews = "it draws plan and section (the isometric and the cutaway are SVG only)";
 
     /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
     /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>

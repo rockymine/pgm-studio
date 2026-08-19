@@ -53,17 +53,6 @@ public sealed class TerrainPatternsEndpoint : EndpointWithoutRequest<List<Materi
             ct);
 }
 
-/// <summary>The preview endpoints take a raw JSON document as their body rather than a wrapper DTO — the body
-/// <em>is</em> the material / theme / plan the painter deserializes — so they read it as text.</summary>
-internal static class RawBody
-{
-    public static async Task<string> ReadAsync(HttpContext http, CancellationToken ct)
-    {
-        using var reader = new StreamReader(http.Request.Body);
-        return await reader.ReadToEndAsync(ct);
-    }
-}
-
 /// <summary>The <c>?format=png&amp;view=…</c> half every preview endpoint shares: SVG-in-JSON is the default
 /// the client renders inline, and <c>format=png</c> answers one named view as <c>image/png</c> bytes instead —
 /// the form an agent saves and looks at. The view names are each endpoint's own; a name it does not have is a
@@ -76,10 +65,31 @@ internal static class PngAnswer
     public static string View(HttpContext http, string fallback) =>
         http.Request.Query["view"].FirstOrDefault() ?? fallback;
 
-    public static async Task WriteAsync(HttpContext http, byte[] png, CancellationToken ct)
+    /// <summary>
+    /// Answer this request as a PNG if one was asked for, and say whether it did.
+    ///
+    /// <para><paramref name="draw"/> maps a view name to bytes and answers null for a name it does not have,
+    /// which is the only refusal this surface has. It is written here rather than by each caller because the
+    /// caller that resolves the name is this one: a view outside the closed set the endpoint draws is
+    /// <c>RQ1</c> like any other parameter fault, and <paramref name="views"/> is the half of the sentence
+    /// only the endpoint knows.</para>
+    /// </summary>
+    public static async Task<bool> AnsweredAsync(
+        HttpContext http, string fallback, string views, Func<string, byte[]?> draw, CancellationToken ct)
     {
-        http.Response.ContentType = "image/png";
-        await http.Response.Body.WriteAsync(png, ct);
+        if (!Wanted(http)) return false;
+
+        var view = View(http, fallback);
+        if (draw(view) is { } png)
+        {
+            http.Response.ContentType = "image/png";
+            await http.Response.Body.WriteAsync(png, ct);
+            return true;
+        }
+
+        await Refusals.UnreadableAsync(http, "no such view",
+            $"'{view}' is not a view this preview draws — {views}", ct, field: "view");
+        return true;
     }
 }
 
@@ -98,17 +108,8 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest
         {
             var material = TerrainThemeJson.DeserializeMaterial(json, out var unread);
             Complaints.Unread(HttpContext, unread);
-            if (PngAnswer.Wanted(HttpContext))
-            {
-                if (StylePreview.MaterialPng(material, PngAnswer.View(HttpContext, "plan")) is not { } png)
-                {
-                    AddError("view must be plan or section");
-                    await Send.ErrorsAsync(400, ct);
-                    return;
-                }
-                await PngAnswer.WriteAsync(HttpContext, png, ct);
-                return;
-            }
+            if (await PngAnswer.AnsweredAsync(HttpContext, "plan", "it draws plan and section",
+                    view => StylePreview.MaterialPng(material, view), ct)) return;
             await Send.OkAsync(StylePreview.Views(material), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
@@ -128,17 +129,9 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest
         try
         {
             var theme = TerrainThemeJson.Deserialize(json, out var unread);
-            if (PngAnswer.Wanted(HttpContext))
-            {
-                if (StylePreview.ThemePng(theme, PngAnswer.View(HttpContext, "section")) is not { } png)
-                {
-                    AddError("view must be section or a bucket name (rim, surface, wall, fill)");
-                    await Send.ErrorsAsync(400, ct);
-                    return;
-                }
-                await PngAnswer.WriteAsync(HttpContext, png, ct);
-                return;
-            }
+            if (await PngAnswer.AnsweredAsync(HttpContext, "section",
+                    "it draws section and one swatch per bucket (rim, surface, wall, fill)",
+                    view => StylePreview.ThemePng(theme, view), ct)) return;
             await Send.OkAsync(StylePreview.ThemeViews(theme), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
@@ -156,19 +149,20 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
     {
         PlacedProp prop;
         try { prop = DressingJson.DeserializeProp(req.PropJson); }
-        catch (DressingParseException ex)
+        // The reader's own finding, which names the rule and the field — the same one the sketch preview and
+        // the export answer for a prop document, so the three cannot disagree about what a malformed one is.
+        catch (DressingParseException fault)
         {
-            AddError(ex.Message);
-            await Send.ErrorsAsync(400, ct);
+            await Refusals.WriteAsync(HttpContext, 400, "prop document invalid", [fault.Finding], ct);
             return;
         }
 
         TerrainTheme theme;
         try { theme = PropOptionEndpoints.ThemeOf(req.ThemeJson); }
-        catch (JsonException)
+        catch (JsonException fault)
         {
-            AddError("The theme JSON could not be read.");
-            await Send.ErrorsAsync(400, ct);
+            await Refusals.UnreadableAsync(HttpContext, "malformed theme JSON", fault.Message, ct,
+                field: "themeJson");
             return;
         }
 
@@ -181,17 +175,8 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
             return;
         }
 
-        if (PngAnswer.Wanted(HttpContext))
-        {
-            if (DressingPreview.Png(prop, theme, PngAnswer.View(HttpContext, "plan")) is not { } png)
-            {
-                AddError("view must be plan or section");
-                await Send.ErrorsAsync(400, ct);
-                return;
-            }
-            await PngAnswer.WriteAsync(HttpContext, png, ct);
-            return;
-        }
+        if (await PngAnswer.AnsweredAsync(HttpContext, "plan", "it draws plan and section",
+                view => DressingPreview.Png(prop, theme, view), ct)) return;
         await Send.OkAsync(DressingPreview.Views(prop, theme), ct);
     }
 }
@@ -304,6 +289,9 @@ public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest
             var paint = TerrainPreview.MapSvg(json);
             await Send.OkAsync(new { svg = paint.Svg, minX = paint.MinX, minZ = paint.MinZ, spanX = paint.SpanX, spanZ = paint.SpanZ }, ct);
         }
-        catch { await Send.ResponseAsync(new { error = "could not render plan" }, 400, ct); }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not render plan", fault.Message, ct); }
     }
 }

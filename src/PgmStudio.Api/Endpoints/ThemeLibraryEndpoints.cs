@@ -57,7 +57,7 @@ public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetStyleAsync(Route<long>("id"), ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDto(row), ct);
     }
 }
@@ -84,7 +84,8 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
         var id = Route<long>("id");
-        if (await store.UpdateStyleAsync(id, req.Name, req.Kind, req.Params, ct) == 0) { await Send.NotFoundAsync(ct); return; }
+        if (await store.UpdateStyleAsync(id, req.Name, req.Kind, req.Params, ct) == 0)
+        { await Refusals.NotFoundAsync(HttpContext, "style", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDto(
             new StyleRow { Id = id, Name = req.Name, Kind = req.Kind, Params = req.Params }), ct);
     }
@@ -134,7 +135,7 @@ public sealed class ThemeGetEndpoint(ThemeStore store) : EndpointWithoutRequest<
     {
         var id = Route<long>("id");
         var row = await store.GetThemeAsync(id, ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
         await Send.OkAsync(ThemeLibraryMapping.ToDetail(row, await store.GetBucketsAsync(id, ct)), ct);
     }
 }
@@ -175,7 +176,7 @@ public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
         var id = Route<long>("id");
         var updated = await store.UpdateThemeAsync(
             id, ThemeCreateEndpoint.ThemeRowOf(req), ThemeCreateEndpoint.BucketRowsOf(req), ct);
-        if (!updated) { await Send.NotFoundAsync(ct); return; }
+        if (!updated) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
         await Send.OkAsync(new ThemeDetail(id, req.Name, req.BedrockRelative, req.BedrockValue,
             RimEdgeModes.Canonical(req.RimEdges), req.WallOnTerrainFaces, req.Buckets), ct);
     }
@@ -212,7 +213,7 @@ public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutReq
     public override async Task HandleAsync(CancellationToken ct)
     {
         var json = await library.ComposeJsonAsync(Route<long>("id"), ct);
-        if (json is null) { await Send.NotFoundAsync(ct); return; }
+        if (json is null) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
         await Send.OkAsync(new { themeJson = json }, ct);
     }
 }

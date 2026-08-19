@@ -63,7 +63,7 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
         var slug = Route<string>("slug")!;
         var regionId = Route<string>("regionId")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
         var mode = (p.GetValueOrDefault("mode") as string ?? "").Trim();
@@ -106,7 +106,7 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
         var slug = Route<string>("slug")!;
         var regionId = Route<string>("regionId")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
         var category = p.GetValueOrDefault("category") as string ?? "other";

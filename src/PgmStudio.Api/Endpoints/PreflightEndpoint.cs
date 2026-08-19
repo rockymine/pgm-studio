@@ -34,7 +34,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var slug = map.Slug;
         var doc = await reader.ReadDocAsync(map, ct);
 

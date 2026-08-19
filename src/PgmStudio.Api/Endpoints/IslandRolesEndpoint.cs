@@ -23,7 +23,7 @@ public sealed class IslandRolesEndpoint(MapRepository repo, MapReader reader, Ma
     {
         var slug = Route<string>("slug")!;
         var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
         var islands = IslandRoleData.ParseIslands(await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct));
         var geoms = islands.Select(i => i.Geom).ToList();

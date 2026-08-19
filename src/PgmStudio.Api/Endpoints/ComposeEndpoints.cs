@@ -7,6 +7,8 @@ using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
 
+using PgmStudio.Domain;
+
 namespace PgmStudio.Api.Endpoints;
 
 /// <summary>
@@ -194,7 +196,14 @@ public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeReques
 
         ComposedStages stages;
         try { stages = Composer.ComposeStages(request); }
-        catch (ComposeException) { await Send.ResponseAsync(new { error = "composition failed for this descriptor" }, 422, ct); return; }
+        // The composer's sentence names the knob and the value that stopped it, which is the half a caller
+        // can act on — so it rides as the finding's message rather than being replaced by a label.
+        catch (ComposeException fault)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "descriptor cannot be composed",
+                [new Finding(ComposeRules.Uncomposable, fault.Message)], ct);
+            return;
+        }
 
         var structure = StructureSummary.Derive(stages.Unit).Canonical();
         // A kept board carries its partition as the authored box annotation, so it opens in the editor with the
@@ -214,9 +223,9 @@ public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetByIdAsync(Route<long>("id"), ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
         var plan = PlanModel.Parse(row.PlanJson);
-        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
         await Send.OkAsync(new { svg = PlanBoardSvg.Render(plan) }, ct);
     }
 }
@@ -238,9 +247,9 @@ public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetByIdAsync(Route<long>("id"), ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
         var plan = PlanModel.Parse(row.PlanJson);
-        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
 
         HttpContext.Response.ContentType = "text/plain; charset=utf-8";
         await HttpContext.Response.WriteAsync(PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
@@ -258,9 +267,9 @@ public sealed class PlanPngEndpoint(PlanStore store) : EndpointWithoutRequest
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetByIdAsync(Route<long>("id"), ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
         var plan = PlanModel.Parse(row.PlanJson);
-        if (plan is null) { await Send.ResponseAsync(new { error = "stored plan is unreadable" }, 422, ct); return; }
+        if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
 
         var png = PlanBoardPng.Render(plan);
         HttpContext.Response.ContentType = "image/png";

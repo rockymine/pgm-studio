@@ -649,8 +649,8 @@ since every sloped roof only climbs further on a bigger footprint: a style refus
 could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.cage` or
 `roomStyles.spawn`.
 
-**Finish refuses an empty board.** `POST .../sketch/finish` answers 422 when there is no stored layout at all,
-and again when the layout rasterizes to no ground. It does *not* ask for two islands: an island is a connected
+**Finish refuses an empty board.** `POST .../sketch/finish` answers 422 `SK6` when there is no stored layout
+at all, and 422 `SK7` when the layout rasterizes to no ground. It does *not* ask for two islands: an island is a connected
 landmass rather than a side, and one continent both teams stand on is a common and correct shape. Symmetry
 decides whether a board has two sides, and it is stated in the setup rather than counted in the ground.
 
@@ -714,7 +714,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · 404 |
 | `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
-| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built | 422 no layout, or no ground · 422 `board too large` `SK2` |
+| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `board too large` `SK2` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
 **Previews over a live layout.** All four take the working document as the body rather than reading the stored

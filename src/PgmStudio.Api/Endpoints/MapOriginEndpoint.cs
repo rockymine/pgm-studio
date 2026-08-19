@@ -18,7 +18,7 @@ public sealed class MapOriginEndpoint(MapRepository repo, MapArtifactStore artif
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.NotFoundAsync(ct); return; }
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         await Send.OkAsync(new Dict { ["sketch"] = await artifacts.HasAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) }, ct);
     }
 }

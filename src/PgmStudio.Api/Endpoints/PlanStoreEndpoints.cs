@@ -62,7 +62,7 @@ public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<Pl
     public override async Task HandleAsync(CancellationToken ct)
     {
         var row = await store.GetByIdAsync(Route<long>("id"), ct);
-        if (row is null) { await Send.NotFoundAsync(ct); return; }
+        if (row is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
         await Send.OkAsync(PlanStoreMapping.ToDetail(row), ct);
     }
 }
