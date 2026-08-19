@@ -393,6 +393,15 @@ author.
 
 ### The house: what it stamps, where it stands, and what an author can say
 
+- [ ] **WE12 — A spawn may stand without a house and a wool may not.** The two are the same shape — a source
+  (a spawn point, a wool spawner), a protection region, and a structure over them — and the structure is
+  decoupled on one and welded to the other: an author can already say a spawn has no housing, and a wool
+  always comes with one. Nothing about the objective needs it. The house is what the studio *defaults* to,
+  not what the wool *is*: the wool is the spawner, its protection and its monument, and
+  `region-categorization.md`'s wool `room` is the protection region rather than the building. Give the wool
+  the same optional structure the spawn has, so a wool can sit in the open, in a tower, or in a house because
+  the author said so.
+
 - [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
   `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
   four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
@@ -1206,46 +1215,43 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
-- [ ] **RP26 — The subject axis, and the four cases a draft cannot settle.** `RP14` ships the category; this
-  is the other half, and it needs the author because the vocabulary is the domain's. The axis answers **which
-  dimension of the map to go and change**, and the author's model gives the list: `request` · `plan` (rough
-  geometry, and where the intent is stated) · `intent` (how the map is played; says nothing about how it
-  looks) · `objective` (single-action for a destroyable or a core; staged for a wool — a spawner, its
-  protection and a monument) · `terrain` (the ground the sketch refines) · `theme` (what colours terrain and
-  props alike) · `dressing` (what is placed on the ground) · `world` (the built voxels and the `map.xml`) ·
-  `studio` (the tool's own limits — `CO1`, and `feasibility`'s whole report).
+- [ ] **RP26 — A rule concerns a combination, and an id can only name one thing.** `RP14` ships the
+  category; this is the other half, and the author's framing is what makes it tractable: **the combinatorics
+  are the point.** `WX6` is a plan defect about a wool objective whose abutment decides which side the door
+  lands on — plan, objective and structure at once. `PL9` is the same fault at board scale, over a plan, an
+  objective and a player spawn. `HS1` is a house and a material. `DC3` is an objective and a material. A
+  prefix is one token, so it names the loudest of them and the rest is invisible; that is why the id system
+  reads as imperfect, and it is not fixable by choosing better prefixes.
 
-  Four rules a draft cannot place, which is what makes this the author's:
+  **So the field is a list, and it goes on the rule rather than the finding.** `RuleDoc` gains
+  **`concerns`** — one to three of the vocabulary below — and `/api/rules?concerns=objective` answers every
+  rule that touches one, whichever gate asks it. It is deliberately **not** called `subjects`: `Finding`
+  already has that field and it holds *instance ids* — which piece, which prop — and one name over a kind
+  and an instance is the failure `CLAUDE.md` names under *One type, one responsibility*.
 
-  | Rule | The question |
+  **The vocabulary, in the author's words.**
+
+  | Concern | Is |
   |---|---|
-  | `PL9` wool unreachable | plan geometry about an objective — is the subject the thing at fault or the document you edit? |
-  | `WX6` wool room unreachable | it refuses a plan *piece* with no entrance, while the room itself is an optional building |
-  | `HS1` a block named for a geometric role is not that kind | a house style's **materials** — theme, or dressing? |
-  | `DC3` a goal built in the wrong material | the same question on the objective side |
+  | `request` | the call itself |
+  | `plan` | the rough geometry, and where the intent is stated |
+  | `intent` | how the map is meant to be played; says nothing about how it looks |
+  | `objective` | what is contested — **single-action** (a destroyable is broken, a core is leaked) or **staged** (a wool is touched, then captured) |
+  | `spawn` | where players enter |
+  | `terrain` | the height — the relief |
+  | `structure` | what is built as a building: a house, a wool cage, a spawn hall |
+  | `feature` | what is scattered on the ground: boulders, trees, paths, rivers |
+  | `material` | a block in a role |
+  | `style` | how materials assemble into a pattern |
+  | `theme` | styles combined |
+  | `world` | the built voxels and the `map.xml` a server reads |
+  | `studio` | the tool's own limits — `CO1`, and the whole of `feasibility` |
 
-  Settle those four and the rest follow mechanically. Additive when it lands: a finding gains a field and
-  nothing moves.
-
-- [ ] **RP25 — Every gate can say no and nothing can show a yes.** A run that hit `PL11`, `WX6` and `SP1` on a
-  capture-the-wool plan reported what it did next — *"rather than iterate extensively, I simplified to a basic
-  destroy board"* — and named what would have prevented it: "a working example to follow". The examples exist
-  and neither store is reachable from the tool. `tools/seeds/` holds four full plan/layout/intent triples
-  (`base-2island`, `base-2wool`, `base-4team`, `ruediger`) whose job is seeding the library, and
-  `pgm-studio-mapgen/specs/` holds **17 plan+finish pairs** of boards that were built and reviewed. Serve
-  them: a route that lists worked plans by gamemode and answers one, so *start from a board that passes and
-  perturb it* is a call rather than a repository someone has to know about. Cheapest reduction in first-build
-  failures on the board, and it needs no new geometry.
-
-- [ ] **RP24 — `FEATURES.md` is 6,238 lines that nothing reads.** 531 entries, each a paragraph restating
-  the commit message that shipped it, and the two things it is actually used for are adding to it and
-  checking whether an id is taken. The traceability it claims is already in git — 30 of the last 40 commit
-  subjects carry their ids, and `git log --grep=TE1` finds the commit without it. Two of its jobs are real:
-  it is the id registry that keeps `grep <id>` honest across the three boards, and it is where `CLAUDE.md`
-  § *Code comments* sends history so a docstring does not carry it. Neither needs a paragraph. Reduce an
-  entry to **one line — id, one sentence, the commit** — and generate it from the log rather than writing it
-  by hand, which is the same move as `RP8` and `RP11`. Decide first whether the long-form entries are worth
-  keeping as an archive or whether the commit bodies already are one.
+  **A wool and a spawn are the same shape, which is why they share rules.** A wool is a **spawner** (where
+  the wool is obtained — always emitted by the studio, though a corpus map may use a chest or loose blocks
+  instead), a **protection region** (what `region-categorization.md` calls the wool `room`), and a
+  **monument** (where it is delivered). A player spawn is a **spawn point**, a **protection region** so the
+  enemy cannot enter, and an optional **housing**. Source, protection, optional structure, twice over.
 
 - [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
   `docs/tools/capabilities.md` is 716 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB

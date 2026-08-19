@@ -42,7 +42,7 @@ is kept in the table with the answer beside it, because the answer is the part a
 | Entry | The question |
 |---|---|
 | `RP13` | *Answered by the author: **its own project**, and an operation is a step of the pipeline — the thing that builds the map, callable from two sides with no dependency on the UI running.* What is left is naming the steps, which the implementer states in the commit. |
-| `RP14` | Sign-off on the six categories. The ids do not move, but a category is as stable as an id once a caller branches on it. The `subject` axis is `RP26`'s and needs the author's vocabulary; `RP14` ships without it. |
+| `RP14` | Sign-off on the six categories. The ids do not move, but a category is as stable as an id once a caller branches on it. The `concerns` list is `RP26`'s — its vocabulary is now written down there — and `RP14` ships without waiting for it. |
 | `RP15` | What **is** `WX9`? It is stated as a rule in two documents and fired by nothing. Declaring it and retiring it are both one commit, and only the author knows which. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
@@ -177,13 +177,10 @@ constants. The ids do not move.
   to nothing*, which sit over the plan, the layout, the map document and the request. The prefix is already
   most of a **subject** axis.
 
-  *Parked decision, the author's: the **subject** axis itself. The author's model — a destroyable and a core
-  are single-action objectives; a wool is staged (touch, then capture) and is a spawner, its protection and
-  a monument, with the room an optional building beside it; theming colours terrain and props alike;
-  dressing places them; the plan is rough geometry and where intent is stated; the intent is how the map is
-  played and says nothing about how it looks — is the vocabulary it must be drawn from. `RP26` carries the
-  draft and the cases it cannot settle. Ship `category` and `name` without waiting for it; `subject` is
-  additive again when it lands.*
+  *`RP26` carries the other half and is the author's: a rule concerns a **combination** — `WX6` is a plan, an
+  objective and a structure at once — so what a rule gets is a `concerns` **list**, not a single subject, and
+  a prefix could never have carried it. Ship `category` and `name` without waiting; the list is additive
+  again when it lands.*
 
 - [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
   nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
