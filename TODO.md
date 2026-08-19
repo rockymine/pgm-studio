@@ -40,8 +40,8 @@ the file and line are named. These six are not, and each is blocked on a decisio
 
 | Entry | The question |
 |---|---|
-| `RP13` | What is the unit, and where does it live — its own project, or a folder in `Api`? An application layer is a boundary, and a boundary chosen by whoever implements it first is the failure this whole board is about. |
-| `RP14` | Sign-off on the six categories and the subject list. The ids do not move, but a category is as stable as an id once a caller branches on it. |
+| `RP13` | **How big is one operation, and where do they live?** One per HTTP route (167 of them), or one per thing a person would name — *compile a plan*, *finish a sketch*, *export a map* (roughly 30)? And a new project, or a folder inside `Api`? A boundary chosen by whoever implements it first is the failure this whole board is about. |
+| `RP14` | Sign-off on the six categories. The ids do not move, but a category is as stable as an id once a caller branches on it. The `subject` axis is dropped from this task — its vocabulary is the domain's and the first draft mixed containers with things. |
 | `RP15` | What **is** `WX9`? It is stated as a rule in two documents and fired by nothing. Declaring it and retiring it are both one commit, and only the author knows which. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
@@ -164,21 +164,29 @@ constants. The ids do not move.
   enter the map: it declares no spawn of any kind"*. Five ids cover *a name that resolves to nothing*
   (`PL5`, `PL10`, `SK3`, `ED1`, `RQ4`).
 
-  **The fix is additive; no id changes.** `Finding` gains two fields and `RuleDoc` a third:
-  **`category`**, a closed six — `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`,
-  `internal` — which is what an agent branches on; **`subject`**, what it is about (`request`, `plan`,
-  `board`, `goal`, `spawn`, `room`, `building`, `terrain`, `world`), which is the axis the prefix should
-  have been; and **`name`**, the rule constant's own identifier kebab-cased, which the catalogue already
-  carries buried inside `owner` (`…PlanRules.NoSpawn` → `no-spawn`). `WX6` then reads
-  `room-unreachable · unplayable · room`. `?category=` and `?subject=` narrow `/api/rules`, and the
-  collisions become one query rather than a hunt. Answer the envelope as RFC 9457 Problem Details in the
-  same commit, whose `type` URI is the `/api/rules` lookup that already exists.
+  **The fix is additive; no id changes and no rename.** `Finding` gains one field and `RuleDoc` a second.
+  **`category`** is a closed six — `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`,
+  `internal` — and is the only thing a caller branches on: it says whether to fix the request, change the
+  design, change the map, or report a bug. **`name`** is the rule constant's own identifier kebab-cased,
+  which the catalogue already carries buried inside `owner` (`…PlanRules.NoSpawn` → `no-spawn`), so `WX6`
+  reads `room-unreachable · unplayable` with no new authoring at all. `?category=` narrows `/api/rules`,
+  and `PL2` against `EX2` becomes one query rather than a hunt. Answer the envelope as RFC 9457 Problem
+  Details in the same commit, whose `type` URI is the `/api/rules` lookup that already exists.
+
+  **A third field, `subject`, is deliberately not part of this.** The vocabulary it would need is the
+  domain's, and the domain says the first attempt was wrong: a wool room, a monument, a destroyable and a
+  core are all **objectives**, so splitting `room` from `goal` names a container against a thing; `plan`
+  against `board` is a document against what it describes and is far too fine to branch on; `building` is
+  either a house style or the whole dressing pass depending on which family asks; and `terrain` could mean
+  relief, ground or paint. That is the same axis-mixing the prefixes are being criticised for. If a subject
+  axis is wanted later it starts from the vocabulary the repo already has — `flow.md`'s four levels and
+  `ObjectiveRules`' own words — not a parallel one, and `world` means the export.
 
   *Parked decision, the author's: whether to **rename** the ids as well. The abbreviations are opaque
   (`WX`, `HJ`, `DC`, `CO`) and `DR-KEEP`/`DR-SITE` show what a readable one looks like — but an id is cited
   by every commit, by `GENERATION-NOTES.md` and the mapgen briefs, and by `rules.md`, which is amended only
-  by its own protocol. The three fields above make them readable without renaming; renaming is a codemod
-  plus a doc sweep and is cheaper now than later.*
+  by its own protocol. The author's ruling so far is that the ids stay; `name` makes them readable without
+  moving one.*
 
 - [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
   nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
