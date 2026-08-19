@@ -172,6 +172,29 @@ loop and its load-bearing order are what an absent application layer looks like 
 required documents and the errata file are what an absent contract looks like. And the silent 200s are what
 an absent request shape looks like, on exactly the documents that matter most.
 
+## Three things the request layer does not do
+
+Beside the shape questions above sit three that are about the *behaviour* of a write, and all three matter
+more now that a second caller drives the same map.
+
+**A delete-then-write is transactional in one of the three places it happens.**
+`MapWriter.SaveDocAsync` opens a transaction around its delete and its inserts.
+`WorldFeatureWriter.WriteAsync` performs the same shape — one delete across five tables, then five
+`BulkCopyAsync` calls — inside none, and neither do its four callers; `MapArtifactStore.SaveAsync` is a
+delete followed by an insert on the same reasoning. A fault between the two halves leaves a map with its old
+rows gone and its new ones partly written.
+
+**Nothing anywhere carries a version.** There is no `ETag`, no `If-Match` and no row check in `Api` or
+`Data`. Every Edit route reads the whole document, patches it and writes the whole document back, so two
+callers editing different parts of one map keep only the second, with no conflict and no finding. One person
+in one browser tab never met it; an agent driving the API while a tab is open on the same slug meets it on
+the first collision.
+
+**The most expensive operation in the studio is a `GET`.** `GET /map/{slug}/export` composes the map,
+synthesises the entire voxel world, writes it to a temp directory and zips it in memory before answering.
+There is no job id and nothing to ask afterwards, so a caller whose connection drops cannot learn whether the
+build succeeded and repeats it to find out.
+
 ## What is already right
 
 A survey that lists only faults describes a worse system than the one that exists.

@@ -339,7 +339,9 @@ emptied when its ground is settled, not when its entries have each been done in 
 3. **`TODO.md` is the current focus, kept small.** Only the active group's now/next tasks (soft cap ~6–12).
    Pull the next **group** up from `BACKLOG.md` when it drains — a whole concept, not a task at a time; if
    `TODO.md` bloats, push items back down. New tasks land in `BACKLOG.md` (or `TODO.md` if they ARE the
-   focus).
+   focus). **The cap is over the board's readability, not its length**, so a single programme whose order is
+   the point may exceed it on the author's call — the board then says so at the top, states the trade, and
+   takes nothing new until a phase drains. Anything found while working still lands in `BACKLOG.md`.
 4. **Ids are a prefix + number, GLOBALLY unique + stable across all three files.** Moving a task between
    files **never** changes its id; never renumber or reuse — commits and memory cite ids, so
    `grep <id> TODO.md BACKLOG.md docs/generator/ideas.md` must hit exactly once. The prefix names the

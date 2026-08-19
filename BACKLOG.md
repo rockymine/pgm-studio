@@ -275,6 +275,28 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
+- [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
+  are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
+  — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
+  them. `sunspit` in `pgm-studio-mapgen` cannot be rebuilt against today's tree for exactly that reason —
+  `PL13`, a wall on the wool room's interface (`B186`) — and `firnline` now rebuilds without the house it was
+  authored with, which the keep-out mask declines as `DR-KEEP` (a house in a spawn door's approach). Both
+  worlds load and play; only the pipeline that made them disagrees.
+
+  **So the override reaches the keep-out mask as well as the refusals.** A decline is not a refusal, but it
+  is the same question one layer down: the author placed the thing deliberately, and there is no way to say
+  so.
+
+  **The shape: a per-call override that names what it is waiving, not a global off switch.** It reaches the
+  two places a refusal is raised — `PlanCompiler` (a `PL*` refusal) and `MapExportComposer` (`OB17`, `OB19`,
+  the playability judgement) — and every waived finding is still **reported**, as a warning carrying
+  its rule id, so a forced build says what it forced rather than going quiet. A refusal about the `map.xml`
+  contract itself is not waivable: PGM has to be able to read the result.
+
+  **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
+  the briefs hand an agent, not in `mapgen`'s `--help` (`B245`). The authoring briefs already tell an agent
+  that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
+
 Three gates, three ways of being wrong about their own verdict: one that misreports its cause, one that cannot
 see half the board, and one that refuses what the rule document recommends. They are the last of the
 `B141`–`B188` audit findings that are not about a house, a distance, a tree, a destroy stamp or the plan
@@ -370,6 +392,33 @@ author.
   field". The worked JSON is in `docs/world-export/terrain-painting.md`.*
 
 ### The house: what it stamps, where it stands, and what an author can say
+
+- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
+  `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
+  four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
+  record wanted is **kind, footprint box, `Placeable`, source marker**, produced by each family's resolver.
+  The stampers stay heterogeneous — a wall owns a seam, a room a piece + marker + entries, an objective a
+  marker + style — which is why the *resolution* is the thing to share and not the stamping.
+
+  Two things need it. `PlanStructurePreview.StructureBox` assembles its own boxes for iron, destroyables and
+  cores; consuming the record instead reaches placeability into the iso view for free. And the
+  objective↔objective and objective↔monument **minimum distances** — a core merging with a wool monument they
+  must read apart from — have nowhere to live until every placement answers in one shape.
+
+  **It is the same rule one layer up.** `PlanStructurePreview.StructureBox` re-derives iron, destroyable and
+  core boxes the builder already computes, which is a second derivation of one geometry — the failure
+  `PlacementClaim` names for a claim and that has now cost two fixes, the goal anchor and the spawn room's
+  claim rect. A resolver answering one record is what lets the preview *read* the placement instead. Every
+  entry already carries a `StampId`, so the record has an identity to travel under.
+
+  *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
+  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `PlacementClaim` answers which
+  columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
+  `C44`) and what remains of it is timing — structural findings do not run in the live feed (`G161`), so a
+  refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two
+  pieces touch, not how far apart two placements stand.*
+
+  *moved here by the human because it sounds related and no other category fits*
 
 One object with three unfinished sides. The **stamper** decides what blocks come out, and how a wing's roof
 meets a neighbour's is still argued rather than drawn; **placement** decides where a building may stand and
@@ -1069,135 +1118,6 @@ in the order listed: the contract first, because the request shape and the clien
 application layer second, because it is where a gate stops belonging to a door; the fault class third; the
 lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
 
-- [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
-  `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
-  **152 route strings** and parses **59 responses as `JsonElement`** against 16 typed, across 38 files; the
-  endpoint tables in the eight `docs/tools/` documents are typed by hand and `TC1` is what that costs.
-  Generate a typed client from the document (NSwag's generator is already in the tree as the Swagger
-  package's dependency) and render the endpoint tables from it, so the two copies become one derivation.
-  `DocumentedBodyTests` posts 8 documented bodies against 93 write routes today and is the natural place to
-  assert the tables against the schema.
-
-- [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
-  `EndpointWithoutRequest` and **51 call sites read the body as `Dictionary<string, object?>`**. So
-  `RequiredFields`, the one global input gate, returns on its first line for all of them: the promise it
-  makes holds for 22 routes. The Edit tool's 74 refusal sites in `Pgm/Editing` are a request schema written
-  by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
-  hand-written field checks go with it. Needs `RP11` first, which is what makes the shapes checkable.
-
-- [ ] **RP13 — The use case is the HTTP handler, so a second driver needs a second copy of it.**
-  `Api/Endpoints` holds **4,753 lines** against `Api/Services`' 1,169, and `Services/` is read-model
-  builders. `SketchFinishEndpoint.HandleAsync` *is* the finish use case — load, gate, rasterize, detect,
-  write, advance the stage — and nothing but an HTTP request can reach it, which is why `tools/mapgen` has
-  its own. Add an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests
-  as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one. `RP3` is the
-  instance this dissolves; it goes with this.
-
-- [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 71 to branch once.** The
-  family prefix names which subsystem asked, not what kind of fault it is, and `refusals.md`'s own stated
-  principle — *ids are grouped by what they are about, never by which gate happens to ask* — is already
-  broken by the catalogue: `PL2` is *"No spawn: PGM has nowhere to put a player"* and `EX2` is *"Nobody can
-  enter the map: it declares no spawn of any kind"*. Five ids cover *a name that resolves to nothing*
-  (`PL5`, `PL10`, `SK3`, `ED1`, `RQ4`).
-
-  **The fix is additive; no id changes.** `Finding` gains two fields and `RuleDoc` a third:
-  **`category`**, a closed six — `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`,
-  `internal` — which is what an agent branches on; **`subject`**, what it is about (`request`, `plan`,
-  `board`, `goal`, `spawn`, `room`, `building`, `terrain`, `world`), which is the axis the prefix should
-  have been; and **`name`**, the rule constant's own identifier kebab-cased, which the catalogue already
-  carries buried inside `owner` (`…PlanRules.NoSpawn` → `no-spawn`). `WX6` then reads
-  `room-unreachable · unplayable · room`. `?category=` and `?subject=` narrow `/api/rules`, and the
-  collisions become one query rather than a hunt. Answer the envelope as RFC 9457 Problem Details in the
-  same commit, whose `type` URI is the `/api/rules` lookup that already exists.
-
-  *Parked decision, the author's: whether to **rename** the ids as well. The abbreviations are opaque
-  (`WX`, `HJ`, `DC`, `CO`) and `DR-KEEP`/`DR-SITE` show what a readable one looks like — but an id is cited
-  by every commit, by `GENERATION-NOTES.md` and the mapgen briefs, and by `rules.md`, which is amended only
-  by its own protocol. The three fields above make them readable without renaming; renaming is a codemod
-  plus a doc sweep and is cheaper now than later.*
-
-- [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
-  nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
-  states, and **`WX8` is declared nowhere** — fired by the lint, stated as a rule in
-  `docs/world-export/structures.md`, cited in `docs/tools/plan.md`, and absent from `GET /api/rules`.
-  `WX9` beside it is never fired at all. Declare `WX8` where `RoomFrameRules` lives or retire it, decide
-  what `WX9` is, and add the assertion that runs the other way: every id any gate or lint can emit resolves
-  in the catalogue. `RulesEndpointTests` only checks that declared rules carry a sentence.
-
-- [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
-  `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule
-  law (score + lint), `feasibility` judges the **composer** rather than the map ("could the composer have
-  produced this plan" — its own docstring calls the report "a live map of composer gaps"), `inspect` derives
-  geometry (distances, wall rects, the canvas overlays) and `columns` projects the world the plan would build.
-  Two judgements, one transform, two projections — a real grouping that appears in no document, so a caller
-  reads five summaries to learn that only one of them changes anything and only one of them is about the
-  generator. Name the kinds in `plan.md`'s endpoint table and in the OpenAPI tag, and say plainly that
-  `feasibility` answers a question about the studio, not about the map.
-
-- [ ] **RP18 — The schema publishes a path and a verb and, for most routes, nothing about the answer.**
-  Measured on the generated document: **114 of 167 operations declare no response content at all**, 53 declare
-  `application/json`, and **none declares an image** — though `PngAnswer` serves `image/png` on six routes, the
-  ascii boards serve `text/plain` on three and the export serves `application/zip`. So `/api-docs` cannot
-  render a theme swatch inline, and a caller cannot tell a JSON route from a PNG route without trying it. The
-  cause is `RP12`'s on the other side: an `EndpointWithoutRequest` with no response type states nothing for the
-  generator to publish. Give each route its response type, and `Produces`/`ProducesProblem` where the media
-  type is not JSON, starting with the six PNG routes an author most wants to look at.
-
-- [ ] **WE11 — The world builder is named for the tool whose document happens to reach it.**
-  `SketchWorldBuilder` (`Export`) synthesises the voxel world, the world spawn and the resolved intent for
-  **every** map — a plan compiles to a layout and arrives here too — and `MapExportComposer.ComposeSketch` is
-  the composition every export runs, while the method called `Compose` is the doc-assembly leg in front of it.
-  `SketchTerrainBuilder` (`Minecraft/Stamping`) is the same misnaming one layer down. The loop's four names
-  are settled and none of these three is one of them: rename to what they build — the world — and leave
-  `SketchLayout`, `SketchRasterizer` and the sketch endpoints alone, because those genuinely belong to the
-  drawing. 12 identifiers across `Export` and `Minecraft`; the `Pgm`, `Api` and `Client` ones are the tool's
-  and stay.
-
-- [ ] **WS5 — Objective suggestion is map-contract analysis living in the world package.**
-  `Minecraft/Suggest/` holds `MonumentSuggester` and `CoreSuggester`; the first names a monument, a wool, an
-  objective or a core **44 times**. `CLAUDE.md` charters `Minecraft` as "the world" and `Analysis` as the
-  derivations over it, and `docs/world-scan/` already owns this subject — *monument and objective suggestion*
-  — as a documentation folder. Move both to `Analysis`, where the other reads of a scanned world sit, and the
-  package charter stops needing an exception. Its consumers are `Api/Endpoints/MonumentEndpoints` and the two
-  candidate stores in `Data`, all of which already reference `Analysis`.
-
-- [ ] **RP19 — `tools/relief` is 120 KB that generates nothing committed.** Its README calls it "the live twin
-  of `docs/world-export/relief.md` — every figure and every number in that document is emitted by this tool",
-  and `relief.md` carries **no image references at all**; `out/` is gitignored, so nothing it draws is kept.
-  Against `CLAUDE.md` § *Investigation stays local* it is neither a gate, nor a generator of a committed
-  artifact, nor an operational tool. It also carries its own `Mirror`/`Fold`/`SymmetryError`
-  (`Terrain.cs:186,205,219`), which is the third copy of the transform the Traps section says must stay one
-  leaf plus the JS twin — and the same folder is on record for having drifted from the shipped solver once.
-  Either commit the ten figures it draws so `relief.md` shows them and the tool earns its bar, or delete it
-  and keep the measurements the document already states.
-
-- [ ] **RP17 — The check that catches a field nothing read runs on two endpoint files.**
-  `DocumentShape.Unread` walks a parsed document beside the value it deserialized to and names every property
-  nothing could keep, as `RQ3` on the success response. It is wired to the room-style library and the terrain
-  previews. The **sketch layout, the plan and the intent** — the three documents an author or an agent
-  actually writes — have no unread check, which is why a misspelled field in one of them is silence:
-  `pgm-studio-mapgen`'s `GENERATION-NOTES.md` §11 records fourteen rectangles keyed `x`/`z`/`w`/`h` instead of
-  `min_x`/`min_z`/`max_x`/`max_z` covering no ground under a `{"ok": true}`, and `relief` written one level
-  too deep dropped without a word. Wire it into `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`,
-  `PUT …/plan` and `POST /plan/compile`. The mechanism exists; only the call sites are missing.
-
-- [ ] **TN4 — The cheapest read of a plan is the one that needs a map row first.** `PlanBoardAscii.Render`
-  is reachable through `GET /map/{slug}/plan/ascii` and `GET /plans/{id}/ascii` — both requiring stored
-  state — while `compile`, `evaluate`, `inspect`, `feasibility` and `columns` all answer a posted plan with
-  nothing stored. The grid is the read that shows a *relation between two rectangles*, which is what the
-  other five cannot: `pgm-studio-mapgen`'s own notes name a sixteen-cell bar reached by a four-cell build
-  zone as the whole of a 60%-dead landform, "visible at a glance and invisible in the render that was
-  actually looked at". Because the render needs a row, `tools/board.py` is a 94-line Python reimplementation
-  of it. Add `POST /plan/ascii` beside the other five and delete the third copy.
-
-- [ ] **RP16 — The lifecycle is a column nothing reads and 716 lines of prose.** `map.stage` holds
-  `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other
-  read is the dashboard's filter. No endpoint refuses on it and none answers what a map at a stage may be
-  asked for — `docs/tools/capabilities.md` answers that question in prose that nothing verifies. Give it a
-  transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver
-  reads its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
-  to hold.
-
 ## The remainder: work no concept above has claimed
 
 ### User Experience and Graphical User Interface
@@ -1286,47 +1206,15 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
-- [ ] **RP10 — Sweep the history out of the code comments.** `CLAUDE.md` § *Code comments* states the rule —
-  a comment says what the code does and why, in the present tense, and never what it used to do — and the
-  tree does not keep it. **18 files** carry a docstring or inline comment whose subject is a state that no
-  longer exists: `RulesEndpoint.cs:16` ("until now nothing answered…"), `MetaGenerator.cs:12` ("the studio's
-  boilerplate used to say…"), `TeamUnitAllocator.cs:56` ("it used to be rounded to even…"),
-  `FillProfiles.cs:8` ("in place of the per-kind logic that used to be scattered…"),
-  `StructureFinder.cs:24`, `HouseStyle.cs:444`, `HouseStamper.cs:17,118`, `Decorator.cs:75`,
-  `EvaluationDto.cs:42`, `SketchEndpoints.cs:243` and the rest of the 18. Each one is a before-and-after
-  where a fact about the present shape would say the same thing shorter. Sweep them the way the port
-  attributions were swept: rewrite as the fact, delete where the fact is already stated above it. The grep
-  that finds them is `used to |had grown|until now|was (previously|formerly)|no longer (does|did)`, and it is
-  worth leaving in the commit message so the next sweep starts from the same list.
-
-- [ ] **RP9 — The two refusal envelopes have drifted, and both docstrings say they must not.**
-  `Finding.Envelope` (`Domain`) writes `{rule, message, severity}` plus `field`, `cites` and `subjects` only
-  where there is something to say; `Refusals.Of` (`Api/Endpoints`) renders `FindingDto`, which serializes
-  every null *and* the record's two computed properties. So one route answers
-  `{"rule":"RQ4","message":"team 'nope' not found","severity":"refusal"}` and the next answers the same
-  finding as `{…,"field":null,"subjects":null,"cites":null,"subjectIds":[],"refuses":true}` — a caller can
-  tell which layer refused, which is exactly what `Finding.Envelope`'s own docstring says must never happen.
-  `subjectIds` and `refuses` are derived from the other fields and belong to the record rather than to the
-  wire: `[JsonIgnore]` on both, and the same write-only-what-there-is rule as `Wire()`. `RefusalEnvelopeTests`
-  asserts the keys that are present and nothing about the ones that should not be, which is why nothing
-  caught it.
-
-  *Evidence: `DELETE /api/map/{slug}/teams/nope` against a seeded map, body above, taken from the running
-  test host.*
-
-- [ ] **RP8 — `project-structure.md`'s census disagrees with the tree it describes.** The size table at
-  §"Project sizes" is a snapshot nothing regenerates, and every row of it has drifted: measured over
-  `src/**/*.cs` (excluding `bin`/`obj`) the true counts are `Geom` 44/5,362 (stated 44/4,967), `Domain`
-  27/2,515 (25/2,252), `Contracts` 15/1,026 (13/965), `Migrations` 22/1,513 (21/1,469), `Minecraft`
-  79/15,456 (74/14,307), `Pgm` 148/22,838 (137/20,641), `Analysis` 17/3,035 (16/2,609), `Export` 8/1,575
-  (7/1,171), `Api` 67/9,595 (69/8,675) and `Client` 82 (80). The folder breakdowns are worse than stale —
-  they are counted at one level where the folders nest, so `Pgm/Compose` reads 42 against 28 direct children,
-  and the "48 files are the codec / 85 files and 11,522 lines are the generator" split the §7.1 argument
-  rests on cannot be reproduced from either number. A table nobody can regenerate is a table that is wrong
-  between every pair of commits, so the fix is a counter, not a re-count: one script under `tools/` that
-  writes the table (the `envelope-stats` pattern — a generator of a committed artifact), and the prose
-  reworded to cite the shape rather than the totals.
-
+- [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
+  `docs/tools/capabilities.md` is 716 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB
+  of the same question next door, and the two were written by different hands from the same code. Once
+  `RP16` puts the allowed moves on the map's own response, that question has a runtime answer and neither
+  document should be trying to hold it. What is left is the half prose is actually good at and neither file
+  is organised around: **how to make a good map** — the art direction, what an objective needs around it,
+  what the corpus does — as against **what the system can be asked for**, which is the API's to say. Split
+  them on that line: the capability half goes, the craft half moves to where its subject lives under
+  `docs/gameplay/`. Blocked on `RP16`; rewriting either before then is work thrown away twice.
 
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
 (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
