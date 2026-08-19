@@ -94,6 +94,35 @@ a rule that changed its name between the two would be two rules.
 | `ED*` | the document editors' own two — `ED1` a reference the document cannot resolve (an apply-rule naming an unknown filter, a filter naming itself), `ED2` an edit the document is not in a state to take (a group with fewer children than its type takes, an apply-rule with no region, filter or action). The other six an edit is refused for are the request's, above | `Pgm/Editing/EditRules.cs` |
 | `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
 
+## One question, asked at every grain
+
+The families read as a flat list and they are not one. **The same question is asked at each level a map is
+described at, and each level's answer can be undone by the level above it.** That is the whole reason the
+studio has four documents rather than one, and it is what lets a refusal be precise about *which* thing is
+wrong rather than saying a map is bad.
+
+Reachability is the worked example. Five rules ask it, over five grains, and nothing but this paragraph says
+they are one family:
+
+| Rule | Asks | Over |
+|---|---|---|
+| `WX6` | can a door be cut into this room at all — is anything abutting it? | one piece of the plan |
+| `PL9` | can a capturing team's spawn reach this wool at all? | the whole plan |
+| `EX1` | is the ground the rasterizer built connected? | the built world |
+| `DR-PASS` | does this building leave five blocks to get past it? | one prop on that ground |
+| *coverage* | is the ground that **can** be reached ground any journey actually uses? | the built world, as a measurement rather than a gate |
+
+Read down the column and the escalation is the point. `WX6` is local and structural; `PL9` is the same
+question at board scale; `EX1` asks it of ground rather than of rectangles, because a plan that passed can
+rasterize into something that does not; `DR-PASS` re-opens it after a house lands on ground that was already
+walkable; and coverage asks the question the four gates never do — not *can* a player get there, but *does
+any route go*. A board can pass every gate above it and read a third dead.
+
+**A finer grain exists only because a coarser one does.** `DR-PASS`'s five blocks are meaningful because the
+plan already said this ground is walked; `PL9`'s answer is meaningful because the intent already said which
+team captures which wool. Collapsing the four documents into one would not simplify the rules — it would
+remove the vocabulary each rule uses to say precisely what is wrong.
+
 The structural plan rules, in full:
 
 | Rule | Refused |

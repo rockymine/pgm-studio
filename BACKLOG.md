@@ -1247,6 +1247,12 @@ braces, worth having once the studio is used by someone who did not write it.
   | `world` | the built voxels and the `map.xml` a server reads |
   | `studio` | the tool's own limits — `CO1`, and the whole of `feasibility` |
 
+  **The ladder is what a `concerns` query surfaces.** `WX6`, `PL9`, `EX1`, `DR-PASS` and the coverage read
+  all ask whether a player can get somewhere, at five grains, from four families — the escalation
+  `docs/refusals.md` § *One question, asked at every grain* now states in prose. Tagged, that section becomes
+  a query: `?concerns=objective&concerns=plan` answers the plan half of it, and the grain is already carried
+  by which document the rule judges.
+
   **A wool and a spawn are the same shape, which is why they share rules.** A wool is a **spawner** (where
   the wool is obtained — always emitted by the studio, though a corpus map may use a chest or loose blocks
   instead), a **protection region** (what `region-categorization.md` calls the wool `room`), and a
