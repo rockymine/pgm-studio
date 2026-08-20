@@ -425,10 +425,6 @@ public static class ArtifactKind
     // Hand-cut lane decompositions gathered with the retired decompose surface (island_sketch outlines
     // cut into role-tagged lane polygons, sketch layout format). Stored data kept; no writer remains.
     public const string LaneDecompositionJson = "lane_decomposition_json";
-    // Reviewer flag for a map whose detected island sketch looks wrong (over-split raised features, or
-    // merged teams) — {status, note, at}, so a human can mark sketches for re-detection. Lives outside
-    // the entity-replace codec; never part of the PGM document.
-    public const string IslandReviewJson = "island_review_json";
 }
 
 /// <summary>A persisted layout plan (see M0008_Plan). A standalone corpus row — no map FK. <see cref="Origin"/>

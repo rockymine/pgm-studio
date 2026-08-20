@@ -56,17 +56,19 @@ push declared request shapes in one pass — the write surface is the useful hal
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
 a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
-- [~] **RP18 — Twenty-three reads publish a 204 they answer a document under.** Each builds an anonymous
-  object or a `Dict` inline at the send — `IslandRolesEndpoint.cs:47` is representative — so each needs a
-  record written from that handler, branches included, and the keys kept exactly: several of these answer
-  snake_case (`primary_min`, `region_files`), which the canvas reads by name.
-  Four families and seven singles: the **island** reads (`islands`, `island-roles`, `island-health`,
-  `island-review`), the **region** reads (`regions/authoring`, `regions/tree`, `filters`, `apply-rules`),
-  the **scan** reads (`scan-summary`, `scan-world`, `import-folder`, `import-url`, `import-candidates`), the
-  **suggestion** reads (`core-suggestions`, `monument-suggestions`, `monument-orbit`), and
-  `configure/{slug}/state`, `objectives/vocabulary`, `plan/inspect`, `sketch/relief`, `sketch/relief/read`,
-  `GET /map/{slug}`, `GET …/symmetry`. The last two answer a stored document and are declared the way
-  `GET …/sketch` was — the record names the shape, the blob is sent as stored.
+- [~] **RP18 — Nineteen reads publish a 204 they answer a document under.** Each builds an anonymous object
+  or a `Dict` inline at the send — `ScanSummaryEndpoint` is representative — so each needs a record written
+  from that handler, branches included, and the keys kept exactly: several answer snake_case (`region_files`,
+  `min_x`), which the canvas reads by name.
+  Three families and seven singles: the **region** reads (`regions/authoring`, `regions/tree`, `filters`,
+  `apply-rules`), the **scan** reads (`scan-summary`, `scan-world`, `import-folder`, `import-url`,
+  `import-candidates`), the **suggestion** reads (`core-suggestions`, `monument-suggestions`,
+  `monument-orbit`), and `configure/{slug}/state`, `objectives/vocabulary`, `plan/inspect`, `sketch/relief`,
+  `sketch/relief/read`, `GET /map/{slug}`, `GET …/symmetry`. The last two answer a stored document and are
+  declared the way `GET …/sketch` and `GET …/islands` were — the record names the shape, the blob is sent as
+  stored.
+  Each read is worth asking who calls it before typing it: the island group turned out to be one live read
+  and three routes whose only caller was the retired decompose queue.
   Blocks nothing and is blocked by nothing.
 
 - [ ] **RP29 — The thirty-five edit routes answer an untyped `Dict`.** Every one ends in
@@ -79,11 +81,11 @@ a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what i
   can live that `Pgm` and the client both reach; it lands with `RP13`, where the answer an operation gives is
   the thing being named.
 
-- [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
-  `EndpointWithoutRequest` and **51 call sites read the body as `Dictionary<string, object?>`**. So
-  `RequiredFields`, the one global input gate, returns on its first line for all of them: the promise it
-  makes holds for 22 routes. The Edit tool's 74 refusal sites in `Pgm/Editing` are a request schema written
-  by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
+- [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 142 of the 163 endpoints
+  declare no typed request and **24 call sites read the body as `Dictionary<string, object?>`** through
+  `RawBody`. So `RequiredFields`, the one global input gate, returns on its first line for all of them: the
+  promise it makes holds for 21 routes. The Edit tool's 74 refusal sites in `Pgm/Editing` are a request
+  schema written by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
   hand-written field checks go with it. Needs `RP11` first, which is what makes the shapes checkable.
 
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at

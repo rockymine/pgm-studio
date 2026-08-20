@@ -449,9 +449,6 @@ as though they were top level; they are not.
 | `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence. `box` is required — the author marks the area |
 | `POST /map/{slug}/monument-orbit` | the confirmed monument positions completed onto the other teams, each tagged with its orbit step. Pure geometry over the confirmed symmetry: no world and no candidate table |
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
-| `GET /map/{slug}/island-roles` | per detected island, in the stored island order: its role (`team`/`objective`/`neutral`/`decorative`), its block count, the objective anchors on it, and the buildable outline as GeoJSON |
-| `GET /map/{slug}/island-health` | the same read summarised: how many islands, how many majors, and whether the map looks **under-split** — a symmetric N-team map that resolved into fewer than N landmasses is one where teams have merged |
-| `GET` · `PUT /map/{slug}/island-review` | the reviewer's flag on the detection, `{}` when none is set. `PUT` with status `ok` or empty clears it |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
 
 ### Asking whether the map can be played

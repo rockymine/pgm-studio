@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 
 namespace PgmStudio.Contracts;
 
@@ -8,6 +9,28 @@ public sealed record BuildabilityDto(
     BoundsDto Bbox, int Width, int Height,
     IReadOnlyList<string> Classes, IReadOnlyDictionary<string, string> Colors,
     IReadOnlyDictionary<string, int> Counts, IReadOnlyList<string> Rows, bool HasY0);
+
+/// <summary>
+/// One landmass the world scan decomposed the map into, as <c>GET /map/{slug}/islands</c> answers it —
+/// the shared decomposition the Configure tool draws, seats spawns against and fits the canvas to.
+///
+/// <para><see cref="Id"/> is 1-based and is the id the footprint grid stamps into each cell.
+/// <see cref="Bounds"/> is <c>[minX, minZ, maxX, maxZ]</c> with the maxima <b>exclusive</b>, so a
+/// one-cell island spans one. <see cref="Polygon"/> is GeoJSON — <c>{type: "Polygon", coordinates:
+/// [ring, hole…]}</c> over <c>[x, z]</c> pairs, the map's z in the second ordinate — which is what lets the
+/// canvas render an island the same way it renders a drawn shape.</para>
+///
+/// <para>The order is detection order, and it is load-bearing: the island-sketch shapes are 1:1 with it, so
+/// an index into this list names the same landmass on both sides.</para>
+/// </summary>
+public sealed record IslandDto(
+    int Id,
+    [property: JsonPropertyName("block_count")] int BlockCount,
+    IReadOnlyList<int> Bounds,
+    GeoPolygonDto Polygon);
+
+/// <summary>A GeoJSON polygon over <c>[x, z]</c> pairs: the outer ring first, then one array per hole.</summary>
+public sealed record GeoPolygonDto(string Type, IReadOnlyList<IReadOnlyList<IReadOnlyList<double>>> Coordinates);
 
 public sealed record NavPointDto(string Kind, string Name, int X, int Z, int Component);
 /// <summary><c>For</c> names the team an entry denial cut the point off from, where that is the cause —

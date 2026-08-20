@@ -25,7 +25,7 @@ public sealed class SchemaCompletenessTests
 {
     /// <summary>The count still to declare. It only ever goes down: a route added without a response type
     /// pushes it up and fails here, which is the whole point of a number rather than a list of exceptions.</summary>
-    private const int StillUndeclared = 58;
+    private const int StillUndeclared = 54;
 
     /// <summary>The <b>success</b> shape, specifically. Every route publishes the refusal envelope from one
     /// place, so a test asking only whether an operation declares anything at all would pass on a surface

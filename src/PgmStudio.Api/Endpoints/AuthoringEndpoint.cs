@@ -4,6 +4,7 @@ using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Analysis.Region;
 using PgmStudio.Api.Services;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
@@ -93,7 +94,14 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Ma
 /// <summary>GET /api/map/{slug}/islands — the detected island polygons (from the islands_json artifact).</summary>
 public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/islands"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/islands");
+        AllowAnonymous();
+        // Declared rather than sent as the record: the blob is answered exactly as the scan wrote it, and
+        // re-serialising it through IslandDto would drop whatever a newer detection put there.
+        Description(b => b.Produces<List<IslandDto>>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

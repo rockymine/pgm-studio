@@ -588,8 +588,9 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   `IslandClassifier`, but a per-island prune could drop them); (c) any **under-split / merged** read beyond
   `abstract` (whose stained-glass build-floor is now excluded — `FEATURES.md`): `LooksUnderSplit` is the
   catch-all flag; the residual lever if one is found is to fall through to surface-based detection when a
-  cleaned-base component is a map-spanning low-Y slab. Serves the shipped island-health / analysis
-  features; the decompose-queue UI slice was dropped with the corpus-mining flywheel.
+  cleaned-base component is a map-spanning low-Y slab. `IslandClassifier` and `IslandRoleClassifier` are the
+  reads it works over; they sit in `Analysis` with their own tests, and no route surfaces them since `RP18`
+  retired the three the decompose queue was the only caller of.
 
 - [ ] **G12 — Re-prune flying blobs above terrain (stair-aware regression).** Stair-aware connectivity fixed
   the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island problem:
@@ -1126,7 +1127,7 @@ place.
 
 ## The boundary: one contract, one use case, one class of fault
 
-`docs/architecture.md` is the survey these came out of. The studio has two front doors — 167 HTTP endpoints
+`docs/architecture.md` is the survey these came out of. The studio has two front doors — 163 HTTP endpoints
 and `tools/mapgen`, which links the libraries and speaks no HTTP — and one pipeline behind them, and every
 entry here is a fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
 in the order listed: the contract first, because the request shape and the client both hang off it; the

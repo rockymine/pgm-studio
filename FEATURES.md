@@ -638,18 +638,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
-- **An undeclared route says the wrong thing, and nine stopped saying it (RP18).** An endpoint with no
+- **An undeclared route says the wrong thing, and twelve stopped saying it (RP18).** An endpoint with no
   declared response type is published as **204 No Content** — the generator's default, and a claim rather
-  than a silence. `SchemaCompletenessTests` now says so, names the seven deletes for which that 204 is true
-  (`DELETE /plans/{id}` and the five style/theme deletes beside it), and counts only the routes publishing a
-  204 they do not answer: 74 → 58.
+  than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true
+  (`DELETE /plans/{id}` and the five style/theme deletes beside it) and holds them to answering no body, and
+  counts only the routes publishing a 204 they do not answer: 74 → 54.
 
-  Nine now answer the shape they were already sending. `DELETE …/sketch/discard-if-empty` declares
-  `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare `PlanDetail`; `PATCH
-  /configure/{slug}/exclude-island`, `PATCH …/symmetry` and `PUT …/island-review` answer `OkDto` where each
-  had built its own `{ok: true}`, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments`
-  and `GET …/column-floor` get `SegmentsDto` and `ColumnFloorDto`, keeping the snake_case keys the side-view
-  canvas reads by name. No wire changed.
+  Nine answer the shape they were already sending, and no wire changed.
+  `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
+  `PlanDetail`; `PATCH /configure/{slug}/exclude-island` and `PATCH …/symmetry` answer `OkDto` where each had
+  built its own `{ok: true}`, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments` and
+  `GET …/column-floor` get `SegmentsDto` and `ColumnFloorDto`, keeping the snake_case keys the side-view
+  canvas reads by name. `GET …/islands` declares `IslandDto` and still sends the scan's blob as stored, the
+  way `GET …/sketch` does.
+
+  Three were deleted rather than typed. `island-roles`, `island-health` and the `island-review` flag were
+  built as hooks for the decompose queue, which was retired with the corpus-mining flywheel, and nothing has
+  called them since — no client, no test, no tool. `IslandRoleData` went with them; `IslandClassifier` and
+  `IslandRoleClassifier` stay in `Analysis` with their tests, because `G9` reads them.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,
@@ -1414,22 +1420,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   **neutral** (no anchor but intersects the build region — a stepping-stone/mid), **decorative** (no anchor,
   outside the build region — e.g. an observer island). Anchors are resolved to footprints via
   `RegionGeometry2d` and tested by intersection (robust to concavities); build regions come from
-  `RegionCategorizer`. Surfaced on `GET /map/{slug}/island-health` as `roles`. Validated against the corpus
-  ground truth (kanto/thunder/annealing_iv/a_new_day/mame/green_gem). (G9)
+  `RegionCategorizer`. Validated against the corpus ground truth
+  (kanto/thunder/annealing_iv/a_new_day/mame/green_gem). The endpoints that surfaced it were retired with the
+  decompose workflow they were built for (`RP18`); the classifier is `Analysis`' and `G9` reads it. (G9)
 - **Island size classifier + detection-health triage** — `IslandClassifier` buckets detected islands by size
   into `major` (team islands, ≥25% of the largest), `neutral` (gameplay-sized mids/stepping-stones, ≥64 blocks),
   and `small` (sub-gameplay specks / over-split fragments); corpus-validated (kanto 2 majors, green_gem 2+2,
   annealing_iv 4+8). `LooksUnderSplit` flags the merged-teams failure mode (majors < teams, e.g. `abstract`).
-  Surfaced via `GET /map/{slug}/island-health` (roles + counts + `underSplit`) and the human review flag
-  `GET`/`PUT /map/{slug}/island-review` (`{status,note}`; echoed per map in `GET /decompose/queue` as
-  `reviewStatus`). (G9)
-- **Island-roles hook (`GET /map/{slug}/island-roles`, G11)** — the decompose-workflow integration hook the
-  G6/G7/G8 UI tasks consume. Per detected island in island-sketch order: `{ index, role, blockCount,
-  anchors:[{kind:"spawn"|"wool", x, z}] }` plus the `buildRegion` outline as GeoJSON. `IslandRoleClassifier.Assess`
-  reports each island's role + the anchors it carries in one pass (`Classify` delegates to it); the endpoint
-  distance-clusters a wool's several footprints (location + room + spawner) into one lane target, so a symmetric
-  map yields symmetric anchors. Shared `IslandRoleData` plumbing with `island-health`. Reflects the new detection
-  on re-scanned maps. (G11)
+  Read from `Analysis`; the health endpoint and the human review flag that surfaced it were retired with the
+  decompose workflow (`RP18`). (G9)
 - **Headless scan-to-files (`--scan-out` / `--scan-out-all`)** — the RoundTrip tool runs the studio's own
   extractors with no database and writes an importer-ready per-map directory (`wools/resources/chests/
   spawners/layer_segments.parquet`, `monument_candidates.parquet` from the F9 `MonumentSuggester` gather,
@@ -2114,9 +2113,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `scripts/island_shapes.py` is the shape-feature analyzer behind it. (G6 base)
 - **Lane-decomposition surface (manual cut tool) — RETIRED** with the corpus-mining flywheel (the
   plan-then-realize direction, `docs/generator/model.md`): the page, its canvas bridge and
-  the queue/load/save endpoints are removed; the pure seam-split geometry (`geometry/decompose-cut.js`)
-  lives on under the sketch tool's split feature, and saved `lane_decomposition_json` artifacts remain as
-  data. As shipped: `/maps/{slug}/decompose` (dashboard footer →
+  the queue/load/save endpoints are removed, and so are the three reads it was the only caller of —
+  `island-roles`, `island-health` and the `island-review` flag (`RP18`). The pure seam-split geometry
+  (`geometry/decompose-cut.js`) lives on under the sketch tool's split feature, and saved
+  `lane_decomposition_json` artifacts remain as data. As shipped: `/maps/{slug}/decompose` (dashboard footer →
   `/decompose`, a queue of two-team CTW maps): loads a map's `island_sketch` outline and the author
   **lassos** a region → picks **two seam points** (existing corners or lasso∩edge markers) → the piece
   **splits** into a lane + remainder (iterative peeling), with a role tag per piece (spawn/wool/frontline/
@@ -4490,8 +4490,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `/map/{slug}` routes and `docs/tools/`'s tables carried a fraction: `traversability` was named in prose
   twelve times and in no table, `buildability` three times, and ten more segments — `island-health`,
   `island-review`, `island-roles`, `kit-reach`, `monument-obstruction`, `monument-orbit`, `resources`,
-  `scan-world`, `wool-availability`, `wool-suggestions` — appeared nowhere under any form. `configure.md` now
-  carries them, in two tables split on what they are for: the reads that tell an author what the **world**
+  `scan-world`, `wool-availability`, `wool-suggestions` — appeared nowhere under any form. `configure.md`
+  carries the ones that survive, in two tables split on what they are for: the reads that tell an author what the **world**
   holds, and *Asking whether the map can be played* — the six that answer a question a gate will later ask.
   Each row says what the read answers over, and which flag says whether it had ground to answer over at all
   (`haveLayers` on four, `hasY0` on buildability, `haveRoutes` on coverage), because on an unscanned map
