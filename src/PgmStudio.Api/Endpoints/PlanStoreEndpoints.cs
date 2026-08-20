@@ -70,7 +70,7 @@ public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<Pl
 /// <summary>POST /api/plans — save the plan open in the editor. Applies the fork-or-mutate doctrine in
 /// <see cref="PlanStore.SaveFromEditorAsync"/> and returns the resulting row. A malformed plan body is
 /// answered 400, never 500.</summary>
-public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest>
+public sealed class PlanSaveEndpoint(PlanStore store) : Endpoint<PlanSaveRequest, PlanDetail>
 {
     public override void Configure() { Post("/plans"); AllowAnonymous(); }
 

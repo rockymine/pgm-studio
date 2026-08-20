@@ -56,22 +56,26 @@ push declared request shapes in one pass — the write surface is the useful hal
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
 a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
-- [~] **RP18 — Forty of the seventy-four undeclared operations are hand-built reads.**
-  The media types, the refusal envelope, the flat pixel/column encodings, the small acks and the three
-  documents an agent writes are declared, and `SchemaCompletenessTests` holds the count so it only goes down.
-  What is left here are the reads that build an anonymous object inline at the send —
-  `IslandRolesEndpoint.cs:47` is representative — so each needs a record written from the handler that builds
-  it, branches included. Thirteen collapse into acks that already exist: eight deletes that answer only that
-  the thing is gone, and five writes that answer only that the write happened. The other twenty-seven are
-  `scan-summary`, the configure state, `core-suggestions`, `segments`, `regions/tree`, `island-*`, the import
-  results and `plan/inspect`, and each is a separate small reading. Blocks nothing and is blocked by nothing.
+- [~] **RP18 — Twenty-three reads publish a 204 they answer a document under.** Each builds an anonymous
+  object or a `Dict` inline at the send — `IslandRolesEndpoint.cs:47` is representative — so each needs a
+  record written from that handler, branches included, and the keys kept exactly: several of these answer
+  snake_case (`primary_min`, `region_files`), which the canvas reads by name.
+  Four families and seven singles: the **island** reads (`islands`, `island-roles`, `island-health`,
+  `island-review`), the **region** reads (`regions/authoring`, `regions/tree`, `filters`, `apply-rules`),
+  the **scan** reads (`scan-summary`, `scan-world`, `import-folder`, `import-url`, `import-candidates`), the
+  **suggestion** reads (`core-suggestions`, `monument-suggestions`, `monument-orbit`), and
+  `configure/{slug}/state`, `objectives/vocabulary`, `plan/inspect`, `sketch/relief`, `sketch/relief/read`,
+  `GET /map/{slug}`, `GET …/symmetry`. The last two answer a stored document and are declared the way
+  `GET …/sketch` was — the record names the shape, the blob is sent as stored.
+  Blocks nothing and is blocked by nothing.
 
-- [ ] **RP29 — The thirty-four edit routes answer an untyped `Dict`.** Every one ends in
-  `WriteSupport.RunEditAsync` (34 call sites over `WriteEndpoints`, `RegionEndpoints`, `WoolAndFilterEndpoints`,
-  `SpawnAndRuleEndpoints`, `AuthoringIntentEndpoints`, `WiringEndpoints`), which hands back whatever
-  `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so all 34 publish a path and a verb and
-  nothing about the answer. The shapes are few — `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`,
-  `{id, bounds}` — so six or seven records cover the surface. `PgmStudio.Vocabulary` is where those records
+- [ ] **RP29 — The thirty-five edit routes answer an untyped `Dict`.** Every one ends in
+  `WriteSupport.RunEditAsync` — `RegionEndpoints` 11, `WoolAndFilterEndpoints` 9, `SpawnAndRuleEndpoints` 8,
+  `WriteEndpoints` 4, `AuthoringIntentEndpoints` 2, `WiringEndpoints` 1 — which hands back whatever
+  `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so all 35 publish a **204 they do not
+  answer**: the generator's default for an endpoint with no declared response type. The shapes are few —
+  `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`, `{id, bounds}` — so six or seven records cover
+  the surface, and `CreatedDto`/`OkDto` are two of them already. `PgmStudio.Vocabulary` is where those records
   can live that `Pgm` and the client both reach; it lands with `RP13`, where the answer an operation gives is
   the thing being named.
 

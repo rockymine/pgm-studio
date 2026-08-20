@@ -553,7 +553,8 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
 /// Sketch tool. Discards only a draft that is genuinely untouched: sketch stage, still carrying the default
 /// name, no authors, and nothing drawn — anything else is real work and is left alone. Returns
 /// <c>{discarded}</c>; a missing map or a non-pristine one is a no-op success.</summary>
-public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<DiscardedDto>
 {
     public override void Configure() { Delete("/map/{slug}/sketch/discard-if-empty"); AllowAnonymous(); }
 

@@ -163,7 +163,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
 /// solid segments onto a 2D (primary × y) grid via <see cref="SideView"/>; feeds the Build-Regions
 /// side-view canvas (C7). Mirrors the reference <c>get_segments</c>.
 /// </summary>
-public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<SegmentsDto>
 {
     public override void Configure() { Get("/map/{slug}/segments"); AllowAnonymous(); }
 
@@ -195,15 +195,8 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         var result = SideView.Build(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)), axis);
         if (result is null) { await Refusals.NotFoundAsync(HttpContext, "segment data", ct); return; }
 
-        await Send.OkAsync(new Dict
-        {
-            ["axis"] = result.Axis,
-            ["primary_min"] = result.PrimaryMin,
-            ["primary_count"] = result.PrimaryCount,
-            ["y_min"] = result.YMin,
-            ["y_count"] = result.YCount,
-            ["depth"] = result.Depth,
-        }, ct);
+        await Send.OkAsync(new SegmentsDto(
+            result.Axis, result.PrimaryMin, result.PrimaryCount, result.YMin, result.YCount, result.Depth), ct);
     }
 }
 
@@ -213,7 +206,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 /// thing at <c>y</c> rests on), falling back to the segment top nearest <c>y</c>. Returns <c>{y:null}</c>
 /// when the column has no segment data. Used to seed a wool spawn's Y onto solid ground.
 /// </summary>
-public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<ColumnFloorDto>
 {
     public override void Configure() { Get("/map/{slug}/column-floor"); AllowAnonymous(); }
 
@@ -232,10 +225,10 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
         var tops = await db.LayerSegments
             .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
             .Select(s => s.WorldYEnd).ToListAsync(ct);
-        if (tops.Count == 0) { await Send.OkAsync(new Dict { ["y"] = (int?)null }, ct); return; }
+        if (tops.Count == 0) { await Send.OkAsync(new ColumnFloorDto(null), ct); return; }
 
         var below = tops.Where(t => t <= refY).ToList();
         int floor = below.Count > 0 ? below.Max() : tops.OrderBy(t => Math.Abs(t - refY)).First();
-        await Send.OkAsync(new Dict { ["y"] = floor }, ct);
+        await Send.OkAsync(new ColumnFloorDto(floor), ct);
     }
 }

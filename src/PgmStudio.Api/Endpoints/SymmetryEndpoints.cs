@@ -11,6 +11,7 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Contracts;
 
 /// <summary>Shared helpers for the symmetry endpoints (B7).</summary>
 internal static class SymmetrySupport
@@ -164,7 +165,7 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
 /// ("confirmed"/"none"), an optional user-override confirmed_type, and an optional centre override.
 /// Mirrors the reference patch_symmetry.
 /// </summary>
-public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<OkDto>
 {
     public override void Configure() { Patch("/map/{slug}/symmetry"); AllowAnonymous(); }
 
@@ -202,6 +203,6 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
         }
 
         await SymmetryStore.SaveAsync(db, row, ct);
-        await Send.OkAsync(new Dict { ["ok"] = true }, ct);
+        await Send.OkAsync(new OkDto(), ct);
     }
 }

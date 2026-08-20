@@ -7,6 +7,7 @@ using PgmStudio.Analysis.Footprint;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -44,7 +45,8 @@ public sealed class IslandReviewGetEndpoint(MapRepository repo, MapArtifactStore
 }
 
 /// <summary>PUT /api/map/{slug}/island-review — set (or with status "ok"/empty, clear) the reviewer flag.</summary>
-public sealed class IslandReviewPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : Endpoint<IslandReview.Flag>
+public sealed class IslandReviewPutEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : Endpoint<IslandReview.Flag, OkDto>
 {
     public override void Configure() { Put("/map/{slug}/island-review"); AllowAnonymous(); }
 
@@ -63,7 +65,7 @@ public sealed class IslandReviewPutEndpoint(MapRepository repo, MapArtifactStore
             req.At = DateTime.UtcNow.ToString("O");
             await artifacts.SaveJsonAsync(map.Id, ArtifactKind.IslandReviewJson, req, ct);
         }
-        await Send.OkAsync(new { ok = true }, ct);
+        await Send.OkAsync(new OkDto(), ct);
     }
 }
 

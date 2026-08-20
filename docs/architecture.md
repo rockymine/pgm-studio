@@ -47,11 +47,14 @@ across `Pgm/Editing` are, read as a group, a request schema: a field is absent, 
 set, a number is not one. Those are declarations, written as 74 `throw` statements because the request they
 guard has no declared shape to hang them on.
 
-**A response is described even less than a request.** Of the 167 operations, **114 declare no response
-content at all** and 53 declare `application/json`; **none declares an image**, though six routes answer
-`image/png` through `PngAnswer`, three answer `text/plain` and the export answers `application/zip`. So the
-page cannot render a theme swatch beside the route that draws it, and a caller cannot tell a JSON route from
-a PNG route without sending one.
+**A response is described even less than a request, and where it is undescribed it is misdescribed.** An
+endpoint that declares no response type is published as **204 No Content** — the generator's default, and a
+claim rather than a silence: `GET /map/{slug}` answers a whole map document under it. **58 of the 167
+operations** publish that 204 without answering it, and seven more publish it truthfully, every one a delete
+whose answer is that the thing is gone. `SchemaCompletenessTests` holds both numbers, the second as a named
+list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six
+`image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
+`/api-docs` renders a theme swatch beside the route that draws it.
 
 **The wire contract is generated once and kept by hand twice more.** The route attributes in
 `Api/Endpoints` are the generator's source. Beside them sit **152 route strings** written out in the Blazor

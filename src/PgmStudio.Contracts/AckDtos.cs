@@ -10,6 +10,11 @@ namespace PgmStudio.Contracts;
 /// </summary>
 public sealed record OkDto(bool Ok = true);
 
+/// <summary>A row was made, and this is the id every later route names it by. The row itself is not handed
+/// back: the caller posted what is in it, and the read that answers the stored form is a route of its
+/// own.</summary>
+public sealed record CreatedDto(long Id);
+
 /// <summary>A map was originated, and this is the slug every later route names it by.</summary>
 public sealed record OriginatedDto(string Slug);
 

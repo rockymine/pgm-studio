@@ -638,6 +638,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **An undeclared route says the wrong thing, and nine stopped saying it (RP18).** An endpoint with no
+  declared response type is published as **204 No Content** — the generator's default, and a claim rather
+  than a silence. `SchemaCompletenessTests` now says so, names the seven deletes for which that 204 is true
+  (`DELETE /plans/{id}` and the five style/theme deletes beside it), and counts only the routes publishing a
+  204 they do not answer: 74 → 58.
+
+  Nine now answer the shape they were already sending. `DELETE …/sketch/discard-if-empty` declares
+  `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare `PlanDetail`; `PATCH
+  /configure/{slug}/exclude-island`, `PATCH …/symmetry` and `PUT …/island-review` answer `OkDto` where each
+  had built its own `{ok: true}`, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments`
+  and `GET …/column-floor` get `SegmentsDto` and `ColumnFloorDto`, keeping the snake_case keys the side-view
+  canvas reads by name. No wire changed.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,

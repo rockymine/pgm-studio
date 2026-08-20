@@ -184,7 +184,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
 /// generated row (<see cref="PlanStore.SaveGeneratedAsync"/>, idempotent by content hash) with its structure.
 /// Returns the stored <see cref="PlanDetail"/>. The hold tray and unpin are the G119 endpoints.
 /// </summary>
-public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeRequestDto>
+public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeRequestDto, PlanDetail>
 {
     public override void Configure() { Post("/compose/pin"); AllowAnonymous(); }
 

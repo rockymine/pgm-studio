@@ -10,6 +10,7 @@ using PgmStudio.Data.Schema;
 namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
+using PgmStudio.Contracts;
 
 /// <summary>
 /// The per-map scan configuration document (the <c>map_config_json</c> artifact): the island exclusions
@@ -70,7 +71,8 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
 }
 
 /// <summary>PATCH /api/configure/{slug}/exclude-island — toggle one island's exclusion.</summary>
-public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<OkDto>
 {
     public override void Configure() { Patch("/configure/{slug}/exclude-island"); AllowAnonymous(); }
 
@@ -91,7 +93,7 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db,
         await ScanConfig.SaveAsync(artifacts, map.Id, cfg, ct);
         // Excluded islands feed symmetry detection — drop the cached result so step 3 recomputes.
         await SymmetryStore.DeleteAsync(db, map.Id, ct);
-        await Send.OkAsync(new Dict { ["ok"] = true }, ct);
+        await Send.OkAsync(new OkDto(), ct);
     }
 }
 

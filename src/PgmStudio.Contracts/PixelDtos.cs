@@ -55,3 +55,26 @@ public sealed record WorldColumnsDto(
     [property: JsonPropertyName("min_z")] int MinZ,
     [property: JsonPropertyName("max_x")] int MaxX,
     [property: JsonPropertyName("max_z")] int MaxZ);
+
+/// <summary>
+/// The vertical segments of a map projected onto one face, as the side-view canvas draws it: a
+/// (primary × y) grid whose cells hold how far back the nearest solid block is, normalised to 0–255 with 0
+/// nearest and <c>-1</c> for a cell nothing occupies.
+///
+/// <para><see cref="Axis"/> is the direction the camera looks from — <c>nz</c>/<c>pz</c> look along Z so the
+/// primary axis is x, <c>nx</c>/<c>px</c> look along X so it is z. <see cref="Depth"/> is one flat array of
+/// <c>PrimaryCount × YCount</c> cells rather than a row per y, for the reason every other canvas encoding is
+/// flat: a face is tens of thousands of cells and a nested shape would be mostly punctuation.</para>
+/// </summary>
+public sealed record SegmentsDto(
+    string Axis,
+    [property: JsonPropertyName("primary_min")] int PrimaryMin,
+    [property: JsonPropertyName("primary_count")] int PrimaryCount,
+    [property: JsonPropertyName("y_min")] int YMin,
+    [property: JsonPropertyName("y_count")] int YCount,
+    IReadOnlyList<short> Depth);
+
+/// <summary>The terrain floor at one column — the Y a thing dropped there comes to rest on, or null where the
+/// column has no segment data at all. Null rather than an absent key, because "this map has nothing there" is
+/// the answer rather than the absence of one.</summary>
+public sealed record ColumnFloorDto(int? Y);
