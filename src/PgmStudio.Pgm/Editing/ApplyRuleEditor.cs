@@ -5,10 +5,10 @@ namespace PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Apply-rule CRUD on the doc dict. Rules have no
-/// id in the PGM model, so a stable synthetic <c>rule_&lt;n&gt;</c> is backfilled (positional, so it
-/// survives save/reload). Filter/region refs may be ids or inline descriptors — only a plain id that
-/// resolves to nothing is rejected.
+/// Adds an apply-rule to the doc dict's stack. Rules carry no id in the PGM model, so a stable synthetic
+/// <c>rule_&lt;n&gt;</c> is backfilled — positional, so it survives save and reload. A rule must carry a
+/// region, a filter or an action, and its filter/region refs may be ids or inline descriptors: only a plain
+/// id that resolves to nothing is rejected.
 /// </summary>
 public static partial class ApplyRuleEditor
 {
@@ -18,8 +18,6 @@ public static partial class ApplyRuleEditor
     private const string IdPrefix = "rule_";
     private static readonly HashSet<string> BuiltinFilters = ["never", "always"];
     private static readonly HashSet<string> BuiltinRegions = ["everywhere", "nowhere"];
-
-    public static Dict ListApplyRules(Dict data) => new() { ["apply_rules"] = EnsureRuleIds(data) };
 
     public static Dict CreateApplyRule(Dict data, Dict payload)
     {
@@ -52,10 +50,6 @@ public static partial class ApplyRuleEditor
                 rule["id"] = $"{IdPrefix}{nextN++}";
         return rules;
     }
-
-    private static Dict Find(Dict data, string ruleId)
-        => EnsureRuleIds(data).OfType<Dict>().FirstOrDefault(r => r.GetValueOrDefault("id") as string == ruleId)
-           ?? throw EditException.NoSuchSubject($"no apply-rule '{ruleId}'");
 
     private static void Validate(Dict data, Dict payload)
     {

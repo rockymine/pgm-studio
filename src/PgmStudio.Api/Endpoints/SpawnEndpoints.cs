@@ -65,17 +65,3 @@ public sealed class ObserverSpawnDeleteEndpoint(MapRepository repo, MapReader re
         await Send.ResponseAsync(b!, s, ct);
     }
 }
-
-// ── apply rules ─────────────────────────────────────────────────────────────────────
-
-/// <summary>GET /api/map/{slug}/apply-rules — list rules (with backfilled ids).</summary>
-public sealed class ApplyRulesListEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
-{
-    public override void Configure() { Get("/map/{slug}/apply-rules"); AllowAnonymous(); }
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        // read-only, but RunEditAsync persists the id backfill (harmless, positional) — acceptable.
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, ApplyRuleEditor.ListApplyRules, ct);
-        await Send.ResponseAsync(b!, s, ct);
-    }
-}

@@ -134,16 +134,16 @@ answers `{error, message, findings[]}` — the shape `docs/refusals.md` states �
 findings' sentence rather than a status, and an agent keys on a rule id. There are eight faults behind the
 write routes, and six of them are the request's own rather than the editors': an id naming nothing in the
 document is `RQ4` at **404**, a required field absent or a value outside a closed set or a number that is not
-one is `RQ1` at **400**, an id already taken or a row something still references is `RQ5` at **409** — and
-`RQ5`'s finding names what is in the way in its `subjects`, so the apply-rules still binding a filter come
-back with the refusal rather than having to be hunted.
+one is `RQ1` at **400**, an id already taken is `RQ5` at **409** — and `RQ5`'s finding names what is in the
+way in its `subjects`, so the id already holding the name comes back with the refusal rather than having to
+be hunted.
 
 Two faults are the editors' own, because both are about the **document** rather than the request: the payload
 is well-formed and everything it names exists, and the edit still cannot be applied.
 
 | Rule | Refused | Status |
 |---|---|---|
-| `ED1` | a reference the document cannot resolve — an apply-rule or filter naming a region or filter that is not in the registry and is not a builtin, or a filter naming itself | 400 |
+| `ED1` | a reference the document cannot resolve — an apply-rule or filter naming a region or filter that is not in the registry and is not a builtin, or a filter naming itself. No route here raises it: the two editors that do are reached from the intent generators | 400 |
 | `ED2` | an edit the document is not in a state to take — a group with fewer children than its type takes, an apply-rule carrying no region, filter or action | 400 |
 
 A refusal shows as a toast and leaves the screen as it was; a rejected canvas edit reloads the canvas so the
@@ -165,16 +165,14 @@ document directly, which is what separates them from Configure's single intent P
 | `GET /map/{slug}/regions/tree` | the region tree, grouped by category, which is what the sidebars render |
 | `GET /map/{slug}/regions` | the flat registry |
 | `GET /map/{slug}/islands` · `/symmetry` · `/configure/{slug}/state` | the Setup phase's detection |
-| `GET /map/{slug}/filters` · `/apply-rules` | the filter registry with per-filter usage, and the rule list. Both are reads only: the writes behind them were the intent model's job before it existed |
 
 **Writing**
 
 Their failure codes are uniform, because they all run through one path — `WriteSupport.RunEditAsync`, which
 turns the editor's refusal into the envelope: **400** (`RQ1`, `ED1`, `ED2`) for a payload the document will
 not take, **404** (`RQ4`) for an unknown map, region, team, wool, monument, spawn, filter or apply-rule, and
-**409** (`RQ5`) for an id already in use. The one 409 that is not an id collision is deleting a filter that
-something still references, or a built-in one. Payload validation runs **before** the lookup, so a malformed
-body aimed at something that does not exist answers 400 rather than 404.
+**409** (`RQ5`) for an id already in use. Payload validation runs **before** the lookup, so a malformed body
+aimed at something that does not exist answers 400 rather than 404.
 
 **Every one of them rewrites the whole document**, which is what makes two editors a problem: an edit reads
 the map, patches it and writes all of it back, so two callers working on different parts at once keep only
@@ -194,7 +192,6 @@ refused as `RQ5` — the third 409 in that list — and one stating nothing writ
 | `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete |
 | `POST /map/{slug}/regions/group` · `/ungroup` | union two or more, dissolve a compound |
 | `POST /map/{slug}/regions/{regionId}/counterpart` · `/orbit` | mirror a region onto the other team, or round the orbit |
-| `POST /map/{slug}/filters` · `PATCH` · `DELETE /map/{slug}/filter/{fid}` | the filter registry — **no UI reaches these** |
 
 **Getting the XML out** is not Edit's, and the tool's own Export button is disabled. `GET /map/{slug}/xml`
 answers the rendered `map.xml` for any map, corpus maps included, and `GET /map/{slug}/export` the world ZIP;
@@ -231,14 +228,14 @@ does not exist answers 400 rather than 404.
 parser reads them all and the rule id says which fault it was:
 
 ```
-POST /api/map/sentient/filters  {"id": "f1", "type": "all", "children": ["nope"]}
+POST /api/map/sentient/regions/group  {"type": "union", "child_ids": ["blue-spawn-point"]}
 → 400 { "error":    "edit not applicable",
-        "message":  "filter 'nope' does not exist",
-        "findings": [ { "rule": "ED1", "message": "filter 'nope' does not exist",
+        "message":  "union requires at least 2 region(s)",
+        "findings": [ { "rule": "ED2", "message": "union requires at least 2 region(s)",
                         "severity": "refusal" } ] }
 ```
 
-`GET /api/rules?rule=ED1` answers what that id means and what to do about it, and the same holds for the
+`GET /api/rules?rule=ED2` answers what that id means and what to do about it, and the same holds for the
 `RQ*` ids the write routes cite.
 
 The ids in that example are real — `sentient` carries `red-spawn-point`, `blue-spawn-point`, `spawns`,
@@ -266,12 +263,12 @@ already exist before it can be assigned. Build Regions is the only phase with a 
 nowhere else — Regions, Teams and Objective pass the inspector coordinate editing but no delete or rename
 handler, so those controls are absent rather than broken (`C11`).
 
-**Filters and apply-rules are read here and written elsewhere.** They are the machinery that makes a PGM map
-mean anything — which team may break which block, when — and this tool was to be where an author typed them.
-The intent model is the answer to that instead: a protection drawn in Configure applies the filters it needs,
-and the plan tool states the intent that produces them, so the hand-authoring surface was never filled and its
-write routes are gone. `GET …/filters` and `GET …/apply-rules` remain as reads, which is what a refusal cites
-when an edit names a filter or a rule. A map whose rules need changing needs the API or a text editor.
+**Filters and apply-rules are not reachable here at all.** They are the machinery that makes a PGM map mean
+anything — which team may break which block, when — and this tool was to be where an author typed them. The
+intent model is the answer to that instead: a protection drawn in Configure applies the filters it needs, and
+the plan tool states the intent that produces them, so the hand-authoring surface was never filled and its
+routes are gone, reads included. `GET /map/{slug}` still carries both under `filters` and `apply_rules`,
+which is where anything wanting to see them looks. A map whose rules need changing needs a text editor.
 
 **Kits are named, not authored.** The free-text kit box on a spawn says which kit that spawn grants; nothing
 in the studio states what a kit contains (`C9`).

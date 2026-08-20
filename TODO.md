@@ -56,27 +56,19 @@ push declared request shapes in one pass — the write surface is the useful hal
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
 a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
-- [~] **RP18 — Two reads still publish a 204 they answer a document under.** `GET …/filters` answers
-  `FilterEditor.ListFilters` — the registry plus a per-filter usage map — and `GET …/apply-rules` answers
-  `ApplyRuleEditor.ListApplyRules`. Both are a `Dict` built in `Pgm/Editing`, which is `RP29`'s foundation
-  rather than this one's, and `apply-rules` runs through `WriteSupport.RunEditAsync` besides. No UI reaches
-  either: the only readers are `EditRules`' two remarks, which point an agent at them after a refused edit
-  cites a filter or a rule. Fold them into `RP29` or type them here — the author's call.
+- [ ] **RP29 — The twenty-four edit routes answer an untyped `Dict`.** Every one hands back whatever
+  `Dictionary<string, object?>` an editor in `Pgm/Editing` returned — `RegionEndpoints` 7, `WoolEndpoints` 6,
+  `SpawnEndpoints` 5, `WriteEndpoints` 4, `AuthoringIntentEndpoints` 2 — so all 24 publish a **204 they do
+  not answer**: the generator's default for an endpoint with no declared response type, and now the whole of
+  what still does. The shapes are few — `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`,
+  `{id, bounds}` — so six or seven records cover the surface, and `CreatedDto`/`OkDto` are two of them
+  already. `PgmStudio.Vocabulary` is where those records can live that `Pgm` and the client both reach; it
+  lands with `RP13`, where the answer an operation gives is the thing being named.
 
-- [ ] **RP29 — The twenty-seven edit routes answer an untyped `Dict`.** Every one ends in
-  `WriteSupport.RunEditAsync` — `WoolAndFilterEndpoints` 9, `RegionEndpoints` 7, `SpawnAndRuleEndpoints` 5,
-  `WriteEndpoints` 4, `AuthoringIntentEndpoints` 2 — which hands back whatever
-  `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so all 27 publish a **204 they do not
-  answer**: the generator's default for an endpoint with no declared response type. The shapes are few —
-  `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`, `{id, bounds}` — so six or seven records cover
-  the surface, and `CreatedDto`/`OkDto` are two of them already. `PgmStudio.Vocabulary` is where those records
-  can live that `Pgm` and the client both reach; it lands with `RP13`, where the answer an operation gives is
-  the thing being named.
-
-- [ ] **RP12 — Eighty-six percent of the surface declares no request shape.** 133 of the 154 endpoints
-  declare no typed request and **25 call sites read the body as `Dictionary<string, object?>`** through
+- [ ] **RP12 — Eighty-six percent of the surface declares no request shape.** 127 of the 148 endpoints
+  declare no typed request and **23 call sites read the body as `Dictionary<string, object?>`** through
   `RawBody`. So `RequiredFields`, the one global input gate, returns on its first line for all of them: the
-  promise it makes holds for 21 routes. The Edit tool's 74 refusal sites in `Pgm/Editing` are a request
+  promise it makes holds for 21 routes. The Edit tool's 53 refusal sites in `Pgm/Editing` are a request
   schema written by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
   hand-written field checks go with it. Needs `RP11` first, which is what makes the shapes checkable.
 

@@ -12,7 +12,7 @@ parsed.
 
 ## Two drivers, and neither is the other's client
 
-The pipeline has two entry points. `PgmStudio.Api` exposes **153 endpoint classes** over 43 files, and
+The pipeline has two entry points. `PgmStudio.Api` exposes **148 endpoint classes** over 44 files, and
 `tools/mapgen` links `Pgm`, `Minecraft`, `Export` and `Analysis` directly — it opens no `HttpClient` and
 speaks no HTTP at all. Both compile a plan, rasterize a layout, dress a world and write a `map.xml`.
 
@@ -25,12 +25,12 @@ again, because a use case that *is* an HTTP handler has no other place for one t
 
 ## The boundary carries no schema
 
-The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 120
-paths, **153 operations**, 211 schemas — and `/api-docs` is the page over it, where a route can be expanded
+The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 117
+paths, **148 operations**, 211 schemas — and `/api-docs` is the page over it, where a route can be expanded
 and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and most of the write surface declares nothing.
-**132 of the 153 endpoints declare no typed request**, 21 do, and **25 call sites read the body as
+**127 of the 148 endpoints declare no typed request**, 21 do, and **23 call sites read the body as
 `Dictionary<string, object?>`** through `RawBody` and `JsonTree`. Those routes appear in the
 document with their path and verb and no body schema at all: the generator can only publish what the code
 states.
@@ -40,21 +40,20 @@ Three things follow from that, and they are the same fact seen from three sides.
 **The one global input gate covers an eighth of the surface.** `RequiredFields` refuses anything a request
 DTO declares non-nullable and the body did not supply — and its first line is
 `if (context.Request is not { } request) return;`, so it is a no-op for every endpoint that has no request
-type. The promise it makes holds for 21 routes out of 153.
+type. The promise it makes holds for 21 routes out of 148.
 
-**A validation that cannot live in a schema lives in the code by hand.** The Edit tool's 74 refusal sites
+**A validation that cannot live in a schema lives in the code by hand.** The Edit tool's 53 refusal sites
 across `Pgm/Editing` are, read as a group, a request schema: a field is absent, a value is outside a closed
-set, a number is not one. Those are declarations, written as 74 `throw` statements because the request they
+set, a number is not one. Those are declarations, written as 53 `throw` statements because the request they
 guard has no declared shape to hang them on.
 
 **A response is described even less than a request, and where it is undescribed it is misdescribed.** An
 endpoint that declares no response type is published as **204 No Content** — the generator's default, and a
-claim rather than a silence: `GET /map/{slug}/filters` answers every filter the map declares under it.
-**29 of the 153 operations** publish that 204 without answering it, and seven more publish it truthfully,
-every one a delete whose answer is that the thing is gone. The thirty are almost exactly one group: the
-twenty-seven edit routes that hand back whatever `Dictionary<string, object?>` an editor returned, plus the
-`filters` and `apply-rules` reads. `SchemaCompletenessTests` holds both numbers, the second as a
-named list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six
+claim rather than a silence: `POST /map/{slug}/regions` answers the id it created under it. **24 of the
+148 operations** publish that 204 without answering it, and seven more publish it truthfully, every one a
+delete whose answer is that the thing is gone. The twenty-four are one group: the edit routes that hand back
+whatever `Dictionary<string, object?>` an editor returned. `SchemaCompletenessTests` holds both numbers, the
+second as a named list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six
 `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
@@ -62,7 +61,7 @@ named list, so a route that grows a body cannot leave the count quietly. The med
 `Api/Endpoints` are the generator's source. Beside them sit **152 route strings** written out in the Blazor
 client and the endpoint tables in the eight `docs/tools/` documents, neither of which is derived from the
 schema. The client reads **59 responses as `JsonElement`** against 16 typed reads, across 38 files, so the
-response shape is a third copy living in per-component parsing code; `Contracts` carries its DTOs for 153
+response shape is a third copy living in per-component parsing code; `Contracts` carries its DTOs for 148
 endpoints. The split across the client's features says which half of the studio was built against a declared
 shape: **Catalog 3 typed / 0 untyped and Generator 3 / 0**, against **Configure 1 / 27** and **Edit 0 / 14**.
 The two pages with a typed contract are the two newest, and they are what the rest would look like read

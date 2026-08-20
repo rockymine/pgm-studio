@@ -658,12 +658,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
   routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
   endpoint class its only caller reached across.
-- **An undeclared route says the wrong thing, and twenty-seven stopped saying it (RP18).** An endpoint with no
-  declared response type is published as **204 No Content** — the generator's default, and a claim rather
+- **An undeclared route says the wrong thing, and the surface stopped saying it (RP18).** An endpoint with
+  no declared response type is published as **204 No Content** — the generator's default, and a claim rather
   than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true
   (`DELETE /plans/{id}` and the five style/theme deletes beside it) and holds them to answering no body, and
-  counts only the routes publishing a 204 they do not answer: 74 → **30**, which is now almost exactly one
-  group — `RP29`'s twenty-seven edit routes, plus `filters`, `apply-rules` and `monument-orbit`.
+  counts only the routes publishing a 204 they do not answer: 74 → **24**, which is now exactly one group —
+  `RP29`'s edit routes, every one of them handing back what an editor returned.
 
   Ten answer the shape they were already sending, and no wire changed.
   `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
@@ -721,10 +721,28 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `SymmetryEndpointTests` confirms one, and both read the real response back with unmapped members
   disallowed, so a key either side grows fails by name.
 
-  `POST …/monument-orbit` was deleted rather than typed. It completed a confirmed monument onto the other
+  Six were deleted rather than typed. `POST …/monument-orbit` completed a confirmed monument onto the other
   teams under the map's symmetry, which `SymmetryExpander` already does for every intent-authored map — and
-  does more, remapping the capturing team as it fans where this only tagged an orbit index. Nothing called
-  it. The surface is 154 operations → **153**, and the false-204 count 30 → **29**.
+  does more, remapping the capturing team as it fans where this only tagged an orbit index.
+
+  The other five are the **whole filter and apply-rule surface**: `GET …/filters`, `POST …/filters`,
+  `PATCH` and `DELETE …/filter/{fid}`, and `GET …/apply-rules`. The intent model is what writes a map's
+  filters and rules — a protection drawn in Configure applies the ones it needs, and the plan tool states the
+  intent that produces them — so nothing has ever called the writes, and the reads existed only for an agent
+  that has no reason to read them either: the document is configured for agents and authors alike, and the
+  point is not to have one invent a rule of its own. `GET /map/{slug}` still carries both under `filters` and
+  `apply_rules` for anything that wants to look.
+
+  The editors behind them are **not** gone, because the intent generators are their real callers:
+  `BuildGenerator`, `TeamsGenerator` and `WoolGenerator` build every filter and rule a generated map carries
+  through `FilterEditor.CreateFilter` and `ApplyRuleEditor.CreateApplyRule`. What went with the routes is
+  what only the routes reached — `ListFilters`, `UpdateFilter`, `DeleteFilter` and the reference tracking
+  under them, and `ListApplyRules`. `WoolAndFilterEndpoints` and `SpawnAndRuleEndpoints` are named
+  `WoolEndpoints` and `SpawnEndpoints` for what they now hold, and `FilterEditorTests` holds `CreateFilter`'s
+  refusals at the level they now live at — `ED1` is no longer reachable from any route.
+
+  The surface is 154 operations → **148** over 117 paths, and the false-204 count 30 → **24**, which is now
+  exactly `RP29`'s edit routes and nothing else.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,

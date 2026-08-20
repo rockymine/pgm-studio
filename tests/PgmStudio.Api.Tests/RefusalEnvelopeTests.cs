@@ -59,13 +59,14 @@ public sealed class RefusalEnvelopeTests
 
     /// <summary>
     /// The Edit tool's write path was the last surface answering a bare <c>{error}</c>, and it is many routes
-    /// deep, so the assertion is over the <em>faults</em> rather than over the routes: one per kind an edit
-    /// can fail with, each through a different editor.
+    /// deep, so the assertion is over the <em>faults</em> rather than over the routes: one per kind a request
+    /// can fail with, each through a different editor. The document faults <c>ED1</c> and <c>ED2</c> are not
+    /// here because no route can raise them any more — the editors that do are reached from the intent
+    /// generators, and <c>FilterEditorTests</c> holds them there.
     /// </summary>
     [Test]
     [Arguments("POST", "/teams", """{"id":"red","max_players":"lots"}""", 400, "RQ1")]
     [Arguments("DELETE", "/teams/nope", null, 404, "RQ4")]
-    [Arguments("POST", "/filters", """{"id":"f1","type":"all","children":["nope"]}""", 400, "ED1")]
     public async Task An_edit_the_document_will_not_take_answers_the_envelope(
         string verb, string path, string? body, int status, string rule)
     {

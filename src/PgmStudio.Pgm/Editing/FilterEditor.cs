@@ -3,9 +3,9 @@ namespace PgmStudio.Pgm.Editing;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Filter registry CRUD. Validates filter type +
-/// refs; a filter can't be deleted while referenced (by apply-rules, other filters, renewables, or
-/// block-drop rules); never/always builtins are protected.
+/// Adds a filter to the registry. The type must be one PGM knows, and every filter or region the new one
+/// names must already resolve — a filter referencing itself is refused, and <c>never</c>/<c>always</c> are
+/// builtins that always do.
 /// </summary>
 public static class FilterEditor
 {
@@ -17,16 +17,6 @@ public static class FilterEditor
         "offset", "variable", "completed", "objective", "kill-streak", "class", "region", "players", "spawn",
     ];
     private static readonly HashSet<string> Builtins = ["never", "always"];
-
-    public static Dict ListFilters(Dict data)
-    {
-        var filters = Filters(data);
-        return new Dict
-        {
-            ["filters"] = filters,
-            ["usage"] = filters.Keys.ToDictionary(fid => fid, fid => (object?)References(data, fid)),
-        };
-    }
 
     public static Dict CreateFilter(Dict data, Dict payload)
     {
@@ -46,32 +36,7 @@ public static class FilterEditor
         return new Dict { ["id"] = fid };
     }
 
-    public static Dict UpdateFilter(Dict data, string fid, Dict payload)
-    {
-        var filters = Filters(data);
-        if (!filters.TryGetValue(fid, out var existing)) throw EditException.NoSuchSubject($"no filter '{fid}'");
-        var merged = new Dict(payload) { ["id"] = fid };
-        if (!merged.ContainsKey("type")) merged["type"] = (existing as Dict)?.GetValueOrDefault("type");
-        Validate(data, merged, fid);
-        filters[fid] = merged;
-        return new Dict { ["id"] = fid };
-    }
-
-    public static Dict DeleteFilter(Dict data, string fid)
-    {
-        var filters = Filters(data);
-        if (Builtins.Contains(fid)) throw EditException.Conflict($"filter '{fid}' is a builtin and cannot be deleted", [fid]);
-        if (!filters.ContainsKey(fid)) throw EditException.NoSuchSubject($"no filter '{fid}'");
-        var refs = References(data, fid);
-        if (refs.Count > 0)
-            throw EditException.Conflict(
-                $"filter '{fid}' is referenced by {refs.Count} item(s); unwire them first",
-                [.. refs.Select(ReferenceId).Where(id => id.Length > 0)]);
-        filters.Remove(fid);
-        return new Dict { ["id"] = fid };
-    }
-
-    // ── reference tracking ──────────────────────────────────────────────────────────
+    // ── reference resolution ────────────────────────────────────────────────────────
     private static HashSet<string> FilterFilterRefs(Dict f)
     {
         var refs = (f.GetValueOrDefault("children") as List<object?> ?? []).OfType<string>().ToHashSet();
@@ -82,32 +47,6 @@ public static class FilterEditor
 
     private static HashSet<string> FilterRegionRefs(Dict f)
         => f.GetValueOrDefault("type") is "blocks" or "region" && f.GetValueOrDefault("region") is string r && r.Length > 0 ? [r] : [];
-
-    private static HashSet<string> ApplyFilterRefs(Dict rule)
-    {
-        var keys = new[] { "enter", "leave", "block", "block_place", "block_break", "block_physics", "block_place_against", "use", "filter" };
-        return keys.Select(k => rule.GetValueOrDefault(k) as string).Where(v => !string.IsNullOrEmpty(v)).Cast<string>().ToHashSet();
-    }
-
-    public static List<Dict> References(Dict data, string fid)
-    {
-        var refs = new List<Dict>();
-        foreach (var rule in (data.GetValueOrDefault("apply_rules") as List<object?> ?? []).OfType<Dict>())
-            if (ApplyFilterRefs(rule).Contains(fid)) refs.Add(new Dict { ["kind"] = "apply_rule", ["id"] = rule.GetValueOrDefault("id") ?? "" });
-        foreach (var (otherId, fObj) in Filters(data))
-            if (otherId != fid && fObj is Dict fd && FilterFilterRefs(fd).Contains(fid)) refs.Add(new Dict { ["kind"] = "filter", ["id"] = otherId });
-        foreach (var ren in (data.GetValueOrDefault("renewables") as List<object?> ?? []).OfType<Dict>())
-            if (ren.GetValueOrDefault("renew_filter") as string == fid || ren.GetValueOrDefault("replace_filter") as string == fid)
-                refs.Add(new Dict { ["kind"] = "renewable", ["region"] = ren.GetValueOrDefault("region_id") ?? "" });
-        foreach (var bdr in (data.GetValueOrDefault("block_drop_rules") as List<object?> ?? []).OfType<Dict>())
-            if (bdr.GetValueOrDefault("filter_id") as string == fid) refs.Add(new Dict { ["kind"] = "block_drop_rule", ["region"] = bdr.GetValueOrDefault("region_id") ?? "" });
-        return refs;
-    }
-
-    /// <summary>What a reference is called, for the subjects of a refusal that names what is in the way:
-    /// an apply-rule and a filter carry an id, a renewable and a block-drop rule the region they are on.</summary>
-    private static string ReferenceId(Dict reference) =>
-        (reference.GetValueOrDefault("id") ?? reference.GetValueOrDefault("region"))?.ToString() ?? "";
 
     private static void Validate(Dict data, Dict payload, string selfId)
     {
