@@ -519,7 +519,11 @@ world `GET /xml` itself builds rather than anything pre-flight inspects.
 
 **Ask the playability reads before paying for a build.** `GET /export` is the most expensive call in the
 studio — it synthesises the whole voxel world before it answers — so hearing `EX1` from it is hearing, after
-the build, something `GET …/traversability` would have said for nothing:
+the build, something `GET …/traversability` would have said for nothing. Expensive is relative rather than
+long: a 100×140 board carrying some 9,000 ground columns answers in **0.3–0.7 s**, against 0.2 s for the
+traversability walk and 0.4 s for pre-flight, and the cost tracks the board's area up to
+`SketchRules.MaxBoardColumns`. The reads are cheaper because they answer off less, not because the build
+drags:
 
 ```
 GET  /api/map/voidwatch/traversability   → {connected, isolated[]}   the walk EX1 refuses on

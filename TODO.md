@@ -22,18 +22,19 @@ all of that exists, and almost all of it is stated in prose that nothing verifie
 written down two or three times, drifts, and is discovered again by an agent that paid a build cycle for it.
 `docs/architecture.md` is the survey; this board is the work it named.
 
-**The order below is not a preference, it is a dependency chain.** Nothing can be verified until the surface
-says what it is, so the contract comes first. A gate belongs to whichever door someone put it behind until
-there is one place a use case lives, so the application layer comes second. A caller cannot branch on a fault
-until the fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are
-still HTTP handlers has nothing to hold, so the lifecycle is last.
+**The order below is not a preference, it is a dependency chain.** A shape cannot be declared where no
+project can hold it, so the boundary comes first. Nothing can be verified until the surface says what it is,
+so the contract comes next. A gate belongs to whichever door someone put it behind until there is one place a
+use case lives, so the application layer is third. A caller cannot branch on a fault until the fault has a
+class, so the taxonomy is fourth. And a state machine over a pipeline whose steps are still HTTP handlers has
+nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — twenty-two entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — seventeen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Five of the twenty-two carry a question only the author can answer
+## Four of the seventeen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -46,26 +47,53 @@ is kept in the table with the answer beside it, because the answer is the part a
 | `RP15` | What **is** `WX9`? It is stated as a rule in two documents and fired by nothing. Declaring it and retiring it are both one commit, and only the author knows which. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
-| `RP22` | Does the export become a job the caller polls, and if so what happens to the UI's Export button? That is a product call about waiting, not a plumbing one. |
 
 One more carries a smaller one, which an implementer may make and state rather than ask: `RP12`, how far to
 push declared request shapes in one pass — the write surface is the useful half.
 
 ## Phase 1 — say what the surface is
 
-Cheap, mechanical, and everything after it reads better for having landed. The schema is generated; what it
-can publish is bounded by what the code declares, which today is a path and a verb.
+The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
+a verb. The first entry is a project split and the rest is mechanical: a shape has to have somewhere to live
+before a route can declare it.
 
-- [~] **RP18 — Seventy-four operations still publish a path and a verb and nothing about the answer.**
+- [ ] **RP28 — Shared vocabulary is declared twice, because the leaf three parties can reach does not exist.**
+  `Contracts` holds **114 types**, of which exactly **five** are read below `Api` — `MapStage`,
+  `MaterialKind`, `RoofForms`, `RoomParts`, `ThemeBuckets`, all vocabulary rather than DTOs. `MaterialKind`'s
+  docstring states the requirement: the editor, the HTTP surface and the `style.kind` column must spell it
+  identically, and `Contracts` is the one leaf all three reach. `Minecraft` does not, so it re-declares the
+  strings — `MaterialRecipes.cs:78-91` (a recipe switch plus `AreaPatterns`, a second enumeration of six
+  names beside `MaterialKind`'s fourteen), `TerrainThemeComposer.cs:44-47`, `HouseStyleJson.cs:142,193`.
+  `Finding` carries the same requirement and could not get in at all: it lives in `Domain`, so it grew
+  `FindingDto`, and the two have drifted.
+  Add **`PgmStudio.Vocabulary`**, a leaf referencing nothing, holding `Finding`, `Severity`, `MapStage` and
+  the four string vocabularies. Two new edges carry it — `Domain → Vocabulary` and `Contracts → Vocabulary` —
+  and every other project inherits it. `FindingDto`, `Finding.Wire()` and `Finding.Envelope` are deleted.
+  Read each literal site before citing a count: `PlanModel.Surface` is an int depth, not the bucket.
+
+  *Evidence: `GET /api/map/nope/plan` answers a finding carrying `field`, `subjects` and `cites` as explicit
+  nulls beside the record's two computed properties (`subjectIds`, `refuses`), while `Finding.Wire()` one
+  layer down writes only the three keys that have a value. A caller can tell which layer refused, which
+  `Finding.Envelope`'s own docstring says must never happen.*
+
+- [~] **RP18 — Forty of the seventy-four undeclared operations are hand-built reads.**
   The media types, the refusal envelope, the flat pixel/column encodings, the small acks and the three
   documents an agent writes are declared, and `SchemaCompletenessTests` holds the count so it only goes down.
-  What is left is two blocks. **The ~40 hand-built `Dict` reads** — `scan-summary`, the configure state,
-  `core-suggestions`, `segments`, `regions/tree`, `island-*`, the import results, `plan/inspect` — each needs
-  a record written from the handler that builds it, and each is a separate small reading.
-  **The 34-route edit surface** is the other, and it waits on `RP13`: those routes answer whatever `Dict` an
-  editor in `Pgm/Editing` returned, `Pgm` does not reference `Contracts`, and declaring the shape now means
-  either a new dependency edge or a mapping layer at the boundary that `RP13` would delete. Take it with the
-  application layer, where the answer a use case gives is the thing being named.
+  What is left here are the reads that build an anonymous object inline at the send —
+  `IslandRolesEndpoint.cs:47` is representative — so each needs a record written from the handler that builds
+  it, branches included. Thirteen collapse into acks that already exist: eight deletes that answer only that
+  the thing is gone, and five writes that answer only that the write happened. The other twenty-seven are
+  `scan-summary`, the configure state, `core-suggestions`, `segments`, `regions/tree`, `island-*`, the import
+  results and `plan/inspect`, and each is a separate small reading. Blocks nothing and is blocked by nothing.
+
+- [ ] **RP29 — The thirty-four edit routes answer an untyped `Dict`.** Every one ends in
+  `WriteSupport.RunEditAsync` (34 call sites over `WriteEndpoints`, `RegionEndpoints`, `WoolAndFilterEndpoints`,
+  `SpawnAndRuleEndpoints`, `AuthoringIntentEndpoints`, `WiringEndpoints`), which hands back whatever
+  `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so all 34 publish a path and a verb and
+  nothing about the answer. The shapes are few — `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`,
+  `{id, bounds}` — so six or seven records cover the surface. Needs `RP28` for somewhere those records can
+  live that `Pgm` and the client both reach, and lands with `RP13`, where the answer an operation gives is
+  the thing being named.
 
 - [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
   `EndpointWithoutRequest` and **51 call sites read the body as `Dictionary<string, object?>`**. So
@@ -86,7 +114,7 @@ can publish is bounded by what the code declares, which today is a path and a ve
 
 ## Phase 2 — one place a use case lives
 
-The step that stops a gate from belonging to a door, and the only one here that is a real refactor.
+One entry, and the phase's whole point: the step that stops a gate from belonging to a door.
 
 - [ ] **RP13 — The use case is the HTTP handler, so a second driver needs a second copy of it.**
   `Api/Endpoints` holds **4,753 lines** against `Api/Services`' 1,169, and `Services/` is read-model
@@ -95,19 +123,10 @@ The step that stops a gate from belonging to a door, and the only one here that 
   its own. Add an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests
   as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one.
 
-- [ ] **RP22 — A world is built, zipped and returned inside one GET.** `GET /map/{slug}/export` composes the
-  map, synthesises the whole voxel world, writes it to a temp folder and zips it in memory before answering
-  (`MapExportEndpoint.HandleAsync`). There is no job id, no progress and nothing to ask afterwards, so a
-  caller whose request drops has no way to learn whether the build succeeded and repeats the most expensive
-  call in the studio to find out. The mapgen brief tells an author to "budget a build cycle" for the two
-  gates that only fire here, which is the same cost seen from the other side. Give the build a job: accept
-  it, answer an id, and let the caller poll or fetch the artifact — the shape every long operation over
-  HTTP has.
-
 ## Phase 3 — one class of fault
 
-Independent of the first two and the cheapest of the four: a change to `Finding` plus a sweep of 71
-constants. The ids do not move.
+The cheapest of the five: a change to `Finding` plus a sweep of 71 constants, and the ids do not move.
+Additive wherever `Finding` sits, so it neither blocks nor waits on `RP28` moving the record.
 
 - [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 71 to branch once.** The
   only machine-legible thing a finding carries is the id. A caller deciding whether to fix the request,
@@ -140,21 +159,6 @@ constants. The ids do not move.
   `WX9` beside it is never fired at all. Declare `WX8` where `RoomFrameRules` lives or retire it, decide
   what `WX9` is, and add the assertion that runs the other way: every id any gate or lint can emit resolves
   in the catalogue. `RulesEndpointTests` only checks that declared rules carry a sentence.
-
-- [ ] **RP9 — The two refusal envelopes have drifted, and both docstrings say they must not.**
-  `Finding.Envelope` (`Domain`) writes `{rule, message, severity}` plus `field`, `cites` and `subjects` only
-  where there is something to say; `Refusals.Of` (`Api/Endpoints`) renders `FindingDto`, which serializes
-  every null *and* the record's two computed properties. So one route answers
-  `{"rule":"RQ4","message":"team 'nope' not found","severity":"refusal"}` and the next answers the same
-  finding as `{…,"field":null,"subjects":null,"cites":null,"subjectIds":[],"refuses":true}` — a caller can
-  tell which layer refused, which is exactly what `Finding.Envelope`'s own docstring says must never happen.
-  `subjectIds` and `refuses` are derived from the other fields and belong to the record rather than to the
-  wire: `[JsonIgnore]` on both, and the same write-only-what-there-is rule as `Wire()`. `RefusalEnvelopeTests`
-  asserts the keys that are present and nothing about the ones that should not be, which is why nothing
-  caught it.
-
-  *Evidence: `DELETE /api/map/{slug}/teams/nope` against a seeded map, body above, taken from the running
-  test host.*
 
 ## Phase 4 — the loop answers for itself
 

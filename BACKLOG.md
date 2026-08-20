@@ -202,6 +202,12 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
+- [ ] **C46 — The Export button says nothing while the world is being built.** `GET /map/{slug}/export`
+  answers in 0.3–0.7 s on a 100×140 board (`docs/tools/configure.md`), which is short enough that no job or
+  poll is warranted and long enough that the control sits inert with no sign the click landed. Disable it for
+  the duration and show the same busy affordance the other long-ish reads use. The same holds for
+  `GET /xml` on a sketch-origin map, which builds the identical world.
+
 - [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
   `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
   visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel
