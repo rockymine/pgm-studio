@@ -49,7 +49,7 @@ guard has no declared shape to hang them on.
 
 **A response is described even less than a request, and where it is undescribed it is misdescribed.** An
 endpoint that declares no response type is published as **204 No Content** — the generator's default, and a
-claim rather than a silence: `GET /map/{slug}` answers a whole map document under it. **54 of the 163
+claim rather than a silence: `GET /map/{slug}` answers a whole map document under it. **53 of the 163
 operations** publish that 204 without answering it, and seven more publish it truthfully, every one a delete
 whose answer is that the thing is gone. `SchemaCompletenessTests` holds both numbers, the second as a named
 list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six

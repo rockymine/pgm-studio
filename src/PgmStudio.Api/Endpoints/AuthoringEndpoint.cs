@@ -66,7 +66,15 @@ public sealed class RegionsAuthoringEndpoint(MapRepository repo, MapReader reade
 /// <summary>GET /api/map/{slug}/regions/tree — category-grouped nested region tree (canvas render input).</summary>
 public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/regions/tree"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/regions/tree");
+        AllowAnonymous();
+        // Declared rather than sent as the record: the tree is built in Analysis, which cannot see Contracts,
+        // so mapping it here would be a second walk of the same recursion free to disagree with the first.
+        // RegionTreeShapeTests holds the record to what the encoder actually writes instead.
+        Description(b => b.Produces<RegionTreeDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
