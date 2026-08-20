@@ -4445,6 +4445,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   to the caller. Eleven `PL*` ids were minted for the plan's own structural errors, which had carried
   `rule: null`. `docs/refusals.md` is the catalogue and the shape; the tool documents' endpoint tables cite it
   rather than each describing an envelope of its own.
+- **The analysis reads an author needs before an export are on the page they read (TC1).** The API carries 66
+  `/map/{slug}` routes and `docs/tools/`'s tables carried a fraction: `traversability` was named in prose
+  twelve times and in no table, `buildability` three times, and ten more segments — `island-health`,
+  `island-review`, `island-roles`, `kit-reach`, `monument-obstruction`, `monument-orbit`, `resources`,
+  `scan-world`, `wool-availability`, `wool-suggestions` — appeared nowhere under any form. `configure.md` now
+  carries them, in two tables split on what they are for: the reads that tell an author what the **world**
+  holds, and *Asking whether the map can be played* — the six that answer a question a gate will later ask.
+  Each row says what the read answers over, and which flag says whether it had ground to answer over at all
+  (`haveLayers` on four, `hasY0` on buildability, `haveRoutes` on coverage), because on an unscanned map
+  traversability reads every point as isolated and that is a fact about the map's state rather than a verdict
+  on its design. The agent walkthrough now asks them **before** paying for a build, which is the whole point:
+  `GET /export` synthesises a world before it answers `EX1`, and `GET …/traversability` answers the same walk
+  for nothing.
+- **A documented route is a route the API has (TC1).** `DocumentedRouteTests` reads the leading route out of
+  every endpoint-table row in `docs/tools/` and asserts the schema serves it, naming the file and line of any
+  that drifted — the same shape `DocumentedBodyTests` already uses for the worked bodies, over the paths
+  rather than the payloads. It reads only each row's leading span: a row abbreviating its siblings after it
+  (`GET /map/{slug}/regions` · `/regions/authoring`) expands by a convention a reader resolves and a parser
+  guesses at, and a gate over prose that guesses is a gate that cries wolf.
+
 - **The export's gate chain does not depend on which door a caller came through (RP3).** `Compose` ran the
   unknown-gamemode refusal and the traversability judgement in front of the branch and `ComposeSketch` ran
   the rest, so `tools/mapgen` — which links `ComposeSketch` and speaks no HTTP — met the second half only.

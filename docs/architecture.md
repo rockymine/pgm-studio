@@ -61,9 +61,11 @@ response shape is a third copy living in per-component parsing code; `Contracts`
 endpoints. The split across the client's features says which half of the studio was built against a declared
 shape: **Catalog 3 typed / 0 untyped and Generator 3 / 0**, against **Configure 1 / 27** and **Edit 0 / 14**.
 The two pages with a typed contract are the two newest, and they are what the rest would look like read
-through a generated client. `TC1` — three heavily used analysis routes appearing in no endpoint table — is not a documentation
-lapse; it is what a hand-maintained copy of a machine-readable fact does, and the schema is now what a
-generated table would read.
+through a generated client. The tables are the same problem seen from the prose side: three heavily used
+analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
+hand-maintained copy of a machine-readable fact does. They are back, and `DocumentedRouteTests` now fails on
+the next one — but a test that catches drift is not the same as a table that cannot drift, and the schema is
+what a generated one would read.
 
 ## The use case has no name
 
@@ -227,7 +229,7 @@ answer already and stopped one step short of the form that makes it machine-read
 
 | What is missing | The established shape | What it dissolves |
 |---|---|---|
-| a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, `TC1`, and most of the doc-rot rule's hardest half |
+| a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
 | a declared request shape | a request record per route, bound at the edge — parse rather than validate | 145 unguarded routes, and most of the Edit tool's 74 hand-written checks |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | the second pipeline in `tools/mapgen`, and the 49-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 71 ids to branch once |

@@ -76,25 +76,12 @@ can publish is bounded by what the code declares, which today is a path and a ve
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
   `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
   **152 route strings** and parses **59 responses as `JsonElement`** against 16 typed, across 38 files; the
-  endpoint tables in the eight `docs/tools/` documents are typed by hand and `TC1` is what that costs.
+  endpoint tables in the eight `docs/tools/` documents are typed by hand, and `DocumentedRouteTests` catching
+  a drifted row is a test where a derivation belongs.
   Generate a typed client from the document (NSwag's generator is already in the tree as the Swagger
   package's dependency) and render the endpoint tables from it, so the two copies become one derivation.
   `DocumentedBodyTests` posts 8 documented bodies against 93 write routes today and is the natural place to
   assert the tables against the schema.
-
-- [ ] **TC1 — The analysis reads an author needs before an export are prose, not endpoint tables.** The API
-  carries 66 `/map/{slug}` routes; `docs/tools/`'s tables carry a fraction of them, and three of the ones an
-  author reaches for hardest appear in **no table at all**: `GET /map/{slug}/traversability` (mentioned in
-  prose 12 times), `/buildability` (3) and `/symmetry` (67). Ten more path segments — `island-health`,
-  `island-review`, `island-roles`, `kit-reach`, `monument-obstruction`, `monument-orbit`, `resources`,
-  `scan-world`, `wool-availability`, `wool-suggestions` — appear nowhere in `docs/tools/` under any form.
-  A table is the surface an agent scans; prose in a paragraph about something else is not. Add the live
-  analysis reads to `configure.md`'s API table beside `preflight` and `coverage`, with what each answers and
-  what it fails with, and name the ones that belong to a scanned world rather than an authored one.
-
-  *Evidence: run 4's Sonnet agent used `GET /map/{slug}/traversability` to confirm all four of its boards
-  connected before export — and filed it as a missing document, having found the route by other means. That
-  is the cheapest possible check on a board and it is not on the page an author reads.*
 
 ## Phase 2 — one place a use case lives
 

@@ -19,13 +19,13 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class SchemaCompletenessTests
 {
-    /// <summary>The <b>success</b> shape, specifically. Every route publishes the refusal envelope from one
-    /// place, so a test asking only whether an operation declares anything at all would pass on a surface
-    /// that says nothing about what a request actually returns.</summary>
     /// <summary>The count still to declare. It only ever goes down: a route added without a response type
     /// pushes it up and fails here, which is the whole point of a number rather than a list of exceptions.</summary>
     private const int StillUndeclared = 91;
 
+    /// <summary>The <b>success</b> shape, specifically. Every route publishes the refusal envelope from one
+    /// place, so a test asking only whether an operation declares anything at all would pass on a surface
+    /// that says nothing about what a request actually returns.</summary>
     [Test]
     public async Task Every_operation_declares_what_it_answers()
     {

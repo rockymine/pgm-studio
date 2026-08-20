@@ -423,7 +423,9 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | `GET /maps/import-candidates` | — | the importable folders: `{folder, slug, region_files}` | — |
 | `POST /map/import-folder` | `{folder, slug?}` | `{ok, slug, …counts}` — creates the row and scans into MariaDB | 400 `RQ1` · 404 `RQ4` no such folder · 409 `RQ5` slug taken · 422 `IM6` it is a map already · 422 `IM5` no `.mca` |
 | `POST /map/import-url` | `{url, slug?}` | the same, fetched server-side | 400 `RQ1` · 403 `IM1` host · 413 `IM3` too large · 415 `IM4` not a zip · 422 `IM5` no region · 502 `IM2` the host did not serve it |
+| `POST /map/{slug}/scan-world` | — | re-reads `<root>/<slug>/region` and rewrites the map's feature rows. What `import-folder` runs at the end, reachable on its own for a world that changed on disk | 404 · 422 `IM5` no `.mca` |
 | `GET /map/{slug}/scan-summary` · `/islands` · `/symmetry` | — | the detection brief, the island polygons, the detected symmetry | 404 |
+| `PATCH /map/{slug}/symmetry` | `{status, confirmed_type?, centre?}` | confirms or rejects what was detected — `confirmed` or `none`, with an optional override of the mode and centre | 404 |
 | `GET /configure/{slug}/state` · `PATCH /configure/{slug}/exclude-island` | `{island, excluded}` | the scan config; excluding re-runs symmetry without re-scanning | 404 |
 
 **Reading the world while authoring.** These read the built world rather than a posted document, so all but
@@ -439,11 +441,42 @@ as though they were top level; they are not.
 
 | Endpoint | Answers |
 |---|---|
-| `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain |
+| `GET /map/{slug}/column-floor?x=&z=` | the floor a marker seats on — what makes a placed point land on terrain. `{y: null}` where the column has no segment data |
+| `GET /map/{slug}/segments[?axis=&xmin=&xmax=&zmin=&zmax=]` | the vertical section through the world along one axis — what the side view draws. 404 when the map has no segments |
 | `POST /map/{slug}/wool-sources` | wool colours and their source clusters inside a drawn rectangle |
-| `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence |
+| `POST /map/{slug}/resources` | the iron, gold and diamond blocks — optionally inside a drawn rectangle, the same `bounds` object — and how many of them a declared `<renewable>` already covers |
+| `GET /map/{slug}/wool-suggestions` | the wool colours the **world** holds that the intent has not declared as objectives: the gap between what was built and what was stated |
+| `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence. `box` is required — the author marks the area |
+| `POST /map/{slug}/monument-orbit` | the confirmed monument positions completed onto the other teams, each tagged with its orbit step. Pure geometry over the confirmed symmetry: no world and no candidate table |
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
+| `GET /map/{slug}/island-roles` | per detected island, in the stored island order: its role (`team`/`objective`/`neutral`/`decorative`), its block count, the objective anchors on it, and the buildable outline as GeoJSON |
+| `GET /map/{slug}/island-health` | the same read summarised: how many islands, how many majors, and whether the map looks **under-split** — a symmetric N-team map that resolved into fewer than N landmasses is one where teams have merged |
+| `GET` · `PUT /map/{slug}/island-review` | the reviewer's flag on the detection, `{}` when none is set. `PUT` with status `ok` or empty clears it |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
+
+### Asking whether the map can be played
+
+**These are the reads that answer a question a gate will later ask, and they answer it before the gate
+does.** Every one is cheap — none builds a world — and each corresponds to something the export refuses or
+the pre-flight reports, so an author or an agent can hear the answer while the map is still editable rather
+than at `GET /export` with a world already synthesised behind it.
+
+**Every one of them needs ground, and says whether it had any** rather than guessing. Four answer
+`haveLayers` — `traversability`, `kit-reach`, `wool-availability` and `monument-obstruction` — false on a map
+with no scanned world; `buildability` answers `hasY0` for the same question, and `coverage` answers
+`haveRoutes`, which is the narrower one of whether there were journeys to trace. Read the flag first: without
+columns there is nothing to connect anything across, so traversability reads every spawn and wool as isolated
+and buildability reports *skip*, and that is a fact about the map's state rather than a verdict on its
+design.
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /map/{slug}/traversability` | whether every spawn reaches every objective over the navigable ground: `connected`, the component count, each navigation point with the component it landed in, and every point that is cut off — with `for` naming the team an entry denial shut out, where that is the cause. This is `EX1` asked early: the export refuses on the same walk | 404 |
+| `GET /map/{slug}/buildability` | the per-column verdict grid — where players may build, as digit rows over a bounding box with a class legend and the counts | 404 |
+| `GET /map/{slug}/kit-reach` | the harder version of traversability: can a fresh spawn bridge to each wool with **only the placeable blocks its kit grants**? A map can be connected on paper and unreachable with the blocks players actually hold | 404 |
+| `GET /map/{slug}/wool-availability` | per declared wool, whether it can be obtained at all, and whether the source is repeatable or one-time — a wool nobody can pick up is a match nobody can finish | 404 |
+| `GET /map/{slug}/monument-obstruction` | each monument's block, and whether something already stands there. PGM warns on load and the wool cannot be placed, so this is the one read whose fault is invisible in every render | 404 |
+| `GET /map/{slug}/coverage` | where the ground is lived on: every ground cell classed reached/decorated/dead (digit rows + legend), the shares, and each dead patch with its area, centroid and walk to the nearest used ground — the corridors between every waypoint pair, widened `GroundCoverage.CorridorMargin`, plus each waypoint's `PoiRadius` ring and each prop's `PropRadius` fringe. `?format=png` answers the same grid as a picture. A measurement, not a gate — nothing refuses on it yet | 404 |
 
 **Finishing**
 
@@ -451,7 +484,6 @@ as though they were top level; they are not.
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/coverage` | where the ground is lived on: every ground cell classed reached/decorated/dead (digit rows + legend), the shares, and each dead patch with its area, centroid and walk to the nearest used ground — the corridors between every waypoint pair, widened `GroundCoverage.CorridorMargin`, plus each waypoint's `PoiRadius` ring and each prop's `PropRadius` fringe. `?format=png` answers the same grid as a picture. A measurement, not a gate — nothing refuses on it yet | 404 |
 | `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop blocks a goal` OB19 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
 | `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
@@ -484,6 +516,23 @@ authoring a map and guessing at one. And **treat pre-flight as the answer for it
 it names which one failed and why, where `GET /xml` only says 409 — but on a sketch-origin map, a
 pre-flight-clean document can still 409 on `OB17`/`OB19` (*What it refuses*, above), since those two read the
 world `GET /xml` itself builds rather than anything pre-flight inspects.
+
+**Ask the playability reads before paying for a build.** `GET /export` is the most expensive call in the
+studio — it synthesises the whole voxel world before it answers — so hearing `EX1` from it is hearing, after
+the build, something `GET …/traversability` would have said for nothing:
+
+```
+GET  /api/map/voidwatch/traversability   → {connected, isolated[]}   the walk EX1 refuses on
+GET  /api/map/voidwatch/kit-reach        → per wool, reachable with the blocks the kit grants
+GET  /api/map/voidwatch/wool-availability → per wool, obtainable at all, and repeatable or once
+GET  /api/map/voidwatch/monument-obstruction → whether anything already stands where a wool is delivered
+GET  /api/map/voidwatch/buildability     → the per-column grid of where building is allowed
+```
+
+The first four carry `haveLayers` and `buildability` carries `hasY0`. **False means the map has no scanned
+world**, and every one of these answers over ground: without it traversability reads each spawn and wool as
+isolated and buildability skips, which says the map has not been scanned rather than that its design is
+wrong.
 
 The map that goes with this document is any sketch-origin map in the corpus of built maps. On
 `no-blocks-placed-verify` — 2 teams, 4 wools — pre-flight reports 26 regions, 20 filters and 11 apply-rules,
