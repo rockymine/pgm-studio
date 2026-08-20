@@ -1133,6 +1133,15 @@ in the order listed: the contract first, because the request shape and the clien
 application layer second, because it is where a gate stops belonging to a door; the fault class third; the
 lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
 
+- [ ] **RP32 — Nothing answers "what is wrong with this map right now".** Every gate is reachable only
+through the step it lives behind, so a fault authored at one step is heard at another; `RP4` and `RP30` are
+two instances of that shape, each fixed one route at a time. A driver's loop is *act and hope the next call
+mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
+current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs with
+`RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. **Needs `RP13`**,
+and not for convenience: a summary that re-implements the gates is a second copy free to disagree with them,
+so it has to *call* them, which is what the application layer is for.
+
 ## The remainder: work no concept above has claimed
 
 ### User Experience and Graphical User Interface

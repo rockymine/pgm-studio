@@ -29,12 +29,12 @@ use case lives, so the application layer is third. A caller cannot branch on a f
 class, so the taxonomy is fourth. And a state machine over a pipeline whose steps are still HTTP handlers has
 nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — nineteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the eighteen carry a question only the author can answer
+## Four of the nineteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -151,6 +151,18 @@ Additive wherever `Finding` sits, so it neither blocks nor waits on `RP28` movin
   objective and a structure at once — so what a rule gets is a `concerns` **list**, not a single subject, and
   a prefix could never have carried it. Ship `category` and `name` without waiting; the list is additive
   again when it lands.*
+
+- [ ] **RP31 — A prop the studio deleted and a lane it merely thinks is narrow arrive as one severity.**
+  `Severity` (`Domain/Finding.cs:4`) is `Refusal | Complaint`, and `Complaint`'s own docstring rules out half
+  of what it carries: *"a complaint the author may ignore … none of them the tool's to overrule"*. True of
+  `OB23` and `DC3`, where the goal stands and the finding is a remark. False of all six `DR-*` rules, where
+  the tree, boulder or building is **deleted from the world** — the author cannot ignore that, because the
+  thing they authored is gone. So a caller reading `warnings` cannot answer the question a write leaves open:
+  did what I posted survive? Add `Severity.Decline`, carried by the six `DR-*` rules and by `OB19` once
+  `RP4`'s ruling lands. Same envelope, same `warnings` key, no new route: `Finding.Refuses` stays the refusal
+  test and a decline is a success that took something away. Two sites turn a boolean into a three-way,
+  `Refusals.Dto` (`Refusals.cs:21`) and `Finding.Wire()`. Orthogonal to `RP14`'s `category` — that says what
+  kind of fault, this what became of the input. `refusals.md` and each `DR-*` `<remarks>` change with it.
 
 - [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
   nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
