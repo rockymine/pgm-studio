@@ -390,10 +390,9 @@ a leaf already answer the material question a Ground/Structure claim exists to c
 for provenance to fix). A **scanned** world has neither a dressing document nor a build-time provenance record,
 so the isolated foliage layer has no points to plot there; it falls back to the leaf/log mass it has always
 painted, stated on the console rather than silently substituted, which is the same shape of answer §8's
-provenance state gives when a region carries no sidecar. `tools/mapgen`'s `foliage.png` stage image passes the
-build's own layout and gets the point reading for free; `PgmStudio.RoundTrip --topdown --layer foliage` takes
-an optional `--dressing <layout.json>` naming the document a bare region directory cannot otherwise reach, and
-falls back to the mass without one.
+provenance state gives when a region carries no sidecar. `PgmStudio.RoundTrip --topdown --layer foliage`
+takes an optional `--dressing <layout.json>` naming the document a bare region directory cannot otherwise
+reach, and falls back to the mass without one.
 
 ## 7. Water — channels (`DR-WA`)
 
@@ -554,15 +553,14 @@ held for a spawn, a wool room, a stated structure, built ground or a door's appr
 carries the *owner* of every claim, so a collision reads `claimed by the path 'p'` rather than `already
 claimed`. The first claimant keeps a cell, so that owner is the one that actually holds the ground.
 
-The declines travel three ways: back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
+The declines travel two ways: back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
 `warnings` beside the payload, which is the loop an agent actually drives; as `region/dressing-report.json`
 beside the provenance sidecar (written only when something dropped, deleted on a rebuild that dropped
-nothing), **inside the export zip as well as beside a `tools/mapgen` build** — the two sidecars are the two
-halves of one census, provenance saying what landed and this saying what did not, and an HTTP caller that
-got only the first could not tell a prop that was never authored from one the pass refused; and as one
-stderr line per decline from `tools/mapgen`.
+nothing), **inside the export zip** — the two sidecars are the two halves of one census, provenance saying
+what landed and this saying what did not, and an HTTP caller that got only the first could not tell a prop
+that was never authored from one the pass refused.
 
-**One of those three is ordered, and the order is not obvious.** `DR-KEEP` reads the spawn doors' approaches
+**One of the two is ordered, and the order is not obvious.** `DR-KEEP` reads the spawn doors' approaches
 and the goal rings, and those come off the map's **intent** — so `sketch/columns` asked before
 `PUT …/intent/from-plan` answers a shorter list than the same call asked after it. A driver that reads the
 declines at the end of the sketch stage sees every rule but that one. A path's per-cell skips stay unreported; a

@@ -31,8 +31,6 @@ Every arrow points at something the project is allowed to reach; read it bottom-
 
   Import ──> Data, Pgm, Contracts, Migrations            (parquet → relational CLI)
 
-  tools/mapgen ──> Export                                (the headless export-path driver — §7)
-
   Pure leaves (no project references):  Geom   Vocabulary   Migrations
 ```
 
@@ -55,9 +53,9 @@ takes the leaf as its one reference; `Client` still reaches nothing but `Contrac
 first, this.
 
 **`Export` added no edge and inverted none.** Every project it reaches (`Domain`, `Analysis`, `Minecraft`,
-`Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms: `Api`
-now reaches the same set of projects through one more hop, and `tools/mapgen` reaches exactly the same code
-it did when it referenced the whole of `Api`, minus the web host it never used.
+`Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms:
+`Api` reaches the same set of projects through one more hop, and the export path is reachable from a script
+that wants it without the web host it would never start.
 
 **Two constraints are what force the shape**, and they are the reason there appear to be "two model projects":
 
@@ -231,19 +229,14 @@ file-based scripts `dotnet run` builds on demand, and three folders hold no code
 
 | Tool | References | Is |
 |---|---|---|
-| `mapgen` | `Export` | builds a whole map from one JSON spec, through the real export path — the trial harness for `BACKLOG`/`TODO`'s generation track |
 | `PgmStudio.RoundTrip` | `Pgm`, `Analysis`, `Minecraft` | the corpus regression net (`--goldens`): the four map-level derivations over every corpus map, diffed against `corpus-goldens.json` |
 | `relief` (`PgmStudio.Relief`) | `Geom`, `Minecraft` | the relief solver's own measurement CLI — the solver stays dependency-free; only the Anvil-reading half needed `Minecraft` |
 
-`mapgen` is `Export`'s one consumer beyond `Api` itself, and the reason the project exists: before `B119` it
-referenced the whole of `Api` — ASP.NET Core, FastEndpoints, the DB layer, the Blazor host — to reach
-`SketchWorldBuilder` and `MapXmlComposer`, which is what made a headless driver carry a web application it
-never started. `PgmStudio.PatternMap` was the second such consumer until `B209`: it wrote a world folder
-through the same seven steps mapgen does, and what it actually had to say — a grid of plots, a themes
-registry, a dressing document — is now a spec `mapgen` builds (`tools/library-map.cs`). That was the first of a pair of findings — `tools/` had grown a
-second copy of parts of the system precisely because reaching the real ones meant reaching `Api` — and `B119`
-was the fix for the reaching; `B118` was the fix for the copy itself, deleting `tools/mapgen`'s own site
-sampler and reduced spec format in favour of the real documents `B119` had just made reachable.
+**`Export` exists so the export path is reachable without the web host.** `SketchWorldBuilder` and
+`MapXmlComposer` sat inside `Api` until `B119`, which meant a script wanting to build a world carried
+ASP.NET Core, FastEndpoints, the DB layer and the Blazor host to reach them. Cutting `Export` out is what
+lets a file-based script link the real composition instead of growing a second copy of it — which is what
+`tools/` had done, and what `B118` deleted.
 
 **The rest are file-based scripts** — no `.csproj`, no solution entry, each a `.cs` file opening with
 `#:project` directives that name the `src/` projects it needs and running as `dotnet run
@@ -251,7 +244,8 @@ tools/<folder>/<script>.cs`. **There are seven, and the count is the point** (`C
 stays local*): three gates over the composer in `compose/` (`reproduction-gate`, `fingerprints`,
 `unit-fingerprint`), two in `deriver/` (`figure-check` gates `model.md`'s figures, `envelope-stats` writes
 `seed-envelopes.md`), and two operational tools at the root (`seed-library` seeds the database,
-`library-map` builds the spec `mapgen` consumes). A script that is not re-run does not live here; the reading
+`library-map` writes the catalogue map's layout and intent for `POST /map/from-documents`). A script that is
+not re-run does not live here; the reading
 it took belongs in `docs/` or in the code, and the script belongs in a scratchpad.
 
 **`dotnet run <script>.cs` caches the built app keyed on the script**, so an unchanged script re-runs stale

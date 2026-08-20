@@ -56,7 +56,7 @@ public sealed class MapExportComposerTests
         return await resp.Content.ReadFromJsonAsync<JsonElement>();
     }
 
-    // ComposeSketch is the one chain the HTTP export and the headless mapgen driver both run, so what it
+    // ComposeSketch is the one chain every export runs, so what it
     // refuses and where the decoration lands are contract, not plumbing.
     [Test]
     public async Task ComposeSketch_decorates_the_document_between_projection_and_judgement()

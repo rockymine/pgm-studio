@@ -57,7 +57,8 @@ public static class MapFromDocuments
 
         try
         {
-            await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Bytes(request.Plan), ct);
+            await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson,
+                                      Bytes(request.Plan ?? Empty), ct);
             await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, Bytes(request.Layout), ct);
 
             // The drawing is declared done here rather than left for a second call: a map loaded without its
@@ -109,6 +110,10 @@ public static class MapFromDocuments
 
     private static byte[] Bytes(JsonElement document) =>
         System.Text.Encoding.UTF8.GetBytes(document.GetRawText());
+
+    /// <summary>What a map with no plan stores under one — the same empty document an origination writes, so
+    /// a grid board and a freshly originated plan read alike.</summary>
+    private static readonly JsonElement Empty = JsonDocument.Parse("{}").RootElement;
 
     /// <summary>The findings out of whatever the intent write handed back, which is the refusal envelope's
     /// own shape where it refused.</summary>

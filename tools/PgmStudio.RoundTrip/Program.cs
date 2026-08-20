@@ -290,6 +290,32 @@ if (structIdx >= 0 && structIdx + 2 < args.Length)
         stepSlot >= 0 && stepSlot + 1 < args.Length && int.TryParse(args[stepSlot + 1], out var maxStep) ? Math.Max(1, maxStep) : StructureFinder.DefaultMaximumStep);
 }
 
+// --mirror <regionDir> <outPng> [--mode <symmetry>] [--scale N] [--center <cx> <cz>]: each column against the
+// column its own orbit lands on, with the ones that disagree marked. The one picture read off the blocks
+// alone — every other structure render draws its extent from the provenance record, so a claim that is wrong
+// about where its blocks are draws a building where none stands. A mirrored board is checked for exactly this
+// and an eye cannot answer it. The mode is the symmetry the board was laid to (mirror_x/z/d1/d2, rot_180,
+// rot_90); with none stated the report says so rather than guessing one.
+var mirrorIdx = Array.IndexOf(args, "--mirror");
+if (mirrorIdx >= 0 && mirrorIdx + 2 < args.Length)
+{
+    var modeAt = Array.IndexOf(args, "--mode");
+    var mirrorScaleAt = Array.IndexOf(args, "--scale");
+    var centreAt = Array.IndexOf(args, "--center");
+    var centreX = 0.0;
+    var centreZ = 0.0;
+    if (centreAt >= 0 && centreAt + 2 < args.Length)
+    {
+        double.TryParse(args[centreAt + 1], CultureInfo.InvariantCulture, out centreX);
+        double.TryParse(args[centreAt + 2], CultureInfo.InvariantCulture, out centreZ);
+    }
+    return MirrorReport.Run(
+        args[mirrorIdx + 1], args[mirrorIdx + 2],
+        mirrorScaleAt >= 0 && mirrorScaleAt + 1 < args.Length && int.TryParse(args[mirrorScaleAt + 1], out var mirrorScale) ? Math.Max(1, mirrorScale) : 3,
+        modeAt >= 0 && modeAt + 1 < args.Length ? args[modeAt + 1] : null,
+        centreX, centreZ);
+}
+
 // --flora <regionDir> <outPng> --path <id[:data],...> [--scale N]: trees separated from structural timber by
 // log connectivity and named by their canopy, plus the paved routes traced as connected surface components.
 // The path palette is per map — the same block is a road on one world and bulk terrain on another.

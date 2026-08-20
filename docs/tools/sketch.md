@@ -816,11 +816,11 @@ looked at **in section** before it stands on a map, and an agent that can only o
 
 **No picture of a sketch exists as an endpoint.** The API's only raster is the plan board —
 `GET /plans/{id}/png` beside its `/svg`, both off one shared scene so the two encodings cannot disagree
-(`B90`). The named stage images an agent can genuinely look at — **plan, heightmap, contour, surface,
-dressing, topdown, foliage, objectives, traversability, structures** — are written by `tools/mapgen --stages`
-off the `VoxelWorld` the build just produced, and the same read-backs are CLI flags on
-`tools/PgmStudio.RoundTrip` (`--topdown`, `--heightmap`, `--contour`, `--surface`, `--structures`,
-`--traversability-map`) over a built world; `--topdown` also takes `--layer ground|structure|foliage|objectives`
+(`B90`). The named stage images an agent can genuinely look at — **heightmap, contour, surface, topdown,
+foliage, objectives, traversability, structures, mirror** — are CLI flags on `tools/PgmStudio.RoundTrip`
+(`--topdown`, `--heightmap`, `--contour`, `--surface`, `--structures`, `--traversability-map`, `--mirror`)
+over a built world, which is what `GET /map/{slug}/export` hands back;
+`--topdown` also takes `--layer ground|structure|foliage|objectives`
 to isolate one of those questions instead of drawing the combined view. So an agent wanting to *see* a sketch
 has two honest options: render the data it already gets from the three reads above, or build the world and
 take the stage set.

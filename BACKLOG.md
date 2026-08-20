@@ -259,9 +259,9 @@ as an isolated marker into `B99`.
   bedrock — accurate, and it shows none of the buildings a few blocks either side, no room interiors, and
   nothing of the town's silhouette.*
 
-- [ ] **B245 — `mapgen --help` should say what each render answers, not just how to invoke it.** The tool
-  prints one usage line (`Program.cs:38`); an agent choosing between `--topdown --layer …`, `--section`,
-  `--heightmap`, `--surface`, `--traversability-map`, `--structures` and `--column` has nothing in the tool
+- [ ] **B245 — `PgmStudio.RoundTrip --help` should say what each render answers, not just how to invoke it.**
+  An agent choosing between `--topdown --layer …`, `--section`, `--heightmap`, `--surface`,
+  `--traversability-map`, `--structures`, `--mirror` and `--column` has nothing in the tool
   saying which question each one answers or where each is known to mislead. That knowledge exists — the table
   in `pgm-studio-mapgen/REVIEWER-BRIEF.md` carries it, caveats included (`B99` on isolated markers, `B149` on
   `--buildings` under-counting a studio-built town, `B129` on the one-plane cut) — but it lives in a brief an
@@ -302,7 +302,7 @@ as an isolated marker into `B99`.
   contract itself is not waivable: PGM has to be able to read the result.
 
   **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
-  the briefs hand an agent, not in `mapgen`'s `--help` (`B245`). The authoring briefs already tell an agent
+  the briefs hand an agent, not in `PgmStudio.RoundTrip`'s `--help` (`B245`). The authoring briefs already tell an agent
   that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
 
 Three gates, three ways of being wrong about their own verdict: one that misreports its cause, one that cannot
@@ -1128,9 +1128,9 @@ place.
 
 ## The boundary: one contract, one use case, one class of fault
 
-`docs/architecture.md` is the survey these came out of. The studio has two front doors — 148 HTTP endpoints
-and `tools/mapgen`, which links the libraries and speaks no HTTP — and one pipeline behind them, and every
-entry here is a fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
+`docs/architecture.md` is the survey these came out of. The studio has one front door — 149 HTTP endpoints —
+and a pipeline behind it whose steps have no home but the routes that reach them, and every entry here is a
+fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
 in the order listed: the contract first, because the request shape and the client both hang off it; the
 application layer second, because it is where a gate stops belonging to a door; the fault class third; the
 lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
@@ -1160,15 +1160,14 @@ so it has to *call* them, which is what the application layer is for.
   types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
   callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
 
-- **Parked, and the author's:** *is `tools/mapgen` still needed?* Measured against the last run: the driver
-  that authored those maps is `drive.py` in the mapgen repo, and it never touches `tools/mapgen` — it makes
-  fifteen HTTP calls and the map lands in the database. Two of mapgen's three board modes, `compose` and
-  `plan`, are reachable over HTTP. **The third is not**: `IslandGrid.Lay` has exactly one caller, mapgen's own
-  `Build`, and a grid board carries no plan at all, so no route can express one. `tools/library-map.cs` — the
-  catalogue map, one of the three scripts `CLAUDE.md` sanctions — `#:project`-references mapgen and emits a
-  spec only mapgen consumes. So mapgen cannot go until the grid board has somewhere else to live, and the
-  question is whether the catalogue map is worth a route (`POST /plan/grid`, or a layout the script emits
-  directly) or whether mapgen stays as the one tool that builds it.
+- [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
+  grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective
+  point(s) are not reachable from the rest*, naming `spawn red-team`, `wool red` and `wool blue`. The
+  headless driver refused the same board with the same finding before it was retired, so this is the map's
+  own shape rather than a route's: a catalogue is a row of islands nothing bridges, and `EX1` asks whether a
+  match can walk between its spawns and its objectives. Either the wool rooms and spawns move onto one plot,
+  or a board that is a catalogue says so and is exempted. Which is the author's — the map exists to be walked
+  plot by plot, not played.
 
 ## The remainder: work no concept above has claimed
 

@@ -63,8 +63,7 @@ band cannot make, because it only measures along one line.
 | Surface | Answers |
 |---|---|
 | `GET /api/map/{slug}/coverage` | the classes as digit rows over the grid (legend included), the shares, and the named dead patches; `?format=png` the same grid as a picture |
-| `tools/mapgen` (every build) | one summary line — reached / decorated / dead shares — plus the five largest dead patches with coordinates |
-| `tools/mapgen --stages` | `stages/coverage.png` — corridors and rings green, decorated fringe yellow, dead ground red, routes and waypoints marked |
+| `GET /api/map/{slug}/coverage?format=png` | corridors and rings green, decorated fringe yellow, dead ground red, routes and waypoints marked |
 
 The classes come off `Analysis/Playability/GroundCoverage.Read`, the corridors off `Geom.Cells.Corridor` over
 `Traversability.Ground`'s navigable set, and the picture off the measure's own grid through

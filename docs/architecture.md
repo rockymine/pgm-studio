@@ -10,18 +10,21 @@ everything it can learn about the map it has to learn from a response body. Ever
 where the studio knows something and cannot say it, or says it in a shape that has to be learned rather than
 parsed.
 
-## Two drivers, and neither is the other's client
+## A gate belongs to whichever door it was put behind
 
-The pipeline has two entry points. `PgmStudio.Api` exposes **149 endpoint classes** over 45 files, and
-`tools/mapgen` links `Pgm`, `Minecraft`, `Export` and `Analysis` directly — it opens no `HttpClient` and
-speaks no HTTP at all. Both compile a plan, rasterize a layout, dress a world and write a `map.xml`.
+The pipeline has one entry point: `PgmStudio.Api`, **149 endpoint classes** over 45 files. Everything that
+authors a map arrives through it — the browser, the headless drivers agents write, and the catalogue map,
+which is emitted as a layout and an intent and loaded through `POST /map/from-documents` like any other.
 
-That is one pipeline with two independent front doors, and the consequence is structural rather than
-incidental: **a gate belongs to whichever door someone put it behind.** The export is where that was visible
-and where it is now closed — every gate a sketch map is judged by sits inside `MapExportComposer.ComposeSketch`,
-so `mapgen`, which links that method directly, meets the chain the HTTP export meets. But closing an instance
-is not closing the mechanism: nothing about the arrangement stops the next gate from landing on one door
-again, because a use case that *is* an HTTP handler has no other place for one to live. That is `RP13`.
+That is not an arrangement the code enforces; it is where the doors happen to be. A second driver linking
+`Pgm`, `Minecraft` and `Export` directly is a few lines away at any time, and the moment one exists, a gate
+raised behind one door is a gate the other never meets. The export answers that by construction: **every
+gate a sketch map is judged by sits inside `MapExportComposer.ComposeSketch`**, so which door a caller came
+through cannot change what its map is held to.
+
+Doing that for one chain is not doing it for the pipeline. A step whose only home is an HTTP handler can only
+ever be reached by sending a request, so the next gate lands behind whatever route needs it, and the next
+driver reaches around it. That is `RP13`.
 
 ## The boundary carries no schema
 

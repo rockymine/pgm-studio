@@ -11,8 +11,9 @@ namespace PgmStudio.Contracts;
 /// layout a <c>SketchLayout</c>, the intent a <c>MapIntent</c>. They are the documents themselves rather than
 /// shapes restated here — naming them again would be a second copy free to disagree with the readers.</para>
 /// </summary>
-/// <param name="Plan">The board as cell rectangles. Stored as the map's plan, which is what makes it
-/// re-plannable rather than only re-buildable.</param>
+/// <param name="Plan">The board as cell rectangles, where the map was drawn from one — it is what makes the
+/// map re-plannable rather than only re-buildable. A grid board has none: its plots are discs and crosses and
+/// a plan piece is a rectangle, so a layout emitter states no plan at all and this is left out.</param>
 /// <param name="Layout">The drawing the plan compiled to, with everything a plan cannot state already on it.
 /// Stored verbatim, so the map is loaded as it was built rather than as it would recompile.</param>
 /// <param name="Intent">What the map is played for. Stored and projected into the document.</param>
@@ -23,9 +24,9 @@ namespace PgmStudio.Contracts;
 /// Stated separately because a compiled intent carries an empty <c>meta.authors</c>, and applied after the
 /// intent for the reason that projection exists.</param>
 public sealed record MapFromDocumentsRequest(
-    JsonElement Plan,
     JsonElement Layout,
     JsonElement Intent,
+    JsonElement? Plan = null,
     string? Name = null,
     string? Slug = null,
     IReadOnlyList<JsonElement>? Authors = null);

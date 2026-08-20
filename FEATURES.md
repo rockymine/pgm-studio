@@ -743,6 +743,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   The surface is 154 operations → **148** over 117 paths, and the false-204 count 30 → **24**, which is now
   exactly `RP29`'s edit routes and nothing else.
+- **The studio has one front door (RP13).** The headless driver that linked `Pgm`, `Minecraft`, `Export` and
+  `Analysis` directly is gone — `tools/mapgen`, its `MapSpec` format, its contact sheet and its 283-line
+  README. Two of its three board modes were reachable over HTTP already, and the drivers agents actually
+  write speak HTTP: the last authoring run made fifteen calls and never touched it.
+
+  **The third mode was the grid, and the grid was never in it.** `IslandGrid.Lay` is in `Pgm/Sketch` and
+  emits a `SketchLayout` directly, because a plot is a disc or a cross and a plan piece is a rectangle. So
+  `tools/library-map.cs` calls it and writes the two documents any map is loaded from —
+  `library-map.layout.json` and `library-map.intent.json`, 37 plots, 37 themes, 110 props — and
+  `POST /map/from-documents` takes them: **37 islands, 31 255 ground cells**, in the database and openable in
+  Configure, which a spec built into a world folder never was.
+
+  `MirrorReport` moves to `PgmStudio.RoundTrip --mirror <regionDir> <outPng> [--mode …] [--center cx cz]`,
+  which is where the other five stage renders already lived. Nothing else was only there.
+
 - **A map comes back from the three documents it is made of (RP13, in part).**
   `POST /map/from-documents` takes a plan, a layout and an intent together and stores a whole map: the plan to
   re-plan from, the drawing rasterized into geometry, the intent projected into the document, and the authors

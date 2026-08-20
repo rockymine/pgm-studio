@@ -243,8 +243,8 @@ So a script earns a place in `tools/` only by being **re-run**, which is one of 
 - a **gate** that fails — `reproduction-gate`, `figure-check`, the fingerprints;
 - a **generator of a committed artifact** — `envelope-stats` writes `seed-envelopes.md`, `fingerprints` writes
   `composer-fingerprints.json`;
-- an **operational tool** the product needs — `seed-library` seeds the database, `library-map` builds a spec
-  `mapgen` consumes.
+- an **operational tool** the product needs — `seed-library` seeds the database, `library-map` writes the
+  catalogue map's layout and intent for `POST /map/from-documents` to load.
 
 Nothing else. **"It might be useful again" is not one of them** — it is the sentence that produced all 44, and
 a fresh throwaway against today's `src/` beats a restored one against 2026's every time. Data is judged the

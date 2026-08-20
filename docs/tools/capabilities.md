@@ -1,9 +1,9 @@
 # What a map is made of, and where each part is made
 
-The reference `tools/mapgen` should have been written against. A map is not one document — it is a short
-stack of them, each owned by a different project, each with its own JSON shape, its own endpoint and its own
-generator. Reading the stack is what stops a tool from inventing a flatter format of its own and losing the
-system's reach in the process (`mapgen-review.md` MG29).
+The reference a driver is written against. A map is not one document — it is a short stack of them, each
+owned by a different project, each with its own JSON shape, its own endpoint and its own generator. Reading
+the stack is what stops a tool from inventing a flatter format of its own and losing the system's reach in
+the process (`mapgen-review.md` MG29).
 
 Four layers, in the order a map moves through them: a **plan** says where things go in cells, a **layout**
 says what ground exists and what it is made of, an **intent** says what the map is played for, and the
@@ -151,14 +151,12 @@ test fixtures for the export, so none of the above is discoverable from it (`B10
 
 ## The capability surface
 
-`MapSpec` — the JSON `tools/mapgen` actually reads — used to be a reduction of the four documents above rather
-than an addressing layer over them (`mapgen-review.md` MG29): it named a handful of knobs and hid the rest, so
-every one of the first fifteen boards came out with a rim, one theme, one relief style and the same wall
-wherever it met a drop. `B118` closed that gap: `plan`, `layout` and `intent` are now handed through the spec
-verbatim, and the convenience fields that remain (`theme`, `relief`, `room_shell`) are shorthand that expands
-into a fragment of one of those three. What follows is the surface underneath the convenience fields, by
-pipeline stage, so an author reaching for a description knows what it can become before reaching for the
-spec's shorthand instead — or, once the shorthand runs out, states the fragment directly through `layout` or
+**A driver states the four documents themselves and nothing over them.** A reduced format that names a
+handful of knobs and hides the rest is what `mapgen-review.md` MG29 measured the cost of: every one of the
+first fifteen boards came out with a rim, one theme, one relief style and the same wall wherever it met a
+drop, because those were the knobs the format had. What follows is the surface a document actually offers, by
+pipeline stage, so an author reaching for a description knows what it can become before reaching for a
+shorthand — and states the fragment directly through the `layout` or
 `intent`. Everything below is built and shipping; where it is not reachable at all — not through a
 convenience field and not by handing a document fragment through — that is a gap in the system, not in the
 spec.
@@ -196,15 +194,15 @@ to detect.
 
 `tools/library-map.cs` is the worked example and the reason the capability exists: the studio's catalogue map
 — every terrain pattern, the inward axis on a disc and a cross, a plot per house preset, a tree of every
-species and wood — written as a spec and built by `mapgen` like any other. It emits and builds nothing:
+species and wood — written as the two documents any map is loaded from. It emits and builds nothing:
 
 ```bash
-dotnet run tools/library-map.cs                                     # → tools/out/library-map.spec.json
-dotnet run --project tools/mapgen -- --stages tools/out/library-map.spec.json
+dotnet run tools/library-map.cs              # → library-map.layout.json + library-map.intent.json
+POST /api/map/from-documents                 # → the map, and GET …/export the world
 ```
 
-The sweep stays as code because a frozen spec cannot notice that an eleventh house preset was added, and the
-spec is harness output rather than a checked-in seed for the same reason.
+The sweep stays as code because a frozen document cannot notice that an eleventh house preset was added, and
+the documents are harness output rather than a checked-in seed for the same reason.
 
 ### A shape is not only ground — it is also an obstacle, and the cap is what makes it one
 
@@ -332,16 +330,14 @@ resolves it to a world column, fans it through the same orbit, and emits an `Iro
 is — write `walls`/`placements.iron` into the plan document (`PUT /map/{slug}/plan`) and compile it
 (`POST /plan/compile`) — and both round-trip through the editor's own tools (the plan editor's brick tool for
 a wall, the marker palette for iron). `Composer.cs` writes neither list, so a `compose`-asked board carries
-neither unless the plan it produced is hand-edited before compiling — `tools/mapgen`'s `plan` field takes a
-literal plan document for exactly that — or unless `MapSpec`'s `intent` fragment adds a `structures.walls` or
-`structures.ironCubes` entry directly onto the compiled intent, in already-resolved world coordinates.
+neither unless the plan it produced is hand-edited before compiling, or unless a `structures.walls` or
+`structures.ironCubes` entry is written onto the compiled intent directly, in already-resolved world
+coordinates.
 
 ### The paint a theme can hold
 
-`MapSpec`'s `theme` convenience field reduces `TerrainTheme` (`Minecraft/Painting/TerrainTheme.cs`) to four material
-words and one pattern name; the full type is reachable regardless, by adding a registry entry through the
-spec's `layout` fragment — a `SketchLayout`'s `themes` map, handed through verbatim. The type underneath is
-five buckets, three of which carry their own geometry: `Rim` and
+`TerrainTheme` (`Minecraft/Painting/TerrainTheme.cs`) is stated as a registry entry in the layout's own
+`themes` map, which a shape then names. It is five buckets, three of which carry their own geometry: `Rim` and
 `Surface` are each a `TopBand` — a material plus its own depth and on/off toggle, so a one-block quartz edge
 and a three-block grass-over-dirt interior are independent knobs rather than one shared number — `Wall` and
 `Fill` are bare materials, and `Bedrock` and `RimEdges` (`Void`/`Drop`/`Boundary`, deciding which edges the
@@ -381,16 +377,15 @@ world would hand it: a wall run in plan is a striped border round a flat middle,
 rings, and a laid log — which varies the log's axis and never its colour — cannot be shown by a colour swatch
 at all, which the vocabulary says in its own prose.
 
-Before it, only six kinds were reachable through `MapSpec`'s `pattern` field and the other eight appeared
-solely inside a refusal message that listed their names — so a caller could learn that `turbulence` is a word
-the parser accepts and never what it takes or what it does. The measured effect was agents reaching for the
-same two or three patterns and leaving the rest unused.
+Before it, eight of the fourteen appeared solely inside a refusal message that listed their names — so a
+caller could learn that `turbulence` is a word the parser accepts and never what it takes or what it does.
+The measured effect was agents reaching for the same two or three patterns and leaving the rest unused.
 
 ### The relief mark vocabulary is constraints and pushes, not one shape of number
 
-`Mark` (`Geom/Relief/Marks.cs`) is the type `MapSpec`'s `marks` array and `scatter` convenience both resolve
-to, and `scatter` is the smallest corner of it: an ordinary run of `PointMark`s at random positions, nothing
-a `marks` array stated by hand could not equally say. The five kinds pin a footprint's cells to a stated
+`Mark` (`Geom/Relief/Marks.cs`) is the type a relief's `marks` array resolves to, and a scattered relief is
+the smallest corner of it: an ordinary run of `PointMark`s at random positions, nothing a `marks` array
+stated by hand could not equally say. The five kinds pin a footprint's cells to a stated
 height — `PointMark` a summit or hollow with a radius, `LineMark` a ridge or valley whose height can vary
 along its length, `AreaMark` a flat bench or floor bounded by a ring, `RimMark` the footprint's own outer
 edge held at one level, and `ScarpMark` a face rather than a height: two bands pinned either side of a drawn
@@ -400,8 +395,8 @@ one block, or not crossed on foot at all. `PushMark` is a different thing wearin
 overlap, while a push lifts or lowers the surface *after* the constraints are solved, which is what lets two
 pushes over the same ground simply **add**. A hand-drawn hill with a shaped plan — not a circle, because a
 push's falloff runs from the drawn ring across the land rather than from a centre — is a push; a stated
-summit at a stated height is a mark. Both are already in `MapSpec`'s vocabulary; what is rare in the corpus
-of generated boards is reaching for either instead of `scatter`.
+summit at a stated height is a mark. Both are already in the relief's own vocabulary; what is rare in the
+corpus of generated boards is reaching for either instead of a scatter.
 
 ### A building is described, then built — and its plan can turn a corner
 
@@ -433,9 +428,8 @@ parallel is refused with the rule it broke (`HJ1`–`HJ5`, `G186`). `HouseStampe
 builds this, and a placed prop can now ask for it: `HouseProp.Wings`
 (`Minecraft/Dressing/PlacedProp.cs`) is a list of rectangles rather than one, and `Decorator` composes them
 into a single `Footprint` and stamps once, the overlap rule refusing a second *prop* that collides while never
-testing one prop's own wings against each other (`G177`). That reaches `MapSpec`'s `layout` fragment too: a
-`house` prop is a `HouseProp` verbatim, so an agent authoring `dressing.props` directly can state an L or a T
-today. What is still missing is the canvas half — the dressing tool only ever drags one rectangle, so drawing
+testing one prop's own wings against each other (`G177`). A `house` prop is a `HouseProp` verbatim, so an
+agent authoring `dressing.props` in the layout can state an L or a T today. What is still missing is the canvas half — the dressing tool only ever drags one rectangle, so drawing
 a second wing onto a placed building has no tool of its own yet (`S60`). Library previews exist for the pieces
 once a style is composed — `/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`,
 `/porch-styles/preview`, `/storey-styles/preview` — so a building is checkable from four sides before it
@@ -561,8 +555,7 @@ the moment the picture is taken — `--buildings` and
 centrelines, `--water`, `--flora`, `--ores` and `--underground` for the rest. These renderers live in
 `PgmStudio.Minecraft.Render` and
 read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.FromWorld`), which is what
-lets `tools/mapgen` emit the same set itself, over the world it just built, with no second load off the
-region files it just wrote — see `README.md` beside this file.
+lets a caller holding a world in memory emit the same set with no second load off the region files.
 
 **`--topdown` reads by category, not by material, and the choice is a default rather than a rule.** A column's
 visible block sorts into one of five categories — void, water, foliage, structure, ground
@@ -575,9 +568,9 @@ reading for the caller checking a theme's actual paint rather than the map's sha
 ground|structure|foliage|objectives` isolates one question per image instead of drawing the combined view: a
 category other than the one asked for reads as a flat context tone, and `objectives` carries no terrain
 reading at all — only the `map.xml` overlay, on a uniformly dim backdrop — because "where do the goals sit" is
-a question the finished map's own colours only get in the way of. `tools/mapgen --stages` now emits `foliage`
-and `objectives` alongside the eight `B90` named, and `dressing`/`topdown` draw the category reading by
-default rather than the realistic one. Every PNG this renderer (and every other world read-back below) writes
+a question the finished map's own colours only get in the way of. `foliage` and `objectives` stand alongside
+the eight `B90` named, and `dressing`/`topdown` draw the category reading by default rather than the
+realistic one. Every PNG this renderer (and every other world read-back below) writes
 carries a legend baked into the image — swatch, name, one row per colour actually used — and a scale line
 stating blocks-per-pixel, via `PgmStudio.Geom.Render.Legend`, so a reader never has to bring an outside key to
 the picture (`B98`, `B95`).
@@ -594,8 +587,8 @@ trunk mark on top, so a cluster of overlapping crowns still shows one dot per tr
 isolated foliage layer alone — the combined view keeps painting the mass, since a player's cover is the leaves
 and not the centres — and it reads the **dressing document** rather than `WorldProvenance`: the record now carries a tree claim, but
 it answers which columns a prop covered, not where a crown's centre stands or how far it reaches, which is what
-a point-and-radius drawing needs. `tools/mapgen --stages` passes the build's own document automatically; `PgmStudio.RoundTrip --topdown
---layer foliage` takes it as an optional `--dressing <layout.json>`, and a scanned world — which carries
+a point-and-radius drawing needs. `PgmStudio.RoundTrip --topdown --layer foliage` takes it as an optional
+`--dressing <layout.json>`, and a scanned world — which carries
 neither a dressing document nor a `WorldProvenance` sidecar — falls back to the mass reading it always had,
 stated on the console rather than silently swapped (`docs/world-export/decoration.md` §6.1).
 
@@ -616,8 +609,8 @@ matching cell sets, and what lets a read-back prove that a named prop landed not
 writes the three fields into an id table, so the shape survives the trip through disk. `RenderCategories.Of(blockId, provenance)` reads a recorded claim as
 authoritative for the Ground/Structure pair (liquid, foliage and void stay material questions, which they
 already answer without ambiguity) and falls back to the material estimate — the single-argument overload —
-when no claim was ever recorded for that column. `--topdown`'s `Run(regionDir, …)` overload and
-`tools/mapgen --stages` pick up the recorded record automatically; `--material` is unaffected, since a
+when no claim was ever recorded for that column. `--topdown`'s `Run(regionDir, …)` overload picks up the
+recorded record automatically; `--material` is unaffected, since a
 material check is asking a different question on purpose. The picture states which reading it used: the
 scale line carries `STRUCTURE READING: RECORDED PROVENANCE` or `MATERIAL ESTIMATE (NO RECORDED PROVENANCE)`,
 because that is exactly the fact a colour alone cannot carry.

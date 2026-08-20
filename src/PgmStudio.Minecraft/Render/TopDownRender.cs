@@ -50,9 +50,9 @@ public enum TopDownLayer { Combined, Ground, Structure, Foliage, Objectives }
 /// <para>The optional overlay draws what <c>map.xml</c> declares on top of the terrain — objective
 /// destroyables, spawns, and the boxes named by apply rules — because the question a render is usually asked
 /// is whether the geometry sits where the XML says it does. Overlays take an already-parsed <see cref="MapXml"/>
-/// rather than a file path: parsing the document is <c>map.xml</c> semantics, which stays in the caller
-/// (a text file on disk for the <c>RoundTrip</c> harness, the string a build just produced for
-/// <c>tools/mapgen</c>), so this renderer needs nothing beyond <see cref="Domain"/> and its own world reads.</para>
+/// rather than a file path: parsing the document is <c>map.xml</c> semantics, which stays in the caller —
+/// a text file on disk for the <c>RoundTrip</c> harness, the string an export just composed for the API — so
+/// this renderer needs nothing beyond <see cref="Domain"/> and its own world reads.</para>
 /// </summary>
 public static class TopDownRender
 {

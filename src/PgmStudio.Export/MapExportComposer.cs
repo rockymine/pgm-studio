@@ -104,8 +104,8 @@ public static class MapExportComposer
         // the studio's own fault as the caller's, and this composer has no logger to keep the trace in.
     }
 
-    /// <summary>The sketch leg of the export, one chain shared by the HTTP export and the headless mapgen
-    /// driver so neither can drift past the other's gates: refuse an unloadable gamemode, build the world,
+    /// <summary>The sketch leg of the export, and the one chain every caller runs so none can drift past
+    /// another's gates: refuse an unloadable gamemode, build the world,
     /// gate the goals against the ground the rasterizer actually produced, project the resolved intent, judge
     /// what the document says and whether it can be walked, compose the XML.
     /// <paramref name="decorate"/> runs after the intent is projected and before the document is judged —
