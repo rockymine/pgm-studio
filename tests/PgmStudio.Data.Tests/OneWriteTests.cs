@@ -2,6 +2,7 @@ using LinqToDB;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Tests;
 

@@ -9,6 +9,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

@@ -12,6 +12,7 @@ using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Dressing;
 

@@ -8,6 +8,7 @@ using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Render;
 
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

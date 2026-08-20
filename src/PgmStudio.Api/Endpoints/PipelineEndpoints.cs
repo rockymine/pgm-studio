@@ -4,6 +4,7 @@ using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Domain;
 using PgmStudio.Pgm;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

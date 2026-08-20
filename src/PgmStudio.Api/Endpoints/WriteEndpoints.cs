@@ -5,6 +5,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Editing;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

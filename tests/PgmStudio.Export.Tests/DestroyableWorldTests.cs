@@ -6,6 +6,7 @@ using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 

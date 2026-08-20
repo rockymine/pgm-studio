@@ -5,6 +5,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Tests;
 

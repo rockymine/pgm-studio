@@ -4,6 +4,7 @@ using PgmStudio.Minecraft.Views;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
 

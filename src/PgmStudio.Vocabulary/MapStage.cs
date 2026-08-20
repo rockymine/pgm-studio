@@ -1,4 +1,4 @@
-namespace PgmStudio.Contracts;
+namespace PgmStudio.Vocabulary;
 
 /// <summary>
 /// A map's lifecycle stage — the three editor surfaces it can be picked up in. Stored on the

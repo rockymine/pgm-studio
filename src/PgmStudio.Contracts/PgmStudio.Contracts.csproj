@@ -1,5 +1,11 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
+  <ItemGroup>
+    <!-- The finding shape and the closed word sets the DTOs are written in. Vocabulary references nothing,
+         so Client still reaches nothing but this project, Geom and that leaf. -->
+    <ProjectReference Include="..\PgmStudio.Vocabulary\PgmStudio.Vocabulary.csproj" />
+  </ItemGroup>
+
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>

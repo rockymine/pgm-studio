@@ -3,6 +3,7 @@ using FastEndpoints;
 using PgmStudio.Api.Services;
 
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

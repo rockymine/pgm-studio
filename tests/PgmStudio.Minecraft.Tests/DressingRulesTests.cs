@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Tests;
 

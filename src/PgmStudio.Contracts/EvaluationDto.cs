@@ -1,3 +1,6 @@
+
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Contracts;
 
 /// <summary>
@@ -29,7 +32,7 @@ public sealed record EvidenceDto(
 /// is which measurement noticed, and a scoring function may well grow a second term citing one rule.</para>
 /// </summary>
 public sealed record ViolationDto(
-    string TermId, string Kind, double Distance, FindingDto Finding,
+    string TermId, string Kind, double Distance, Finding Finding,
     IReadOnlyList<EvidenceDto> Evidence);
 
 /// <summary>
@@ -45,4 +48,4 @@ public sealed record ViolationDto(
 /// </summary>
 public sealed record EvaluationDto(
     double Score, bool Valid, IReadOnlyList<ViolationDto> Violations,
-    IReadOnlyList<FindingDto>? Lint = null);
+    IReadOnlyList<Finding>? Lint = null);

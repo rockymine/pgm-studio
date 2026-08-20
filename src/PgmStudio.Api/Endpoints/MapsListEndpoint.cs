@@ -2,6 +2,7 @@ using FastEndpoints;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

@@ -1,3 +1,6 @@
+
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Contracts;
 
 /// <summary>The closest the emitters got when nothing reproduced a box: the candidate whose terrain differs in
@@ -20,7 +23,7 @@ public sealed record BoxFeasibilityDto(
     string BoxId, string Kind, string Identity,
     string? ProducibleAs, int? Cw,
     NearestMissDto? Nearest,
-    IReadOnlyList<FindingDto> Findings)
+    IReadOnlyList<Finding> Findings)
 {
     public bool Producible => ProducibleAs is not null;
 }
@@ -37,4 +40,4 @@ public sealed record BoxFeasibilityDto(
 /// author wants to see all of it rather than the first failure.</para>
 /// </summary>
 public sealed record FeasibilityDto(
-    bool Producible, IReadOnlyList<BoxFeasibilityDto> Boxes, IReadOnlyList<FindingDto> Unit);
+    bool Producible, IReadOnlyList<BoxFeasibilityDto> Boxes, IReadOnlyList<Finding> Unit);

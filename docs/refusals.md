@@ -24,10 +24,12 @@ not it — the layout rule the fault falls under, or the open task that would re
 `cites` is a field of its own rather than a second id: a rule is stable forever and a task id is a debt with a
 due date, and one field holding either would make the two indistinguishable to a reader.
 
-`Finding` is in `PgmStudio.Domain`, which is the lowest project every gate can reach — `Minecraft`, `Pgm`,
-`Analysis` and `Export` all see it, and `Contracts` carries the wire mirror the WASM client reads. Nothing that
-is not a finding is forced into the shape: a `TermScore` is a distance that *carries* a finding, and a distance
-is not a fault.
+`Finding` is in `PgmStudio.Vocabulary`, a leaf that references nothing and that all three parties reach: the
+gates below `Api` that raise one — `Minecraft`, `Pgm`, `Analysis`, `Export` — the HTTP surface that answers it,
+and the WASM client that renders it. That is what makes the JSON above the record itself rather than a copy of
+it: the three optional fields are written only when they have a value and the two computed properties are not
+written at all, wherever the serialization happens. Nothing that is not a finding is forced into the shape: a
+`TermScore` is a distance that *carries* a finding, and a distance is not a fault.
 
 ```json
 {
@@ -390,7 +392,7 @@ spent a release as a bare string and `OB19` with no id at all, and **never as a 
 that exists**, which is what `ObjectivePlacement.Rule` and `DressingScope.Rule` were until the catalogue listed
 their ids twice. Give it a **`<summary>` saying what it refuses and a `<remarks>` saying what to do about it** —
 those two are what `/api/rules` answers with, so a rule written with only the first is listed with no fix and
-`RulesEndpointTests` fails. Add its row above, and answer through `Refusals.StopAsync` (an endpoint),
-`Refusals.Of` (a typed body) or `Finding.Envelope` (the same shape, built by hand for a composer below `Api`
-that cannot reach `Contracts`). A rule about a map *as it is played* is the
+`RulesEndpointTests` fails. Add its row above, and answer through `Refusals.StopAsync` (an endpoint) or
+`Refusals.Of` (a typed body). A gate below `Api` hands its findings up and the HTTP layer renders the
+envelope, so there is nothing to build by hand. A rule about a map *as it is played* is the
 author's to state before any of that: see the human-oracle rule in `CLAUDE.md`.

@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Tests;
 
@@ -107,8 +108,7 @@ public sealed class MapExportComposerTests
 
         await Assert.That(result.IsError).IsTrue();
         await Assert.That(result.ErrorStatus!.Value).IsEqualTo(409);
-        var body = System.Text.Json.JsonSerializer.Serialize(result.ErrorBody);
-        await Assert.That(body).Contains("OB17");
+        await Assert.That(result.Findings!.Select(finding => finding.Rule)).Contains("OB17");
     }
 
     [Test]

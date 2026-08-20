@@ -22,19 +22,19 @@ all of that exists, and almost all of it is stated in prose that nothing verifie
 written down two or three times, drifts, and is discovered again by an agent that paid a build cycle for it.
 `docs/architecture.md` is the survey; this board is the work it named.
 
-**The order below is not a preference, it is a dependency chain.** A shape cannot be declared where no
-project can hold it, so the boundary comes first. Nothing can be verified until the surface says what it is,
-so the contract comes next. A gate belongs to whichever door someone put it behind until there is one place a
-use case lives, so the application layer is third. A caller cannot branch on a fault until the fault has a
-class, so the taxonomy is fourth. And a state machine over a pipeline whose steps are still HTTP handlers has
-nothing to hold, so the lifecycle is last.
+**The order below is not a preference, it is a dependency chain.** Nothing can be verified until the surface
+says what it is, so the contract comes first — over the boundary `RP28` settled, since a shape cannot be
+declared where no project can hold it. A gate belongs to whichever door someone put it behind until there is
+one place a use case lives, so the application layer is second. A caller cannot branch on a fault until the
+fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
+handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — nineteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the nineteen carry a question only the author can answer
+## Four of the eighteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -54,27 +54,7 @@ push declared request shapes in one pass — the write surface is the useful hal
 ## Phase 1 — say what the surface is
 
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
-a verb. The first entry is a project split and the rest is mechanical: a shape has to have somewhere to live
-before a route can declare it.
-
-- [ ] **RP28 — Shared vocabulary is declared twice, because the leaf three parties can reach does not exist.**
-  `Contracts` holds **114 types**, of which exactly **five** are read below `Api` — `MapStage`,
-  `MaterialKind`, `RoofForms`, `RoomParts`, `ThemeBuckets`, all vocabulary rather than DTOs. `MaterialKind`'s
-  docstring states the requirement: the editor, the HTTP surface and the `style.kind` column must spell it
-  identically, and `Contracts` is the one leaf all three reach. `Minecraft` does not, so it re-declares the
-  strings — `MaterialRecipes.cs:78-91` (a recipe switch plus `AreaPatterns`, a second enumeration of six
-  names beside `MaterialKind`'s fourteen), `TerrainThemeComposer.cs:44-47`, `HouseStyleJson.cs:142,193`.
-  `Finding` carries the same requirement and could not get in at all: it lives in `Domain`, so it grew
-  `FindingDto`, and the two have drifted.
-  Add **`PgmStudio.Vocabulary`**, a leaf referencing nothing, holding `Finding`, `Severity`, `MapStage` and
-  the four string vocabularies. Two new edges carry it — `Domain → Vocabulary` and `Contracts → Vocabulary` —
-  and every other project inherits it. `FindingDto`, `Finding.Wire()` and `Finding.Envelope` are deleted.
-  Read each literal site before citing a count: `PlanModel.Surface` is an int depth, not the bucket.
-
-  *Evidence: `GET /api/map/nope/plan` answers a finding carrying `field`, `subjects` and `cites` as explicit
-  nulls beside the record's two computed properties (`subjectIds`, `refuses`), while `Finding.Wire()` one
-  layer down writes only the three keys that have a value. A caller can tell which layer refused, which
-  `Finding.Envelope`'s own docstring says must never happen.*
+a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
 - [~] **RP18 — Forty of the seventy-four undeclared operations are hand-built reads.**
   The media types, the refusal envelope, the flat pixel/column encodings, the small acks and the three
@@ -91,8 +71,8 @@ before a route can declare it.
   `SpawnAndRuleEndpoints`, `AuthoringIntentEndpoints`, `WiringEndpoints`), which hands back whatever
   `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so all 34 publish a path and a verb and
   nothing about the answer. The shapes are few — `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`,
-  `{id, bounds}` — so six or seven records cover the surface. Needs `RP28` for somewhere those records can
-  live that `Pgm` and the client both reach, and lands with `RP13`, where the answer an operation gives is
+  `{id, bounds}` — so six or seven records cover the surface. `PgmStudio.Vocabulary` is where those records
+  can live that `Pgm` and the client both reach; it lands with `RP13`, where the answer an operation gives is
   the thing being named.
 
 - [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
@@ -126,7 +106,6 @@ One entry, and the phase's whole point: the step that stops a gate from belongin
 ## Phase 3 — one class of fault
 
 The cheapest of the five: a change to `Finding` plus a sweep of 71 constants, and the ids do not move.
-Additive wherever `Finding` sits, so it neither blocks nor waits on `RP28` moving the record.
 
 - [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 71 to branch once.** The
   only machine-legible thing a finding carries is the id. A caller deciding whether to fix the request,
@@ -160,8 +139,9 @@ Additive wherever `Finding` sits, so it neither blocks nor waits on `RP28` movin
   thing they authored is gone. So a caller reading `warnings` cannot answer the question a write leaves open:
   did what I posted survive? Add `Severity.Decline`, carried by the six `DR-*` rules and by `OB19` once
   `RP4`'s ruling lands. Same envelope, same `warnings` key, no new route: `Finding.Refuses` stays the refusal
-  test and a decline is a success that took something away. Two sites turn a boolean into a three-way,
-  `Refusals.Dto` (`Refusals.cs:21`) and `Finding.Wire()`. Orthogonal to `RP14`'s `category` — that says what
+  test and a decline is a success that took something away. One site turns a boolean into a three-way,
+  `Finding.Refuses` (`Vocabulary/Finding.cs`), since the record is what is serialized.
+  Orthogonal to `RP14`'s `category` — that says what
   kind of fault, this what became of the input. `refusals.md` and each `DR-*` `<remarks>` change with it.
 
 - [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to

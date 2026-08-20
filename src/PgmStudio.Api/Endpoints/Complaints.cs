@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -138,7 +139,7 @@ internal static class Complaints
                 // One writer, or the last one wins silently. Nothing in the studio should be filling this key
                 // itself any more — an endpoint that does has grown a second channel for the same thing.
                 if (document.ContainsKey(Key)) Complain(carried, $"the body already carries '{Key}'");
-                document[Key] = JsonSerializer.SerializeToNode(Refusals.Dtos(carried), Json);
+                document[Key] = JsonSerializer.SerializeToNode(carried, Json);
                 bytes = JsonSerializer.SerializeToUtf8Bytes(document, Json);
             }
             else

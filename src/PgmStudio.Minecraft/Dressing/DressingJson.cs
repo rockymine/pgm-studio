@@ -5,6 +5,7 @@ using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Dressing;
 

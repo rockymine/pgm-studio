@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Anvil;
 
@@ -10,16 +10,19 @@ namespace PgmStudio.Minecraft.Anvil;
 /// everything authored stood, so a reader never has to tell an empty report from a world built before the
 /// report existed. The provenance sidecar answers what <em>landed</em>; this one answers what did not, which
 /// is the half of the census the silent declines hid.
-/// <para>The entries are <see cref="Finding.Wire"/>'s own keys — the shape every other refusal and complaint
-/// in the studio arrives in — so a reader parses one thing whether it took the report off disk or off the
-/// build endpoint that returns the same findings beside its payload.</para>
+/// <para>The entries are <see cref="Finding"/> itself — the shape every other refusal and complaint in the
+/// studio arrives in — so a reader parses one thing whether it took the report off disk or off the build
+/// endpoint that returns the same findings beside its payload.</para>
 /// </summary>
 public static class DressingReportFile
 {
     private const string FileName = "dressing-report.json";
 
     private sealed record Sidecar(
-        [property: JsonPropertyName("dropped")] List<Dictionary<string, object?>> Dropped);
+        [property: JsonPropertyName("dropped")] IReadOnlyList<Finding> Dropped);
+
+    /// <summary>Web defaults, so the keys are the camelCase ones the same findings carry over HTTP.</summary>
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
     /// <summary>Write the report into <paramref name="regionDir"/> when anything was dropped; remove a stale
     /// one when nothing was, so a rebuild that fixed every drop does not leave last build's report standing.</summary>
@@ -32,6 +35,6 @@ public static class DressingReportFile
             return;
         }
         Directory.CreateDirectory(regionDir);
-        File.WriteAllText(path, JsonSerializer.Serialize(new Sidecar([.. declines.Select(d => d.Wire())])));
+        File.WriteAllText(path, JsonSerializer.Serialize(new Sidecar(declines), Json));
     }
 }

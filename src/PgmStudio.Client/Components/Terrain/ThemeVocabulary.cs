@@ -1,5 +1,6 @@
 using System.Text.Json.Nodes;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Components;
 

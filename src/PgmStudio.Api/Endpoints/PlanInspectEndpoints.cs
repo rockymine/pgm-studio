@@ -11,6 +11,7 @@ using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -289,14 +290,14 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
         }
 
         Evaluation eval;
-        IReadOnlyList<FindingDto> lint;
+        IReadOnlyList<Finding> lint;
         try
         {
             var ctx = EvalContext.Build(plan, SeedEnvelopes.Default);
             eval = LayoutEvaluator.Evaluate(ctx, EvaluationProfile.Default);
             // The validator's complaints ride along: computed by the same Check the context already ran, and
             // this response is the one surface the authoring loop actually reads them from.
-            lint = Refusals.Dtos(ctx.Findings.Complaints);
+            lint = [.. ctx.Findings.Complaints];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
         {
@@ -314,7 +315,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
     internal static EvaluationDto Structural(Findings findings) => new(0, !findings.Refuses,
     [
         .. findings.Refusals.Select(finding =>
-            new ViolationDto(finding.Rule, "hard", 0, Refusals.Dto(finding), [])),
+            new ViolationDto(finding.Rule, "hard", 0, finding, [])),
     ]);
 
     /// <summary>Map the derived <see cref="Evaluation"/> onto the wire DTO: every fired term (hard-first, the
@@ -325,7 +326,7 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
             .Where(t => t.Violation is not null)
             .Select(t => new ViolationDto(
                 t.Violation!.TermId, t.Kind == TermKind.Hard ? "hard" : "soft", t.Distance,
-                Refusals.Dto(t.Violation.Finding),
+                t.Violation.Finding,
                 (t.Violation.Evidence ?? []).Select(MapEvidence).ToList()))
             .ToList();
         return new EvaluationDto(eval.Score, eval.IsValid, violations);
@@ -376,7 +377,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         if (!plan.Pieces.Any(piece => PlanRoles.IsGenerating(piece.Role))
             && PlanValidator.Completeness(plan) is { Refuses: true } structural)
         {
-            await Send.OkAsync(new FeasibilityDto(false, [], Refusals.Dtos(structural.Refusals)), ct);
+            await Send.OkAsync(new FeasibilityDto(false, [], [.. structural.Refusals]), ct);
             return;
         }
 
@@ -406,7 +407,7 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
             b.Nearest is null ? null : new NearestMissDto(
                 b.Nearest.Label, b.Nearest.Cw, b.Nearest.DifferingCells,
                 [.. b.Nearest.Extra.Select(r => r.ToArray())], [.. b.Nearest.Missing.Select(r => r.ToArray())]),
-            Refusals.Dtos(b.Findings.AsComplaints()))).ToList(),
-        Refusals.Dtos(read.Unit.AsComplaints()));
+            [.. b.Findings.AsComplaints()])).ToList(),
+        [.. read.Unit.AsComplaints()]);
 
 }

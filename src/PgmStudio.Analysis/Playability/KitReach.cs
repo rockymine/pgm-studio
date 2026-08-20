@@ -1,3 +1,4 @@
+
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;

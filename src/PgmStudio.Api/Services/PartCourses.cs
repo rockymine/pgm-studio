@@ -3,6 +3,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
 

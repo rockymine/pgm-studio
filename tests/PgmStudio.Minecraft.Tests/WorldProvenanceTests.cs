@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>The build-pass provenance record: which layer claimed each column, last, so a renderer

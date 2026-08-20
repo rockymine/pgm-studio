@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Evaluate;
 
 /// <summary>Small factories for the <see cref="TermScore"/> a term returns — so a term states its outcome

@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 
@@ -126,8 +127,7 @@ public sealed class MapExportComposerPlayabilityTests
 
         await Assert.That(result.IsError).IsTrue();
         await Assert.That(result.ErrorStatus).IsEqualTo(409);
-        await Assert.That(result.ErrorBody!["error"]).IsEqualTo("not a playable map");
-        var findings = (List<Dictionary<string, object?>>)result.ErrorBody!["findings"]!;
-        await Assert.That(findings.Single()["rule"]).IsEqualTo("EX2");
+        await Assert.That(result.Error).IsEqualTo("not a playable map");
+        await Assert.That(result.Findings!.Single().Rule).IsEqualTo("EX2");
     }
 }

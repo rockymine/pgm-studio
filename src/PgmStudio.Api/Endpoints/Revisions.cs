@@ -1,5 +1,6 @@
 using Microsoft.Net.Http.Headers;
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

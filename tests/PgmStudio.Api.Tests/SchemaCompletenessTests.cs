@@ -1,4 +1,5 @@
 using System.Text.Json;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Tests;
 
@@ -93,6 +94,26 @@ public sealed class SchemaCompletenessTests
 
         await Assert.That(silent).IsEmpty()
             .Because($"{silent.Count} operation(s) do not publish the envelope a refusal arrives in");
+    }
+
+    /// <summary>A closed set on the wire is published as the words the wire actually carries. The generator
+    /// reads a string enum off its converter attribute but takes the naming policy from the serializer
+    /// options, so a document listing <c>Refusal</c> beside a body writing <c>refusal</c> is the failure this
+    /// catches — and a generated client would fail against it before anyone read the page.</summary>
+    [Test]
+    public async Task A_closed_set_is_published_in_the_words_the_wire_carries()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+
+        var published = document.RootElement
+            .GetProperty("components").GetProperty("schemas").GetProperty("Severity")
+            .GetProperty("enum").EnumerateArray().Select(value => value.GetString()).ToList();
+        var written = Enum.GetValues<Severity>()
+            .Select(severity => JsonSerializer.Serialize(severity).Trim('"'))
+            .ToList();
+
+        await Assert.That(published).IsEquivalentTo(written);
     }
 
     /// <param name="Media">Every media type the operation declares, at any status.</param>

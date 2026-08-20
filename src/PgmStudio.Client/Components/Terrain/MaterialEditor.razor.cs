@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Components;
 

@@ -12,6 +12,7 @@
     <Project Path="src/PgmStudio.Migrations/PgmStudio.Migrations.csproj" />
     <Project Path="src/PgmStudio.Minecraft/PgmStudio.Minecraft.csproj" />
     <Project Path="src/PgmStudio.Pgm/PgmStudio.Pgm.csproj" />
+    <Project Path="src/PgmStudio.Vocabulary/PgmStudio.Vocabulary.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/PgmStudio.Analysis.Tests/PgmStudio.Analysis.Tests.csproj" />
@@ -23,6 +24,7 @@
     <Project Path="tests/PgmStudio.Import.Tests/PgmStudio.Import.Tests.csproj" />
     <Project Path="tests/PgmStudio.Minecraft.Tests/PgmStudio.Minecraft.Tests.csproj" />
     <Project Path="tests/PgmStudio.Pgm.Tests/PgmStudio.Pgm.Tests.csproj" />
+    <Project Path="tests/PgmStudio.Vocabulary.Tests/PgmStudio.Vocabulary.Tests.csproj" />
   </Folder>
   <Folder Name="/tools/">
     <Project Path="tools/mapgen/PgmStudio.MapGen.csproj" />

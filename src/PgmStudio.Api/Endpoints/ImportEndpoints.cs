@@ -10,6 +10,7 @@ using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

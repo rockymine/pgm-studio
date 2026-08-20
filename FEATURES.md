@@ -638,6 +638,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
+  nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
+  `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,
+  `DoorHeadForms`, `DoorHeadFills`. Two edges carry it, `Domain → Vocabulary` and `Contracts → Vocabulary`,
+  and every other project inherits it; `Client` still reaches only `Contracts` and `Geom`.
+
+  A finding is now **serialized rather than mirrored**. `FindingDto` is gone, and with it the hand-built
+  dictionaries below `Api`: `Finding.Wire()` and `Finding.Envelope()` are deleted, `ExportComposition` carries
+  its refusal as `(status, error, findings)` for the HTTP layer to render, and the dressing sidecar writes the
+  records themselves. `GET /api/map/nope/plan` answers `{rule, message, severity}` and nothing else — the
+  three optional fields are written only when they have a value and the two computed properties are not
+  written at all, whichever layer refused.
+
+  `Severity` is an enum with a camelCase converter, so one declaration answers both the wire and the schema:
+  `/api/openapi/v1.json` publishes `Severity` as `["refusal", "complaint"]`, pinned by
+  `SchemaCompletenessTests` because the generator reads the converter attribute but takes the naming policy
+  from the serializer options. `Minecraft` names the material vocabulary instead of re-typing it —
+  `TerrainThemeComposer.KindOf`'s fourteen literals and `MaterialRecipes`' six are `MaterialKind` constants.
 - **Ground nobody granted is not walkable (B247).** `Buildability`'s verdict grid starts at *buildable* and a
   rule only ever writes a denial over it, so a cell no rule mentions and a cell a rule allows were the same
   byte — and `Traversability` read that byte as permission, making every cell outside every apply rule
@@ -801,8 +819,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   enemy's spawn with the enemy÷own ratio — banded the same day as GO1 [3.0, 4.0] (B188's
   fast half; B212's unit discipline). `tools/mapgen` builds through `MapExportComposer.ComposeSketch`, the
   export's own sketch leg, so a headless build passes OB17 (wool monuments now included), OB19 and the
-  playability judgement instead of shipping past them. The refusal envelope's one shape moved to
-  `Finding.Envelope` in `Domain` beside `Finding.Wire`, and the orphaned-relief 409 speaks it (`SK1`).
+  playability judgement instead of shipping past them. The refusal envelope became one shape whichever gate
+  raised it, and the orphaned-relief 409 speaks it (`SK1`).
   `POST /plan/evaluate` carries the validator's whole lint table as `lint[]` — an unplaceable iron (`WX9`)
   or a mid-lane spawn (`SP2`) is visible on the loop an agent actually drives (B109/B177's reach half).
   The dressing pass reports every whole-prop decline with a reason (`region/dressing-report.json`, the
@@ -4431,10 +4449,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wire envelopes, so a panel rendering a refusal had to know which route it came from before it could read
   one. The differences were never real: each was a rule, a sentence and a subject under different field names,
   and `Violation`'s own docstring already said it carried "the same subject-id shape a `PlanFinding` carries".
-  One `Finding(Rule, Message, Severity, Field?, Subjects?, Cites?)` in **`Domain`** replaces all of them —
-  the lowest project every gate can reach, with the wire mirror in `Contracts` for the WASM client — and one
-  `{error, message, findings[]}` envelope replaces the six, written by `Refusals` (API) or `Finding.Wire` (an
-  untyped composer). What is genuinely not a finding stayed out: a `TermScore` is a distance that *carries*
+  One `Finding(Rule, Message, Severity, Field?, Subjects?, Cites?)` replaces all of them — in `Vocabulary`
+  since `RP28`, the one leaf every gate, the HTTP surface and the WASM client reach — and one
+  `{error, message, findings[]}` envelope replaces the six. What is genuinely not a finding stayed out: a `TermScore` is a distance that *carries*
   one. Two concepts that had been conflated are now separate and both kept: **severity** makes "complaint" a
   real thing rather than doc language (`PlanSeverity.Lint` had been the only non-blocking severity anywhere,
   so the dressing tool's six "complaints" were hand-rolled refusals), and **cites** holds the layout rule or

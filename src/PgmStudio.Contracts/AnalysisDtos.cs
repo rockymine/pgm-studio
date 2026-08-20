@@ -1,3 +1,4 @@
+
 namespace PgmStudio.Contracts;
 
 public sealed record BoundsDto(int MinX, int MinZ, int MaxX, int MaxZ);

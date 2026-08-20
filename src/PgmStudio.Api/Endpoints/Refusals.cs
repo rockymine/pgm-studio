@@ -1,5 +1,6 @@
 using PgmStudio.Contracts;
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -17,24 +18,13 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 internal static class Refusals
 {
-    /// <summary>The wire form of one finding.</summary>
-    public static FindingDto Dto(Finding finding) => new(
-        finding.Rule, finding.Message, finding.Refuses ? "refusal" : "complaint",
-        finding.Field, finding.SubjectIds.Count > 0 ? finding.SubjectIds : null, finding.Cites);
-
-    /// <summary>A whole list, in order.</summary>
-    public static IReadOnlyList<FindingDto> Dtos(IEnumerable<Finding> findings) => [.. findings.Select(Dto)];
-
     /// <summary>The refusal body: the gate's label, the findings, and their sentences joined into one line.
-    ///
-    /// <para>This is the same shape one level down as <see cref="Finding.Envelope"/> — the untyped
-    /// <c>Dictionary&lt;string, object?&gt;</c> a composer below <c>Api</c> builds by hand because it cannot
-    /// see <c>Contracts</c>. Same three keys in the same order (<c>error</c>, <c>message</c>, <c>findings</c>),
-    /// rendered here as typed DTOs for the HTTP surface instead; the two must not drift apart.</para></summary>
+    /// The findings cross as the <see cref="Finding"/> records the gate raised, whichever layer raised
+    /// them.</summary>
     public static RefusalDto Of(string error, IEnumerable<Finding> findings)
     {
-        var dtos = Dtos(findings);
-        return new RefusalDto(error, Finding.Summarize(findings), dtos);
+        var listed = findings as IReadOnlyList<Finding> ?? [.. findings];
+        return new RefusalDto(error, Finding.Summarize(listed), listed);
     }
 
     /// <summary>Write the refusal directly to the response, for an endpoint whose success body is a different

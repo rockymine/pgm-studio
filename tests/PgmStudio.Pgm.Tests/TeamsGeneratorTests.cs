@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 

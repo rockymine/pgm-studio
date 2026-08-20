@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 

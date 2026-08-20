@@ -1,6 +1,7 @@
 using System.Reflection;
 using FastEndpoints;
 using PgmStudio.Domain;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

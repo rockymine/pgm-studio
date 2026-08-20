@@ -18,6 +18,7 @@ using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 // mapgen: build a whole map from one JSON spec, through the export path a map is really built through.
 //
@@ -161,7 +162,7 @@ static void Build(MapSpec spec, bool describeOnly, bool forceStages)
     });
     if (composition.IsError)
         throw new ArgumentException(
-            $"{spec.Slug}: {composition.ErrorBody?.GetValueOrDefault("message") ?? composition.ErrorBody?.GetValueOrDefault("error")}");
+            $"{spec.Slug}: {composition.Error} — {Finding.Summarize(composition.Findings ?? [])}");
     var built = composition.World!;
     var xml = composition.Xml!;
 

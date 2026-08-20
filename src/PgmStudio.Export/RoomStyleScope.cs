@@ -3,6 +3,7 @@ using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export;
 

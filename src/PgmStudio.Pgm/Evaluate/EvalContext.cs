@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Evaluate;
 

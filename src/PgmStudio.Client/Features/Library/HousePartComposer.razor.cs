@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Library;
 

@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Houses;
 

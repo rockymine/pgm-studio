@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using FastEndpoints;
 using FastEndpoints.Swagger;
 using PgmStudio.Domain;
@@ -7,6 +8,7 @@ using PgmStudio.Api.Http;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Vocabulary;
 
 // Every number this process reads or writes is dot-separated, whatever the host's regional settings say.
 // The server has no user-facing text to localise, but it does parse and format numbers on three boundaries
@@ -58,6 +60,11 @@ builder.Services.SwaggerDocument(o =>
     // would tag half the page `{Slug}`.
     o.AutoTagPathSegmentIndex = 1;
     o.ShortSchemaNames = true;
+    // The generator reads a string enum off its converter attribute but takes the naming policy from the
+    // options, so without this the document lists Severity as `Refusal`/`Complaint` while the wire writes
+    // `refusal`/`complaint` — a schema a generated client would fail against.
+    o.SerializerSettings = json =>
+        json.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
     // Keyed on the tag exactly as the generator emits it, which title-cases the path segment.
     o.TagDescriptions = tags =>
     {

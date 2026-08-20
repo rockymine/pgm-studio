@@ -1,4 +1,6 @@
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Minecraft.Palette;
 
 /// <summary>
@@ -76,17 +78,22 @@ public static class MaterialRecipes
     /// ground steps.</summary>
     public static TerrainMaterial Pattern(string pattern, string family) => pattern.ToLowerInvariant() switch
     {
-        "solid" or "" => One(family),
-        "voronoi"     => new VoronoiMaterial(1, 9, [.. Family(family).Select(m => new VoronoiBand(m, 1))], Rise: 8),
-        "cell"        => new CellMaterial(2, 10, 55, 4, Family(family), Rise: 8),
-        "noise"       => new NoiseMaterial(3, 14, 3, Family(family), Rise: 8),
-        "turbulence"  => new TurbulenceMaterial(4, 14, 3, Family(family), Rise: 8),
-        "electric"    => new ElectricMaterial(5, 16, 3, Family(family), Rise: 8),
+        MaterialKind.Solid or "" => One(family),
+        MaterialKind.Voronoi    => new VoronoiMaterial(1, 9, [.. Family(family).Select(m => new VoronoiBand(m, 1))], Rise: 8),
+        MaterialKind.Cell       => new CellMaterial(2, 10, 55, 4, Family(family), Rise: 8),
+        MaterialKind.Noise      => new NoiseMaterial(3, 14, 3, Family(family), Rise: 8),
+        MaterialKind.Turbulence => new TurbulenceMaterial(4, 14, 3, Family(family), Rise: 8),
+        MaterialKind.Electric   => new ElectricMaterial(5, 16, 3, Family(family), Rise: 8),
         _ => throw new ArgumentException(
             $"no pattern '{pattern}' — have: {string.Join(", ", AreaPatterns)}"),
     };
 
-    /// <summary>The names <see cref="Pattern"/> accepts, so a caller can offer them rather than guess.</summary>
+    /// <summary>The names <see cref="Pattern"/> accepts, so a caller can offer them rather than guess. They are
+    /// the <see cref="MaterialKind"/> discriminators that fill from a tone family, which is what makes a
+    /// pattern one an area can ask for by name.</summary>
     public static readonly IReadOnlyList<string> AreaPatterns =
-        ["solid", "voronoi", "cell", "noise", "turbulence", "electric"];
+    [
+        MaterialKind.Solid, MaterialKind.Voronoi, MaterialKind.Cell,
+        MaterialKind.Noise, MaterialKind.Turbulence, MaterialKind.Electric,
+    ];
 }

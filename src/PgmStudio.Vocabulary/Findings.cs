@@ -1,6 +1,6 @@
 using System.Collections;
 
-namespace PgmStudio.Domain;
+namespace PgmStudio.Vocabulary;
 
 /// <summary>
 /// What a gate answered: every <see cref="Finding"/> it had, and the questions a caller actually asks of them.

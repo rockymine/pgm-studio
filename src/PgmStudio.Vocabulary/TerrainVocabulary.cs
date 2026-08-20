@@ -1,4 +1,4 @@
-namespace PgmStudio.Contracts;
+namespace PgmStudio.Vocabulary;
 
 /// <summary>
 /// The <c>kind</c> discriminator of every terrain-paint material — the value a style is tagged, stored and
@@ -225,22 +225,6 @@ public static class WindowForms
 
     public static string Canonical(string? form) => All.Contains(form) ? form! : None;
 }
-
-/// <summary>One door a room may be stamped with (<c>GET /api/room-styles/doors</c>). Served rather than
-/// restated in the client, because the authoritative list is <c>Domain.DoorMaterials</c> — the same table the
-/// wool-room block filter is built from, and a second copy here is exactly how a door could come to be offered
-/// that the filter never whitelists.</summary>
-public sealed record DoorOptionDto(string Slug, string Label);
-
-/// <summary>One block a terrain-paint material may resolve to, as the block picker receives it
-/// (<c>GET /api/terrain/blocks</c>). <see cref="Hex"/> is the colour the export actually places, so a swatch
-/// cannot promise a block a different colour.
-/// <para><see cref="InFamily"/> says which kind of group <see cref="Group"/> names: a <b>tone family</b>, the
-/// set of blocks that read as one ground and the unit a pattern is filled from, or one of the three
-/// sixteen-shade colour families, whose members are shades of one block and are chosen from a swatch row
-/// instead. The list arrives in group order, so grouping the flagged blocks by <see cref="Group"/> recovers
-/// the families whole, in the order they are offered.</para></summary>
-public sealed record PaintBlockDto(int Id, int Data, string Name, string Group, string Hex, bool InFamily);
 
 /// <summary>How a doorway's top course is dressed (<c>door_head_form</c>). A head is what carries the wall over
 /// the opening; the door is what fills it, and they are different questions with different closed sets.</summary>

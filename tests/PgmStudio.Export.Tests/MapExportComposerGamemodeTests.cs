@@ -24,14 +24,13 @@ public sealed class MapExportComposerGamemodeTests
 
         await Assert.That(result.IsError).IsTrue();
         await Assert.That(result.ErrorStatus).IsEqualTo(409);
-        await Assert.That(result.ErrorBody!["error"]).IsEqualTo("unknown gamemode");
+        await Assert.That(result.Error).IsEqualTo("unknown gamemode");
 
-        // Every gate answers in the one refusal envelope: a label, a line, and the findings themselves.
-        var findings = (List<Dictionary<string, object?>>)result.ErrorBody!["findings"]!;
-        await Assert.That(findings.Single()["rule"]).IsEqualTo(ObjectiveRules.UnknownGamemode);
-        await Assert.That(findings.Single()["severity"]).IsEqualTo("refusal");
-        await Assert.That((IReadOnlyList<string>)findings.Single()["subjects"]!)
-            .IsEquivalentTo(new[] { "not-a-real-mode" });
+        // Every gate answers in the one finding shape: the rule, the sentence, and what it indicts.
+        var finding = result.Findings!.Single();
+        await Assert.That(finding.Rule).IsEqualTo(ObjectiveRules.UnknownGamemode);
+        await Assert.That(finding.Refuses).IsTrue();
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "not-a-real-mode" });
     }
 
     // The exact B155 regression: two real modes must round-trip as two separate <gamemode> elements, neither

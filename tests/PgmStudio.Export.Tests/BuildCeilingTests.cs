@@ -3,6 +3,7 @@ using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 

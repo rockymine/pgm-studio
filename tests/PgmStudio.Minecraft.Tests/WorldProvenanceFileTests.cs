@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>The sidecar that lets a recorded provenance survive a round trip through disk — written

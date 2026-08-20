@@ -19,6 +19,7 @@ using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 

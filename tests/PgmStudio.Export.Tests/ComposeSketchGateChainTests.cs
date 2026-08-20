@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 
@@ -60,8 +61,8 @@ public sealed class ComposeSketchGateChainTests
 
         await Assert.That(result.IsError).IsTrue();
         await Assert.That(result.ErrorStatus).IsEqualTo(409);
-        await Assert.That(result.ErrorBody!["error"]).IsEqualTo("unknown gamemode");
-        await Assert.That(Findings(result).Single()["rule"]).IsEqualTo(ObjectiveRules.UnknownGamemode);
+        await Assert.That(result.Error).IsEqualTo("unknown gamemode");
+        await Assert.That(result.Findings!.Single().Rule).IsEqualTo(ObjectiveRules.UnknownGamemode);
     }
 
     /// <summary>A board whose objective cannot be walked to from its spawn. It is a real refusal rather than
@@ -72,8 +73,8 @@ public sealed class ComposeSketchGateChainTests
         var result = MapExportComposer.ComposeSketch(Doc(), TwoIslands, Intent());
 
         await Assert.That(result.IsError).IsTrue();
-        await Assert.That(result.ErrorBody!["error"]).IsEqualTo("not traversable");
-        await Assert.That(Findings(result).Single()["rule"]).IsEqualTo("EX1");
+        await Assert.That(result.Error).IsEqualTo("not traversable");
+        await Assert.That(result.Findings!.Single().Rule).IsEqualTo("EX1");
     }
 
     /// <summary>And the same map on ground that joins is composed. Asserted because a traversability gate
@@ -84,10 +85,7 @@ public sealed class ComposeSketchGateChainTests
         var result = MapExportComposer.ComposeSketch(Doc(), OneIsland, Intent());
 
         await Assert.That(result.IsError).IsFalse()
-            .Because($"it answered {result.ErrorBody?["message"]}");
+            .Because($"it answered {Finding.Summarize(result.Findings ?? [])}");
         await Assert.That(result.Xml).IsNotNull();
     }
-
-    private static List<Dictionary<string, object?>> Findings(ExportComposition result) =>
-        (List<Dictionary<string, object?>>)result.ErrorBody!["findings"]!;
 }

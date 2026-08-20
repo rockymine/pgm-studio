@@ -1,5 +1,6 @@
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 

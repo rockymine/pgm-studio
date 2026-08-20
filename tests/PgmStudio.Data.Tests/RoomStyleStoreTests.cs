@@ -1,6 +1,7 @@
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Tests;
 

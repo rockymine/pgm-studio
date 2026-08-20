@@ -26,13 +26,14 @@ Every arrow points at something the project is allowed to reach; read it bottom-
    ├── Pgm     ──> Domain, Geom
    ├── Analysis──> Domain, Geom
    ├── Minecraft ──> Domain, Geom
-   └── Domain  ──> Geom                                  (the shapes its rules measure over)
+   ├── Contracts ──> Vocabulary                          (the words the DTOs are written in)
+   └── Domain  ──> Geom, Vocabulary                      (the shapes its rules measure over · the finding)
 
   Import ──> Data, Pgm, Contracts, Migrations            (parquet → relational CLI)
 
   tools/mapgen ──> Export                                (the headless export-path driver — §7)
 
-  Pure leaves (no project references):  Geom   Contracts   Migrations
+  Pure leaves (no project references):  Geom   Vocabulary   Migrations
 ```
 
 **`Domain → Geom` is the one edge below the middle row, and `B210` added it.** `Domain` and `Geom` were both
@@ -41,6 +42,17 @@ inclusive 3-D block volume every objective, scan region and stamped volume is �
 client cannot see, so the Configure step that draws a core casing had grown a field-identical copy. The shape
 is geometry, so it moved to the leaf both halves reach, and `Domain` took the reference to keep reading it. The
 edge points the way the sentence does: what a shape *is*, below what a map *means*.
+
+**`Vocabulary` is the same move for the words, and `RP28` added it.** A `Finding` is raised by gates in
+`Minecraft`, `Pgm`, `Analysis` and `Export`, answered by `Api`, and rendered by the WASM client — three
+parties with no project above `Domain` that all three reach, so the record in `Domain` grew a hand-written
+wire mirror in `Contracts` and two hand-built dictionaries below `Api`, and the three drifted. The closed
+string vocabularies had the same shape of problem from the other side: `MaterialKind` is the value the
+editor, the HTTP surface and the `style.kind` column must spell identically, and `Minecraft`, which writes
+that value, cannot see `Contracts`. Both are now in a leaf that references nothing, so the record is
+serialized rather than mirrored and the words are named rather than re-typed. `Contracts` keeps the DTOs and
+takes the leaf as its one reference; `Client` still reaches nothing but `Contracts`, `Geom` and, through the
+first, this.
 
 **`Export` added no edge and inverted none.** Every project it reaches (`Domain`, `Analysis`, `Minecraft`,
 `Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms: `Api`
@@ -52,8 +64,10 @@ it did when it referenced the whole of `Api`, minus the web host it never used.
 - **`Client` cannot see `Domain` or `Pgm`.** It is WASM and references only `Contracts` and `Geom`, so the
   wire DTOs have to live somewhere that does not drag the rest in. That somewhere is `Contracts`.
 - **`Analysis` cannot see `Contracts`.** DTOs depending on analysis depending on DTOs is a cycle of intent, so
-  anything `Analysis` *and* the client both need is forced into a true leaf. That is exactly what `Geom` is
-  for, and the duplicated reflect/rotate that existed before it is what the rule prevents.
+  anything `Analysis` *and* the client both need is forced into a true leaf. There are two, split by what they
+  hold: `Geom` for the algorithms and the shapes measured in them, `Vocabulary` for the finding shape and the
+  closed sets of words. The duplicated reflect/rotate is what the first prevents and the duplicated finding
+  record is what the second does.
 
 Both are checked by the `.csproj` files rather than by convention: `Analysis` has no `Contracts` reference and
 `Client` has no `Domain` or `Pgm` reference.
@@ -62,7 +76,7 @@ Both are checked by the `.csproj` files rather than by convention: `Analysis` ha
 
 | Kind | Projects | Charter |
 |---|---|---|
-| **Pure leaves** | `Geom`, `Contracts`, `Migrations` (and `Domain`, over `Geom` alone) | geometry algorithms and the shapes measured in them · wire DTOs · the DB schema · PGM entities and the rules over them |
+| **Pure leaves** | `Geom`, `Vocabulary`, `Migrations` (and `Contracts`, over `Vocabulary` alone; `Domain`, over those two) | geometry algorithms and the shapes measured in them · the finding shape and the closed word sets · the DB schema · wire DTOs · PGM entities and the rules over them |
 | **Format and domain logic** | `Pgm`, `Analysis`, `Minecraft` | the `map.xml` codec *and* the layout generator · NTS-backed derivations · Anvil world reading and writing |
 | **Persistence and ingest** | `Data`, `Import` | the DB codec, repositories and stores · the parquet→relational CLI |
 | **The export path** | `Export` | sketch layout + intent → voxel world + `map.xml`, DB-free — what every driver needs and nothing else |
@@ -82,6 +96,7 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 | `Geom` | 44 | 4,967 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 4 · 14 at root |
 | `Domain` | 25 | 2,252 | flat |
 | `Contracts` | 13 | 965 | flat |
+| `Vocabulary` | 4 | 393 | flat |
 | `Migrations` | 21 | 1,469 | `Migrations/` 20 |
 | `Minecraft` | 74 | 14,307 | `Stamping/` 16 · `Palette/` 11 · `Anvil/` 10 · `Houses/` 10 · `Painting/` 8 · `Render/` 7 · `Dressing/` 6 · `Views/` 3 · 1 at root |
 | `Import` | 4 | 472 | flat |
@@ -194,6 +209,7 @@ and the harness; its `FromJson` is the production codec.
 | `Geom` | **Exemplary.** Zero project references and every consumer can take it — the model the others are measured against. Its growth is the right kind: `Algorithms/`, `Relief/`, `Render/` are all pure. | none |
 | `Domain` | **Earns its place**, now as the shared-rule leaf as much as the entity one (§2). | a header line saying so |
 | `Contracts` | **Earns its place** — the only model project `Client` can see. | a header line distinguishing it from `Domain` |
+| `Vocabulary` | **Earns its place** — the only leaf a gate below `Api`, the HTTP surface and the client all reach, which is what one finding shape and one spelling of each word require. | none |
 | `Migrations` | **Clean** — one file per migration, in order. | none |
 | `Minecraft` | **Folded (`A7`).** Six folders by what a file is for, plus the three already broken out (§3). | none |
 | `Import` | **Clean, identity blurred.** It is parquet→relational replay; it is *not* the world scan, which lives in `Data/Features/WorldFeatureWriter`. | the distinction stated in its own header |

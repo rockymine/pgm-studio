@@ -1,3 +1,4 @@
+
 namespace PgmStudio.Contracts;
 
 /// <summary>One reusable terrain-paint style (GET /api/styles) — a named material recipe. <paramref name="Kind"/>

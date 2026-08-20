@@ -1,6 +1,6 @@
-using PgmStudio.Domain;
+using System.Text.Json;
 
-namespace PgmStudio.Domain.Tests;
+namespace PgmStudio.Vocabulary.Tests;
 
 /// <summary>
 /// The answer every gate in the studio returns, and the questions it exists to answer once.
@@ -113,32 +113,37 @@ public class FindingsTests
 
     /// <summary>A finding goes onto the wire under the keys <c>docs/refusals.md</c> states, and writes the
     /// optional ones only when it has something to say — so a reader never has to tell an absent subject from
-    /// an empty one.</summary>
+    /// an empty one. The record itself is what is serialized, wherever it is serialized, so there is no second
+    /// rendering that could answer different keys.</summary>
     [Test]
     public async Task The_wire_keys_are_the_documented_ones()
     {
-        var bare = Refusal.Wire();
+        var bare = Keys(Refusal);
         await Assert.That(bare.Keys.Order()).IsEquivalentTo(new[] { "message", "rule", "severity" });
-        await Assert.That(bare["severity"]).IsEqualTo("refusal");
+        await Assert.That(bare["severity"].GetString()).IsEqualTo("refusal");
 
-        var full = new Finding("HJ2", "half on", Severity.Complaint, "wings", ["0", "1"], "G172").Wire();
+        var full = Keys(new Finding("HJ2", "half on", Severity.Complaint, "wings", ["0", "1"], "G172"));
         await Assert.That(full.Keys.Order())
             .IsEquivalentTo(new[] { "cites", "field", "message", "rule", "severity", "subjects" });
-        await Assert.That(full["severity"]).IsEqualTo("complaint");
-        await Assert.That(full["cites"]).IsEqualTo("G172");
+        await Assert.That(full["severity"].GetString()).IsEqualTo("complaint");
+        await Assert.That(full["cites"].GetString()).IsEqualTo("G172");
     }
 
-    /// <summary>The envelope a composer below <c>Api</c> builds by hand is the same three keys — <c>error</c>,
-    /// <c>message</c>, <c>findings</c> — <c>Api.Endpoints.Refusals.Of</c> renders as typed DTOs one layer up,
-    /// and the summarized sentence is the same one <see cref="Finding.Summarize"/> answers.</summary>
+    /// <summary>The two computed properties are answers to questions the wire already carries — the subjects
+    /// and the severity — so writing them would put a second copy of each on the wire, free to disagree with
+    /// the field it was derived from.</summary>
     [Test]
-    public async Task The_envelope_is_the_three_keys_with_a_summarized_message()
+    public async Task The_computed_answers_are_not_written()
     {
-        var envelope = Finding.Envelope("not traversable", [Refusal, Complaint]);
+        var keys = Keys(new Finding("HJ2", "half on", Severity.Complaint, Subjects: ["0"])).Keys;
 
-        await Assert.That(envelope.Keys.Order()).IsEquivalentTo(new[] { "error", "findings", "message" });
-        await Assert.That(envelope["error"]).IsEqualTo("not traversable");
-        await Assert.That(envelope["message"]).IsEqualTo("there is no land to build; nothing wins the match");
-        await Assert.That(((List<Dictionary<string, object?>>)envelope["findings"]!).Count).IsEqualTo(2);
+        await Assert.That(keys).DoesNotContain("subjectIds");
+        await Assert.That(keys).DoesNotContain("refuses");
     }
+
+    /// <summary>One finding as the keys a caller reads, under the web defaults every serializer in the studio
+    /// uses.</summary>
+    private static Dictionary<string, JsonElement> Keys(Finding finding) =>
+        JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(
+            JsonSerializer.Serialize(finding, new JsonSerializerOptions(JsonSerializerDefaults.Web)))!;
 }

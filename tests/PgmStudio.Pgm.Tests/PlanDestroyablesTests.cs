@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 

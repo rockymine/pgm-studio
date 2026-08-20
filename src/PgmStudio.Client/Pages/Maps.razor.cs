@@ -3,6 +3,7 @@ using System.Text.Json;
 using Microsoft.JSInterop;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Pages;
 

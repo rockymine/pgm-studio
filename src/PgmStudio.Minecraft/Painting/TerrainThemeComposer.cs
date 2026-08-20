@@ -1,3 +1,6 @@
+
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Minecraft.Painting;
 
 /// <summary>
@@ -38,21 +41,21 @@ public static class TerrainThemeComposer
     /// stores so a library can be queried by kind ("every voronoi").</summary>
     public static string KindOf(TerrainMaterial material) => material switch
     {
-        SolidMaterial => "solid",
-        LayeredMaterial => "layered",
-        TeamTintedMaterial => "teamTint",
-        VoronoiMaterial => "voronoi",
-        CellMaterial => "cell",
-        NoiseMaterial => "noise",
-        TurbulenceMaterial => "turbulence",
-        ElectricMaterial => "electric",
-        WallRunMaterial => "wallRun",
-        WallDiagonalMaterial => "wallDiagonal",
-        CheckerMaterial => "checker",
-        LogCheckerMaterial => "logChecker",
-        LaidLogMaterial => "laidLog",
-        WallFrameMaterial => "wallFrame",
-        _ => "solid",
+        SolidMaterial => MaterialKind.Solid,
+        LayeredMaterial => MaterialKind.Layered,
+        TeamTintedMaterial => MaterialKind.TeamTint,
+        VoronoiMaterial => MaterialKind.Voronoi,
+        CellMaterial => MaterialKind.Cell,
+        NoiseMaterial => MaterialKind.Noise,
+        TurbulenceMaterial => MaterialKind.Turbulence,
+        ElectricMaterial => MaterialKind.Electric,
+        WallRunMaterial => MaterialKind.WallRun,
+        WallDiagonalMaterial => MaterialKind.WallDiagonal,
+        CheckerMaterial => MaterialKind.Checker,
+        LogCheckerMaterial => MaterialKind.LogChecker,
+        LaidLogMaterial => MaterialKind.LaidLog,
+        WallFrameMaterial => MaterialKind.WallFrame,
+        _ => MaterialKind.Solid,
     };
 
     /// <summary>Decompose a theme into its knobs + one style binding per themeable bucket.</summary>

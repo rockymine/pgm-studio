@@ -6,19 +6,26 @@ using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export;
 
 using Dict = Dictionary<string, object?>;
 using PgmStudio.Geom;
 
-/// <summary>The outcome of composing a map for export: either a structured error (HTTP status + JSON body)
-/// or the composed <c>map.xml</c>. For a sketch-originated map <see cref="World"/> also carries the
-/// synthesised voxel world so the caller can bundle its region files.</summary>
+/// <summary>The outcome of composing a map for export: either a refusal — the status it is answered under,
+/// the gate's short label and the findings themselves — or the composed <c>map.xml</c>. For a
+/// sketch-originated map <see cref="World"/> also carries the synthesised voxel world so the caller can bundle
+/// its region files.
+/// <para>A refusal is handed over as findings rather than as a rendered body: this composer sits below
+/// <c>Api</c>, and the layer that answers HTTP is the one that renders the envelope, so a caller cannot tell
+/// how deep the refusal was raised.</para></summary>
 /// <param name="Doc">The composed map document, on success — what the XML was written from, and what a
 /// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing
 /// the XML it just wrote.</param>
-public sealed record ExportComposition(int? ErrorStatus, Dict? ErrorBody, string? Xml, SketchWorld? World, Dict? Doc = null)
+public sealed record ExportComposition(
+    int? ErrorStatus, string? Error, IReadOnlyList<Finding>? Findings, string? Xml, SketchWorld? World,
+    Dict? Doc = null)
 {
     public bool IsError => ErrorStatus is not null;
 }
@@ -84,7 +91,7 @@ public static class MapExportComposer
             // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
             // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export.
             var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
-            return new(null, null, xml, null);
+            return new(null, null, null, xml, null);
         }
         catch (DressingParseException ex)
         {
@@ -156,7 +163,7 @@ public static class MapExportComposer
 
         var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
-        return new(null, null, sketchXml, built, doc);
+        return new(null, null, null, sketchXml, built, doc);
     }
 
     // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────
@@ -257,11 +264,10 @@ public static class MapExportComposer
     private static List<object?> Entries(Dict doc, string key) =>
         doc.GetValueOrDefault(key) as List<object?> ?? [];
 
-    /// <summary>One refusal envelope, and the only one this gate answers in — <see cref="Finding.Envelope"/>,
-    /// the one shape every gate in the studio refuses in, rendered here because this composer sits below
-    /// <c>Api</c> and cannot reach the typed <c>RefusalDto</c> the HTTP endpoints answer with.</summary>
+    /// <summary>One refusal: the status, the gate's short label and its findings, for the layer above to
+    /// answer in the one envelope every gate in the studio refuses in.</summary>
     private static ExportComposition Refuse(string error, IReadOnlyList<Finding> findings, int status = 409) =>
-        new(status, Finding.Envelope(error, findings), null, null);
+        new(status, error, findings, null, null);
 
     private static ExportComposition? RefuseUnknownGamemode(Dict doc)
     {

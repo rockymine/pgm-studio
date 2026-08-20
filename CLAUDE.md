@@ -37,14 +37,22 @@ outgrown its shape, is `docs/project-structure.md`.
 **Two boundaries are load-bearing, and everything else follows from them.** `Client` is WASM and references
 only `Contracts` + `Geom`, so the wire DTOs must live where the rest cannot be dragged in. And `Analysis`
 must not see `Contracts` — DTOs depending on analysis depending on DTOs is a cycle of intent — so anything
-`Analysis` *and* the client both need is forced into a true leaf. That leaf is **`PgmStudio.Geom`**: pure
-algorithms (geometry, shapes, relief, generative layout) **and the shapes they are measured in** — `CellRect`,
-`Rect`, `BlockBox`, `Vec3` — referencing **nothing**, not even `Domain`. `Domain` references *it*, because a
-shape both halves of the studio need has to sit where the client can reach it and `Domain` is not that place.
-Do not put an algorithm in `Contracts` — `Analysis` cannot reach it, which is what forced the old duplicated
-reflect/rotate, and the same boundary grew a second `BlockBox` and seven copies of `Rect` before `B210`. (It is
-`Geom`, not `Geometry`, because `Analysis` uses NetTopologySuite's `Geometry` everywhere and a sibling
-namespace would shadow it.)
+`Analysis` *and* the client both need is forced into a true leaf. There are **two leaves**, split by what they
+hold, and both reference **nothing**, not even `Domain`.
+
+**`PgmStudio.Geom`** is pure algorithms (geometry, shapes, relief, generative layout) **and the shapes they are
+measured in** — `CellRect`, `Rect`, `BlockBox`, `Vec3`. `Domain` references *it*, because a shape both halves of
+the studio need has to sit where the client can reach it and `Domain` is not that place. Do not put an algorithm
+in `Contracts` — `Analysis` cannot reach it, which is what forced the old duplicated reflect/rotate, and the
+same boundary grew a second `BlockBox` and seven copies of `Rect` before `B210`. (It is `Geom`, not `Geometry`,
+because `Analysis` uses NetTopologySuite's `Geometry` everywhere and a sibling namespace would shadow it.)
+
+**`PgmStudio.Vocabulary`** is the finding shape — `Finding`, `Findings`, `Severity` — and the **closed sets of
+words** three parties have to spell identically: a `map.stage`, a `style.kind`, a theme bucket, a room part, a
+roof form. A gate below `Api` raises a finding, the HTTP surface answers it and the client renders it, so the
+record goes in the one leaf all three reach and is *serialized* rather than mirrored; the same reasoning puts
+the words there, since `Minecraft` writes a `style.kind` and cannot see `Contracts`. `Contracts` references it
+and keeps the DTOs. A word set with only one consumer is not vocabulary — it is that consumer's constant.
 
 **Client folders, by role rather than by page.** `Pages/` holds standalone **routable** pages only;
 `Features/<Tool>/` is one bundle per tool — its routable `*Tool` host plus that tool's private phases, steps

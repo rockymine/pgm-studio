@@ -9,6 +9,7 @@ using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -40,7 +41,11 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
         var doc = await reader.ReadDocAsync(map, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, ct);
-        if (result.IsError) { await Send.ResponseAsync(result.ErrorBody!, result.ErrorStatus!.Value, ct); return; }
+        if (result.IsError)
+        {
+            await Refusals.WriteAsync(HttpContext, result.ErrorStatus!.Value, result.Error!, result.Findings!, ct);
+            return;
+        }
 
         // Non-sketch maps: XML only (they already ship a real world).
         if (result.World is null)

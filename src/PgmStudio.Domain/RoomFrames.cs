@@ -1,3 +1,6 @@
+
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Domain;
 
 /// <summary>A door opening cut into a room shell wall: the <see cref="Edge"/> it sits on, the low
