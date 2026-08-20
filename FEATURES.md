@@ -638,6 +638,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The hand-authoring surface the intent model replaced is gone (RP18).** The Edit tool was to be where an
+  author typed a map's regions, filters and apply-rules; `MapIntent` is the answer to that instead, and the
+  same protections a person would have wired by hand are what `IntentGenerator` emits — a protection drawn in
+  Configure applies its filters, and the plan tool states the intent that produces them. So the surface that
+  was only ever for typing them by hand is removed: `GET …/regions/authoring`, `POST …/wiring/apply` with
+  `FilterWiring`'s three templates, the three `apply-rule` writes, and four region operations
+  (`restore`, `change-type`, `remove-from-group`, `set-base-child`). None had a caller anywhere in the client.
+
+  **The editors stay, because the intent path is what drives them.** `WoolGenerator` calls
+  `ApplyRuleEditor.CreateApplyRule` and `FilterEditor.CreateFilter`, `BuildGenerator` writes the `is-void`
+  filter, `TeamsGenerator`, `WaterLaneGenerator` and `ObjectiveRegion` likewise — every editor in
+  `Pgm/Editing` is reached from `Authoring`. What was dead was the HTTP surface over them, not the machinery.
+  The methods only those routes reached went with them (`RestoreRegion`, `ChangeRegionType`,
+  `RemoveFromGroup`, `SetBaseChild`, `UpdateApplyRule`, `DeleteApplyRule`), and `DeleteRegion` stops
+  answering an undo snapshot nothing can redeem. `RegionAuthoringEncoder.EncodeAuthoring` remains as a
+  derivation behind `--authoring-fixture`.
+
+  The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
+  routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
+  endpoint class its only caller reached across.
 - **An undeclared route says the wrong thing, and thirteen stopped saying it (RP18).** An endpoint with no
   declared response type is published as **204 No Content** — the generator's default, and a claim rather
   than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true
@@ -1228,7 +1248,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `authoring_oracle.json` exists nowhere on disk, so it had been running over zero maps; `--authoring-fixture`
   is the review artifact that survives it. Also swept: every "port of X.py" attribution in `src/` and
   `tests/`, and the parity paragraph in `CLAUDE.md`. (`tools/PgmStudio.RoundTrip/CorpusGoldens.cs`)
-- **Region authoring + tree encoders** — `GET /regions/authoring`, `/regions/tree`, `/islands`. (B1)
+- **Region tree + islands encoders** — `GET /regions/tree`, `/islands`. The authoring split it shipped
+  beside was removed with the hand-authoring surface (`RP18`); its encoder remains behind
+  `--authoring-fixture`. (B1)
 - **`RegionBoundsDeriver`** — compound/transform `bounds_2d` recomputed on read. (B2)
 - **Configure endpoints** — `state` / `scan-layer` / `exclude-island` / `exclude-block` /
   `layers/{type}/pixels` / `…/block-types`, over the `map_config` artifact. (B3, B9)
@@ -4503,7 +4525,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   every endpoint-table row in `docs/tools/` and asserts the schema serves it, naming the file and line of any
   that drifted — the same shape `DocumentedBodyTests` already uses for the worked bodies, over the paths
   rather than the payloads. It reads only each row's leading span: a row abbreviating its siblings after it
-  (`GET /map/{slug}/regions` · `/regions/authoring`) expands by a convention a reader resolves and a parser
+  (`GET /map/{slug}/filters` · `/apply-rules`) expands by a convention a reader resolves and a parser
   guesses at, and a gate over prose that guesses is a gate that cries wolf.
 
 - **The export's gate chain does not depend on which door a caller came through (RP3).** `Compose` ran the
@@ -5331,8 +5353,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **cleaned base** (`SegmentIndex.BaseColumns` + `IslandDetector.CleanedBaseFootprint`), so a build floating
   over void can't pose as free standing-ground in the Y-agnostic 2D grid. Per-life lower bound (kits refill
   on respawn). n00_demo: 96-block kit, own wools 6, far wools 24 (one 12×6 + the 18×20 middle).
-- **Filter↔region wiring templates** — 4 v1 appliers + `POST /wiring/apply` (the suggestion engine
-  was deliberately removed). The generator uses these to auto-wire; the hand-wiring UI is parked.
+- **Filter↔region wiring — RETIRED** (`RP18`). Three templates behind `POST /wiring/apply`, for a
+  hand-wiring UI that was never filled. The generators wire filters themselves through the same editors, so
+  the templates had no caller and the route no reader.
 - **Symmetry-aware authoring** — counterpart creation + orbit-fill on draw
   (`POST /regions/{id}/counterpart`, `/orbit`) + the Orbit toggle. The generator orbit-fills
   automatically; the accept/reject UI + IoU equivalence detection are parked.

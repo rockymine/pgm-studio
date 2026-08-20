@@ -62,7 +62,6 @@ back). Call sites:
 |---|---|
 | `GET /regions/tree` (`AuthoringEndpoint`) | `Categorize` (grouping) + `DeriveFacets` (per-node category / subtype / wiring) — **the one the editor sidebars + canvas hit on every load/reload** |
 | `GET /regions` (`AnalysisEndpoints`) | `DeriveFacets` (facets + counts) |
-| `GET /regions/authoring` | `Categorize` |
 
 So when wiring changes (R1: you attach a filter / spawn / wool → that saves an `apply_rule`/`spawn`/
 `wool` row), there is nothing to "re-run": the **next** `/regions/tree` fetch rebuilds the doc *with*

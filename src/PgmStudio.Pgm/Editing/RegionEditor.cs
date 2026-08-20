@@ -61,43 +61,6 @@ public static class RegionEditor
         return new Dict { ["id"] = compoundId, ["bounds"] = new Dict { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ } };
     }
 
-    public static Dict ChangeRegionType(Dict data, string regionId, Dict payload)
-    {
-        var newType = ((payload.GetValueOrDefault("type") as string) ?? "").Trim();
-        if (newType.Length == 0) throw EditException.Unreadable("type required", "type");
-        if (!CompoundTypes.Contains(newType)) throw EditException.Unreadable($"'{newType}' is not a compound type", "type");
-        var region = Region(data, regionId);
-        if (!CompoundTypes.Contains(region.GetValueOrDefault("type") as string ?? "")) throw EditException.Inapplicable($"region '{regionId}' is not a compound type");
-        region["type"] = newType;
-        return new Dict();
-    }
-
-    public static Dict RemoveFromGroup(Dict data, string regionId, Dict payload)
-    {
-        var childId = ((payload.GetValueOrDefault("child_id") as string) ?? "").Trim();
-        if (childId.Length == 0) throw EditException.Unreadable("child_id required", "child_id");
-        var region = Region(data, regionId);
-        if (region.GetValueOrDefault("children") is not List<object?> children) throw EditException.Inapplicable($"region '{regionId}' has no children");
-        var idx = children.FindIndex(c => ChildId(c) == childId);
-        if (idx < 0) throw EditException.NoSuchSubject($"child '{childId}' not found in '{regionId}'");
-        children.RemoveAt(idx);
-        EnsureCategorised(data, childId);
-        return new Dict();
-    }
-
-    public static Dict SetBaseChild(Dict data, string regionId, Dict payload)
-    {
-        var childId = ((payload.GetValueOrDefault("child_id") as string) ?? "").Trim();
-        if (childId.Length == 0) throw EditException.Unreadable("child_id required", "child_id");
-        var region = Region(data, regionId);
-        if (region.GetValueOrDefault("type") as string != "complement") throw EditException.Inapplicable($"region '{regionId}' is not a complement");
-        var children = region.GetValueOrDefault("children") as List<object?> ?? [];
-        var idx = children.FindIndex(c => ChildId(c) == childId);
-        if (idx < 0) throw EditException.NoSuchSubject($"child '{childId}' not found in complement '{regionId}'");
-        if (idx != 0) { var c = children[idx]; children.RemoveAt(idx); children.Insert(0, c); }
-        return new Dict();
-    }
-
     public static Dict UngroupRegion(Dict data, Dict payload)
     {
         var regionId = ((payload.GetValueOrDefault("region_id") as string) ?? "").Trim();
@@ -123,31 +86,12 @@ public static class RegionEditor
         if (!regions.ContainsKey(regionId)) throw EditException.NoSuchSubject($"region '{regionId}' not found");
 
         var subtreeIds = CollectSubtreeIds(regions, regionId);
-        var category = "other";
-        foreach (var (cat, ids) in Categories(data)) if (ids.Contains(regionId)) { category = cat; break; }
-        var entries = subtreeIds.Where(regions.ContainsKey).ToDictionary(rid => rid, rid => regions[rid]);
-
         var subtreeSet = subtreeIds.ToHashSet();
         foreach (var rid in subtreeIds) regions.Remove(rid);
         foreach (var (_, ids) in Categories(data)) ids.RemoveAll(rid => rid is string s && subtreeSet.Contains(s));
         RemoveInlineChildren(regions, subtreeSet);
 
-        return new Dict { ["snapshot"] = new Dict { ["root_id"] = regionId, ["category"] = category, ["region_entries"] = entries.ToDictionary(kv => kv.Key, kv => kv.Value) } };
-    }
-
-    public static Dict RestoreRegion(Dict data, Dict snapshot)
-    {
-        var rootId = snapshot.GetValueOrDefault("root_id") as string ?? "";
-        var category = snapshot.GetValueOrDefault("category") as string ?? "other";
-        if (rootId.Length == 0 || snapshot.GetValueOrDefault("region_entries") is not Dict entries || entries.Count == 0)
-            throw EditException.Unreadable("invalid snapshot", "snapshot");
-
-        var regions = Regions(data);
-        var conflicts = entries.Keys.Where(regions.ContainsKey).ToList();
-        if (conflicts.Count > 0) throw EditException.Conflict($"id(s) already in use: {string.Join(", ", conflicts)}", conflicts);
-        foreach (var (rid, r) in entries) regions[rid] = r;
-        TrackCategory(data, category, rootId);
-        return new Dict { ["id"] = rootId };
+        return [];
     }
 
     public static Dict PatchRegion(Dict data, string regionId, Dict payload)

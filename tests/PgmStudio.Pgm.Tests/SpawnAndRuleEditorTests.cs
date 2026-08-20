@@ -57,8 +57,5 @@ public sealed class SpawnAndRuleEditorTests
         // a dangling plain-id region ref is rejected
         await Assert.That(() => ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["region"] = "ghost", ["block"] = "never" }))
             .Throws<EditException>();
-
-        ApplyRuleEditor.DeleteApplyRule(doc, "rule_1");
-        await Assert.That(((List<object?>)doc["apply_rules"]!).Count).IsEqualTo(0);
     }
 }

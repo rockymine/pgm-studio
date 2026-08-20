@@ -118,10 +118,12 @@ author states the intent; the engine proposes the subtraction.
 
 The **primitives / composed** split — leaf shapes on one side, the structures grouping them on the other,
 each annotated with its wiring — was designed as the authoring view for exactly the reason above: a tree
-buries what you drew one level deeper every time you group it. The backend shipped
-(`RegionAuthoringEncoder`, `GET /map/{slug}/regions/authoring`) and **nothing calls it** — the interaction
-layer it was for was scoped to a frontend port that never happened. Recorded here because the endpoint is
-live and unreached, not as a plan; see `../tools/edit.md`, which is the surface that would consume it.
+buries what you drew one level deeper every time you group it. **The view it was for is not being built.**
+Hand-authoring regions and their filters is the burden the intent model exists to remove, so the Edit tool
+never grew the create/update/delete surface this split was the render input for, and the route that answered
+it is gone. `RegionAuthoringEncoder.EncodeAuthoring` remains as a derivation, reviewable through
+`tools/PgmStudio.RoundTrip --authoring-fixture`; the argument above is kept because it is a true statement
+about what a tree hides, not because a screen is coming.
 
 ## Cross-references
 

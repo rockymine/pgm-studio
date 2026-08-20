@@ -33,25 +33,6 @@ public static partial class ApplyRuleEditor
         return new Dict { ["id"] = rule["id"] };
     }
 
-    public static Dict UpdateApplyRule(Dict data, string ruleId, Dict payload)
-    {
-        var rule = Find(data, ruleId);
-        Validate(data, payload);
-        rule.Clear();
-        foreach (var (k, v) in payload.Where(kv => kv.Key != "id")) rule[k] = v;
-        rule["id"] = ruleId;
-        return new Dict { ["id"] = ruleId };
-    }
-
-    public static Dict DeleteApplyRule(Dict data, string ruleId)
-    {
-        var rules = EnsureRuleIds(data);
-        var idx = rules.FindIndex(r => (r as Dict)?.GetValueOrDefault("id") as string == ruleId);
-        if (idx < 0) throw EditException.NoSuchSubject($"no apply-rule '{ruleId}'");
-        rules.RemoveAt(idx);
-        return new Dict { ["id"] = ruleId };
-    }
-
     // ── helpers ───────────────────────────────────────────────────────────────────
     private static List<object?> Rules(Dict data)
     {

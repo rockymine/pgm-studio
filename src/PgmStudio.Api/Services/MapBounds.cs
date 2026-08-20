@@ -1,6 +1,8 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
 
 namespace PgmStudio.Api.Services;
 
@@ -27,7 +29,28 @@ internal static class MapBounds
             return ((minX, minZ, maxX, maxZ),
                 new Dict { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ });
         }
-        // No stored surface bbox → the detected-islands AABB (the prior behaviour).
-        return await RegionsAuthoringEndpoint.IslandsBboxAsync(artifacts, mapId, ct);
+        // No stored surface bbox → the detected-islands AABB.
+        return await IslandsBboxAsync(artifacts, mapId, ct);
+    }
+
+    /// <summary>Bounding box over the map's detected islands (from the islands_json artifact), or null.</summary>
+    private static async Task<((double, double, double, double) bounds, Dict dict)?> IslandsBboxAsync(
+        MapArtifactStore artifacts, long mapId, CancellationToken ct)
+    {
+        var data = await artifacts.LoadAsync(mapId, ArtifactKind.IslandsJson, ct);
+        if (data is null) return null;
+        using var jd = JsonDocument.Parse(data);
+        var arr = jd.RootElement;
+        if (arr.ValueKind != JsonValueKind.Array || arr.GetArrayLength() == 0) return null;
+
+        double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
+        foreach (var e in arr.EnumerateArray())
+        {
+            var b = e.GetProperty("bounds");
+            minX = Math.Min(minX, b[0].GetDouble()); minZ = Math.Min(minZ, b[1].GetDouble());
+            maxX = Math.Max(maxX, b[2].GetDouble()); maxZ = Math.Max(maxZ, b[3].GetDouble());
+        }
+        var dict = new Dict { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ };
+        return ((minX, minZ, maxX, maxZ), dict);
     }
 }

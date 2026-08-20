@@ -181,6 +181,8 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
   in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
   no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
+  *Held pending the Edit tool's own question: the author has never driven it, and the intent model is what
+  authors a map now. Wiring three inspectors is work on a surface that may be retired whole.*
 
 - [~] **B107 — Make a structural piece selectable on the sketch canvas, and draw an absolutely-placed goal.**
   The backend half is landed (`FEATURES.md`): a structural shape's stated height survives a recompile, marked
@@ -1126,7 +1128,7 @@ place.
 
 ## The boundary: one contract, one use case, one class of fault
 
-`docs/architecture.md` is the survey these came out of. The studio has two front doors — 163 HTTP endpoints
+`docs/architecture.md` is the survey these came out of. The studio has two front doors — 154 HTTP endpoints
 and `tools/mapgen`, which links the libraries and speaks no HTTP — and one pipeline behind them, and every
 entry here is a fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
 in the order listed: the contract first, because the request shape and the client both hang off it; the
@@ -1562,10 +1564,6 @@ feature section.
   The head needs no empty-placements check of its own.
 
 ## Lower priority / parked
-
-- [ ] **Wire-after-group + filter-wiring UI** (ex-`N4` + ex-`F1`). Group regions in Edit → apply
-  a wiring template by role; cross-step carve-out (complement) detection; canvas Ctrl-click
-  multi-select. The wiring backend (`FilterWiring` appliers + `POST /wiring/apply`) is done.
 
 - [ ] **A8 — [Decision, parked] Should the layout generator be its own project?** `Pgm` holds two charters:
   the `map.xml` codec (48 files) and the layout generator (`Compose`/`Evaluate`/`Shapes`/`Derive`/`Plan`, 85

@@ -48,12 +48,8 @@ public sealed class RegionEditorTests
         RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "a", ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 4, ["max_z"] = 4 });
         RegionEditor.GroupRegions(doc, new Dict { ["type"] = "union", ["id"] = "grp", ["child_ids"] = new List<object?> { "a", "seed" } });
 
-        var snapshot = (Dict)RegionEditor.DeleteRegion(doc, "grp")["snapshot"]!;
+        RegionEditor.DeleteRegion(doc, "grp");
         await Assert.That(Regions(doc).ContainsKey("grp")).IsFalse();
         await Assert.That(Regions(doc).ContainsKey("a")).IsFalse();   // subtree cascade
-
-        RegionEditor.RestoreRegion(doc, snapshot);
-        await Assert.That(Regions(doc).ContainsKey("grp")).IsTrue();
-        await Assert.That(Regions(doc).ContainsKey("a")).IsTrue();
     }
 }

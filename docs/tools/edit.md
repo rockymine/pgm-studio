@@ -132,7 +132,7 @@ fewer than two selected regions will not group.
 **The endpoints refuse what the document model refuses, in the studio's one envelope.** Every write route
 answers `{error, message, findings[]}` — the shape `docs/refusals.md` states — so the toast reads the
 findings' sentence rather than a status, and an agent keys on a rule id. There are eight faults behind the
-thirty-six routes, and six of them are the request's own rather than the editors': an id naming nothing in the
+write routes, and six of them are the request's own rather than the editors': an id naming nothing in the
 document is `RQ4` at **404**, a required field absent or a value outside a closed set or a number that is not
 one is `RQ1` at **400**, an id already taken or a row something still references is `RQ5` at **409** — and
 `RQ5`'s finding names what is in the way in its `subjects`, so the apply-rules still binding a filter come
@@ -144,7 +144,7 @@ is well-formed and everything it names exists, and the edit still cannot be appl
 | Rule | Refused | Status |
 |---|---|---|
 | `ED1` | a reference the document cannot resolve — an apply-rule or filter naming a region or filter that is not in the registry and is not a builtin, or a filter naming itself | 400 |
-| `ED2` | an edit the document is not in a state to take — a group with fewer children than its type takes, a compound with no children to remove one from, a region that is not the kind the operation applies to, an apply-rule carrying no region, filter or action | 400 |
+| `ED2` | an edit the document is not in a state to take — a group with fewer children than its type takes, an apply-rule carrying no region, filter or action | 400 |
 
 A refusal shows as a toast and leaves the screen as it was; a rejected canvas edit reloads the canvas so the
 shape on screen goes back to the shape on the map.
@@ -163,9 +163,9 @@ document directly, which is what separates them from Configure's single intent P
 |---|---|
 | `GET /map/{slug}` | the whole parsed document — teams, spawns, wools, regions, filters, apply-rules, kits, the lot |
 | `GET /map/{slug}/regions/tree` | the region tree, grouped by category, which is what the sidebars render |
-| `GET /map/{slug}/regions` · `/regions/authoring` | the flat registry, and the authoring-shaped encoding |
+| `GET /map/{slug}/regions` | the flat registry |
 | `GET /map/{slug}/islands` · `/symmetry` · `/configure/{slug}/state` | the Setup phase's detection |
-| `GET /map/{slug}/filters` · `/apply-rules` | the filter registry with per-filter usage, and the rule list |
+| `GET /map/{slug}/filters` · `/apply-rules` | the filter registry with per-filter usage, and the rule list. Both are reads only: the writes behind them were the intent model's job before it existed |
 
 **Writing**
 
@@ -191,12 +191,10 @@ refused as `RQ5` — the third 409 in that list — and one stating nothing writ
 | `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools[/{woolId}]` | the wool objectives |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools/{woolId}/monuments[/{monId}]` | their capture points |
-| `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete — the delete answers an undo snapshot |
-| `POST /map/{slug}/regions/group` · `/ungroup` · `/restore` | union two or more, dissolve a compound, put a deleted region back from its snapshot |
-| `POST /map/{slug}/regions/{regionId}/change-type` · `/counterpart` · `/orbit` · `/remove-from-group` · `/set-base-child` | the region operations the panels do not offer |
+| `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete |
+| `POST /map/{slug}/regions/group` · `/ungroup` | union two or more, dissolve a compound |
+| `POST /map/{slug}/regions/{regionId}/counterpart` · `/orbit` | mirror a region onto the other team, or round the orbit |
 | `POST /map/{slug}/filters` · `PATCH` · `DELETE /map/{slug}/filter/{fid}` | the filter registry — **no UI reaches these** |
-| `POST /map/{slug}/apply-rules` · `PATCH` · `DELETE /map/{slug}/apply-rule/{ruleId}` | the rule stack — **no UI reaches these either** |
-| `POST /map/{slug}/wiring/apply` | apply a filter↔region wiring template — no UI, and no caller anywhere in the tree |
 
 **Getting the XML out** is not Edit's, and the tool's own Export button is disabled. `GET /map/{slug}/xml`
 answers the rendered `map.xml` for any map, corpus maps included, and `GET /map/{slug}/export` the world ZIP;
@@ -229,18 +227,18 @@ cuboid's footprint is `bounds`. A flat payload is a 400 carrying `RQ1` and the s
 'bounds', or 'coords'*, and that check runs before the region lookup, so a flat body aimed at a region that
 does not exist answers 400 rather than 404.
 
-**A refusal comes back in the studio's one envelope, whichever of the thirty-six routes produced it**, so one
+**A refusal comes back in the studio's one envelope, whichever route produced it**, so one
 parser reads them all and the rule id says which fault it was:
 
 ```
-POST /api/map/sentient/apply-rules  {}
+POST /api/map/sentient/filters  {"id": "f1", "type": "all", "children": ["nope"]}
 → 400 { "error":    "edit not applicable",
-        "message":  "apply-rule has no region, filter, or action",
-        "findings": [ { "rule": "ED2", "message": "apply-rule has no region, filter, or action",
+        "message":  "filter 'nope' does not exist",
+        "findings": [ { "rule": "ED1", "message": "filter 'nope' does not exist",
                         "severity": "refusal" } ] }
 ```
 
-`GET /api/rules?rule=ED2` answers what that id means and what to do about it, and the same holds for the
+`GET /api/rules?rule=ED1` answers what that id means and what to do about it, and the same holds for the
 `RQ*` ids the write routes cite.
 
 The ids in that example are real — `sentient` carries `red-spawn-point`, `blue-spawn-point`, `spawns`,
@@ -268,11 +266,12 @@ already exist before it can be assigned. Build Regions is the only phase with a 
 nowhere else — Regions, Teams and Objective pass the inspector coordinate editing but no delete or rename
 handler, so those controls are absent rather than broken (`C11`).
 
-**Filters and apply-rules have no surface at all.** They are the machinery that makes a PGM map mean anything
-— which team may break which block, when — and the endpoints for them are complete, including a
-wiring-template applier whose backend is finished and whose UI is a parked backlog item. Nothing in the tree
-calls `POST /wiring/apply` or `GET /regions/authoring` at all. A map whose rules need changing needs the API
-or a text editor.
+**Filters and apply-rules are read here and written elsewhere.** They are the machinery that makes a PGM map
+mean anything — which team may break which block, when — and this tool was to be where an author typed them.
+The intent model is the answer to that instead: a protection drawn in Configure applies the filters it needs,
+and the plan tool states the intent that produces them, so the hand-authoring surface was never filled and its
+write routes are gone. `GET …/filters` and `GET …/apply-rules` remain as reads, which is what a refusal cites
+when an edit names a filter or a rule. A map whose rules need changing needs the API or a text editor.
 
 **Kits are named, not authored.** The free-text kit box on a spawn says which kit that spawn grants; nothing
 in the studio states what a kit contains (`C9`).
