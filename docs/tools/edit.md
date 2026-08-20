@@ -168,7 +168,17 @@ document directly, which is what separates them from Configure's single intent P
 
 **Writing**
 
-Their failure codes are uniform, because they all run through one path — `WriteSupport.RunEditAsync`, which
+**Their success shapes are as uniform as their failures.** Most of them hand back nothing — the caller posted
+what is in the row, and the read that answers the stored form is a route of its own — so a delete, a spawn
+link and both intent writes all answer `{}`. Four answer the id the caller now names the thing by: a created
+region, a grouped compound (with the footprint it covers), a dissolved one (with the children it freed) and a
+fanned one (with the counterparts it made). Three answer the row itself — a wool, a monument, a team — **in
+the same shape `GET /map/{slug}` carries it**, because it is the same wool. Every one is declared in
+`Contracts/EditDtos.cs` and published in the schema; the editors that build them sit a project below, so the
+routes declare the shape rather than mapping it, and `EditAnswerShapeTests` holds each record to what its
+editor writes.
+
+Their failure codes are uniform too, because they all run through one path — `WriteSupport.RunEditAsync`, which
 turns the editor's refusal into the envelope: **400** (`RQ1`, `ED1`, `ED2`) for a payload the document will
 not take, **404** (`RQ4`) for an unknown map, region, team, wool, monument, spawn, filter or apply-rule, and
 **409** (`RQ5`) for an id already in use. Payload validation runs **before** the lookup, so a malformed body

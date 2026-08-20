@@ -9,12 +9,12 @@ namespace PgmStudio.Api.Tests;
 ///
 /// <para><b>An undeclared route does not say nothing; it says the wrong thing.</b> An endpoint with no
 /// declared response type is published as <b>204 No Content</b>, which is the generator's default and is a
-/// claim rather than a silence — <c>POST /map/{slug}/regions</c> answers the id it created under it. So a
-/// caller reading the schema to decide how to call something is not left guessing, it is misled, and
-/// <c>/api-docs</c> renders the same claim as an expandable route with nothing to expand.</para>
+/// claim rather than a silence, and a caller reading the schema to decide how to call something is not left
+/// guessing but misled — <c>/api-docs</c> renders the same claim as an expandable route with nothing to
+/// expand.</para>
 ///
-/// <para><see cref="NoBody"/> is the short list for which that 204 is true. Every other operation counted
-/// below is one whose published answer is a fiction until a record is written from its handler.</para>
+/// <para><see cref="NoBody"/> is the short list for which that 204 is true. Every other operation declares
+/// what it answers, and the count below holds it there.</para>
 ///
 /// <para>These assert over the <b>whole surface</b> rather than route by route, because the failure is one a
 /// new route inherits by default: an endpoint that declares no response type states nothing for the generator
@@ -23,9 +23,10 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class SchemaCompletenessTests
 {
-    /// <summary>The count still to declare. It only ever goes down: a route added without a response type
-    /// pushes it up and fails here, which is the whole point of a number rather than a list of exceptions.</summary>
-    private const int StillUndeclared = 24;
+    /// <summary>The count still to declare, and it is zero: every operation on the surface says what it
+    /// answers. A route added without a response type pushes it up and fails here, which is the whole point
+    /// of a number rather than a list of exceptions.</summary>
+    private const int StillUndeclared = 0;
 
     /// <summary>The <b>success</b> shape, specifically. Every route publishes the refusal envelope from one
     /// place, so a test asking only whether an operation declares anything at all would pass on a surface

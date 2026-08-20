@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Pgm.Editing;
 
@@ -9,7 +10,12 @@ namespace PgmStudio.Api.Endpoints;
 /// <summary>POST /api/map/{slug}/wools — add a wool objective.</summary>
 public sealed class WoolCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/wools"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/wools");
+        AllowAnonymous();
+        Description(b => b.Produces<WoolWrittenDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
@@ -21,7 +27,12 @@ public sealed class WoolCreateEndpoint(MapRepository repo, MapReader reader, Map
 /// <summary>PATCH /api/map/{slug}/wools/{woolId} — update a wool.</summary>
 public sealed class WoolUpdateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Patch("/map/{slug}/wools/{woolId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/map/{slug}/wools/{woolId}");
+        AllowAnonymous();
+        Description(b => b.Produces<WoolWrittenDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("woolId")!;
@@ -34,7 +45,12 @@ public sealed class WoolUpdateEndpoint(MapRepository repo, MapReader reader, Map
 /// <summary>DELETE /api/map/{slug}/wools/{woolId} — remove a wool.</summary>
 public sealed class WoolDeleteEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/map/{slug}/wools/{woolId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Delete("/map/{slug}/wools/{woolId}");
+        AllowAnonymous();
+        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("woolId")!;
@@ -46,7 +62,12 @@ public sealed class WoolDeleteEndpoint(MapRepository repo, MapReader reader, Map
 /// <summary>POST /api/map/{slug}/wools/{woolId}/monuments — add a monument to a wool.</summary>
 public sealed class MonumentCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/wools/{woolId}/monuments"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/wools/{woolId}/monuments");
+        AllowAnonymous();
+        Description(b => b.Produces<MonumentWrittenDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var wid = Route<string>("woolId")!;
@@ -59,7 +80,12 @@ public sealed class MonumentCreateEndpoint(MapRepository repo, MapReader reader,
 /// <summary>PATCH /api/map/{slug}/wools/{woolId}/monuments/{monId} — update a monument.</summary>
 public sealed class MonumentUpdateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Patch("/map/{slug}/wools/{woolId}/monuments/{monId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/map/{slug}/wools/{woolId}/monuments/{monId}");
+        AllowAnonymous();
+        Description(b => b.Produces<MonumentWrittenDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var wid = Route<string>("woolId")!; var mid = Route<string>("monId")!;
@@ -72,7 +98,12 @@ public sealed class MonumentUpdateEndpoint(MapRepository repo, MapReader reader,
 /// <summary>DELETE /api/map/{slug}/wools/{woolId}/monuments/{monId} — remove a monument.</summary>
 public sealed class MonumentDeleteEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/map/{slug}/wools/{woolId}/monuments/{monId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Delete("/map/{slug}/wools/{woolId}/monuments/{monId}");
+        AllowAnonymous();
+        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var wid = Route<string>("woolId")!; var mid = Route<string>("monId")!;

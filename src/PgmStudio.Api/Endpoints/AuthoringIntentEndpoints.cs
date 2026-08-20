@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Authoring;
@@ -102,7 +103,12 @@ internal static class IntentWrite
 /// it. Replaces the stored intent wholesale, which is what makes a deletion in Configure stick.</summary>
 public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang) : EndpointWithoutRequest
 {
-    public override void Configure() { Put("/map/{slug}/intent"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Put("/map/{slug}/intent");
+        AllowAnonymous();
+        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -133,7 +139,12 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 /// </summary>
 public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang) : EndpointWithoutRequest
 {
-    public override void Configure() { Put("/map/{slug}/intent/from-plan"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Put("/map/{slug}/intent/from-plan");
+        AllowAnonymous();
+        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

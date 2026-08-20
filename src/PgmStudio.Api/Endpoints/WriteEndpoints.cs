@@ -1,5 +1,6 @@
 using FastEndpoints;
 using LinqToDB;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
@@ -59,7 +60,12 @@ internal static class WriteSupport
 /// from the map's objective modules and so cannot be set by hand.</para></summary>
 public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
-    public override void Configure() { Patch("/map/{slug}/metadata"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/map/{slug}/metadata");
+        AllowAnonymous();
+        Description(b => b.Produces<OkDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -121,7 +127,12 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 /// <summary>POST /api/map/{slug}/teams — add a team.</summary>
 public sealed class TeamCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/teams"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/teams");
+        AllowAnonymous();
+        Description(b => b.Produces<TeamWrittenDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -134,7 +145,12 @@ public sealed class TeamCreateEndpoint(MapRepository repo, MapReader reader, Map
 /// <summary>PATCH /api/map/{slug}/teams/{teamId} — update a team.</summary>
 public sealed class TeamUpdateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Patch("/map/{slug}/teams/{teamId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/map/{slug}/teams/{teamId}");
+        AllowAnonymous();
+        Description(b => b.Produces<TeamWrittenDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -148,7 +164,12 @@ public sealed class TeamUpdateEndpoint(MapRepository repo, MapReader reader, Map
 /// <summary>DELETE /api/map/{slug}/teams/{teamId} — remove a team and its spawns.</summary>
 public sealed class TeamDeleteEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/map/{slug}/teams/{teamId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Delete("/map/{slug}/teams/{teamId}");
+        AllowAnonymous();
+        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

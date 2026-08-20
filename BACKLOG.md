@@ -1128,7 +1128,7 @@ place.
 
 ## The boundary: one contract, one use case, one class of fault
 
-`docs/architecture.md` is the survey these came out of. The studio has two front doors — 154 HTTP endpoints
+`docs/architecture.md` is the survey these came out of. The studio has two front doors — 148 HTTP endpoints
 and `tools/mapgen`, which links the libraries and speaks no HTTP — and one pipeline behind them, and every
 entry here is a fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
 in the order listed: the contract first, because the request shape and the client both hang off it; the
@@ -1143,6 +1143,22 @@ current stage, as one `Findings` list carrying severity, so no route has to reme
 `RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. **Needs `RP13`**,
 and not for convenience: a summary that re-implements the gates is a second copy free to disagree with them,
 so it has to *call* them, which is what the application layer is for.
+
+- [ ] **RP33 — Three names in `Contracts` say the wrong thing, and one file is a drawer.** `OkDto` is
+  `{"ok": true}`, which the HTTP 200 beside it already says; its own docstring admits the field exists so a
+  test has something to assert on. It answers one route (`PATCH …/metadata`) where eleven siblings answer
+  `{}` through `AppliedDto` — two spellings of *nothing happened worth reporting*. Settle on one, and
+  consider whether either should be a truthful `204` on the `NoBody` list instead. `AckDtos.cs` is named for
+  acknowledgements and holds thirteen records, most of which are not: `SvgDto`, `PlayerDto`,
+  `CompiledPlanDto`, `ThemeMapPreviewDto`, `MapOriginDto`. Split it by subject the way the folder rule
+  states. Twelve routes and one file; no wire changes unless the `204` question is answered yes.
+
+- [ ] **RP34 — Two records name the same box and spell it two ways.** `BoundsDto`
+  (`Contracts/AnalysisDtos.cs:5`) is four `int`s answered camelCase (`minX`) by the two region-analysis
+  reads; `Bounds2dDto` (`Contracts/RegionTreeDtos.cs:84`) is four `double`s answered snake_case (`min_x`) by
+  the region tree and the four region writes. Same concept — a footprint in block coordinates — under two
+  types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
+  callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
 
 ## The remainder: work no concept above has claimed
 

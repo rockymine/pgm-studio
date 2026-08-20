@@ -743,6 +743,29 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   The surface is 154 operations → **148** over 117 paths, and the false-204 count 30 → **24**, which is now
   exactly `RP29`'s edit routes and nothing else.
+- **Every operation on the surface says what it answers (RP29).** The twenty-four edit routes handed back
+  whatever `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so each published a **204 it
+  did not answer**. `Contracts/EditDtos.cs` names the ten shapes behind them and each route declares its own,
+  which takes `SchemaCompletenessTests`' count of false 204s to **zero** — the constant is now a floor rather
+  than a debt, and a route added without a response type fails there.
+
+  **The shapes turned out to be fewer than the routes, and three of them already existed.** Eleven writes
+  hand back nothing at all — every delete, every spawn link, both intent writes — and answer `AppliedDto`,
+  which serializes to `{}`. Four answer an id: `RegionCreatedDto` for a created region (a string the author
+  chose, which is why it is not `CreatedDto` and its row number), `RegionGroupedDto` for a compound with the
+  footprint it covers, `RegionUngroupedDto` for the children a dissolve freed, and `RegionOrbitDto` for the
+  counterparts a fan made. `RegionPatchedDto` carries bounds only where the edit moved a footprint, since a
+  rename moves none. And the three that answer a row — `WoolWrittenDto`, `MonumentWrittenDto`,
+  `TeamWrittenDto` — wrap `MapWoolDto`, `MapMonumentDto` and `MapTeamDto` unchanged: it is the same wool the
+  map document carries, so it is the same record.
+
+  The editors sit a project below `Contracts`, so every route **declares** its shape rather than mapping it,
+  the way `GET /map/{slug}` and `…/regions/tree` do. `EditAnswerShapeTests` holds the records there: each
+  editor's real return value is read back with unmapped members disallowed, on both sides of every optional
+  field — a rename against a move, a union against an ordered compound, one counterpart against a whole
+  orbit. `MapBoundsDto` is `Bounds2dDto`, named for the contract's own word now that four region writes
+  answer it too.
+
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,

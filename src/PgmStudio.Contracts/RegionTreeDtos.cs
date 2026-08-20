@@ -17,7 +17,7 @@ namespace PgmStudio.Contracts;
 /// islands' AABB where no box was stored. Null on a map with neither.</param>
 public sealed record RegionTreeDto(
     IReadOnlyList<RegionGroupDto> Groups,
-    [property: JsonPropertyName("bounding_box")] MapBoundsDto? BoundingBox);
+    [property: JsonPropertyName("bounding_box")] Bounds2dDto? BoundingBox);
 
 /// <summary>One category of root regions, in the order the editor offers them. <see cref="Name"/> is the
 /// derived category the group is keyed on (<c>spawn</c>, <c>build</c>, <c>objective</c>, <c>other</c>) and
@@ -78,9 +78,11 @@ public sealed record RegionExtentDto(
     [property: JsonPropertyName("max_x")] JsonElement MaxX,
     [property: JsonPropertyName("max_z")] JsonElement MaxZ);
 
-/// <summary>The extent the whole map is drawn against — four numbers, always, because it comes from a stored
-/// box or a measured island footprint rather than from an authored region.</summary>
-public sealed record MapBoundsDto(
+/// <summary>A footprint in block coordinates, spelled the way the region surface spells it — the
+/// <c>bounds_2d</c> of the contract. Four numbers, always: unlike a region <b>extent</b>, which may be
+/// unbounded on a side, this comes from a stored box, a measured island footprint or a region the editor
+/// just resolved.</summary>
+public sealed record Bounds2dDto(
     [property: JsonPropertyName("min_x")] double MinX,
     [property: JsonPropertyName("min_z")] double MinZ,
     [property: JsonPropertyName("max_x")] double MaxX,

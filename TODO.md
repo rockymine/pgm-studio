@@ -53,17 +53,8 @@ push declared request shapes in one pass — the write surface is the useful hal
 
 ## Phase 1 — say what the surface is
 
-The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
-a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
-
-- [ ] **RP29 — The twenty-four edit routes answer an untyped `Dict`.** Every one hands back whatever
-  `Dictionary<string, object?>` an editor in `Pgm/Editing` returned — `RegionEndpoints` 7, `WoolEndpoints` 6,
-  `SpawnEndpoints` 5, `WriteEndpoints` 4, `AuthoringIntentEndpoints` 2 — so all 24 publish a **204 they do
-  not answer**: the generator's default for an endpoint with no declared response type, and now the whole of
-  what still does. The shapes are few — `{}`, `{id}`, `{team}`, `{wool}`, `{monument}`, `{created}`,
-  `{id, bounds}` — so six or seven records cover the surface, and `CreatedDto`/`OkDto` are two of them
-  already. `PgmStudio.Vocabulary` is where those records can live that `Pgm` and the client both reach; it
-  lands with `RP13`, where the answer an operation gives is the thing being named.
+Every operation now declares what it answers. What is left is the other half — what a route *takes* — and
+the two consumers that still keep the contract by hand instead of reading the document it produces.
 
 - [ ] **RP12 — Eighty-six percent of the surface declares no request shape.** 127 of the 148 endpoints
   declare no typed request and **23 call sites read the body as `Dictionary<string, object?>`** through

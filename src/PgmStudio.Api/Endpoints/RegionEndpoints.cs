@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using FastEndpoints;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Editing;
@@ -36,7 +37,12 @@ internal static class RegionDrafts
 /// editor <c>draft_step</c> so it shows in that activity until it's wired — E10).</summary>
 public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/regions"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/regions");
+        AllowAnonymous();
+        Description(b => b.Produces<RegionCreatedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
@@ -57,7 +63,12 @@ public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, M
 /// </summary>
 public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/regions/{regionId}/counterpart"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/regions/{regionId}/counterpart");
+        AllowAnonymous();
+        Description(b => b.Produces<RegionOrbitDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
@@ -100,7 +111,12 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
 /// </summary>
 public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, MapWriter writer, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/regions/{regionId}/orbit"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/regions/{regionId}/orbit");
+        AllowAnonymous();
+        Description(b => b.Produces<RegionOrbitDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
@@ -136,7 +152,12 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
 /// <summary>POST /api/map/{slug}/regions/group — wrap regions in a compound.</summary>
 public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/regions/group"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/regions/group");
+        AllowAnonymous();
+        Description(b => b.Produces<RegionGroupedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
@@ -148,7 +169,12 @@ public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, Ma
 /// <summary>POST /api/map/{slug}/regions/ungroup — dissolve a compound.</summary>
 public sealed class RegionUngroupEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Post("/map/{slug}/regions/ungroup"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/regions/ungroup");
+        AllowAnonymous();
+        Description(b => b.Produces<RegionUngroupedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
@@ -160,7 +186,12 @@ public sealed class RegionUngroupEndpoint(MapRepository repo, MapReader reader, 
 /// <summary>DELETE /api/map/{slug}/regions/{regionId} — delete a region (returns an undo snapshot).</summary>
 public sealed class RegionDeleteEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/map/{slug}/regions/{regionId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Delete("/map/{slug}/regions/{regionId}");
+        AllowAnonymous();
+        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("regionId")!;
@@ -172,7 +203,12 @@ public sealed class RegionDeleteEndpoint(MapRepository repo, MapReader reader, M
 /// <summary>PATCH /api/map/{slug}/regions/{regionId} — rename / bounds / coords.</summary>
 public sealed class RegionPatchEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
-    public override void Configure() { Patch("/map/{slug}/regions/{regionId}"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/map/{slug}/regions/{regionId}");
+        AllowAnonymous();
+        Description(b => b.Produces<RegionPatchedDto>(200, "application/json"));
+    }
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("regionId")!;

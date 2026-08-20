@@ -26,7 +26,7 @@ again, because a use case that *is* an HTTP handler has no other place for one t
 ## The boundary carries no schema
 
 The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 117
-paths, **148 operations**, 211 schemas — and `/api-docs` is the page over it, where a route can be expanded
+paths, **148 operations**, 220 schemas — and `/api-docs` is the page over it, where a route can be expanded
 and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and most of the write surface declares nothing.
@@ -47,14 +47,13 @@ across `Pgm/Editing` are, read as a group, a request schema: a field is absent, 
 set, a number is not one. Those are declarations, written as 53 `throw` statements because the request they
 guard has no declared shape to hang them on.
 
-**A response is described even less than a request, and where it is undescribed it is misdescribed.** An
-endpoint that declares no response type is published as **204 No Content** — the generator's default, and a
-claim rather than a silence: `POST /map/{slug}/regions` answers the id it created under it. **24 of the
-148 operations** publish that 204 without answering it, and seven more publish it truthfully, every one a
-delete whose answer is that the thing is gone. The twenty-four are one group: the edit routes that hand back
-whatever `Dictionary<string, object?>` an editor returned. `SchemaCompletenessTests` holds both numbers, the
-second as a named list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six
-`image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
+**Every operation now says what it answers.** An endpoint that declares no response type is published as
+**204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
+not leave a caller guessing but misleads it. **Nought of the 148 operations** publish that 204 without
+answering it; seven publish it truthfully, every one a delete whose answer is that the thing is gone.
+`SchemaCompletenessTests` holds the count at zero and the seven as a named list, so a route added without a
+response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
+are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
 **The wire contract is generated once and kept by hand twice more.** The route attributes in
