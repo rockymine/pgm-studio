@@ -29,7 +29,7 @@ namespace PgmStudio.Api.Endpoints;
 /// anything needing live geometry mid-edit: unlike <c>/plan/compile</c> it never withholds its answer over
 /// structural errors. A malformed body is answered 400, never 500.
 /// </summary>
-public sealed class PlanInspectEndpoint : EndpointWithoutRequest
+public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
 {
     public override void Configure() { Post("/plan/inspect"); AllowAnonymous(); }
 
@@ -58,49 +58,39 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 
         // the surface step across each pair, so the interface feed carries what the seam read knows
         var deltas = d.Contacts.ToDictionary(c => (c.A, c.B), c => c.SurfaceDelta);
-        var interfaces = d.InterfaceSegments.Select(s => new
-        {
-            a = s.A, b = s.B, kind = s.Kind.ToString().ToLowerInvariant(),
-            x1 = s.X1, z1 = s.Z1, x2 = s.X2, z2 = s.Z2, length = s.Length,
-            delta = deltas.GetValueOrDefault((s.A, s.B)),
-            woolRoom = s.WoolRoom, wall = s.Wall, wallChest = s.WallChestPiece,
-        });
+        var interfaces = d.InterfaceSegments.Select(s => new PlanInterfaceDto(
+            s.A, s.B, s.Kind.ToString().ToLowerInvariant(),
+            s.X1, s.Z1, s.X2, s.Z2, s.Length,
+            deltas.GetValueOrDefault((s.A, s.B)),
+            s.WoolRoom, s.Wall, s.WallChestPiece)).ToList();
 
         var gapLinks = d.GapLinks.Select(g =>
         {
             var (x1, z1, x2, z2) = ContactGraph.NearestSegment(d.Piece(g.A)!.Value.Rect, d.Piece(g.B)!.Value.Rect);
-            return new { a = g.A, b = g.B, zone = g.Zone, hop = g.Hop, x1, z1, x2, z2 };
-        });
+            return new PlanGapLinkDto(g.A, g.B, g.Zone, g.Hop, x1, z1, x2, z2);
+        }).ToList();
 
-        var frontline = d.FrontlineEdges.Select(f => new { piece = f.Piece, x1 = f.X1, z1 = f.Z1, x2 = f.X2, z2 = f.Z2 });
+        var frontline = d.FrontlineEdges.Select(f => new PlanFrontlineEdgeDto(f.Piece, f.X1, f.Z1, f.X2, f.Z2)).ToList();
 
         // The per-interface reads over the fanned raster board: each authored piece side's frontline share,
         // the frontline runs with their widths, and the straits between bridged islands — the aggregations
         // the interface lints (FR8, CT12) quantify over, served raw so a caller sees the numbers behind
         // them. A board the deriver cannot read degrades to empty reads, same as structures below.
-        object frontages, frontlineRuns, islandGaps;
+        List<PlanFrontageDto> frontages; List<PlanFrontlineRunDto> frontlineRuns; List<PlanIslandGapDto> islandGaps;
         try
         {
             var board = BoardDeriver.Derive(plan);
-            frontages = PieceInterfaces.Frontages(board).Select(f => new
-            {
-                piece = f.Piece, side = f.Side,
-                exposedBlocks = f.ExposedBlocks, frontlineBlocks = f.FrontlineBlocks, frontlineShare = f.FrontlineShare,
-            }).ToList();
-            frontlineRuns = PieceInterfaces.Runs(board).Select(r => new
-            {
-                team = r.Team, widthBlocks = r.WidthBlocks, profile = r.Profile,
-                x1 = r.X1, z1 = r.Z1, x2 = r.X2, z2 = r.Z2,
-            }).ToList();
-            islandGaps = PieceInterfaces.IslandGaps(board).Select(g => new
-            {
-                piecesA = g.PiecesA, piecesB = g.PiecesB, roleA = g.RoleA, roleB = g.RoleB, blocks = g.Blocks,
-            }).ToList();
+            frontages = [.. PieceInterfaces.Frontages(board).Select(f => new PlanFrontageDto(
+                f.Piece, f.Side, f.ExposedBlocks, f.FrontlineBlocks, f.FrontlineShare))];
+            frontlineRuns = [.. PieceInterfaces.Runs(board).Select(r => new PlanFrontlineRunDto(
+                r.Team, r.WidthBlocks, r.Profile, r.X1, r.Z1, r.X2, r.Z2))];
+            islandGaps = [.. PieceInterfaces.IslandGaps(board).Select(g => new PlanIslandGapDto(
+                g.PiecesA, g.PiecesB, g.RoleA, g.RoleB, g.Blocks))];
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException
                                        or IndexOutOfRangeException or KeyNotFoundException)
         {
-            frontages = Array.Empty<object>(); frontlineRuns = Array.Empty<object>(); islandGaps = Array.Empty<object>();
+            frontages = []; frontlineRuns = []; islandGaps = [];
         }
 
         // The boxes the world build will stamp (the iso view draws them). A plan mid-edit is routinely
@@ -115,13 +105,14 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest
 
         // The destroy-goal walks: own-spawn, enemy-spawn and the ratio, in blocks over the fanned closure.
         // A measurement, not a rule — the band a rule would hold the ratio to is the author's to state.
-        var goalDistances = GoalDistances.Read(plan).Select(walk => new
-        {
-            id = walk.Id, kind = walk.Kind,
-            ownSpawnBlocks = walk.OwnSpawnBlocks, enemySpawnBlocks = walk.EnemySpawnBlocks, ratio = walk.Ratio,
-        });
+        var goalDistances = GoalDistances.Read(plan).Select(walk => new PlanGoalWalkDto(
+            walk.Id, walk.Kind, walk.OwnSpawnBlocks, walk.EnemySpawnBlocks, walk.Ratio)).ToList();
 
-        await Send.OkAsync(new { interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances }, ct);
+        await Send.OkAsync(new PlanInspectDto(
+            interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps,
+            [.. structures.Select(b => new PlanStructureBoxDto(
+                b.Kind, b.Color, b.MinX, b.MinZ, b.MaxX, b.MaxZ, b.Floor, b.Top))],
+            goalDistances), ct);
     }
 }
 

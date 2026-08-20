@@ -137,7 +137,15 @@ internal static class SymmetryStore
 /// </summary>
 public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/symmetry"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/symmetry");
+        AllowAnonymous();
+        // Declared rather than sent as the record: the answer is the stored row rebuilt into the
+        // symmetry.json shape by SymmetryStore.ToJson, and a second builder here would be free to
+        // disagree with it. SymmetryShapeTests holds the record to what that writes.
+        Description(b => b.Produces<SymmetryDto>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -658,11 +658,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
   routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
   endpoint class its only caller reached across.
-- **An undeclared route says the wrong thing, and twenty stopped saying it (RP18).** An endpoint with no
+- **An undeclared route says the wrong thing, and twenty-seven stopped saying it (RP18).** An endpoint with no
   declared response type is published as **204 No Content** — the generator's default, and a claim rather
   than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true
   (`DELETE /plans/{id}` and the five style/theme deletes beside it) and holds them to answering no body, and
-  counts only the routes publishing a 204 they do not answer: 74 → 37.
+  counts only the routes publishing a 204 they do not answer: 74 → **30**, which is now almost exactly one
+  group — `RP29`'s twenty-seven edit routes, plus `filters`, `apply-rules` and `monument-orbit`.
 
   Ten answer the shape they were already sending, and no wire changed.
   `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
@@ -701,6 +702,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   built as hooks for the decompose queue, which was retired with the corpus-mining flywheel, and nothing has
   called them since — no client, no test, no tool. `IslandRoleData`, both island classifiers and the
   `island_review_json` artifact went with them; `M0023` deletes the stored flags.
+
+  **The seven remaining reads answer records written from their handlers, and no wire changed.**
+  `GET /configure/{slug}/state` keeps the five snake_case keys the Configure and Setup phases read by name;
+  `GET /objectives/vocabulary` answers `ObjectiveVocabularyDto` over the two families, with the reason the
+  numbers are served rather than copied now in the record the schema publishes. `POST /plan/inspect` answers
+  eight collections — seams, gap links, frontline edges, per-side frontages, frontline runs, island straits,
+  the boxes the world build stamps and each goal's two walks — each a record where the handler had built an
+  anonymous object, and the three that need a compiled board still degrade to empty rather than failing the
+  feed. `POST …/sketch/relief` and `…/relief/read` answer `ReliefContoursDto` and `ReliefReadDto`, keeping
+  the flat `[x, z, x, z, …]` points run and the `min_x`-style footprint keys the canvas strokes from.
+
+  The last two are declared rather than mapped, the way `GET …/regions/tree` is. `GET /map/{slug}` answers
+  `MapDocumentDto`: the codec builds that document in `Pgm` and the wool grouping in `Data`, so a second walk
+  here would be a second codec free to disagree with the first — the keys the nine callers read by name are
+  typed and the contract's own encodings stay open. `GET …/symmetry` answers `SymmetryDto` over the row
+  `SymmetryStore.ToJson` rebuilds. `MapDocumentShapeTests` fills a map through the write routes and
+  `SymmetryEndpointTests` confirms one, and both read the real response back with unmapped members
+  disallowed, so a key either side grows fails by name.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,

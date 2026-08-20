@@ -1,9 +1,11 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using MySqlConnector;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Migrations;
@@ -48,7 +50,37 @@ public sealed class SymmetryEndpointTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
     }
 
+    /// <summary><c>SymmetryDto</c> says what the GET answers, and the answer is the stored row rebuilt by
+    /// <c>SymmetryStore.ToJson</c> rather than mapped through the record. So the record is held to it here:
+    /// the real response is deserialized with unmapped members <b>disallowed</b>, which fails the moment
+    /// that rebuild writes a key the published schema has no field for.</summary>
+    [Test]
+    public async Task The_record_carries_every_key_the_answer_writes()
+    {
+        using var client = await SeedAsync("symmap");
+
+        await client.PatchAsJsonAsync("/api/map/symmap/symmetry",
+            new { status = "confirmed", confirmed_type = "mirror_x", cx = -36.5, cz = -303.5 });
+
+        var body = await client.GetStringAsync("/api/map/symmap/symmetry");
+        var sym = JsonSerializer.Deserialize<SymmetryDto>(body, Strict);
+
+        await Assert.That(sym).IsNotNull();
+        await Assert.That(sym!.Status).IsEqualTo("confirmed");
+        await Assert.That(sym.Center!.Cx).IsEqualTo(-36.5);
+        // A centre on a half-integer folds through one cell on both axes.
+        await Assert.That(sym.CenterCell).IsEqualTo("1x1");
+        await Assert.That(sym.Primary!.Type).IsEqualTo("mirror_x");
+        await Assert.That(sym.Primary.UserOverride).IsTrue();
+    }
+
     // ── harness (self-contained, mirrors MetadataEndpointTests) ─────────────────────
+
+    private static readonly JsonSerializerOptions Strict = new(JsonSerializerDefaults.Web)
+    {
+        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
+    };
+
 
     /// <summary>Reset the test schema, seed one empty map, and return a client onto it.</summary>
     private static async Task<HttpClient> SeedAsync(string slug)

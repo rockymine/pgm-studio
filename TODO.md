@@ -56,23 +56,12 @@ push declared request shapes in one pass — the write surface is the useful hal
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
 a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
-- [~] **RP18 — Ten reads publish a 204 they answer a document under.** Each builds an anonymous object or a
-  `Dict` inline at the send — `ConfigureStateEndpoint` is representative — so each needs a record written
-  from that handler, branches included, and the keys kept exactly: several answer snake_case, which the
-  client reads by name.
-  `filters`, `apply-rules`, `configure/{slug}/state`, `objectives/vocabulary`, `plan/inspect`,
-  `sketch/relief`, `sketch/relief/read`, `monument-orbit`, `GET /map/{slug}`, `GET …/symmetry`. The last two
-  answer a stored document and are declared the way `GET …/sketch`, `GET …/islands` and `GET …/regions/tree`
-  were — the record names the shape, the send is unchanged.
-  Each read is worth asking who calls it before typing it, and what its neighbours answer: the island group
-  was one live read and three orphans, and the scan family was one answer written out three times, one copy
-  of which had dropped a field.
-
-  *Three carry an open question. `filters` and `apply-rules` answer a `Dict` built in `Pgm/Editing` and
-  `apply-rules` runs through `WriteSupport.RunEditAsync`, so their records belong with `RP29`'s rather than
-  here — measured, not yet moved. `monument-orbit` has no caller and completes a monument onto the other
-  teams, which `SymmetryExpander` already does for every intent-authored map, remapping the capturing team
-  as it goes where this only tags an orbit index; deleting it or keeping it is the author's.*
+- [~] **RP18 — Three reads still publish a 204 they answer a document under.** `filters` and `apply-rules`
+  answer a `Dict` built in `Pgm/Editing`, and `apply-rules` runs through `WriteSupport.RunEditAsync`, so
+  their records belong with `RP29`'s rather than on their own — measured, not yet moved.
+  `monument-orbit` has no caller and completes a monument onto the other teams, which `SymmetryExpander`
+  already does for every intent-authored map, remapping the capturing team as it goes where this only tags an
+  orbit index; deleting it or keeping it is the author's.
 
 - [ ] **RP29 — The twenty-seven edit routes answer an untyped `Dict`.** Every one ends in
   `WriteSupport.RunEditAsync` — `WoolAndFilterEndpoints` 9, `RegionEndpoints` 7, `SpawnAndRuleEndpoints` 5,

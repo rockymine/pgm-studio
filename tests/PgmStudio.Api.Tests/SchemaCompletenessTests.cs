@@ -9,8 +9,8 @@ namespace PgmStudio.Api.Tests;
 ///
 /// <para><b>An undeclared route does not say nothing; it says the wrong thing.</b> An endpoint with no
 /// declared response type is published as <b>204 No Content</b>, which is the generator's default and is a
-/// claim rather than a silence — <c>GET /map/{slug}</c> answers a whole map document under it. So a caller
-/// reading the schema to decide how to call something is not left guessing, it is misled, and
+/// claim rather than a silence — <c>GET /map/{slug}/filters</c> answers every filter the map declares under
+/// it. So a caller reading the schema to decide how to call something is not left guessing, it is misled, and
 /// <c>/api-docs</c> renders the same claim as an expandable route with nothing to expand.</para>
 ///
 /// <para><see cref="NoBody"/> is the short list for which that 204 is true. Every other operation counted
@@ -25,7 +25,7 @@ public sealed class SchemaCompletenessTests
 {
     /// <summary>The count still to declare. It only ever goes down: a route added without a response type
     /// pushes it up and fails here, which is the whole point of a number rather than a list of exceptions.</summary>
-    private const int StillUndeclared = 37;
+    private const int StillUndeclared = 30;
 
     /// <summary>The <b>success</b> shape, specifically. Every route publishes the refusal envelope from one
     /// place, so a test asking only whether an operation declares anything at all would pass on a surface

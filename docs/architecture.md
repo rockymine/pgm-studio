@@ -26,8 +26,8 @@ again, because a use case that *is* an HTTP handler has no other place for one t
 ## The boundary carries no schema
 
 The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 121
-paths, **154 operations**, 169 schemas — and `/api-docs` is the page over it, where a route can be expanded and
-sent without writing a client. Both are served from the app's own assets.
+paths, **154 operations**, 211 schemas — and `/api-docs` is the page over it, where a route can be expanded
+and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and most of the write surface declares nothing.
 **133 of the 154 endpoints declare no typed request**, 21 do, and **25 call sites read the body as
@@ -49,10 +49,12 @@ guard has no declared shape to hang them on.
 
 **A response is described even less than a request, and where it is undescribed it is misdescribed.** An
 endpoint that declares no response type is published as **204 No Content** — the generator's default, and a
-claim rather than a silence: `GET /map/{slug}` answers a whole map document under it. **37 of the 154
-operations** publish that 204 without answering it, and seven more publish it truthfully, every one a delete
-whose answer is that the thing is gone. `SchemaCompletenessTests` holds both numbers, the second as a named
-list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six
+claim rather than a silence: `GET /map/{slug}/filters` answers every filter the map declares under it.
+**30 of the 154 operations** publish that 204 without answering it, and seven more publish it truthfully,
+every one a delete whose answer is that the thing is gone. The thirty are almost exactly one group: the
+twenty-seven edit routes that hand back whatever `Dictionary<string, object?>` an editor returned, plus
+`filters`, `apply-rules` and `monument-orbit`. `SchemaCompletenessTests` holds both numbers, the second as a
+named list, so a route that grows a body cannot leave the count quietly. The media types are declared: the six
 `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 

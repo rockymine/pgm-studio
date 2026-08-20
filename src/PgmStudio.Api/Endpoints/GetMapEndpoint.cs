@@ -16,6 +16,10 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
     {
         Get("/map/{slug}");
         AllowAnonymous();
+        // Declared rather than sent as the record: the document is the codec's encoding of the whole
+        // contract, so mapping it here would be a second codec free to disagree with the first.
+        // MapDocumentShapeTests holds the record to what the serializer writes instead.
+        Description(b => b.Produces<MapDocumentDto>(200, "application/json"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

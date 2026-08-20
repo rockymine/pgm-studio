@@ -380,7 +380,8 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 /// that edit left to carry rather than the whole surface to build — and because it stops when the field stops
 /// moving, a resumed solve that settles has settled on the same answer. Nothing about the reply depends on
 /// whether a head start was available.</para></summary>
-public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm) : EndpointWithoutRequest
+public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm)
+    : EndpointWithoutRequest<ReliefContoursDto>
 {
     public override void Configure() { Post("/map/{slug}/sketch/relief"); AllowAnonymous(); }
 
@@ -412,27 +413,18 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
 
-        var islands = fields.Select(entry => new
-        {
-            island = entry.Key,
-            min = entry.Value.Min,
-            max = entry.Value.Max,
-            min_x = entry.Value.Footprint.MinX,
-            min_z = entry.Value.Footprint.MinZ,
-            max_x = entry.Value.Footprint.MinX + entry.Value.Footprint.Width - 1,
-            max_z = entry.Value.Footprint.MinZ + entry.Value.Footprint.Depth - 1,
-            // Points go out as one flat [x, z, x, z, …] run per line. A line is hundreds of points and there
-            // are dozens of lines on a board, so a pair of objects each would multiply the payload by the
-            // length of the words "x" and "z" — and the client strokes them in pairs either way.
-            lines = Contours.Of(entry.Value, interval).Select(line => new
-            {
-                level = line.Level,
-                closed = line.Closed,
-                points = line.Points.SelectMany(point => new[] { point.X, point.Z }).ToArray(),
-            }).ToArray(),
-        }).ToArray();
+        // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto.
+        var islands = fields.Select(entry => new ReliefIslandContoursDto(
+            entry.Key, entry.Value.Min, entry.Value.Max,
+            entry.Value.Footprint.MinX,
+            entry.Value.Footprint.MinZ,
+            entry.Value.Footprint.MinX + entry.Value.Footprint.Width - 1,
+            entry.Value.Footprint.MinZ + entry.Value.Footprint.Depth - 1,
+            [.. Contours.Of(entry.Value, interval).Select(line => new ContourLineDto(
+                line.Level, line.Closed,
+                [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))])).ToList();
 
-        await Send.OkAsync(new { interval, islands }, ct);
+        await Send.OkAsync(new ReliefContoursDto(interval, islands), ct);
     }
 }
 
@@ -445,7 +437,8 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
 ///
 /// <para>It sits next to the document it describes, which is what makes a relief correctable by a generator or
 /// an agent rather than only by eye. Same body as the contour endpoint — the live layout.</para></summary>
-public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm) : EndpointWithoutRequest
+public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm)
+    : EndpointWithoutRequest<ReliefReadDto>
 {
     public override void Configure() { Post("/map/{slug}/sketch/relief/read"); AllowAnonymous(); }
 
@@ -480,21 +473,19 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         var islands = fields.Select(entry =>
         {
             var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
-            return new
-            {
-                island = entry.Key,
-                read.Cells, read.Low, read.High, read.Relief,
-                read.Steps,
-                tiers = read.Tiers,
-                faces = read.Faces.Take(12),          // the whole list is long and the tail is all banks
-                faceCount = read.Faces.Count,
-                read.Cliffs,
-                acrossX = read.AcrossX, acrossZ = read.AcrossZ,
-                symmetryError = read.SymmetryError,
-            };
-        }).ToArray();
+            return new ReliefIslandReadDto(
+                entry.Key, read.Cells, read.Low, read.High, read.Relief, read.Steps,
+                [.. read.Tiers.Select(t => new ReliefTierDto(
+                    t.Name, t.MaxStep, t.Share, t.Places, t.LargestPlace, t.Ledges))],
+                // the whole list is long and the tail is all banks, so only the head is sent
+                [.. read.Faces.Take(12).Select(f => new ReliefFaceDto(f.Facing, f.Width, f.Drop, f.Cliff))],
+                read.Faces.Count, read.Cliffs,
+                new ReliefFordsDto(read.AcrossX.Rows, read.AcrossX.OnFoot, read.AcrossX.WithBlock, read.AcrossX.Descended),
+                new ReliefFordsDto(read.AcrossZ.Rows, read.AcrossZ.OnFoot, read.AcrossZ.WithBlock, read.AcrossZ.Descended),
+                read.SymmetryError);
+        }).ToList();
 
-        await Send.OkAsync(new { islands }, ct);
+        await Send.OkAsync(new ReliefReadDto(islands), ct);
     }
 }
 

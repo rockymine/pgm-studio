@@ -45,7 +45,8 @@ internal static class ScanConfig
 }
 
 /// <summary>GET /api/configure/{slug}/state — the current scan configuration.</summary>
-public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<ConfigureStateDto>
 {
     public override void Configure() { Get("/configure/{slug}/state"); AllowAnonymous(); }
 
@@ -59,14 +60,12 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
         var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
         var symmetryStatus = symRow?.Status ?? "unconfirmed";
 
-        await Send.OkAsync(new Dict
-        {
-            ["scan_layer"] = (cfg["scan_layer"]?.GetValue<string>()) ?? "surface",
-            ["exclude_blocks"] = cfg["exclude_blocks"]?.AsArray().Select(n => (object?)n!.GetValue<int>()).ToList() ?? new(),
-            ["exclude_islands"] = cfg["exclude_islands"]?.AsArray().Select(n => (object?)n!.GetValue<int>()).ToList() ?? new(),
-            ["symmetry_status"] = symmetryStatus,
-            ["configure_complete"] = symmetryStatus != "unconfirmed",
-        }, ct);
+        await Send.OkAsync(new ConfigureStateDto(
+            cfg["scan_layer"]?.GetValue<string>() ?? "surface",
+            [.. cfg["exclude_blocks"]?.AsArray().Select(n => n!.GetValue<int>()) ?? []],
+            [.. cfg["exclude_islands"]?.AsArray().Select(n => n!.GetValue<int>()) ?? []],
+            symmetryStatus,
+            symmetryStatus != "unconfirmed"), ct);
     }
 }
 
