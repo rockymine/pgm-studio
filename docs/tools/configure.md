@@ -447,7 +447,6 @@ as though they were top level; they are not.
 | `POST /map/{slug}/resources` | the iron, gold and diamond blocks — optionally inside a drawn rectangle, the same `bounds` object — and how many of them a declared `<renewable>` already covers |
 | `GET /map/{slug}/wool-suggestions` | the wool colours the **world** holds that the intent has not declared as objectives: the gap between what was built and what was stated |
 | `GET /map/{slug}/monument-suggestions?box=&style=` | scored monument candidates in a box, each with its colour, confidence and evidence. `box` is required — the author marks the area |
-| `POST /map/{slug}/monument-orbit` | the confirmed monument positions completed onto the other teams, each tagged with its orbit step. Pure geometry over the confirmed symmetry: no world and no candidate table |
 | `GET /map/{slug}/core-suggestions[?box=]` | the detected casings, plus the generator's casing defaults. The box is optional and narrows the list; one that is stated and cannot be read is refused (`RQ1`, `field: box`) rather than skipped, because skipping it answers every casing the map has and reads as the volume holding them all |
 | `GET /map/{slug}/origin` | whether the map came from a sketch — which drops the Monuments step |
 

@@ -1,4 +1,3 @@
-using System.Text.Json.Nodes;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
@@ -13,7 +12,6 @@ using PgmStudio.Pgm;
 
 namespace PgmStudio.Api.Endpoints;
 
-using Dict = Dictionary<string, object?>;
 using PgmStudio.Minecraft.Suggest;
 
 /// <summary>
@@ -57,53 +55,4 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db)
         var cap = p.Length > 2 && Enum.TryParse<CapKind>(p[2], true, out var ck) ? ck : CapKind.Any;
         return new MonumentStyle(ped, lab, cap);
     }
-}
-
-/// <summary>
-/// POST /api/map/{slug}/monument-orbit — complete the symmetry orbit of confirmed monument positions (F9
-/// §5). Body: <c>{ positions: [ { x, y, z, color? } ] }</c>. Reads the confirmed <c>symmetry_json</c>
-/// (mode + centre) and reflects/rotates each position onto the other teams (XZ only — Y preserved),
-/// returning every position tagged with its orbit step. Pure geometry — no candidate-table or world access.
-/// </summary>
-public sealed class MonumentOrbitEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
-{
-    public override void Configure() { Post("/map/{slug}/monument-orbit"); AllowAnonymous(); }
-
-    public override async Task HandleAsync(CancellationToken ct)
-    {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
-
-        var body = JsonNode.Parse(await RawBody.ReadAsync(HttpContext, ct)) as JsonObject ?? new JsonObject();
-
-        var symRow = await SymmetryStore.LoadAsync(db, map.Id, ct);
-        var mode = symRow?.PrimaryType;
-        var cx = symRow?.CenterX ?? 0;
-        var cz = symRow?.CenterZ ?? 0;
-
-        var outPos = new JsonArray();
-        foreach (var pn in body["positions"]?.AsArray() ?? new JsonArray())
-        {
-            if (pn is not JsonObject p) continue;
-            int x = p["x"]!.GetValue<int>(), y = p["y"]!.GetValue<int>(), z = p["z"]!.GetValue<int>();
-            var color = p["color"]?.GetValue<string>();
-            foreach (var (ox, oz, k) in Orbit(x, z, mode, cx, cz))
-                outPos.Add(new JsonObject { ["x"] = ox, ["y"] = y, ["z"] = oz, ["color"] = color, ["orbit"] = k });
-        }
-
-        await Send.OkAsync(new Dict { ["mode"] = mode, ["positions"] = outPos }, ct);
-    }
-
-    // The orbit of (x,z) under the confirmed mode: step 0 is the source; rot_90 adds 3 turns, mirror_* /
-    // rot_180 add 1. Y is untouched — symmetry is horizontal.
-    private static IEnumerable<(int x, int z, int k)> Orbit(int x, int z, string? mode, double cx, double cz)
-    {
-        yield return (x, z, 0);
-        if (mode == "rot_90")
-            for (var k = 1; k < 4; k++) { var (rx, rz) = Symmetry.Point(x, z, mode, cx, cz, k); yield return (R(rx), R(rz), k); }
-        else if (mode == "rot_180" || Symmetry.Normal(mode) is not null)
-        { var (rx, rz) = Symmetry.Point(x, z, mode, cx, cz, 1); yield return (R(rx), R(rz), 1); }
-    }
-
-    private static int R(double v) => (int)Math.Round(v);
 }

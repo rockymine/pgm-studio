@@ -720,6 +720,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `SymmetryStore.ToJson` rebuilds. `MapDocumentShapeTests` fills a map through the write routes and
   `SymmetryEndpointTests` confirms one, and both read the real response back with unmapped members
   disallowed, so a key either side grows fails by name.
+
+  `POST …/monument-orbit` was deleted rather than typed. It completed a confirmed monument onto the other
+  teams under the map's symmetry, which `SymmetryExpander` already does for every intent-authored map — and
+  does more, remapping the capturing team as it fans where this only tagged an orbit index. Nothing called
+  it. The surface is 154 operations → **153**, and the false-204 count 30 → **29**.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,

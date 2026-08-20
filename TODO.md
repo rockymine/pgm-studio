@@ -56,12 +56,12 @@ push declared request shapes in one pass — the write surface is the useful hal
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
 a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
-- [~] **RP18 — Three reads still publish a 204 they answer a document under.** `filters` and `apply-rules`
-  answer a `Dict` built in `Pgm/Editing`, and `apply-rules` runs through `WriteSupport.RunEditAsync`, so
-  their records belong with `RP29`'s rather than on their own — measured, not yet moved.
-  `monument-orbit` has no caller and completes a monument onto the other teams, which `SymmetryExpander`
-  already does for every intent-authored map, remapping the capturing team as it goes where this only tags an
-  orbit index; deleting it or keeping it is the author's.
+- [~] **RP18 — Two reads still publish a 204 they answer a document under.** `GET …/filters` answers
+  `FilterEditor.ListFilters` — the registry plus a per-filter usage map — and `GET …/apply-rules` answers
+  `ApplyRuleEditor.ListApplyRules`. Both are a `Dict` built in `Pgm/Editing`, which is `RP29`'s foundation
+  rather than this one's, and `apply-rules` runs through `WriteSupport.RunEditAsync` besides. No UI reaches
+  either: the only readers are `EditRules`' two remarks, which point an agent at them after a refused edit
+  cites a filter or a rule. Fold them into `RP29` or type them here — the author's call.
 
 - [ ] **RP29 — The twenty-seven edit routes answer an untyped `Dict`.** Every one ends in
   `WriteSupport.RunEditAsync` — `WoolAndFilterEndpoints` 9, `RegionEndpoints` 7, `SpawnAndRuleEndpoints` 5,
