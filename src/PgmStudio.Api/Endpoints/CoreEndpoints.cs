@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -21,7 +22,8 @@ using PgmStudio.Geom;
 /// <see cref="ObjectiveDefaults"/> — so the one source of truth for those numbers is served rather than
 /// duplicated on the far side of the wire, where it would drift out of step with the stamper silently.</para>
 /// </summary>
-public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db)
+    : EndpointWithoutRequest<CoreSuggestionsDto>
 {
     public override void Configure() { Get("/map/{slug}/core-suggestions"); AllowAnonymous(); }
 
@@ -46,33 +48,16 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db) : Endp
         if (BlockBox.TryParse(stated, out var box))
             cores = [.. cores.Where(core => core.Casing.Intersects(box))];
 
-        await Send.OkAsync(new Dict
-        {
-            ["defaults"] = new Dict
-            {
-                ["size"] = ObjectiveDefaults.CoreSize,
-                ["height"] = ObjectiveDefaults.CoreHeight,
-                ["shell"] = ObjectiveDefaults.CoreShell,
-                ["float"] = ObjectiveDefaults.CoreFloat,
-                ["leak"] = ObjectiveDefaults.CoreLeak,
-            },
-            ["cores"] = cores.Select(core => new Dict
-            {
-                ["box"] = new Dict
-                {
-                    ["minX"] = core.Casing.MinX, ["minY"] = core.Casing.MinY, ["minZ"] = core.Casing.MinZ,
-                    ["maxX"] = core.Casing.MaxX, ["maxY"] = core.Casing.MaxY, ["maxZ"] = core.Casing.MaxZ,
-                },
+        await Send.OkAsync(new CoreSuggestionsDto(
+            new CoreDefaultsDto(ObjectiveDefaults.CoreSize, ObjectiveDefaults.CoreHeight,
+                ObjectiveDefaults.CoreShell, ObjectiveDefaults.CoreFloat, ObjectiveDefaults.CoreLeak),
+            [.. cores.Select(core => new CoreSuggestionDto(
+                new CoreBoxDto(core.Casing.MinX, core.Casing.MinY, core.Casing.MinZ,
+                    core.Casing.MaxX, core.Casing.MaxY, core.Casing.MaxZ),
                 // The casing as the author edits it: width/depth and height come off the box, so a confirmed
                 // suggestion states the structure that is actually there rather than the generator's default.
-                ["size"] = Math.Max(core.Casing.Width, core.Casing.Depth),
-                ["height"] = core.Casing.Height,
-                ["shell"] = core.Shell,
-                ["float"] = core.Float,
-                ["openTop"] = core.OpenTop,
-                ["lava"] = core.LavaBlocks,
-            }).ToList(),
-        }, ct);
+                Math.Max(core.Casing.Width, core.Casing.Depth), core.Casing.Height,
+                core.Shell, core.Float, core.OpenTop, core.LavaBlocks))]), ct);
     }
 
 }

@@ -658,11 +658,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
   routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
   endpoint class its only caller reached across.
-- **An undeclared route says the wrong thing, and eighteen stopped saying it (RP18).** An endpoint with no
+- **An undeclared route says the wrong thing, and twenty stopped saying it (RP18).** An endpoint with no
   declared response type is published as **204 No Content** — the generator's default, and a claim rather
   than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true
   (`DELETE /plans/{id}` and the five style/theme deletes beside it) and holds them to answering no body, and
-  counts only the routes publishing a 204 they do not answer: 74 → 39.
+  counts only the routes publishing a 204 they do not answer: 74 → 37.
 
   Ten answer the shape they were already sending, and no wire changed.
   `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
@@ -689,6 +689,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   answer them. The `ok: true` all three carried is gone: nothing read it, the 200 already says the scan ran,
   and the counts are the answer. `GET /maps/import-candidates` answers `ImportCandidateDto` and
   `GET …/scan-summary` a `ScanSummaryDto` over per-colour and per-resource counts.
+
+  **The two suggestion reads an author confirms from** answer `MonumentSuggestionDto` and
+  `CoreSuggestionsDto`. What each is *for* is in the record now: a monument's `x/y/z` is the **air block the
+  wool goes into**, not the pedestal that found it, and `source` says which evidence carried it; a core's
+  `size` and `height` are read off the casing that is actually standing rather than taken from the defaults
+  answered beside them, which are there so the one definition of what a core is — `ObjectiveDefaults` — is
+  not copied into the editor.
 
   Three were deleted rather than typed. `island-roles`, `island-health` and the `island-review` flag were
   built as hooks for the decompose queue, which was retired with the corpus-mining flywheel, and nothing has

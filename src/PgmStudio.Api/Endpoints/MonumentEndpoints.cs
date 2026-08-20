@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -21,7 +22,8 @@ using PgmStudio.Minecraft.Suggest;
 /// world access: loads the candidates and runs <c>MonumentSuggester.Score</c>. <c>box</c> is required (the
 /// author marks the monument area); <c>style</c> defaults to <c>Any,Any,Any</c>.
 /// </summary>
-public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db)
+    : EndpointWithoutRequest<List<MonumentSuggestionDto>>
 {
     public override void Configure() { Get("/map/{slug}/monument-suggestions"); AllowAnonymous(); }
 
@@ -41,14 +43,10 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db) : 
         var candidates = await MonumentCandidateStore.ReadAsync(db, map.Id, ct);
         var suggestions = MonumentSuggester.Score(candidates, box, style);
 
-        await Send.OkAsync(suggestions.Select(s => new Dict
-        {
-            ["x"] = s.X, ["y"] = s.Y, ["z"] = s.Z,
-            ["color"] = s.Color, ["confidence"] = s.Confidence, ["source"] = s.Source,
-            ["pedestal_id"] = s.PedestalId, ["pedestal_data"] = s.PedestalData,
-            ["sign"] = s.SignX is null ? null : new Dict { ["x"] = s.SignX, ["y"] = s.SignY, ["z"] = s.SignZ },
-            ["evidence"] = s.Evidence,
-        }).ToList(), ct);
+        await Send.OkAsync(suggestions.Select(s => new MonumentSuggestionDto(
+            s.X, s.Y, s.Z, s.Color, s.Confidence, s.Source, s.PedestalId, s.PedestalData,
+            s.SignX is null ? null : new SignPositionDto(s.SignX.Value, s.SignY!.Value, s.SignZ!.Value),
+            s.Evidence)).ToList(), ct);
     }
 
     private static MonumentStyle ParseStyle(string s)
