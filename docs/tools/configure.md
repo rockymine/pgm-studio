@@ -421,9 +421,9 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `GET /maps/import-candidates` | — | the importable folders: `{folder, slug, region_files}` | — |
-| `POST /map/import-folder` | `{folder, slug?}` | `{ok, slug, …counts}` — creates the row and scans into MariaDB | 400 `RQ1` · 404 `RQ4` no such folder · 409 `RQ5` slug taken · 422 `IM6` it is a map already · 422 `IM5` no `.mca` |
+| `POST /map/import-folder` | `{folder, slug?}` | the slug and one count per kind of feature row the scan wrote — creates the row and scans into MariaDB | 400 `RQ1` · 404 `RQ4` no such folder · 409 `RQ5` slug taken · 422 `IM6` it is a map already · 422 `IM5` no `.mca` |
 | `POST /map/import-url` | `{url, slug?}` | the same, fetched server-side | 400 `RQ1` · 403 `IM1` host · 413 `IM3` too large · 415 `IM4` not a zip · 422 `IM5` no region · 502 `IM2` the host did not serve it |
-| `POST /map/{slug}/scan-world` | — | re-reads `<root>/<slug>/region` and rewrites the map's feature rows. What `import-folder` runs at the end, reachable on its own for a world that changed on disk | 404 · 422 `IM5` no `.mca` |
+| `POST /map/{slug}/scan-world` | — | the same counts, over a world already on disk: re-reads `<root>/<slug>/region` and rewrites the map's feature rows. What `import-folder` runs at the end, reachable on its own for a world that changed | 404 · 422 `IM5` no `.mca` |
 | `GET /map/{slug}/scan-summary` · `/islands` · `/symmetry` | — | the detection brief, the island polygons, the detected symmetry | 404 |
 | `PATCH /map/{slug}/symmetry` | `{status, confirmed_type?, centre?}` | confirms or rejects what was detected — `confirmed` or `none`, with an optional override of the mode and centre | 404 |
 | `GET /configure/{slug}/state` · `PATCH /configure/{slug}/exclude-island` | `{island, excluded}` | the scan config; excluding re-runs symmetry without re-scanning | 404 |
@@ -492,7 +492,7 @@ An agent authors the intent document and PUTs it. Nothing else in the tool has t
 
 ```
 GET  /api/maps/import-candidates                      → [{folder, slug, region_files}]
-POST /api/map/import-folder    {"folder": "voidwatch"} → {ok, slug, islands, monument_candidates, …}
+POST /api/map/import-folder    {"folder": "voidwatch"} → {slug, islands, monument_candidates, …}
 GET  /api/map/voidwatch/islands                        → the island polygons, to tag teams against
 GET  /api/map/voidwatch/symmetry                       → the detected mode and centre
 POST /api/map/voidwatch/wool-sources  {"bounds": {…}}  → the wool colours actually in the world

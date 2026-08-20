@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Contracts;
 using PgmStudio.Api.Services;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -16,7 +17,7 @@ using Dict = Dictionary<string, object?>;
 /// The world-import half of the pipeline; the xml half is the importer / map editors.
 /// </summary>
 public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter writer, MapsRoots roots)
-    : EndpointWithoutRequest
+    : EndpointWithoutRequest<WorldScanDto>
 {
     public override void Configure() { Post("/map/{slug}/scan-world"); AllowAnonymous(); }
 
@@ -46,19 +47,6 @@ public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter wri
         }
 
         var c = await writer.WriteAsync(map.Id, regionDir, erased, ct);
-        await Send.OkAsync(new Dict
-        {
-            ["ok"] = true,
-            ["slug"] = slug,
-            ["region_dir"] = regionDir,
-            ["wool_blocks"] = c.WoolBlocks,
-            ["resource_blocks"] = c.ResourceBlocks,
-            ["chest_items"] = c.ChestItems,
-            ["spawner_blocks"] = c.SpawnerBlocks,
-            ["layer_segments"] = c.LayerSegments,
-            ["islands"] = c.Islands,
-            ["monument_candidates"] = c.MonumentCandidates,
-            ["core_candidates"] = c.CoreCandidates,
-        }, ct);
+        await Send.OkAsync(WorldScans.Of(slug, c) with { RegionDir = regionDir }, ct);
     }
 }

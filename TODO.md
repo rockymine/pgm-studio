@@ -56,17 +56,18 @@ push declared request shapes in one pass — the write surface is the useful hal
 The schema is generated; what it can publish is bounded by what the code declares, which today is a path and
 a verb. `PgmStudio.Vocabulary` is the leaf a shape can be declared in, so what is left here is the declaring.
 
-- [~] **RP18 — Seventeen reads publish a 204 they answer a document under.** Each builds an anonymous object
-  or a `Dict` inline at the send — `ScanSummaryEndpoint` is representative — so each needs a record written
-  from that handler, branches included, and the keys kept exactly: several answer snake_case (`region_files`,
-  `min_x`), which the canvas reads by name.
-  Two families and seven singles: the **scan** reads (`scan-summary`, `scan-world`, `import-folder`,
-  `import-url`, `import-candidates`), the **suggestion** reads (`core-suggestions`, `monument-suggestions`,
+- [~] **RP18 — Twelve reads publish a 204 they answer a document under.** Each builds an anonymous object or
+  a `Dict` inline at the send — `CoreSuggestionsEndpoint` is representative — so each needs a record written
+  from that handler, branches included, and the keys kept exactly: several answer snake_case, which the
+  canvas reads by name.
+  One family and nine singles: the **suggestion** reads (`core-suggestions`, `monument-suggestions`,
   `monument-orbit`), and `filters`, `apply-rules`, `configure/{slug}/state`, `objectives/vocabulary`,
-  `plan/inspect`, `sketch/relief`, `sketch/relief/read`, `GET /map/{slug}`, `GET …/symmetry`. The last two answer a stored document and are declared the way `GET …/sketch`,
-  `GET …/islands` and `GET …/regions/tree` were — the record names the shape, the send is unchanged.
-  Each read is worth asking who calls it before typing it: the island group turned out to be one live read
-  and three routes whose only caller was the retired decompose queue.
+  `plan/inspect`, `sketch/relief`, `sketch/relief/read`, `GET /map/{slug}`, `GET …/symmetry`. The last two
+  answer a stored document and are declared the way `GET …/sketch`, `GET …/islands` and `GET …/regions/tree`
+  were — the record names the shape, the send is unchanged.
+  Each read is worth asking who calls it before typing it, and what its neighbours answer: the island group
+  was one live read and three orphans, and the scan family was one answer written out three times, one copy
+  of which had dropped a field.
 
   *Two of the singles carry an open question. `filters` and `apply-rules` answer a `Dict` built in
   `Pgm/Editing` and `apply-rules` runs through `WriteSupport.RunEditAsync`, so their records belong with

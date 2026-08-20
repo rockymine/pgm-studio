@@ -77,7 +77,7 @@ public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifac
 
 /// <summary>GET /api/map/{slug}/scan-summary — per-feature breakdowns for the import brief: wool blocks
 /// grouped by colour (with a swatch hex) and resource blocks grouped by type, each ordered by count.</summary>
-public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
+public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<ScanSummaryDto>
 {
     private static readonly Dictionary<string, int> WoolDamage =
         BlockColors.BlockDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
@@ -95,30 +95,21 @@ public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : Endpoint
             .Select(g =>
             {
                 var slug = BlockColors.Normalize(g.Color);
-                return new Dict
-                {
-                    ["color"] = slug,
-                    ["name"] = TitleCase(slug),
-                    ["hex"] = WoolDamage.TryGetValue(slug, out var dmg) ? PgmStudio.Minecraft.Palette.BlockPalette.Hex(35, dmg) : "#888888",
-                    ["count"] = g.Count,
-                };
+                var hex = WoolDamage.TryGetValue(slug, out var dmg) ? BlockPalette.Hex(35, dmg) : "#888888";
+                return new WoolColorCountDto(slug, TitleCase(slug), hex, g.Count);
             }).ToList();
 
         var resources = (await db.ResourceBlocks.Where(r => r.MapId == map.Id)
                 .GroupBy(r => r.ResourceType).Select(g => new { Type = g.Key, Count = g.Count() }).ToListAsync(ct))
             .OrderByDescending(g => g.Count)
-            .Select(g => new Dict { ["type"] = g.Type, ["name"] = TitleCase(g.Type), ["count"] = g.Count }).ToList();
+            .Select(g => new ResourceTypeCountDto(g.Type, TitleCase(g.Type), g.Count)).ToList();
 
         // chest_item rows are per-slot; the chest count is the distinct chest positions holding them.
         var chestCount = await db.ChestItems.Where(c => c.MapId == map.Id)
             .Select(c => new { c.WorldX, c.WorldZ, c.WorldY }).Distinct().CountAsync(ct);
         var chestItemCount = await db.ChestItems.CountAsync(c => c.MapId == map.Id, ct);
 
-        await Send.OkAsync(new Dict
-        {
-            ["wool_colors"] = wool, ["resource_types"] = resources,
-            ["chest_count"] = chestCount, ["chest_items"] = chestItemCount,
-        }, ct);
+        await Send.OkAsync(new ScanSummaryDto(wool, resources, chestCount, chestItemCount), ct);
     }
 
     private static string TitleCase(string slug) => string.Join(' ',

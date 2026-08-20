@@ -658,11 +658,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
   routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
   endpoint class its only caller reached across.
-- **An undeclared route says the wrong thing, and thirteen stopped saying it (RP18).** An endpoint with no
+- **An undeclared route says the wrong thing, and eighteen stopped saying it (RP18).** An endpoint with no
   declared response type is published as **204 No Content** — the generator's default, and a claim rather
   than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true
   (`DELETE /plans/{id}` and the five style/theme deletes beside it) and holds them to answering no body, and
-  counts only the routes publishing a 204 they do not answer: 74 → 53.
+  counts only the routes publishing a 204 they do not answer: 74 → 39.
 
   Ten answer the shape they were already sending, and no wire changed.
   `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
@@ -680,6 +680,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is built in `Analysis`, which cannot see `Contracts`, so it is declared rather than mapped and
   `RegionTreeShapeTests` holds the record to what the encoder writes: the encoder's real output is read back
   with unmapped members disallowed, which fails by name on a key the record has no field for.
+
+  **The scan family was one answer written out three times.** `POST …/scan-world`, `POST /map/import-folder`
+  and `POST /map/import-url` all run `WorldFeatureWriter` and all reported its counts inline, and the two
+  imports had dropped `layer_segments` from theirs — the writer counts it, they just never said so. One
+  `WorldScanDto` built in one place (`WorldScans.Of`) answers all three now, so the eight counts read the
+  same whichever route ran the scan, with `region_dir` and `mca_files` present only on the route that can
+  answer them. The `ok: true` all three carried is gone: nothing read it, the 200 already says the scan ran,
+  and the counts are the answer. `GET /maps/import-candidates` answers `ImportCandidateDto` and
+  `GET …/scan-summary` a `ScanSummaryDto` over per-colour and per-resource counts.
 
   Three were deleted rather than typed. `island-roles`, `island-health` and the `island-review` flag were
   built as hooks for the decompose queue, which was retired with the corpus-mining flywheel, and nothing has

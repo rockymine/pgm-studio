@@ -69,7 +69,7 @@ internal static class ImportRules
 /// extraction · requires <c>region/*.mca</c> · sanitised + unique slug · rolls back row + files on any failure.</para>
 /// </summary>
 public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy, IHttpClientFactory httpFactory)
-    : EndpointWithoutRequest
+    : EndpointWithoutRequest<WorldScanDto>
 {
     private static readonly Regex RegionMca = new(@"(^|/)region/[^/\\]+\.mca$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex McaName   = new(@"^r\.-?\d+\.-?\d+\.mca$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -177,13 +177,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw", Stage = MapStage.Configure });
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
 
-            await Send.OkAsync(new Dict
-            {
-                ["ok"] = true, ["slug"] = slug, ["mca_files"] = mca,
-                ["wool_blocks"] = c.WoolBlocks, ["resource_blocks"] = c.ResourceBlocks, ["chest_items"] = c.ChestItems,
-                ["spawner_blocks"] = c.SpawnerBlocks, ["islands"] = c.Islands, ["monument_candidates"] = c.MonumentCandidates,
-                ["core_candidates"] = c.CoreCandidates,
-            }, ct);
+            await Send.OkAsync(WorldScans.Of(slug, c) with { McaFiles = mca }, ct);
         }
         catch (Exception ex)
         {
@@ -279,14 +273,15 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
 /// GET /api/maps/import-candidates — world folders under the maps roots with <c>region/*.mca</c> but no
 /// <c>map.xml</c> and not already a map: the new-map import candidates (B8 "open a local folder" source).
 /// </summary>
-public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy policy) : EndpointWithoutRequest
+public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy policy)
+    : EndpointWithoutRequest<List<ImportCandidateDto>>
 {
     public override void Configure() { Get("/maps/import-candidates"); AllowAnonymous(); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var existing = (await repo.ListAsync(ct)).Select(m => m.Slug).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var candidates = new List<Dict>();
+        var candidates = new List<ImportCandidateDto>();
         // Candidates live only in the dedicated imports root — never the curated xml corpus.
         if (Directory.Exists(policy.Root))
             foreach (var dir in Directory.EnumerateDirectories(policy.Root))
@@ -299,9 +294,9 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy po
                 if (mca == 0) continue;
                 var slug = ImportSlug.Of(folder);
                 if (slug.Length == 0 || existing.Contains(slug)) continue;          // skip unsluggable / already-imported
-                candidates.Add(new Dict { ["folder"] = folder, ["slug"] = slug, ["region_files"] = mca });
+                candidates.Add(new ImportCandidateDto(folder, slug, mca));
             }
-        candidates.Sort((a, b) => string.Compare((string)a["folder"]!, (string)b["folder"]!, StringComparison.Ordinal));
+        candidates.Sort((a, b) => string.Compare(a.Folder, b.Folder, StringComparison.Ordinal));
         await Send.OkAsync(candidates, ct);
     }
 }
@@ -312,7 +307,8 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy po
 /// create the map row, and scan into MariaDB. The slug must be a real candidate (region/*.mca, no map.xml,
 /// not already a map). Rolls back the row on failure.
 /// </summary>
-public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy) : EndpointWithoutRequest
+public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy)
+    : EndpointWithoutRequest<WorldScanDto>
 {
     public override void Configure() { Post("/map/import-folder"); AllowAnonymous(); }
 
@@ -375,12 +371,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         {
             mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw", Stage = MapStage.Configure });
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
-            await Send.OkAsync(new Dict
-            {
-                ["ok"] = true, ["slug"] = slug, ["wool_blocks"] = c.WoolBlocks, ["resource_blocks"] = c.ResourceBlocks,
-                ["chest_items"] = c.ChestItems, ["spawner_blocks"] = c.SpawnerBlocks, ["islands"] = c.Islands, ["monument_candidates"] = c.MonumentCandidates,
-                ["core_candidates"] = c.CoreCandidates,
-            }, ct);
+            await Send.OkAsync(WorldScans.Of(slug, c), ct);
         }
         catch (Exception ex)
         {
