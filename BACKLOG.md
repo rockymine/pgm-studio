@@ -579,18 +579,17 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   a map can be re-imported.
 
 - [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split
-  **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), as did the review
-  flag + role classifier. What remains: (a) **re-scan the corpus** so the stored `islands.json` /
-  `island_sketch_json` reflect stair-aware (the live DB + `pgm-studio-output` were generated with the legacy
-  detection — needs the source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and decide
-  whether to refresh the `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated
-  raised-decor specks** (≈37-block grid bits with no walkable connection — correctly `small` via
-  `IslandClassifier`, but a per-island prune could drop them); (c) any **under-split / merged** read beyond
-  `abstract` (whose stained-glass build-floor is now excluded — `FEATURES.md`): `LooksUnderSplit` is the
-  catch-all flag; the residual lever if one is found is to fall through to surface-based detection when a
-  cleaned-base component is a map-spanning low-Y slab. `IslandClassifier` and `IslandRoleClassifier` are the
-  reads it works over; they sit in `Analysis` with their own tests, and no route surfaces them since `RP18`
-  retired the three the decompose queue was the only caller of.
+  **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), and the stored decompositions
+  predate it. What remains: (a) **re-scan the corpus** so the stored `islands.json` / `island_sketch_json`
+  reflect stair-aware (the live DB + `pgm-studio-output` were generated with the legacy detection — needs the
+  source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and decide whether to refresh the
+  `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated raised-decor specks**
+  (≈37-block grid bits with no walkable connection, which a per-island prune could drop).
+
+  *What a detected island **is** stays the subject; what it is **for** is not. The size and gameplay-role
+  classifiers were deleted with the routes that surfaced them (`RP18`), and the under-split read went with
+  them — the author's call, and the reason is that a better decomposition is worth having and a label over a
+  bad one is not.*
 
 - [ ] **G12 — Re-prune flying blobs above terrain (stair-aware regression).** Stair-aware connectivity fixed
   the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island problem:
@@ -1427,9 +1426,9 @@ feature section.
 - [ ] **B35 — Endpoint coverage: half the API is exercised by nothing.** `PgmStudio.Api` sits at **42.8%**
   lines (`tools/coverage.sh`), and the shortfall is not spread evenly — a long tail of endpoint files is
   effectively untouched while the tested ones are fine: `PreflightEndpoint` 2.6%, `ImportEndpoints` 3.6%,
-  `IslandRolesEndpoint` 3.6%, `MonumentEndpoints` 5.3%, `LayersEndpoints` 5.5%, `ConfigureEndpoints` 6.2%,
-  `AuthoringEndpoint` 8.2%, `IslandReviewEndpoints` 8.6%, `MapPlanEndpoints` 12.3%, `AnalysisEndpoints`
-  13.0%, `RegionEndpoints` 15.6%. `ApiTestFactory` (B20) already gives schema-isolated MariaDB, so the
+  `MonumentEndpoints` 5.3%, `LayersEndpoints` 5.5%, `ConfigureEndpoints` 6.2%, `AuthoringEndpoint` 8.2%,
+  `MapPlanEndpoints` 12.3%, `AnalysisEndpoints` 13.0%, `RegionEndpoints` 15.6% (the two island files that
+  were bottom of this list were deleted rather than tested — `RP18`). `ApiTestFactory` (B20) already gives schema-isolated MariaDB, so the
   marginal cost per endpoint is one happy path plus its error contract; these are cheap tests, not a
   redesign. Prioritise the ones that write: import, configure, region and map-plan.
 

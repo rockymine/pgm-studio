@@ -654,8 +654,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   Three were deleted rather than typed. `island-roles`, `island-health` and the `island-review` flag were
   built as hooks for the decompose queue, which was retired with the corpus-mining flywheel, and nothing has
-  called them since — no client, no test, no tool. `IslandRoleData` went with them; `IslandClassifier` and
-  `IslandRoleClassifier` stay in `Analysis` with their tests, because `G9` reads them.
+  called them since — no client, no test, no tool. `IslandRoleData`, both island classifiers and the
+  `island_review_json` artifact went with them; `M0023` deletes the stored flags.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,
@@ -1413,22 +1413,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `--scan-out` / `--island-sketch`. Validated on re-scanned worlds via `--island-stairaware`: a_new_day 17→14,
   a_new_day_ii 9→5, thunder 33→17, with team-island count + symmetry preserved on every map (kanto/green_gem/
   two-quarter/vegas/mame). The legacy `DetectCleaned` remains for the `--islands` Python-parity harness. (G9)
-- **Semantic island role classifier** — `IslandRoleClassifier` tags each island by gameplay role from its
-  objective anchors (not size): **team** (holds a spawn — the team `spawns[].region`),
-  **objective** (holds a wool — `wools[].location`, wool-room region, or a wool-*dispensing* spawner region;
-  economy spawners like gold nuggets are skipped, and the capture **monument** is never an anchor),
-  **neutral** (no anchor but intersects the build region — a stepping-stone/mid), **decorative** (no anchor,
-  outside the build region — e.g. an observer island). Anchors are resolved to footprints via
-  `RegionGeometry2d` and tested by intersection (robust to concavities); build regions come from
-  `RegionCategorizer`. Validated against the corpus ground truth
-  (kanto/thunder/annealing_iv/a_new_day/mame/green_gem). The endpoints that surfaced it were retired with the
-  decompose workflow they were built for (`RP18`); the classifier is `Analysis`' and `G9` reads it. (G9)
-- **Island size classifier + detection-health triage** — `IslandClassifier` buckets detected islands by size
-  into `major` (team islands, ≥25% of the largest), `neutral` (gameplay-sized mids/stepping-stones, ≥64 blocks),
-  and `small` (sub-gameplay specks / over-split fragments); corpus-validated (kanto 2 majors, green_gem 2+2,
-  annealing_iv 4+8). `LooksUnderSplit` flags the merged-teams failure mode (majors < teams, e.g. `abstract`).
-  Read from `Analysis`; the health endpoint and the human review flag that surfaced it were retired with the
-  decompose workflow (`RP18`). (G9)
+- **Island classification — RETIRED** (`RP18`). `IslandRoleClassifier` labelled each island by what it
+  carried (team / objective / neutral / decorative) and `IslandClassifier` bucketed them by size, with
+  `LooksUnderSplit` flagging merged teams. Both were built for the decompose queue, both went out of use when
+  it was retired, and both are now deleted along with the `island_review_json` flag that was their triage
+  marker (`M0023` drops the stored rows). **Detection is the subject that survives**: what a landmass *is* is
+  `IslandDetector`'s, and `G9` continues there. What one is *for* is not something the studio infers — a
+  better decomposition is worth having and a label over a bad one is not.
 - **Headless scan-to-files (`--scan-out` / `--scan-out-all`)** — the RoundTrip tool runs the studio's own
   extractors with no database and writes an importer-ready per-map directory (`wools/resources/chests/
   spawners/layer_segments.parquet`, `monument_candidates.parquet` from the F9 `MonumentSuggester` gather,
