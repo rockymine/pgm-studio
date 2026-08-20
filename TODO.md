@@ -29,12 +29,12 @@ use case lives, so the application layer is third. A caller cannot branch on a f
 class, so the taxonomy is fourth. And a state machine over a pipeline whose steps are still HTTP handlers has
 nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — seventeen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the seventeen carry a question only the author can answer
+## Four of the eighteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -181,12 +181,30 @@ hears a late gate early.
   `sketch/columns` predicts either, and the compile gate is deliberately silent about an absolutely-placed
   goal because it has no ground truth to judge against. The ground exists as soon as `sketch/finish` has
   run: answer both over it, on the read an agent already makes (`POST …/sketch/columns`, beside the `DR-*`
-  complaints), as complaints there and refusals where they are now.
+  complaints).
+
+  *The author's ruling on what each is at export. `OB17` stays a refusal: it indicts the objective itself,
+  there is nothing to drop, and a map in that state is not exportable. `OB19` indicts a prop, and a prop is
+  removable, so it becomes a decline like every `DR-*` — the tree, boulder or building drops, the finding
+  names it, the map exports. `OB19` leaving the refusal set rewrites `configure.md` §What it refuses and its
+  two endpoint rows, `decoration.md:26,173`, `destroyables-and-cores.md:606` and `sketch.md:752` in the same
+  commit, and needs `RP30` in it too: without that channel the loudest fault on the surface becomes a line in
+  a file inside a zip.*
 
   *Evidence: `hollowbank` placed a destroyable at `(0, 45)` on a plan piece and cut a sally port through
   that piece in the layout — compile 200, export 409 `OB17`. `alabaster-rake` put a shed run at
   `x 15..24, z 58..62` against a goal anchored `(5, 47)`; the keep-out is a 10-block square about the anchor
   tested against the footprint plus its eaves, and neither cycle was predictable before the build.*
+
+- [ ] **RP30 — The two routes that build the artifact are the two that do not say what they dropped.**
+  `POST …/sketch/columns` and `POST /plan/columns` answer every `DR-*` decline under `warnings`, naming the
+  rule, the cell and the prop. `GET /map/{slug}/export` writes them to `region/dressing-report.json` **inside
+  the zip** — `MapExportEndpoint.cs:90` calls that "the only record an HTTP caller ever gets of a dropped
+  prop" — and `GET /map/{slug}/xml` builds the same world through the same pass and reports nothing at all.
+  Neither calls `Complaints.Add`, so the middleware's lost-complaint log (`Complaints.cs:157`) never fires
+  either, and `refusals.md`'s promise that a non-JSON success "logs it rather than dropping it in silence"
+  does not hold on the one route where props actually drop. Hand the declines over on both, and answer them
+  in a response header carrying the count and the rule ids, so a caller that never unzips knows to look.
 
 - [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
   `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule

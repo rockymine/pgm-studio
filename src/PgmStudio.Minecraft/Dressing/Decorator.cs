@@ -34,7 +34,7 @@ namespace PgmStudio.Minecraft.Dressing;
 /// the way they grow anywhere, because none of them changes what a player can see or reach. What may not
 /// stand there is <b>cover</b> — the two-block grass that hides a footstep among it, since an objective is
 /// the one thing on a map that wants its approach legible. A tree, a boulder or a building is refused
-/// earlier still (OB17 at export), because those are authored and dropping one silently would discard a
+/// earlier still (OB19 at export), because those are authored and dropping one silently would discard a
 /// placement the author can see.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
