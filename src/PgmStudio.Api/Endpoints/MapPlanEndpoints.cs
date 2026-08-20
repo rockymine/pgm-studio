@@ -80,6 +80,8 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
+        if (await artifacts.RevisionAsync(map.Id, ArtifactKind.PlanJson, ct) is { } revision)
+            Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
     }
 }
@@ -168,7 +170,12 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
         var planJson = Encoding.UTF8.GetString(bytes);
         Complaints.Unread(HttpContext, planJson, PlanModel.Stated(planJson));
 
-        await artifacts.SaveAsync(map.Id, ArtifactKind.PlanJson, bytes, ct);
+        if (await Writes.StoreAsync(HttpContext, artifacts, map.Id, ArtifactKind.PlanJson, bytes, ct) is null)
+        {
+            await Revisions.StaleAsync(HttpContext, "plan",
+                await artifacts.RevisionAsync(map.Id, ArtifactKind.PlanJson, ct), ct);
+            return;
+        }
         await Send.OkAsync(new { ok = true }, ct);
     }
 }

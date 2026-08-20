@@ -118,6 +118,8 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        if (await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { } revision)
+            Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(JsonSerializer.Deserialize<JsonElement>(data ?? "{}"u8.ToArray()), ct);
     }
 }
@@ -154,7 +156,12 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         var document = SketchLayoutCheck.Check(layout);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
-        await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, bytes, ct);
+        if (await Writes.StoreAsync(HttpContext, artifacts, map.Id, ArtifactKind.SketchLayoutJson, bytes, ct) is null)
+        {
+            await Revisions.StaleAsync(HttpContext, "sketch layout",
+                await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct), ct);
+            return;
+        }
         await Send.OkAsync(new { ok = true }, ct);
     }
 }
@@ -250,7 +257,13 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         var document = SketchLayoutCheck.Check(merged);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
-        await artifacts.SaveAsync(map.Id, ArtifactKind.SketchLayoutJson, Encoding.UTF8.GetBytes(merged), ct);
+        if (await Writes.StoreAsync(HttpContext, artifacts, map.Id, ArtifactKind.SketchLayoutJson,
+                Encoding.UTF8.GetBytes(merged), ct) is null)
+        {
+            await Revisions.StaleAsync(HttpContext, "sketch layout",
+                await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct), ct);
+            return;
+        }
         await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
     }
 }

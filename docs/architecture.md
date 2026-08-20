@@ -193,11 +193,12 @@ and its three artifacts through two writers over one of them. The nine library-s
 by hand (`RP27`); each is a leaf nothing calls into, so they are a second shape rather than a second
 guarantee.
 
-**Nothing anywhere carries a version.** There is no `ETag`, no `If-Match` and no row check in `Api` or
-`Data`. Every Edit route reads the whole document, patches it and writes the whole document back, so two
-callers editing different parts of one map keep only the second, with no conflict and no finding. One person
-in one browser tab never met it; an agent driving the API while a tab is open on the same slug meets it on
-the first collision.
+**Every document a caller can replace carries a revision.** A read answers it as an `ETag` and a write may
+state it back as an `If-Match`; one naming a revision the document is no longer at is refused as `RQ5`, and
+one stating nothing writes unguarded, because protection is opted into by having read first. The map
+document and each artifact are counted apart — a caller holding the sketch layout's revision has said nothing
+about the map's. The compare is one statement with the revision in its `where`, so the database decides which
+of two writers wins rather than a read-then-write that both can pass.
 
 **The most expensive operation in the studio is a `GET`.** `GET /map/{slug}/export` composes the map,
 synthesises the entire voxel world, writes it to a temp directory and zips it in memory before answering.

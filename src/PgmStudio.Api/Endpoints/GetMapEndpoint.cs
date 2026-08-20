@@ -10,7 +10,7 @@ namespace PgmStudio.Api.Endpoints;
 /// GET /api/map/{slug} — the full map document (the xml_data.json shape), reconstructed from the
 /// relational rows.
 /// </summary>
-public sealed class GetMapEndpoint(MapReader reader) : EndpointWithoutRequest
+public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -20,9 +20,11 @@ public sealed class GetMapEndpoint(MapReader reader) : EndpointWithoutRequest
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var doc = await reader.ReadDocAsync(Route<string>("slug")!, ct);
-        if (doc is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
-        await Send.OkAsync(doc, ct);
+        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
+        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        // The revision this document is at, so an edit made from it can state what it was made against.
+        if (await writer.RevisionAsync(map.Id, ct) is { } revision) Revisions.Answer(HttpContext, revision);
+        await Send.OkAsync(await reader.ReadDocAsync(map, ct), ct);
     }
 }
 

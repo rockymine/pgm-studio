@@ -4475,6 +4475,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   without re-entering that stage. One rasterization now serves both gates where there had been two.
   `Compose` keeps the leg a map that ships its own world takes, and asks `EX1` there over its scanned
   segments.
+- **Two writers to one document, and the second one is told (RP21).** Every write in the studio replaces —
+  an edit reads the whole map document, patches it and writes all of it back; an artifact is one row a save
+  replaces — so two callers at once kept only the second, with the same status and the same body either way.
+  The loss was invisible from the response, which is what made it a mechanism's job rather than care's. The
+  map document and each artifact carry a **revision** (`M0022`), counted apart because they are separate
+  documents with separate writers: a caller holding the sketch layout's has said nothing about the map's, and
+  one counter would refuse a metadata patch because somebody saved a drawing. A read answers it as an `ETag`;
+  a write states it back as an `If-Match` and is refused as `RQ5` when the document has moved on, naming both
+  numbers. A write stating nothing writes as it always did — protection is opted into by having read first,
+  which is the only way it can mean anything. An `If-Match` that is not a revision at all is refused rather
+  than read as an absent one.
+  The compare is **one statement** with the revision in its `where`, so the database decides which writer
+  wins; a read-then-write is two, and two callers can both pass the read. It is 409 rather than 412 because
+  the studio has one refusal envelope and `RQ5` already means *the request conflicts with what is stored*.
+  The guard sits in `WriteSupport.RunEditAsync`, so all 34 edit routes inherit it; the one caller that passes
+  `guarded: false` is the intent write's projection, whose `If-Match` names the intent and whose map revision
+  is a different number.
 - **A delete-then-write lands whole or not at all, under one verb (RP20).** The studio stores by replacing,
   and two of the three writers did it outside a transaction: `WorldFeatureWriter` dropped six tables before
   five `BulkCopyAsync` calls, and `MapArtifactStore.SaveAsync` deleted a row before inserting one — so a

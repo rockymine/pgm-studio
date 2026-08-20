@@ -41,7 +41,7 @@ public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, M
     {
         var slug = Route<string>("slug")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, slug, doc => RegionEditor.CreateRegion(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, slug, doc => RegionEditor.CreateRegion(doc, p), ct);
 
         if (s == 200 && p.GetValueOrDefault("draft_step") is string step && step.Length > 0
             && (b as Dict)?.GetValueOrDefault("id") is string newId && await repo.GetBySlugAsync(slug, ct) is { } map)
@@ -83,7 +83,7 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
             return;
         }
 
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, slug,
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, slug,
             doc => SymmetryAuthoring.CreateCounterpart(doc, regionId, mode, cx.Value, cz.Value), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
@@ -121,7 +121,7 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
         if (!confirmed || mode is null || cx is null || cz is null)
         { await Send.OkAsync(new Dict { ["created"] = new List<object?>() }, ct); return; }
 
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, slug,
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, slug,
             doc => SymmetryAuthoring.CreateOrbit(doc, regionId, mode, cx.Value, cz.Value, category), ct);
 
         // the orbit counterparts are unwired too — tag them with the same draft step so they appear
@@ -140,7 +140,7 @@ public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, Ma
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.GroupRegions(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.GroupRegions(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -152,7 +152,7 @@ public sealed class RegionUngroupEndpoint(MapRepository repo, MapReader reader, 
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.UngroupRegion(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.UngroupRegion(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -165,7 +165,7 @@ public sealed class RegionRestoreEndpoint(MapRepository repo, MapReader reader, 
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
         var snapshot = p.GetValueOrDefault("snapshot") as Dict ?? p;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.RestoreRegion(doc, snapshot), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.RestoreRegion(doc, snapshot), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -177,7 +177,7 @@ public sealed class RegionDeleteEndpoint(MapRepository repo, MapReader reader, M
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("regionId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.DeleteRegion(doc, id), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.DeleteRegion(doc, id), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -190,7 +190,7 @@ public sealed class RegionPatchEndpoint(MapRepository repo, MapReader reader, Ma
     {
         var id = Route<string>("regionId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.PatchRegion(doc, id, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.PatchRegion(doc, id, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -203,7 +203,7 @@ public sealed class RegionChangeTypeEndpoint(MapRepository repo, MapReader reade
     {
         var id = Route<string>("regionId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.ChangeRegionType(doc, id, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.ChangeRegionType(doc, id, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -216,7 +216,7 @@ public sealed class RegionRemoveFromGroupEndpoint(MapRepository repo, MapReader 
     {
         var id = Route<string>("regionId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.RemoveFromGroup(doc, id, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.RemoveFromGroup(doc, id, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -229,7 +229,7 @@ public sealed class RegionSetBaseChildEndpoint(MapRepository repo, MapReader rea
     {
         var id = Route<string>("regionId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.SetBaseChild(doc, id, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => RegionEditor.SetBaseChild(doc, id, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }

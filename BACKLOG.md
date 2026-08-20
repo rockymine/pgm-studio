@@ -1259,6 +1259,16 @@ braces, worth having once the studio is used by someone who did not write it.
   **monument** (where it is delivered). A player spawn is a **spawn point**, a **protection region** so the
   enemy cannot enter, and an optional **housing**. Source, protection, optional structure, twice over.
 
+- [ ] **C45 — The authors editor fetches every avatar from a third-party host at render time.**
+  `AuthorsEditor.razor:39` renders `https://mc-heads.net/avatar/{uuid}/16` as an `<img src>`, so every author
+  row on the Overview and the plan's Identity step is an unpinned request from the user's own browser to a
+  host nobody here reviews — the runtime-CDN shape `CLAUDE.md` § *JS dependencies* rules out, in image form,
+  and dead the moment egress is restricted. It is dead already: headless Chromium in the cloud container
+  answers `net::ERR_CONNECTION_RESET` for it, which is two of `configure-objectives`' ten checks. Decide what
+  an author row shows without it — the uuid's own colour, an initial, a vendored silhouette — and whether a
+  fetched avatar is worth a server-side proxy with a cache. `AvatarEmpty` beside it is already the
+  no-uuid case, so there is a fallback to widen rather than one to invent.
+
 - [ ] **RP27 — Nine library writes still open a transaction by hand.** `PgmDb.InOneWriteAsync` is the verb
   for "this replacement lands whole or not at all", and the three map-level writers ask it by that name.
   The style, theme and house-part stores do not: `RoomStyleStore` (2), `HousePartStore` (4), `ThemeStore` (2)

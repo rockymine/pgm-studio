@@ -19,7 +19,7 @@ public sealed class WiringApplyEndpoint(MapRepository repo, MapReader reader, Ma
         var body = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
         var template = body.GetValueOrDefault("template") as string ?? "";
         var p = body.GetValueOrDefault("params") as Dict ?? new Dict();
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!,
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!,
             doc => FilterWiring.ApplyTemplate(doc, template, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }

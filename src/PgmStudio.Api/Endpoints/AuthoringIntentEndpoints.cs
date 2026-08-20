@@ -19,6 +19,8 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await artifacts.RevisionAsync(map.Id, ArtifactKind.MapIntentJson, ct) is { } revision)
+            Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct), ct);
     }
 }
@@ -33,17 +35,27 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// </summary>
 internal static class IntentWrite
 {
+    /// <summary>Store the intent and project it into the map document. The <c>If-Match</c> guards the
+    /// <b>intent</b>, which is the document the caller read and posted; the projection that follows rewrites
+    /// the map from it, so guarding both would refuse a write against a map the caller never claimed to have
+    /// read.</summary>
     public static async Task<(int Status, object? Body)> StoreAndProjectAsync(
-        MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang,
-        string slug, long mapId, string body, CancellationToken ct)
+        HttpContext http, MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
+        MojangClient mojang, string slug, long mapId, string body, CancellationToken ct)
     {
         var intent = Stated(body) ?? new MapIntent();
 
-        await artifacts.SaveJsonAsync(mapId, ArtifactKind.MapIntentJson, intent, ct);
+        var stored = await Writes.StoreAsync(http, artifacts, mapId, ArtifactKind.MapIntentJson,
+            JsonSerializer.SerializeToUtf8Bytes(intent, MapArtifactStore.Json), ct);
+        if (stored is null)
+            return (Revisions.StaleStatus, Revisions.Stale(http, "intent",
+                await artifacts.RevisionAsync(mapId, ArtifactKind.MapIntentJson, ct)));
+
         // A stated name is looked up here (async, outside the pure generator) so an account gets its uuid.
         var authors = await ResolveAuthorsAsync(mojang, intent, ct);
-        return await WriteSupport.RunEditAsync(repo, reader, writer, slug,
-            doc => { IntentGenerator.Apply(doc, intent); if (authors is not null) doc["authors"] = authors; return new Dict(); }, ct);
+        return await WriteSupport.RunEditAsync(http, repo, reader, writer, slug,
+            doc => { IntentGenerator.Apply(doc, intent); if (authors is not null) doc["authors"] = authors; return new Dict(); },
+            ct, guarded: false);
     }
 
     /// <summary>What a body states as an intent, or null where it states none. A body that will not read as
@@ -101,7 +113,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
         var body = await RawBody.ReadAsync(HttpContext, ct);
         Complaints.Unread(HttpContext, body, IntentWrite.Stated(body));
 
-        var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug, map.Id, body, ct);
+        var (status, resp) = await IntentWrite.StoreAndProjectAsync(HttpContext, repo, reader, writer, artifacts, mojang, slug, map.Id, body, ct);
         await Send.ResponseAsync(resp!, status, ct);
     }
 }
@@ -137,7 +149,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
         var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
 
-        var (status, resp) = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug, map.Id, merged, ct);
+        var (status, resp) = await IntentWrite.StoreAndProjectAsync(HttpContext, repo, reader, writer, artifacts, mojang, slug, map.Id, merged, ct);
         await Send.ResponseAsync(resp!, status, ct);
     }
 }

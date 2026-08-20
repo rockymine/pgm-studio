@@ -21,6 +21,10 @@ public sealed class MapRow
     [Column("plan_source_id")] public long? PlanSourceId { get; set; }
     [Column("created_at")] public DateTime CreatedAt { get; set; }
     [Column("updated_at")] public DateTime UpdatedAt { get; set; }
+    /// <summary>Which version of this map's document the row holds — bumped by every write that replaces it,
+    /// answered as an <c>ETag</c>, and what an <c>If-Match</c> is checked against. Not
+    /// <see cref="Version"/>, which is the version string PGM reads.</summary>
+    [Column("revision"), NotNull] public long Revision { get; set; } = 1;
 }
 
 [Table("author")]
@@ -361,6 +365,9 @@ public sealed class MapArtifactRow
     [Column("map_id"), NotNull] public long MapId { get; set; }
     [Column("kind"), NotNull] public string Kind { get; set; } = "";
     [Column("data"), NotNull] public byte[] Data { get; set; } = [];
+    /// <summary>Which version of this artifact the row holds — bumped by every save, answered as an
+    /// <c>ETag</c>, and what an <c>If-Match</c> is checked against.</summary>
+    [Column("revision"), NotNull] public long Revision { get; set; } = 1;
 }
 
 /// <summary>Map symmetry (confirmed in Configure's World phase, docs/tools/configure.md) — promoted from the

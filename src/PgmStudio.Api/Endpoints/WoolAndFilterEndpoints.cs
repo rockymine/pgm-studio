@@ -13,7 +13,7 @@ public sealed class WoolCreateEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddWool(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddWool(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -26,7 +26,7 @@ public sealed class WoolUpdateEndpoint(MapRepository repo, MapReader reader, Map
     {
         var id = Route<string>("woolId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateWool(doc, id, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateWool(doc, id, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -38,7 +38,7 @@ public sealed class WoolDeleteEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("woolId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteWool(doc, id), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteWool(doc, id), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -51,7 +51,7 @@ public sealed class MonumentCreateEndpoint(MapRepository repo, MapReader reader,
     {
         var wid = Route<string>("woolId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddMonument(doc, wid, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddMonument(doc, wid, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -64,7 +64,7 @@ public sealed class MonumentUpdateEndpoint(MapRepository repo, MapReader reader,
     {
         var wid = Route<string>("woolId")!; var mid = Route<string>("monId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateMonument(doc, wid, mid, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateMonument(doc, wid, mid, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -76,7 +76,7 @@ public sealed class MonumentDeleteEndpoint(MapRepository repo, MapReader reader,
     public override async Task HandleAsync(CancellationToken ct)
     {
         var wid = Route<string>("woolId")!; var mid = Route<string>("monId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteMonument(doc, wid, mid), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteMonument(doc, wid, mid), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -102,7 +102,7 @@ public sealed class FilterCreateEndpoint(MapRepository repo, MapReader reader, M
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => FilterEditor.CreateFilter(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => FilterEditor.CreateFilter(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -115,7 +115,7 @@ public sealed class FilterUpdateEndpoint(MapRepository repo, MapReader reader, M
     {
         var fid = Route<string>("fid")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => FilterEditor.UpdateFilter(doc, fid, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => FilterEditor.UpdateFilter(doc, fid, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -127,7 +127,7 @@ public sealed class FilterDeleteEndpoint(MapRepository repo, MapReader reader, M
     public override async Task HandleAsync(CancellationToken ct)
     {
         var fid = Route<string>("fid")!;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => FilterEditor.DeleteFilter(doc, fid), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => FilterEditor.DeleteFilter(doc, fid), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }

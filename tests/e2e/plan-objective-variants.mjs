@@ -71,8 +71,10 @@ checks.section("a varied core states what it varies");
 await field("Leak").fill("9");
 await field("Leak").blur();
 await page.waitForTimeout(300);
-// leak 9 over float 6: the sentence can only say 3 if the plan document carries the new leak.
-checks.add("the dig depth follows leak through the document", /digging 3 blocks/.test(await body()));
+// leak 9 over float 6: the sentence can only say 4 if the plan document carries the new leak. The lava
+// free-falls to the first air cell over the terrain and PGM tests its centre, so a block resting exactly at
+// the leak level is half a block too high and the core leaks one course lower than the number reads.
+checks.add("the dig depth follows leak through the document", /digging 4 blocks/.test(await body()));
 
 await page.click('.field:has(.field-label:has-text("Lava")) .ctrl-row');
 await page.waitForTimeout(300);

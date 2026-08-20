@@ -13,7 +13,7 @@ public sealed class SpawnCreateEndpoint(MapRepository repo, MapReader reader, Ma
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.AddSpawnLink(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.AddSpawnLink(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -26,7 +26,7 @@ public sealed class SpawnUpdateEndpoint(MapRepository repo, MapReader reader, Ma
     {
         var rid = Route<string>("regionId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.UpdateSpawnLink(doc, rid, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.UpdateSpawnLink(doc, rid, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -38,7 +38,7 @@ public sealed class SpawnDeleteEndpoint(MapRepository repo, MapReader reader, Ma
     public override async Task HandleAsync(CancellationToken ct)
     {
         var rid = Route<string>("regionId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.DeleteSpawnLink(doc, rid), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.DeleteSpawnLink(doc, rid), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -50,7 +50,7 @@ public sealed class ObserverSpawnSetEndpoint(MapRepository repo, MapReader reade
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.SetObserverSpawn(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.SetObserverSpawn(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -61,7 +61,7 @@ public sealed class ObserverSpawnDeleteEndpoint(MapRepository repo, MapReader re
     public override void Configure() { Delete("/map/{slug}/observer-spawn"); AllowAnonymous(); }
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, SpawnEditor.DeleteObserverSpawn, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, SpawnEditor.DeleteObserverSpawn, ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -75,7 +75,7 @@ public sealed class ApplyRulesListEndpoint(MapRepository repo, MapReader reader,
     public override async Task HandleAsync(CancellationToken ct)
     {
         // read-only, but RunEditAsync persists the id backfill (harmless, positional) — acceptable.
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, ApplyRuleEditor.ListApplyRules, ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, ApplyRuleEditor.ListApplyRules, ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -87,7 +87,7 @@ public sealed class ApplyRuleCreateEndpoint(MapRepository repo, MapReader reader
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => ApplyRuleEditor.CreateApplyRule(doc, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => ApplyRuleEditor.CreateApplyRule(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -100,7 +100,7 @@ public sealed class ApplyRuleUpdateEndpoint(MapRepository repo, MapReader reader
     {
         var rid = Route<string>("ruleId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => ApplyRuleEditor.UpdateApplyRule(doc, rid, p), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => ApplyRuleEditor.UpdateApplyRule(doc, rid, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }
@@ -112,7 +112,7 @@ public sealed class ApplyRuleDeleteEndpoint(MapRepository repo, MapReader reader
     public override async Task HandleAsync(CancellationToken ct)
     {
         var rid = Route<string>("ruleId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => ApplyRuleEditor.DeleteApplyRule(doc, rid), ct);
+        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => ApplyRuleEditor.DeleteApplyRule(doc, rid), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
 }

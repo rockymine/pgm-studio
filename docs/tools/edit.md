@@ -176,6 +176,13 @@ not take, **404** (`RQ4`) for an unknown map, region, team, wool, monument, spaw
 something still references, or a built-in one. Payload validation runs **before** the lookup, so a malformed
 body aimed at something that does not exist answers 400 rather than 404.
 
+**Every one of them rewrites the whole document**, which is what makes two editors a problem: an edit reads
+the map, patches it and writes all of it back, so two callers working on different parts at once keep only
+the second, with no conflict and no finding. `GET /map/{slug}` answers the map's **revision** as an `ETag`,
+and any write here may state it back as an `If-Match`; one naming a revision the map is no longer at is
+refused as `RQ5` — the third 409 in that list — and one stating nothing writes as it always did.
+`docs/refusals.md` carries the rule and why it is 409 rather than 412.
+
 | Endpoint | Does |
 |---|---|
 | `PATCH /map/{slug}/metadata` | name, version, objective, max build height, authors |

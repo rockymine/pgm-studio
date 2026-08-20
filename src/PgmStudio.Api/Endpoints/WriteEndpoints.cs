@@ -20,9 +20,18 @@ internal static class WriteSupport
         return string.IsNullOrWhiteSpace(body) ? new Dict() : JsonTree.FromJson(body) as Dict ?? new Dict();
     }
 
-    /// <summary>Load the map doc, apply an edit, and persist via MapWriter. Returns (status, body).</summary>
+    /// <summary>Load the map doc, apply an edit, and persist via MapWriter. Returns (status, body).
+    /// <para>Every edit route comes through here, so the revision guard does too: a request stating an
+    /// <c>If-Match</c> writes only if the map is still at it, and one that is not answers <c>RQ5</c> in the
+    /// body the caller was going to send anyway (<see cref="Revisions"/>).</para></summary>
+    /// <param name="guarded">Whether the request's <c>If-Match</c> names <b>this</b> document. True for an
+    /// edit route, whose caller read the map. False where the header names something else the same request
+    /// already guarded — an intent write states the intent's revision, and the projection that follows it
+    /// rewrites the map, whose revision is a different number: guarding it with the same header would refuse
+    /// every guarded intent write.</param>
     public static async Task<(int status, object? body)> RunEditAsync(
-        MapRepository repo, MapReader reader, MapWriter writer, string slug, Func<Dict, Dict> edit, CancellationToken ct)
+        HttpContext http, MapRepository repo, MapReader reader, MapWriter writer, string slug,
+        Func<Dict, Dict> edit, CancellationToken ct, bool guarded = true)
     {
         var map = await repo.GetBySlugAsync(slug, ct);
         if (map is null)
@@ -32,7 +41,9 @@ internal static class WriteSupport
         try
         {
             var result = edit(doc);
-            await writer.SaveDocAsync(map.Id, doc, ct);
+            if (await Writes.StoreDocAsync(http, writer, map.Id, doc, guarded, ct) is null)
+                return (Revisions.StaleStatus,
+                        Revisions.Stale(http, "map", await writer.RevisionAsync(map.Id, ct)));
             return (200, result);
         }
         catch (EditException ex) { return (ex.Status, Refusals.Of(ex.Error, [ex.Finding])); }
@@ -114,7 +125,7 @@ public sealed class TeamCreateEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var payload = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (status, body) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.AddTeam(doc, payload), ct);
+        var (status, body) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.AddTeam(doc, payload), ct);
         await Send.ResponseAsync(body!, status, ct);
     }
 }
@@ -128,7 +139,7 @@ public sealed class TeamUpdateEndpoint(MapRepository repo, MapReader reader, Map
     {
         var teamId = Route<string>("teamId")!;
         var payload = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (status, body) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.UpdateTeam(doc, teamId, payload), ct);
+        var (status, body) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.UpdateTeam(doc, teamId, payload), ct);
         await Send.ResponseAsync(body!, status, ct);
     }
 }
@@ -141,7 +152,7 @@ public sealed class TeamDeleteEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var teamId = Route<string>("teamId")!;
-        var (status, body) = await WriteSupport.RunEditAsync(repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.DeleteTeam(doc, teamId), ct);
+        var (status, body) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.DeleteTeam(doc, teamId), ct);
         await Send.ResponseAsync(body!, status, ct);
     }
 }

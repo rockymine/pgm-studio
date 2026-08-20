@@ -290,9 +290,34 @@ cannot say whether the identifier was wrong or the route was — `PUT /map/typo/
 The finding names what was looked for and the identifier it was looked for under.
 
 **`RQ5` — the request conflicts with what is stored.** A slug already taken, a library row something still
-binds. **409**, and the finding's subjects name what is in the way — the styles still binding a roof, the map
-already holding the slug — so a caller can act rather than guess. It is the one refusal where nothing is wrong
-with the request at all.
+binds, a write against a document somebody else has already replaced. **409**, and the finding's subjects name
+what is in the way — the styles still binding a roof, the map already holding the slug — so a caller can act
+rather than guess. It is the one refusal where nothing is wrong with the request at all.
+
+**The stale write is the third of those, and it is the one a caller opts into.** Every write in the studio
+replaces: an edit reads the whole map document, patches it and writes the whole document back, and an artifact
+is one row a save replaces. Two callers doing that at once keep only the second, with the same status and the
+same body either way — so the loss is invisible from the response, which is why it needs a mechanism rather
+than care. Each document carries a **revision**; a read answers it as an `ETag`, and a write may state it back
+as an `If-Match`. A write whose `If-Match` names a revision the document is no longer at is refused, naming
+both numbers and saying to read it again and re-apply — the studio cannot merge two whole-document writes, and
+guessing at one would lose whichever half it guessed against.
+
+A request with **no** `If-Match` states no precondition and writes, exactly as it did before there was a
+revision to state. Protection is opted into by having read first, which is the only way it can mean anything;
+requiring the header would make every caller read before every write. An `If-Match` that is not a revision at
+all is refused rather than read as an absent one — a caller that meant to guard its write is not quietly left
+unguarded.
+
+**It is 409 and not 412.** `412 Precondition Failed` is the header's own status, and this answers `RQ5`
+because the studio has one refusal envelope and `RQ5` already means *the request conflicts with what is
+stored*, which is exactly what a stale write is. A caller writing one parser for the studio is the whole point
+of there being one shape, and a second status carrying a different body for the same class of fault costs
+precisely that.
+
+**The map document and each artifact are versioned apart**, because they are separate documents with separate
+writers: a caller holding the sketch layout's revision has said nothing about the map's, and one counter would
+refuse a metadata patch because somebody saved a drawing.
 
 **`RQ6` — a document the studio stored will not read back.** A plan row, an artifact, a snapshot written under
 a shape no reader claims. **422** rather than 500, because it is data rather than a defect and writing the

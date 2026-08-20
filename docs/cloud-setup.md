@@ -88,6 +88,13 @@ resets its own schema through `sudo -n mariadb` (its default admin path, which w
 `sudo service mariadb start` has run). It uses its own port (7895) and database (`pgm_studio_e2e`), so a run
 cannot touch dev data. Expect `22/22` plan refusals and `33/33` smoke.
 
+**The browser has no egress, and two checks depend on one.** `configure-objectives` ends 8/10 here on two
+`net::ERR_CONNECTION_RESET`s fetching a player avatar from `mc-heads.net` — the client renders one per author
+(`AuthorsEditor.razor`). A foreground `curl` reaches that host through the agent proxy, so the host is not
+blocked; headless Chromium is simply not proxied. Nothing in the container fixes it, and the two checks are
+about a phase raising no faults rather than about avatars, so read the suite as green at 8/10 unless one of
+the other eight moves.
+
 The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
 — which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays
 un-gated. **Firefox cannot be added here**, and the three routes are all closed, so there is no point

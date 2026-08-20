@@ -48,9 +48,8 @@ is kept in the table with the answer beside it, because the answer is the part a
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
 | `RP22` | Does the export become a job the caller polls, and if so what happens to the UI's Export button? That is a product call about waiting, not a plumbing one. |
 
-Two more carry a smaller one, which an implementer may make and state rather than ask: `RP12` (how far to
-push declared request shapes in one pass — the write surface is the useful half) and `RP21` (whether a
-version is per map document or per artifact).
+One more carries a smaller one, which an implementer may make and state rather than ask: `RP12`, how far to
+push declared request shapes in one pass — the write surface is the useful half.
 
 ## Phase 1 — say what the surface is
 
@@ -93,14 +92,6 @@ The step that stops a gate from belonging to a door, and the only one here that 
   write, advance the stage — and nothing but an HTTP request can reach it, which is why `tools/mapgen` has
   its own. Add an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests
   as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one.
-
-- [ ] **RP21 — Two writers to one map is a silent lost update.** There is no `ETag`, no `If-Match`, no
-  version column and no row check anywhere in `Api` or `Data`. Every Edit route reads the whole document,
-  patches it and writes the whole document back (`WriteSupport.RunEditAsync`), so two callers editing
-  different parts of one map at the same time keep only the second — no conflict, no finding, no trace. It
-  did not matter while one person drove one browser tab; the intended mode is now an agent driving the API
-  while a tab is open on the same slug. Give the map document and each artifact a version, answer it as an
-  `ETag`, and refuse a stale `If-Match` as `RQ5` — the conflict rule that already exists.
 
 - [ ] **RP22 — A world is built, zipped and returned inside one GET.** `GET /map/{slug}/export` composes the
   map, synthesises the whole voxel world, writes it to a temp folder and zips it in memory before answering

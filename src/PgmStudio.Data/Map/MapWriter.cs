@@ -1,5 +1,6 @@
 using System.Text.Json;
 using LinqToDB;
+using LinqToDB.Async;
 using LinqToDB.Data;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
@@ -25,19 +26,60 @@ public sealed class MapWriter(PgmDb db)
     /// Non-wool entities go through the flat <see cref="MapXml"/>; wools are written from the grouped
     /// doc so a monument-less wool / wool-level fields survive.
     /// </summary>
-    public async Task SaveDocAsync(long mapId, Dict doc, CancellationToken ct = default)
+    public async Task<long> SaveDocAsync(long mapId, Dict doc, CancellationToken ct = default)
     {
-        var m = Deserializer.FromDict(doc);
+        var revision = 0L;
         await db.InOneWriteAsync(async () =>
         {
-            await DeleteEntitiesAsync(mapId, ct);
-            await db.Maps.Where(x => x.Id == mapId).Set(x => x.Name, m.Name)
-                .Set(x => x.Version, NullIfEmpty(m.Version)).Set(x => x.Gamemode, NullIfEmpty(string.Join(' ', m.DeclaredGamemode)))
-                .Set(x => x.Objective, NullIfEmpty(m.Objective)).Set(x => x.MaxBuildHeight, (double?)m.MaxBuildHeight)
-                .Set(x => x.UpdatedAt, DateTime.UtcNow).UpdateAsync(ct);
-            await WriteEntitiesAsync(mapId, m, ct);
-            await WriteWoolsFromDocAsync(mapId, doc, ct);
+            await ClaimAsync(mapId, doc, expected: null, ct);
+            revision = await RevisionAsync(mapId, ct) ?? 0;
         }, ct);
+        return revision;
+    }
+
+    /// <summary>
+    /// Replace the document only if the map is still at <paramref name="expected"/>, answering the revision it
+    /// is now at — or null where it is not, which is a write against a document somebody else has already
+    /// replaced.
+    ///
+    /// <para>The revision is claimed <b>first</b>, in the same statement that bumps it and inside the same
+    /// write as the rows: a caller that does not win the claim writes nothing, and one that does holds the row
+    /// for the rest of the unit. Reading the revision and then writing would be two statements, and two
+    /// callers can both read the same one.</para>
+    /// </summary>
+    public async Task<long?> SaveDocIfUnchangedAsync(
+        long mapId, Dict doc, long expected, CancellationToken ct = default)
+    {
+        long? revision = null;
+        await db.InOneWriteAsync(async () =>
+        {
+            if (await ClaimAsync(mapId, doc, expected, ct) == 0) return;
+            revision = expected + 1;
+        }, ct);
+        return revision;
+    }
+
+    /// <summary>The map's own revision, or null when no such map.</summary>
+    public Task<long?> RevisionAsync(long mapId, CancellationToken ct = default)
+        => db.Maps.Where(x => x.Id == mapId).Select(x => (long?)x.Revision).FirstOrDefaultAsync(ct);
+
+    /// <summary>Take the map's scalars and its revision in one statement, then rewrite its entity rows.
+    /// Answers how many map rows the claim matched — zero only when <paramref name="expected"/> named a
+    /// revision the map is no longer at, in which case nothing below it runs.</summary>
+    private async Task<int> ClaimAsync(long mapId, Dict doc, long? expected, CancellationToken ct)
+    {
+        var m = Deserializer.FromDict(doc);
+        var rows = db.Maps.Where(x => x.Id == mapId && (expected == null || x.Revision == expected));
+        var claimed = await rows.Set(x => x.Name, m.Name)
+            .Set(x => x.Version, NullIfEmpty(m.Version)).Set(x => x.Gamemode, NullIfEmpty(string.Join(' ', m.DeclaredGamemode)))
+            .Set(x => x.Objective, NullIfEmpty(m.Objective)).Set(x => x.MaxBuildHeight, (double?)m.MaxBuildHeight)
+            .Set(x => x.UpdatedAt, DateTime.UtcNow).Set(x => x.Revision, x => x.Revision + 1).UpdateAsync(ct);
+        if (claimed == 0) return 0;
+
+        await DeleteEntitiesAsync(mapId, ct);
+        await WriteEntitiesAsync(mapId, m, ct);
+        await WriteWoolsFromDocAsync(mapId, doc, ct);
+        return claimed;
     }
 
     /// <summary>Insert wool + monument rows from the grouped <c>doc["wools"]</c> (handles monument-less wools).</summary>

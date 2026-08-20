@@ -41,14 +41,51 @@ public sealed class MapArtifactStore(PgmDb db)
     public Task<bool> HasAsync(long mapId, string kind, CancellationToken ct = default)
         => db.Artifacts.AnyAsync(a => a.MapId == mapId && a.Kind == kind, ct);
 
-    /// <summary>Replace the map's artifact of this kind with these bytes, in one write — a fault between the
-    /// delete and the insert would otherwise leave the map holding neither the old document nor the new.</summary>
-    public Task SaveAsync(long mapId, string kind, byte[] data, CancellationToken ct = default)
-        => db.InOneWriteAsync(async () =>
+    /// <summary>The revision the map's artifact of this kind is at, or null when it holds none. What a read
+    /// answers as its <c>ETag</c> and what a later write states it was written against.</summary>
+    public async Task<long?> RevisionAsync(long mapId, string kind, CancellationToken ct = default)
+        => (await db.Artifacts.Where(a => a.MapId == mapId && a.Kind == kind)
+                              .Select(a => (long?)a.Revision).FirstOrDefaultAsync(ct));
+
+    /// <summary>Replace the map's artifact of this kind with these bytes and answer the revision it is now
+    /// at, in one write — a fault between the delete and the insert would otherwise leave the map holding
+    /// neither the old document nor the new.</summary>
+    public async Task<long> SaveAsync(long mapId, string kind, byte[] data, CancellationToken ct = default)
+    {
+        var revision = 1L;
+        await db.InOneWriteAsync(async () =>
         {
+            revision = (await RevisionAsync(mapId, kind, ct) ?? 0) + 1;
             await DeleteAsync(mapId, kind, ct);
-            await db.InsertAsync(new MapArtifactRow { MapId = mapId, Kind = kind, Data = data }, token: ct);
+            await db.InsertAsync(
+                new MapArtifactRow { MapId = mapId, Kind = kind, Data = data, Revision = revision }, token: ct);
         }, ct);
+        return revision;
+    }
+
+    /// <summary>
+    /// Replace the artifact only if it is still at <paramref name="expected"/>, answering the revision it is
+    /// now at — or null where it is not, which is a write against a document somebody else has already
+    /// replaced.
+    ///
+    /// <para>One statement, because the answer has to be true at the moment it is acted on. Reading the
+    /// revision and then writing is two, and two callers can both read the same one and both write; the
+    /// revision is in the <c>where</c> so the database decides, and the second writer's update matches no
+    /// row.</para>
+    ///
+    /// <para>A map holding no artifact of this kind also matches nothing, which is the right answer to a
+    /// caller claiming to have read one.</para>
+    /// </summary>
+    public async Task<long?> SaveIfUnchangedAsync(
+        long mapId, string kind, byte[] data, long expected, CancellationToken ct = default)
+    {
+        var written = await db.Artifacts
+            .Where(a => a.MapId == mapId && a.Kind == kind && a.Revision == expected)
+            .Set(a => a.Data, data)
+            .Set(a => a.Revision, a => a.Revision + 1)
+            .UpdateAsync(ct);
+        return written == 0 ? null : expected + 1;
+    }
 
     /// <summary>Replace the map's artifact of this kind with this document, serialized.</summary>
     public Task SaveJsonAsync<T>(long mapId, string kind, T value, CancellationToken ct = default)

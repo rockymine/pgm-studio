@@ -413,7 +413,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `GET /map/{slug}/intent` | — | the stored intent, or an empty one | 404 unknown map |
-| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry | 404 |
+| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **409 `RQ5`** a stale `If-Match` · 404 |
 | `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags; `warnings` carries any field of the **posted** intent the reader had nowhere to keep (`RQ3`) | 404 |
 
 **Getting a world in**
