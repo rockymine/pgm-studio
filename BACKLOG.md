@@ -1160,6 +1160,16 @@ so it has to *call* them, which is what the application layer is for.
   types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
   callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
 
+- **Parked, and the author's:** *is `tools/mapgen` still needed?* Measured against the last run: the driver
+  that authored those maps is `drive.py` in the mapgen repo, and it never touches `tools/mapgen` — it makes
+  fifteen HTTP calls and the map lands in the database. Two of mapgen's three board modes, `compose` and
+  `plan`, are reachable over HTTP. **The third is not**: `IslandGrid.Lay` has exactly one caller, mapgen's own
+  `Build`, and a grid board carries no plan at all, so no route can express one. `tools/library-map.cs` — the
+  catalogue map, one of the three scripts `CLAUDE.md` sanctions — `#:project`-references mapgen and emits a
+  spec only mapgen consumes. So mapgen cannot go until the grid board has somewhere else to live, and the
+  question is whether the catalogue map is worth a route (`POST /plan/grid`, or a layout the script emits
+  directly) or whether mapgen stays as the one tool that builds it.
+
 ## The remainder: work no concept above has claimed
 
 ### User Experience and Graphical User Interface

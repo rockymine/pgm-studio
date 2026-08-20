@@ -743,6 +743,29 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   The surface is 154 operations → **148** over 117 paths, and the false-204 count 30 → **24**, which is now
   exactly `RP29`'s edit routes and nothing else.
+- **A map comes back from the three documents it is made of (RP13, in part).**
+  `POST /map/from-documents` takes a plan, a layout and an intent together and stores a whole map: the plan to
+  re-plan from, the drawing rasterized into geometry, the intent projected into the document, and the authors
+  applied over it. It answers the slug, whether a map under it was replaced, and what the drawing held.
+
+  **It exists because nothing else could take a map back.** `POST /map/import-folder` refuses a folder
+  carrying a `map.xml` outright (`ImportRules.AlreadyAMap`), `import-url` extracts only `region/*.mca`, and
+  `MapParser.ParseXml` has no caller in `Api` at all — so a map authored against one studio reached another
+  only as a world, arriving without its plan, its drawing or its intent, and could never be re-planned. The
+  documents carry more than the world does.
+
+  **The order is the operation.** Storing an intent projects the map document from the intent's own `meta`,
+  and a compiled intent carries an empty `meta.authors` — so authors applied before the intent are overwritten
+  by that projection, silently, with a 200 on every call. The rule was written in four places and enforced in
+  none; `MapFromDocuments` makes the sequence itself the answer, and `MapFromDocumentsTests` proves it: moving
+  the authors ahead of the intent fails two of its five tests.
+
+  **Two more use cases have a name.** `SketchFinish` is the finish operation the route now calls rather than
+  performs, so a second caller meets the same three gates in the same order. `MapAuthors.ReplaceAsync` is what
+  counts as a person — an account or a pseudonym — shared by the metadata write and the load. Both answer
+  `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
+  layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
+
 - **Every operation on the surface says what it answers (RP29).** The twenty-four edit routes handed back
   whatever `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so each published a **204 it
   did not answer**. `Contracts/EditDtos.cs` names the ten shapes behind them and each route declares its own,

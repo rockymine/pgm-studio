@@ -42,7 +42,7 @@ is kept in the table with the answer beside it, because the answer is the part a
 
 | Entry | The question |
 |---|---|
-| `RP13` | *Answered by the author: **its own project**, and an operation is a step of the pipeline — the thing that builds the map, callable from two sides with no dependency on the UI running.* What is left is naming the steps, which the implementer states in the commit. |
+| `RP13` | *Answered by the author: **its own project**, and an operation is a step of the pipeline — the thing that builds the map, callable from two sides with no dependency on the UI running.* The steps are named now: the thirteen handlers that read and write, three of which are already operations. |
 | `RP14` | Sign-off on the six categories. The ids do not move, but a category is as stable as an id once a caller branches on it. The `concerns` list is `RP26`'s — its vocabulary is now written down there — and `RP14` ships without waiting for it. |
 | `RP15` | What **is** `WX9`? It is stated as a rule in two documents and fired by nothing. Declaring it and retiring it are both one commit, and only the author knows which. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
@@ -77,12 +77,19 @@ the two consumers that still keep the contract by hand instead of reading the do
 
 One entry, and the phase's whole point: the step that stops a gate from belonging to a door.
 
-- [ ] **RP13 — The use case is the HTTP handler, so a second driver needs a second copy of it.**
-  `Api/Endpoints` holds **4,753 lines** against `Api/Services`' 1,169, and `Services/` is read-model
-  builders. `SketchFinishEndpoint.HandleAsync` *is* the finish use case — load, gate, rasterize, detect,
-  write, advance the stage — and nothing but an HTTP request can reach it, which is why `tools/mapgen` has
-  its own. Add an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests
-  as three adapters over it. The load-or-404 prologue appears **49 times** and becomes one.
+- [~] **RP13 — A step of the pipeline lives behind the door it is reached through.** Of 149 handlers, the
+  bodies total 2,146 lines at a median of 10, so the volume is not the problem: **thirteen** read state and
+  write it back, and three of those also run a gate. Those are the use cases, and each is reachable only by
+  sending an HTTP request. Three now sit in `Api/Services` as operations that answer `Findings` and let the
+  layer above render the envelope — `MapExportLoader`, `SketchFinish`, `MapFromDocuments`. Move them to a
+  project of their own with HTTP, the CLI and tests as three adapters, and take the remaining ten with them.
+  The load-or-404 prologue appears 37 times verbatim and becomes one.
+
+  *What makes it worth doing is the **order**, not the duplication: storing an intent projects the document
+  from the intent's own `meta`, so authors written before it are lost — silently, with 200 on every call. That
+  rule is written in `flow.md`, in the mapgen repo's driver, its README and its generation notes, and was
+  enforced nowhere until `MapFromDocuments` made the sequence itself the answer. `RP32` needs the same layer
+  for the same reason: a findings summary has to **call** the gates, not restate them.*
 
 ## Phase 3 — one class of fault
 

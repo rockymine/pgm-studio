@@ -1,5 +1,6 @@
 using FastEndpoints;
 using LinqToDB;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -83,39 +84,10 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         u = u.Set(x => x.UpdatedAt, DateTime.UtcNow);
         await u.UpdateAsync(ct);
 
-        // Authors are a full replace (mirrors the reference, which rewrites the authors array): wipe
-        // the map's rows and re-insert from the payload.
-        //
-        // A person is an account — a `uuid` PGM resolves to a player — OR a pseudonym, the element's own
-        // text, and PGM takes either and requires one. Both halves of the codec already keep that rule
-        // (`MapParser.ParseAuthors` reads either, `XmlWriter.WriteAuthors` writes a name-only author as
-        // `<author>Name</author>` with no uuid attribute at all), so requiring one here was this endpoint's
-        // rule and nobody else's — and it dropped a name-only author in silence, which is the one shape an
-        // authoring surface with no Mojang account can state. Only a person carrying neither is skipped.
+        // Authors are a full replace, and the rule for what counts as a person is MapAuthors' — the load
+        // that reconstitutes a map from its documents states them the same way.
         if (p.TryGetValue("authors", out var authorsRaw) && authorsRaw is List<object?> authors)
-        {
-            await db.Authors.Where(x => x.MapId == map.Id).DeleteAsync(ct);
-            foreach (var entry in authors)
-            {
-                // A bare string is a pseudonym and nothing else, which is the form `tools/mapgen`'s spec
-                // takes and the form an author writes when there is no account behind the name.
-                var (a, plain) = entry is Dict dict ? (dict, "") : (null, (entry as string)?.Trim() ?? "");
-                if (a is null && plain.Length == 0) continue;
-                var uuid = a is null ? "" : (a.GetValueOrDefault("uuid") as string)?.Trim() ?? "";
-                var name = a is null ? plain : (a.GetValueOrDefault("name") as string)?.Trim() ?? "";
-                if (uuid.Length == 0 && name.Length == 0) continue;
-                await db.InsertAsync(new AuthorRow
-                {
-                    MapId = map.Id,
-                    Uuid = uuid,
-                    Role = a?.GetValueOrDefault("role") as string == "contributor" ? "contributor" : "author",
-                    Contribution = a is null
-                        ? null
-                        : NullIfEmpty((a.GetValueOrDefault("contribution") as string)?.Trim()),
-                    Name = NullIfEmpty(name),
-                }, token: ct);
-            }
-        }
+            await MapAuthors.ReplaceAsync(db, map.Id, authors, ct);
 
         await tx.CommitAsync(ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);

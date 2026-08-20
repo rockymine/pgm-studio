@@ -124,6 +124,22 @@ document — teams, kits, regions, filters, apply-rules, spawns — in one idemp
 `GET /api/map/{slug}/xml` renders that document, gated on the pre-flight checks;
 `GET /api/map/{slug}/export` gives the world.
 
+**The three documents are also the way back in.** `POST /api/map/from-documents` takes a plan, a layout and
+an intent together and stores a whole map from them — the plan to re-plan from, the drawing rasterized into
+geometry, the intent projected into the document — and answers the slug it landed under. A map already stored
+under that slug is **replaced**: the documents name one map, so loading them twice is a reload.
+
+It exists because nothing else can take a map back. `POST /map/import-folder` refuses a folder carrying a
+`map.xml` outright, `import-url` extracts only `region/*.mca`, and no route in the studio reads a `map.xml` at
+all — so a map authored against one studio could reach another only as a world, arriving without its plan, its
+drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.
+
+**The order inside it is the operation, not the caller's to remember.** Storing an intent projects the map
+document from the intent's own `meta`, and a compiled intent carries an empty `meta.authors` — so authors
+applied before the intent are overwritten by that projection, silently and with a 200 on every call. Stated in
+the body, they are applied after it. Driving the same sequence by hand means keeping that rule; this route is
+where it became code.
+
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the
 same reason. Only the two `…/from-plan` routes merge.

@@ -498,7 +498,8 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 /// one, so the commonest shape in that category — one continent both teams stand on — is exactly what a
 /// two-island floor rejected. Symmetry decides whether a board has two sides, and it is stated in the setup
 /// rather than counted in the ground.</para></summary>
-public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer) : EndpointWithoutRequest<SketchFinishedDto>
+public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer)
+    : EndpointWithoutRequest<SketchFinishedDto>
 {
     public override void Configure() { Post("/map/{slug}/sketch/finish"); AllowAnonymous(); }
 
@@ -507,34 +508,15 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
         if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
 
-        var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
-        if (data is null)
+        var finished = await SketchFinish.RunAsync(map.Id, repo, artifacts, writer, ct);
+        if (finished.IsError)
         {
-            await Refusals.WriteAsync(HttpContext, 422, "nothing to finish",
-                [new Finding(SketchRules.NothingStored,
-                    "this map has no stored sketch layout, so there is no drawing to rasterize")], ct);
+            await Refusals.WriteAsync(HttpContext, finished.ErrorStatus!.Value, finished.Error!, finished.Findings!, ct);
             return;
         }
 
-        // The document's own gate, run where the drawing is declared done: what the board names and does not
-        // have contributes no ground, so an island the author expected can be missing from the artifacts this
-        // writes. The complaints ride on the success — this is the last stage that can still say so.
-        var layoutJson = Encoding.UTF8.GetString(data);
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
-                SketchLayoutCheck.Check(layoutJson), ct)) return;
-
-        var cells = SketchRasterizer.RasterizeColumns(layoutJson);
-        var islands = IslandDetector.Detect(cells.Select(c => (c.X, c.Z)), minIslandSize: 1);
-        if (islands.Count == 0)
-        {
-            await Refusals.WriteAsync(HttpContext, 422, "nothing is drawn",
-                [new Finding(SketchRules.NothingDrawn,
-                    "the stored layout rasterizes to no ground at all — draw a shape that encloses some")], ct);
-            return;
-        }
-
-        await writer.WriteSketchAsync(map.Id, cells, islands, ct);
-        await repo.SetStageAsync(map.Id, MapStage.Configure, ct);   // the draft now has geometry → ready to configure
+        // What the board names and does not have rides on the success — this is the last stage that can say so.
+        Complaints.Add(HttpContext, finished.Complaints?.Complaints ?? []);
         await Send.OkAsync(new SketchFinishedDto(map.Slug, $"/maps/{map.Slug}/configure"), ct);
     }
 }

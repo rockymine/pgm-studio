@@ -12,7 +12,7 @@ parsed.
 
 ## Two drivers, and neither is the other's client
 
-The pipeline has two entry points. `PgmStudio.Api` exposes **148 endpoint classes** over 44 files, and
+The pipeline has two entry points. `PgmStudio.Api` exposes **149 endpoint classes** over 45 files, and
 `tools/mapgen` links `Pgm`, `Minecraft`, `Export` and `Analysis` directly — it opens no `HttpClient` and
 speaks no HTTP at all. Both compile a plan, rasterize a layout, dress a world and write a `map.xml`.
 
@@ -25,12 +25,12 @@ again, because a use case that *is* an HTTP handler has no other place for one t
 
 ## The boundary carries no schema
 
-The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 117
-paths, **148 operations**, 220 schemas — and `/api-docs` is the page over it, where a route can be expanded
+The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
+paths, **149 operations**, 222 schemas — and `/api-docs` is the page over it, where a route can be expanded
 and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and most of the write surface declares nothing.
-**127 of the 148 endpoints declare no typed request**, 21 do, and **23 call sites read the body as
+**127 of the 149 endpoints declare no typed request**, 22 do, and **23 call sites read the body as
 `Dictionary<string, object?>`** through `RawBody` and `JsonTree`. Those routes appear in the
 document with their path and verb and no body schema at all: the generator can only publish what the code
 states.
@@ -40,7 +40,7 @@ Three things follow from that, and they are the same fact seen from three sides.
 **The one global input gate covers an eighth of the surface.** `RequiredFields` refuses anything a request
 DTO declares non-nullable and the body did not supply — and its first line is
 `if (context.Request is not { } request) return;`, so it is a no-op for every endpoint that has no request
-type. The promise it makes holds for 21 routes out of 148.
+type. The promise it makes holds for 22 routes out of 149.
 
 **A validation that cannot live in a schema lives in the code by hand.** The Edit tool's 53 refusal sites
 across `Pgm/Editing` are, read as a group, a request schema: a field is absent, a value is outside a closed
@@ -49,7 +49,7 @@ guard has no declared shape to hang them on.
 
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
-not leave a caller guessing but misleads it. **Nought of the 148 operations** publish that 204 without
+not leave a caller guessing but misleads it. **Nought of the 149 operations** publish that 204 without
 answering it; seven publish it truthfully, every one a delete whose answer is that the thing is gone.
 `SchemaCompletenessTests` holds the count at zero and the seven as a named list, so a route added without a
 response type fails there, and one on the list that grows a body cannot leave it quietly. The media types
@@ -60,7 +60,7 @@ are declared too: the six `image/png` routes, the three `text/plain` ones and th
 `Api/Endpoints` are the generator's source. Beside them sit **152 route strings** written out in the Blazor
 client and the endpoint tables in the eight `docs/tools/` documents, neither of which is derived from the
 schema. The client reads **59 responses as `JsonElement`** against 16 typed reads, across 38 files, so the
-response shape is a third copy living in per-component parsing code; `Contracts` carries its DTOs for 148
+response shape is a third copy living in per-component parsing code; `Contracts` carries its DTOs for 149
 endpoints. The split across the client's features says which half of the studio was built against a declared
 shape: **Catalog 3 typed / 0 untyped and Generator 3 / 0**, against **Configure 1 / 27** and **Edit 0 / 14**.
 The two pages with a typed contract are the two newest, and they are what the rest would look like read
@@ -72,17 +72,29 @@ what a generated one would read.
 
 ## The use case has no name
 
-`Api/Endpoints` holds **4,753 lines of code**; `Api/Services` holds **1,169**, and its contents are read-model
-builders — `TerrainPreview`, `DressingPreview`, `PlanStructurePreview`, `WorldColumnPayload`. There is no
-type in the tree whose job is *finish a sketch* or *export a map*.
+`Api/Endpoints` holds **4,427 lines of code** against `Api/Services`' **1,348**, but the line counts measure
+the file rather than the use case. The 149 handler bodies are **2,146 lines between them** — a median of
+**10**, with 91 of 149 at twelve lines or fewer and four over forty. The rest of `Endpoints/` is 149 class
+declarations, their `Configure` blocks and their constructors.
 
-`SketchFinishEndpoint.HandleAsync` is the finish use case: load the map, refuse a missing artifact, run the
-document gate, rasterize, detect islands, refuse an empty board, write the feature artifacts, advance the
-stage, answer. Every one of those steps is a decision about the domain, and all of them are reachable only by
-sending an HTTP request. `tools/mapgen` needs the same steps and cannot call them, so it has its own copy —
-which is the mechanism behind the previous section, stated at the level where it is fixable.
+**The use cases are the thirteen handlers that read state and write it back**, and three of those also run a
+gate: `SketchFinish`, `SketchFromPlan`, `SketchPut`. Everything else is a read, or a thin pass-through to an
+editor in `Pgm/Editing`. So the problem is not volume; it is that a step of the pipeline has nowhere to live
+except behind the door it is reached through, and a second driver cannot call it.
 
-The load-the-map-or-404 prologue appears **49 times** in `Api`, 42 of them ending in the same refusal.
+Three operations now do live somewhere: `MapExportLoader` loads what the pure composer needs and calls it,
+`SketchFinish` rasterizes a drawing and advances the stage, and `MapFromDocuments` turns a plan, a layout and
+an intent back into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
+envelope — and each has more than one caller or is written to take one. They sit in `Api/Services` because
+that is the lowest project reaching everything they need today; `RP13` is where they move to a project of
+their own with the CLI as a second adapter.
+
+**The order between steps is the part that has no home at all.** Storing an intent projects the map document
+from the intent's own `meta`, so authors written before it are overwritten — a rule stated in `flow.md`, in
+the driver that authors maps against this API, in that driver's README and in its generation notes, and
+enforced by nothing until `MapFromDocuments` made the sequence itself the answer.
+
+The load-the-map-or-404 prologue appears **37 times** verbatim in `Api/Endpoints`, out of 44 slug loads.
 
 ## The lifecycle is data, and nothing reads it
 
@@ -235,7 +247,7 @@ answer already and stopped one step short of the form that makes it machine-read
 |---|---|---|
 | a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
 | a declared request shape | a request record per route, bound at the edge — parse rather than validate | 145 unguarded routes, and most of the Edit tool's 74 hand-written checks |
-| a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | the second pipeline in `tools/mapgen`, and the 49-fold load-or-404 prologue |
+| a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 71 ids to branch once |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
 | a lifecycle that is enforced | a state machine over `MapStage` with a transition table, and the allowed transitions on the map's own response | `capabilities.md` as the only answer to a runtime question, and an agent that learns the pipeline by trying it |
