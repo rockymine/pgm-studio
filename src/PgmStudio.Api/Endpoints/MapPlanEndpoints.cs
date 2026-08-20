@@ -17,7 +17,7 @@ namespace PgmStudio.Api.Endpoints;
 /// to <c>/maps/{slug}/plan</c>, where the editor keeps its default blank document until first save. Body:
 /// optional {name}. The generator's <c>plan</c> candidate rows are a separate pool; authoring one forks it
 /// into a map here.</summary>
-public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
     public override void Configure() { Post("/plan"); AllowAnonymous(); }
 
@@ -39,7 +39,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
             Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Plan, CreatedAt = now, UpdatedAt = now,
         });
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, "{}"u8.ToArray(), ct);
-        await Send.OkAsync(new { slug }, ct);
+        await Send.OkAsync(new OriginatedDto(slug), ct);
     }
 }
 
@@ -47,7 +47,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
 /// <c>map</c> row at <c>stage=plan</c> seeded with the candidate's <c>plan_json</c> (a <c>plan_json</c>
 /// artifact) and a <c>plan_source_id</c> back to the candidate. Returns the slug; the client navigates to
 /// <c>/maps/{slug}/plan</c>. 404 if the candidate doesn't exist.</summary>
-public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
     public override void Configure() { Post("/plan/{planId}/author"); AllowAnonymous(); }
 
@@ -66,7 +66,7 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
             PlanSourceId = candidate.Id, CreatedAt = now, UpdatedAt = now,
         });
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(candidate.PlanJson), ct);
-        await Send.OkAsync(new { slug }, ct);
+        await Send.OkAsync(new OriginatedDto(slug), ct);
     }
 }
 
@@ -149,7 +149,7 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
 }
 
 /// <summary>PUT /api/map/{slug}/plan — replace the stored plan blob (the plan editor's saved state).</summary>
-public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
 {
     public override void Configure() { Put("/map/{slug}/plan"); AllowAnonymous(); }
 
@@ -176,6 +176,6 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
                 await artifacts.RevisionAsync(map.Id, ArtifactKind.PlanJson, ct), ct);
             return;
         }
-        await Send.OkAsync(new { ok = true }, ct);
+        await Send.OkAsync(new OkDto(), ct);
     }
 }

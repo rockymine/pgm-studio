@@ -161,7 +161,7 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
 
 /// <summary>GET /api/room-styles/{id}/json — the room style assembled into the stamper's own JSON: the form
 /// the export consumes and the form a map snapshots when it binds one.</summary>
-public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWithoutRequest
+public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWithoutRequest<StyleJsonDto>
 {
     public override void Configure() { Get("/room-styles/{id}/json"); AllowAnonymous(); }
 
@@ -169,7 +169,7 @@ public sealed class RoomStyleJsonEndpoint(RoomStyleLibrary library) : EndpointWi
     {
         var style = await library.ComposeAsync(Route<long>("id"), ct);
         if (style is null) { await Refusals.NotFoundAsync(HttpContext, "room style", ct); return; }
-        await Send.OkAsync(new { styleJson = HouseStyleJson.Serialize(style) }, ct);
+        await Send.OkAsync(new StyleJsonDto(HouseStyleJson.Serialize(style)), ct);
     }
 }
 

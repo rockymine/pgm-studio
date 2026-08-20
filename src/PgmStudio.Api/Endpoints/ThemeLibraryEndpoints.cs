@@ -206,7 +206,7 @@ public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutReque
 
 /// <summary>GET /api/themes/{id}/json — the theme assembled into the painter's theme JSON (the form the export
 /// consumes and a map snapshots when it applies the theme).</summary>
-public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutRequest
+public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutRequest<ThemeJsonDto>
 {
     public override void Configure() { Get("/themes/{id}/json"); AllowAnonymous(); }
 
@@ -214,7 +214,7 @@ public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutReq
     {
         var json = await library.ComposeJsonAsync(Route<long>("id"), ct);
         if (json is null) { await Refusals.NotFoundAsync(HttpContext, "theme", ct); return; }
-        await Send.OkAsync(new { themeJson = json }, ct);
+        await Send.OkAsync(new ThemeJsonDto(json), ct);
     }
 }
 

@@ -292,7 +292,7 @@ public sealed class TreeWoodEndpoint : EndpointWithoutRequest<List<PropOptionDto
 /// <summary>POST /api/terrain/theme-map-preview — body is a plan JSON; compiles it, paints the terrain through
 /// the scoped theme resolver, and returns a top-down SVG of the map's top blocks so the Theme rail's apply step
 /// can show the themes on the actual map (TP10). 400 when the plan can't be rendered.</summary>
-public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest
+public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest<ThemeMapPreviewDto>
 {
     public override void Configure() { Post("/terrain/theme-map-preview"); AllowAnonymous(); }
 
@@ -302,7 +302,7 @@ public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest
         try
         {
             var paint = TerrainPreview.MapSvg(json);
-            await Send.OkAsync(new { svg = paint.Svg, minX = paint.MinX, minZ = paint.MinZ, spanX = paint.SpanX, spanZ = paint.SpanZ }, ct);
+            await Send.OkAsync(new ThemeMapPreviewDto(paint.Svg, paint.MinX, paint.MinZ, paint.SpanX, paint.SpanZ), ct);
         }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException

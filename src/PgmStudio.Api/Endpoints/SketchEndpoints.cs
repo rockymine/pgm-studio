@@ -27,7 +27,7 @@ namespace PgmStudio.Api.Endpoints;
 /// optional working frame {width, depth, mode, centerX, centerZ}. When a frame is given the layout is seeded
 /// with a <c>setup</c> (origin-centred bbox + symmetry centre + mode) so the editor frames the canvas on
 /// open; without one the layout is empty {} and the editor falls back to its landscape default on load.</summary>
-public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
     public override void Configure() { Post("/sketch"); AllowAnonymous(); }
 
@@ -68,7 +68,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         // Seed so GET works immediately: a framed create writes its setup; a frameless one stays empty {}.
         var seed = hasFrame ? SeedSetup(Math.Max(16, width), Math.Max(16, depth), mode, centerX, centerZ) : "{}"u8.ToArray();
         await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
-        await Send.OkAsync(new { slug }, ct);
+        await Send.OkAsync(new OriginatedDto(slug), ct);
     }
 
     // The browser layout blob's `setup` object — an origin-centred width×depth bbox, the symmetry centre, and
@@ -128,7 +128,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
 /// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
 /// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
-public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
 {
     public override void Configure() { Put("/map/{slug}/sketch"); AllowAnonymous(); }
 
@@ -162,7 +162,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
                 await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct), ct);
             return;
         }
-        await Send.OkAsync(new { ok = true }, ct);
+        await Send.OkAsync(new OkDto(), ct);
     }
 }
 
@@ -215,7 +215,7 @@ internal static class SketchRoomStyleGate
 /// team/owner:colour identity across a recompile. Only a shape the author actually corrected
 /// (<c>height_authored</c>) carries forward — an untouched piece keeps tracking the plan's own
 /// <c>surface</c>, so this never masks a deliberate plan-side height change.</para></summary>
-public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<SketchFromPlanDto>
 {
     public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
 
@@ -264,7 +264,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct), ct);
             return;
         }
-        await Send.OkAsync(new { ok = true, orphaned = orphans }, ct);
+        await Send.OkAsync(new SketchFromPlanDto(true, orphans), ct);
     }
 }
 
@@ -498,7 +498,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 /// one, so the commonest shape in that category — one continent both teams stand on — is exactly what a
 /// two-island floor rejected. Symmetry decides whether a board has two sides, and it is stated in the setup
 /// rather than counted in the ground.</para></summary>
-public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer) : EndpointWithoutRequest
+public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer) : EndpointWithoutRequest<SketchFinishedDto>
 {
     public override void Configure() { Post("/map/{slug}/sketch/finish"); AllowAnonymous(); }
 
@@ -535,7 +535,7 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
 
         await writer.WriteSketchAsync(map.Id, cells, islands, ct);
         await repo.SetStageAsync(map.Id, MapStage.Configure, ct);   // the draft now has geometry → ready to configure
-        await Send.OkAsync(new { slug = map.Slug, configureUrl = $"/maps/{map.Slug}/configure" }, ct);
+        await Send.OkAsync(new SketchFinishedDto(map.Slug, $"/maps/{map.Slug}/configure"), ct);
     }
 }
 
@@ -551,7 +551,7 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, M
     public override async Task HandleAsync(CancellationToken ct)
     {
         var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.OkAsync(new { discarded = false }, ct); return; }
+        if (map is null) { await Send.OkAsync(new DiscardedDto(false), ct); return; }
 
         var pristine = map.Stage == MapStage.Sketch
             && string.Equals(map.Name?.Trim(), SketchCreateEndpoint.DefaultName, StringComparison.Ordinal)
@@ -559,7 +559,7 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, M
             && !await SketchHasShapesAsync(artifacts, map.Id, ct);
 
         if (pristine) await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the layout artifact
-        await Send.OkAsync(new { discarded = pristine }, ct);
+        await Send.OkAsync(new DiscardedDto(pristine), ct);
     }
 
     // The layout blob is {setup?, layers:[{layout:{shapes,islands}}]} (or a legacy single {layout:{…}}, or

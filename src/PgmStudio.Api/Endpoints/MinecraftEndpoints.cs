@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 
@@ -12,7 +13,7 @@ using Dict = Dictionary<string, object?>;
 /// via Mojang. The editor uses it to
 /// turn a typed username into a canonical uuid (and to resolve a stored uuid back to a name).
 /// </summary>
-public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutRequest
+public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutRequest<PlayerDto>
 {
     public override void Configure() { Get("/minecraft/player"); AllowAnonymous(); }
 
@@ -30,7 +31,7 @@ public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutR
         try
         {
             var (u, n) = await mojang.LookupAsync(query, ct);
-            await Send.OkAsync(new Dict { ["uuid"] = u, ["name"] = n }, ct);
+            await Send.OkAsync(new PlayerDto(u, n), ct);
         }
         catch (Exception ex)
         {

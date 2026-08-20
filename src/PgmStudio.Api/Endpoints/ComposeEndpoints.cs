@@ -216,7 +216,7 @@ public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeReques
 
 /// <summary>GET /api/plans/{id}/svg — render a stored plan to the same board SVG the browse feed uses, so the
 /// hold tray can show a thumbnail of a persisted plan. 404 when the plan is missing.</summary>
-public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest
+public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest<SvgDto>
 {
     public override void Configure() { Get("/plans/{id}/svg"); AllowAnonymous(); }
 
@@ -226,7 +226,7 @@ public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest
         if (row is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
         var plan = PlanModel.Parse(row.PlanJson);
         if (plan is null) { await Refusals.StoredUnreadableAsync(HttpContext, "plan", ct); return; }
-        await Send.OkAsync(new { svg = PlanBoardSvg.Render(plan) }, ct);
+        await Send.OkAsync(new SvgDto(PlanBoardSvg.Render(plan)), ct);
     }
 }
 
