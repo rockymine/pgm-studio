@@ -182,7 +182,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
 /// 500. The two sub-objects are serialized with the exact options the downstream <c>PUT /map/{slug}/sketch</c>
 /// and <c>PUT /map/{slug}/intent</c> endpoints read back, so the editor's walk-test loop can post them verbatim.
 /// </summary>
-public sealed class PlanCompileEndpoint : EndpointWithoutRequest
+public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto>
 {
     public override void Configure() { Post("/plan/compile"); AllowAnonymous(); }
 
@@ -212,7 +212,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
             var checked_ = PlanValidator.Check(plan).And(completeness);
             if (checked_.Refuses)
             {
-                await Send.ResponseAsync(Refusals.Of("plan not compilable", checked_.Refusals), 422, ct);
+                await Refusals.WriteAsync(HttpContext, 422, "plan not compilable", checked_.Refusals, ct);
                 return;
             }
             (layout, intent) = PlanCompiler.Compile(plan);
@@ -240,7 +240,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest
         // and which an author reads while writing rather than at the one-way gate — so this hands over the
         // completeness half only, and the two surfaces do not report the same list twice.
         Complaints.Add(HttpContext, completeness.Complaints);
-        await Send.OkAsync(new { layout = layoutEl, intent = intentEl }, ct);
+        await Send.OkAsync(new CompiledPlanDto(layoutEl, intentEl), ct);
     }
 }
 

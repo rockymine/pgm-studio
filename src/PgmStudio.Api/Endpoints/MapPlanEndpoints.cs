@@ -73,7 +73,13 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
 /// <summary>GET /api/map/{slug}/plan — the stored plan blob for a plan-stage map, or {} if none.</summary>
 public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/plan"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/plan");
+        AllowAnonymous();
+        // The blob as stored; see SketchGetEndpoint for why the shape is declared rather than sent.
+        Description(b => b.Produces<PlanModel>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

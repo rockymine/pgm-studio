@@ -56,14 +56,16 @@ push declared request shapes in one pass — the write surface is the useful hal
 Cheap, mechanical, and everything after it reads better for having landed. The schema is generated; what it
 can publish is bounded by what the code declares, which today is a path and a verb.
 
-- [ ] **RP18 — The schema publishes a path and a verb and, for most routes, nothing about the answer.**
-  Measured on the generated document: **114 of 167 operations declare no response content at all**, 53 declare
-  `application/json`, and **none declares an image** — though `PngAnswer` serves `image/png` on six routes, the
-  ascii boards serve `text/plain` on three and the export serves `application/zip`. So `/api-docs` cannot
-  render a theme swatch inline, and a caller cannot tell a JSON route from a PNG route without trying it. The
-  cause is `RP12`'s on the other side: an `EndpointWithoutRequest` with no response type states nothing for the
-  generator to publish. Give each route its response type, and `Produces`/`ProducesProblem` where the media
-  type is not JSON, starting with the six PNG routes an author most wants to look at.
+- [~] **RP18 — Seventy-four operations still publish a path and a verb and nothing about the answer.**
+  The media types, the refusal envelope, the flat pixel/column encodings, the small acks and the three
+  documents an agent writes are declared, and `SchemaCompletenessTests` holds the count so it only goes down.
+  What is left is two blocks. **The ~40 hand-built `Dict` reads** — `scan-summary`, the configure state,
+  `core-suggestions`, `segments`, `regions/tree`, `island-*`, the import results, `plan/inspect` — each needs
+  a record written from the handler that builds it, and each is a separate small reading.
+  **The 34-route edit surface** is the other, and it waits on `RP13`: those routes answer whatever `Dict` an
+  editor in `Pgm/Editing` returned, `Pgm` does not reference `Contracts`, and declaring the shape now means
+  either a new dependency edge or a mapping layer at the boundary that `RP13` would delete. Take it with the
+  application layer, where the answer a use case gives is the thing being named.
 
 - [ ] **RP12 — Eighty-seven percent of the surface declares no request shape.** 110 of the 167 endpoints are
   `EndpointWithoutRequest` and **51 call sites read the body as `Dictionary<string, object?>`**. So

@@ -12,7 +12,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>GET /api/map/{slug}/intent — the map's declarative authoring intent
 /// (docs/pgm/new-map-authoring.md), empty if none yet.</summary>
-public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapIntent>
 {
     public override void Configure() { Get("/map/{slug}/intent"); AllowAnonymous(); }
     public override async Task HandleAsync(CancellationToken ct)

@@ -111,7 +111,15 @@ internal static class SketchSlug
 /// <summary>GET /api/map/{slug}/sketch — the stored sketch layout (the JS-origin blob), or {} if none.</summary>
 public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
-    public override void Configure() { Get("/map/{slug}/sketch"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Get("/map/{slug}/sketch");
+        AllowAnonymous();
+        // Declared rather than sent as the record: the blob is answered exactly as it was stored, and
+        // re-serialising it through SketchLayout would drop whatever the reader has no field for — which is
+        // the loss RQ3 exists to report on the way in, not to cause on the way out.
+        Description(b => b.Produces<SketchLayout>(200, "application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -4445,6 +4445,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   to the caller. Eleven `PL*` ids were minted for the plan's own structural errors, which had carried
   `rule: null`. `docs/refusals.md` is the catalogue and the shape; the tool documents' endpoint tables cite it
   rather than each describing an envelope of its own.
+- **The schema says what a route answers and in what form (RP18, in part).** Measured on the generated
+  document: 167 operations, 114 declaring no response content, and not one declaring an image — though six
+  preview routes answer `image/png` on `?format=png`, a seventh only ever draws one, three render `text/plain`
+  and the export writes a world ZIP. A caller could not tell a JSON route from a picture without sending the
+  request, and `/api-docs` could not render a swatch it was looking straight at. Now declared: every media
+  type (through `Answers`, one method per form the studio serves), the refusal envelope on every route from
+  one place in the endpoint configurator, the flat `BlockPixelsDto`/`WorldColumnsDto` encodings the preview
+  and the paint overlay decode, thirteen small acks, four analysis reads that already had records, and the
+  three documents an agent writes — `SketchLayout`, `PlanModel`, `MapIntent` — declared on their reads and
+  `CompiledPlanDto` on the compile. `SchemaCompletenessTests` gates the rest: it asks about the **success**
+  shape rather than any shape, and carries the outstanding count so it only goes down.
+  `LayerData.BlockTypes` went out with it, having had no caller anywhere in `src`, `tests`, `tools` or `docs`.
 - **The analysis reads an author needs before an export are on the page they read (TC1).** The API carries 66
   `/map/{slug}` routes and `docs/tools/`'s tables carried a fraction: `traversability` was named in prose
   twelve times and in no table, `buildability` three times, and ten more segments — `island-health`,
