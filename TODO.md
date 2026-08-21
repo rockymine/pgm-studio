@@ -29,12 +29,12 @@ one place a use case lives, so the application layer is second. A caller cannot 
 fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
 handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — nineteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the eighteen carry a question only the author can answer
+## Four of the nineteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -96,21 +96,32 @@ consumers that keep the contract by hand instead of reading the records it is bu
 
 ## Phase 2 — one place a use case lives
 
-One entry, and the phase's whole point: the step that stops a gate from belonging to a door.
+Two entries: the ten steps that still belong to a door, and the rule one of those doors breaks
+silently.
 
-- [~] **RP13 — A step of the pipeline lives behind the door it is reached through.** Of 149 handlers, the
-  bodies total 2,146 lines at a median of 10, so the volume is not the problem: **thirteen** read state and
-  write it back, and three of those also run a gate. Those are the use cases, and each is reachable only by
-  sending an HTTP request. Three now sit in `Api/Services` as operations that answer `Findings` and let the
-  layer above render the envelope — `MapExportLoader`, `SketchFinish`, `MapFromDocuments`. Move them to a
-  project of their own with HTTP, the CLI and tests as three adapters, and take the remaining ten with them.
-  The load-or-404 prologue appears 37 times verbatim and becomes one.
+- [~] **RP13 — Ten use cases still live behind the door they are reached through.** Of **127** handlers the
+  bodies total 2,057 lines at a median of 10, so the volume is not the problem: **thirteen** read state and
+  write it back. Three are already operations in `Api/Services` that answer `Findings` and let the layer above
+  render the envelope — `MapExportLoader`, `SketchFinish`, `MapFromDocuments`. Take the remaining ten there,
+  and fold the load-or-404 prologue, which stands **37 times word for word**, into one.
 
-  *What makes it worth doing is the **order**, not the duplication: storing an intent projects the document
-  from the intent's own `meta`, so authors written before it are lost — silently, with 200 on every call. That
-  rule is written in `flow.md`, in the mapgen repo's driver, its README and its generation notes, and was
-  enforced nowhere until `MapFromDocuments` made the sequence itself the answer. `RP32` needs the same layer
-  for the same reason: a findings summary has to **call** the gates, not restate them.*
+  **`Api/Services` is the place, not a project of its own.** The second adapter a project was for does not
+  exist: `tools/mapgen` is deleted, and the driver that replaced it — `drive.py` in the mapgen repo — is a
+  Python HTTP client that cannot consume a .NET assembly at all. That a .NET CLI can already reach these
+  operations is settled by `tools/seed-library.cs`, which references `PgmStudio.Api` and calls
+  `Api.Services.LibrarySeed` directly. A new project would buy separation, not a consumer.
+
+- [ ] **PG2 — Storing an intent drops the authors, answers 200, and says nothing.** Measured on the current
+  tree against a driven map: `PATCH /map/{slug}/metadata` with an author answers 200 and the author is there;
+  `PUT /map/{slug}/intent/from-plan` then answers 200 and the author is **gone**. Storing an intent projects
+  the map document from the intent's own `meta`, which a compiled intent leaves empty, so anything written
+  before it is overwritten with nothing.
+
+  The rule is written in `flow.md`, in the mapgen driver, its README and its generation notes, and enforced
+  in exactly one place — inside `MapFromDocuments`, whose sequence is the answer. The driver, which does not
+  use that door, carries it as a **comment** above the call it has to make second. A rule a caller has to
+  remember is a rule that is one refactor from being forgotten: make the write itself say so — carry the
+  stored authors through the projection, or refuse the write that would drop them. Not a silent 200.
 
 ## Phase 3 — one class of fault
 

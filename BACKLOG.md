@@ -1140,9 +1140,11 @@ through the step it lives behind, so a fault authored at one step is heard at an
 two instances of that shape, each fixed one route at a time. A driver's loop is *act and hope the next call
 mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
 current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs with
-`RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. **Needs `RP13`**,
-and not for convenience: a summary that re-implements the gates is a second copy free to disagree with them,
-so it has to *call* them, which is what the application layer is for.
+`RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. It must **call**
+the gates rather than restate them, since a summary that re-implements one is a second copy free to disagree
+with it — but that needs no new layer: every gate it would ask (`SketchLayoutCheck`, the plan validator, the
+house-style checks) lives below `Api` and is reachable from an endpoint today, which is what
+`MapExportLoader` already does for the export's.
 
 - [ ] **RP33 — Three names in `Contracts` say the wrong thing, and one file is a drawer.** `OkDto` is
   `{"ok": true}`, which the HTTP 200 beside it already says; its own docstring admits the field exists so a
