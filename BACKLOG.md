@@ -1311,6 +1311,15 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **TN6 — A compile that failed leaves a button promising the build it cannot do.** The compile drawer's
+  draft button is `Disabled="@(compiledLayout is null || draftBusy)"` (`PlanTool.razor:669`) while its label
+  is `BuildLabel`, which reads only whether the map is built. So a **422** leaves *Rebuild this map* on
+  screen, greyed and silent about why — and the json pane beside it still shows the plan, because
+  `compiledPlan` is set before the request. An author sees a dead button and a plan that looks fine. Say what
+  the drawer is in: label the button for the state (*Fix the plan first*, or the count of blocking findings)
+  and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
+  that button rather than failing on the compile.
+
 - [ ] **RP26 — A rule concerns a combination, and an id can only name one thing.** `RP14` ships the
   category; this is the other half, and the author's framing is what makes it tractable: **the combinatorics
   are the point.** `WX6` is a plan defect about a wool objective whose abutment decides which side the door

@@ -70,9 +70,14 @@ try {
   checks.add("no reopen control remains", reopen === 0, `${reopen} found`);
 
   // Straight to the plan from the Configuring list — one click, no intermediate list.
+  // The canvas exists before the plan document has been fetched into it, and the bridge polls the derived
+  // reads only once it has one — so a successful /plan/inspect is the signal that the editor is holding the
+  // plan rather than its blank default. Armed before the click, because it can answer before the wait.
+  const loaded = page.waitForResponse(r => r.url().includes("/api/plan/inspect") && r.ok(), { timeout: 30000 });
   await row.locator('.map-layer:has-text("Plan")').click();
   await page.waitForURL(`**/maps/${slug}/plan`, { timeout: 15000 });
   await page.waitForSelector(".map-canvas-svg", { timeout: 20000 });
+  await loaded;
   checks.add("the plan editor opens on the built map", page.url().endsWith(`/maps/${slug}/plan`), page.url());
   checks.add("opening it raised no faults", page.faults.length === 0, page.faults.slice(0, 3).join(" | "));
 
@@ -96,6 +101,10 @@ try {
   // someone has been working on", so it states the trade instead of just doing it.
   await page.click('button:has-text("Compile")');
   await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
+  // The json pane is shown whatever the compile answered — the plan is the one file that exists either way —
+  // so it says nothing about whether the compile succeeded. The draft button leaving its disabled state is
+  // what does, and waiting for it here fails with the compile's own findings rather than as a click timeout.
+  await page.waitForSelector(".plan-compile-draft button:not([disabled])", { timeout: 20000 });
 
   const label = (await page.locator(".plan-compile-draft button").first().textContent()).trim();
   checks.add("the button names a rebuild, not a build", label.includes("Rebuild this map"), label);
@@ -115,11 +124,10 @@ try {
     "the map is where it was");
 
   // A plan that was never built has nothing to lose, so it is not interrupted.
+  const planLoaded = page.waitForResponse(r => r.url().includes("/api/plan/inspect") && r.ok(), { timeout: 30000 });
   await page.goto(`${BASE}/maps/${seed.planSlug}/plan`, { waitUntil: "networkidle" });
   await page.waitForSelector(".map-canvas-svg", { timeout: 15000 });
-  // The svg exists before the plan document has been fetched into it, and compiling an empty plan is a 422
-  // refusal by design — so settle before asking, or the drawer this step reads never opens.
-  await page.waitForTimeout(1500);
+  await planLoaded;   // the same signal: compiling before it posts the blank default, which is a 422
   await page.click('button:has-text("Compile")');
   await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
   const first = (await page.locator(".plan-compile-draft button").first().textContent()).trim();
