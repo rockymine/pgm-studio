@@ -79,14 +79,17 @@ consumers that keep the contract by hand instead of reading the records it is bu
   `max_players` that is not an integer — and leave the rest declared. The other 38 refusal sites in
   `Pgm/Editing` read the map the edit lands on and stay whatever happens here.
 
-- [~] **RP11 — Thirty-five client reads still walk an answer the schema already names.** `Contracts` is a
-  project the client references, so a route whose 200 is a named record can be read as that record; the
-  islands, the symmetry and the map document are, which took the count from 59. What is left is one heap and
-  one straggler. The heap is **`GET …/regions/tree`**, five call sites against `RegionTreeDto` and its four
-  companions — the read `region-data-flow.md` calls the one every sidebar and the canvas hit on each load.
-  The straggler is the twenty-seven reads whose route is built in a variable rather than written at the call
-  site, so they need reading before they can be counted. Keep a private type only where it carries UI state a
-  DTO has no business holding. **No generator is needed for this half.**
+- [~] **RP11 — Thirty client reads walk an answer the schema already names, and every one of them has a
+  record.** Inventoried, so what is left is a list rather than an unknown. **Twenty-five read a success
+  shape**, and none needs a type written: `OriginatedDto` ×4 (both originate buttons, the generator's author
+  call, the plan tool's draft), `MapDocumentDto` ×2 (the Configure and Edit hosts), `MonumentSuggestionDto`
+  ×2, `WorldScanDto` ×2 (the import pair), `PlayerDto` ×3, `CompiledPlanDto`, `RegionCreatedDto`,
+  `RegionPatchedDto`, `RegionUngroupedDto`, `SketchFinishedDto`, `MapOriginDto`, `ColumnFloorDto`,
+  `CoreSuggestionsDto`, `WoolSourcesResponseDto`, `ImportCandidateDto`, `ScanSummaryDto`,
+  `ConfigureStateDto`, `SketchLayout`. **The other five are not success shapes at all** — they read
+  `error`, `message` or `findings` off a refusal, which is `RefusalDto`, one shape for all five
+  (`ReviewXmlStep` ×2, `ImportPhase.ErrorMessage`, `SketchTool`, `PlanTool`'s 422 branch). Sweep them, and
+  take the refusal readers as one group rather than one route at a time.
 
 - [ ] **RP42 — The endpoint tables are checked one way and derived none.** `DocumentedRouteTests` asserts
   every tabled path exists; nothing asserts a route *appears* in a table, or that the status codes a row
