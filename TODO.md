@@ -153,15 +153,20 @@ hears a late gate early.
   its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
   to hold.
 
-- [ ] **RP4 — The export's own objective gates have no pre-flight, and an agent pays a whole build for
-  each.** `OB17` (a goal overhanging void, in a spawn, in a wool room) and `OB19` (a tree, boulder or
-  building inside a goal's clearance) are refusals raised by `MapExportComposer` over the rasterized ground,
-  so the first time a driver hears one is `GET /map/{slug}/export` answering 409 — after the world has been
-  built. Run 4 hit them three times across four boards; nothing in `/plan/evaluate`, `/plan/compile` or
-  `sketch/columns` predicts either, and the compile gate is deliberately silent about an absolutely-placed
-  goal because it has no ground truth to judge against. The ground exists as soon as `sketch/finish` has
-  run: answer both over it, on the read an agent already makes (`POST …/sketch/columns`, beside the `DR-*`
-  complaints).
+- [ ] **RP4 — The export's two objective gates are asked at the one route that cannot report them cheaply.**
+  `OB17` (a goal overhanging void, in a spawn, in a wool room) and `OB19` (a tree, boulder or building inside
+  a goal's clearance) are raised in `MapExportComposer.ComposeSketch`, so a driver first hears either at
+  `GET /map/{slug}/export` answering 409. Run 4 hit them three times across four boards.
+
+  **`POST …/sketch/columns` already holds everything both need** — it calls the same
+  `SketchWorldBuilder.Build(layoutJson, intent)` and reports `built.Declines`, so the build is paid there and
+  the gates are simply not asked. `RefuseGoalClearance` is `DressingScope.GoalClearanceViolations(layout,
+  goals)` and needs no world; `RefuseObjectivePlacement(columns, goals)` reads the columns that route
+  rasterizes. Ask both there, beside the `DR-*` complaints.
+
+  `OB17` is unpredicted for **one case**, not all: `PlanValidator` runs `ObjectivePlacement.Check` at compile,
+  and the silence is the absolutely-placed goal (`B128`), which has no plan ground to judge. `OB19` has no
+  earlier answer at all.
 
   *The author's ruling on what each is at export. `OB17` stays a refusal: it indicts the objective itself,
   there is nothing to drop, and a map in that state is not exportable. `OB19` indicts a prop, and a prop is
@@ -208,20 +213,32 @@ a phase above is compiling.
 - [ ] **WE11 — The world builder is named for the tool whose document happens to reach it.**
   `SketchWorldBuilder` (`Export`) synthesises the voxel world, the world spawn and the resolved intent for
   **every** map — a plan compiles to a layout and arrives here too — and `MapExportComposer.ComposeSketch` is
-  the composition every export runs, while the method called `Compose` is the doc-assembly leg in front of it.
-  `SketchTerrainBuilder` (`Minecraft/Stamping`) is the same misnaming one layer down. The loop's four names
-  are settled and none of these three is one of them: rename to what they build — the world — and leave
-  `SketchLayout`, `SketchRasterizer` and the sketch endpoints alone, because those genuinely belong to the
-  drawing. 12 identifiers across `Export` and `Minecraft`; the `Pgm`, `Api` and `Client` ones are the tool's
-  and stay.
+  the composition every export runs. `SketchTerrainBuilder` (`Minecraft/Stamping`) is the same misnaming one
+  layer down. The loop's four names are settled and none of these is one of them: rename to what they build —
+  the world — and leave `SketchLayout`, `SketchRasterizer` and the sketch endpoints alone, because those
+  genuinely belong to the drawing. **Seven identifiers** across `Export` and `Minecraft` — the types
+  `SketchWorldBuilder`, `SketchWorld`, `SketchTerrainBuilder`, `SketchTerrain` and the methods `ComposeSketch`,
+  `SketchWorld`, `SketchTerrain` — at 21 sites; the `Pgm`, `Api` and `Client` ones are the tool's and stay.
+
+  *`Compose` is two methods and wants deciding with them: `MapExportComposer.Compose` is the entry point that
+  delegates to `ComposeSketch`, and `MapXmlComposer.Compose` is the document leg. Two composers whose main
+  method has one name is the same fault a layer up.*
 
 - [ ] **WS5 — Objective suggestion is map-contract analysis living in the world package.**
   `Minecraft/Suggest/` holds `MonumentSuggester` and `CoreSuggester`; the first names a monument, a wool, an
-  objective or a core **44 times**. `CLAUDE.md` charters `Minecraft` as "the world" and `Analysis` as the
-  derivations over it, and `docs/world-scan/` already owns this subject — *monument and objective suggestion*
-  — as a documentation folder. Move both to `Analysis`, where the other reads of a scanned world sit, and the
-  package charter stops needing an exception. Its consumers are `Api/Endpoints/MonumentEndpoints` and the two
-  candidate stores in `Data`, all of which already reference `Analysis`.
+  objective or a core **91 times** over 453 lines, the second 18 over 186. `CLAUDE.md` charters `Minecraft` as
+  "the world" and `Analysis` as the derivations over it, and `docs/world-scan/` already owns this subject —
+  *monument and objective suggestion* — as a documentation folder. Move both to `Analysis`, where the other
+  reads of a scanned world sit, and the package charter stops needing an exception. The consumers are
+  `Api/Endpoints/MonumentEndpoints` and the two candidate stores in `Data`, all of which already reach
+  `Analysis`.
+
+  **The move is not a file move, and that is the work.** `Analysis` and `Minecraft` are siblings — both
+  reference only `Domain` and `Geom` — and the suggesters read `AnvilRegion`, `Nbt`, `Blocks` and
+  `MonumentSliceExtractor`, all `Minecraft`. So either `Analysis` gains an edge to `Minecraft`, or the pair
+  splits at the seam it already has: the chunk read stays where the chunks are, and what it derives — a
+  monument, a core, the confidence behind each — goes to `Analysis`. The second is the one the charter
+  describes.
 
 - [ ] **TN4 — The cheapest read of a plan is the one that needs a map row first.** `PlanBoardAscii.Render`
   is reachable through `GET /map/{slug}/plan/ascii` and `GET /plans/{id}/ascii` — both requiring stored
