@@ -81,13 +81,16 @@ consumers that still keep the contract by hand instead of reading the document i
 
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
   `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
-  **152 route strings** and parses **59 responses as `JsonElement`** against 16 typed, across 38 files; the
+  **152 literal route strings and 106 interpolated** across 49 files, and parses **59 responses as
+  `JsonElement`** against 15 typed — 41 of the 59 in Configure and Edit alone, the two oldest pages. The
   endpoint tables in the eight `docs/tools/` documents are typed by hand, and `DocumentedRouteTests` catching
-  a drifted row is a test where a derivation belongs.
-  Generate a typed client from the document (NSwag's generator is already in the tree as the Swagger
-  package's dependency) and render the endpoint tables from it, so the two copies become one derivation.
-  `DocumentedBodyTests` posts 8 documented bodies against 93 write routes today and is the natural place to
-  assert the tables against the schema.
+  a drifted row is a test where a derivation belongs; it checks one direction only, that a tabled route
+  exists. Generate a typed client from the document and render the tables from it, so the two copies become
+  one derivation. **The generator is not in the tree**: `NSwag.Generation.AspNetCore` writes the document,
+  and client code needs `NSwag.CodeGeneration.CSharp`, a build-time package (14.7.1 restores clean).
+  `DocumentedBodyTests` posts 8 documented bodies against 67 write routes and is where the tables meet the
+  schema. Neither `RP40` nor `RP41` gates it: binding changes no published shape, and the hierarchy adds
+  three request bodies a regenerate picks up.
 
 ## Phase 2 — one place a use case lives
 
