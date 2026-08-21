@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -42,10 +43,9 @@ public partial class ImportPhase : IAsyncDisposable
 
     // Found detail brief — the currently-selected finding (left list) drives the right detail panel.
     private string selectedFinding = "islands";
-    private sealed record IslandInfo(int BlockCount);
     private sealed record WoolColorInfo(string Name, string Hex, int Count);
     private sealed record ResourceTypeInfo(string Name, int Count);
-    private List<IslandInfo> islands = new();
+    private List<IslandDto> islands = new();
     private List<WoolColorInfo> woolColors = new();
     private List<ResourceTypeInfo> resourceTypes = new();
     private int chestCount;   // distinct chests (chestItems is the per-slot item total)
@@ -273,27 +273,15 @@ public partial class ImportPhase : IAsyncDisposable
         {
             var resp = await Http.GetAsync($"api/map/{importedSlug}/symmetry");
             if (!resp.IsSuccessStatusCode) return;
-            var s = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            if (s.TryGetProperty("primary", out var p) && p.ValueKind == JsonValueKind.Object)
-                symType = Str(p, "type");
+            symType = (await resp.Content.ReadFromJsonAsync<SymmetryDto>())?.Primary?.Type;
         }
         catch { /* leave the symmetry fact blank if it can't be computed */ }
     }
 
     private async Task LoadIslands()
     {
-        islands = new();
-        try
-        {
-            var resp = await Http.GetAsync($"api/map/{importedSlug}/islands");
-            if (!resp.IsSuccessStatusCode) return;
-            var arr = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            if (arr.ValueKind == JsonValueKind.Array)
-                islands = arr.EnumerateArray()
-                    .Select(i => new IslandInfo(i.TryGetProperty("block_count", out var bc) ? bc.GetInt32() : 0))
-                    .OrderByDescending(i => i.BlockCount).ToList();
-        }
-        catch { /* canvas still renders islands; the size list just stays empty */ }
+        islands = (await AuthoringContext.LoadIslandsAsync(Http, importedSlug))
+            .OrderByDescending(i => i.BlockCount).ToList();
     }
 
     private async Task LoadScanSummary()

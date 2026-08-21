@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -21,12 +22,11 @@ public partial class TeamAssignStep
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
-    private sealed record IslandInfo(int Id, int BlockCount);
 
     private readonly List<Team> teams = new();
     private int maxPlayers = 12;
     private string? selectedTeamId;
-    private List<IslandInfo> islands = new();
+    private List<IslandDto> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();   // island id → team id
     private string? symMode;
     private bool dismissedSuggestion;
@@ -70,11 +70,8 @@ public partial class TeamAssignStep
     {
         try
         {
-            var arr = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
-            if (arr.ValueKind == JsonValueKind.Array)
-                islands = arr.EnumerateArray()
-                    .Select(e => new IslandInfo(e.GetProperty("id").GetInt32(), e.GetProperty("block_count").GetInt32()))
-                    .OrderByDescending(i => i.BlockCount).ToList();
+            islands = (await AuthoringContext.LoadIslandsAsync(Http, Slug))
+                .OrderByDescending(i => i.BlockCount).ToList();
         }
         catch { islands = new(); }
     }

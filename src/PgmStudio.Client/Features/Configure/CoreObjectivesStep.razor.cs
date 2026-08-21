@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -29,7 +30,7 @@ public partial class CoreObjectivesStep
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
     private readonly List<Ctx.Team> teams = new();
-    private List<Ctx.Island> islands = new();
+    private List<IslandDto> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();
     private List<C.Core> cores = new();
     private List<C.Core> detected = new();

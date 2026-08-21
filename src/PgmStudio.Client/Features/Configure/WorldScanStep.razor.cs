@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -22,18 +23,13 @@ public partial class WorldScanStep
     {
         try
         {
-            var isl = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Wizard.Slug}/islands");
-            if (isl.ValueKind == JsonValueKind.Array) islandCount = isl.GetArrayLength();
+            islandCount = (await AuthoringContext.LoadIslandsAsync(Http, Wizard.Slug)).Count;
         }
         catch { /* no scan data → leave the summary blank */ }
         try
         {
-            var sym = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Wizard.Slug}/symmetry");
-            if (sym.TryGetProperty("primary", out var p) && p.ValueKind == JsonValueKind.Object)
-            {
-                symType = p.TryGetProperty("type", out var t) ? t.GetString() : null;
-                symConfidence = p.TryGetProperty("confidence", out var c) && c.ValueKind == JsonValueKind.Number ? c.GetDouble() : 0;
-            }
+            var sym = await Http.GetFromJsonAsync<SymmetryDto>($"api/map/{Wizard.Slug}/symmetry");
+            if (sym?.Primary is { } primary) { symType = primary.Type; symConfidence = primary.Confidence; }
         }
         catch { /* symmetry just stays blank */ }
     }

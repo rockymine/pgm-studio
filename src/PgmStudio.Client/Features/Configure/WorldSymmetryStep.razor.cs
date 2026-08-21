@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -20,9 +21,8 @@ public partial class WorldSymmetryStep
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private sealed record SymMode(string Type, bool Detected, double Confidence);
 
-    private List<SymMode> modes = new();
+    private List<SymmetryModeDto> modes = new();
     private int islandCount;
     private string? primaryType;
     private double detCenterX, detCenterZ;
@@ -64,8 +64,7 @@ public partial class WorldSymmetryStep
     {
         try
         {
-            var isl = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
-            if (isl.ValueKind == JsonValueKind.Array) islandCount = isl.GetArrayLength();
+            islandCount = (await AuthoringContext.LoadIslandsAsync(Http, Slug)).Count;
         }
         catch { /* leave at 0 */ }
     }
@@ -74,26 +73,16 @@ public partial class WorldSymmetryStep
     {
         try
         {
-            var s = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/symmetry");
-            if (s.TryGetProperty("modes", out var ms) && ms.ValueKind == JsonValueKind.Array)
-                modes = ms.EnumerateArray()
-                    .Select(m => new SymMode(Str(m, "type"),
-                        m.TryGetProperty("detected", out var d) && d.GetBoolean(),
-                        m.TryGetProperty("confidence", out var c) && c.ValueKind == JsonValueKind.Number ? c.GetDouble() : 0))
-                    .OrderByDescending(m => m.Confidence).ToList();
-            if (s.TryGetProperty("center", out var ce) && ce.ValueKind == JsonValueKind.Object)
-            {
-                detCenterX = ce.TryGetProperty("cx", out var cx) && cx.ValueKind == JsonValueKind.Number ? cx.GetDouble() : 0;
-                detCenterZ = ce.TryGetProperty("cz", out var cz) && cz.ValueKind == JsonValueKind.Number ? cz.GetDouble() : 0;
-            }
-            if (s.TryGetProperty("primary", out var p) && p.ValueKind == JsonValueKind.Object)
-                primaryType = Str(p, "type");
+            var symmetry = await Http.GetFromJsonAsync<SymmetryDto>($"api/map/{Slug}/symmetry");
+            modes = (symmetry?.Modes ?? []).OrderByDescending(m => m.Confidence).ToList();
+            if (symmetry?.Center is { } centre) { detCenterX = centre.Cx; detCenterZ = centre.Cz; }
+            if (symmetry?.Primary is { } primary) primaryType = primary.Type;
         }
         catch { modes = new(); }
     }
 
     // The choices offered: the detected symmetries (high → low confidence) plus an explicit "none".
-    private List<SymMode> Choices => modes.Where(m => m.Detected).ToList();
+    private List<SymmetryModeDto> Choices => modes.Where(m => m.Detected).ToList();
 
     private async Task OnCanvasReady()
     {

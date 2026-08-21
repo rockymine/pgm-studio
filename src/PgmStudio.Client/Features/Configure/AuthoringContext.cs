@@ -2,6 +2,7 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using PgmStudio.Contracts;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
@@ -15,7 +16,6 @@ namespace PgmStudio.Client.Features.Configure;
 public static class AuthoringContext
 {
     public sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
-    public sealed record Island(int Id, double[][] Ring, double[] Bounds);
 
     public static List<Team> LoadTeams(JsonObject intent)
     {
@@ -42,45 +42,44 @@ public static class AuthoringContext
         return map;
     }
 
-    public static async Task<List<Island>> LoadIslandsAsync(HttpClient http, string slug)
+    /// <summary>The map's landmasses, as <c>GET /map/{slug}/islands</c> answers them. A map with no scan
+    /// data answers none rather than failing, which is the state every step here starts in.</summary>
+    public static async Task<List<IslandDto>> LoadIslandsAsync(HttpClient http, string slug)
     {
-        try
-        {
-            var arr = await http.GetFromJsonAsync<JsonElement>($"api/map/{slug}/islands");
-            var islands = new List<Island>();
-            if (arr.ValueKind == JsonValueKind.Array)
-                foreach (var e in arr.EnumerateArray())
-                {
-                    var id = e.GetProperty("id").GetInt32();
-                    var bounds = e.TryGetProperty("bounds", out var b) && b.ValueKind == JsonValueKind.Array
-                        ? b.EnumerateArray().Select(v => v.GetDouble()).ToArray() : Array.Empty<double>();
-                    if (e.TryGetProperty("polygon", out var poly) && poly.TryGetProperty("coordinates", out var co)
-                        && co.ValueKind == JsonValueKind.Array && co.GetArrayLength() > 0)
-                        islands.Add(new Island(id,
-                            co[0].EnumerateArray().Select(p => new[] { p[0].GetDouble(), p[1].GetDouble() }).ToArray(),
-                            bounds));
-                }
-            return islands;
-        }
-        catch { return new(); }
+        try { return await http.GetFromJsonAsync<List<IslandDto>>($"api/map/{slug}/islands") ?? []; }
+        catch { return []; }
     }
 
     /// <summary>Map XZ bounding box from the islands, padded — the area to scan for objectives.</summary>
-    public static (int minX, int minZ, int maxX, int maxZ) MapBox(List<Island> islands, int pad = 16)
+    public static (int minX, int minZ, int maxX, int maxZ) MapBox(List<IslandDto> islands, int pad = 16)
     {
-        if (islands.Count == 0 || islands.All(i => i.Bounds.Length < 4)) return (-256, -256, 256, 256);
-        var b = islands.Where(i => i.Bounds.Length >= 4).ToList();
-        return ((int)b.Min(i => i.Bounds[0]) - pad, (int)b.Min(i => i.Bounds[1]) - pad,
-                (int)b.Max(i => i.Bounds[2]) + pad, (int)b.Max(i => i.Bounds[3]) + pad);
+        var bounded = islands.Where(i => i.Bounds.Count >= 4).ToList();
+        if (bounded.Count == 0) return (-256, -256, 256, 256);
+        return (bounded.Min(i => i.Bounds[0]) - pad, bounded.Min(i => i.Bounds[1]) - pad,
+                bounded.Max(i => i.Bounds[2]) + pad, bounded.Max(i => i.Bounds[3]) + pad);
     }
 
     /// <summary>The team owning the island that contains (x,z), or null when (x,z) is off every tagged island.</summary>
-    public static string? IslandTeamAt(double x, double z, List<Island> islands, Dictionary<string, string> islandTeams)
+    public static string? IslandTeamAt(double x, double z, List<IslandDto> islands, Dictionary<string, string> islandTeams)
     {
         foreach (var isl in islands)
-            if (Polygon.PointInRing(x, z, isl.Ring) && islandTeams.TryGetValue(isl.Id.ToString(), out var t)) return t;
+            if (Polygon.PointInRing(x, z, isl.Ring()) && islandTeams.TryGetValue(isl.Id.ToString(), out var t)) return t;
         return null;
     }
+
+    /// <summary>An island's outer ring, in the <c>[x, z]</c> pairs the canvas and the point tests read. A
+    /// scan that wrote no polygon answers an empty ring, which contains nothing.</summary>
+    public static IReadOnlyList<IReadOnlyList<double>> Ring(this IslandDto island)
+        => island.Polygon?.Coordinates is { Count: > 0 } rings ? rings[0] : [];
+
+    /// <summary>An island's middle, east–west. The stored maxima are inclusive whole blocks, so the middle
+    /// of the ground it covers is half a block past their mean.</summary>
+    public static double CentreX(this IslandDto island)
+        => island.Bounds.Count >= 4 ? (island.Bounds[0] + island.Bounds[2] + 1) / 2.0 : 0;
+
+    /// <summary>An island's middle, north–south.</summary>
+    public static double CentreZ(this IslandDto island)
+        => island.Bounds.Count >= 4 ? (island.Bounds[1] + island.Bounds[3] + 1) / 2.0 : 0;
 
     public static int OrbitOrder(string? mode) => Symmetry.Order(mode);
 

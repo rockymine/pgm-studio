@@ -29,12 +29,12 @@ one place a use case lives, so the application layer is second. A caller cannot 
 fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
 handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — seventeen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — nineteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the seventeen carry a question only the author can answer
+## Four of the nineteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -53,7 +53,7 @@ is kept in the table with the answer beside it, because the answer is the part a
 
 Every operation declares what it answers and, on all but three write routes, what it takes. What is left is
 the three the generator refuses, the difference between a declared shape and a bound one, and the two
-consumers that still keep the contract by hand instead of reading the document it produces.
+consumers that keep the contract by hand instead of reading the records it is built from.
 
 - [ ] **RP41 — Three preview routes cannot declare their body, and a hierarchy is why.**
   `POST /terrain/material-preview` takes a `TerrainMaterial`, `/terrain/theme-preview` a `TerrainTheme` and
@@ -79,18 +79,28 @@ consumers that still keep the contract by hand instead of reading the document i
   `max_players` that is not an integer — and leave the rest declared. The other 38 refusal sites in
   `Pgm/Editing` read the map the edit lands on and stay whatever happens here.
 
-- [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
-  `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
-  **152 literal route strings and 106 interpolated** across 49 files, and parses **59 responses as
-  `JsonElement`** against 15 typed — 41 of the 59 in Configure and Edit alone, the two oldest pages. The
-  endpoint tables in the eight `docs/tools/` documents are typed by hand, and `DocumentedRouteTests` catching
-  a drifted row is a test where a derivation belongs; it checks one direction only, that a tabled route
-  exists. Generate a typed client from the document and render the tables from it, so the two copies become
-  one derivation. **The generator is not in the tree**: `NSwag.Generation.AspNetCore` writes the document,
-  and client code needs `NSwag.CodeGeneration.CSharp`, a build-time package (14.7.1 restores clean).
-  `DocumentedBodyTests` posts 8 documented bodies against 67 write routes and is where the tables meet the
-  schema. Neither `RP40` nor `RP41` gates it: binding changes no published shape, and the hierarchy adds
-  three request bodies a regenerate picks up.
+- [~] **RP11 — The client re-parses answers the schema already names.** `Contracts` is a project the client
+  references, so a route whose 200 is a named record can be read as that record — and **32 of the 32**
+  `JsonElement` reads whose route could be resolved point at one. What the hand-parsing grew instead is
+  **mirror types**: six private islands, six private teams, three spawns, two wool/monument pairs, each a
+  different projection of one record, each with its own `GetProperty` walk inside a `catch` that returns
+  empty. Sweep the rest to the records that answer them, keeping a private type only where it carries UI
+  state a DTO has no business holding. **No generator is needed for this half.**
+
+- [ ] **RP42 — The endpoint tables are checked one way and derived none.** `DocumentedRouteTests` asserts
+  every tabled path exists; nothing asserts a route *appears* in a table, or that the status codes a row
+  claims are codes the schema publishes. Generating the tables is the wrong fix — the "Answers" column is
+  editorial prose written for that tool's reader, and a generated sentence would be worse. Check instead:
+  every `/api` route is in exactly one table or on a named list of the deliberately unlisted, and each row's
+  codes are a subset of its operation's. `DocumentedBodyTests` posts 8 documented bodies against 67 write
+  routes and is the file it belongs beside.
+
+- [ ] **RP43 — Decide whether a generated client is worth its dependency.** Route strings are what stays
+  hand-written after `RP11`: **152 literal and 106 interpolated** across 49 files, where a typo is a runtime
+  404 rather than a compile error. A generated client fixes that and nothing else — the response types come
+  from `Contracts` either way. It costs `NSwag.CodeGeneration.CSharp` as a build-time package (14.7.1
+  restores clean through the proxy) and a committed generated file, which is a second shape of the surface
+  in the tree. Answer it after `RP11` drains, when what is left to gain is measurable rather than assumed.
 
 ## Phase 2 — one place a use case lives
 

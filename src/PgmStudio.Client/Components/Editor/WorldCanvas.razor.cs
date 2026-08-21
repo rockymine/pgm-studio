@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -87,11 +88,8 @@ public partial class WorldCanvas
         // Islands power the "fit island" zoom control (any activity, if the map has scan data).
         try
         {
-            var isl = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
-            if (isl.ValueKind == JsonValueKind.Array)
-                islandIds = isl.EnumerateArray()
-                    .Where(e => e.TryGetProperty("id", out var v) && v.ValueKind == JsonValueKind.Number)
-                    .Select(e => e.GetProperty("id").GetInt32()).ToList();
+            islandIds = (await Http.GetFromJsonAsync<List<IslandDto>>($"api/map/{Slug}/islands") ?? [])
+                .Select(island => island.Id).ToList();
         }
         catch { islandIds = new(); }
 
@@ -100,11 +98,8 @@ public partial class WorldCanvas
         if (DrawCategory is null) return;
         try
         {
-            var sym = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/symmetry");
-            if (sym.TryGetProperty("status", out var st) && st.GetString() == "confirmed"
-                && sym.TryGetProperty("primary", out var pr) && pr.ValueKind == JsonValueKind.Object
-                && pr.TryGetProperty("type", out var ty))
-                orbitMode = ty.GetString();
+            var sym = await Http.GetFromJsonAsync<SymmetryDto>($"api/map/{Slug}/symmetry");
+            if (sym is { Status: "confirmed", Primary: { } primary }) orbitMode = primary.Type;
         }
         catch { orbitMode = null; }   // no symmetry artifact / asymmetric map → no orbit chip
     }

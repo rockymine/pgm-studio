@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
@@ -88,9 +89,8 @@ public partial class TeamsPhase
     {
         try
         {
-            var sym = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/symmetry");
-            return sym.TryGetProperty("primary", out var pr) && pr.ValueKind == JsonValueKind.Object
-                && pr.TryGetProperty("type", out var ty) ? ty.GetString() : null;
+            var sym = await Http.GetFromJsonAsync<SymmetryDto>($"api/map/{Slug}/symmetry");
+            return sym?.Primary?.Type;
         }
         catch { return null; }   // no islands/symmetry artifact → no suggestion
     }

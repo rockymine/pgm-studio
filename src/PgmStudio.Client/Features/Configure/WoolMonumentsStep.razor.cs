@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -28,7 +29,7 @@ public partial class WoolMonumentsStep
     private readonly List<Ctx.Team> teams = new();
     private List<W.Wool> wools = new();
     private string? symMode; private double symCx, symCz;
-    private List<Ctx.Island> islands = new();
+    private List<IslandDto> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();
     private string? selectedColor;
     private bool detecting;

@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -26,12 +27,11 @@ public partial class SpawnStep
 
     private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
     private sealed class Spawn { public string Team = ""; public double X, Y, Z, Yaw; public bool Authored; }
-    private sealed record Island(int Id, double[][] Ring);
 
     private readonly List<Team> teams = new();
     private readonly Dictionary<string, string> islandTeams = new();   // island id → team id
     private string? symMode; private double symCx, symCz;
-    private List<Island> islands = new();
+    private List<IslandDto> islands = new();
     private readonly List<Spawn> spawns = new();
     private Spawn? observer;        // the <default> (observer/spectator) spawn — always present, editable like a team spawn
     private string? selectedTeamId;
@@ -104,16 +104,7 @@ public partial class SpawnStep
     {
         try
         {
-            var arr = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
-            islands = new();
-            if (arr.ValueKind == JsonValueKind.Array)
-                foreach (var e in arr.EnumerateArray())
-                {
-                    var id = e.GetProperty("id").GetInt32();
-                    if (e.TryGetProperty("polygon", out var poly) && poly.TryGetProperty("coordinates", out var co)
-                        && co.ValueKind == JsonValueKind.Array && co.GetArrayLength() > 0)
-                        islands.Add(new Island(id, co[0].EnumerateArray().Select(p => new[] { p[0].GetDouble(), p[1].GetDouble() }).ToArray()));
-                }
+            islands = await AuthoringContext.LoadIslandsAsync(Http, Slug);
         }
         catch { islands = new(); }
     }
@@ -180,7 +171,7 @@ public partial class SpawnStep
         if (symMode is not null) return (symCx, symCz);
         double minX = double.PositiveInfinity, minZ = double.PositiveInfinity, maxX = double.NegativeInfinity, maxZ = double.NegativeInfinity;
         foreach (var isl in islands)
-            foreach (var p in isl.Ring)
+            foreach (var p in isl.Ring())
             { minX = Math.Min(minX, p[0]); maxX = Math.Max(maxX, p[0]); minZ = Math.Min(minZ, p[1]); maxZ = Math.Max(maxZ, p[1]); }
         if (!double.IsInfinity(minX)) return ((minX + maxX) / 2, (minZ + maxZ) / 2);
         if (spawns.Count > 0) return (spawns.Average(s => s.X), spawns.Average(s => s.Z));
@@ -204,7 +195,7 @@ public partial class SpawnStep
     private string? IslandTeamAt(double x, double z)
     {
         foreach (var isl in islands)
-            if (Polygon.PointInRing(x, z, isl.Ring) && islandTeams.TryGetValue(isl.Id.ToString(), out var t)) return t;
+            if (Polygon.PointInRing(x, z, isl.Ring()) && islandTeams.TryGetValue(isl.Id.ToString(), out var t)) return t;
         return null;
     }
 

@@ -34,8 +34,9 @@ public sealed record BuildabilityDto(
 /// the shared decomposition the Configure tool draws, seats spawns against and fits the canvas to.
 ///
 /// <para><see cref="Id"/> is 1-based and is the id the footprint grid stamps into each cell.
-/// <see cref="Bounds"/> is <c>[minX, minZ, maxX, maxZ]</c> with the maxima <b>exclusive</b>, so a
-/// one-cell island spans one. <see cref="Polygon"/> is GeoJSON — <c>{type: "Polygon", coordinates:
+/// <see cref="Bounds"/> is <c>[minX, minZ, maxX, maxZ]</c> in whole blocks with the maxima
+/// <b>inclusive</b> — the detector takes them off the cells it found, so a one-cell island has
+/// <c>minX == maxX</c> and its centre is <c>(minX + maxX + 1) / 2</c>. <see cref="Polygon"/> is GeoJSON — <c>{type: "Polygon", coordinates:
 /// [ring, hole…]}</c> over <c>[x, z]</c> pairs, the map's z in the second ordinate — which is what lets the
 /// canvas render an island the same way it renders a drawn shape.</para>
 ///

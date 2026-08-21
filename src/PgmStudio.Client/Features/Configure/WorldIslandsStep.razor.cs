@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -23,22 +24,16 @@ public partial class WorldIslandsStep
     // other render — e.g. a canvas fit — happened to re-run the icon factory globally.
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    private sealed record Island(int Id, int BlockCount, int MinX, int MinZ, int MaxX, int MaxZ)
-    {
-        public double CentreX => (MinX + MaxX + 1) / 2.0;
-        public double CentreZ => (MinZ + MaxZ + 1) / 2.0;
-    }
-
-    private List<Island> islands = new();
+    private List<IslandDto> islands = new();
     private readonly HashSet<int> excluded = new();
     private int? selectedId;
     private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
-    private List<Island> Included => islands.Where(i => !excluded.Contains(i.Id)).ToList();
-    private List<Island> ExcludedList => islands.Where(i => excluded.Contains(i.Id)).ToList();
-    private Island? Selected => selectedId is { } id ? islands.FirstOrDefault(i => i.Id == id) : null;
-    private bool IsExcluded(Island i) => excluded.Contains(i.Id);
+    private List<IslandDto> Included => islands.Where(i => !excluded.Contains(i.Id)).ToList();
+    private List<IslandDto> ExcludedList => islands.Where(i => excluded.Contains(i.Id)).ToList();
+    private IslandDto? Selected => selectedId is { } id ? islands.FirstOrDefault(i => i.Id == id) : null;
+    private bool IsExcluded(IslandDto i) => excluded.Contains(i.Id);
 
     protected override async Task OnInitializedAsync()
     {
@@ -50,15 +45,8 @@ public partial class WorldIslandsStep
     {
         try
         {
-            var arr = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/islands");
-            if (arr.ValueKind == JsonValueKind.Array)
-                islands = arr.EnumerateArray().Select(e =>
-                {
-                    var b = e.GetProperty("bounds");
-                    return new Island(
-                        e.GetProperty("id").GetInt32(), e.GetProperty("block_count").GetInt32(),
-                        b[0].GetInt32(), b[1].GetInt32(), b[2].GetInt32(), b[3].GetInt32());
-                }).OrderByDescending(i => i.BlockCount).ToList();
+            islands = (await AuthoringContext.LoadIslandsAsync(Http, Slug))
+                .OrderByDescending(i => i.BlockCount).ToList();
         }
         catch { islands = new(); }
     }
@@ -67,11 +55,9 @@ public partial class WorldIslandsStep
     {
         try
         {
-            var s = await Http.GetFromJsonAsync<JsonElement>($"api/configure/{Slug}/state");
+            var state = await Http.GetFromJsonAsync<ConfigureStateDto>($"api/configure/{Slug}/state");
             excluded.Clear();
-            if (s.TryGetProperty("exclude_islands", out var ex) && ex.ValueKind == JsonValueKind.Array)
-                foreach (var i in ex.EnumerateArray())
-                    if (i.ValueKind == JsonValueKind.Number) excluded.Add(i.GetInt32());
+            foreach (var island in state?.ExcludeIslands ?? []) excluded.Add(island);
         }
         catch { /* no config yet → nothing excluded */ }
     }
@@ -88,7 +74,7 @@ public partial class WorldIslandsStep
         if (canvas is not null) await canvas.SetSelectedIslandAsync(id);
     }
 
-    private async Task ToggleExclude(Island isl)
+    private async Task ToggleExclude(IslandDto isl)
     {
         var willExclude = !excluded.Contains(isl.Id);
         // Saves immediately (re-runs symmetry server-side) — reflected in the topbar as Saving… → Saved.
@@ -104,5 +90,5 @@ public partial class WorldIslandsStep
     }
 
     // Display label: a plain positional identifier for the list.
-    private string Label(Island isl) => $"Island {islands.IndexOf(isl) + 1}";
+    private string Label(IslandDto isl) => $"Island {islands.IndexOf(isl) + 1}";
 }

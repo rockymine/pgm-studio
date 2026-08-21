@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -43,7 +44,7 @@ public partial class WoolObjectivesStep
 
     private readonly List<Ctx.Team> teams = new();
     private string? symMode; private double symCx, symCz;
-    private List<Ctx.Island> islands = new();
+    private List<IslandDto> islands = new();
     private readonly Dictionary<string, string> islandTeams = new();
     private readonly Dictionary<string, Rect> protection = new();   // team → spawn-protection rect
     private readonly List<Candidate> candidates = new();

@@ -1,3 +1,5 @@
+using PgmStudio.Client.Features.Configure;
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -19,14 +21,12 @@ public partial class SetupPhase
     [Parameter] public EventCallback OnPrevPhase { get; set; }
     [Parameter] public EventCallback OnNextPhase { get; set; }
 
-    private sealed record Island(int Id, int BlockCount);
-    private sealed record SymMode(string Type, bool Detected, double Confidence);
 
     private int step = 1;
     private readonly HashSet<int> excludedIslands = new();
-    private List<Island> islands = new();
+    private List<IslandDto> islands = new();
     private int? selectedId;
-    private List<SymMode> symModes = new();
+    private List<SymmetryModeDto> symModes = new();
     private double centerX, centerZ, detCenterX, detCenterZ;
     private string? symChoice;
     private string? error;
@@ -34,8 +34,8 @@ public partial class SetupPhase
     private WorldCanvas? islandCanvas, symCanvas;
 
     // ── derived views for the markup ──────────────────────────────────────────────
-    private List<Island> IncludedIslands => islands.Where(i => !excludedIslands.Contains(i.Id)).ToList();
-    private List<Island> ExcludedIslandsList => islands.Where(i => excludedIslands.Contains(i.Id)).ToList();
+    private List<IslandDto> IncludedIslands => islands.Where(i => !excludedIslands.Contains(i.Id)).ToList();
+    private List<IslandDto> ExcludedIslandsList => islands.Where(i => excludedIslands.Contains(i.Id)).ToList();
 
     protected override async Task OnParametersSetAsync()
     {
@@ -75,12 +75,7 @@ public partial class SetupPhase
     {
         try
         {
-            var resp = await Http.GetAsync($"api/map/{Slug}/islands");
-            if (!resp.IsSuccessStatusCode) { islands = new(); return; }
-            var arr = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            islands = arr.ValueKind == JsonValueKind.Array
-                ? arr.EnumerateArray().Select(i => new Island(i.GetProperty("id").GetInt32(), i.GetProperty("block_count").GetInt32())).ToList()
-                : new();
+            islands = await AuthoringContext.LoadIslandsAsync(Http, Slug);
         }
         catch { islands = new(); }
     }
@@ -89,21 +84,15 @@ public partial class SetupPhase
     {
         try
         {
-            var resp = await Http.GetAsync($"api/map/{Slug}/symmetry");
-            if (!resp.IsSuccessStatusCode) { symModes = new(); return; }
-            var s = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            symModes = s.TryGetProperty("modes", out var ms) && ms.ValueKind == JsonValueKind.Array
-                ? ms.EnumerateArray().Select(m => new SymMode(Str(m, "type"), m.GetProperty("detected").GetBoolean(), m.GetProperty("confidence").GetDouble()))
-                    .OrderByDescending(m => m.Confidence).ToList()
-                : new();
-            if (s.TryGetProperty("center", out var c) && c.ValueKind == JsonValueKind.Object)
+            var symmetry = await Http.GetFromJsonAsync<SymmetryDto>($"api/map/{Slug}/symmetry");
+            symModes = (symmetry?.Modes ?? []).OrderByDescending(m => m.Confidence).ToList();
+            if (symmetry?.Center is { } centre)
             {
-                detCenterX = centerX = c.TryGetProperty("cx", out var cx) ? cx.GetDouble() : 0;
-                detCenterZ = centerZ = c.TryGetProperty("cz", out var cz) ? cz.GetDouble() : 0;
+                detCenterX = centerX = centre.Cx;
+                detCenterZ = centerZ = centre.Cz;
             }
             // Pre-select the detected primary if the user hasn't chosen yet.
-            if (symChoice is null && s.TryGetProperty("primary", out var p) && p.ValueKind == JsonValueKind.Object)
-                symChoice = Str(p, "type");
+            symChoice ??= symmetry?.Primary?.Type;
         }
         catch { symModes = new(); }
     }

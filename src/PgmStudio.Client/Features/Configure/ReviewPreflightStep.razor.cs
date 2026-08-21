@@ -176,21 +176,14 @@ public partial class ReviewPreflightStep
         var result = new List<(string, Rect)>();
         try
         {
-            var arr = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Wizard.Slug}/islands");
-            if (arr.ValueKind != JsonValueKind.Array) return result;
-            foreach (var isl in arr.EnumerateArray())
+            foreach (var isl in await AuthoringContext.LoadIslandsAsync(Http, Wizard.Slug))
             {
-                if (!isl.TryGetProperty("polygon", out var poly) ||
-                    !poly.TryGetProperty("coordinates", out var rings) || rings.GetArrayLength() == 0) continue;
-                var ring = rings[0];   // exterior ring
-                var pts = ring.EnumerateArray()
-                    .Where(p => p.GetArrayLength() >= 2)
-                    .Select(p => (p[0].GetDouble(), p[1].GetDouble())).ToList();
+                var pts = isl.Ring().Where(p => p.Count >= 2).Select(p => (p[0], p[1])).ToList();
                 pts = Simplify(pts);   // drop the collinear unit-steps of a block-edge polygon
                 if (pts.Count < 3) continue;
                 var s = string.Join(" ", pts.Select(p => $"{F(p.Item1)},{F(p.Item2)}"));
-                var bx = isl.TryGetProperty("bounds", out var b) && b.GetArrayLength() >= 4
-                    ? new Rect(b[0].GetDouble(), b[1].GetDouble(), b[2].GetDouble(), b[3].GetDouble())
+                var bx = isl.Bounds.Count >= 4
+                    ? new Rect(isl.Bounds[0], isl.Bounds[1], isl.Bounds[2], isl.Bounds[3])
                     : new Rect(pts.Min(p => p.Item1), pts.Min(p => p.Item2), pts.Max(p => p.Item1), pts.Max(p => p.Item2));
                 result.Add((s, bx));
             }
