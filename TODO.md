@@ -79,13 +79,14 @@ consumers that keep the contract by hand instead of reading the records it is bu
   `max_players` that is not an integer — and leave the rest declared. The other 38 refusal sites in
   `Pgm/Editing` read the map the edit lands on and stay whatever happens here.
 
-- [~] **RP11 — The client re-parses answers the schema already names.** `Contracts` is a project the client
-  references, so a route whose 200 is a named record can be read as that record — and **32 of the 32**
-  `JsonElement` reads whose route could be resolved point at one. What the hand-parsing grew instead is
-  **mirror types**: six private islands, six private teams, three spawns, two wool/monument pairs, each a
-  different projection of one record, each with its own `GetProperty` walk inside a `catch` that returns
-  empty. Sweep the rest to the records that answer them, keeping a private type only where it carries UI
-  state a DTO has no business holding. **No generator is needed for this half.**
+- [~] **RP11 — Thirty-five client reads still walk an answer the schema already names.** `Contracts` is a
+  project the client references, so a route whose 200 is a named record can be read as that record; the
+  islands, the symmetry and the map document are, which took the count from 59. What is left is one heap and
+  one straggler. The heap is **`GET …/regions/tree`**, five call sites against `RegionTreeDto` and its four
+  companions — the read `region-data-flow.md` calls the one every sidebar and the canvas hit on each load.
+  The straggler is the twenty-seven reads whose route is built in a variable rather than written at the call
+  site, so they need reading before they can be counted. Keep a private type only where it carries UI state a
+  DTO has no business holding. **No generator is needed for this half.**
 
 - [ ] **RP42 — The endpoint tables are checked one way and derived none.** `DocumentedRouteTests` asserts
   every tabled path exists; nothing asserts a route *appears* in a table, or that the status codes a row
