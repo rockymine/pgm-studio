@@ -1177,6 +1177,24 @@ so it has to *call* them, which is what the application layer is for.
   it. `RulesEndpointTests` gains the assertion from the other side: every row answered has an emit site.
   `RP15` is the same seam from the other direction.
 
+- [ ] **RP36 — 108 schemas describe the type and none of its fields.** The schema publishes the docstrings
+  the DTOs carry: 201 of 222 schemas have a description, but only 174 fields do, and in 108 of those schemas
+  the type's prose is doing the fields' work. `PlanPiece` is the worked case — its blurb explains `rect`,
+  `surface` and `mirrors` and says nothing about `role`, which is the one field a caller has to fill and the
+  one whose allowed words it cannot guess. Write a `<param>` per field on the records a driver posts or
+  reads: the write-route requests first (`RP12` authors them), then `PlanModel` and the plan pieces. Twenty-one
+  schemas still carry nothing at all and are the second pass. The measure is the field percentage at
+  `/api/openapi/v1.json`, not the schema one.
+
+- [ ] **RP37 — The closed word sets are published as free strings.** `PgmStudio.Vocabulary` exists so three
+  parties spell a `map.stage`, a `style.kind`, a theme bucket, a room part and a roof form identically — ten
+  sets, `MapStage` plus the nine in `TerrainVocabulary` — and every one of them reaches the wire as a bare
+  `string`. `Severity` is the document's only `enum`, because it is the only one declared as a C# enum. So a
+  generated client types `role` as `string` and an agent learns the four stages by being refused. Publish
+  each set as a schema `enum` — a `JsonStringEnumConverter`-backed enum where the set is genuinely closed,
+  or NSwag's schema processor reading the `All` array where the `const string` shape has to stay for
+  `Minecraft`. `RP14`'s `category` is the next one to land and should arrive as an enum, not a sixth string.
+
 ## The remainder: work no concept above has claimed
 
 - [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a

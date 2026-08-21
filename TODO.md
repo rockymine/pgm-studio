@@ -48,20 +48,21 @@ is kept in the table with the answer beside it, because the answer is the part a
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
 
-One more carries a smaller one, which an implementer may make and state rather than ask: `RP12`, how far to
-push declared request shapes in one pass — the write surface is the useful half.
 
 ## Phase 1 — say what the surface is
 
 Every operation now declares what it answers. What is left is the other half — what a route *takes* — and
 the two consumers that still keep the contract by hand instead of reading the document it produces.
 
-- [ ] **RP12 — Eighty-six percent of the surface declares no request shape.** 127 of the 148 endpoints
-  declare no typed request and **23 call sites read the body as `Dictionary<string, object?>`** through
-  `RawBody`. So `RequiredFields`, the one global input gate, returns on its first line for all of them: the
-  promise it makes holds for 21 routes. The Edit tool's 53 refusal sites in `Pgm/Editing` are a request
-  schema written by hand for exactly this reason. Give each write route a request record, bind at the edge, and let the
-  hand-written field checks go with it. Needs `RP11` first, which is what makes the shapes checkable.
+- [ ] **RP12 — Forty-five of the sixty-seven write routes declare no request shape.** Twenty-two of them
+  read the body through `RawBody`, so `RequiredFields`, the one global input gate, returns on its first line
+  for those. Three sorts, and only one is real work. **Twenty-five** take a whole document or a parameter
+  blob — `PUT …/plan`, `…/sketch`, `…/intent`, the five `/plan/*` inspect posts, the three terrain previews
+  — and are declare-don't-map, one `Accepts<T>` each. **Eighteen** are the edit routes (regions, spawns,
+  wools, teams, metadata, symmetry), where a request record replaces the **15** hand-written
+  `EditException.Unreadable` throws in `Pgm/Editing`; the other 38 refusal sites there are domain checks and
+  stay. The two import routes keep their own validation. **`RP11` needs this, not the reverse** — a client
+  generated from a document that declares no bodies types every response and leaves every request `object`.
 
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
   `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out
