@@ -355,6 +355,12 @@ emptied when its ground is settled, not when its entries have each been done in 
    `grep <id> TODO.md BACKLOG.md docs/generator/ideas.md` must hit exactly once. The prefix names the
    **document the task is obliged to leave correct** (catalogued below). It is not a section name and does not
    move when the board is regrouped, which is the whole reason it can be stable.
+
+   **A rule id has the same shape, so the boards are not the whole namespace.** `GET /api/rules` answers
+   letters-plus-number too, and an id that is a task on the board and a rule on the wire makes every grep for
+   either ambiguous. So the uniqueness check is `grep` **plus** `GET /api/rules?rule=<id>`, which has to answer
+   empty. A new prefix is two letters or more and is not a rule family; **`G` is the one that is both**, and
+   what keeps it apart is the number — the family is `G1`–`G8` and the board numbers above it.
 5. **Both boards group by concept, and a heading names one** — "The house: what it stamps, where it stands",
    "Painting: the theme a document states is not what lands". A group gathers whatever entries share a
    foundation, whatever their prefixes, and orders them the way a reader meets them rather than the way the

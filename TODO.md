@@ -145,12 +145,12 @@ The cheapest of the five: a change to `Finding` plus a sweep of 71 constants, an
 What makes the pipeline drivable without a fifteen-document briefing: a caller asks what it may do next, and
 hears a late gate early.
 
-- [ ] **RP16 — The lifecycle is a column nothing reads and 716 lines of prose.** `map.stage` holds
+- [ ] **RP16 — The lifecycle is a column nothing reads and 709 lines of prose.** `map.stage` holds
   `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other
   read is the dashboard's filter. No endpoint refuses on it and none answers what a map at a stage may be
   asked for — `docs/tools/capabilities.md` answers that question in prose that nothing verifies. Give it a
-  transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver
-  reads its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
+  transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver reads
+  its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
   to hold.
 
 - [ ] **RP4 — The export's own objective gates have no pre-flight, and an agent pays a whole build for
@@ -229,11 +229,13 @@ a phase above is compiling.
   nothing stored. The grid is the read that shows a *relation between two rectangles*, which is what the
   other five cannot: `pgm-studio-mapgen`'s own notes name a sixteen-cell bar reached by a four-cell build
   zone as the whole of a 60%-dead landform, "visible at a glance and invisible in the render that was
-  actually looked at". Because the render needs a row, `tools/board.py` is a 94-line Python reimplementation
-  of it. Add `POST /plan/ascii` beside the other five and delete the third copy.
+  actually looked at". Because the render needs a row, the mapgen repo carries `tools/board.py`, a 94-line
+  Python reimplementation of it. Add `POST /plan/ascii` beside the other five, so the copy next door has
+  nothing left to answer.
 
-- [ ] **RP19 — `tools/relief` is 120 KB that generates nothing committed.** Its README calls it "the live twin
-  of `docs/world-export/relief.md` — every figure and every number in that document is emitted by this tool",
+- [ ] **RP19 — `tools/relief` is 148 KB of source that generates nothing committed.** Its README calls it
+  "the live twin of `docs/world-export/relief.md` — every figure and every number in that document is
+  emitted by this tool",
   and `relief.md` carries **no image references at all**; `out/` is gitignored, so nothing it draws is kept.
   Against `CLAUDE.md` § *Investigation stays local* it is neither a gate, nor a generator of a committed
   artifact, nor an operational tool. It also carries its own `Mirror`/`Fold`/`SymmetryError`
@@ -244,26 +246,30 @@ a phase above is compiling.
 
 - [ ] **RP10 — Sweep the history out of the code comments.** `CLAUDE.md` § *Code comments* states the rule —
   a comment says what the code does and why, in the present tense, and never what it used to do — and the
-  tree does not keep it. **18 files** carry a docstring or inline comment whose subject is a state that no
-  longer exists: `RulesEndpoint.cs:16` ("until now nothing answered…"), `MetaGenerator.cs:12` ("the studio's
-  boilerplate used to say…"), `TeamUnitAllocator.cs:56` ("it used to be rounded to even…"),
-  `FillProfiles.cs:8` ("in place of the per-kind logic that used to be scattered…"),
-  `StructureFinder.cs:24`, `HouseStyle.cs:444`, `HouseStamper.cs:17,118`, `Decorator.cs:75`,
-  `EvaluationDto.cs:42`, `SketchEndpoints.cs:243` and the rest of the 18. Each one is a before-and-after
+  tree does not keep it. **23 comments across 20 files** have a state that no longer exists as their subject:
+  `RulesEndpoint.cs` ("until now nothing answered…"), `MetaGenerator.cs` ("the studio's boilerplate used to
+  say…"), `TeamUnitAllocator.cs` ("it used to be rounded to even…"), `FillProfiles.cs` ("in place of the
+  per-kind logic that used to be scattered…"), `StructureFinder.cs`, `HouseStyle.cs`, `HouseStamper.cs` (two),
+  `Decorator.cs` (two), `EvaluationDto.cs`, `SketchEndpoints.cs` (two) and nine more. Each one is a
+  before-and-after
   where a fact about the present shape would say the same thing shorter. Sweep them the way the port
   attributions were swept: rewrite as the fact, delete where the fact is already stated above it. The grep
   that finds them is `used to |had grown|until now|was (previously|formerly)|no longer (does|did)`, and it is
-  worth leaving in the commit message so the next sweep starts from the same list.
+  worth leaving in the commit message so the next sweep starts from the same list. It needs eyes: it answers
+  29 lines in 26 files, and six of those are `used to` meaning *in order to* — a corpus root "used to locate a
+  world", a tool "used to pick markers".
 
-- [ ] **RP8 — `project-structure.md`'s census disagrees with the tree it describes.** The size table at
-  §"Project sizes" is a snapshot nothing regenerates, and every row of it has drifted: measured over
-  `src/**/*.cs` (excluding `bin`/`obj`) the true counts are `Geom` 44/5,362 (stated 44/4,967), `Domain`
-  27/2,515 (25/2,252), `Contracts` 15/1,026 (13/965), `Migrations` 22/1,513 (21/1,469), `Minecraft`
-  79/15,456 (74/14,307), `Pgm` 148/22,838 (137/20,641), `Analysis` 17/3,035 (16/2,609), `Export` 8/1,575
-  (7/1,171), `Api` 67/9,595 (69/8,675) and `Client` 82 (80). The folder breakdowns are worse than stale —
-  they are counted at one level where the folders nest, so `Pgm/Compose` reads 42 against 28 direct children,
-  and the "48 files are the codec / 85 files and 11,522 lines are the generator" split the §7.1 argument
-  rests on cannot be reproduced from either number. A table nobody can regenerate is a table that is wrong
-  between every pair of commits, so the fix is a counter, not a re-count: one script under `tools/` that
-  writes the table (the `envelope-stats` pattern — a generator of a committed artifact), and the prose
-  reworded to cite the shape rather than the totals.
+- [ ] **RP8 — `project-structure.md`'s census disagrees with the tree it describes.** The size table at §3 is
+  a snapshot nothing regenerates, and **every row of it has drifted**. Measured over `src/**/*.cs`
+  (plus `.razor` for `Client`, excluding `bin`/`obj`), true against stated: `Geom` 44/5,362 (44/4,967),
+  `Domain` 25/2,372 (25/2,252), `Contracts` 25/1,547 (13/965), `Vocabulary` 4/434 (4/393), `Migrations`
+  24/1,577 (21/1,469), `Minecraft` 79/15,474 (74/14,307), `Import` 4/471 (4/472), `Pgm` 148/22,716
+  (137/20,641), `Analysis` 15/2,831 (16/2,609), `Data` 14/2,436 (14/2,316), `Export` 8/1,629 (7/1,171),
+  `Api` 70/9,657 (69/8,675), `Client` 186/23,095 (80/13,436). The folder breakdowns are worse than stale —
+  counted at one level where the folders nest, so `Pgm/Compose` reads 42 against 28 direct children, and the
+  "48 files are the codec / 85 files and 11,522 lines are the generator" split the §7.1 argument rests on
+  cannot be reproduced from either number.
+
+  A table nobody can regenerate is wrong between every pair of commits, so the fix is a counter, not a
+  re-count: one script under `tools/` that writes the table (the `envelope-stats` pattern — a generator of a
+  committed artifact), and the prose reworded to cite the shape rather than the totals.

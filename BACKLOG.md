@@ -1070,7 +1070,7 @@ place.
   overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
   rule is picked, the route reader must name the graph it read.
 
-- [ ] **G2 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
+- [ ] **G188 — Protection-aware reachability port (memory stage S4).** `MapValidity` (every-wool-needs-a-monument)
   and the `NVAL` export gate (`PreflightEndpoint`) already shipped (`FEATURES.md`). The open slice is to **port
   protection-aware reachability** from `scripts/generator/validate_play.py` to C# `Analysis/Playability`:
   today's `Traversability.Check` only tests connectivity, **not** spawn-protection-as-wall, so it passes maps

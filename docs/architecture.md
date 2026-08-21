@@ -106,7 +106,7 @@ originating endpoints and once more by `sketch/finish`. Every other read is the 
 groups by it and the client's stage chips filter on it. **No endpoint refuses anything because of it, and no
 endpoint answers what a map at a given stage may be asked for.**
 
-`docs/tools/capabilities.md` is 716 lines answering exactly that question in prose. `flow.md` states the four
+`docs/tools/capabilities.md` is 709 lines answering exactly that question in prose. `flow.md` states the four
 levels of description and the five hand-offs between them, and states them well — but only as prose. There is
 no type for a level, no transition table, and no way for a caller to ask what it may do next. An agent
 learns the pipeline by reading markdown that nothing verifies, or by trying a call and reading the refusal.
