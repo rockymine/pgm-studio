@@ -93,21 +93,22 @@ public partial class WoolObjectivesStep
         var signed = new HashSet<string>(); var conf = new Dictionary<string, double>(); var evid = new Dictionary<string, string>();
         try
         {
-            var ms = await Http.GetFromJsonAsync<JsonElement>(
+            var suggestions = await Http.GetFromJsonAsync<List<MonumentSuggestionDto>>(
                 $"api/map/{Slug}/monument-suggestions?box={minX},0,{minZ},{maxX},255,{maxZ}&style=Any,Any,Any");
-            if (ms.ValueKind == JsonValueKind.Array)
-                foreach (var m in ms.EnumerateArray())
+            foreach (var m in suggestions ?? [])
+            {
+                var color = W.NormColor(m.Color ?? "");
+                if (color.Length == 0) continue;
+                var cap = Ctx.IslandTeamAt(m.X, m.Z, islands, islandTeams) ?? "";
+                monByColor.TryAdd(color, new());
+                monByColor[color].Add(new W.Monument { Team = cap, X = m.X, Y = m.Y, Z = m.Z });
+                if (m.Source == "sign") signed.Add(color);
+                if (m.Confidence > conf.GetValueOrDefault(color))
                 {
-                    var color = W.NormColor(Str(m, "color"));
-                    if (color.Length == 0) continue;
-                    double x = Dbl(m, "x"), y = Dbl(m, "y"), z = Dbl(m, "z");
-                    var cap = Ctx.IslandTeamAt(x, z, islands, islandTeams) ?? "";
-                    monByColor.TryAdd(color, new());
-                    monByColor[color].Add(new W.Monument { Team = cap, X = x, Y = y, Z = z });
-                    if (Str(m, "source") == "sign") signed.Add(color);
-                    var c = m.TryGetProperty("confidence", out var cf) ? cf.GetDouble() : 0;
-                    if (c > conf.GetValueOrDefault(color)) { conf[color] = c; evid[color] = Str(m, "evidence"); }
+                    conf[color] = m.Confidence;
+                    evid[color] = m.Evidence ?? "";
                 }
+            }
         }
         catch { /* no monuments gathered → terrain-only fallback below */ }
 
@@ -121,14 +122,13 @@ public partial class WoolObjectivesStep
             var resp = await Http.PostAsync($"api/map/{Slug}/wool-sources", body);
             if (resp.IsSuccessStatusCode)
             {
-                var d = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                if (d.TryGetProperty("colors", out var cols) && cols.ValueKind == JsonValueKind.Array)
-                    foreach (var c in cols.EnumerateArray())
+                var found = await resp.Content.ReadFromJsonAsync<WoolSourcesResponseDto>();
+                    foreach (var c in found?.Colors ?? [])
                     {
-                        var color = W.NormColor(Str(c, "color"));
-                        if (!c.TryGetProperty("sources", out var ss) || ss.ValueKind != JsonValueKind.Array || ss.GetArrayLength() == 0) continue;
+                        var color = W.NormColor(c.Color);
+                        if (c.Sources.Count == 0) continue;
                         double sx = 0, sy = 0, sz = 0, minY = double.MaxValue; int n = 0;
-                        foreach (var s in ss.EnumerateArray()) { var y = Dbl(s, "y"); sx += Dbl(s, "x"); sy += y; sz += Dbl(s, "z"); minY = Math.Min(minY, y); n++; }
+                        foreach (var s in c.Sources) { sx += s.X; sy += s.Y; sz += s.Z; minY = Math.Min(minY, s.Y); n++; }
                         srcByColor[color] = (sx / n, sy / n, sz / n, n, minY);
                     }
             }
@@ -274,6 +274,4 @@ public partial class WoolObjectivesStep
     // an elevated wool room finds its own floor rather than a roof above it). Null when the column is void.
     private Task<int?> RestingYAsync(int x, int z, int refY) => ColumnFloor.RestingYAsync(Http, Slug, x, z, refY);
 
-    private static string Str(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
-    private static double Dbl(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
 }

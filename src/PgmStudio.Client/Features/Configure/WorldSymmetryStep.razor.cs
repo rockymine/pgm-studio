@@ -114,7 +114,5 @@ public partial class WorldSymmetryStep
         Wizard.MarkDirty();
     }
 
-    private static string Str(JsonElement e, string key)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
     private static double? Num(JsonObject o, string key) => o[key] is JsonValue v && v.TryGetValue(out double d) ? d : null;
 }

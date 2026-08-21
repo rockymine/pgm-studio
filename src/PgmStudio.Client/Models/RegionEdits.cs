@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -47,11 +48,12 @@ public static class RegionEdits
         if (!resp.IsSuccessStatusCode) return null;
         // the edited coord (e.g. cuboid min_y) lives only in Coords; the response carries the new footprint
         if (coordKey is not null) node.Coords[coordKey] = coordValue;
-        var res = await resp.Content.ReadFromJsonAsync<JsonElement>();
-        var nb = new Dictionary<string, double>();
-        if (res.TryGetProperty("bounds", out var rb) && rb.ValueKind == JsonValueKind.Object)
-            foreach (var k in Footprint)
-                if (rb.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number) nb[k] = v.GetDouble();
+        // A rename answers no bounds at all — only a move has a footprint to hand back.
+        var patched = await resp.Content.ReadFromJsonAsync<RegionPatchedDto>();
+        var nb = patched?.Bounds is { } b
+            ? new Dictionary<string, double>
+              { ["min_x"] = b.MinX, ["min_z"] = b.MinZ, ["max_x"] = b.MaxX, ["max_z"] = b.MaxZ }
+            : new Dictionary<string, double>();
         WriteFootprint(node, nb);
         return nb;
     }

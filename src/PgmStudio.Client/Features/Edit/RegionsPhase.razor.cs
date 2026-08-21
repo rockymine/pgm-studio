@@ -142,8 +142,8 @@ public partial class RegionsPhase
     {
         var body = new Dictionary<string, object?> { ["child_ids"] = selection.ToList(), ["type"] = "union" };
         var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions/group", body);
-        if (await Ok(resp) is { } b && b.TryGetProperty("id", out var idEl) && idEl.GetString() is { } newId)
-            await Load([newId]);   // select the new group (Ctrl+G again ungroups it)
+        if (await Ok<RegionGroupedDto>(resp) is { } grouped)
+            await Load([grouped.Id]);   // select the new group (Ctrl+G again ungroups it)
     }
 
     private async Task UngroupOne(string id)
@@ -155,22 +155,18 @@ public partial class RegionsPhase
             error = $"\"{id}\" has a rule wired to it — unwire it before ungrouping."; StateHasChanged(); return;
         }
         var resp = await Http.PostAsJsonAsync($"api/map/{Slug}/regions/ungroup", new Dictionary<string, object?> { ["region_id"] = id });
-        if (await Ok(resp) is { } b)
-        {
-            var freed = b.TryGetProperty("child_ids", out var c) && c.ValueKind == JsonValueKind.Array
-                ? c.EnumerateArray().Select(x => x.GetString()).Where(x => x is not null).Cast<string>().ToList()
-                : new List<string>();
-            await Load(freed);
-        }
+        if (await Ok<RegionUngroupedDto>(resp) is { } dissolved) await Load([.. dissolved.ChildIds]);
     }
 
-    private async Task<JsonElement?> Ok(HttpResponseMessage resp)
+    /// <summary>The answer, or the refusal's sentence on screen and nothing back. Grouping and ungrouping
+    /// answer different shapes, so the caller names the one it expects.</summary>
+    private async Task<T?> Ok<T>(HttpResponseMessage resp)
     {
         error = null;
-        if (resp.IsSuccessStatusCode) return await resp.Content.ReadFromJsonAsync<JsonElement>();
+        if (resp.IsSuccessStatusCode) return await resp.Content.ReadFromJsonAsync<T>();
         error = await ServerRefusal.SentenceAsync(resp);
         StateHasChanged();
-        return null;
+        return default;
     }
 
     // ── keyboard registration ───────────────────────────────────────────────────────

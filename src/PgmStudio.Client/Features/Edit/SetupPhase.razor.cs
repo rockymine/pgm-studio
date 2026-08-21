@@ -64,9 +64,9 @@ public partial class SetupPhase
     {
         try
         {
-            var s = await Http.GetFromJsonAsync<JsonElement>($"api/configure/{Slug}/state");
+            var state = await Http.GetFromJsonAsync<ConfigureStateDto>($"api/configure/{Slug}/state");
             excludedIslands.Clear();
-            foreach (var i in IntList(s, "exclude_islands")) excludedIslands.Add(i);
+            foreach (var island in state?.ExcludeIslands ?? []) excludedIslands.Add(island);
         }
         catch (Exception ex) { error = ex.Message; }
     }
@@ -165,11 +165,5 @@ public partial class SetupPhase
         else error = $"Failed to save symmetry ({(int)resp.StatusCode}).";
     }
 
-    private static string Str(JsonElement e, string key, string def = "")
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? def : def;
 
-    private static IEnumerable<int> IntList(JsonElement e, string key)
-        => e.TryGetProperty(key, out var a) && a.ValueKind == JsonValueKind.Array
-            ? a.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.Number).Select(x => x.GetInt32())
-            : Enumerable.Empty<int>();
 }

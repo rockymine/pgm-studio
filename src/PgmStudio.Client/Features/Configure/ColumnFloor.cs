@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -26,8 +27,8 @@ internal static class ColumnFloor
         {
             var q = $"api/map/{slug}/column-floor?x={(int)Math.Floor(x)}&z={(int)Math.Floor(z)}";
             if (refY is { } r) q += $"&y={r}";
-            var d = await http.GetFromJsonAsync<JsonElement>(q);
-            return d.TryGetProperty("y", out var y) && y.ValueKind == JsonValueKind.Number ? y.GetInt32() + 1 : null;
+            var floor = await http.GetFromJsonAsync<ColumnFloorDto>(q);
+            return floor?.Y is { } y ? y + 1 : null;
         }
         catch { return null; }
     }

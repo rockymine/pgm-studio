@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -154,8 +155,8 @@ public partial class ConfigureTool
             var resp = await Http.GetAsync($"api/map/{Slug}/origin");
             if (resp.IsSuccessStatusCode)
             {
-                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                if (doc.TryGetProperty("sketch", out var s) && s.GetBoolean())
+                var origin = await resp.Content.ReadFromJsonAsync<MapOriginDto>();
+                if (origin?.Sketch == true)
                     phases = [.. ConfigurePhases.All.Select(p => p.Id == "wools"
                         ? p with { Steps = [.. p.Steps.Where(label => label != "Monuments")] }
                         : p)];
@@ -173,8 +174,7 @@ public partial class ConfigureTool
             var resp = await Http.GetAsync($"api/map/{Slug}");
             if (resp.IsSuccessStatusCode)
             {
-                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                mapName = doc.TryGetProperty("name", out var n) ? n.GetString() : null;
+                mapName = (await resp.Content.ReadFromJsonAsync<MapDocumentDto>())?.Name;
             }
         }
         catch { /* shell is independent of map data */ }

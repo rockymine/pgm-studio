@@ -658,6 +658,27 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
   routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
   endpoint class its only caller reached across.
+- **The client reads the records the schema already names (RP11).** `Contracts` is a project the Blazor
+  client references, so a route whose 200 is a named record can be read as that record — and every one of
+  the client's `JsonElement` reads pointed at one. It was walking them by name instead, and had grown
+  **twelve private mirror types** doing it: six islands, three import summaries, a symmetry mode, a finding,
+  a region candidate, each a different projection of one record with its own `GetProperty` walk inside a
+  `catch` that returned empty. **59 reads → 2**, twelve mirrors and seventeen dead helpers deleted.
+
+  Five groups, and the order was what made each small. The islands and the map document were copies to
+  collapse. The region tree was **not**: one shared view model whose `Bounds` and `Coords` are mutable on
+  purpose — `RegionEdits` writes an inspector's new number into them and draws from it before the save
+  round-trips — so only `RegionNode.Parse(JsonElement)` became `From(RegionNodeDto)` and the model stayed.
+  The last two groups came out of an inventory rather than a file sweep: five reads were not success shapes
+  at all but the refusal envelope, which is one `RefusalDto` for all five, and the two import routes answer
+  the same eight counts, read once now rather than once per door. `PlanTool`'s own copy of `Finding` went
+  with them, and `RegionsPhase.Ok` became `Ok<T>` because grouping and ungrouping answer different shapes.
+
+  **Two reads stay `JsonElement`, and both are the honest form.** `SketchTool` hands the layout blob
+  verbatim to the canvas, so typing it would re-serialize through `SketchLayout` and drop whatever a newer
+  editor wrote — the same reason the route answers it as stored. And `/plan/compile`'s success carries
+  `warnings` that no record declares, which is `RP44`.
+
 - **Every write route that can say what it takes now says it (RP12).** A route with no declared request type
   publishes no `requestBody`, so `/api-docs` offered no field to fill and a generated client would type every
   body `object`. Of the **67** POST/PUT/PATCH routes, 22 declared one; **61** do now, and

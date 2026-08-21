@@ -29,12 +29,12 @@ one place a use case lives, so the application layer is second. A caller cannot 
 fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
 handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — nineteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the nineteen carry a question only the author can answer
+## Four of the eighteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -78,18 +78,6 @@ consumers that keep the contract by hand instead of reading the records it is bu
   a binding genuinely refuses something — a missing `region_id`, a `yaw` that is not a number, a
   `max_players` that is not an integer — and leave the rest declared. The other 38 refusal sites in
   `Pgm/Editing` read the map the edit lands on and stay whatever happens here.
-
-- [~] **RP11 — Thirty client reads walk an answer the schema already names, and every one of them has a
-  record.** Inventoried, so what is left is a list rather than an unknown. **Twenty-five read a success
-  shape**, and none needs a type written: `OriginatedDto` ×4 (both originate buttons, the generator's author
-  call, the plan tool's draft), `MapDocumentDto` ×2 (the Configure and Edit hosts), `MonumentSuggestionDto`
-  ×2, `WorldScanDto` ×2 (the import pair), `PlayerDto` ×3, `CompiledPlanDto`, `RegionCreatedDto`,
-  `RegionPatchedDto`, `RegionUngroupedDto`, `SketchFinishedDto`, `MapOriginDto`, `ColumnFloorDto`,
-  `CoreSuggestionsDto`, `WoolSourcesResponseDto`, `ImportCandidateDto`, `ScanSummaryDto`,
-  `ConfigureStateDto`, `SketchLayout`. **The other five are not success shapes at all** — they read
-  `error`, `message` or `findings` off a refusal, which is `RefusalDto`, one shape for all five
-  (`ReviewXmlStep` ×2, `ImportPhase.ErrorMessage`, `SketchTool`, `PlanTool`'s 422 branch). Sweep them, and
-  take the refusal readers as one group rather than one route at a time.
 
 - [ ] **RP42 — The endpoint tables are checked one way and derived none.** `DocumentedRouteTests` asserts
   every tabled path exists; nothing asserts a route *appears* in a table, or that the status codes a row

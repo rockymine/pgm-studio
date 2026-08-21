@@ -192,7 +192,7 @@ public partial class ImportPhase : IAsyncDisposable
     // once per door. A scan that wrote nothing answers eight zeroes rather than a missing key.
     private void ShowScan(WorldScanDto? scan)
     {
-        importedSlug = scan?.Slug ?? "";
+        importedSlug = scan?.Slug;
         woolBlocks = scan?.WoolBlocks ?? 0; resourceBlocks = scan?.ResourceBlocks ?? 0;
         chestItems = scan?.ChestItems ?? 0; spawnerBlocks = scan?.SpawnerBlocks ?? 0;
         monumentCandidates = scan?.MonumentCandidates ?? 0; islandCount = scan?.Islands ?? 0;
@@ -275,8 +275,8 @@ public partial class ImportPhase : IAsyncDisposable
 
     private async Task LoadIslands()
     {
-        islands = (await AuthoringContext.LoadIslandsAsync(Http, importedSlug))
-            .OrderByDescending(i => i.BlockCount).ToList();
+        islands = importedSlug is null ? []
+            : [.. (await AuthoringContext.LoadIslandsAsync(Http, importedSlug)).OrderByDescending(i => i.BlockCount)];
     }
 
     private async Task LoadScanSummary()

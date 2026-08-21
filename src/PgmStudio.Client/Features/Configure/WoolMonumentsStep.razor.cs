@@ -88,19 +88,16 @@ public partial class WoolMonumentsStep
         var added = 0;
         try
         {
-            var ms = await Http.GetFromJsonAsync<JsonElement>(
+            var suggestions = await Http.GetFromJsonAsync<List<MonumentSuggestionDto>>(
                 $"api/map/{Slug}/monument-suggestions?box={minX},0,{minZ},{maxX},255,{maxZ}&style=Any,Any,Any");
-            if (ms.ValueKind == JsonValueKind.Array)
-                foreach (var m in ms.EnumerateArray())
-                {
-                    var color = W.NormColor(Str(m, "color"));
-                    var wool = wools.FirstOrDefault(w => w.Color == color);
-                    if (wool is null) continue;
-                    double x = Dbl(m, "x"), y = Dbl(m, "y"), z = Dbl(m, "z");
-                    var team = Ctx.IslandTeamAt(x, z, islands, islandTeams) ?? "";
-                    if (team == wool.Owner) continue;                       // can't capture your own wool
-                    if (AddMonument(wool, team, x, y, z)) added++;
-                }
+            foreach (var m in suggestions ?? [])
+            {
+                var wool = wools.FirstOrDefault(w => w.Color == W.NormColor(m.Color ?? ""));
+                if (wool is null) continue;
+                var team = Ctx.IslandTeamAt(m.X, m.Z, islands, islandTeams) ?? "";
+                if (team == wool.Owner) continue;                       // can't capture your own wool
+                if (AddMonument(wool, team, m.X, m.Y, m.Z)) added++;
+            }
         }
         catch { /* no candidates gathered */ }
 
@@ -156,6 +153,4 @@ public partial class WoolMonumentsStep
         await canvas.SetAuthorRegionsAsync(markers);
     }
 
-    private static string Str(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
-    private static double Dbl(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
 }

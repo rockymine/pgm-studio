@@ -311,8 +311,8 @@ public partial class WorldCanvas
         // in every symmetric position. No-op (server-side) on asymmetric maps; skipped entirely when off.
         if (orbitOn)
         {
-            var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            if (created.TryGetProperty("id", out var idEl) && idEl.GetString() is { } newId)
+            var created = await resp.Content.ReadFromJsonAsync<RegionCreatedDto>();
+            if (created?.Id is { Length: > 0 } newId)
                 await Http.PostAsJsonAsync($"api/map/{Slug}/regions/{newId}/orbit", new { category = DrawCategory, draft_step = DraftStep });
         }
 

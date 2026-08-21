@@ -83,28 +83,25 @@ public partial class CoreObjectivesStep
         {
             var query = $"api/map/{Slug}/core-suggestions";
             if (box is { } b) query += $"?box={b.MinX},0,{b.MinZ},{b.MaxX},255,{b.MaxZ}";
-            var doc = await Http.GetFromJsonAsync<JsonElement>(query);
+            var suggestions = await Http.GetFromJsonAsync<CoreSuggestionsDto>(query);
 
-            if (doc.TryGetProperty("defaults", out var d) && d.ValueKind == JsonValueKind.Object)
-                defaults = new C.Defaults(Int(d, "size", 5), Int(d, "height", 5), Int(d, "shell", 1),
-                                          Int(d, "float", 6), Int(d, "leak", 5));
+            if (suggestions?.Defaults is { } d)
+                defaults = new C.Defaults(d.Size, d.Height, d.Shell, d.Float, d.Leak);
 
             detected = new List<C.Core>();
-            if (!doc.TryGetProperty("cores", out var arr) || arr.ValueKind != JsonValueKind.Array) return;
-            foreach (var s in arr.EnumerateArray())
+            foreach (var core in suggestions?.Cores ?? [])
             {
-                if (!s.TryGetProperty("box", out var bx) || bx.ValueKind != JsonValueKind.Object) continue;
-                var volume = new BlockBox(Int(bx, "minX"), Int(bx, "minY"), Int(bx, "minZ"),
-                                       Int(bx, "maxX"), Int(bx, "maxY"), Int(bx, "maxZ"));
+                var casing = core.Box;
+                var volume = new BlockBox(casing.MinX, casing.MinY, casing.MinZ,
+                                          casing.MaxX, casing.MaxY, casing.MaxZ);
                 detected.Add(new C.Core
                 {
                     Owner = Ctx.IslandTeamAt(volume.CentreX, volume.CentreZ, islands, islandTeams) ?? "",
                     AnchorX = volume.CentreX, AnchorY = volume.MinY, AnchorZ = volume.CentreZ,
-                    Size = Int(s, "size", defaults.Size), Height = Int(s, "height", defaults.Height),
-                    Shell = Int(s, "shell", defaults.Shell), Float = Int(s, "float", defaults.Float),
+                    Size = core.Size, Height = core.Height, Shell = core.Shell, Float = core.Float,
                     Leak = defaults.Leak,           // not measurable from the world; PGM's own default
-                    OpenTop = s.TryGetProperty("openTop", out var ot) && ot.ValueKind == JsonValueKind.True,
-                    Lava = Int(s, "lava"),
+                    OpenTop = core.OpenTop,
+                    Lava = core.Lava,
                     Volume = volume,
                 });
             }
@@ -217,6 +214,4 @@ public partial class CoreObjectivesStep
         bounds = new { min_x = (double)volume.MinX, min_z = (double)volume.MinZ, max_x = volume.MaxX + 1.0, max_z = volume.MaxZ + 1.0 },
     };
 
-    private static int Int(JsonElement e, string key, int fallback = 0)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : fallback;
 }

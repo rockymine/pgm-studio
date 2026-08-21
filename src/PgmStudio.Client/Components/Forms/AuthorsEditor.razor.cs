@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -49,8 +50,8 @@ public partial class AuthorsEditor
     {
         try
         {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?uuid={Uri.EscapeDataString(p.Uuid)}");
-            p.Name = Str(r, "name");
+            var player = await Http.GetFromJsonAsync<PlayerDto>($"api/minecraft/player?uuid={Uri.EscapeDataString(p.Uuid)}");
+            p.Name = player?.Name ?? "";
             StateHasChanged();
         }
         catch { /* leave the uuid showing if Mojang is unreachable / renamed-away */ }
@@ -62,8 +63,8 @@ public partial class AuthorsEditor
     {
         try
         {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?name={Uri.EscapeDataString(p.Name.Trim())}");
-            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name");
+            var player = await Http.GetFromJsonAsync<PlayerDto>($"api/minecraft/player?name={Uri.EscapeDataString(p.Name.Trim())}");
+            p.Uuid = player?.Uuid ?? ""; p.Name = player?.Name ?? "";
             StateHasChanged();
         }
         catch { /* no head until the user re-enters the name; not an error state on load */ }
@@ -79,14 +80,12 @@ public partial class AuthorsEditor
         var q = isUuid ? $"uuid={Uri.EscapeDataString(val)}" : $"name={Uri.EscapeDataString(val)}";
         try
         {
-            var r = await Http.GetFromJsonAsync<JsonElement>($"api/minecraft/player?{q}");
-            p.Uuid = Str(r, "uuid"); p.Name = Str(r, "name"); p.Error = false;
+            var player = await Http.GetFromJsonAsync<PlayerDto>($"api/minecraft/player?{q}");
+            p.Uuid = player?.Uuid ?? ""; p.Name = player?.Name ?? ""; p.Error = false;
         }
         catch { p.Uuid = ""; p.Error = true; }
         NotifyChanged();
         StateHasChanged();
     }
 
-    private static string Str(JsonElement e, string key)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 }

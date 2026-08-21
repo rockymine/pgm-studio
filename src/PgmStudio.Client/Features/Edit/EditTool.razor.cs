@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
@@ -58,9 +59,9 @@ public partial class EditTool
         {
             var resp = await Http.GetAsync($"api/map/{Slug}");
             if (!resp.IsSuccessStatusCode) { error = resp.StatusCode == System.Net.HttpStatusCode.NotFound ? "Map not found" : "Could not load map"; return; }
-            var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            mapName = doc.TryGetProperty("name", out var n) ? n.GetString() : null;
-            mapVersion = doc.TryGetProperty("version", out var v) ? v.GetString() : null;
+            var doc = await resp.Content.ReadFromJsonAsync<MapDocumentDto>();
+            mapName = doc?.Name;
+            mapVersion = doc?.Version;
             loaded = true;
         }
         catch { error = "Could not load map"; }
