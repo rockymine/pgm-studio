@@ -69,16 +69,15 @@ public partial class BuildRegionsPhase
         groups = null; nodeMap.Clear(); selRegion = null; selSet = new();
         try
         {
-            var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
+            var tree = await Http.GetFromJsonAsync<RegionTreeDto>($"api/map/{Slug}/regions/tree");
             // Build regions usually nest inside the `not-build-area` negative (a rule-container in the
             // "other" group), so they're not roots of a "build" group — walk EVERY group and collect the
             // top-most build-category node (its carved-out children stay nested under it). Same treatment
             // as the spawn-protection / wool-monument trees.
             var build = new List<RegionNode>();
             var draft = new List<RegionNode>();   // drawn here, not yet wired (E10)
-            if (tree.TryGetProperty("groups", out var g))
-                foreach (var grp in RegionGroup.ParseGroups(g))
-                    foreach (var n in grp.Regions) CollectBuild(n, false, build, draft);
+            foreach (var grp in RegionGroup.From(tree))
+                foreach (var n in grp.Regions) CollectBuild(n, false, build, draft);
             groups =
             [
                 new RegionGroup { Name = "build", Label = "", Regions = build },

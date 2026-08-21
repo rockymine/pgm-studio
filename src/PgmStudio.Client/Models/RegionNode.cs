@@ -1,11 +1,14 @@
 using System.Text.Json;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Client.Models;
 
 /// <summary>
-/// A node in the region tree (the shape of <c>GET /regions/tree</c>'s recursive nodes). Mirrors the
-/// reference's region tree/inspector node: id, type, label, derived bounds, type-specific coords,
-/// nested children, and the transform source (mirror/translate) as a single child-like node.
+/// One region as the editor holds it while the author works on it: what <c>RegionNodeDto</c> answered, plus
+/// what only a screen needs — an icon, a formatted coordinate, the first wiring event as a tag — and
+/// <b>mutable</b> bounds and coords, which is the point. An inspector edit writes the new number here and
+/// draws from it before the save round-trips (<see cref="RegionEdits"/>), so the tree the canvas renders is
+/// the author's current one rather than the last one the server confirmed.
 /// </summary>
 public sealed class RegionNode
 {
@@ -29,41 +32,37 @@ public sealed class RegionNode
 
     public bool HasKids => Children.Count > 0 || Source is not null;
 
-    public static RegionNode Parse(JsonElement e)
+    /// <summary>Take the answered region into the editor's own. The two numeric bags stay bags: a region
+    /// states its shape in whichever fields its type is made of, and both are rendered and edited generically
+    /// — so the values are flattened to scalars here, keeping a half-space's <c>oo</c> as the string the
+    /// contract spells it with rather than coercing it to a number.</summary>
+    public static RegionNode From(RegionNodeDto dto)
     {
-        var n = new RegionNode
+        var node = new RegionNode
         {
-            Id = Str(e, "id"),
-            Type = Str(e, "type"),
-            Label = Str(e, "label"),
-            Category = e.TryGetProperty("category", out var ct) && ct.ValueKind == JsonValueKind.String ? ct.GetString() : null,
-            Subtype = e.TryGetProperty("subtype", out var st) && st.ValueKind == JsonValueKind.String ? st.GetString() : null,
-            DraftStep = e.TryGetProperty("draft_step", out var ds) && ds.ValueKind == JsonValueKind.String ? ds.GetString() : null,
-            Synthetic = Bool(e, "synthetic_id"),
-            IsNegative = Bool(e, "is_negative"),
-            Bounds = Obj(e, "bounds"),
-            Coords = Obj(e, "coords") ?? new(),
+            Id = dto.Id,
+            Type = dto.Type,
+            Label = dto.Label,
+            Category = dto.Category,
+            Subtype = dto.Subtype,
+            DraftStep = dto.DraftStep,
+            Synthetic = dto.SyntheticId,
+            IsNegative = dto.IsNegative,
+            Bounds = Extent(dto.Bounds),
+            Coords = dto.Coords is null ? new() : dto.Coords.ToDictionary(c => c.Key, c => Scalar(c.Value)),
+            Wiring = [.. dto.Wiring ?? []],
         };
-        if (e.TryGetProperty("wiring", out var wr) && wr.ValueKind == JsonValueKind.Array)
-            foreach (var w in wr.EnumerateArray()) if (w.ValueKind == JsonValueKind.String) n.Wiring.Add(w.GetString() ?? "");
-        if (e.TryGetProperty("children", out var kids) && kids.ValueKind == JsonValueKind.Array)
-            foreach (var k in kids.EnumerateArray()) n.Children.Add(Parse(k));
-        if (e.TryGetProperty("source", out var src) && src.ValueKind == JsonValueKind.Object)
-            n.Source = Parse(src);
-        return n;
+        foreach (var child in dto.Children) node.Children.Add(From(child));
+        if (dto.Source is { } source) node.Source = From(source);
+        return node;
     }
 
-    private static string Str(JsonElement e, string k)
-        => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
-    private static bool Bool(JsonElement e, string k)
-        => e.TryGetProperty(k, out var v) && (v.ValueKind == JsonValueKind.True);
-    private static Dictionary<string, object?>? Obj(JsonElement e, string k)
+    private static Dictionary<string, object?>? Extent(RegionExtentDto? bounds) => bounds is null ? null : new()
     {
-        if (!e.TryGetProperty(k, out var v) || v.ValueKind != JsonValueKind.Object) return null;
-        var d = new Dictionary<string, object?>();
-        foreach (var p in v.EnumerateObject()) d[p.Name] = Scalar(p.Value);
-        return d;
-    }
+        ["min_x"] = Scalar(bounds.MinX), ["min_z"] = Scalar(bounds.MinZ),
+        ["max_x"] = Scalar(bounds.MaxX), ["max_z"] = Scalar(bounds.MaxZ),
+    };
+
     private static object? Scalar(JsonElement v) => v.ValueKind switch
     {
         JsonValueKind.Number => v.GetDouble(),
@@ -103,28 +102,20 @@ public sealed class RegionNode
     };
 }
 
-/// <summary>A category group of root region nodes (from <c>GET /regions/tree</c>'s groups).</summary>
+/// <summary>A category group of root region nodes, as the editor holds them.</summary>
 public sealed class RegionGroup
 {
     public string Name = "";
     public string Label = "";
     public List<RegionNode> Regions = new();
 
-    public static List<RegionGroup> ParseGroups(JsonElement groupsArray)
-    {
-        var groups = new List<RegionGroup>();
-        if (groupsArray.ValueKind != JsonValueKind.Array) return groups;
-        foreach (var g in groupsArray.EnumerateArray())
+    /// <summary>Take the answered tree into the editor's own. A map with no tree answers no groups rather
+    /// than failing, which is the state a freshly originated map is in.</summary>
+    public static List<RegionGroup> From(RegionTreeDto? tree) =>
+        [.. (tree?.Groups ?? []).Select(group => new RegionGroup
         {
-            var grp = new RegionGroup
-            {
-                Name = g.TryGetProperty("name", out var n) ? n.GetString() ?? "" : "",
-                Label = g.TryGetProperty("label", out var l) ? l.GetString() ?? "" : "",
-            };
-            if (g.TryGetProperty("regions", out var rs) && rs.ValueKind == JsonValueKind.Array)
-                foreach (var r in rs.EnumerateArray()) grp.Regions.Add(RegionNode.Parse(r));
-            groups.Add(grp);
-        }
-        return groups;
-    }
+            Name = group.Name,
+            Label = group.Label,
+            Regions = [.. group.Regions.Select(RegionNode.From)],
+        })];
 }

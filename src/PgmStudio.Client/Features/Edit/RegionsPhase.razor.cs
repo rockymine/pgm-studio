@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -35,8 +36,7 @@ public partial class RegionsPhase
         groups = null; nodeMap.Clear(); error = null;
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
-            groups = doc.TryGetProperty("groups", out var g) ? RegionGroup.ParseGroups(g) : new();
+            groups = RegionGroup.From(await Http.GetFromJsonAsync<RegionTreeDto>($"api/map/{Slug}/regions/tree"));
             foreach (var grp in groups) foreach (var n in grp.Regions) Index(n);
         }
         catch (Exception ex) { groups = new(); error = ex.Message; }

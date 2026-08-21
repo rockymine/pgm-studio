@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -22,8 +23,8 @@ public partial class ReviewTreeStep
     {
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Wizard.Slug}/regions/tree");
-            groups = doc.TryGetProperty("groups", out var g) ? RegionGroup.ParseGroups(g) : new();
+            groups = RegionGroup.From(
+                await Http.GetFromJsonAsync<RegionTreeDto>($"api/map/{Wizard.Slug}/regions/tree"));
         }
         catch (Exception ex) { error = ex.Message; groups = new(); }
         loading = false;

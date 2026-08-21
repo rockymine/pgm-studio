@@ -70,10 +70,9 @@ public partial class TeamsPhase
             if (doc?.ObserverSpawn is { } ob)
                 observer = new ObserverSpawn { RegionId = RegionId(ob.Region), Yaw = ob.Yaw ?? 0, Kit = ob.Kit ?? "" };
 
-            var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
-            if (tree.TryGetProperty("groups", out var g))
-                foreach (var grp in RegionGroup.ParseGroups(g))
-                    foreach (var n in grp.Regions) CollectSpawn(n);
+            var tree = await Http.GetFromJsonAsync<RegionTreeDto>($"api/map/{Slug}/regions/tree");
+            foreach (var grp in RegionGroup.From(tree))
+                foreach (var n in grp.Regions) CollectSpawn(n);
 
             symMode = await DetectedSymmetryAsync();
         }

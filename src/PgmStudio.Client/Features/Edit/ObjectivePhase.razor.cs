@@ -96,8 +96,8 @@ public partial class ObjectivePhase
                 wools.Add(wool);
             }
 
-            var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
-            groups = tree.TryGetProperty("groups", out var g) ? CollectWoolGroups(RegionGroup.ParseGroups(g)) : new();
+            groups = CollectWoolGroups(RegionGroup.From(
+                await Http.GetFromJsonAsync<RegionTreeDto>($"api/map/{Slug}/regions/tree")));
         }
         catch (Exception ex) { error = ex.Message; }
 
