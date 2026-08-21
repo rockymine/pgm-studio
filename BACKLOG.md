@@ -1160,16 +1160,32 @@ so it has to *call* them, which is what the application layer is for.
   types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
   callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
 
-- [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
-  grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective
-  point(s) are not reachable from the rest*, naming `spawn red-team`, `wool red` and `wool blue`. The
-  headless driver refused the same board with the same finding before it was retired, so this is the map's
-  own shape rather than a route's: a catalogue is a row of islands nothing bridges, and `EX1` asks whether a
-  match can walk between its spawns and its objectives. Either the wool rooms and spawns move onto one plot,
-  or a board that is a catalogue says so and is exempted. Which is the author's — the map exists to be walked
-  plot by plot, not played.
+- [ ] **RP35 — `/api/rules` answers 163 rules and 86 of them are enforced.** `RuleCatalog.Read` concatenates
+  the **71 gate rules** declared as `const string` in the thirteen `*Rules` classes — every one of which is
+  raised somewhere — with **92 layout rules** parsed out of `docs/generator/rules.md`, of which the plan lint
+  fires **fifteen**: `BZ5 BZ11 CT12 EL1 FR8 G2 G5 SP1 SP2 SP8 SP9 ST2 ST8 ST9 WL1`. The other 77 are law
+  nothing checks, published in rows identical to the ones a caller can actually fail on.
+
+  **Cut them rather than label them** (the author's ruling): the catalogue answers *what is this finding*, and
+  a rule nothing raises has no finding to explain. `rules.md` keeps all 92 as the generator's law; it is not
+  the API's to publish. Three go from `rules.md` too, being history rather than law — `BZ1` "Superseded by
+  FR1+FR2", `EL6` "[retired 2026-08-14]", `PC-S` "retired — the old per-seam sliver lint". `BZ5` stays:
+  retired as a prohibition, still fired.
+
+  **`GO1` is the one exception and is not deleted** — the author's amendment is ahead of what the studio
+  measures, and it rejoins the catalogue when *Distance, and the walk every measure is taken with* enforces
+  it. `RulesEndpointTests` gains the assertion from the other side: every row answered has an emit site.
+  `RP15` is the same seam from the other direction.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
+  grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective
+  point(s) are not reachable from the rest*, naming `spawn red-team`, `wool red` and `wool blue`. It is the
+  map's own shape rather than a route's: a catalogue is a row of islands nothing bridges, and `EX1` asks
+  whether a match can walk between its spawns and its objectives. Either the wool rooms and spawns move onto one plot,
+  or a board that is a catalogue says so and is exempted. Which is the author's — the map exists to be walked
+  plot by plot, not played.
 
 ### User Experience and Graphical User Interface
 
