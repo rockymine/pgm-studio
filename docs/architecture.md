@@ -32,23 +32,29 @@ The surface describes itself. `GET /api/openapi/v1.json` is generated from the r
 paths, **149 operations**, 222 schemas, **201 of them carrying the docstring beside the type** — and
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
-What that document can say is bounded by what is declared, and most of the write surface declares nothing.
-**127 of the 149 endpoints declare no typed request**, 22 do, and **23 call sites read the body as
-`Dictionary<string, object?>`** through `RawBody` and `JsonTree`. Those routes appear in the
-document with their path and verb and no body schema at all: the generator can only publish what the code
-states.
+What that document can say is bounded by what is declared, and half the write surface declares nothing.
+Of the **67 POST/PUT/PATCH routes**, 32 publish a request body — 22 by binding a request type, ten by naming
+the document they take while still reading it raw — and **35 do not**. Three of those thirty-five read no
+body at all, which leaves **32 that read one and never say so**: 16 take it as `Dictionary<string, object?>`
+through `WriteSupport.ReadPayloadAsync`, 14 as text through `RawBody`, two by parsing the request stream in
+the handler. Those routes appear in the document with their path and verb and no body schema at all: the
+generator can only publish what the code states, and `SchemaCompletenessTests` holds the 32 as a count that
+only moves down.
 
 Three things follow from that, and they are the same fact seen from three sides.
 
-**The one global input gate covers an eighth of the surface.** `RequiredFields` refuses anything a request
+**The one global input gate covers a seventh of the surface.** `RequiredFields` refuses anything a request
 DTO declares non-nullable and the body did not supply — and its first line is
 `if (context.Request is not { } request) return;`, so it is a no-op for every endpoint that has no request
-type. The promise it makes holds for 22 routes out of 149.
+type. The promise it makes holds for the 22 routes that bind one. A declared shape is not a bound one: the
+ten routes that name their document to the generator still read it themselves, so the document is true about
+them and the gate still does not run.
 
-**A validation that cannot live in a schema lives in the code by hand.** The Edit tool's 53 refusal sites
-across `Pgm/Editing` are, read as a group, a request schema: a field is absent, a value is outside a closed
-set, a number is not one. Those are declarations, written as 53 `throw` statements because the request they
-guard has no declared shape to hang them on.
+**A validation that cannot live in a schema lives in the code by hand.** Of the Edit tool's 53 refusal sites
+across `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a number
+is not one. Those are a request schema written as `throw` statements, because the request they guard has no
+declared shape to hang them on. The other 38 are not: `NoSuchSubject`, `Conflict`, `Unresolved` and
+`Inapplicable` read the map the edit lands on, and no binding replaces them.
 
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does
@@ -179,11 +185,11 @@ than `min_x`/`min_z`/`max_x`/`max_z` — fourteen of them across two maps — co
 over `HouseProp.MaxFootprint`, or a wing under three blocks, is dropped without a word; seven of seven houses
 vanished that way.
 
-**The studio has the mechanism that catches every one of those, and it runs on two endpoint files.**
-`DocumentShape.Unread` walks a parsed document beside the value it deserialized to and names every property
-nothing could keep — `RQ3`, a complaint on the success response, by path. It is wired to the room-style
-library and the terrain previews. The **sketch layout, the plan and the intent** — the three documents an
-agent actually authors — have no unread check, which is why a misspelled field in one of them is silence.
+**The studio has the mechanism that catches every one of those.** `DocumentShape.Unread` walks a parsed
+document beside the value it deserialized to and names every property nothing could keep — `RQ3`, a complaint
+on the success response, by path. It runs on nine write routes, the room-style library and the terrain
+previews among them, and on all three of the documents an agent authors: the sketch layout, the plan and the
+intent each answer a misspelled field rather than dropping it in silence.
 
 **A refusal that cannot say what would satisfy it is a refusal a driver works around.** Run 4's board hit
 `PL11`, `WX6` and `SP1` on a capture-the-wool plan, and the run's own report says what happened next:
@@ -193,8 +199,10 @@ Every gate can say what is wrong with a document. None can answer with one that 
 
 Read together, none of that is new: it is the six findings above, seen from the driver's side. The eleven-call
 loop and its load-bearing order are what an absent application layer looks like to a caller. The fifteen
-required documents and the errata file are what an absent contract looks like. And the silent 200s are what
-an absent request shape looks like, on exactly the documents that matter most.
+required documents and the errata file are what an absent contract looks like. And the silent 200s were what
+an absent request shape looked like, on exactly the documents that matter most — the half of that answered by
+`RQ3` and by the three documents now declaring their shape, the half still open being every write route that
+states no shape at all.
 
 ## Three things the request layer does not do
 
@@ -249,7 +257,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | What is missing | The established shape | What it dissolves |
 |---|---|---|
 | a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
-| a declared request shape | a request record per route, bound at the edge — parse rather than validate | 145 unguarded routes, and most of the Edit tool's 74 hand-written checks |
+| a declared request shape | a request record per route, bound at the edge — parse rather than validate | 32 write routes that publish no `requestBody`, and the 15 `Unreadable` throws the Edit tool writes by hand |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 71 ids to branch once |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |

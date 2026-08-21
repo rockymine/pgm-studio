@@ -158,7 +158,11 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
 /// <summary>PUT /api/map/{slug}/plan — replace the stored plan blob (the plan editor's saved state).</summary>
 public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
 {
-    public override void Configure() { Put("/map/{slug}/plan"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Put("/map/{slug}/plan"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

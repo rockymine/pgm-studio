@@ -5,7 +5,7 @@ namespace PgmStudio.Api.Tests;
 
 /// <summary>
 /// Every operation in the generated document says what it answers — a shape, and the media type it comes
-/// back as.
+/// back as — and every write route says what it takes.
 ///
 /// <para><b>An undeclared route does not say nothing; it says the wrong thing.</b> An endpoint with no
 /// declared response type is published as <b>204 No Content</b>, which is the generator's default and is a
@@ -15,6 +15,10 @@ namespace PgmStudio.Api.Tests;
 ///
 /// <para><see cref="NoBody"/> is the short list for which that 204 is true. Every other operation declares
 /// what it answers, and the count below holds it there.</para>
+///
+/// <para>The request side fails the other way: a route with no declared request type publishes no
+/// <c>requestBody</c> at all, so the document is silent rather than wrong — and silence is what a caller
+/// cannot act on. <see cref="StillUntyped"/> is how many are left, and it only moves down.</para>
 ///
 /// <para>These assert over the <b>whole surface</b> rather than route by route, because the failure is one a
 /// new route inherits by default: an endpoint that declares no response type states nothing for the generator
@@ -73,6 +77,55 @@ public sealed class SchemaCompletenessTests
                 .Because($"{name} answers {string.Join(", ", operation.Success)} and is listed as answering "
                          + "no body");
             await Assert.That(operation.Codes).Contains("204");
+        }
+    }
+
+    /// <summary>The count of write routes still saying nothing about what they take, and it is falling.
+    /// A route that declares no request type publishes no <c>requestBody</c> at all, so <c>/api-docs</c>
+    /// offers no field to fill and a generated client types the body <c>object</c> — the caller learns the
+    /// shape by being refused. Thirty-two of the sixty-seven POST/PUT/PATCH routes are there today; the
+    /// number only moves down, and a route added without a declaration pushes it up and fails here.</summary>
+    private const int StillUntyped = 32;
+
+    /// <summary>The other half of the contract: what a route <b>takes</b>.</summary>
+    [Test]
+    public async Task Every_write_route_declares_what_it_takes()
+    {
+        var untyped = (await OperationsAsync())
+            .Where(operation => operation.Name.StartsWith("POST") || operation.Name.StartsWith("PUT")
+                                || operation.Name.StartsWith("PATCH"))
+            .Where(operation => !operation.Takes && !TakesNoBody.Contains(operation.Name))
+            .Select(operation => operation.Name)
+            .ToList();
+
+        await Assert.That(untyped.Count).IsLessThanOrEqualTo(StillUntyped)
+            .Because($"{untyped.Count} write route(s) publish no request shape:"
+                     + $"{Environment.NewLine}  {string.Join($"{Environment.NewLine}  ", untyped)}");
+    }
+
+    /// <summary>The write routes that read no body at all — everything they act on is in the path. For these
+    /// the empty <c>requestBody</c> is the truth rather than a gap, and they are named so the count above
+    /// cannot be reached by a route that quietly stopped reading one.</summary>
+    private static readonly string[] TakesNoBody =
+    [
+        "POST /api/map/{slug}/scan-world",
+        "POST /api/map/{slug}/sketch/finish",
+        "POST /api/plan/{planId}/author",
+    ];
+
+    /// <summary>And that list stays honest from the other side: a route on it that grows a declared body has
+    /// stopped being bodyless and belongs in the count instead.</summary>
+    [Test]
+    public async Task The_write_routes_that_read_no_body_declare_none()
+    {
+        var operations = await OperationsAsync();
+
+        foreach (var name in TakesNoBody)
+        {
+            var operation = operations.FirstOrDefault(operation => operation.Name == name);
+            await Assert.That(operation.Name).IsEqualTo(name).Because($"{name} is not in the document");
+            await Assert.That(operation.Takes).IsFalse()
+                .Because($"{name} declares a request body and is listed as reading none");
         }
     }
 
@@ -155,8 +208,10 @@ public sealed class SchemaCompletenessTests
     /// <param name="Media">Every media type the operation declares, at any status.</param>
     /// <param name="Success">The media types it declares on a 2xx — what a caller actually receives.</param>
     /// <param name="Codes">The status codes it declares at all.</param>
+    /// <param name="Takes">Whether the operation publishes a request body.</param>
     private readonly record struct Operation(
-        string Name, IReadOnlyList<string> Media, IReadOnlyList<string> Success, IReadOnlyList<string> Codes);
+        string Name, IReadOnlyList<string> Media, IReadOnlyList<string> Success, IReadOnlyList<string> Codes,
+        bool Takes);
 
     private static async Task<List<Operation>> OperationsAsync()
     {
@@ -180,7 +235,8 @@ public sealed class SchemaCompletenessTests
                         media.AddRange(types);
                         if (response.Name.StartsWith('2')) success.AddRange(types);
                     }
-                operations.Add(new Operation($"{verb.Name.ToUpperInvariant()} {path.Name}", media, success, codes));
+                operations.Add(new Operation($"{verb.Name.ToUpperInvariant()} {path.Name}", media, success, codes,
+                    verb.Value.TryGetProperty("requestBody", out _)));
             }
         return operations;
     }

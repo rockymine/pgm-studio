@@ -139,7 +139,11 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
 public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
 {
-    public override void Configure() { Put("/map/{slug}/sketch"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Put("/map/{slug}/sketch"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -226,7 +230,11 @@ internal static class SketchRoomStyleGate
 /// <c>surface</c>, so this never masks a deliberate plan-side height change.</para></summary>
 public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<SketchFromPlanDto>
 {
-    public override void Configure() { Put("/map/{slug}/sketch/from-plan"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Put("/map/{slug}/sketch/from-plan"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

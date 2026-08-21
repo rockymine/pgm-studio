@@ -31,7 +31,11 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
 {
-    public override void Configure() { Post("/plan/inspect"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/plan/inspect"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -133,7 +137,11 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
 /// the world was built and some of what was authored is not standing in it.</para></summary>
 public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto>
 {
-    public override void Configure() { Post("/plan/columns"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/plan/columns"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -176,7 +184,11 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
 /// </summary>
 public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto>
 {
-    public override void Configure() { Post("/plan/compile"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/plan/compile"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -248,7 +260,11 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto
 /// </summary>
 public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
 {
-    public override void Configure() { Post("/plan/evaluate"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/plan/evaluate"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -347,7 +363,11 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
 /// </summary>
 public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<FeasibilityDto>
 {
-    public override void Configure() { Post("/plan/feasibility"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/plan/feasibility"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

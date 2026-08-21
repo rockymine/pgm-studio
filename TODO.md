@@ -54,15 +54,16 @@ is kept in the table with the answer beside it, because the answer is the part a
 Every operation now declares what it answers. What is left is the other half — what a route *takes* — and
 the two consumers that still keep the contract by hand instead of reading the document it produces.
 
-- [ ] **RP12 — Forty-five of the sixty-seven write routes declare no request shape.** Twenty-two of them
-  read the body through `RawBody`, so `RequiredFields`, the one global input gate, returns on its first line
-  for those. Three sorts, and only one is real work. **Twenty-five** take a whole document or a parameter
-  blob — `PUT …/plan`, `…/sketch`, `…/intent`, the five `/plan/*` inspect posts, the three terrain previews
-  — and are declare-don't-map, one `Accepts<T>` each. **Eighteen** are the edit routes (regions, spawns,
-  wools, teams, metadata, symmetry), where a request record replaces the **15** hand-written
-  `EditException.Unreadable` throws in `Pgm/Editing`; the other 38 refusal sites there are domain checks and
-  stay. The two import routes keep their own validation. **`RP11` needs this, not the reverse** — a client
-  generated from a document that declares no bodies types every response and leaves every request `object`.
+- [~] **RP12 — Thirty-two write routes read a body and never say so.** Sixteen take it as
+  `Dictionary<string, object?>` through `WriteSupport.ReadPayloadAsync`, fourteen as text through `RawBody`,
+  two by parsing the request stream in the handler; `SchemaCompletenessTests.StillUntyped` holds the number
+  and only lets it fall. Two sorts left. The sixteen are **the edit routes** — regions, spawns, wools, teams,
+  metadata, observer spawn — and a request record each is where the **15** hand-written
+  `EditException.Unreadable` throws in `Pgm/Editing` go; the other 38 refusal sites there read the map the
+  edit lands on and stay. The other sixteen are **parameter bodies with no type at all**: the four sketch
+  reads, the two region analyses, the three terrain previews, the snapshot preview, symmetry, exclude-island,
+  the two originate routes, and the two imports, whose own validation stays. A declared shape is not a bound
+  one — `RequiredFields` runs only where the route binds. **`RP11` needs this, not the reverse.**
 
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
   `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out

@@ -107,7 +107,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
     {
         Put("/map/{slug}/intent");
         AllowAnonymous();
-        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -143,7 +143,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
     {
         Put("/map/{slug}/intent/from-plan");
         AllowAnonymous();
-        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Accepts<MapIntent>("application/json").Produces<AppliedDto>(200, "application/json"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
