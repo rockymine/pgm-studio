@@ -812,8 +812,8 @@ public partial class PlanTool
             // reload even though the artifact wasn't re-saved; a later plan-save then persists it into the doc.
             try
             {
-                var meta = await Http.GetFromJsonAsync<JsonElement>($"api/map/{slug}");
-                if (meta.TryGetProperty("name", out var n) && n.GetString() is { Length: > 0 } metaName && metaName != planName)
+                var meta = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{slug}");
+                if (meta?.Name is { Length: > 0 } metaName && metaName != planName)
                 {
                     planName = metaName;
                     await handle.InvokeVoidAsync("setName", planName);

@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
@@ -34,27 +35,21 @@ public partial class IdentityPhase
     {
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
-            name = Str(doc, "name"); version = Str(doc, "version");
-            objective = Str(doc, "objective");
-            gamemodes = doc.TryGetProperty("gamemodes", out var gm) && gm.ValueKind == JsonValueKind.Array
-                ? gm.EnumerateArray().Select(g => g.GetString() ?? "").Where(g => g.Length > 0).ToArray()
-                : [];
+            var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
+            name = doc?.Name ?? ""; version = doc?.Version ?? "";
+            objective = doc?.Objective ?? "";
+            gamemodes = [.. (doc?.Gamemodes ?? []).Where(g => g.Length > 0)];
             authors.Clear(); contributors.Clear();
-            if (doc.TryGetProperty("authors", out var arr) && arr.ValueKind == JsonValueKind.Array)
-                foreach (var a in arr.EnumerateArray())
-                {
-                    var p = new AuthorRow { Uuid = Str(a, "uuid"), Name = Str(a, "name"), Contribution = Str(a, "contribution") };
-                    (Str(a, "role") == "contributor" ? contributors : authors).Add(p);
-                }
+            foreach (var a in doc?.Authors ?? [])
+            {
+                var person = new AuthorRow { Uuid = a.Uuid, Name = a.Name ?? "", Contribution = a.Contribution ?? "" };
+                (a.Role == "contributor" ? contributors : authors).Add(person);
+            }
             dirty = false; saveStatus = null;
             await ReportStatus();
         }
         catch { saveStatus = "Failed to load."; }
     }
-
-    private static string Str(JsonElement e, string key)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 
     private void Dirty() { dirty = true; saveStatus = null; }
 

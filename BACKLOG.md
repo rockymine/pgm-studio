@@ -1311,6 +1311,14 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **TC4 — Three Configure steps parse the intent's teams a fourth, fifth and sixth time.**
+  `AuthoringContext.LoadTeams(intent)` reads the teams out of the intent document and six steps call it.
+  `SpawnStep`, `TeamAssignStep` and `ProtectionStep` each declare their own
+  `private sealed class Team { Id, Name, Color }` — the same three fields `Ctx.Team` carries — and walk the
+  same `JsonObject` themselves. Delete the three and call the helper, adding to it only what a caller
+  genuinely reads beyond those fields. Same disease as the six private island types `RP11` collapsed, on the
+  other document: the intent rather than `GET /map/{slug}`.
+
 - [ ] **TN6 — A compile that failed leaves a button promising the build it cannot do.** The compile drawer's
   draft button is `Disabled="@(compiledLayout is null || draftBusy)"` (`PlanTool.razor:669`) while its label
   is `BuildLabel`, which reads only whether the map is built. So a **422** leaves *Rebuild this map* on

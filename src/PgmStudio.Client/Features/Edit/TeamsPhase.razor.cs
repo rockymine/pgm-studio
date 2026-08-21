@@ -58,20 +58,17 @@ public partial class TeamsPhase
         teams.Clear(); spawns.Clear(); spawnRegions.Clear(); draftRegions.Clear(); nodeMap.Clear(); observer = null;
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
-            if (doc.TryGetProperty("teams", out var ts) && ts.ValueKind == JsonValueKind.Array)
-                foreach (var t in ts.EnumerateArray())
-                    teams.Add(new Team
-                    {
-                        Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color", "red"),
-                        DyeColor = t.TryGetProperty("dye_color", out var dv) && dv.ValueKind == JsonValueKind.String ? dv.GetString() : null,
-                        MaxPlayers = I(t, "max_players", 20), MinPlayers = I(t, "min_players", 0),
-                    });
-            if (doc.TryGetProperty("spawns", out var sp) && sp.ValueKind == JsonValueKind.Array)
-                foreach (var s in sp.EnumerateArray())
-                    spawns.Add(new Spawn { RegionId = RegionId(s), Team = S(s, "team"), Yaw = D(s, "yaw"), Kit = S(s, "kit") });
-            if (doc.TryGetProperty("observer_spawn", out var ob) && ob.ValueKind == JsonValueKind.Object)
-                observer = new ObserverSpawn { RegionId = RegionId(ob), Yaw = D(ob, "yaw"), Kit = S(ob, "kit") };
+            var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
+            foreach (var t in doc?.Teams ?? [])
+                teams.Add(new Team
+                {
+                    Id = t.Id, Name = t.Name ?? "", Color = t.Color ?? "red", DyeColor = t.DyeColor,
+                    MaxPlayers = t.MaxPlayers ?? 20, MinPlayers = t.MinPlayers ?? 0,
+                });
+            foreach (var s in doc?.Spawns ?? [])
+                spawns.Add(new Spawn { RegionId = RegionId(s.Region), Team = s.Team ?? "", Yaw = s.Yaw ?? 0, Kit = s.Kit ?? "" });
+            if (doc?.ObserverSpawn is { } ob)
+                observer = new ObserverSpawn { RegionId = RegionId(ob.Region), Yaw = ob.Yaw ?? 0, Kit = ob.Kit ?? "" };
 
             var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
             if (tree.TryGetProperty("groups", out var g))
@@ -294,14 +291,12 @@ public partial class TeamsPhase
 
     // ── parse helpers ────────────────────────────────────────────────────────────
 
-    private static string S(JsonElement e, string k, string def = "") => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? def : def;
-    private static int I(JsonElement e, string k, int def) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : def;
-    private static double D(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
-    private static string RegionId(JsonElement s)
-    {
-        if (!s.TryGetProperty("region", out var r)) return "";
-        return r.ValueKind == JsonValueKind.String ? r.GetString() ?? "" : r.ValueKind == JsonValueKind.Object && r.TryGetProperty("id", out var id) ? id.GetString() ?? "" : "";
-    }
+    /// <summary>A spawn's region is a key where it names one and a whole inline region where it states one,
+    /// which is the contract's own choice and the reason the record leaves that one field open.</summary>
+    private static string RegionId(JsonElement region)
+        => region.ValueKind == JsonValueKind.String ? region.GetString() ?? ""
+           : region.ValueKind == JsonValueKind.Object && region.TryGetProperty("id", out var id) ? id.GetString() ?? ""
+           : "";
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 }

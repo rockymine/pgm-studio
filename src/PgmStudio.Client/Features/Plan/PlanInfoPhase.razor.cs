@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -44,13 +45,11 @@ public partial class PlanInfoPhase
     {
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
-            var loaded = Str(doc, "name");
+            var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
+            var loaded = doc?.Name ?? "";
             authors.Clear();
-            if (doc.TryGetProperty("authors", out var arr) && arr.ValueKind == JsonValueKind.Array)
-                foreach (var a in arr.EnumerateArray())
-                    if (Str(a, "role") != "contributor")
-                        authors.Add(new AuthorRow { Uuid = Str(a, "uuid"), Name = Str(a, "name"), Contribution = Str(a, "contribution") });
+            foreach (var a in (doc?.Authors ?? []).Where(a => a.Role != "contributor"))
+                authors.Add(new AuthorRow { Uuid = a.Uuid, Name = a.Name ?? "", Contribution = a.Contribution ?? "" });
             // The metadata name is authoritative for the row; push it into the plan doc so the two agree.
             if (loaded.Length > 0 && loaded != Name) await OnNameChanged.InvokeAsync(loaded);
             dirty = false; saveStatus = null;
@@ -88,9 +87,6 @@ public partial class PlanInfoPhase
         catch { saveStatus = "Save failed."; }
         StateHasChanged();
     }
-
-    private static string Str(JsonElement e, string key)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 
     private static readonly string[] Steps = { "Identity", "Settings" };
 }

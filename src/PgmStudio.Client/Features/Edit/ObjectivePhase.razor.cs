@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
@@ -77,23 +78,23 @@ public partial class ObjectivePhase
         wools.Clear(); teams.Clear(); nodeMap.Clear(); groups = null;
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
-            if (doc.TryGetProperty("teams", out var ts) && ts.ValueKind == JsonValueKind.Array)
-                foreach (var t in ts.EnumerateArray())
-                    teams.Add(new Team { Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color", "red") });
-            if (doc.TryGetProperty("wools", out var ws) && ws.ValueKind == JsonValueKind.Array)
-                foreach (var w in ws.EnumerateArray())
+            var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
+            foreach (var t in doc?.Teams ?? [])
+                teams.Add(new Team { Id = t.Id, Name = t.Name ?? "", Color = t.Color ?? "red" });
+            foreach (var w in doc?.Wools ?? [])
+            {
+                var wool = new Wool
                 {
-                    var wool = new Wool
+                    Id = w.Id, Color = w.Color ?? "",
+                    Team = w.Team, Location = ParseLoc(w.Location), WoolRoomRegion = w.WoolRoomRegion,
+                };
+                foreach (var m in w.Monuments)
+                    wool.Monuments.Add(new Monument
                     {
-                        Id = S(w, "id"), Color = S(w, "color"),
-                        Team = Opt(w, "team"), Location = ParseLoc(w, "location"), WoolRoomRegion = Opt(w, "wool_room_region"),
-                    };
-                    if (w.TryGetProperty("monuments", out var ms) && ms.ValueKind == JsonValueKind.Array)
-                        foreach (var m in ms.EnumerateArray())
-                            wool.Monuments.Add(new Monument { Id = S(m, "id"), Team = Opt(m, "team"), Location = ParseLoc(m, "location"), MonumentRegion = Opt(m, "monument_region") });
-                    wools.Add(wool);
-                }
+                        Id = m.Id, Team = m.Team, Location = ParseLoc(m.Location), MonumentRegion = m.MonumentRegion,
+                    });
+                wools.Add(wool);
+            }
 
             var tree = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/regions/tree");
             groups = tree.TryGetProperty("groups", out var g) ? CollectWoolGroups(RegionGroup.ParseGroups(g)) : new();
@@ -263,13 +264,11 @@ public partial class ObjectivePhase
 
     // ── parse ─────────────────────────────────────────────────────────────────────
 
-    private static string S(JsonElement e, string k, string def = "") => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? def : def;
-    private static string? Opt(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
-    private static Loc? ParseLoc(JsonElement e, string k)
-    {
-        if (!e.TryGetProperty(k, out var v) || v.ValueKind != JsonValueKind.Object) return null;
-        return new Loc { X = LD(v, "x"), Y = LD(v, "y"), Z = LD(v, "z") };
-    }
+    /// <summary>A wool or monument states where it stands as an <c>{x, y, z}</c> object or not at all, which
+    /// is the contract's own choice and the reason the record leaves that field open.</summary>
+    private static Loc? ParseLoc(JsonElement location)
+        => location.ValueKind != JsonValueKind.Object ? null
+           : new Loc { X = LD(location, "x"), Y = LD(location, "y"), Z = LD(location, "z") };
     private static double LD(JsonElement e, string k) => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

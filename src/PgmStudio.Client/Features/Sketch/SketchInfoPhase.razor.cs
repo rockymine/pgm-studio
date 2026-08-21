@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -34,13 +35,11 @@ public partial class SketchInfoPhase
     {
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
-            name = Str(doc, "name");
+            var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
+            name = doc?.Name ?? "";
             authors.Clear();
-            if (doc.TryGetProperty("authors", out var arr) && arr.ValueKind == JsonValueKind.Array)
-                foreach (var a in arr.EnumerateArray())
-                    if (Str(a, "role") != "contributor")
-                        authors.Add(new AuthorRow { Uuid = Str(a, "uuid"), Name = Str(a, "name"), Contribution = Str(a, "contribution") });
+            foreach (var a in (doc?.Authors ?? []).Where(a => a.Role != "contributor"))
+                authors.Add(new AuthorRow { Uuid = a.Uuid, Name = a.Name ?? "", Contribution = a.Contribution ?? "" });
             dirty = false; saveStatus = null;
         }
         catch { saveStatus = "Failed to load."; }
@@ -70,7 +69,4 @@ public partial class SketchInfoPhase
         catch { saveStatus = "Save failed."; }
         StateHasChanged();
     }
-
-    private static string Str(JsonElement e, string key)
-        => e.TryGetProperty(key, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
 }

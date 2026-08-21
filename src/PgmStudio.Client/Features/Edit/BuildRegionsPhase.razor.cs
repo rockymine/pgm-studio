@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using Microsoft.JSInterop;
 using System.Text.Json;
@@ -43,9 +44,8 @@ public partial class BuildRegionsPhase
         step = 1; heightDirty = false; heightStatus = null;
         try
         {
-            var doc = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}");
-            maxHeight = doc.TryGetProperty("max_build_height", out var v) && v.ValueKind == JsonValueKind.Number
-                ? v.GetDouble().ToString() : null;
+            var doc = await Http.GetFromJsonAsync<MapDocumentDto>($"api/map/{Slug}");
+            maxHeight = doc?.MaxBuildHeight?.ToString();
         }
         catch (Exception ex) { error = ex.Message; }
     }
