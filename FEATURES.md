@@ -6341,6 +6341,25 @@ these are the ones that shipped a map that could not be played as intended, and 
   and an instance would be the duplication `CLAUDE.md` names under *One type, one responsibility*.
   `terrain` is the relief alone: a piece's stated height is plan geometry, so no `PL*` rule carries it.
 
+- **A prop the studio deleted no longer arrives as a remark (RP31).** `Severity` was `Refusal | Complaint`,
+  and `Complaint`'s own docstring ruled out half of what it carried — *"a complaint the author may ignore …
+  none of them the tool's to overrule"*. True of `OB23` and `DC3`, where the world is built and the goal
+  stands. False of every drop the dressing pass makes, where the tree, boulder or building is **not in the
+  world**: there is nothing to ignore, because the thing the author drew is gone. So a caller reading
+  `warnings` on a 2xx could not answer the question a write leaves open — *did what I posted survive*.
+
+  `Severity.Decline` sits between the two, and the enum now reads in descending order of what a finding took:
+  the work did not happen, one piece of it did not, or all of it did and there is a remark. Every decline the
+  dressing pass makes carries it — the six `DR-*` rules and the building whose own `HP*` shape fault stopped
+  it reading. Same envelope, same `warnings` key, no new route: `Finding.Refuses` is still `Severity ==
+  Refusal`, because a decline is a success that took something away.
+
+  Two things follow from the third value and are the whole of the rest. `Findings.Complaints` narrows to
+  complaints, since a decline is not a remark and a caller counting remarks would read a dropped prop as
+  "nothing was lost". And `AsComplaint()` downgrades a **refusal** only: rewriting a decline as a complaint
+  at a boundary would lose the one thing it says, and the boundary is not what knows a prop was dropped.
+  `OB19` stays a refusal until `RP4` rules.
+
   **A layout rule has no fix, and that is a decision rather than a gap.** The gate rules are mechanical — a
   doorway too short, a document that will not parse — so what to do about one follows from what it refuses.
   The layout rules are claims about how a map is *played*, which are the author's to state and not this

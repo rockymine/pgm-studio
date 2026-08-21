@@ -79,7 +79,7 @@ public sealed record DressingContext(
 /// column kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
 /// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a
 /// <c>DR-*</c> rule, one sentence carrying the cell and the cause, the prop's id as its subject, and
-/// <see cref="Severity.Complaint"/> — the world was built, and some props are not standing in it.</para></param>
+/// <see cref="Severity.Decline"/> — the world was built, and some props are not standing in it.</para></param>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
     IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null)
@@ -466,7 +466,7 @@ public static class Decorator
             var refusal = house.Check()[0];
             declined.Add(new Finding(refusal.Rule,
                 $"building '{house.Id}' makes no building: {refusal.Message}",
-                Severity.Complaint, Subjects: [house.Id]));
+                Severity.Decline, Subjects: [house.Id]));
             return [];
         }
 
@@ -479,7 +479,7 @@ public static class Decorator
             declined.Add(new Finding(DressingRules.FootprintFloor,
                 $"building '{house.Id}' has a footprint of {footprintX}×{footprintZ}, under "
                 + $"{DressingRules.FootprintMin}×{DressingRules.FootprintMin}",
-                Severity.Complaint, Subjects: [house.Id]));
+                Severity.Decline, Subjects: [house.Id]));
             return [];
         }
 
@@ -501,7 +501,7 @@ public static class Decorator
                 declined.Add(new Finding(DressingRules.KeptClear,
                     $"building '{house.Id}' stands on ({lane.X}, {lane.Z}), "
                     + KeptFor(KeepOut.Approach),
-                    Severity.Complaint, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
             if (FirstOverlap(ClaimedCells(image, house.Style), claims) is { } collision)
@@ -509,7 +509,7 @@ public static class Decorator
                 declined.Add(new Finding(DressingRules.GroundTaken,
                     $"building '{house.Id}' stands on ({collision.X}, {collision.Z}), "
                     + Claimant(claims.At(collision.X, collision.Z)),
-                    Severity.Complaint, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
             var (floorY, bare) = Ground(context, image);
@@ -521,7 +521,7 @@ public static class Decorator
                           + "inside its footprint — the building would seat on its lowest column and hang off "
                           + "the rest"
                         : $"building '{house.Id}' has no ground under any of its cells",
-                    Severity.Complaint, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
             if (!HasPassage(context, claims, image))
@@ -529,7 +529,7 @@ public static class Decorator
                 declined.Add(new Finding(DressingRules.PassAround,
                     $"building '{house.Id}' leaves no way past it: fewer than "
                     + $"{DressingRules.PassAroundWidth} blocks of passable ground beside every side",
-                    Severity.Complaint, Subjects: [house.Id]));
+                    Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
 
@@ -988,10 +988,12 @@ public static class Decorator
     }
 
     /// <summary>One decline, in the shape everything else in the studio says something is wrong in: the rule,
-    /// the prop named by kind and id, what happened, and the prop's id as the subject an editor highlights. A
-    /// complaint rather than a refusal — the world was built, and this prop is not standing in it.</summary>
+    /// the prop named by kind and id, what happened, and the prop's id as the subject an editor highlights.
+    /// <see cref="Severity.Decline"/> rather than a refusal — the world was built — and rather than a
+    /// complaint, because this prop is not standing in it and there is nothing for the author to
+    /// ignore.</summary>
     private static Finding Declined(string rule, string id, string kind, string what) =>
-        new(rule, $"{kind} '{id}' {what}", Severity.Complaint, Subjects: [id]);
+        new(rule, $"{kind} '{id}' {what}", Severity.Decline, Subjects: [id]);
 
     // What the map is holding a cell for, as the decline's own words.
     private static string KeptFor(KeepOut keptFor) => keptFor switch

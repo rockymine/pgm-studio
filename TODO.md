@@ -29,12 +29,12 @@ one place a use case lives, so the application layer is second. A caller cannot 
 fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
 handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — seventeen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Three of the eighteen carry a question only the author can answer
+## Three of the seventeen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -123,22 +123,7 @@ silently.
 
 ## Phase 3 — one class of fault
 
-Two entries. The classification is on the rules; what is left is a severity the six declines need, and the
-one id a gate fires that nothing can look up.
-
-- [ ] **RP31 — A prop the studio deleted and a lane it merely thinks is narrow arrive as one severity.**
-  `Severity` (`Domain/Finding.cs:4`) is `Refusal | Complaint`, and `Complaint`'s own docstring rules out half
-  of what it carries: *"a complaint the author may ignore … none of them the tool's to overrule"*. True of
-  `OB23` and `DC3`, where the goal stands and the finding is a remark. False of all six `DR-*` rules, where
-  the tree, boulder or building is **deleted from the world** — the author cannot ignore that, because the
-  thing they authored is gone. So a caller reading `warnings` cannot answer the question a write leaves open:
-  did what I posted survive? Add `Severity.Decline`, carried by the six `DR-*` rules and by `OB19` once
-  `RP4`'s ruling lands. Same envelope, same `warnings` key, no new route: `Finding.Refuses` stays the refusal
-  test and a decline is a success that took something away. One site turns a boolean into a three-way,
-  `Finding.Refuses` (`Vocabulary/Finding.cs`), since the record is what is serialized.
-  Orthogonal to the rule's `category` — that says what kind of fault, this what became of the input, and the
-  six share a category (`conflict` or `unsatisfiable`) that no other complaint has. `refusals.md` and each
-  `DR-*` `<remarks>` change with it.
+One entry left: the id a gate fires that nothing can look up.
 
 - [~] **RP15 — Nothing checks that an id a gate cites resolves, and one of them does not.** The plan
   validator names sixteen rule ids as bare string literals, and `PC-C` is not a rule anyone can look up:

@@ -111,6 +111,37 @@ public class FindingsTests
         await Assert.That(already.AsComplaints()).IsEquivalentTo(already);
     }
 
+    /// <summary>
+    /// <b>A decline is neither of the other two, and each question it is asked has a different answer.</b> It
+    /// does not stop the work, so <see cref="Findings.Refuses"/> is false and it rides on the success. It is
+    /// not a remark either, so it is not among the complaints — the one thing it says is that a piece of what
+    /// the author posted is gone, and a caller counting complaints would read that as "nothing was lost".
+    /// </summary>
+    [Test]
+    public async Task A_decline_stops_nothing_and_is_not_a_remark()
+    {
+        var declined = new Finding("DR-SITE", "boulder 'b1' has no ground at (8, 24)", Severity.Decline,
+            Subjects: ["b1"]);
+
+        var carried = Findings.Of(Complaint, declined);
+
+        await Assert.That(carried.Refuses).IsFalse();
+        await Assert.That(carried.Refusals).IsEmpty();
+        await Assert.That(carried.Complaints.Single().Rule).IsEqualTo("PL3");
+        await Assert.That(carried.Single(finding => finding.Severity == Severity.Decline)).IsEqualTo(declined);
+    }
+
+    /// <summary>Downgrading at a boundary leaves a decline alone. The operation says "none of these stops the
+    /// work", which a decline already does not — rewriting it as a complaint would lose the only thing it
+    /// carries, and the boundary that runs it is not the place that knows what was dropped.</summary>
+    [Test]
+    public async Task Downgrading_leaves_a_decline_a_decline()
+    {
+        var declined = new Finding("DR-KEEP", "tree 't5' stands in a door's approach", Severity.Decline);
+
+        await Assert.That(Findings.Of(declined).AsComplaints()[0].Severity).IsEqualTo(Severity.Decline);
+    }
+
     /// <summary>A finding goes onto the wire under the keys <c>docs/refusals.md</c> states, and writes the
     /// optional ones only when it has something to say — so a reader never has to tell an absent subject from
     /// an empty one. The record itself is what is serialized, wherever it is serialized, so there is no second

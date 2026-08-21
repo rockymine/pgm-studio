@@ -60,7 +60,7 @@ public sealed class DressingRulesTests
 
         var decline = tally.Declines.Single();
         await Assert.That(decline.Rule).IsEqualTo(DressingRules.RoadStandoff);
-        await Assert.That(decline.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(decline.Severity).IsEqualTo(Severity.Decline);
         await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "t" });
     }
 }

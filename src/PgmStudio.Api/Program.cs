@@ -218,10 +218,10 @@ app.Use(async (ctx, next) =>
     }
 });
 
-// And the mirror of that guarantee on the other severity: a complaint an endpoint's gate produced rides on
-// whatever success the endpoint answers, put there here rather than left to each endpoint to remember. A
-// dropped complaint fails nothing, so nothing but this can catch one (docs/refusals.md, "What a success
-// carries").
+// And the mirror of that guarantee on the two severities that do not stop the work: a complaint or a decline
+// an endpoint's gate produced rides on whatever success the endpoint answers, put there here rather than left
+// to each endpoint to remember. A dropped one fails nothing, so nothing but this can catch it
+// (docs/refusals.md, "What a success carries").
 app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 
 // All API endpoints live under /api.

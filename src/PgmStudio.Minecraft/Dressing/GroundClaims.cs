@@ -19,7 +19,7 @@ public static class DressingRules
     /// alongside its whole run (the author's number). A house may stand against the map's own edge on one
     /// side — a coast house is a house — but a house with too little ground on every side corks the leg it
     /// stands on, and a route players must dig through a building to walk is not a route.</summary>
-    /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past.</remarks>
+    /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past. The whole building is declined and is not in the exported world.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 
@@ -41,7 +41,7 @@ public static class DressingRules
     /// room or its monument, a structure the plan stated, a column whose surface is built rather than terrain,
     /// or the lane in front of a spawn or wool-room door. The finding names which of those it was and the cell
     /// it happened at.</summary>
-    /// <remarks>Move the prop off the cell the finding names. A door's approach reaches twenty blocks out from a spawn room's face and ten from a wool room's, measured from the stamped building — that lane is what the door is for, so nothing stands in it.</remarks>
+    /// <remarks>Move the prop off the cell the finding names. A door's approach reaches twenty blocks out from a spawn room's face and ten from a wool room's, measured from the stamped building — that lane is what the door is for, so nothing stands in it. The whole prop is declined and is not in the exported world.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Spawn, RuleConcern.Objective)]
     public const string KeptClear = "DR-KEEP";
 
@@ -50,7 +50,7 @@ public static class DressingRules
     /// the collision itself rather than a near miss; the finding names the cell and what holds it. A building
     /// holds the ground it stamps <em>and</em> <see cref="StructureClearance"/> blocks of ring beyond it, so a
     /// prop seating under an eave is this fault rather than a silent build.</summary>
-    /// <remarks>Move the prop off the claimed ground, or move whatever holds it. Two authored things wanting the same cell is the author's to resolve — the pass never shifts a placement to make room.</remarks>
+    /// <remarks>Move the prop off the claimed ground, or move whatever holds it. Two authored things wanting the same cell is the author's to resolve — the pass never shifts a placement to make room, it declines the prop and leaves the ground to whatever already holds it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string GroundTaken = "DR-CLAIM";
 

@@ -16,8 +16,13 @@ namespace PgmStudio.Api.Endpoints;
 /// complaints are handed over here and the response carries them whether or not the endpoint thought about
 /// them; running the gate is the whole of an endpoint's duty.</para>
 ///
+/// <para><b>Two severities travel here, not one.</b> A complaint is a remark the author may ignore; a
+/// <see cref="Severity.Decline"/> says a piece of what they wrote is not in what was built. Both ride the same
+/// key because both sit on a success, and they are told apart by the <c>severity</c> each finding already
+/// carries — which is the only way a caller reading a 2xx can answer <i>did what I posted survive</i>.</para>
+///
 /// <para><b>One key, one rule for when it appears.</b> A 2xx JSON object answers <c>warnings</c> when anything
-/// was complained about and carries no such key when nothing was. That single rule is what makes an absent
+/// was complained about or declined and carries no such key when nothing was. That single rule is what makes an absent
 /// <c>warnings</c> readable: without it the key's absence covers an endpoint with no gate, one whose gate
 /// found nothing, one that dropped what its gate found and one answering a shape with nowhere to put it — four
 /// states a caller cannot tell apart. A refusal carries refusals only, in
@@ -38,8 +43,9 @@ internal static class Complaints
     /// <summary>The options the body was serialized with, so an injected key reads like the ones beside it.</summary>
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
-    /// <summary>Hand complaints to the response being written. Refusals among them are ignored rather than
-    /// downgraded: a refusal that reaches here has already been written or was never the caller's to pass on.</summary>
+    /// <summary>Hand what did not stop the work to the response being written — complaints and declines
+    /// alike. Refusals among them are ignored rather than downgraded: a refusal that reaches here has already
+    /// been written or was never the caller's to pass on.</summary>
     public static void Add(HttpContext http, IEnumerable<Finding> findings)
     {
         var carried = Carried(http);

@@ -553,6 +553,10 @@ held for a spawn, a wool room, a stated structure, built ground or a door's appr
 carries the *owner* of every claim, so a collision reads `claimed by the path 'p'` rather than `already
 claimed`. The first claimant keeps a cell, so that owner is the one that actually holds the ground.
 
+Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
+stopped, and this prop is not in it, so there is nothing for the author to ignore. That is what a caller reads
+off a 2xx to answer *did what I posted survive* — a complaint beside a success would say the opposite.
+
 The declines travel two ways: back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
 `warnings` beside the payload, which is the loop an agent actually drives; as `region/dressing-report.json`
 beside the provenance sidecar (written only when something dropped, deleted on a rebuild that dropped

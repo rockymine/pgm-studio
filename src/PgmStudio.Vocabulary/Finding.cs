@@ -7,7 +7,10 @@ namespace PgmStudio.Vocabulary;
 /// wire spell it once.</summary>
 public sealed class SeverityConverter() : JsonStringEnumConverter<Severity>(JsonNamingPolicy.CamelCase);
 
-/// <summary>Whether a <see cref="Finding"/> stops the thing it was asked about.</summary>
+/// <summary>
+/// What became of the thing a <see cref="Finding"/> was raised about, in descending order of how much it
+/// took: the work did not happen, one piece of it did not, or all of it did and something is worth saying.
+/// </summary>
 [JsonConverter(typeof(SeverityConverter))]
 public enum Severity
 {
@@ -15,9 +18,17 @@ public enum Severity
     /// making something else instead would hand back a map they did not ask for.</summary>
     Refusal,
 
-    /// <summary>A complaint the author may ignore. The work proceeds and the finding rides along with it —
-    /// which goal a map carries, whether a corner touch is meant, whether a lane is narrow: all real remarks,
-    /// none of them the tool's to overrule.</summary>
+    /// <summary>The work happened and this one piece of what the author wrote is not in it. A tree, a
+    /// boulder or a building the dressing pass could not seat is <b>not in the world</b> — the map built, and
+    /// the thing they drew is gone from it. Not a refusal, because the map is there and is playable; not a
+    /// complaint, because there is nothing to ignore: the input did not survive, and a caller reading a 2xx
+    /// has no other way to learn that.</summary>
+    Decline,
+
+    /// <summary>A complaint the author may ignore. The work proceeds, everything they wrote is in it, and the
+    /// finding rides along — which goal a map carries, a goal built in a material its size is wrong for, a
+    /// goal topping out over the build ceiling: all real remarks, none of them the tool's to overrule.
+    /// A finding that says something was <em>dropped</em> is a <see cref="Decline"/>, not this.</summary>
     Complaint,
 }
 
@@ -47,7 +58,8 @@ public enum Severity
 /// <param name="Rule">The stable id: <c>HS1</c>, <c>HJ2</c>, <c>PL7</c>, <c>OB20</c>, <c>WX4</c>, <c>DR-DOC</c>.
 /// Every gate names one, so a refusal is never a sentence an author has to parse to act on.</param>
 /// <param name="Message">What is wrong, in the terms the author wrote it in, with the numbers in it.</param>
-/// <param name="Severity">Whether it stops the work. Refusal unless stated.</param>
+/// <param name="Severity">What became of what it is about: the work stopped, this piece of it was dropped,
+/// or nothing was lost and there is a remark. Refusal unless stated.</param>
 /// <param name="Field">The document field at fault, where one is nameable — <c>doorHead.block</c>, <c>wings</c>.</param>
 /// <param name="Subjects">The ids the fault indicts, for an editor to highlight on click.</param>
 /// <param name="Cites">What to look up next, where this finding's own id is not it: the layout rule the fault
@@ -68,12 +80,17 @@ public sealed record Finding(
     public IReadOnlyList<string> SubjectIds => Subjects ?? [];
 
     /// <summary>Whether this one stops the work. A reader of the wire compares <see cref="Severity"/>, so
-    /// there is one answer to the question rather than a second field that could disagree with it.</summary>
+    /// there is one answer to the question rather than a second field that could disagree with it — and it
+    /// stays the refusal test with three severities, since a decline is a success that took something
+    /// away.</summary>
     [JsonIgnore]
     public bool Refuses => Severity == Severity.Refusal;
 
-    /// <summary>A complaint rather than a refusal — the same finding, not stopping anything.</summary>
-    public Finding AsComplaint() => this with { Severity = Severity.Complaint };
+    /// <summary>A complaint rather than a refusal — the same finding, not stopping anything. A
+    /// <see cref="Severity.Decline"/> is returned as it is: it already does not stop the work, and rewriting
+    /// it as a complaint would lose the one thing it says, which is that the input did not survive.</summary>
+    public Finding AsComplaint() =>
+        Severity == Severity.Refusal ? this with { Severity = Severity.Complaint } : this;
 
     /// <summary>One sentence for a whole list, for the <c>message</c> beside the findings on the wire. A caller
     /// with nothing to say gets an empty string rather than a sentence about having nothing to say.</summary>

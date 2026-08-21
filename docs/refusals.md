@@ -17,9 +17,13 @@ nameable and **subjects** where the fault indicts pieces, props, zones or wings 
 click — and a finding may carry either, both or neither, because different gates know different things about
 what they are refusing.
 
-Two fields exist for cases the first three do not cover. **Severity** is `refusal` or `complaint`: a refusal
-stops the work, and a complaint rides along with work that succeeded, which is how a compile that produced a
-playable-but-goalless map says so without blocking. And **cites** is what to look up next where the rule id is
+Two fields exist for cases the first three do not cover. **Severity** is one of three, in descending order of
+what it took. A **refusal** stops the work. A **decline** says the work happened and one piece of what the
+author wrote is not in it — the tree, boulder or building the dressing pass could not seat is not in the
+world, and no amount of ignoring it puts it back. A **complaint** rides along with work that lost nothing,
+which is how a compile that produced a playable-but-goalless map says so without blocking. The distinction
+that matters is the middle one: a caller reading a 2xx has no other way to answer *did what I posted survive*.
+And **cites** is what to look up next where the rule id is
 not it — the layout rule the fault falls under, or the open task that would resolve it. That last one is why
 `cites` is a field of its own rather than a second id: a rule is stable forever and a task id is a debt with a
 due date, and one field holding either would make the two indistinguishable to a reader.
@@ -87,12 +91,12 @@ a rule that changed its name between the two would be two rules.
 | Family | Owns | Where |
 |---|---|---|
 | `PL*` | the plan's own structure | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
-| `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes. Two are **complaints on a built world**: `DC3` a goal built in a material its own size is wrong for, `OB23` a goal topping out over the build ceiling — the world is built and the goal stands | `Domain/ObjectiveRules.cs` |
+| `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes. Two are **complaints on a built world**: `DC3` a goal built in a material its own size is wrong for, `OB23` a goal topping out over the build ceiling — the world is built and the goal stands, which is what makes them complaints rather than declines | `Domain/ObjectiveRules.cs` |
 | `WX*` | room frames — the shell, the pad, the doors, the iron, and the shell's height against the build ceiling | `Domain/RoomFrames.cs` → `RoomFrameRules` |
 | `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
 | `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |
-| `DR-*` | the dressing pass's own — `DR-DOC` a document that will not parse, `DR-ROAD` a prop resting nearer to the road than its kind's standoff (the numbers live on `PlacedProp.RouteStandoff`), `DR-PASS` a building leaving no five-block passage beside any side, `DR-SIZE` a building whose box is under 5×5 blocks, `DR-KEEP` a prop resting on ground the map keeps clear (a spawn, a wool room, a stated structure, a built column, a door's approach), `DR-CLAIM` a prop resting on ground something already standing holds (a building holds what it stamps plus a block of ring beyond it), `DR-SITE` a prop with no ground to rest on — a building is held to every cell of its footprint, and the finding names the first bare column. Every one of them is a **complaint on a built world**: the prop does not land, the world does | `Minecraft/Dressing/DressingJson.cs` · `Minecraft/Dressing/GroundClaims.cs` → `DressingRules` |
+| `DR-*` | the dressing pass's own — `DR-DOC` a document that will not parse, `DR-ROAD` a prop resting nearer to the road than its kind's standoff (the numbers live on `PlacedProp.RouteStandoff`), `DR-PASS` a building leaving no five-block passage beside any side, `DR-SIZE` a building whose box is under 5×5 blocks, `DR-KEEP` a prop resting on ground the map keeps clear (a spawn, a wool room, a stated structure, a built column, a door's approach), `DR-CLAIM` a prop resting on ground something already standing holds (a building holds what it stamps plus a block of ring beyond it), `DR-SITE` a prop with no ground to rest on — a building is held to every cell of its footprint, and the finding names the first bare column. Every one but `DR-DOC` is a **decline on a built world**: the world is built and the prop is not in it | `Minecraft/Dressing/DressingJson.cs` · `Minecraft/Dressing/GroundClaims.cs` → `DressingRules` |
 | `EX*` | the export gate's own — `EX1` not traversable, `EX2` no spawn to enter the map by, `EX3` what the intent stated and the document did not carry, `EX4` an objective with no team to contest it | `Export/MapExportComposer.cs` → `ExportRules` |
 | `SK*` | the sketch document's own — `SK1` a recompile fused the board differently, so an island the author had drawn relief onto no longer exists to carry it; `SK2` a board whose extent is past what the studio will realize (the one refusal; the ceiling is a constant and deliberately appears in no message — a stated one is a target); `SK3` a name matching nothing (a shape kind, a mirror mode, an island's shape id, a relief's island, a shape's or the map's theme); `SK4` a shape that draws no ground; `SK5` a column the world cannot hold; `SK6` nothing stored to finish and `SK7` a stored board that rasterizes to no ground — the two the finish stage owns, and the one place the sketch's complaints become fatal, since finishing is what declares the drawing done. `SK3`–`SK5` are **complaints on a built board**: the rasterizer is set algebra, so what it cannot read contributes no ground rather than failing, and without these a defect in the document reads as a smaller drawing | `Pgm/Sketch/SketchRules.cs` · `Pgm/Sketch/SketchLayoutCheck.cs` |
 | `IM*` | the import's own — `IM1` a host the import does not fetch from (the SSRF allowlist), `IM2` an archive the host did not serve, `IM3` one past the download cap, `IM4` one that is not a zip, `IM5` one carrying no `region/*.mca`, `IM6` a folder that is a map already rather than a world to originate from | `Api/Endpoints/ImportEndpoints.cs` → `ImportRules` |
@@ -220,8 +224,13 @@ answer, which is how an endpoint gets the guarantee without knowing the channel 
 away from a gate — the props a dressing pass declined, the fields a reader had nowhere to keep — is handed
 over the same way, by `Complaints.Add`/`Complaints.Unread`, and travels the same road from there.
 
+**Two severities ride the key, and telling them apart is the point.** A complaint is a remark; a decline says
+a piece of what was posted is not in what was built. Both sit on a success, so both go under `warnings`, and a
+caller reads `severity` on each finding — `warnings.some(w => w.severity === "decline")` is *something I sent
+was dropped*, which no status code and no other field says.
+
 **One key, and one rule for when it appears.** A 2xx JSON object answers `warnings` when something was
-complained about and carries no such key when nothing was. The single rule is what makes an absent `warnings`
+complained about or declined, and carries no such key when nothing was. The single rule is what makes an absent `warnings`
 readable: without it the key's absence covers four states a caller cannot tell apart — an endpoint with no
 gate, one whose gate found nothing, one that dropped what its gate found, and one answering a shape with
 nowhere to put it. A caller reads `warnings ?? []` and is done.

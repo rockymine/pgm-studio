@@ -38,8 +38,11 @@ public sealed class Findings : IReadOnlyList<Finding>
     /// <summary>The findings that stop the work.</summary>
     public IEnumerable<Finding> Refusals => findings.Where(finding => finding.Refuses);
 
-    /// <summary>The findings that ride along with it.</summary>
-    public IEnumerable<Finding> Complaints => findings.Where(finding => !finding.Refuses);
+    /// <summary>The remarks: findings that stop nothing and took nothing away. A
+    /// <see cref="Severity.Decline"/> rides along on the same response and is deliberately not here — it says
+    /// a piece of what the author wrote is gone, which is not a remark.</summary>
+    public IEnumerable<Finding> Complaints =>
+        findings.Where(finding => finding.Severity == Severity.Complaint);
 
     /// <summary>One sentence for the whole list, for the <c>message</c> beside the findings on the wire.</summary>
     public string Summary => Finding.Summarize(findings);

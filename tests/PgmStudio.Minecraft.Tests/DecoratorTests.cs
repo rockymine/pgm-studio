@@ -94,6 +94,9 @@ public sealed class DecoratorTests
         await Assert.That(tally.Trees).IsEqualTo(0);
         var drop = tally.Declines.Single(d => d.SubjectIds.Contains("t"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.GroundTaken);
+        // Neither a refusal nor a remark: the world is built and this tree is not in it, which is the one
+        // thing a caller reading the 2xx cannot learn any other way.
+        await Assert.That(drop.Severity).IsEqualTo(Severity.Decline);
         await Assert.That(drop.Message).Contains("tree 't' rests on (");
         // The road got there first and keeps the cell, so that is what the decline names — the record says
         // who holds the ground, not merely that something does.
@@ -158,7 +161,7 @@ public sealed class DecoratorTests
         await Assert.That(dropped.Trees).IsEqualTo(0);
         var drop = dropped.Declines.Single(d => d.SubjectIds.Contains("t-off"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.NoGround);
-        await Assert.That(drop.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(drop.Severity).IsEqualTo(Severity.Decline);
         await Assert.That(drop.Message).Contains("tree 't-off' has no ground at (");
     }
 
@@ -1191,5 +1194,32 @@ public sealed class DecoratorTests
 
         var logs = Placed(world, top.Keys, 8, 60).Where(block => block.Id == Blocks.Log).ToList();
         await Assert.That(logs).IsNotEmpty().Because("a bounded tree is still a tree");
+    }
+
+    /// <summary>
+    /// <b>Every drop the pass makes says the same thing about itself.</b> A decline is what tells a caller
+    /// reading a 2xx that a piece of what they posted is not in the world — so a site that raised a complaint
+    /// instead would leave that prop looking as though it had been placed, with only a remark beside it. The
+    /// board here trips five different rules at once so the check is over the pass rather than over one of
+    /// its branches.
+    /// </summary>
+    [Test]
+    public async Task Every_drop_the_pass_makes_is_a_decline()
+    {
+        var (world, top) = Plateau(60);
+        var dropped = Decorator.Decorate(world, Context(top,
+        [
+            // no ground under it at all
+            new TreeProp { Id = "t-void", X = 400, Z = 400, Species = "oak", Height = 8, Seed = 1 },
+            // a footprint under the floor
+            new HouseProp { Id = "h-thin", Wings = [new AuthoredWing([[4, 4], [7, 6]])] },
+            // two buildings over one cell: the second loses the ground
+            new HouseProp { Id = "h-first", Wings = [new AuthoredWing([[20, 20], [32, 32]])] },
+            new HouseProp { Id = "h-second", Wings = [new AuthoredWing([[26, 26], [38, 38]])] },
+        ]));
+
+        await Assert.That(dropped.Declines).IsNotEmpty();
+        await Assert.That(dropped.Declines.Where(finding => finding.Severity != Severity.Decline)
+            .Select(finding => $"{finding.Rule} ({finding.Message})")).IsEmpty();
     }
 }
