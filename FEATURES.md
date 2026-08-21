@@ -6315,6 +6315,32 @@ these are the ones that shipped a map that could not be played as intended, and 
   with nowhere to shift to — and the old name only covered the second, which is why the lint could not use
   it.
 
+- **A fault carries a class and says what it is about (RP14, RP26).** The only machine-legible thing a finding
+  carried was the id, so a caller deciding whether to fix the request, change the design, change the map or
+  report a bug had to know all 76. A rule now carries a **`category`** — one of eight words each defined by
+  the action it implies (`malformed` fix the shape · `unknown` fix a name · `conflict` choose which wins ·
+  `unsatisfiable` change the design · `unplayable` change the map · `forbidden` ask for something else ·
+  `unavailable` try again or look upstream · `internal` report it) — and a **`concerns`** list of one or more
+  of thirteen words saying what it is about. `GET /api/rules?category=unplayable` answers every rule a caller
+  would treat the same way; `?concerns=` may be repeated and **narrows**, so
+  `?concerns=objective&concerns=plan` is the plan half of the escalation `refusals.md` § *One question, asked
+  at every grain* states in prose — `WX6` and `PL9`, without the two that ask reachability of built ground.
+  A word outside either closed set is `RQ1` at 400, since an empty list would read as "no rules do that".
+
+  **Both belong to the rule, not to the finding**, which is the whole of why it is cheap. A category is fixed
+  by the id, and the 76 constants are raised from 96 sites — a field on `Finding` would have 24 of them
+  restating what another site already fixed with nothing checking they agree, and `Finding` lives in a leaf
+  that cannot see the catalogue. So they are a `[Rule]` attribute beside each constant, read by reflection
+  exactly as the docstring already is: `RuleCategory`, `RuleConcern` and `RuleAttribute` in
+  `PgmStudio.Vocabulary`, the one project every declaring assembly reaches. `RulesEndpointTests` holds the
+  drift both ways — every gate rule says what it is about, and the only ones with no category are the four
+  named `WX` rules that refuse nothing.
+
+  **`concerns` is uncapped and is not `subjects`.** `PL8` is a plan, a spawn, an objective and a structure at
+  once, and `Finding.Subjects` already holds instance ids — which piece, which prop — so one name over a kind
+  and an instance would be the duplication `CLAUDE.md` names under *One type, one responsibility*.
+  `terrain` is the relief alone: a piece's stated height is plan geometry, so no `PL*` rule carries it.
+
   **A layout rule has no fix, and that is a decision rather than a gap.** The gate rules are mechanical — a
   doorway too short, a document that will not parse — so what to do about one follows from what it refuses.
   The layout rules are claims about how a map is *played*, which are the author's to state and not this

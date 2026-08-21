@@ -119,15 +119,20 @@ learns the pipeline by reading markdown that nothing verifies, or by trying a ca
 That is also what makes `RP4` expensive. An agent pays a full world build to discover that a goal overhangs
 void, because the only thing that will tell it is the gate at the end.
 
-## A fault has an id but not a class
+## A fault carries an id, a class and what it is about
 
 The studio declares **76 rule constants in 14 families**, and answers `GET /api/rules` by reading each
-constant's own XML docstring — so a rule's meaning has one home and no catalogue can fall out of step with
-it. That mechanism is right, and it is the best thing in the codebase.
+constant's own XML docstring and the `[Rule]` attribute beside it — so a rule's meaning, its fix and its
+classification all have one home and no catalogue can fall out of step with any of them. That mechanism is
+the best thing in the codebase.
 
-What it lacks is a **class**. A caller that wants to know whether to fix the request, change the design,
-change the map or report a bug has to know all 76 ids to find out, because the only machine-legible thing a
-finding carries is the id itself. That is the defect, and it is the whole of it.
+What it lacked was a **class**. A caller that wants to know whether to fix the request, change the design,
+change the map or report a bug had to know all 76 ids to find out, because the only machine-legible thing a
+finding carried was the id itself. It now reads a **category** — one of eight words, each defined by the
+action it implies — and a **concerns** list of one to several of thirteen words saying what the rule is about.
+Both belong to the rule rather than to the finding: a category is fixed by the id, and the 76 constants are
+raised from 96 sites, so a field on the finding would have 24 of them restating what another site already
+fixed with nothing checking they agree. A caller joins on the id, which is what the catalogue is for.
 
 The family prefix is *not* the defect, though it reads like one at first. `PL2` and `EX2` carry nearly the
 same sentence — *no spawn, nobody can enter the map* — and look like one fault under two ids until their
@@ -138,8 +143,12 @@ that all mean *a name that resolves to nothing* — `PL5` and `PL10` over the pl
 real work.
 
 So the prefix is close to a **subject** axis already, because for most families the subsystem that asks *is*
-the document at fault. What is missing beside it is the category, and the two together are what let a caller
+the document at fault. What was missing beside it is the category, and the two together are what let a caller
 read `PL2` as *unplayable, in the plan* and `EX2` as *unplayable, in the intent* without knowing either id.
+The prefix stays a prefix, though: it names one token, and a rule concerns a combination — `WX6` is a plan, a
+structure and an objective at once — which is why `concerns` is a list and why the escalation
+`refusals.md` § *One question, asked at every grain* states in prose is now a query,
+`?concerns=objective&concerns=plan`.
 
 **Rules are stated three ways, and only two of them can be checked.** The 76 constants are one; the layout
 law in `docs/generator/rules.md`, embedded and parsed, is a second, and both are answered by `/api/rules`.
@@ -154,9 +163,10 @@ retired `PC-S`, which is the id the parser takes that line for — so **`GET /ap
 empty list.** `RulesEndpointTests` cannot catch it: it checks that every declared rule carries a sentence,
 which is the opposite direction.
 
-The missing distinction is between the **category** of a fault, which is a small closed set an agent
-branches on, and the **rule**, which is specific, stable and for a reader. A caller that wants to know
-whether to retry, to fix the document or to give up currently has to know all 76 ids to find out.
+The distinction the catalogue now draws is between the **category** of a fault, which is a small closed set an
+agent branches on, and the **rule**, which is specific, stable and for a reader. What remains unanswered is
+the envelope: a refusal is the studio's own `{error, message, findings}` rather than RFC 9457 Problem Details,
+whose `type` URI would be the `/api/rules` lookup that now exists.
 
 ## The measurement is next door
 
@@ -258,7 +268,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
 | a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 15 `Unreadable` throws that stand where a binding would have refused, and the one global input gate covering a third of the write surface |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
-| a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 76 ids to branch once |
+| a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 76 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
 | a lifecycle that is enforced | a state machine over `MapStage` with a transition table, and the allowed transitions on the map's own response | `capabilities.md` as the only answer to a runtime question, and an agent that learns the pipeline by trying it |
 | a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | `RP4`, and the build an agent pays to hear a refusal |
@@ -266,8 +276,8 @@ answer already and stopped one step short of the form that makes it machine-read
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so
 a declared request shape and a generated client now have something to hang off. The application layer comes
 next, because it is where a gate stops belonging to a door. The fault category is third and is a change to
-`Finding` plus a sweep of 76 constants. The lifecycle is last, because a state machine over a pipeline whose
-steps are still HTTP handlers has nothing to hold.
+an attribute plus a sweep of 76 constants, and is done. The lifecycle is last, because a state machine over a
+pipeline whose steps are still HTTP handlers has nothing to hold.
 
 None of this is a rewrite. Every one is a shape the codebase already half-has, stated once instead of by
 hand at each of the places that need it — which is the rule `CLAUDE.md` opens with, applied to the boundary

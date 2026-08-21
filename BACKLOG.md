@@ -1197,11 +1197,11 @@ house-style checks) lives below `Api` and is reachable from an endpoint today, w
 - [ ] **RP37 — The closed word sets are published as free strings.** `PgmStudio.Vocabulary` exists so three
   parties spell a `map.stage`, a `style.kind`, a theme bucket, a room part and a roof form identically — ten
   sets, `MapStage` plus the nine in `TerrainVocabulary` — and every one of them reaches the wire as a bare
-  `string`. `Severity` is the document's only `enum`, because it is the only one declared as a C# enum. So a
-  generated client types `role` as `string` and an agent learns the four stages by being refused. Publish
-  each set as a schema `enum` — a `JsonStringEnumConverter`-backed enum where the set is genuinely closed,
-  or NSwag's schema processor reading the `All` array where the `const string` shape has to stay for
-  `Minecraft`. `RP14`'s `category` is the next one to land and should arrive as an enum, not a sixth string.
+  `string`. `Severity`, `RuleCategory` and `RuleConcern` are the document's only `enum`s, because they
+  are the only ones declared as C# enums. So a generated client types `role` as `string` and an agent learns
+  the four stages by being refused. Publish each set as a schema `enum` — a `JsonStringEnumConverter`-backed
+  enum where the set is genuinely closed, or NSwag's schema processor reading the `All` array where the
+  `const string` shape has to stay for `Minecraft`.
 
 - [ ] **RP38 — A region states its numbers flat to create and nested to patch.** `POST /map/{slug}/regions`
   reads `min_x`, `base_y`, `center_x` and the rest off the body root; `PATCH /map/{slug}/regions/{regionId}`
@@ -1349,49 +1349,17 @@ braces, worth having once the studio is used by someone who did not write it.
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
 
-- [ ] **RP26 — A rule concerns a combination, and an id can only name one thing.** `RP14` ships the
-  category; this is the other half, and the author's framing is what makes it tractable: **the combinatorics
-  are the point.** `WX6` is a plan defect about a wool objective whose abutment decides which side the door
-  lands on — plan, objective and structure at once. `PL9` is the same fault at board scale, over a plan, an
-  objective and a player spawn. `HS1` is a house and a material. `DC3` is an objective and a material. A
-  prefix is one token, so it names the loudest of them and the rest is invisible; that is why the id system
-  reads as imperfect, and it is not fixable by choosing better prefixes.
+- [ ] **RP45 — The refusal envelope is the studio's own, and a standard one now has somewhere to point.**
+  Every refusal answers `{error, message, findings}`, which every client has to be taught. RFC 9457 Problem
+  Details is the shape the rest of the world reads, and its `type` is a URI that dereferences to what the
+  fault means — which `GET /api/rules?rule=<id>` now is, carrying `means`, `fix`, `category` and `concerns`.
+  So the one thing that made the standard awkward here is gone.
 
-  **So the field is a list, and it goes on the rule rather than the finding.** `RuleDoc` gains
-  **`concerns`** — one to three of the vocabulary below — and `/api/rules?concerns=objective` answers every
-  rule that touches one, whichever gate asks it. It is deliberately **not** called `subjects`: `Finding`
-  already has that field and it holds *instance ids* — which piece, which prop — and one name over a kind
-  and an instance is the failure `CLAUDE.md` names under *One type, one responsibility*.
-
-  **The vocabulary, in the author's words.**
-
-  | Concern | Is |
-  |---|---|
-  | `request` | the call itself |
-  | `plan` | the rough geometry, and where the intent is stated |
-  | `intent` | how the map is meant to be played; says nothing about how it looks |
-  | `objective` | what is contested — **single-action** (a destroyable is broken, a core is leaked) or **staged** (a wool is touched, then captured) |
-  | `spawn` | where players enter |
-  | `terrain` | the height — the relief |
-  | `structure` | what is built as a building: a house, a wool cage, a spawn hall |
-  | `feature` | what is scattered on the ground: boulders, trees, paths, rivers |
-  | `material` | a block in a role |
-  | `style` | how materials assemble into a pattern |
-  | `theme` | styles combined |
-  | `world` | the built voxels and the `map.xml` a server reads |
-  | `studio` | the tool's own limits — `CO1`, and the whole of `feasibility` |
-
-  **The ladder is what a `concerns` query surfaces.** `WX6`, `PL9`, `EX1`, `DR-PASS` and the coverage read
-  all ask whether a player can get somewhere, at five grains, from four families — the escalation
-  `docs/refusals.md` § *One question, asked at every grain* now states in prose. Tagged, that section becomes
-  a query: `?concerns=objective&concerns=plan` answers the plan half of it, and the grain is already carried
-  by which document the rule judges.
-
-  **A wool and a spawn are the same shape, which is why they share rules.** A wool is a **spawner** (where
-  the wool is obtained — always emitted by the studio, though a corpus map may use a chest or loose blocks
-  instead), a **protection region** (what `region-categorization.md` calls the wool `room`), and a
-  **monument** (where it is delivered). A player spawn is a **spawn point**, a **protection region** so the
-  enemy cannot enter, and an optional **housing**. Source, protection, optional structure, twice over.
+  **The cost is that every caller changes**, which the no-backward-compatibility rule makes a decision rather
+  than a migration: `RefusalDto`, `Refusals`, `ServerRefusal.SentenceAsync` in the client, and the shape
+  `refusals.md` documents. The open question is whether a `findings` extension member alongside `title`,
+  `status` and `detail` is worth the churn, or whether one envelope nobody outside this deployment reads is
+  fine as it is. **The author's.**
 
 - [ ] **C45 — The authors editor fetches every avatar from a third-party host at render time.**
   `AuthorsEditor.razor:39` renders `https://mc-heads.net/avatar/{uuid}/16` as an `<img src>`, so every author

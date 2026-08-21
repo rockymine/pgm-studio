@@ -24,7 +24,15 @@ public sealed class RulesEndpointTests
     /// <summary>A rule id: two or three letters, then a number or a letter suffix (<c>PC-C</c>).</summary>
     private static readonly Regex IdShape = new(@"^[A-Z]{2,3}(?:-[A-Z]+|[0-9]+)$");
 
-    private sealed record Row(string Rule, string Family, string Owner, string Means, string? Fix, string? Evidence);
+    private sealed record Row(
+        string Rule, string Family, string Owner, string Means, string? Fix, string? Evidence,
+        string? Category, List<string>? Concerns);
+
+    /// <summary>The gate rules that carry no category, named rather than counted. Each states how a room
+    /// frame is derived and no finding cites one, so there is no caller to branch and nothing to do about it
+    /// — they are constants because a rule may not live only in a markdown file. Any other rule arriving
+    /// without one is a rule added without its <c>[Rule]</c> attribute.</summary>
+    private static readonly string[] NothingRaises = ["WX1", "WX5", "WX7", "WX9"];
 
     private static async Task<List<Row>> RulesAsync(string query = "")
     {
@@ -104,6 +112,90 @@ public sealed class RulesEndpointTests
             .Where(rule => !rule.Owner.Contains("rules.md") && string.IsNullOrWhiteSpace(rule.Fix)).ToList();
 
         await Assert.That(unhelpable.Select(rule => $"{rule.Rule} ({rule.Owner})")).IsEmpty();
+    }
+
+    /// <summary>Every gate rule says what it is about. A rule added without its <c>[Rule]</c> attribute
+    /// arrives with no concerns and no category, which nothing else would catch — the catalogue lists it, it
+    /// carries a sentence, and only the two machine-legible fields a caller branches on are missing.</summary>
+    [Test]
+    public async Task Every_gate_rule_says_what_it_is_about()
+    {
+        var silent = (await RulesAsync())
+            .Where(rule => !rule.Owner.Contains("rules.md"))
+            .Where(rule => rule.Concerns is not { Count: > 0 })
+            .ToList();
+
+        await Assert.That(silent.Select(rule => $"{rule.Rule} ({rule.Owner})")).IsEmpty();
+    }
+
+    /// <summary>And every gate rule a finding can cite says what to do about it. The four that do not are
+    /// named, because a category is what a caller branches on and a rule quietly missing one reads as a rule
+    /// nothing raises.</summary>
+    [Test]
+    public async Task Only_the_rules_nothing_raises_carry_no_category()
+    {
+        var uncategorized = (await RulesAsync())
+            .Where(rule => !rule.Owner.Contains("rules.md") && rule.Category is null)
+            .Select(rule => rule.Rule)
+            .ToList();
+
+        await Assert.That(uncategorized).IsEquivalentTo(NothingRaises);
+    }
+
+    /// <summary>A layout rule carries neither, and that is not an omission: it is stated as a markdown bullet,
+    /// which has nowhere to write one.</summary>
+    [Test]
+    public async Task A_layout_rule_carries_neither()
+    {
+        var sp7 = (await RulesAsync("?rule=SP7")).Single();
+
+        await Assert.That(sp7.Category).IsNull();
+        await Assert.That(sp7.Concerns).IsNull();
+    }
+
+    /// <summary>The category is the axis a caller branches on: one word answers every rule they would act on
+    /// the same way, whichever gate asks it.</summary>
+    [Test]
+    public async Task A_category_can_be_asked_for_on_its_own()
+    {
+        var internals = await RulesAsync("?category=INTERNAL");
+
+        await Assert.That(internals.Select(rule => rule.Rule)).IsEquivalentTo(new[] { "EX3", "RQ2", "RQ6" });
+        await Assert.That(internals.All(rule => rule.Category == "internal")).IsTrue();
+    }
+
+    /// <summary>
+    /// <b>The escalation as a query.</b> <c>refusals.md</c> § <i>One question, asked at every grain</i> says
+    /// reachability is asked at five grains by four gates and that nothing but that paragraph says so. Asking
+    /// for the two concerns answers the plan half of it — <c>WX6</c> over one piece and <c>PL9</c> over the
+    /// whole board — and leaves out the two that ask it of built ground.
+    /// </summary>
+    [Test]
+    public async Task Concerns_narrow_rather_than_widen()
+    {
+        var both = (await RulesAsync("?concerns=objective&concerns=plan")).Select(rule => rule.Rule).ToList();
+
+        await Assert.That(both).Contains("WX6");
+        await Assert.That(both).Contains("PL9");
+        await Assert.That(both).DoesNotContain("EX1");        // the built world, not the plan
+        await Assert.That(both).DoesNotContain("PL5");        // the plan, but not an objective
+    }
+
+    /// <summary>A word outside the closed set is refused rather than answered with nothing. An empty list is
+    /// the honest answer to "is there a rule called that"; it is the wrong answer to a mistyped category,
+    /// which would read as "no rules do that".</summary>
+    [Test]
+    public async Task A_category_that_is_not_a_word_is_refused()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var resp = await client.GetAsync("/api/rules?category=unpossible");
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var refusal = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        var finding = refusal.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("category");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("unplayable");
     }
 
     /// <summary>

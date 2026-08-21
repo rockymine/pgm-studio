@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Domain;
 
@@ -20,6 +21,7 @@ public static class RequestRules
     /// <summary>A posted document could not be read — absent, empty, malformed, or naming a kind that does not
     /// exist. The caller's to fix, so it answers 400.</summary>
     /// <remarks>Post a body. If one was posted, the finding's <c>field</c> names where the reader stopped — usually a <c>kind</c> that is not one of the names, or a property stated as <c>null</c> where the record cannot hold one.</remarks>
+    [Rule(RuleCategory.Malformed, RuleConcern.Request)]
     public const string Unreadable = "RQ1";
 
     /// <summary><b>Not the caller's fault.</b> Something escaped an endpoint that no gate refused, which is a
@@ -28,6 +30,7 @@ public static class RequestRules
     /// every other refusal arrives in rather than a .NET stack trace, and the trace goes to the log where it
     /// belongs.</summary>
     /// <remarks>Nothing an author can do: this is a defect in the studio, and seeing one is a bug report rather than an authoring problem. The stack trace is in the server log.</remarks>
+    [Rule(RuleCategory.Internal, RuleConcern.Studio)]
     public const string Unhandled = "RQ2";
 
     /// <summary><b>A complaint, never a refusal.</b> The document carried a property the reader had nowhere to
@@ -36,6 +39,7 @@ public static class RequestRules
     /// refuse every snapshot written before the last shape change, since a stored document legitimately holds
     /// retired names an upgrade carries forward. See <see cref="Domain.DocumentShape"/>.</summary>
     /// <remarks>Check the spelling of the field the finding names against the document shape the tool's document names. The work succeeded without it, so whatever that field was meant to say was not said.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string Unread = "RQ3";
 
     /// <summary>The route names a subject the studio does not have — a slug no map is stored under, an id no
@@ -43,12 +47,14 @@ public static class RequestRules
     /// an empty one cannot say whether the identifier was wrong or the route was, and only one of those is
     /// something the caller can correct.</summary>
     /// <remarks>Check the identifier in the path against what the studio holds — <c>GET /api/maps</c> lists the maps, and each library has its own list route. Where the subject is an artifact rather than a row, the stage that produces it has not been run for this map.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Request)]
     public const string NoSuchSubject = "RQ4";
 
     /// <summary>The request is well-formed and conflicts with what is stored: a name already taken, or a row
     /// something still binds. It answers <b>409</b>, and the finding names what is in the way — the maps or
     /// styles still referencing it, so the caller can act rather than guess.</summary>
     /// <remarks>Nothing is wrong with the request itself. Either choose another name, or release what still holds the thing being removed — the finding's subjects name them.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Request)]
     public const string Conflict = "RQ5";
 
     /// <summary>A document the <b>studio</b> stored will not read back — a plan row, an artifact, a snapshot
@@ -57,5 +63,6 @@ public static class RequestRules
     /// <c>RQ1</c>, which would blame the request that merely asked to read it and send the author looking at
     /// what they just posted.</summary>
     /// <remarks>The stored copy is the problem, not what was just posted: open the tool that writes it and save it again, which replaces the unreadable copy with one in the current shape.</remarks>
+    [Rule(RuleCategory.Internal, RuleConcern.Request, RuleConcern.Studio)]
     public const string StoredUnreadable = "RQ6";
 }

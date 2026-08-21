@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Compose;
 
 /// <summary>Thrown when the composer cannot produce a plan satisfying its hard invariants within its bounded
@@ -14,5 +15,6 @@ public static class ComposeRules
     /// stopped is the only thing that knows. 422 — the request was read and acted on, and there is no board
     /// at the end of it.</summary>
     /// <remarks>Change the descriptor toward what the composer builds: the finding names the knob and the value it was given. <c>GET /api/shapes/catalog</c> answers every form each family emits.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Studio)]
     public const string Uncomposable = "CO1";
 }

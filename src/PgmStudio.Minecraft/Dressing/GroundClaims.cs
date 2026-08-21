@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Dressing;
 
 /// <summary>The dressing pass's own placement rules — the ids its census reasons cite, served by
@@ -11,6 +12,7 @@ public static class DressingRules
     /// <remarks>Move the tree or boulder until its trunk or resting footprint keeps its kind's distance from
     /// the paved edge — measured to the spline the band actually follows, not the drawn polyline. The whole
     /// prop is declined and the census names the offending cell, so the drop can be checked on the canvas.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string RoadStandoff = "DR-ROAD";
 
     /// <summary>A building leaves no way past itself: none of its four sides has 5 blocks of passable ground
@@ -18,6 +20,7 @@ public static class DressingRules
     /// side — a coast house is a house — but a house with too little ground on every side corks the leg it
     /// stands on, and a route players must dig through a building to walk is not a route.</summary>
     /// <remarks>Move the building so at least one side keeps a five-block passage alongside its whole length — including one step past each corner, which is where the passage turns in from — or widen the ground it stands on. Passable here means terrain with nothing built on it; a road or a channel beside the wall still counts as a way past.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PassAround = "DR-PASS";
 
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
@@ -28,6 +31,7 @@ public static class DressingRules
     /// the plan's bounding box, so a multi-wing building is judged as the one building it is.</summary>
     /// <remarks>Draw the building at least 5×5 blocks — both dimensions. The whole prop is declined and the
     /// census names the footprint, so the drop can be checked against the layout.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string FootprintFloor = "DR-SIZE";
 
     /// <summary>The footprint minimum in blocks — <see cref="FootprintFloor"/>'s one number.</summary>
@@ -38,6 +42,7 @@ public static class DressingRules
     /// or the lane in front of a spawn or wool-room door. The finding names which of those it was and the cell
     /// it happened at.</summary>
     /// <remarks>Move the prop off the cell the finding names. A door's approach reaches twenty blocks out from a spawn room's face and ten from a wool room's, measured from the stamped building — that lane is what the door is for, so nothing stands in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Spawn, RuleConcern.Objective)]
     public const string KeptClear = "DR-KEEP";
 
     /// <summary>A prop rests on ground something already standing has claimed — a channel, a road, a building
@@ -46,6 +51,7 @@ public static class DressingRules
     /// holds the ground it stamps <em>and</em> <see cref="StructureClearance"/> blocks of ring beyond it, so a
     /// prop seating under an eave is this fault rather than a silent build.</summary>
     /// <remarks>Move the prop off the claimed ground, or move whatever holds it. Two authored things wanting the same cell is the author's to resolve — the pass never shifts a placement to make room.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string GroundTaken = "DR-CLAIM";
 
     /// <summary>How far past what it stamps a building holds the ground, in blocks — the author's number, and
@@ -59,6 +65,7 @@ public static class DressingRules
     /// footprint — it seats on its lowest column, so one cell on land and the rest over void builds a house
     /// hanging off a corner — and the finding names the first bare column it stopped at.</summary>
     /// <remarks>Move the prop onto drawn ground. A building needs drawn ground under its whole footprint, not merely under part of it. A prop whose orbit image falls off the board fails this way too — the whole prop is declined at the first image that finds no ground, since a rock standing on one half of a mirrored map and missing from the other is worse than neither.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string NoGround = "DR-SITE";
 }
 

@@ -175,18 +175,22 @@ public static class MapExportComposer
     {
         /// <summary>Some part of the map cannot be walked to from the rest of it.</summary>
         /// <remarks>The finding names what is cut off. Bridge it: add ground, widen a border, or move the isolated spawn or objective onto the reachable part of the map.</remarks>
+        [Rule(RuleCategory.Unplayable, RuleConcern.World, RuleConcern.Terrain)]
         public const string NotTraversable = "EX1";
 
         /// <summary>Nobody can enter the map: it declares no spawn of any kind.</summary>
         /// <remarks>Give the intent at least one spawn. An observer spawn is synthesised from the team spawns, so a map with no spawns at all has neither, and nobody can join it.</remarks>
+        [Rule(RuleCategory.Unplayable, RuleConcern.Intent, RuleConcern.Spawn)]
         public const string NoSpawn = "EX2";
 
         /// <summary>What the intent declared is not in the document about to be written.</summary>
         /// <remarks>Nothing an author can do directly: the intent states this and the document does not carry it, which is a fault between the two. Check that the intent stored for the map is the one that was authored, and report it if it is.</remarks>
+        [Rule(RuleCategory.Internal, RuleConcern.Intent, RuleConcern.World, RuleConcern.Studio)]
         public const string NotCarried = "EX3";
 
         /// <summary>A map with something to win has nobody to win it: it declares an objective and no team.</summary>
         /// <remarks>Add the teams. A wool, a destroyable and a core are each one team's to defend and the others' to take, so a map carrying one and no team has an objective nobody owns.</remarks>
+        [Rule(RuleCategory.Unplayable, RuleConcern.Intent, RuleConcern.Objective)]
         public const string NoTeam = "EX4";
     }
 

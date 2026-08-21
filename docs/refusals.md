@@ -24,6 +24,11 @@ not it — the layout rule the fault falls under, or the open task that would re
 `cites` is a field of its own rather than a second id: a rule is stable forever and a task id is a debt with a
 due date, and one field holding either would make the two indistinguishable to a reader.
 
+**What a finding does not carry is the rule's own classification.** A category and a concerns list are fixed
+by the id, not by the raising site, so they live on the rule and a caller joins them from `/api/rules` — which
+is the same lookup an id was already worth keying on for. Putting them on the finding would put one fact at 96
+sites.
+
 `Finding` is in `PgmStudio.Vocabulary`, a leaf that references nothing and that all three parties reach: the
 gates below `Api` that raise one — `Minecraft`, `Pgm`, `Analysis`, `Export` — the HTTP surface that answers it,
 and the WASM client that renders it. That is what makes the JSON above the record itself rather than a copy of
@@ -352,13 +357,15 @@ thing that makes producing it impossible, where a gate reads a document and coll
 question a reader has on meeting an id in a refusal and the one nothing else answers. `?family=PL` narrows to
 one family, `?rule=SP7` to one rule; a name nothing matches is an empty list rather than a 404, so a caller
 asking "is there a rule called that" does not have to tell an absent rule from a mistyped route by the status
-code. Each row is `{rule, family, owner, means, fix, evidence}`, and `owner` is the file to read next.
+code. Each row is `{rule, family, owner, means, fix, evidence, category, concerns}`, and `owner` is the file
+to read next.
 
 ```json
 {
   "rule": "PL9", "family": "PL", "owner": "PgmStudio.Pgm.Plan.PlanRules.WoolUnreachable",
   "means": "A wool cannot be reached from a capturing team's spawn at all.",
-  "fix": "Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line."
+  "fix": "Nothing walkable connects the capturing team's spawn to this wool: add a piece bridging the gap, or widen a border narrower than a corridor. Distance here is the walk over the surface, not the straight line.",
+  "category": "unplayable", "concerns": ["plan", "objective", "spawn"]
 }
 ```
 
@@ -373,6 +380,32 @@ short, a document that will not parse — so what to do about one follows from w
 are claims about how a map is *played*, which `CLAUDE.md` says are the author's to state and not this
 repository's to infer. What they carry instead is `evidence`: `corpus`, `expert`, `open` or `guess`, in
 `rules.md`'s own terms, which says how far to trust each one.
+
+**The category is what a caller branches on, and the concerns are what a prefix could never carry.** An id is
+specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 76 ids —
+`malformed` (fix the shape), `unknown` (fix a name), `conflict` (choose which wins), `unsatisfiable` (change
+the design), `unplayable` (change the map), `forbidden` (ask for something else), `unavailable` (try again, or
+look upstream), `internal` (report it). Each word is defined by the action it implies rather than by how the
+fault sounds, which is what lets a caller act before reading a sentence. `?category=unplayable` answers every
+rule they would treat the same way, whichever gate asks it.
+
+`concerns` is what the rule is about, one word or several, from a closed thirteen: `request`, `plan`, `intent`,
+`objective`, `spawn`, `terrain`, `structure`, `feature`, `material`, `style`, `theme`, `world`, `studio`. A
+rule concerns a **combination** — `WX6` is a plan, a structure and an objective at once, `PL8` those three and
+a spawn — and a family prefix is one token, so it names the loudest and the rest goes unsaid. The list is
+uncapped. `?concerns=objective` answers every rule that touches one; repeating it **narrows**, so
+`?concerns=objective&concerns=plan` is the plan half of *One question, asked at every grain* above — `WX6` and
+`PL9`, without the two that ask reachability of built ground. A word outside either set is refused as `RQ1` at
+400 rather than answered with an empty list, which a caller would read as "no rules do that".
+
+Both come off a **`[Rule]` attribute beside the constant**, so they are declared once per rule rather than
+restated at each site that raises one: the 76 constants are raised from 96 sites, and a field on the finding
+would have 24 of those restating what another site already fixed with nothing checking they agree.
+
+**A layout rule carries neither**, having no declaration site to write one on. Nor do four gate rules —
+`WX1`, `WX5`, `WX7` and `WX9` — which state how a room frame is derived and refuse nothing: no finding cites
+one, so there is no caller to branch and nothing to do. They are constants because a rule may not live only in
+a markdown file, and what they answer is a reader who met the id in `structures.md`.
 
 **The numbers have their own endpoint.** `GET /api/rules/terms` answers every evaluator term with the band it
 is scoring against right now — `{term, rule, kind, band, bandSource, learnsFromTraced}` — read through the
@@ -392,7 +425,9 @@ spent a release as a bare string and `OB19` with no id at all, and **never as a 
 that exists**, which is what `ObjectivePlacement.Rule` and `DressingScope.Rule` were until the catalogue listed
 their ids twice. Give it a **`<summary>` saying what it refuses and a `<remarks>` saying what to do about it** —
 those two are what `/api/rules` answers with, so a rule written with only the first is listed with no fix and
-`RulesEndpointTests` fails. Add its row above, and answer through `Refusals.StopAsync` (an endpoint) or
+`RulesEndpointTests` fails. Give it a **`[Rule]` attribute** beside the constant with its category and the one
+to several things it is about; a rule added without one is listed with neither and fails there too. A rule that
+refuses nothing takes the concerns-only form, and `RulesEndpointTests` names the four that may. Add its row above, and answer through `Refusals.StopAsync` (an endpoint) or
 `Refusals.Of` (a typed body). A gate below `Api` hands its findings up and the HTTP layer renders the
 envelope, so there is nothing to build by hand. A rule about a map *as it is played* is the
 author's to state before any of that: see the human-oracle rule in `CLAUDE.md`.

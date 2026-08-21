@@ -39,14 +39,17 @@ public static class RoomFrameRules
     /// <remarks>Size the piece for the shell it should carry: a shell is always two blocks narrower than its
     /// piece in each axis. Nothing else moves the footprint — <c>WX8</c>'s negotiation is the one thing that
     /// pulls an edge back off it.</remarks>
+    [Rule(RuleConcern.Plan, RuleConcern.Structure)]
     public const string ShellFootprint = "WX1";
 
     /// <summary>The piece cannot hold a shell of the least legal span once the clean ring is taken off it.</summary>
     /// <remarks>Enlarge the piece. A room is its piece inset by the clean ring, and what is left has to hold a shell of the least legal span in both axes.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string PieceTooSmall = "WX2";
 
     /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
     /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string MarkerParity = "WX3";
 
     /// <summary>The pad keeps at least one block of clear floor to every wall. A marker sitting too close
@@ -56,6 +59,7 @@ public static class RoomFrameRules
     /// <remarks>Enlarge the piece or shrink the pad. The wall clearance is kept first and the pad has to fit
     /// in what remains inside it; where a pad merely moved, the plan lint says so, because the exported
     /// spawn or wool point follows the pad rather than the marker.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string PadClearance = "WX4";
 
     /// <summary>The exported spawn or wool location is the pad's centre, after any <c>WX4</c> shift. The
@@ -65,10 +69,12 @@ public static class RoomFrameRules
     /// <remarks>Move the marker to move the point. Where a pad was shifted to keep its wall clearance the
     /// exported point moves with it, which the structure preview draws and the plan lint notes — so a point
     /// that is not where the marker was put has a shift behind it.</remarks>
+    [Rule(RuleConcern.Structure, RuleConcern.Spawn, RuleConcern.Objective, RuleConcern.World)]
     public const string PadIsPoint = "WX5";
 
     /// <summary>A wool room with no seam and no abutting build zone has nothing to enter it by.</summary>
     /// <remarks>Give the wool room a border with a neighbouring piece, or place a build zone against it. A room nothing abuts has no door that can be cut.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Objective)]
     public const string RoomUnreachable = "WX6";
 
     /// <summary>A door's width follows the wall it is cut into. An odd interior wall centres a 3-wide door;
@@ -78,6 +84,7 @@ public static class RoomFrameRules
     /// outside.</summary>
     /// <remarks>Widen the interior to widen the door — the width is derived from the wall, never authored.
     /// A room that wants a 4-wide door needs an even wall and 6 blocks of interior across it.</remarks>
+    [Rule(RuleConcern.Structure)]
     public const string DoorWidth = "WX7";
 
     /// <summary>An iron cube stands outside the room shell, inside the piece, with one block of clear air to
@@ -89,6 +96,7 @@ public static class RoomFrameRules
     /// <remarks>Enlarge the spawn piece, or move the iron marker further from the shell. The cube needs its
     /// own footprint plus one block of clear air in the ring between the shell and the piece edge, and the
     /// shell will not shrink past the least legal span to make room for it.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string IronFit = "WX8";
 
     /// <summary>Every structure marker resolves to placeable or not, and an unplaceable one is not an
@@ -100,6 +108,7 @@ public static class RoomFrameRules
     /// names and either give it the room <c>WX8</c> asks for or take it off the plan — a marker
     /// left unplaceable is a placement the author can still see on the canvas and nothing in the
     /// world.</remarks>
+    [Rule(RuleConcern.Structure, RuleConcern.World)]
     public const string MarkerPlaceability = "WX9";
 
     /// <summary>A bound room style builds a shell taller than the build ceiling — <see cref="BuildCeiling"/>'s
@@ -110,6 +119,7 @@ public static class RoomFrameRules
     /// sloped roof only climbs further on a bigger footprint: a style refused here has no footprint it could
     /// have been stamped on.</summary>
     /// <remarks>Take courses out of the shell — a storey off the stack, a shallower roof pitch, or a lower clear — until it stands under the build ceiling. The cap is the same one players build under, and a marker hanging above it is what makes a goal readable across the map.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Objective)]
     public const string ShellOverCeiling = "WX10";
 }
 

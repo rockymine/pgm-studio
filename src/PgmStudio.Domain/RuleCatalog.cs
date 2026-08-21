@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Domain;
 
@@ -14,8 +15,18 @@ namespace PgmStudio.Domain;
 /// <param name="Evidence">For a layout rule, how well the corpus backs it — <c>corpus</c>, <c>expert</c>,
 /// <c>open</c> or <c>guess</c>, in <c>rules.md</c>'s own terms. Null for a gate rule, which is code rather
 /// than a measured claim about how a map plays.</param>
+/// <param name="Category">What a caller does about a finding citing this rule, from the <c>[Rule]</c>
+/// attribute beside the constant. Null for a layout rule, which has no declaration site to carry one, and
+/// for a gate rule nothing raises.</param>
+/// <param name="Concerns">What the rule is about — one word or several, since a rule concerns a combination
+/// a family prefix cannot carry. Empty for a layout rule.</param>
 public sealed record RuleDoc(
-    string Rule, string Family, string Owner, string Means, string? Fix = null, string? Evidence = null);
+    string Rule, string Family, string Owner, string Means, string? Fix = null, string? Evidence = null,
+    RuleCategory? Category = null, IReadOnlyList<RuleConcern>? Concerns = null)
+{
+    /// <summary>What the rule is about, never null.</summary>
+    public IReadOnlyList<RuleConcern> About => Concerns ?? [];
+}
 
 /// <summary>
 /// <b>Every rule the studio can cite, in one list.</b> A finding carries an id and a sentence about the one
@@ -25,10 +36,11 @@ public sealed record RuleDoc(
 /// <para><b>Nothing here is written twice.</b> A gate rule's meaning is read out of the docstring beside its
 /// own <c>const</c>, through the XML documentation file the compiler emits — so the sentence a caller is
 /// shown is the sentence in the source, and there is no catalogue entry to fall out of step with it. Its fix
-/// is the <c>&lt;remarks&gt;</c> of the same docstring, which is why adding a rule prompts for both at the
+/// is the <c>&lt;remarks&gt;</c> of the same docstring, and its category and concerns are the
+/// <see cref="RuleAttribute"/> beside it, which is why adding a rule prompts for all four at the
 /// point the rule is written rather than in a table somewhere else. A layout rule comes out of
 /// <c>docs/generator/rules.md</c>, embedded in this assembly and parsed: that document is the rule law and is
-/// amended only by its own correction protocol, so copying its 66 statements into C# would have produced a
+/// amended only by its own correction protocol, so copying its statements into C# would have produced a
 /// second law that drifts.</para>
 ///
 /// <para><b>A layout rule has no fix, and that is not an omission.</b> The gate rules are mechanical — a
@@ -81,9 +93,11 @@ public static class RuleCatalog
                 if (field.GetRawConstantValue() is not string id || !IdShape.IsMatch(id)) continue;
 
                 var (summary, remarks) = docs.GetValueOrDefault($"F:{type.FullName!.Replace('+', '.')}.{field.Name}");
+                var classification = field.GetCustomAttribute<RuleAttribute>();
                 yield return new RuleDoc(
                     id, FamilyOf(id), $"{type.FullName!.Replace('+', '.')}.{field.Name}",
-                    summary ?? "", remarks);
+                    summary ?? "", remarks,
+                    Category: classification?.Category, Concerns: classification?.Concerns);
             }
     }
 
