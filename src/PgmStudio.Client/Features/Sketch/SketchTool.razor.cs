@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Components;
@@ -484,8 +485,8 @@ public partial class SketchTool
                 Nav.NavigateTo($"maps?stage=configure&just={Slug}");
                 return;
             }
-            var err = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            finishError = err.TryGetProperty("error", out var e) ? e.GetString() : "Finish failed.";
+            var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
+            finishError = refusal?.Error is { Length: > 0 } label ? label : "Finish failed.";
         }
         catch { finishError = "Finish failed."; }
 

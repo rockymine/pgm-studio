@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text;
@@ -66,8 +67,8 @@ public partial class PlanTool
     private string? compiledLayout, compiledIntent;   // pretty-printed for the preview panes
     private string? compiledLayoutRaw, compiledIntentRaw;   // verbatim, posted to the draft pipeline
     private string? compileError;                     // a malformed / transport failure message
-    private List<InspectFinding> compileErrors = [];  // 422 structural findings (compile blocked)
-    private List<InspectFinding> compileWarnings = [];  // completeness complaints that did not block the compile
+    private List<Finding> compileErrors = [];  // 422 structural findings (compile blocked)
+    private List<Finding> compileWarnings = [];  // completeness complaints that did not block the compile
 
     private string? draftSlug;
     private bool draftBusy;
@@ -860,15 +861,15 @@ public partial class PlanTool
 
     // A finding can point at what it is about only if it named something: a rule about the plan as a whole
     // (or one whose subject the canvas cannot draw) has nothing to show.
-    private static bool HasSubjects(InspectFinding finding) => finding.Subjects is { Length: > 0 };
+    private static bool HasSubjects(Finding finding) => finding.SubjectIds.Count > 0;
 
-    private static string? ShowFindingTitle(InspectFinding finding)
+    private static string? ShowFindingTitle(Finding finding)
         => HasSubjects(finding) ? "Show this on the canvas" : null;
 
     // Click a compile finding to see what it is about. A finding names its subjects — pieces, zones, markers —
     // and the canvas can pulse them, but the compile drawer is modal and dims the board behind it, so the
     // drawer closes first: the click means "show me", and the answer is on the canvas rather than in the list.
-    private async Task ShowFinding(InspectFinding finding)
+    private async Task ShowFinding(Finding finding)
     {
         if (handle is null || !HasSubjects(finding)) return;
         CloseCompile();
@@ -876,7 +877,7 @@ public partial class PlanTool
         // author can actually see rather than beginning under the backdrop.
         StateHasChanged();
         await Task.Yield();
-        await handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(finding.Subjects));
+        await handle.InvokeVoidAsync("highlightSubjects", JsonSerializer.Serialize(finding.SubjectIds));
     }
 
     // The build button. On a map that already holds a sketch or a world it asks first, because the same
@@ -923,16 +924,14 @@ public partial class PlanTool
                 compiledLayout = JsonSerializer.Serialize(layout, Pretty);
                 compiledIntent = JsonSerializer.Serialize(intent, Pretty);
                 compileWarnings = doc.TryGetProperty("warnings", out var w)
-                    ? JsonSerializer.Deserialize<List<InspectFinding>>(w.GetRawText()) ?? []
+                    ? JsonSerializer.Deserialize<List<Finding>>(w.GetRawText()) ?? []
                     : [];
                 compileTab = LayoutTabId;
             }
             else if ((int)resp.StatusCode == 422)
             {
-                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                compileErrors = doc.TryGetProperty("findings", out var f)
-                    ? JsonSerializer.Deserialize<List<InspectFinding>>(f.GetRawText()) ?? []
-                    : [];
+                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
+                compileErrors = [.. refusal?.Findings ?? []];
             }
             else
             {
@@ -1025,7 +1024,7 @@ public partial class PlanTool
                 draftStep = "Creating draft"; StateHasChanged();
                 using var createResp = await Http.PostAsJsonAsync("api/sketch", new { name = planName });
                 if (!await Ok(createResp, "create draft")) return;
-                slug = (await createResp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString();
+                slug = (await createResp.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug;
                 if (string.IsNullOrEmpty(slug)) { draftError = "create draft: no slug returned"; return; }
             }
 
@@ -1230,11 +1229,4 @@ public partial class PlanTool
     }
 
     // A structural finding from /api/plan/compile — the 422 errors that block a compile (the compile-drawer list).
-    private sealed class InspectFinding
-    {
-        [JsonPropertyName("severity")] public string Severity { get; set; } = "";
-        [JsonPropertyName("rule")] public string? Rule { get; set; }
-        [JsonPropertyName("message")] public string Message { get; set; } = "";
-        [JsonPropertyName("subjects")] public string[]? Subjects { get; set; }
-    }
 }

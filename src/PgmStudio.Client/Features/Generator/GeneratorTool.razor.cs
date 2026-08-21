@@ -298,8 +298,7 @@ public partial class GeneratorTool : IAsyncDisposable
         {
             var authored = await Http.PostAsync($"api/plan/{id}/author", null);
             if (authored.IsSuccessStatusCode
-                && (await authored.Content.ReadFromJsonAsync<JsonElement>()).TryGetProperty("slug", out var s)
-                && s.GetString() is { Length: > 0 } slug)
+                && (await authored.Content.ReadFromJsonAsync<OriginatedDto>())?.Slug is { Length: > 0 } slug)
             {
                 Nav.NavigateTo($"maps/{slug}/plan");
             }

@@ -29,8 +29,8 @@ public partial class Maps
             var resp = await Http.PostAsJsonAsync("api/plan", new { name = "Untitled plan" });
             if (resp.IsSuccessStatusCode)
             {
-                var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                if (created.TryGetProperty("slug", out var s) && s.GetString() is { Length: > 0 } slug)
+                var created = await resp.Content.ReadFromJsonAsync<OriginatedDto>();
+                if (created?.Slug is { Length: > 0 } slug)
                 {
                     Nav.NavigateTo($"maps/{slug}/plan?phase=info");
                     return;
@@ -52,8 +52,8 @@ public partial class Maps
             var resp = await Http.PostAsJsonAsync("api/sketch", new { name = "Untitled sketch" });
             if (resp.IsSuccessStatusCode)
             {
-                var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                if (created.TryGetProperty("slug", out var s) && s.GetString() is { Length: > 0 } slug)
+                var created = await resp.Content.ReadFromJsonAsync<OriginatedDto>();
+                if (created?.Slug is { Length: > 0 } slug)
                 {
                     Nav.NavigateTo($"maps/{slug}/sketch?phase=info");
                     return;

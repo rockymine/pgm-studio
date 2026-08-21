@@ -1,3 +1,4 @@
+using PgmStudio.Contracts;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -40,15 +41,15 @@ public partial class ReviewXmlStep : IDisposable
             }
             else if ((int)resp.StatusCode == 409)
             {
-                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                blocked = doc.TryGetProperty("message", out var m) ? m.GetString() : "the spawn↔wool chain isn't connected";
+                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
+                blocked = refusal?.Message is { Length: > 0 } m ? m : "the spawn↔wool chain isn't connected";
                 Wizard.RegisterExport(false, null);
             }
             else if ((int)resp.StatusCode == 422)
             {
                 // A dressing document that failed to parse (DR-DOC) — named prop and field, not a codec crash.
-                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                error = doc.TryGetProperty("message", out var m) ? m.GetString() : "the dressing document is invalid";
+                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
+                error = refusal?.Message is { Length: > 0 } m ? m : "the dressing document is invalid";
                 Wizard.RegisterExport(false, null);
             }
             else

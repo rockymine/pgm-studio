@@ -1311,6 +1311,19 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
+- [ ] **RP44 — The complaint channel is on every success and in no schema.** `Complaints.CarryAsync` adds a
+  `warnings` key to any 2xx JSON object whose request raised one — `RQ3` for a field nothing could keep, the
+  `DR-*` declines a dressing pass made, a layout's own remarks — and **no DTO declares it**, so
+  `/api/openapi/v1.json` says a success carries only the shape the route named. An agent reading the document
+  cannot learn that a 200 may be carrying the very findings `architecture.md` calls the driver's most
+  useful read, and the client cannot type a body that has one: `PlanTool` still takes `/plan/compile`'s
+  success as a `JsonElement` for exactly this reason, because `CompiledPlanDto` has no field for the
+  `warnings` beside its layout and intent.
+
+  One key on every 2xx wants one answer, not a field added to fifty records. Either publish it as a response
+  **header** the schema can name once, or wrap the declared shape — and the choice decides whether existing
+  callers change, so it is the author's. `Finding` is already the element type either way.
+
 - [ ] **TC4 — Three Configure steps parse the intent's teams a fourth, fifth and sixth time.**
   `AuthoringContext.LoadTeams(intent)` reads the teams out of the intent document and six steps call it.
   `SpawnStep`, `TeamAssignStep` and `ProtectionStep` each declare their own

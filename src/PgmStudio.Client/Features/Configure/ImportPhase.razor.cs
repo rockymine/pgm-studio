@@ -19,12 +19,11 @@ public partial class ImportPhase : IAsyncDisposable
     [Inject] private IJSRuntime JS { get; set; } = default!;
     [Inject] private HttpClient Http { get; set; } = default!;
 
-    private sealed record Candidate(string Folder, string Slug, int RegionFiles);
 
     private static readonly string[] Steps = ["Source", "Found", "Plan"];
 
-    private List<Candidate> candidates = new();
-    private Candidate? selected;
+    private List<ImportCandidateDto> candidates = new();
+    private ImportCandidateDto? selected;
     private int step;
     private bool importing;
     private string? error;
@@ -43,11 +42,9 @@ public partial class ImportPhase : IAsyncDisposable
 
     // Found detail brief — the currently-selected finding (left list) drives the right detail panel.
     private string selectedFinding = "islands";
-    private sealed record WoolColorInfo(string Name, string Hex, int Count);
-    private sealed record ResourceTypeInfo(string Name, int Count);
     private List<IslandDto> islands = new();
-    private List<WoolColorInfo> woolColors = new();
-    private List<ResourceTypeInfo> resourceTypes = new();
+    private List<WoolColorCountDto> woolColors = new();
+    private List<ResourceTypeCountDto> resourceTypes = new();
     private int chestCount;   // distinct chests (chestItems is the per-slot item total)
 
     // The findings listed in the left panel; selecting one explains it on the right.
@@ -136,18 +133,13 @@ public partial class ImportPhase : IAsyncDisposable
     {
         try
         {
-            var arr = await Http.GetFromJsonAsync<JsonElement>("api/maps/import-candidates");
-            candidates = arr.ValueKind == JsonValueKind.Array
-                ? arr.EnumerateArray().Select(c => new Candidate(
-                    Str(c, "folder"), Str(c, "slug"),
-                    c.TryGetProperty("region_files", out var rf) ? rf.GetInt32() : 0)).ToList()
-                : new();
+            candidates = await Http.GetFromJsonAsync<List<ImportCandidateDto>>("api/maps/import-candidates") ?? [];
             selected = candidates.FirstOrDefault();
         }
         catch { error = "Couldn't list import candidates."; }
     }
 
-    private void Select(Candidate c)
+    private void Select(ImportCandidateDto c)
     {
         if (selected == c) return;
         selected = c; error = null;
@@ -183,13 +175,11 @@ public partial class ImportPhase : IAsyncDisposable
                 new Dictionary<string, object?> { ["url"] = url });
             if (!resp.IsSuccessStatusCode) { error = await ErrorMessage(resp, "Import failed"); return; }
 
-            var r = await resp.Content.ReadFromJsonAsync<JsonElement>();
+            var scan = await resp.Content.ReadFromJsonAsync<WorldScanDto>();
             selected = null;   // a URL world is not a local folder candidate — drop any prior pick
             selectedFinding = "islands";
-            importedSlug = Str(r, "slug"); mcaFiles = Int(r, "mca_files");
-            woolBlocks = Int(r, "wool_blocks"); resourceBlocks = Int(r, "resource_blocks");
-            chestItems = Int(r, "chest_items"); spawnerBlocks = Int(r, "spawner_blocks");
-            monumentCandidates = Int(r, "monument_candidates"); islandCount = Int(r, "islands");
+            ShowScan(scan);
+            mcaFiles = scan?.McaFiles ?? 0;   // the archive count, which only this route can answer
 
             await LoadBrief();
             SetStep(1);
@@ -198,15 +188,24 @@ public partial class ImportPhase : IAsyncDisposable
         finally { importingUrl = false; StateHasChanged(); }
     }
 
+    // Both import routes answer WorldFeatureWriter's own counts, so the brief reads them once rather than
+    // once per door. A scan that wrote nothing answers eight zeroes rather than a missing key.
+    private void ShowScan(WorldScanDto? scan)
+    {
+        importedSlug = scan?.Slug ?? "";
+        woolBlocks = scan?.WoolBlocks ?? 0; resourceBlocks = scan?.ResourceBlocks ?? 0;
+        chestItems = scan?.ChestItems ?? 0; spawnerBlocks = scan?.SpawnerBlocks ?? 0;
+        monumentCandidates = scan?.MonumentCandidates ?? 0; islandCount = scan?.Islands ?? 0;
+    }
+
     // Surface the endpoint's own message (host not allowed / https required / already exists …) when it
     // sends one, so the allow-list and validation failures read clearly; else fall back to the status code.
     private static async Task<string> ErrorMessage(HttpResponseMessage resp, string fallback)
     {
         try
         {
-            var e = await resp.Content.ReadFromJsonAsync<JsonElement>();
-            var msg = Str(e, "error");
-            if (msg.Length > 0) return char.ToUpperInvariant(msg[0]) + msg[1..] + ".";
+            var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
+            if (refusal?.Error is { Length: > 0 } msg) return char.ToUpperInvariant(msg[0]) + msg[1..] + ".";
         }
         catch { /* non-JSON body — fall through to the status code */ }
         return $"{fallback} ({(int)resp.StatusCode}).";
@@ -244,11 +243,7 @@ public partial class ImportPhase : IAsyncDisposable
                 new Dictionary<string, object?> { ["folder"] = selected.Folder });
             if (resp.IsSuccessStatusCode)
             {
-                var r = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                importedSlug = Str(r, "slug");
-                woolBlocks = Int(r, "wool_blocks"); resourceBlocks = Int(r, "resource_blocks");
-                chestItems = Int(r, "chest_items"); spawnerBlocks = Int(r, "spawner_blocks");
-                monumentCandidates = Int(r, "monument_candidates"); islandCount = Int(r, "islands");
+                ShowScan(await resp.Content.ReadFromJsonAsync<WorldScanDto>());
             }
             else if (resp.StatusCode == HttpStatusCode.Conflict)
             {
@@ -289,16 +284,10 @@ public partial class ImportPhase : IAsyncDisposable
         woolColors = new(); resourceTypes = new(); chestCount = 0;
         try
         {
-            var s = await Http.GetFromJsonAsync<JsonElement>($"api/map/{importedSlug}/scan-summary");
-            chestCount = Int(s, "chest_count");
-            if (s.TryGetProperty("wool_colors", out var wc) && wc.ValueKind == JsonValueKind.Array)
-                woolColors = wc.EnumerateArray()
-                    .Select(w => new WoolColorInfo(Str(w, "name"), Str(w, "hex"),
-                        w.TryGetProperty("count", out var c) ? c.GetInt32() : 0)).ToList();
-            if (s.TryGetProperty("resource_types", out var rt) && rt.ValueKind == JsonValueKind.Array)
-                resourceTypes = rt.EnumerateArray()
-                    .Select(r => new ResourceTypeInfo(Str(r, "name"),
-                        r.TryGetProperty("count", out var c) ? c.GetInt32() : 0)).ToList();
+            var summary = await Http.GetFromJsonAsync<ScanSummaryDto>($"api/map/{importedSlug}/scan-summary");
+            chestCount = summary?.ChestCount ?? 0;
+            woolColors = [.. summary?.WoolColors ?? []];
+            resourceTypes = [.. summary?.ResourceTypes ?? []];
         }
         catch { /* breakdowns just stay empty */ }
     }
@@ -344,9 +333,4 @@ public partial class ImportPhase : IAsyncDisposable
 
     public async ValueTask DisposeAsync() => await DisposeCanvas();
 
-    private static string Str(JsonElement e, string k)
-        => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() ?? "" : "";
-
-    private static int Int(JsonElement e, string k)
-        => e.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetInt32() : 0;
 }
