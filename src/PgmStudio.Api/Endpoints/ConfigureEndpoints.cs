@@ -73,7 +73,11 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
 public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
     : EndpointWithoutRequest<OkDto>
 {
-    public override void Configure() { Patch("/configure/{slug}/exclude-island"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/configure/{slug}/exclude-island"); AllowAnonymous();
+        Description(b => b.Accepts<ExcludeIslandRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

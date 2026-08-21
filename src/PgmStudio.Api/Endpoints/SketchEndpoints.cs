@@ -30,7 +30,11 @@ namespace PgmStudio.Api.Endpoints;
 /// open; without one the layout is empty {} and the editor falls back to its landscape default on load.</summary>
 public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
-    public override void Configure() { Post("/sketch"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/sketch"); AllowAnonymous();
+        Description(b => b.Accepts<SketchOriginateRequest>("application/json"));
+    }
 
     /// <summary>The name a blank "New sketch" draft is created with. A draft still carrying it (never
     /// renamed) is one signal the draft is pristine — see <see cref="SketchDiscardIfEmptyEndpoint"/>.</summary>
@@ -293,7 +297,11 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
 /// drawn; 400 on unparseable JSON.</summary>
 public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
-    public override void Configure() { Post("/map/{slug}/sketch/paint"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/paint"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -337,7 +345,11 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 /// be told the tree was declined, not left to notice.</para></summary>
 public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<WorldColumnsDto>
 {
-    public override void Configure() { Post("/map/{slug}/sketch/columns"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/columns"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -391,7 +403,11 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache warm)
     : EndpointWithoutRequest<ReliefContoursDto>
 {
-    public override void Configure() { Post("/map/{slug}/sketch/relief"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/relief"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -448,7 +464,11 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
 public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCache warm)
     : EndpointWithoutRequest<ReliefReadDto>
 {
-    public override void Configure() { Post("/map/{slug}/sketch/relief/read"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/relief/read"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -75,7 +75,11 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
     private static readonly Regex McaName   = new(@"^r\.-?\d+\.-?\d+\.mca$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
     private static readonly Regex SlugStrip = new("[^a-z0-9_-]", RegexOptions.Compiled);
 
-    public override void Configure() { Post("/map/import-url"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/import-url"); AllowAnonymous();
+        Description(b => b.Accepts<ImportUrlRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -310,7 +314,11 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy po
 public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter writer, ImportPolicy policy)
     : EndpointWithoutRequest<WorldScanDto>
 {
-    public override void Configure() { Post("/map/import-folder"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/import-folder"); AllowAnonymous();
+        Description(b => b.Accepts<ImportFolderRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

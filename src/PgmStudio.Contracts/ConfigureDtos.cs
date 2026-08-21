@@ -86,3 +86,30 @@ public sealed record SymmetryPrimaryDto(
     string Type,
     double Confidence,
     [property: JsonPropertyName("user_override"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] bool? UserOverride = null);
+
+/// <summary>Rule on the symmetry the detector proposed, or state the one the author knows. Every field is
+/// optional and only the stated ones are written, so confirming a detection and moving its centre are two
+/// calls or one.</summary>
+/// <param name="Status"><c>confirmed</c> to accept the symmetry, <c>none</c> to say the map has none — which
+/// also clears the mode. Any other word is ignored.</param>
+/// <param name="ConfirmedType">The mode the author states — <c>mirror_x</c>, <c>mirror_z</c>, <c>rot_180</c>
+/// or <c>rot_90</c>. Stating it marks the symmetry as the author's rather than the detector's, at full
+/// confidence; a word outside the four is refused as <c>RQ1</c>.</param>
+/// <param name="Cx">Where the map folds, east–west. Stating either coordinate writes both, the unstated one
+/// keeping what it was.</param>
+/// <param name="Cz">Where the map folds, north–south.</param>
+public sealed record SymmetryPatchRequest(
+    string? Status = null,
+    [property: JsonPropertyName("confirmed_type")] string? ConfirmedType = null,
+    double? Cx = null,
+    double? Cz = null);
+
+/// <summary>Take a landmass out of the map, or put it back. An excluded island is left out of the footprint
+/// the wizard works from and out of symmetry detection, so the cached detection is dropped and step 3
+/// recomputes.</summary>
+/// <param name="IslandId">The island, as <c>GET /map/{slug}/islands</c> numbers it.</param>
+/// <param name="Excluded">Whether it is left out. Both values are ordinary: this is the one call that
+/// reverses itself.</param>
+public sealed record ExcludeIslandRequest(
+    [property: JsonPropertyName("island_id")] int IslandId,
+    bool Excluded);

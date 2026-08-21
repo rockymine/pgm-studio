@@ -175,7 +175,11 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
 /// </summary>
 public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<OkDto>
 {
-    public override void Configure() { Patch("/map/{slug}/symmetry"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Patch("/map/{slug}/symmetry"); AllowAnonymous();
+        Description(b => b.Accepts<SymmetryPatchRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

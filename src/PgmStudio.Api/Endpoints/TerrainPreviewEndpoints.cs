@@ -6,6 +6,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -294,7 +295,11 @@ public sealed class TreeWoodEndpoint : EndpointWithoutRequest<List<PropOptionDto
 /// can show the themes on the actual map (TP10). 400 when the plan can't be rendered.</summary>
 public sealed class ThemeMapPreviewEndpoint : EndpointWithoutRequest<ThemeMapPreviewDto>
 {
-    public override void Configure() { Post("/terrain/theme-map-preview"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/terrain/theme-map-preview"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

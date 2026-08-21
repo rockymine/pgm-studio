@@ -20,7 +20,11 @@ namespace PgmStudio.Api.Endpoints;
 /// into a map here.</summary>
 public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
-    public override void Configure() { Post("/plan"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/plan"); AllowAnonymous();
+        Description(b => b.Accepts<PlanOriginateRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

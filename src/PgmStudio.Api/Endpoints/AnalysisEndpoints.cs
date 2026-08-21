@@ -199,7 +199,11 @@ public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader re
 /// (body: <c>{ bounds: { minX, minZ, maxX, maxZ } }</c>).</summary>
 public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolSourcesResponseDto>
 {
-    public override void Configure() { Post("/map/{slug}/wool-sources"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/wool-sources"); AllowAnonymous();
+        Description(b => b.Accepts<WoolSearchRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -252,7 +256,11 @@ public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader
 /// body <c>{ bounds?: { minX, minZ, maxX, maxZ } }</c>) + how many a &lt;renewable&gt; already covers.</summary>
 public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<ResourceSourcesResponseDto>
 {
-    public override void Configure() { Post("/map/{slug}/resources"); AllowAnonymous(); }
+    public override void Configure()
+    {
+        Post("/map/{slug}/resources"); AllowAnonymous();
+        Description(b => b.Accepts<ResourceSearchRequest>("application/json"));
+    }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

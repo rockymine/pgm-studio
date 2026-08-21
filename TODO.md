@@ -51,20 +51,27 @@ is kept in the table with the answer beside it, because the answer is the part a
 
 ## Phase 1 — say what the surface is
 
-Every operation now declares what it answers. What is left is the other half — what a route *takes* — and
-the two consumers that still keep the contract by hand instead of reading the document it produces.
+Every operation declares what it answers and, on all but three write routes, what it takes. What is left is
+the three the generator refuses, the difference between a declared shape and a bound one, and the two
+consumers that still keep the contract by hand instead of reading the document it produces.
 
-- [~] **RP12 — Sixteen write routes read a body and never say so.** Fourteen take it as text through
-  `RawBody`, two by parsing the request stream in the handler; `SchemaCompletenessTests.StillUntyped` holds
-  the number and only lets it fall. They are the **parameter bodies**, and unlike the document and edit
-  halves there is no shape to name — each needs a record written from what its handler reads: the four sketch
-  reads (`paint`, `columns`, `relief`, `relief/read`), the two region analyses (`resources`,
-  `wool-sources`), the three terrain previews, `room-styles/preview-snapshot`, `PATCH …/symmetry`,
-  `PATCH /configure/{slug}/exclude-island`, the two originate routes (`POST /plan`, `POST /sketch`), and the
-  two imports, whose own validation stays. **`RP11` needs this, not the reverse.**
+- [ ] **RP41 — Three preview routes cannot declare their body, and a hierarchy is why.**
+  `POST /terrain/material-preview` takes a `TerrainMaterial`, `/terrain/theme-preview` a `TerrainTheme` and
+  `/room-styles/preview-snapshot` a `HouseStyle`; all three reach `TerrainMaterial`, and declaring any of
+  them fails the whole document with *"Discriminator value for FieldPatternMaterial not found"* — a 500 on
+  `/api/openapi/v1.json` and `/api-docs`. `[JsonPolymorphic]` sits on `TerrainMaterial`
+  (`Minecraft/Painting/TerrainTheme.cs:72`) and names fourteen leaves; `FieldPatternMaterial`
+  (`TerrainPatterns.cs:163`) is an unregistered abstract link between it and three of them, which
+  System.Text.Json is content with and the generator is not.
 
-- [ ] **RP40 — Bind the shapes the surface now declares.** The 26 declared bodies are read by hand behind the
-  declaration, so `RequiredFields` still runs on only the 22 routes that bind one, and the **15**
+  Two answers, and the choice is the author's. Register the link, which is a schema-shaped change to a domain
+  type. Or **compose instead of inherit**: `FieldPatternMaterial` shares five fields across noise, turbulence
+  and electric and nothing else, which is the shape `CLAUDE.md` warns about, and the three would hold a value
+  rather than extend a base — a change to the stored theme JSON, so it needs the library read first.
+  `SchemaCompletenessTests.StillUntyped` is 3 and falls to 0 when this lands.
+
+- [ ] **RP40 — Bind the shapes the surface now declares.** The 39 declared bodies are read by hand behind
+  the declaration, so `RequiredFields` runs on only the 22 routes that bind one, and the **15**
   `EditException.Unreadable` throws in `Pgm/Editing` stand where a binding would have refused. Binding is not
   a sweep: an update body needs absent-versus-null, which a bound record loses unless every field is
   optional, and a region create is a union over `type` that no one record expresses. So take the routes where

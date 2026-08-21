@@ -658,6 +658,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   The surface is 163 operations → **154**, the false-204 count 53 → **44**, and `RP29`'s edit surface 35
   routes → **27** before it starts. `MapBounds` takes back `IslandsBboxAsync`, which had been a static on an
   endpoint class its only caller reached across.
+- **Every write route that can say what it takes now says it (RP12).** A route with no declared request type
+  publishes no `requestBody`, so `/api-docs` offered no field to fill and a generated client would type every
+  body `object`. Of the **67** POST/PUT/PATCH routes, 22 declared one; **61** do now, and
+  `SchemaCompletenessTests.StillUntyped` holds the remaining three as a count that only moves down. Three
+  more read no body at all and are a named list, so the count cannot be reached by a route that quietly
+  stopped reading one.
+
+  They are **declared, not bound**: the handler still reads the body itself, which is what keeps a partial
+  edit partial — an absent field takes a create's default and leaves an update's value alone, which a bound
+  record loses. Ten name a document the schema already published on the read side (`PlanModel` for the five
+  `/plan/*` posts and `PUT …/plan`, `SketchLayout` for the sketch write and its four previews, `MapIntent`
+  for the intent pair) and cost no new type. Fifteen records in `Contracts/EditRequests.cs` carry the edit
+  tool's sixteen bodies, every field with what it means, what an absent one falls back to and which refusal
+  it draws. Eight more cover origination, import, the two block searches, symmetry and island exclusion.
+
+  Two gates hold them, because a request record that drifts is silent where an answer record that drifts is
+  not — the handler simply never sees the key and answers 200 off its default. `EditRequestShapeTests` posts
+  each edit record's own serialization through the editor that reads it and asserts the edit landed;
+  `WriteRequestShapeTests` posts the rest through their routes, and where a field may be left out it asserts
+  a refusal the body *chose* rather than one an ignored body would have drawn.
 - **An undeclared route says the wrong thing, and the surface stopped saying it (RP18).** An endpoint with
   no declared response type is published as **204 No Content** — the generator's default, and a claim rather
   than a silence. `SchemaCompletenessTests` says so, names the seven deletes for which that 204 is true

@@ -83,9 +83,10 @@ public sealed class SchemaCompletenessTests
     /// <summary>The count of write routes still saying nothing about what they take, and it is falling.
     /// A route that declares no request type publishes no <c>requestBody</c> at all, so <c>/api-docs</c>
     /// offers no field to fill and a generated client types the body <c>object</c> — the caller learns the
-    /// shape by being refused. Sixteen of the sixty-seven POST/PUT/PATCH routes are there today; the
-    /// number only moves down, and a route added without a declaration pushes it up and fails here.</summary>
-    private const int StillUntyped = 16;
+    /// shape by being refused. Three of the sixty-seven POST/PUT/PATCH routes are there today, and all three
+    /// take a material or a style, whose hierarchy the generator cannot render (`RP41`). The number only
+    /// moves down, and a route added without a declaration pushes it up and fails here.</summary>
+    private const int StillUntyped = 3;
 
     /// <summary>The other half of the contract: what a route <b>takes</b>.</summary>
     [Test]

@@ -2,7 +2,26 @@ using System.Text.Json.Serialization;
 
 namespace PgmStudio.Contracts;
 
+/// <summary>A rectangle in block coordinates, spelled the way the analysis surface spells it. It bounds a
+/// raster the studio measured and it selects the ground a search reads, which is why it is both an answer and
+/// a request here.</summary>
+/// <param name="MinX">The west edge.</param>
+/// <param name="MinZ">The north edge.</param>
+/// <param name="MaxX">The east edge.</param>
+/// <param name="MaxZ">The south edge.</param>
 public sealed record BoundsDto(int MinX, int MinZ, int MaxX, int MaxZ);
+
+/// <summary>Which ground to count resource blocks over.</summary>
+/// <param name="Bounds">The rectangle to search, nested rather than flat — the four corners under
+/// <c>bounds</c>, not beside it. Leaving it out reads the whole map, which is the useful default here; one
+/// that is present and short of a corner is refused as <c>RQ1</c>.</param>
+public sealed record ResourceSearchRequest(BoundsDto? Bounds = null);
+
+/// <summary>Which ground to count wool sources over.</summary>
+/// <param name="Bounds">The rectangle to search, nested rather than flat — the four corners under
+/// <c>bounds</c>, not beside it. Required: a wool count over a whole map answers a question nobody asked, so
+/// an absent rectangle is refused as <c>RQ1</c> rather than defaulted.</param>
+public sealed record WoolSearchRequest(BoundsDto Bounds);
 
 /// <summary>GET /api/map/{slug}/buildability — per-column verdict grid (rows of digit codes).</summary>
 public sealed record BuildabilityDto(

@@ -29,16 +29,16 @@ driver reaches around it. That is `RP13`.
 ## The boundary carries no schema
 
 The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
-paths, **149 operations**, 239 schemas, **217 of them carrying the docstring beside the type** — and
+paths, **149 operations**, 247 schemas, **226 of them carrying the docstring beside the type** — and
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
-What that document can say is bounded by what is declared, and a quarter of the write surface declares
-nothing. Of the **67 POST/PUT/PATCH routes**, 48 publish a request body — 22 by binding a request type, 26 by
-naming the shape they take while still reading it themselves — and **19 do not**. Three of those nineteen
-read no body at all, which leaves **16 that read one and never say so**: 14 take it as text through
-`RawBody`, two by parsing the request stream in the handler. Those routes appear in the document with their
-path and verb and no body schema at all: the generator can only publish what the code states, and
-`SchemaCompletenessTests` holds the 16 as a count that only moves down.
+What that document can say is bounded by what is declared, and the write surface now states nearly all of
+it. Of the **67 POST/PUT/PATCH routes**, 61 publish a request body — 22 by binding a request type, 39 by
+naming the shape they take while still reading it themselves — and **six do not**. Three of those six read no
+body at all, which is the truth rather than a gap. The other three take a terrain material, a theme or a house
+style, and declaring any of them fails the whole document: the material hierarchy carries an abstract link the
+generator cannot resolve a discriminator for (`RP41`), so it is one hierarchy rather than three routes.
+`SchemaCompletenessTests` holds the three as a count that only moves down.
 
 Three things follow from that, and they are the same fact seen from three sides.
 
@@ -46,7 +46,7 @@ Three things follow from that, and they are the same fact seen from three sides.
 DTO declares non-nullable and the body did not supply — and its first line is
 `if (context.Request is not { } request) return;`, so it is a no-op for every endpoint that has no request
 type. The promise it makes holds for the 22 routes that bind one. A declared shape is not a bound one: the
-26 routes that name their shape to the generator still read it themselves, so the document is true about them
+39 routes that name their shape to the generator still read it themselves, so the document is true about them
 and the gate still does not run.
 
 **A validation that cannot live in a schema lives in the code by hand.** Of the Edit tool's 53 refusal sites
@@ -256,7 +256,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | What is missing | The established shape | What it dissolves |
 |---|---|---|
 | a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
-| a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 16 write routes that publish no `requestBody`, and the 15 `Unreadable` throws that stand where a binding would have refused |
+| a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 15 `Unreadable` throws that stand where a binding would have refused, and the one global input gate covering a third of the write surface |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 71 ids to branch once |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
