@@ -1162,11 +1162,17 @@ house-style checks) lives below `Api` and is reachable from an endpoint today, w
   types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
   callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
 
-- [ ] **RP35 — `/api/rules` answers 163 rules and 86 of them are enforced.** `RuleCatalog.Read` concatenates
-  the **71 gate rules** declared as `const string` in the thirteen `*Rules` classes — every one of which is
-  raised somewhere — with **92 layout rules** parsed out of `docs/generator/rules.md`, of which the plan lint
-  fires **fifteen**: `BZ5 BZ11 CT12 EL1 FR8 G2 G5 SP1 SP2 SP8 SP9 ST2 ST8 ST9 WL1`. The other 77 are law
-  nothing checks, published in rows identical to the ones a caller can actually fail on.
+- [ ] **RP35 — `/api/rules` answers 168 rules and 87 of them are raised.** `RuleCatalog.Read` concatenates
+  the **76 gate rules** declared as `const string` in the fourteen `*Rules` classes with **92 layout rules**
+  parsed out of `docs/generator/rules.md`, of which the plan lint fires **fifteen**:
+  `BZ5 BZ11 CT12 EL1 FR8 G2 G5 SP1 SP2 SP8 SP9 ST2 ST8 ST9 WL1`. The other 77 are law nothing checks,
+  published in rows identical to the ones a caller can actually fail on.
+
+  **Four gate rules are in the same position and were put there deliberately** — `WX1`, `WX5`, `WX7` and
+  `WX9` state how a room frame is derived rather than refusing anything, and they are constants because a
+  rule may not live only in a markdown file (the author's ruling). So the cut below needs a line drawn that
+  is not *is it raised*: those four are the studio's own answer to "what is `WX7`", asked by a reader of
+  `structures.md` rather than of a finding.
 
   **Cut them rather than label them** (the author's ruling): the catalogue answers *what is this finding*, and
   a rule nothing raises has no finding to explain. `rules.md` keeps all 92 as the generator's law; it is not

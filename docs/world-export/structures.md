@@ -32,6 +32,13 @@ sketch canvas shows the pieces as locked annotations, so the ground around one c
 piece being moved. What a stamp is made of is shared — both kinds come from the same room-style library and
 the same `HouseStamper` — but who authors one is not.
 
+**Every `WX` id is declared in `RoomFrameRules` (`PgmStudio.Domain.RoomFrames`), and this section is the
+account rather than the declaration.** The constant is where a rule's own two sentences live — what it holds
+and what to do about it — because that is what `GET /api/rules?family=WX` answers and what a finding's id
+resolves to; a document that declared a rule the code did not would put the law somewhere no caller can
+reach. What stays here is the part a docstring has no room for: the negotiation `WX8` runs, the parities
+`WX3` turns on, the reasoning behind each number.
+
 ---
 
 ## 1. The frame

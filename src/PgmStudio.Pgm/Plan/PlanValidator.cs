@@ -560,10 +560,10 @@ public static class PlanValidator
     {
         foreach (var w in plan.Placements.Wools)
             if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { Frame.Pad.Shifted: true })
-                yield return Lint("WX4", $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
+                yield return Lint(RoomFrameRules.PadClearance, $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
         foreach (var s in plan.Placements.Spawns)
             if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _) is { Frame.Pad.Shifted: true })
-                yield return Lint("WX4", $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
+                yield return Lint(RoomFrameRules.PadClearance, $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
     }
 
     // WX8/WX9 — an iron marker on a spawn piece that resolves unplaceable: the room has priority and
@@ -576,7 +576,7 @@ public static class PlanValidator
             var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _);
             if (room is null) continue;
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
-                yield return Lint("WX8",
+                yield return Lint(RoomFrameRules.IronFit,
                     $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: no room size "
                     + $"leaves {RoomFrames.IronGap} block clear of the shell for even the smallest cube — "
                     + "the room has priority and stamps alone", s.Piece);

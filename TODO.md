@@ -125,12 +125,12 @@ silently.
 
 ## Phase 3 — one class of fault
 
-The cheapest of the five: a change to `Finding` plus a sweep of 71 constants, and the ids do not move.
+The cheapest of the five: a change to `Finding` plus a sweep of 76 constants, and the ids do not move.
 
-- [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 71 to branch once.** The
+- [ ] **RP14 — A fault carries an id but not a class, so a caller has to know all 76 to branch once.** The
   only machine-legible thing a finding carries is the id. A caller deciding whether to fix the request,
   change the design, change the map or report a bug has no field to read it off, so every driver either
-  learns 71 ids or guesses from the sentence.
+  learns 76 ids or guesses from the sentence.
 
   **The fix is additive; no id changes and no rename.** `Finding` gains **`category`**, a closed six —
   `malformed`, `unknown`, `conflict`, `unsatisfiable`, `unplayable`, `internal` — which is the only thing a
@@ -164,13 +164,16 @@ The cheapest of the five: a change to `Finding` plus a sweep of 71 constants, an
   Orthogonal to `RP14`'s `category` — that says what
   kind of fault, this what became of the input. `refusals.md` and each `DR-*` `<remarks>` change with it.
 
-- [ ] **RP15 — A rule id cited as a bare literal is checked by nothing, and one of them resolves to
-  nothing.** The plan lint cites fourteen ids as string literals; thirteen are layout rules `rules.md`
-  states, and **`WX8` is declared nowhere** — fired by the lint, stated as a rule in
-  `docs/world-export/structures.md`, cited in `docs/tools/plan.md`, and absent from `GET /api/rules`.
-  `WX9` beside it is never fired at all. Declare `WX8` where `RoomFrameRules` lives or retire it, decide
-  what `WX9` is, and add the assertion that runs the other way: every id any gate or lint can emit resolves
-  in the catalogue. `RulesEndpointTests` only checks that declared rules carry a sentence.
+- [~] **RP15 — Nothing checks that an id a gate cites resolves, and one of them does not.** The plan
+  validator names sixteen rule ids as bare string literals, and `PC-C` is not a rule anyone can look up:
+  `rules.md` states it only *inside* the retired `PC-S`'s bullet, which is the id the catalogue's parser
+  takes that line for, so `GET /api/rules?rule=PC-C` answers empty. Add the assertion that runs the other
+  way — every id a gate or a lint can emit resolves in the catalogue — and give `PC-C` a bullet of its own
+  or retire it with the lint. `RulesEndpointTests` only checks the forward direction, that a declared rule
+  carries a sentence.
+
+  *The fifteen literals beside it are layout rules and stay literals until those move out of `rules.md`,
+  which is `RP35`'s ground and the author's ruling: the layout law is untouched this pass.*
 
 ## Phase 4 — the loop answers for itself
 

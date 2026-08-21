@@ -6289,19 +6289,31 @@ these are the ones that shipped a map that could not be played as intended, and 
   that added it, which is what makes it worth keying on — and nothing answered the other question a reader has
   on meeting one: *what is `SP7`*. The ids were spread across eight `*Rules` classes and one 644-line document,
   and a reader who did not already know which family an id belonged to had nowhere to start. **`GET /api/rules`**
-  answers all 125, `?family=PL` narrows to one family and `?rule=SP7` to one rule; a name nothing matches is an
+  answers all 168, `?family=PL` narrows to one family and `?rule=SP7` to one rule; a name nothing matches is an
   empty list rather than a 404, so a caller asking "is there a rule called that" does not have to tell an absent
   rule from a mistyped route by the status code.
 
   **Nothing in the answer is written twice, which is the whole design.** A gate rule's meaning is the
   `<summary>` beside its own `const` and its fix is the `<remarks>` of the same docstring, read out of the XML
   documentation file the compiler emits — so the sentence a caller is shown *is* the sentence in the source,
-  and there is no catalogue to fall out of step with it. The 66 layout rules come out of
+  and there is no catalogue to fall out of step with it. The 92 layout rules come out of
   `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and parsed: that document is the rule law, amended
   only by its own correction protocol, and copying its statements into C# would have made a second law that
   drifts. Private and nested declarations are read too, since `ExportRules` is private inside
   `MapExportComposer` and a rule missing because of where it happens to be declared is the failure this exists
   to prevent.
+
+- **The whole `WX` checklist is code, and a markdown file cites it (RP15).** `docs/world-export/structures.md`
+  states `WX1`–`WX10` as ten bullets, and only five of them had a `const` to resolve to — so `WX1`, `WX5`,
+  `WX7`, `WX8` and `WX9`, cited across eight source files, four test files and three documents, answered an
+  empty list from `GET /api/rules`. All five are now declared in `RoomFrameRules` with the two sentences the
+  catalogue reads, taking it to **76 gate rules**; the document keeps the account — the negotiation `WX8`
+  runs, the parities `WX3` turns on — and says outright that the constant is the declaration.
+  `PlanValidator` cites `RoomFrameRules.IronFit` and `RoomFrameRules.PadClearance` where it had written
+  `"WX8"` and `"WX4"`, which is the rule `refusals.md` § *Adding one* already states. `WX4`'s constant is
+  `PadClearance` rather than `NoPadRoom` because the rule has two outcomes — a pad shifted inward, and a pad
+  with nowhere to shift to — and the old name only covered the second, which is why the lint could not use
+  it.
 
   **A layout rule has no fix, and that is a decision rather than a gap.** The gate rules are mechanical — a
   doorway too short, a document that will not parse — so what to do about one follows from what it refuses.

@@ -32,6 +32,15 @@ public readonly record struct MonumentSlot(int X, int Z, RoomEdge Wall);
 /// that added it has left the board.</summary>
 public static class RoomFrameRules
 {
+    /// <summary>The shell's footprint is the piece rect inset one block on every side. The ring of clean
+    /// floor around a room is part of what a piece promises, so a 10×10 piece carries an 8×8 shell and a
+    /// 10×20 piece an 8×18 one; the shell takes the rect's own orientation, and the fanned rect orients the
+    /// orbit images.</summary>
+    /// <remarks>Size the piece for the shell it should carry: a shell is always two blocks narrower than its
+    /// piece in each axis. Nothing else moves the footprint — <c>WX8</c>'s negotiation is the one thing that
+    /// pulls an edge back off it.</remarks>
+    public const string ShellFootprint = "WX1";
+
     /// <summary>The piece cannot hold a shell of the least legal span once the clean ring is taken off it.</summary>
     /// <remarks>Enlarge the piece. A room is its piece inset by the clean ring, and what is left has to hold a shell of the least legal span in both axes.</remarks>
     public const string PieceTooSmall = "WX2";
@@ -40,13 +49,58 @@ public static class RoomFrameRules
     /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
     public const string MarkerParity = "WX3";
 
-    /// <summary>The interior has no room for the pad once the wall clearance is kept.</summary>
-    /// <remarks>Enlarge the piece or shrink the pad. The wall clearance is kept first, and the pad has to fit in what remains inside it.</remarks>
-    public const string NoPadRoom = "WX4";
+    /// <summary>The pad keeps at least one block of clear floor to every wall. A marker sitting too close
+    /// has its pad shifted inward by the minimum that restores the clearance — the exported point moves with
+    /// it — and a 3×3 is chosen only where it still fits after that shift. An interior with no room for the
+    /// pad even shifted is refused.</summary>
+    /// <remarks>Enlarge the piece or shrink the pad. The wall clearance is kept first and the pad has to fit
+    /// in what remains inside it; where a pad merely moved, the plan lint says so, because the exported
+    /// spawn or wool point follows the pad rather than the marker.</remarks>
+    public const string PadClearance = "WX4";
+
+    /// <summary>The exported spawn or wool location is the pad's centre, after any <c>WX4</c> shift. The
+    /// world is the ground truth the map document has to agree with, so the point follows the pad rather
+    /// than the marker that asked for it, and it snaps to the half-block lattice rather than to an
+    /// integer.</summary>
+    /// <remarks>Move the marker to move the point. Where a pad was shifted to keep its wall clearance the
+    /// exported point moves with it, which the structure preview draws and the plan lint notes — so a point
+    /// that is not where the marker was put has a shift behind it.</remarks>
+    public const string PadIsPoint = "WX5";
 
     /// <summary>A wool room with no seam and no abutting build zone has nothing to enter it by.</summary>
     /// <remarks>Give the wool room a border with a neighbouring piece, or place a build zone against it. A room nothing abuts has no door that can be cut.</remarks>
     public const string RoomUnreachable = "WX6";
+
+    /// <summary>A door's width follows the wall it is cut into. An odd interior wall centres a 3-wide door;
+    /// an even wall takes 4 once the interior is at least 6 across and narrows to 2 at the 4-across minimum.
+    /// The invariant under the numbers is that a door is at least one block narrower than the interior on
+    /// each side, so the corner cells a spawn cube seats monuments in are never opened to the
+    /// outside.</summary>
+    /// <remarks>Widen the interior to widen the door — the width is derived from the wall, never authored.
+    /// A room that wants a 4-wide door needs an even wall and 6 blocks of interior across it.</remarks>
+    public const string DoorWidth = "WX7";
+
+    /// <summary>An iron cube stands outside the room shell, inside the piece, with one block of clear air to
+    /// the wall. Fitting is a negotiation in a fixed order: the shell pulls one edge back from its
+    /// <c>WX1</c> footprint by the minimum that clears the cube, then the cube itself
+    /// degrades by marker parity. The room wins — a shrink is legal only while the shell holds
+    /// <c>WX2</c>'s minimum and the spawn marker stays inside the interior — so a marker no
+    /// yield can seat resolves unplaceable.</summary>
+    /// <remarks>Enlarge the spawn piece, or move the iron marker further from the shell. The cube needs its
+    /// own footprint plus one block of clear air in the ring between the shell and the piece edge, and the
+    /// shell will not shrink past the least legal span to make room for it.</remarks>
+    public const string IronFit = "WX8";
+
+    /// <summary>Every structure marker resolves to placeable or not, and an unplaceable one is not an
+    /// error the export throws on: it stamps nothing, the room takes its full <c>WX1</c>
+    /// footprint, and the marker stays on the board where the author put it. Validation flags it and the
+    /// structure preview draws only what will be placed, so the iso view never shows a cube the export
+    /// declines.</summary>
+    /// <remarks>Nothing is dropped from the document for you. Read the plan lint for the marker the finding
+    /// names and either give it the room <c>WX8</c> asks for or take it off the plan — a marker
+    /// left unplaceable is a placement the author can still see on the canvas and nothing in the
+    /// world.</remarks>
+    public const string MarkerPlaceability = "WX9";
 
     /// <summary>A bound room style builds a shell taller than the build ceiling — <see cref="BuildCeiling"/>'s
     /// clearance over the ground it stands on. A room's shell is authored geometry and is subject to no cap of
@@ -195,7 +249,7 @@ public static class RoomFrames
             maxX - 1 - PadWallClearance, maxZ - 1 - PadWallClearance);
         if (pad is null)
         {
-            refusal = new Finding(RoomFrameRules.NoPadRoom,
+            refusal = new Finding(RoomFrameRules.PadClearance,
                 "no room for the spawn/wool pad inside the interior");
             return null;
         }

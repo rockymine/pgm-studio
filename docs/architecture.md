@@ -121,12 +121,12 @@ void, because the only thing that will tell it is the gate at the end.
 
 ## A fault has an id but not a class
 
-The studio declares **71 rule constants in 14 families**, and answers `GET /api/rules` by reading each
+The studio declares **76 rule constants in 14 families**, and answers `GET /api/rules` by reading each
 constant's own XML docstring — so a rule's meaning has one home and no catalogue can fall out of step with
 it. That mechanism is right, and it is the best thing in the codebase.
 
 What it lacks is a **class**. A caller that wants to know whether to fix the request, change the design,
-change the map or report a bug has to know all 71 ids to find out, because the only machine-legible thing a
+change the map or report a bug has to know all 76 ids to find out, because the only machine-legible thing a
 finding carries is the id itself. That is the defect, and it is the whole of it.
 
 The family prefix is *not* the defect, though it reads like one at first. `PL2` and `EX2` carry nearly the
@@ -141,22 +141,22 @@ So the prefix is close to a **subject** axis already, because for most families 
 the document at fault. What is missing beside it is the category, and the two together are what let a caller
 read `PL2` as *unplayable, in the plan* and `EX2` as *unplayable, in the intent* without knowing either id.
 
-**Rules are stated three ways, and only two of them can be checked.** The 71 constants are one; the layout
+**Rules are stated three ways, and only two of them can be checked.** The 76 constants are one; the layout
 law in `docs/generator/rules.md`, embedded and parsed, is a second, and both are answered by `/api/rules`.
-The third is a bare string literal at the throw site — the plan lint cites fourteen ids that way, `SP2`,
-`EL1`, `ST8`, `WL1`, `CT12`, `BZ5` and the rest. Thirteen of those resolve, because they are layout rules
-that `rules.md` states. Nothing checks that they do: a typo produces a finding citing a rule nobody has, and
-the catalogue is not consulted.
+The third is a bare string literal at the throw site — the plan validator cites sixteen ids that way, `SP1`,
+`SP2`, `EL1`, `ST8`, `WL1`, `CT12`, `BZ5` and the rest. Fifteen of those resolve, because they are layout
+rules that `rules.md` states as their own bullet. Nothing checks that they do: a typo produces a finding
+citing a rule nobody has, and the catalogue is not consulted.
 
-The fourteenth is `WX8`, and it is what that gap looks like once it has happened. It is fired by the lint,
-stated as a rule in `docs/world-export/structures.md`, cited as one in `docs/tools/plan.md` — and declared in
-no `*Rules` class and absent from `rules.md`, so **`GET /api/rules?rule=WX8` answers an empty list.**
-`WX9`, beside it in the same document, is never fired at all. `RulesEndpointTests` cannot catch either: it
-checks that every declared rule carries a sentence, which is the opposite direction.
+The sixteenth is `PC-C`, and it is what that gap looks like once it has happened. The lint fires it for a
+corner contact between separate areas, and `rules.md` names it only *inside* another rule's bullet — the
+retired `PC-S`, which is the id the parser takes that line for — so **`GET /api/rules?rule=PC-C` answers an
+empty list.** `RulesEndpointTests` cannot catch it: it checks that every declared rule carries a sentence,
+which is the opposite direction.
 
 The missing distinction is between the **category** of a fault, which is a small closed set an agent
 branches on, and the **rule**, which is specific, stable and for a reader. A caller that wants to know
-whether to retry, to fix the document or to give up currently has to know all 71 ids to find out.
+whether to retry, to fix the document or to give up currently has to know all 76 ids to find out.
 
 ## The measurement is next door
 
@@ -258,7 +258,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | a generated client and generated endpoint tables | the schema at `/api/openapi/v1.json` is the source both should read | the two hand-kept copies that remain, and most of the doc-rot rule's hardest half |
 | a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 15 `Unreadable` throws that stand where a binding would have refused, and the one global input gate covering a third of the write surface |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
-| a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 71 ids to branch once |
+| a fault category beside the fault id | a closed category set (`malformed`, `not_found`, `conflict`, `unresolved`, `unsatisfiable`, `internal`) carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that has to learn 76 ids to branch once |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
 | a lifecycle that is enforced | a state machine over `MapStage` with a transition table, and the allowed transitions on the map's own response | `capabilities.md` as the only answer to a runtime question, and an agent that learns the pipeline by trying it |
 | a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | `RP4`, and the build an agent pays to hear a refusal |
@@ -266,7 +266,7 @@ answer already and stopped one step short of the form that makes it machine-read
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so
 a declared request shape and a generated client now have something to hang off. The application layer comes
 next, because it is where a gate stops belonging to a door. The fault category is third and is a change to
-`Finding` plus a sweep of 71 constants. The lifecycle is last, because a state machine over a pipeline whose
+`Finding` plus a sweep of 76 constants. The lifecycle is last, because a state machine over a pipeline whose
 steps are still HTTP handlers has nothing to hold.
 
 None of this is a rewrite. Every one is a shape the codebase already half-has, stated once instead of by
