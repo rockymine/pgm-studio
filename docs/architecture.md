@@ -29,8 +29,8 @@ driver reaches around it. That is `RP13`.
 ## The boundary carries no schema
 
 The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
-paths, **149 operations**, 222 schemas — and `/api-docs` is the page over it, where a route can be expanded
-and sent without writing a client. Both are served from the app's own assets.
+paths, **149 operations**, 222 schemas, **201 of them carrying the docstring beside the type** — and
+`/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and most of the write surface declares nothing.
 **127 of the 149 endpoints declare no typed request**, 22 do, and **23 call sites read the body as

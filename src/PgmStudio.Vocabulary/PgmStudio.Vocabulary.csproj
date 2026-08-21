@@ -4,6 +4,13 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The finding shape crosses the wire, so its docstrings are the schema's descriptions: NSwag reads this file, so a `<summary>` on a
+         record and a `<param>` on its fields is what a caller sees at `/api-docs` and what a generated
+         client carries. Without it the shapes publish names and types and say nothing about what they mean.
+         The doc-comment diagnostics are off for the reason `Domain` states: CS1591 demands a comment on
+         every public member, and the rest flag defects in comments nothing read. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574;CS1734;CS0419;CS1587</NoWarn>
   </PropertyGroup>
 
 </Project>
