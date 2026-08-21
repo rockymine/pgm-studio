@@ -93,7 +93,7 @@ above. It does mean `Domain` is "the PGM domain", not "the PGM data model".
 |---|---|---|---|
 | `Geom` | 44 | 4,967 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 4 · 14 at root |
 | `Domain` | 25 | 2,252 | flat |
-| `Contracts` | 13 | 965 | flat |
+| `Contracts` | 26 | 1,833 | flat |
 | `Vocabulary` | 4 | 393 | flat |
 | `Migrations` | 21 | 1,469 | `Migrations/` 20 |
 | `Minecraft` | 74 | 14,307 | `Stamping/` 16 · `Palette/` 11 · `Anvil/` 10 · `Houses/` 10 · `Painting/` 8 · `Render/` 7 · `Dressing/` 6 · `Views/` 3 · 1 at root |

@@ -41,7 +41,7 @@ public sealed class RegionCreateEndpoint(MapRepository repo, MapReader reader, M
     {
         Post("/map/{slug}/regions");
         AllowAnonymous();
-        Description(b => b.Produces<RegionCreatedDto>(200, "application/json"));
+        Description(b => b.Accepts<RegionCreateRequest>("application/json").Produces<RegionCreatedDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -67,7 +67,7 @@ public sealed class RegionCounterpartEndpoint(MapRepository repo, MapReader read
     {
         Post("/map/{slug}/regions/{regionId}/counterpart");
         AllowAnonymous();
-        Description(b => b.Produces<RegionOrbitDto>(200, "application/json"));
+        Description(b => b.Accepts<RegionCounterpartRequest>("application/json").Produces<RegionOrbitDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -115,7 +115,7 @@ public sealed class RegionOrbitEndpoint(MapRepository repo, MapReader reader, Ma
     {
         Post("/map/{slug}/regions/{regionId}/orbit");
         AllowAnonymous();
-        Description(b => b.Produces<RegionOrbitDto>(200, "application/json"));
+        Description(b => b.Accepts<RegionOrbitRequest>("application/json").Produces<RegionOrbitDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -156,7 +156,7 @@ public sealed class RegionGroupEndpoint(MapRepository repo, MapReader reader, Ma
     {
         Post("/map/{slug}/regions/group");
         AllowAnonymous();
-        Description(b => b.Produces<RegionGroupedDto>(200, "application/json"));
+        Description(b => b.Accepts<RegionGroupRequest>("application/json").Produces<RegionGroupedDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -173,7 +173,7 @@ public sealed class RegionUngroupEndpoint(MapRepository repo, MapReader reader, 
     {
         Post("/map/{slug}/regions/ungroup");
         AllowAnonymous();
-        Description(b => b.Produces<RegionUngroupedDto>(200, "application/json"));
+        Description(b => b.Accepts<RegionUngroupRequest>("application/json").Produces<RegionUngroupedDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -207,7 +207,7 @@ public sealed class RegionPatchEndpoint(MapRepository repo, MapReader reader, Ma
     {
         Patch("/map/{slug}/regions/{regionId}");
         AllowAnonymous();
-        Description(b => b.Produces<RegionPatchedDto>(200, "application/json"));
+        Description(b => b.Accepts<RegionPatchRequest>("application/json").Produces<RegionPatchedDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -65,7 +65,7 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
     {
         Patch("/map/{slug}/metadata");
         AllowAnonymous();
-        Description(b => b.Produces<OkDto>(200, "application/json"));
+        Description(b => b.Accepts<MapMetadataRequest>("application/json").Produces<OkDto>(200, "application/json"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -103,7 +103,7 @@ public sealed class TeamCreateEndpoint(MapRepository repo, MapReader reader, Map
     {
         Post("/map/{slug}/teams");
         AllowAnonymous();
-        Description(b => b.Produces<TeamWrittenDto>(200, "application/json"));
+        Description(b => b.Accepts<TeamCreateRequest>("application/json").Produces<TeamWrittenDto>(200, "application/json"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -121,7 +121,7 @@ public sealed class TeamUpdateEndpoint(MapRepository repo, MapReader reader, Map
     {
         Patch("/map/{slug}/teams/{teamId}");
         AllowAnonymous();
-        Description(b => b.Produces<TeamWrittenDto>(200, "application/json"));
+        Description(b => b.Accepts<TeamUpdateRequest>("application/json").Produces<TeamWrittenDto>(200, "application/json"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

@@ -29,12 +29,12 @@ one place a use case lives, so the application layer is second. A caller cannot 
 fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
 handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — eighteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — seventeen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the eighteen carry a question only the author can answer
+## Four of the seventeen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -54,16 +54,23 @@ is kept in the table with the answer beside it, because the answer is the part a
 Every operation now declares what it answers. What is left is the other half — what a route *takes* — and
 the two consumers that still keep the contract by hand instead of reading the document it produces.
 
-- [~] **RP12 — Thirty-two write routes read a body and never say so.** Sixteen take it as
-  `Dictionary<string, object?>` through `WriteSupport.ReadPayloadAsync`, fourteen as text through `RawBody`,
-  two by parsing the request stream in the handler; `SchemaCompletenessTests.StillUntyped` holds the number
-  and only lets it fall. Two sorts left. The sixteen are **the edit routes** — regions, spawns, wools, teams,
-  metadata, observer spawn — and a request record each is where the **15** hand-written
-  `EditException.Unreadable` throws in `Pgm/Editing` go; the other 38 refusal sites there read the map the
-  edit lands on and stay. The other sixteen are **parameter bodies with no type at all**: the four sketch
-  reads, the two region analyses, the three terrain previews, the snapshot preview, symmetry, exclude-island,
-  the two originate routes, and the two imports, whose own validation stays. A declared shape is not a bound
-  one — `RequiredFields` runs only where the route binds. **`RP11` needs this, not the reverse.**
+- [~] **RP12 — Sixteen write routes read a body and never say so.** Fourteen take it as text through
+  `RawBody`, two by parsing the request stream in the handler; `SchemaCompletenessTests.StillUntyped` holds
+  the number and only lets it fall. They are the **parameter bodies**, and unlike the document and edit
+  halves there is no shape to name — each needs a record written from what its handler reads: the four sketch
+  reads (`paint`, `columns`, `relief`, `relief/read`), the two region analyses (`resources`,
+  `wool-sources`), the three terrain previews, `room-styles/preview-snapshot`, `PATCH …/symmetry`,
+  `PATCH /configure/{slug}/exclude-island`, the two originate routes (`POST /plan`, `POST /sketch`), and the
+  two imports, whose own validation stays. **`RP11` needs this, not the reverse.**
+
+- [ ] **RP40 — Bind the shapes the surface now declares.** The 26 declared bodies are read by hand behind the
+  declaration, so `RequiredFields` still runs on only the 22 routes that bind one, and the **15**
+  `EditException.Unreadable` throws in `Pgm/Editing` stand where a binding would have refused. Binding is not
+  a sweep: an update body needs absent-versus-null, which a bound record loses unless every field is
+  optional, and a region create is a union over `type` that no one record expresses. So take the routes where
+  a binding genuinely refuses something — a missing `region_id`, a `yaw` that is not a number, a
+  `max_players` that is not an integer — and leave the rest declared. The other 38 refusal sites in
+  `Pgm/Editing` read the map the edit lands on and stay whatever happens here.
 
 - [~] **RP11 — Two consumers still keep the contract by hand.** The schema is generated at
   `/api/openapi/v1.json` and browsable at `/api-docs`; nothing reads it yet. The Blazor client writes out

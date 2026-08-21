@@ -14,7 +14,7 @@ public sealed class WoolCreateEndpoint(MapRepository repo, MapReader reader, Map
     {
         Post("/map/{slug}/wools");
         AllowAnonymous();
-        Description(b => b.Produces<WoolWrittenDto>(200, "application/json"));
+        Description(b => b.Accepts<WoolCreateRequest>("application/json").Produces<WoolWrittenDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -31,7 +31,7 @@ public sealed class WoolUpdateEndpoint(MapRepository repo, MapReader reader, Map
     {
         Patch("/map/{slug}/wools/{woolId}");
         AllowAnonymous();
-        Description(b => b.Produces<WoolWrittenDto>(200, "application/json"));
+        Description(b => b.Accepts<WoolUpdateRequest>("application/json").Produces<WoolWrittenDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public sealed class MonumentCreateEndpoint(MapRepository repo, MapReader reader,
     {
         Post("/map/{slug}/wools/{woolId}/monuments");
         AllowAnonymous();
-        Description(b => b.Produces<MonumentWrittenDto>(200, "application/json"));
+        Description(b => b.Accepts<MonumentWriteRequest>("application/json").Produces<MonumentWrittenDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -84,7 +84,7 @@ public sealed class MonumentUpdateEndpoint(MapRepository repo, MapReader reader,
     {
         Patch("/map/{slug}/wools/{woolId}/monuments/{monId}");
         AllowAnonymous();
-        Description(b => b.Produces<MonumentWrittenDto>(200, "application/json"));
+        Description(b => b.Accepts<MonumentWriteRequest>("application/json").Produces<MonumentWrittenDto>(200, "application/json"));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {

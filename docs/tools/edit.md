@@ -178,6 +178,16 @@ the same shape `GET /map/{slug}` carries it**, because it is the same wool. Ever
 routes declare the shape rather than mapping it, and `EditAnswerShapeTests` holds each record to what its
 editor writes.
 
+**And each one says what it takes.** The sixteen bodies are declared in `Contracts/EditRequests.cs` — every
+field with what it means, what an absent one falls back to and which refusal it draws — so `/api-docs` offers
+the form and a generated client carries the names. They are declared rather than bound: the route still reads
+the body key by key and hands the dictionary to the editor, which is what keeps a **partial** edit partial. An
+absent field is not a null one. On a create it takes the editor's default; on an update it leaves the value
+alone, and an explicit `null` clears a location, a team or a region reference. `EditRequestShapeTests` holds
+each record to the editor that reads it, by posting the record's own serialization through the editor and
+asserting the edit landed — the mirror of the answer gate, and the necessary one, because a request field
+spelled wrong is a key the editor never sees and a 200 that changed nothing.
+
 Their failure codes are uniform too, because they all run through one path — `WriteSupport.RunEditAsync`, which
 turns the editor's refusal into the envelope: **400** (`RQ1`, `ED1`, `ED2`) for a payload the document will
 not take, **404** (`RQ4`) for an unknown map, region, team, wool, monument, spawn, filter or apply-rule, and

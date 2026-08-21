@@ -1195,6 +1195,25 @@ so it has to *call* them, which is what the application layer is for.
   or NSwag's schema processor reading the `All` array where the `const string` shape has to stay for
   `Minecraft`. `RP14`'s `category` is the next one to land and should arrive as an enum, not a sixth string.
 
+- [ ] **RP38 — A region states its numbers flat to create and nested to patch.** `POST /map/{slug}/regions`
+  reads `min_x`, `base_y`, `center_x` and the rest off the body root; `PATCH /map/{slug}/regions/{regionId}`
+  reads the same sixteen numbers out of a `coords` object, and its `bounds` object is a third spelling of the
+  four a create sends flat. So the contract carries two records — `RegionCreateRequest` and
+  `RegionCoordsDto`, `Contracts/EditRequests.cs` — whose number fields are identical and whose nesting is
+  not, and a caller that has learned one cannot write the other. Settle on one envelope. Nesting is the
+  better half: it separates the shape's numbers from the id, the category and the draft mark, and it is
+  already what the patch route and `Bounds2dDto` use. One editor signature, six client call sites, and the
+  two records become one. `RP34` is the same seam on the answer side.
+
+- [ ] **RP39 — The size table in `project-structure.md` is measured from an older tree.** Every row is low.
+  Today: `Geom` 44/5,362 · `Domain` 25/2,372 · `Contracts` 26/1,833 · `Vocabulary` 4/434 · `Migrations`
+  24/1,577 · `Minecraft` 79/15,474 · `Import` 4/471 · `Pgm` **148**/22,716 · `Analysis` 15/2,831 · `Data`
+  14/2,436 · `Export` 8/1,629 · `Api` 70/9,689 · `Client` 82/13,513. The prose under it derives from the same
+  reading and is wronger: *"that describes 48 files … the other 85 files and 11,522 lines are the layout
+  generator"* sums to 133 against `Pgm`'s 148, so the split argument cites a tree that no longer exists.
+  Re-measure both, and say in the document that the numbers are a reading rather than a derivation — nothing
+  regenerates them, which is why they rot silently.
+
 ## The remainder: work no concept above has claimed
 
 - [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
