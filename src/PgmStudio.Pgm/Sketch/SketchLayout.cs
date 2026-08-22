@@ -223,9 +223,12 @@ public sealed class SketchRoomStyles
 {
     // The wire word stays "cage": it is written into stored layouts by the sketch bridge, and renaming it
     // would leave every bound wool style silently falling back to the built-in one on load.
+    /// <summary>The style every wool cage is stamped in, as the stamper's own JSON. A snapshot rather than a
+    /// library id, so editing a library row never rebuilds a shipped map's cages.</summary>
     [JsonPropertyName("cage"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public JsonElement Wool { get; set; }
 
+    /// <summary>The style every spawn cube is stamped in, likewise snapshotted.</summary>
     [JsonPropertyName("spawn"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public JsonElement Spawn { get; set; }
 
@@ -235,11 +238,19 @@ public sealed class SketchRoomStyles
 
 /// <summary>A stacked slab (S7): its shapes/islands at a Y offset. The whole 2-D editor authors one layer;
 /// the rasterizer stacks them — a cell's column is the layer's <c>[floor, top]</c> shifted by <c>base_y</c>.</summary>
+/// <summary>One layer of the drawing: the shapes on it, and the height its ground starts at.</summary>
 public sealed class SketchLayer
 {
+    /// <summary>What the rest of the document names the layer by.</summary>
     [JsonPropertyName("id")]     public string? Id { get; set; }
+
+    /// <summary>What the layer is called on screen.</summary>
     [JsonPropertyName("name")]   public string? Name { get; set; }
+
+    /// <summary>The height this layer's ground starts at, in blocks.</summary>
     [JsonPropertyName("base_y")] public double BaseY { get; set; }
+
+    /// <summary>The shapes drawn on it, and the islands they group into.</summary>
     [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
 }
 
@@ -248,63 +259,124 @@ public sealed class SketchLayer
 /// ignores it and reads only the centre + mode).</summary>
 public sealed class SketchSetup
 {
+    /// <summary>How a mirroring island's shapes are fanned onto their orbit images — <c>rot_180</c>,
+    /// <c>rot_90</c>, <c>mirror_x</c>, <c>mirror_z</c>, or <c>none</c>.</summary>
     [JsonPropertyName("mirror_mode")] public string MirrorMode { get; set; } = "rot_180";
+
+    /// <summary>The point they are fanned about.</summary>
     [JsonPropertyName("center")]      public SketchCenter? Center { get; set; }
+
+    /// <summary>The editor's working bounds.</summary>
     [JsonPropertyName("bbox")]        public SketchBbox? Bbox { get; set; }
 }
 
+/// <summary>The point a drawing folds about. Half-integers are ordinary: a fold between two blocks sits on
+/// the seam rather than on either.</summary>
 public sealed class SketchCenter
 {
+    /// <summary>Where it folds, east–west.</summary>
     [JsonPropertyName("cx")] public double Cx { get; set; }
+
+    /// <summary>Where it folds, north–south.</summary>
     [JsonPropertyName("cz")] public double Cz { get; set; }
 }
 
 /// <summary>The editor's working bounds — the square the canvas fits to on open.</summary>
 public sealed class SketchBbox
 {
+    /// <summary>Its west edge, in blocks.</summary>
     [JsonPropertyName("min_x")] public double MinX { get; set; }
+
+    /// <summary>Its east edge.</summary>
     [JsonPropertyName("max_x")] public double MaxX { get; set; }
+
+    /// <summary>Its north edge.</summary>
     [JsonPropertyName("min_z")] public double MinZ { get; set; }
+
+    /// <summary>Its south edge.</summary>
     [JsonPropertyName("max_z")] public double MaxZ { get; set; }
 }
 
+/// <summary>What one layer holds: the shapes drawn on it, and how they group into landmasses.</summary>
 public sealed class SketchShapes
 {
+    /// <summary>Every shape on the layer, in draw order — a later shape is drawn over an earlier one.</summary>
     [JsonPropertyName("shapes")]  public List<SketchShape> Shapes { get; set; } = [];
+
+    /// <summary>The landmasses those shapes group into.</summary>
     [JsonPropertyName("islands")] public List<SketchIsland> Islands { get; set; } = [];
 }
 
 /// <summary>Groups shapes into a landmass and records whether the group is copied onto the mirror.</summary>
 public sealed class SketchIsland
 {
+    /// <summary>What the rest of the document names the island by — a relief is keyed on it.</summary>
     [JsonPropertyName("id")]       public string? Id { get; set; }
+
+    /// <summary>What the island is called on screen.</summary>
     [JsonPropertyName("name")]     public string? Name { get; set; }
+
+    /// <summary>Whether the group is copied onto its orbit images. An on-axis neutral island sets it false,
+    /// so it is not doubled onto itself.</summary>
     [JsonPropertyName("mirrors")]  public bool Mirrors { get; set; } = true;
+
+    /// <summary>The shapes that make it up, by id.</summary>
     [JsonPropertyName("shapeIds")] public List<string> ShapeIds { get; set; } = [];
 }
 
 /// <summary>Bézier control points for a polygon edge (the segment leaving / arriving at a vertex).</summary>
 public sealed class SketchControl
 {
+    /// <summary>The handle on the segment arriving at the vertex, as an <c>[x, z]</c> offset from it.</summary>
     [JsonPropertyName("in")]  public double[]? In { get; set; }
+
+    /// <summary>The handle on the segment leaving it.</summary>
     [JsonPropertyName("out")] public double[]? Out { get; set; }
 }
 
 /// <summary>One shape: a rectangle / circle / polygon (or lasso) with its set-algebra role.</summary>
 public sealed class SketchShape
 {
+    /// <summary>What the island lists and the theme scope names this shape by.</summary>
     [JsonPropertyName("id")]        public string Id { get; set; } = "";
+
+    /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>path</c> —
+    /// which says which of the numbers below it carries.</summary>
     [JsonPropertyName("type")]      public string Type { get; set; } = "";
+
+    /// <summary>Whether it adds ground or takes it away: <c>add</c> or <c>subtract</c>.</summary>
     [JsonPropertyName("operation")] public string Operation { get; set; } = "add";
+
+    /// <summary>Whether it overrides the shapes under it rather than combining with them.</summary>
     [JsonPropertyName("override")]  public bool Override { get; set; }
+
+    /// <summary>A rectangle's west edge, in blocks.</summary>
     [JsonPropertyName("min_x")] public double? MinX { get; set; }
+
+    /// <summary>A rectangle's north edge.</summary>
     [JsonPropertyName("min_z")] public double? MinZ { get; set; }
+
+    /// <summary>A rectangle's east edge.</summary>
     [JsonPropertyName("max_x")] public double? MaxX { get; set; }
+
+    /// <summary>A rectangle's south edge.</summary>
     [JsonPropertyName("max_z")] public double? MaxZ { get; set; }
+
+    /// <summary>A circle's centre, east–west.</summary>
     [JsonPropertyName("center_x")] public double? CenterX { get; set; }
+
+    /// <summary>A circle's centre, north–south.</summary>
     [JsonPropertyName("center_z")] public double? CenterZ { get; set; }
+
+    /// <summary>A circle's radius, or a path's half-width.</summary>
     [JsonPropertyName("radius")]   public double? Radius { get; set; }
+
+    /// <summary>A polygon's or lasso's outline as <c>[x, z]</c> pairs — or, for a path, its open centreline,
+    /// which is the one shape not stored as its own outline.</summary>
     [JsonPropertyName("vertices")] public double[][]? Vertices { get; set; }
+
+    /// <summary>Bézier handles per polygon edge, keyed by the vertex the edge leaves. Absent leaves every
+    /// edge straight.</summary>
     [JsonPropertyName("controls")] public Dictionary<string, SketchControl>? Controls { get; set; }
 
     // A path is the one shape not stored as its own outline: Vertices are an OPEN centerline and Radius its
@@ -350,8 +422,16 @@ public sealed class SketchShape
     /// stand, which an excluded footprint would not have.</para></summary>
     [JsonPropertyName("relief_scope")]   public string? ReliefScope { get; set; }
 
+    /// <summary>The shape's thickness: its column spans <c>[floor, floor + base_height]</c>. Absent is the
+    /// flat one-block behaviour at y=0.</summary>
     [JsonPropertyName("base_height")]    public double? BaseHeight { get; set; }
+
+    /// <summary>A thickness per vertex, for a polygon or lasso whose count lines up with its
+    /// <see cref="Vertices"/> — interpolated across the footprint, so the top varies rather than sitting
+    /// flat.</summary>
     [JsonPropertyName("anchor_heights")] public double[]? AnchorHeights { get; set; }
+
+    /// <summary>Where the shape's base sits, in blocks.</summary>
     [JsonPropertyName("floor")]          public double? Floor { get; set; }
 
     // Structural annotation (S25). A shape carrying a Role is not terrain the author drew — it is the spawn
@@ -360,8 +440,16 @@ public sealed class SketchShape
     // the rasterizer skips them, so they never carve or double-cover the ground the fused island already
     // holds. IntentRef links back to the intent entity (a team id for a spawn, owner:colour for a wool);
     // Colour is the dye/team slug the client fills the labelled box with.
+    /// <summary>What this shape is, where it is not terrain the author drew but a piece the plan placed —
+    /// a spawn or a wool room, projected in from the map intent so it stays visible while a plan is refined.
+    /// A shape carrying one is locked and contributes no terrain: the rasterizer skips it.</summary>
     [JsonPropertyName("role")]       public string? Role { get; set; }
+
+    /// <summary>Which intent entity it stands for — a team id for a spawn, <c>owner:colour</c> for a
+    /// wool.</summary>
     [JsonPropertyName("intentRef")]  public string? IntentRef { get; set; }
+
+    /// <summary>The dye or team slug the labelled box is filled with.</summary>
     [JsonPropertyName("color")]      public string? Color { get; set; }
 
     // Whether Floor/BaseHeight on a Role-tagged shape were stated by the author rather than derived from the
@@ -374,11 +462,18 @@ public sealed class SketchShape
     // same as before; true, the stored Floor/BaseHeight/AnchorHeights carry forward onto the freshly compiled
     // shape with the same IntentRef instead (SketchLayout.CarryStructuralHeight), the same way a relief
     // outlives the shapes it was solved over. Never set by the compiler itself.
+    /// <summary>Whether a role-tagged shape's <see cref="Floor"/> and <see cref="BaseHeight"/> were stated by
+    /// the author rather than derived from the plan's flat surface. It is what tells a recompile which shapes
+    /// to leave alone: absent, they track the plan on every compile; true, the stored heights carry forward
+    /// onto the freshly compiled shape with the same <see cref="IntentRef"/>. Never set by the
+    /// compiler.</summary>
     [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
     // Terrain-paint theme override (docs/world-export/terrain-painting.md TP10): the id (into SketchLayout.Themes) of the theme this
     // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island
     // and full-map assignment are UI conveniences that write this per member shape / the map default.
+    /// <summary>The theme this shape paints with, by id into the layout's registry. Absent falls to the map
+    /// default. The scope is the shape, so a reshape moves the paint.</summary>
     [JsonPropertyName("theme")]      public string? Theme { get; set; }
 
 }

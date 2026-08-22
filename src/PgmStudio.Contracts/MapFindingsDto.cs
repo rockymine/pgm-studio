@@ -30,6 +30,9 @@ public sealed record UnaskedGate(string Gate, string Why, string Ask);
 /// </summary>
 /// <param name="Stage">Where the map has got to, which is what decides how much of the list can be
 /// answered.</param>
+/// <param name="Findings">Everything the gates the stored documents can reach had to say.</param>
+/// <param name="Unasked">The gates that were not asked, each with what it needs and the route that pays
+/// for it — a list silent about what it skipped reads as <i>nothing is wrong</i>.</param>
 public sealed record MapFindingsDto(
     [property: WordSet(typeof(MapStage))] string Stage,
     IReadOnlyList<Finding> Findings,

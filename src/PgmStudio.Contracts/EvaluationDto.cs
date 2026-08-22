@@ -15,6 +15,12 @@ namespace PgmStudio.Contracts;
 /// <param name="Rect">A <c>[x, z, w, h]</c> cell rect (<c>rect</c>).</param>
 /// <param name="X1">Segment/measure first endpoint (<c>segment</c> / <c>measure</c>).</param>
 /// <param name="X">A cell-space point (<c>marker</c>).</param>
+/// <param name="Tag">What the primitive is for, which drives the overlay's styling: <c>offender</c>,
+/// <c>bound</c>, <c>measure</c>, <c>context</c>, or a <c>slot:*</c> convention.</param>
+/// <param name="Z1">Segment/measure first endpoint, north–south.</param>
+/// <param name="X2">Segment/measure second endpoint, east–west.</param>
+/// <param name="Z2">That endpoint, north–south.</param>
+/// <param name="Z">A cell-space point, north–south (<c>marker</c>).</param>
 /// <param name="Label">A human label carried by a dimension line (<c>measure</c>, e.g. <c>"17 &lt; 20"</c>).</param>
 public sealed record EvidenceDto(
     string Kind, string Tag,
@@ -31,6 +37,15 @@ public sealed record EvidenceDto(
 /// <para>The term id stays beside the finding rather than inside it: a rule is what an author broke and a term
 /// is which measurement noticed, and a scoring function may well grow a second term citing one rule.</para>
 /// </summary>
+/// <param name="TermId">Which measurement noticed — the metric id, kept beside the finding rather than
+/// inside it, because a rule is what an author broke and a term is what saw it.</param>
+/// <param name="Kind"><c>hard</c> for well-formedness, <c>soft</c> for feel.</param>
+/// <param name="Distance">How far outside its authored band a soft term landed. 0 for a hard fire, which
+/// has no band to be outside of.</param>
+/// <param name="Finding">What is wrong, in the one shape every gate answers in — so the canvas highlights
+/// an evaluator's subjects exactly as it highlights a validator's.</param>
+/// <param name="Evidence">The drawable primitives the overlay paints, so a broken rule is seen rather than
+/// only read.</param>
 public sealed record ViolationDto(
     string TermId, string Kind, double Distance, Finding Finding,
     IReadOnlyList<EvidenceDto> Evidence);
@@ -46,6 +61,13 @@ public sealed record ViolationDto(
 /// call whether or not they are carried, so carrying them costs nothing and is the only way the loop an agent
 /// drives sees them. Never affects <see cref="Valid"/> or <see cref="Score"/>.</para>
 /// </summary>
+/// <param name="Score">The summed cost, lower being better and 0 perfect: the hard penalties plus the
+/// weighted soft distances.</param>
+/// <param name="Valid">Whether no hard term fired.</param>
+/// <param name="Violations">Every fired term, hard first so the most actionable lead.</param>
+/// <param name="Lint">The structural validator's complaints, which never affect
+/// <paramref name="Score"/> or <paramref name="Valid"/>. They are derived on every call whether carried or
+/// not, so carrying them costs nothing and is the only way a driven loop sees them.</param>
 public sealed record EvaluationDto(
     double Score, bool Valid, IReadOnlyList<ViolationDto> Violations,
     IReadOnlyList<Finding>? Lint = null);

@@ -36,6 +36,8 @@ public sealed record MapFromDocumentsRequest(
 /// origination, true is a reload of a map that had been loaded before.</param>
 /// <param name="Cells">Ground columns the layout rasterized to.</param>
 /// <param name="Islands">Landmasses those columns fall into.</param>
+/// <param name="Slug">What every later route names the map by.</param>
+/// <param name="ConfigureUrl">The page that continues it, ready to navigate to.</param>
 public sealed record MapLoadedDto(
     string Slug,
     bool Replaced,

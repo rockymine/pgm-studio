@@ -10,6 +10,14 @@ namespace PgmStudio.Contracts;
 /// an <b>older composer</b> than the one running: the stored plan is unaffected (its geometry is stored, not
 /// recomputed), but its descriptor no longer reproduces it, so re-composing that request now gives a different
 /// board. Always false for authored/imported rows, which have no descriptor to go stale.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the plan is called.</param>
+/// <param name="Origin">How the row came to be: <c>generated</c>, <c>authored</c> or <c>imported</c>.</param>
+/// <param name="ParentId">The row this one was forked from, or null where it was not.</param>
+/// <param name="Seed">The seed that composed it, present only on a generated row.</param>
+/// <param name="ComposerVersion">Which composer composed it, present only on a generated row.</param>
+/// <param name="CreatedAt">When the row was made.</param>
+/// <param name="UpdatedAt">When it was last written.</param>
 public sealed record PlanSummary(
     long Id,
     string Name,
@@ -24,6 +32,15 @@ public sealed record PlanSummary(
 
 /// <summary>A full plan row (GET /api/plans/{id}, and the POST /api/plans save response) — a
 /// <see cref="PlanSummary"/> plus the canonical <c>*.plan.json</c> document to load into the editor.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the plan is called.</param>
+/// <param name="Origin">How the row came to be: <c>generated</c>, <c>authored</c> or <c>imported</c>.</param>
+/// <param name="ParentId">The row this one was forked from, or null where it was not.</param>
+/// <param name="Seed">The seed that composed it, present only on a generated row.</param>
+/// <param name="ComposerVersion">Which composer composed it, present only on a generated row.</param>
+/// <param name="CreatedAt">When the row was made.</param>
+/// <param name="UpdatedAt">When it was last written.</param>
+/// <param name="PlanJson">The canonical <c>*.plan.json</c> document, as text — what the editor loads.</param>
 public sealed record PlanDetail(
     long Id,
     string Name,
@@ -54,4 +71,7 @@ public sealed record PlanSaveRequest(
 /// <c>SketchLayout</c> and the intent a <c>MapIntent</c>, and both are described where they are read; naming
 /// them again would be a second copy free to disagree with the reader.</para>
 /// </summary>
+/// <param name="Layout">The sketch layout the plan compiles to, ready to post to
+/// <c>PUT …/sketch/from-plan</c> verbatim.</param>
+/// <param name="Intent">The map intent it compiles to, ready to post to <c>PUT …/intent/from-plan</c>.</param>
 public sealed record CompiledPlanDto(JsonElement Layout, JsonElement Intent);

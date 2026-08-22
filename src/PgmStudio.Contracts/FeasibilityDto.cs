@@ -8,6 +8,9 @@ namespace PgmStudio.Contracts;
 /// does not have; <see cref="Missing"/> are cells the box has that the candidate does not. Both are
 /// <c>[x, z, w, h]</c> cell rects in the same frame a piece rect uses, so the canvas paints them as evidence —
 /// which is what turns "8 cells differ" into a visible answer.</summary>
+/// <param name="Label">The candidate that came closest, as the emitter names it.</param>
+/// <param name="Cw">The corridor width it was tried at.</param>
+/// <param name="DifferingCells">How many cells separate it from the box.</param>
 public sealed record NearestMissDto(
     string Label, int Cw, int DifferingCells,
     IReadOnlyList<int[]> Extra, IReadOnlyList<int[]> Missing);
@@ -19,6 +22,9 @@ public sealed record NearestMissDto(
 /// (null when none does), <see cref="Nearest"/> the closest candidate otherwise, and <see cref="Findings"/> the
 /// directed reasons, as complaints — a box the emitters cannot reproduce is still a box an author drew.
 /// </summary>
+/// <param name="BoxId">The box this is about.</param>
+/// <param name="Kind">What the box is for — a spawn or wool approach, the hub, the frontline, the mid.</param>
+/// <param name="Cw">The corridor width the reproducing tuple uses, absent where nothing reproduced it.</param>
 public sealed record BoxFeasibilityDto(
     string BoxId, string Kind, string Identity,
     string? ProducibleAs, int? Cw,
@@ -39,5 +45,10 @@ public sealed record BoxFeasibilityDto(
 /// a box can be unbuildable on its own geometry <i>and</i> the unit unbuildable in how it is arranged, and an
 /// author wants to see all of it rather than the first failure.</para>
 /// </summary>
+/// <param name="Producible">Whether the composer could have produced the whole plan.</param>
+/// <param name="Boxes">The per-box read. Empty where the plan has no authored boxes, which is the
+/// annotation this hangs off.</param>
+/// <param name="Unit">The findings that belong to the <b>arrangement</b> rather than to any one box — the
+/// parallel-fronts guard, the frontline's face demand, the seat-separation law.</param>
 public sealed record FeasibilityDto(
     bool Producible, IReadOnlyList<BoxFeasibilityDto> Boxes, IReadOnlyList<Finding> Unit);
