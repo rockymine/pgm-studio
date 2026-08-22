@@ -51,8 +51,11 @@ public static class WaterLaneGenerator
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "cuboid", ["id"] = id, ["category"] = "build",
-                ["min_x"] = rect.MinX, ["min_y"] = LaneMinY, ["min_z"] = rect.MinZ,
-                ["max_x"] = rect.MaxX, ["max_y"] = LaneMaxY, ["max_z"] = rect.MaxZ,
+                ["coords"] = new Dict
+                {
+                    ["min_x"] = rect.MinX, ["min_y"] = LaneMinY, ["min_z"] = rect.MinZ,
+                    ["max_x"] = rect.MaxX, ["max_y"] = LaneMaxY, ["max_z"] = rect.MaxZ,
+                },
             });
             laneIds.Add(id);
         }

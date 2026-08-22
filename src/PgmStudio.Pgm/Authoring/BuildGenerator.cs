@@ -117,7 +117,7 @@ public static class BuildGenerator
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "rectangle", ["id"] = id, ["category"] = category,
-                ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ,
+                ["coords"] = new Dict { ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ },
             });
             ids.Add(id);
         }

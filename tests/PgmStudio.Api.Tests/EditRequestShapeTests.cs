@@ -52,24 +52,24 @@ public sealed class EditRequestShapeTests
         var doc = Map();
 
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "rectangle", Id: "yard", MinX: 10, MinZ: 20, MaxX: 30, MaxZ: 40)));
+            Type: "rectangle", Id: "yard", Coords: new RegionCoordsDto(MinX: 10, MinZ: 20, MaxX: 30, MaxZ: 40))));
         await Assert.That(Bounds(doc, "yard")).IsEquivalentTo(new[] { 10.0, 20.0, 30.0, 40.0 });
 
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "cuboid", Id: "hall", MinX: 1, MinY: 5, MinZ: 2, MaxX: 3, MaxY: 9, MaxZ: 4)));
+            Type: "cuboid", Id: "hall", Coords: new RegionCoordsDto(MinX: 1, MinY: 5, MinZ: 2, MaxX: 3, MaxY: 9, MaxZ: 4))));
         var hall = Region(doc, "hall");
         await Assert.That(Num(((Dict)hall["min"]!)["y"])).IsEqualTo(5.0);
         await Assert.That(Num(((Dict)hall["max"]!)["y"])).IsEqualTo(9.0);
 
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "block", Id: "mark", X: 7, Y: 65, Z: 8)));
+            Type: "block", Id: "mark", Coords: new RegionCoordsDto(X: 7, Y: 65, Z: 8))));
         var mark = (Dict)Region(doc, "mark")["position"]!;
         await Assert.That(Num(mark["x"])).IsEqualTo(7.0);
         await Assert.That(Num(mark["y"])).IsEqualTo(65.0);
         await Assert.That(Num(mark["z"])).IsEqualTo(8.0);
 
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "cylinder", Id: "tower", BaseX: 50, BaseY: 62, BaseZ: 60, Radius: 4, Height: 12)));
+            Type: "cylinder", Id: "tower", Coords: new RegionCoordsDto(BaseX: 50, BaseY: 62, BaseZ: 60, Radius: 4, Height: 12))));
         var tower = Region(doc, "tower");
         await Assert.That(Num(tower["radius"])).IsEqualTo(4.0);
         await Assert.That(Num(tower["height"])).IsEqualTo(12.0);
@@ -77,7 +77,7 @@ public sealed class EditRequestShapeTests
         await Assert.That(Bounds(doc, "tower")).IsEquivalentTo(new[] { 46.0, 56.0, 54.0, 64.0 });
 
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "circle", Id: "ring", CenterX: 100, CenterZ: 200, Radius: 5)));
+            Type: "circle", Id: "ring", Coords: new RegionCoordsDto(CenterX: 100, CenterZ: 200, Radius: 5))));
         await Assert.That(Bounds(doc, "ring")).IsEquivalentTo(new[] { 95.0, 195.0, 105.0, 205.0 });
     }
 
@@ -89,7 +89,7 @@ public sealed class EditRequestShapeTests
         var doc = Map();
         var posted = Posted(new RegionCreateRequest(
             Type: "rectangle", Id: "yard", Category: "objective", DraftStep: "objective",
-            MinX: 0, MinZ: 0, MaxX: 4, MaxZ: 4));
+            Coords: new RegionCoordsDto(MinX: 0, MinZ: 0, MaxX: 4, MaxZ: 4)));
 
         RegionEditor.CreateRegion(doc, posted);
 
@@ -99,17 +99,19 @@ public sealed class EditRequestShapeTests
     }
 
     [Test]
-    public async Task A_patched_region_moves_by_the_bounds_the_record_names()
+    public async Task A_patched_region_moves_by_the_coords_the_record_names()
     {
         var doc = Map();
 
         RegionEditor.PatchRegion(doc, "pad", Posted(new RegionPatchRequest(
-            Bounds: new Bounds2dDto(MinX: 2, MinZ: 3, MaxX: 6, MaxZ: 7))));
+            Coords: new RegionCoordsDto(MinX: 2, MinZ: 3, MaxX: 6, MaxZ: 7))));
         await Assert.That(Bounds(doc, "pad")).IsEquivalentTo(new[] { 2.0, 3.0, 6.0, 7.0 });
 
-        // a cuboid takes its floor and ceiling under `coords`, and its footprint only under `bounds`
+        // a cuboid's floor and ceiling ride the same coords object its footprint does, and moving only
+        // those leaves the footprint where it was
         RegionEditor.PatchRegion(doc, "pad", Posted(new RegionPatchRequest(
             Coords: new RegionCoordsDto(MinY: 11, MaxY: 22))));
+        await Assert.That(Bounds(doc, "pad")).IsEquivalentTo(new[] { 2.0, 3.0, 6.0, 7.0 });
         var pad = Region(doc, "pad");
         await Assert.That(Num(((Dict)pad["min"]!)["y"])).IsEqualTo(11.0);
         await Assert.That(Num(((Dict)pad["max"]!)["y"])).IsEqualTo(22.0);
@@ -125,7 +127,7 @@ public sealed class EditRequestShapeTests
     {
         var doc = Map();
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "cylinder", Id: "tower", BaseX: 0, BaseZ: 0, Radius: 1)));
+            Type: "cylinder", Id: "tower", Coords: new RegionCoordsDto(BaseX: 0, BaseZ: 0, Radius: 1))));
 
         RegionEditor.PatchRegion(doc, "tower", Posted(new RegionPatchRequest(
             Coords: new RegionCoordsDto(BaseX: 20, BaseY: 70, BaseZ: 30, Radius: 5, Height: 9))));
@@ -136,12 +138,12 @@ public sealed class EditRequestShapeTests
         await Assert.That(Bounds(doc, "tower")).IsEquivalentTo(new[] { 15.0, 25.0, 25.0, 35.0 });
 
         RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(
-            Type: "circle", Id: "ring", CenterX: 0, CenterZ: 0, Radius: 1)));
+            Type: "circle", Id: "ring", Coords: new RegionCoordsDto(CenterX: 0, CenterZ: 0, Radius: 1))));
         RegionEditor.PatchRegion(doc, "ring", Posted(new RegionPatchRequest(
             Coords: new RegionCoordsDto(CenterX: 8, CenterZ: 9, Radius: 2))));
         await Assert.That(Bounds(doc, "ring")).IsEquivalentTo(new[] { 6.0, 7.0, 10.0, 11.0 });
 
-        RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(Type: "block", Id: "mark", X: 0, Z: 0)));
+        RegionEditor.CreateRegion(doc, Posted(new RegionCreateRequest(Type: "block", Id: "mark", Coords: new RegionCoordsDto(X: 0, Z: 0))));
         RegionEditor.PatchRegion(doc, "mark", Posted(new RegionPatchRequest(
             Coords: new RegionCoordsDto(X: 4, Y: 5, Z: 6))));
         var mark = (Dict)Region(doc, "mark")["position"]!;

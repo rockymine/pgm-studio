@@ -10,36 +10,23 @@ namespace PgmStudio.Client.Models;
 /// (for refreshing the canvas shape), or null on failure.</summary>
 public static class RegionEdits
 {
-    private static readonly string[] Footprint = { "min_x", "min_z", "max_x", "max_z" };
-
     /// <summary>PATCH a whole footprint (a resize drag gives all four values).</summary>
     public static Task<Dictionary<string, double>?> SetBoundsAsync(
         HttpClient http, string slug, RegionNode node, double minX, double minZ, double maxX, double maxZ)
-    {
-        var b = new Dictionary<string, object?> { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ };
-        return PatchAsync(http, slug, node, new Dictionary<string, object?> { ["bounds"] = b });
-    }
+        => PatchAsync(http, slug, node, Coords(new Dictionary<string, object?>
+        {
+            ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ,
+        }));
 
-    /// <summary>PATCH one inspector coord field. Footprint keys (min_x/min_z/max_x/max_z) go through the
-    /// bounds path (sent with the region's current footprint); all other keys (cuboid min_y/max_y,
-    /// point x/y/z, cylinder base/radius/height, …) go through the coords path.</summary>
+    /// <summary>PATCH one inspector coord field. Every key a region carries — footprint, cuboid min_y/max_y,
+    /// point x/y/z, cylinder base/radius/height — goes under the same <c>coords</c> object, and the stored
+    /// region's type decides which of them it reads.</summary>
     public static Task<Dictionary<string, double>?> SetCoordAsync(
         HttpClient http, string slug, RegionNode node, string key, double value)
-    {
-        Dictionary<string, object?> body;
-        if (Footprint.Contains(key))
-        {
-            var b = new Dictionary<string, object?>();
-            foreach (var k in Footprint) b[k] = Cur(node, k);
-            b[key] = value;
-            body = new Dictionary<string, object?> { ["bounds"] = b };
-        }
-        else
-        {
-            body = new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { [key] = value } };
-        }
-        return PatchAsync(http, slug, node, body, key, value);
-    }
+        => PatchAsync(http, slug, node, Coords(new Dictionary<string, object?> { [key] = value }), key, value);
+
+    private static Dictionary<string, object?> Coords(Dictionary<string, object?> numbers)
+        => new() { ["coords"] = numbers };
 
     private static async Task<Dictionary<string, double>?> PatchAsync(
         HttpClient http, string slug, RegionNode node, Dictionary<string, object?> body, string? coordKey = null, double coordValue = 0)
@@ -69,8 +56,6 @@ public static class RegionEdits
             if (node.Coords.ContainsKey(k)) node.Coords[k] = v;
         }
     }
-
-    private static double Cur(RegionNode node, string k) => ToDouble(node.Coords.GetValueOrDefault(k) ?? node.Bounds?.GetValueOrDefault(k));
 
     private static double ToDouble(object? o) => o switch { double d => d, long l => l, int i => i, _ => 0 };
 }

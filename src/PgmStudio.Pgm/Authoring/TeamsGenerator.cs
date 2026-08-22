@@ -149,7 +149,7 @@ public static class TeamsGenerator
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "point", ["id"] = pointId, ["category"] = "spawn",
-                ["x"] = sp.Point.X, ["y"] = sp.Point.Y, ["z"] = sp.Point.Z,
+                ["coords"] = new Dict { ["x"] = sp.Point.X, ["y"] = sp.Point.Y, ["z"] = sp.Point.Z },
             });
             SpawnEditor.AddSpawnLink(doc, new Dict
             {
@@ -206,7 +206,7 @@ public static class TeamsGenerator
         Dict RectDict(string rid, Rect r) => new()
         {
             ["type"] = "rectangle", ["id"] = rid, ["category"] = category,
-            ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ,
+            ["coords"] = new Dict { ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ },
         };
         if (rects.Count == 1) { RegionEditor.CreateRegion(doc, RectDict(id, rects[0])); return; }
         var rectIds = new List<string>();
@@ -235,7 +235,7 @@ public static class TeamsGenerator
         RegionEditor.CreateRegion(doc, new Dict
         {
             ["type"] = "point", ["id"] = ObserverRegionId, ["category"] = "observer_spawn",
-            ["x"] = o.Point.X, ["y"] = o.Point.Y, ["z"] = o.Point.Z,
+            ["coords"] = new Dict { ["x"] = o.Point.X, ["y"] = o.Point.Y, ["z"] = o.Point.Z },
         });
         SpawnEditor.SetObserverSpawn(doc, new Dict { ["region_id"] = ObserverRegionId, ["yaw"] = o.Yaw });
     }

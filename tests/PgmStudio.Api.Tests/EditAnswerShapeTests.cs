@@ -62,7 +62,7 @@ public sealed class EditAnswerShapeTests
     public async Task A_created_region_answers_the_id_it_is_named_by()
     {
         var made = RegionEditor.CreateRegion(Map(),
-            new Dict { ["type"] = "rectangle", ["min_x"] = 0L, ["min_z"] = 0L, ["max_x"] = 8L, ["max_z"] = 8L });
+            new Dict { ["type"] = "rectangle", ["coords"] = new Dict { ["min_x"] = 0L, ["min_z"] = 0L, ["max_x"] = 8L, ["max_z"] = 8L } });
 
         await Assert.That(Answer<RegionCreatedDto>(made).Id).IsEqualTo("region_1");
     }
@@ -74,7 +74,7 @@ public sealed class EditAnswerShapeTests
     {
         var doc = Map();
         var moved = Answer<RegionPatchedDto>(RegionEditor.PatchRegion(doc, "pad",
-            new Dict { ["bounds"] = new Dict { ["min_x"] = 2L, ["min_z"] = 0L, ["max_x"] = 6L, ["max_z"] = 4L } }));
+            new Dict { ["coords"] = new Dict { ["min_x"] = 2L, ["min_z"] = 0L, ["max_x"] = 6L, ["max_z"] = 4L } }));
         await Assert.That(moved.Bounds).IsNotNull();
         await Assert.That(moved.Bounds!.MaxX).IsEqualTo(6.0);
 

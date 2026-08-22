@@ -327,15 +327,16 @@ public partial class WorldCanvas
     {
         double N(string k) => d.TryGetProperty(k, out var v) && v.ValueKind == JsonValueKind.Number ? v.GetDouble() : 0;
         var type = d.TryGetProperty("type", out var t) ? t.GetString() ?? "rectangle" : "rectangle";
-        var p = new Dictionary<string, object?> { ["category"] = category, ["type"] = type };
-        if (!string.IsNullOrEmpty(draftStep)) p["draft_step"] = draftStep;
+        var coords = new Dictionary<string, object?>();
         switch (type)
         {
-            case "cylinder": p["base_x"] = N("base_x"); p["base_y"] = 0; p["base_z"] = N("base_z"); p["radius"] = N("radius"); p["height"] = 10; break;
-            case "circle": p["center_x"] = N("center_x"); p["center_z"] = N("center_z"); p["radius"] = N("radius"); break;
-            case "point" or "block": p["x"] = N("min_x") + 0.5; p["y"] = 0; p["z"] = N("min_z") + 0.5; break;
-            default: p["min_x"] = N("min_x"); p["min_z"] = N("min_z"); p["max_x"] = N("max_x"); p["max_z"] = N("max_z"); break;   // rectangle, cuboid
+            case "cylinder": coords["base_x"] = N("base_x"); coords["base_y"] = 0; coords["base_z"] = N("base_z"); coords["radius"] = N("radius"); coords["height"] = 10; break;
+            case "circle": coords["center_x"] = N("center_x"); coords["center_z"] = N("center_z"); coords["radius"] = N("radius"); break;
+            case "point" or "block": coords["x"] = N("min_x") + 0.5; coords["y"] = 0; coords["z"] = N("min_z") + 0.5; break;
+            default: coords["min_x"] = N("min_x"); coords["min_z"] = N("min_z"); coords["max_x"] = N("max_x"); coords["max_z"] = N("max_z"); break;   // rectangle, cuboid
         }
+        var p = new Dictionary<string, object?> { ["category"] = category, ["type"] = type, ["coords"] = coords };
+        if (!string.IsNullOrEmpty(draftStep)) p["draft_step"] = draftStep;
         return p;
     }
 

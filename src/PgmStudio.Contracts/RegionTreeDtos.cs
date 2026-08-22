@@ -78,16 +78,6 @@ public sealed record RegionExtentDto(
     [property: JsonPropertyName("max_x")] JsonElement MaxX,
     [property: JsonPropertyName("max_z")] JsonElement MaxZ);
 
-/// <summary>A footprint in block coordinates, spelled the way the region surface spells it — the
-/// <c>bounds_2d</c> of the contract. Four numbers, always: unlike a region <b>extent</b>, which may be
-/// unbounded on a side, this comes from a stored box, a measured island footprint or a region the editor
-/// just resolved.</summary>
-public sealed record Bounds2dDto(
-    [property: JsonPropertyName("min_x")] double MinX,
-    [property: JsonPropertyName("min_z")] double MinZ,
-    [property: JsonPropertyName("max_x")] double MaxX,
-    [property: JsonPropertyName("max_z")] double MaxZ);
-
 /// <summary>
 /// A region's footprint as rings of <c>[x, z]</c> pairs. <see cref="Polygons"/> is every part — a union of
 /// disjoint shapes has several — and <see cref="Exterior"/> and <see cref="Holes"/> repeat the first part's

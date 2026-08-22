@@ -14,13 +14,8 @@ namespace PgmStudio.Contracts;
 /// field of an update is optional and why sending <c>null</c> is a different request from sending nothing —
 /// on the three that carry a location or a team, an explicit <c>null</c> clears it.</para>
 /// </summary>
-/// <remarks>The region a caller draws, in the type's own numbers. <see cref="Type"/> chooses which of them
-/// are read and the rest are ignored: a <c>rectangle</c> takes the four <c>min</c>/<c>max</c> footprint
-/// numbers; a <c>cuboid</c> takes those plus <see cref="MinY"/> and <see cref="MaxY"/>; a <c>point</c> or
-/// <c>block</c> takes <see cref="X"/>, <see cref="Y"/> and <see cref="Z"/>; a <c>cylinder</c> takes
-/// <see cref="BaseX"/>, <see cref="BaseY"/>, <see cref="BaseZ"/>, <see cref="Radius"/> and
-/// <see cref="Height"/>; a <c>circle</c> takes <see cref="CenterX"/>, <see cref="CenterZ"/> and
-/// <see cref="Radius"/>. A number the chosen type requires and the body omits is refused as <c>RQ1</c>.</remarks>
+/// <remarks>The region a caller draws. Its numbers travel nested under <c>coords</c>, the same envelope a
+/// patch sends, so a caller that has learned one route can write the other.</remarks>
 /// <param name="Type">One of <c>rectangle</c>, <c>cuboid</c>, <c>point</c>, <c>block</c>, <c>cylinder</c>,
 /// <c>circle</c>; anything else is refused. Absent means <c>rectangle</c>.</param>
 /// <param name="Id">The name every later route calls this region by. Absent means the editor numbers one
@@ -30,65 +25,41 @@ namespace PgmStudio.Contracts;
 /// <c>other</c>.</param>
 /// <param name="DraftStep">Marks the region as drawn but not yet wired, so the editor's Teams, Objective or
 /// Build phase still shows it as a draft. Absent means it is wired.</param>
-/// <param name="MinX">The footprint's west edge, in blocks.</param>
-/// <param name="MinY">A cuboid's floor. Absent means 0.</param>
-/// <param name="MinZ">The footprint's north edge, in blocks.</param>
-/// <param name="MaxX">The footprint's east edge, in blocks.</param>
-/// <param name="MaxY">A cuboid's ceiling. Absent means 256.</param>
-/// <param name="MaxZ">The footprint's south edge, in blocks.</param>
-/// <param name="X">A point or block's east–west position. A <c>block</c> is rounded to whole blocks; a
-/// <c>point</c> keeps what was written, so a spawn holds its <c>.5</c> block centre.</param>
-/// <param name="Y">A point or block's height. Absent means 64.</param>
-/// <param name="Z">A point or block's north–south position.</param>
-/// <param name="BaseX">A cylinder's centre, east–west.</param>
-/// <param name="BaseY">A cylinder's floor. Absent means 64.</param>
-/// <param name="BaseZ">A cylinder's centre, north–south.</param>
-/// <param name="CenterX">A circle's centre, east–west.</param>
-/// <param name="CenterZ">A circle's centre, north–south.</param>
-/// <param name="Radius">A cylinder's or circle's radius, in blocks.</param>
-/// <param name="Height">A cylinder's height, in blocks. Absent means 10.</param>
+/// <param name="Coords">The type's own numbers. Which are read is <see cref="Type"/>, and a number the
+/// chosen type requires and <c>coords</c> omits is refused as <c>RQ1</c>; an absent <c>coords</c> is the
+/// same refusal.</param>
 public sealed record RegionCreateRequest(
     string? Type = null,
     string? Id = null,
     string? Category = null,
     [property: JsonPropertyName("draft_step")] string? DraftStep = null,
-    [property: JsonPropertyName("min_x")] double? MinX = null,
-    [property: JsonPropertyName("min_y")] double? MinY = null,
-    [property: JsonPropertyName("min_z")] double? MinZ = null,
-    [property: JsonPropertyName("max_x")] double? MaxX = null,
-    [property: JsonPropertyName("max_y")] double? MaxY = null,
-    [property: JsonPropertyName("max_z")] double? MaxZ = null,
-    double? X = null,
-    double? Y = null,
-    double? Z = null,
-    [property: JsonPropertyName("base_x")] double? BaseX = null,
-    [property: JsonPropertyName("base_y")] double? BaseY = null,
-    [property: JsonPropertyName("base_z")] double? BaseZ = null,
-    [property: JsonPropertyName("center_x")] double? CenterX = null,
-    [property: JsonPropertyName("center_z")] double? CenterZ = null,
-    double? Radius = null,
-    double? Height = null);
+    RegionCoordsDto? Coords = null);
 
-/// <summary>The numbers of a region already created, under the key that sets them. Which are read is the
-/// stored region's type, not the request's: a <c>cuboid</c> reads only <see cref="MinY"/> and
-/// <see cref="MaxY"/> here, because its footprint is set through <c>bounds</c> instead, and a number the
-/// type does not use is accepted and ignored.</summary>
-/// <param name="MinX">A rectangle's west edge.</param>
-/// <param name="MinY">A cuboid's floor.</param>
-/// <param name="MinZ">A rectangle's north edge.</param>
-/// <param name="MaxX">A rectangle's east edge.</param>
-/// <param name="MaxY">A cuboid's ceiling.</param>
-/// <param name="MaxZ">A rectangle's south edge.</param>
-/// <param name="X">A point or block's east–west position.</param>
-/// <param name="Y">A point or block's height.</param>
-/// <param name="Z">A point or block's north–south position.</param>
+/// <summary>The numbers a region is drawn from, under the key that sets each one. Which are read is the
+/// region's type — a <c>rectangle</c> takes the four <c>min</c>/<c>max</c> footprint numbers, a
+/// <c>cuboid</c> those plus <see cref="MinY"/> and <see cref="MaxY"/>, a <c>point</c> or <c>block</c>
+/// <see cref="X"/>, <see cref="Y"/> and <see cref="Z"/>, a <c>cylinder</c> <see cref="BaseX"/>,
+/// <see cref="BaseY"/>, <see cref="BaseZ"/>, <see cref="Radius"/> and <see cref="Height"/>, a <c>circle</c>
+/// <see cref="CenterX"/>, <see cref="CenterZ"/> and <see cref="Radius"/> — and a number the type does not
+/// use is accepted and ignored. On a create the type is the request's; on a patch it is the stored
+/// region's, and every field is optional because a patch sets only what it names.</summary>
+/// <param name="MinX">A rectangle's or cuboid's west edge. On a create, required for both.</param>
+/// <param name="MinY">A cuboid's floor. On a create, absent means 0.</param>
+/// <param name="MinZ">A rectangle's or cuboid's north edge. On a create, required for both.</param>
+/// <param name="MaxX">A rectangle's or cuboid's east edge. On a create, required for both.</param>
+/// <param name="MaxY">A cuboid's ceiling. On a create, absent means 256.</param>
+/// <param name="MaxZ">A rectangle's or cuboid's south edge. On a create, required for both.</param>
+/// <param name="X">A point's or block's east–west position. A <c>block</c> is rounded to whole blocks; a
+/// <c>point</c> keeps what was written, so a spawn holds its <c>.5</c> block centre.</param>
+/// <param name="Y">A point's or block's height. On a create, absent means 64.</param>
+/// <param name="Z">A point's or block's north–south position.</param>
 /// <param name="BaseX">A cylinder's centre, east–west.</param>
-/// <param name="BaseY">A cylinder's floor.</param>
+/// <param name="BaseY">A cylinder's floor. On a create, absent means 64.</param>
 /// <param name="BaseZ">A cylinder's centre, north–south.</param>
 /// <param name="CenterX">A circle's centre, east–west.</param>
 /// <param name="CenterZ">A circle's centre, north–south.</param>
-/// <param name="Radius">A cylinder's or circle's radius.</param>
-/// <param name="Height">A cylinder's height.</param>
+/// <param name="Radius">A cylinder's or circle's radius, in blocks.</param>
+/// <param name="Height">A cylinder's height, in blocks. On a create, absent means 10.</param>
 public sealed record RegionCoordsDto(
     [property: JsonPropertyName("min_x")] double? MinX = null,
     [property: JsonPropertyName("min_y")] double? MinY = null,
@@ -107,17 +78,15 @@ public sealed record RegionCoordsDto(
     double? Radius = null,
     double? Height = null);
 
-/// <summary>Rename a region, move its footprint, or set the numbers of its own type — one of the three, and
-/// a body carrying none of them is refused as <c>RQ1</c> before the region is even looked up.</summary>
+/// <summary>Rename a region or move it, by naming the numbers that change — one of the two, and a body
+/// carrying neither is refused as <c>RQ1</c> before the region is even looked up.</summary>
 /// <param name="Id">A new name. The rename cascades: the region groups, every compound listing it as a
 /// child, and any spawn or wool room pointing at it follow. A name already in use is refused as
 /// <c>RQ5</c>.</param>
-/// <param name="Bounds">A new 2-D footprint, which any region type accepts and which is answered back as the
-/// bounds the region now covers.</param>
-/// <param name="Coords">The stored type's own numbers.</param>
+/// <param name="Coords">The numbers to set, under the same keys a create sends. The stored region's type
+/// chooses which are read; the footprint the region now covers is answered back.</param>
 public sealed record RegionPatchRequest(
     string? Id = null,
-    Bounds2dDto? Bounds = null,
     RegionCoordsDto? Coords = null);
 
 /// <summary>Combine two or more regions into a compound one.</summary>

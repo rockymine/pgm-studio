@@ -83,7 +83,7 @@ public static class WoolGenerator
                 RegionEditor.CreateRegion(doc, new Dict
                 {
                     ["type"] = "block", ["id"] = monBlockId, ["category"] = "wool",
-                    ["x"] = m.Location.X, ["y"] = m.Location.Y, ["z"] = m.Location.Z,
+                    ["coords"] = new Dict { ["x"] = m.Location.X, ["y"] = m.Location.Y, ["z"] = m.Location.Z },
                 });
                 monumentBlockIds.Add(monBlockId);
                 WoolEditor.AddMonument(doc, colorSlug, new Dict
@@ -101,7 +101,7 @@ public static class WoolGenerator
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",
-                ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z,
+                ["coords"] = new Dict { ["x"] = w.Spawn.X, ["y"] = w.Spawn.Y, ["z"] = w.Spawn.Z },
             });
             DocAccess.EnsureList(doc, "spawners").Add(new Dict
             {
@@ -172,7 +172,7 @@ public static class WoolGenerator
         Dict RectDict(string rid, Rect r) => new()
         {
             ["type"] = "rectangle", ["id"] = rid, ["category"] = category,
-            ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ,
+            ["coords"] = new Dict { ["min_x"] = r.MinX, ["min_z"] = r.MinZ, ["max_x"] = r.MaxX, ["max_z"] = r.MaxZ },
         };
         if (rects.Count == 1) { RegionEditor.CreateRegion(doc, RectDict(id, rects[0])); return; }
         var rectIds = new List<string>();

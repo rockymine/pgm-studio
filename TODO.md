@@ -26,13 +26,6 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   `CompiledPlanDto`, `ThemeMapPreviewDto`, `MapOriginDto`. Split it by subject the way the folder rule
   states. Twelve routes and one file; no wire changes unless the `204` question is answered yes.
 
-- [ ] **RP34 — Two records name the same box and spell it two ways.** `BoundsDto`
-  (`Contracts/AnalysisDtos.cs:5`) is four `int`s answered camelCase (`minX`) by the two region-analysis
-  reads; `Bounds2dDto` (`Contracts/RegionTreeDtos.cs:84`) is four `double`s answered snake_case (`min_x`) by
-  the region tree and the four region writes. Same concept — a footprint in block coordinates — under two
-  types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
-  callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
-
 - [ ] **RP35 — `/api/rules` answers 169 rules and 88 of them are raised.** `RuleCatalog.Read` concatenates
   the **77 gate rules** declared as `const string` in the fourteen `*Rules` classes with **92 layout rules**
   parsed out of `docs/generator/rules.md`, of which the plan validator fires **fifteen**:
@@ -75,12 +68,3 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   enum where the set is genuinely closed, or NSwag's schema processor reading the `All` array where the
   `const string` shape has to stay for `Minecraft`.
 
-- [ ] **RP38 — A region states its numbers flat to create and nested to patch.** `POST /map/{slug}/regions`
-  reads `min_x`, `base_y`, `center_x` and the rest off the body root; `PATCH /map/{slug}/regions/{regionId}`
-  reads the same sixteen numbers out of a `coords` object, and its `bounds` object is a third spelling of the
-  four a create sends flat. So the contract carries two records — `RegionCreateRequest` and
-  `RegionCoordsDto`, `Contracts/EditRequests.cs` — whose number fields are identical and whose nesting is
-  not, and a caller that has learned one cannot write the other. Settle on one envelope. Nesting is the
-  better half: it separates the shape's numbers from the id, the category and the draft mark, and it is
-  already what the patch route and `Bounds2dDto` use. One editor signature, six client call sites, and the
-  two records become one. `RP34` is the same seam on the answer side.

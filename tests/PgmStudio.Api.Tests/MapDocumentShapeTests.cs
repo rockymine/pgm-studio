@@ -35,7 +35,7 @@ public sealed class MapDocumentShapeTests
         await Ok(client.PostAsJsonAsync("/api/map/shapemap/teams",
             new { id = "blue", name = "Blue", color = "blue", max_players = 12 }));
         await Ok(client.PostAsJsonAsync("/api/map/shapemap/regions",
-            new { id = "blue-spawn", type = "rectangle", min_x = 0, min_z = 0, max_x = 8, max_z = 8 }));
+            new { id = "blue-spawn", type = "rectangle", coords = new { min_x = 0, min_z = 0, max_x = 8, max_z = 8 } }));
         await Ok(client.PostAsJsonAsync("/api/map/shapemap/spawns",
             new { region_id = "blue-spawn", team = "blue", kit = "spawn", yaw = 90.0 }));
         await Ok(client.PostAsJsonAsync("/api/map/shapemap/wools", new { color = "red" }));

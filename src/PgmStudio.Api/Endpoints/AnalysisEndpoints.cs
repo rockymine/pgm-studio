@@ -1,5 +1,4 @@
 using PgmStudio.Export;
-using System.Text.Json.Nodes;
 using FastEndpoints;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Api.Services;
@@ -49,7 +48,7 @@ public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, F
         var rows = Enumerable.Range(0, res.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, res.Width).Select(ix => (char)('0' + res.Verdict[iz * res.Width + ix])))).ToList();
         await Send.OkAsync(new BuildabilityDto(
-            new BoundsDto(res.MinX, res.MinZ, res.MaxX, res.MaxZ), res.Width, res.Height,
+            new Bounds2dDto(res.MinX, res.MinZ, res.MaxX, res.MaxZ), res.Width, res.Height,
             Buildability.Classes, Buildability.ClassColors, res.Counts, rows, res.HasY0), ct);
     }
 }
@@ -109,7 +108,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
             .Select(iz => string.Concat(Enumerable.Range(0, res.Width)
                 .Select(ix => Digit(res.Traffic[iz * res.Width + ix])))).ToList();
         await Send.OkAsync(new CoverageDto(
-            new BoundsDto(res.MinX, res.MinZ, res.MinX + res.Width, res.MinZ + res.Height),
+            new Bounds2dDto(res.MinX, res.MinZ, res.MinX + res.Width, res.MinZ + res.Height),
             res.Width, res.Height, GroundCoverage.Classes, GroundCoverage.ClassColors, rows,
             res.GroundCells, res.ReachedCells, res.DecoratedCells, res.DeadCells, res.DeadShare,
             res.DeadPatches.Select(p => new CoveragePatchDto(p.Area, p.CentroidX, p.CentroidZ, p.NearestReachedBlocks)).ToList(),
@@ -172,7 +171,7 @@ public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader re
 }
 
 /// <summary>POST /api/map/{slug}/wool-sources — wool colours found inside a drawn rectangle
-/// (body: <c>{ bounds: { minX, minZ, maxX, maxZ } }</c>).</summary>
+/// (body: <c>{ bounds: { min_x, min_z, max_x, max_z } }</c>).</summary>
 public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolSourcesResponseDto>
 {
     public override void Configure()
@@ -185,21 +184,23 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
     {
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
-        var b = (JsonNode.Parse(await RawBody.ReadAsync(HttpContext, ct)) as JsonObject)?["bounds"] as JsonObject;
-        if (b?["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
+        var (kind, bounds) = await PostedBounds.ReadAsync(HttpContext, ct);
+        if (bounds is null)
         {
             // Naming the four fields alone read as though they were the body; they are nested, and a caller
             // posting them flat got this same sentence back and no way to tell the two apart.
             await Refusals.UnreadableAsync(HttpContext, "no rectangle given",
-                "the rectangle to search is required, as {\"bounds\": {\"minX\", \"minZ\", \"maxX\", "
-                + "\"maxZ\"}} — the four corners nested under 'bounds', not beside it", ct, field: "bounds");
+                $"the rectangle to search is required, as {{\"bounds\": {{{PostedBounds.Corners}}}}} — the "
+                + "four corners nested under 'bounds', not beside it"
+                + (kind == PostedBoundsKind.Incomplete ? ", and this one is short of a corner" : ""),
+                ct, field: "bounds");
             return;
         }
 
         var have = await feature.HasScanAsync(map.Id, ct);
         var sources = await feature.WoolSourcesAsync(map.Id, doc, ct);
         var colors = WoolSources.SourcesInRegion(doc, sources,
-                b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>(),
+                bounds.MinX, bounds.MinZ, bounds.MaxX, bounds.MaxZ,
                 (await feature.MapBboxAsync(map.Id, ct))?.bounds)
             .Select(c => new WoolColorSummaryDto(c.Color, c.Total, c.SourceTypes, c.Repeatable, c.OneTime,
                 c.Sources.Select(s => new WoolSourceDto(s.Type, s.Color, s.X, s.Y, s.Z, s.Count)).ToList())).ToList();
@@ -225,7 +226,7 @@ public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader
 }
 
 /// <summary>POST /api/map/{slug}/resources — iron/gold/diamond blocks (optionally in a drawn rect,
-/// body <c>{ bounds?: { minX, minZ, maxX, maxZ } }</c>) + how many a &lt;renewable&gt; already covers.</summary>
+/// body <c>{ bounds?: { min_x, min_z, max_x, max_z } }</c>) + how many a &lt;renewable&gt; already covers.</summary>
 public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<ResourceSourcesResponseDto>
 {
     public override void Configure()
@@ -238,20 +239,17 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
     {
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
-        (double, double, double, double)? bounds = null;
-        if ((JsonNode.Parse(await RawBody.ReadAsync(HttpContext, ct)) as JsonObject)?["bounds"] is JsonObject b)   // bounds is optional
+        var (kind, box) = await PostedBounds.ReadAsync(HttpContext, ct);
+        if (kind == PostedBoundsKind.Incomplete)
         {
-            if (b["minX"] is null || b["minZ"] is null || b["maxX"] is null || b["maxZ"] is null)
-            {
-                // Here bounds is optional — omitting it reads the whole map — so this fires only for one
-                // that is present and short of a corner, which is a different fault from the one above.
-                await Refusals.UnreadableAsync(HttpContext, "rectangle missing a corner",
-                    "'bounds' was given but is missing a corner: it takes minX, minZ, maxX and maxZ. Omit "
-                    + "'bounds' entirely to read the whole map", ct, field: "bounds");
-                return;
-            }
-            bounds = (b["minX"]!.GetValue<double>(), b["minZ"]!.GetValue<double>(), b["maxX"]!.GetValue<double>(), b["maxZ"]!.GetValue<double>());
+            // Here bounds is optional — omitting it reads the whole map — so this fires only for one
+            // that is present and short of a corner, which is a different fault from the one above.
+            await Refusals.UnreadableAsync(HttpContext, "rectangle missing a corner",
+                $"'bounds' was given but is missing a corner: it takes {PostedBounds.Corners}. Omit "
+                + "'bounds' entirely to read the whole map", ct, field: "bounds");
+            return;
         }
+        var bounds = box is null ? ((double, double, double, double)?)null : (box.MinX, box.MinZ, box.MaxX, box.MaxZ);
 
         var have = await feature.HasScanAsync(map.Id, ct);
         var blocks = await feature.ResourceBlocksAsync(map.Id, ct);

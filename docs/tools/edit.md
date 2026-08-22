@@ -218,7 +218,7 @@ refused as `RQ5` — the third 409 in that list — and one stating nothing writ
 | `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools[/{woolId}]` | the wool objectives |
 | `POST` · `PATCH` · `DELETE /map/{slug}/wools/{woolId}/monuments[/{monId}]` | their capture points |
-| `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete |
+| `POST` · `PATCH` · `DELETE /map/{slug}/regions[/{regionId}]` | create, re-coordinate or rename, delete — the numbers nested under `coords` on both writes |
 | `POST /map/{slug}/regions/group` · `/ungroup` | union two or more, dissolve a compound |
 | `POST /map/{slug}/regions/{regionId}/counterpart` · `/orbit` | mirror a region onto the other team, or round the orbit |
 
@@ -239,19 +239,22 @@ the document is untouched.
 ```
 GET   /api/map/sentient                            → the whole document
 GET   /api/map/sentient/regions/tree               → the tree: the region's id, type and current numbers
-PATCH /api/map/sentient/regions/blue-spawn-point   {"bounds": {"min_x": 234, "min_z": 149,
+PATCH /api/map/sentient/regions/blue-spawn-point   {"coords": {"min_x": 234, "min_z": 149,
                                                                "max_x": 238, "max_z": 151}}
 GET   /api/map/sentient/xml                        → the rendered map.xml
 ```
 
-**A region patch takes one of three envelopes and a flat body is refused**, which is the trap worth naming.
-`{"id": …}` renames — cascading through the categories, every compound's child list, and any spawn or wool
-room pointing at it. `{"bounds": {min_x, min_z, max_x, max_z}}` moves the 2-D footprint of any region and
-answers the new bounds. `{"coords": {…}}` sets the type's own fields, and **for a `cuboid` that means `min_y`
-and `max_y` only** — sending `min_x` under `coords` to a cuboid is accepted and silently ignored, because a
-cuboid's footprint is `bounds`. A flat payload is a 400 carrying `RQ1` and the sentence *provide 'id',
-'bounds', or 'coords'*, and that check runs before the region lookup, so a flat body aimed at a region that
-does not exist answers 400 rather than 404.
+**A region's numbers always travel nested under `coords`, on a create and on a patch alike**, which is the
+trap worth naming. A patch takes `{"id": …}` to rename — cascading through the categories, every compound's
+child list, and any spawn or wool room pointing at it — and `{"coords": {…}}` to move it, answering the
+footprint the region now covers. The stored type chooses which of the sixteen numbers it reads: a
+`rectangle` or `cuboid` the four `min`/`max` corners, a `cuboid` also `min_y` and `max_y`, a `cylinder` its
+base, radius and height, and a number the type does not use is accepted and ignored. A flat payload is a
+400 carrying `RQ1` — *provide 'id' or 'coords'* on a patch, *coords required* on a create — and on a patch
+that check runs before the region lookup, so a flat body aimed at a region that does not exist answers 400
+rather than 404. A create whose `coords` is present but short of a number its type needs names the number:
+*coords.max_x required*, with `coords.max_x` as the field. On a patch there is no such refusal, because
+naming nothing is what a patch is allowed to do — an absent number, and a `null` one, both mean leave it.
 
 **A refusal comes back in the studio's one envelope, whichever route produced it**, so one
 parser reads them all and the rule id says which fault it was:

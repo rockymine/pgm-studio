@@ -20,7 +20,7 @@ public sealed class RegionEditorTests
     public async Task Create_rectangle_uses_canonical_bounds_shape()
     {
         var doc = Map();
-        var r = RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "rect", ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 10, ["max_z"] = 10 });
+        var r = RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "rect", ["coords"] = new Dict { ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 10, ["max_z"] = 10 } });
         await Assert.That(r["id"]).IsEqualTo("rect");
         var rect = (Dict)Regions(doc)["rect"]!;
         await Assert.That(rect["type"]).IsEqualTo("rectangle");
@@ -32,7 +32,7 @@ public sealed class RegionEditorTests
     public async Task Group_then_rename_cascades_to_compound_children()
     {
         var doc = Map();
-        RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "a", ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 4, ["max_z"] = 4 });
+        RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "a", ["coords"] = new Dict { ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 4, ["max_z"] = 4 } });
         RegionEditor.GroupRegions(doc, new Dict { ["type"] = "union", ["id"] = "grp", ["child_ids"] = new List<object?> { "a", "seed" } });
 
         RegionEditor.PatchRegion(doc, "a", new Dict { ["id"] = "a2" });
@@ -45,7 +45,7 @@ public sealed class RegionEditorTests
     public async Task Delete_compound_removes_subtree_and_restore_brings_it_back()
     {
         var doc = Map();
-        RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "a", ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 4, ["max_z"] = 4 });
+        RegionEditor.CreateRegion(doc, new Dict { ["type"] = "rectangle", ["id"] = "a", ["coords"] = new Dict { ["min_x"] = 0, ["min_z"] = 0, ["max_x"] = 4, ["max_z"] = 4 } });
         RegionEditor.GroupRegions(doc, new Dict { ["type"] = "union", ["id"] = "grp", ["child_ids"] = new List<object?> { "a", "seed" } });
 
         RegionEditor.DeleteRegion(doc, "grp");

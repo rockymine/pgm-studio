@@ -25,8 +25,11 @@ internal static class ObjectiveRegion
         RegionEditor.CreateRegion(doc, new Dict
         {
             ["type"] = "cuboid", ["id"] = regionId, ["category"] = "objective",
-            ["min_x"] = box.MinX, ["min_y"] = box.MinY, ["min_z"] = box.MinZ,
-            ["max_x"] = max.X, ["max_y"] = max.Y, ["max_z"] = max.Z,
+            ["coords"] = new Dict
+            {
+                ["min_x"] = box.MinX, ["min_y"] = box.MinY, ["min_z"] = box.MinZ,
+                ["max_x"] = max.X, ["max_y"] = max.Y, ["max_z"] = max.Z,
+            },
         });
         return regionId;
     }

@@ -27,7 +27,10 @@ public static class RegionEditor
         }
         else if (regions.ContainsKey(id)) throw EditException.Conflict($"id '{id}' already in use", [id]);
 
-        try { regions[id] = RegionBuilder.BuildRegionDict(type, payload, id); }
+        var coords = payload.GetValueOrDefault("coords") as Dict;
+        if (coords is null) throw EditException.Unreadable("coords required", "coords");
+
+        try { regions[id] = RegionBuilder.BuildRegionDict(type, coords, id); }
         catch (EditException) { throw; }
         catch (Exception ex) { throw EditException.Unreadable($"missing or invalid field: {ex.Message}"); }
 
@@ -96,10 +99,9 @@ public static class RegionEditor
 
     public static Dict PatchRegion(Dict data, string regionId, Dict payload)
     {
-        var bounds = payload.GetValueOrDefault("bounds") as Dict;
         var coords = payload.GetValueOrDefault("coords") as Dict;
-        if (string.IsNullOrEmpty(payload.GetValueOrDefault("id") as string) && bounds is null && coords is null)
-            throw EditException.Unreadable("provide 'id', 'bounds', or 'coords'");
+        if (string.IsNullOrEmpty(payload.GetValueOrDefault("id") as string) && coords is null)
+            throw EditException.Unreadable("provide 'id' or 'coords'");
 
         var regions = Regions(data);
         if (!regions.TryGetValue(regionId, out var regObj) || regObj is not Dict region) throw EditException.NoSuchSubject($"region '{regionId}' not found");
@@ -119,17 +121,8 @@ public static class RegionEditor
         }
 
         Dict? updatedBounds = null;
-        if (bounds is not null)
-        {
-            updatedBounds = new Dict
-            {
-                ["min"] = new Dict { ["x"] = bounds["min_x"], ["z"] = bounds["min_z"] },
-                ["max"] = new Dict { ["x"] = bounds["max_x"], ["z"] = bounds["max_z"] },
-            };
-            region["bounds_2d"] = updatedBounds;
-        }
         if (coords is not null)
-            updatedBounds = RegionBuilder.ApplyCoordUpdate(region, region.GetValueOrDefault("type") as string ?? "", coords) ?? updatedBounds;
+            updatedBounds = RegionBuilder.ApplyCoordUpdate(region, region.GetValueOrDefault("type") as string ?? "", coords);
 
         if (updatedBounds is not null)
         {

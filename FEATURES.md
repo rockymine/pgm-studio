@@ -707,6 +707,25 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **The studio has one box, and a region has one envelope (`RP34`, `RP38`).** A footprint in block
+  coordinates was two records: `BoundsDto`, four `int`s answered camelCase by the two analysis reads, and
+  `Bounds2dDto`, four `double`s answered `min_x`/`min_z`/`max_x`/`max_z` by the region tree and the region
+  writes. The wire differed because the two search routes parsed the body by hand and spelled the corners
+  themselves, so the declared record and the reading disagreed and nothing failed while they did. There is
+  now one `Bounds2dDto`, spelled the way the contract's own `bounds_2d` is, and one `PostedBounds` reader
+  that names a corner — which is what lets a `bounds` short of a side be told from one absent, a fault the
+  binder erases because a non-nullable `double` left out binds to zero. The JS bridge no longer translates a
+  bbox on the way in.
+
+  **A region's numbers travel nested under `coords` on both writes.** A create read `min_x` off the body root
+  and a patch read the same sixteen numbers out of a `coords` object, with a third `bounds` object beside it
+  for the footprint — so `RegionCreateRequest` and `RegionCoordsDto` carried identical number fields under
+  different nesting, and a caller that had learned one route could not write the other. `RegionCoordsDto` is
+  the one record now, `RegionBuilder.ApplyCoordUpdate` the one writer a patch goes through, and a cuboid can
+  move its footprint through `coords` — which the `bounds` path never did, leaving its `min`/`max` corners
+  disagreeing with its `bounds_2d`. A number a create's type needs and `coords` omits is named
+  (`coords.max_x required`); on a patch an absent number and a `null` one both mean leave it. The client's
+  inspector lost the branch that decided which envelope a key belonged in.
 - **A use case has a home below the door it is reached through (`RP13`).** Ten handlers read stored state,
   did work and wrote it back while living in the endpoint that happened to reach them, so a gate landed
   behind whatever route needed it and the next driver reached around it. They are now **seven operations** in

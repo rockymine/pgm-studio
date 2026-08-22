@@ -20,10 +20,10 @@ function buildabilityToBlockData(b) {
     for (let ix = 0; ix < w; ix++) {
       const hex = colors[classes[row.charCodeAt(ix) - 48]];
       if (!hex) continue;
-      xs.push(bb.minX + ix); zs.push(bb.minZ + iz); cols.push(hex);
+      xs.push(bb.min_x + ix); zs.push(bb.min_z + iz); cols.push(hex);
     }
   }
-  return { xs, zs, colors: cols, min_x: bb.minX, min_z: bb.minZ, max_x: bb.maxX, max_z: bb.maxZ };
+  return { xs, zs, colors: cols, ...bb };
 }
 
 /** Create an WorldCanvas on the given elements, load the map, and return a handle.

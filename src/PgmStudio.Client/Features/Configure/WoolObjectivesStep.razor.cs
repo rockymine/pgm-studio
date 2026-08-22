@@ -117,7 +117,7 @@ public partial class WoolObjectivesStep
         try
         {
             var body = new StringContent(
-                new JsonObject { ["bounds"] = new JsonObject { ["minX"] = minX, ["minZ"] = minZ, ["maxX"] = maxX, ["maxZ"] = maxZ } }.ToJsonString(),
+                new JsonObject { ["bounds"] = new JsonObject { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ } }.ToJsonString(),
                 Encoding.UTF8, "application/json");
             var resp = await Http.PostAsync($"api/map/{Slug}/wool-sources", body);
             if (resp.IsSuccessStatusCode)

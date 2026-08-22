@@ -120,7 +120,7 @@ public sealed class WriteRequestShapeTests
 
     /// <summary>The search rectangle, asserted on the route that requires one: an absent or misspelled
     /// <c>bounds</c> is refused there by name. Its sibling over resources carries the same
-    /// <see cref="BoundsDto"/> under the same key, and differs only in being allowed to leave it out.</summary>
+    /// <see cref="Bounds2dDto"/> under the same key, and differs only in being allowed to leave it out.</summary>
     [Test]
     public async Task A_search_reads_the_rectangle_the_record_nests()
     {
@@ -128,11 +128,11 @@ public sealed class WriteRequestShapeTests
         var slug = await OriginateAsync(client);
 
         var wools = await client.PostAsJsonAsync($"/api/map/{slug}/wool-sources",
-            new WoolSearchRequest(new BoundsDto(MinX: -10, MinZ: -10, MaxX: 10, MaxZ: 10)));
+            new WoolSearchRequest(new Bounds2dDto(MinX: -10, MinZ: -10, MaxX: 10, MaxZ: 10)));
         await Assert.That(wools.IsSuccessStatusCode).IsTrue().Because(await wools.Content.ReadAsStringAsync());
 
         var resources = await client.PostAsJsonAsync($"/api/map/{slug}/resources",
-            new ResourceSearchRequest(new BoundsDto(MinX: -10, MinZ: -10, MaxX: 10, MaxZ: 10)));
+            new ResourceSearchRequest(new Bounds2dDto(MinX: -10, MinZ: -10, MaxX: 10, MaxZ: 10)));
         await Assert.That(resources.IsSuccessStatusCode).IsTrue()
             .Because(await resources.Content.ReadAsStringAsync());
 
