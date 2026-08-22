@@ -71,7 +71,7 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
 
     /// <summary>Write the world to a temp folder, then zip <c>{slug}/map.xml</c> + <c>level.dat</c> +
     /// <c>region/*.mca</c> in memory.</summary>
-    private static byte[] BuildWorldZip(string slug, string xml, SketchWorld built)
+    private static byte[] BuildWorldZip(string slug, string xml, BuiltWorld built)
     {
         var tmp = Path.Combine(Path.GetTempPath(), "world_" + Guid.NewGuid().ToString("N"));
         try

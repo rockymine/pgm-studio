@@ -47,7 +47,7 @@ public sealed class BuildCeilingTests
     [Test]
     public async Task The_cap_is_twenty_over_the_highest_ground()
     {
-        var built = SketchWorldBuilder.Build(Flat, Intent());
+        var built = WorldBuilder.Build(Flat, Intent());
 
         await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(BuildCeiling.Of(1));
         await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(21);
@@ -60,7 +60,7 @@ public sealed class BuildCeilingTests
     [Test]
     public async Task The_cap_follows_the_terrain_the_relief_actually_built()
     {
-        var built = SketchWorldBuilder.Build(Stepped, Intent());
+        var built = WorldBuilder.Build(Stepped, Intent());
 
         await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(BuildCeiling.Of(31));
     }
@@ -75,7 +75,7 @@ public sealed class BuildCeilingTests
     [Test]
     public async Task Nothing_stamped_on_the_ground_raises_the_ceiling_over_itself()
     {
-        var built = SketchWorldBuilder.Build(Flat, Intent());
+        var built = WorldBuilder.Build(Flat, Intent());
         var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
 
         // The tallest thing standing on the ground under the cap, over the red wool room's own footprint. A
@@ -96,7 +96,7 @@ public sealed class BuildCeilingTests
     [Test]
     public async Task A_goal_marker_hangs_five_blocks_over_the_cap()
     {
-        var built = SketchWorldBuilder.Build(Flat, Intent());
+        var built = WorldBuilder.Build(Flat, Intent());
         var floor = built.ResolvedIntent.Build!.MaxHeight!.Value + BuildCeiling.MarkerOver;
 
         // The wool-room markers are cubes of the room's own wool, floor..floor+2 over the room's centre.
@@ -127,7 +127,7 @@ public sealed class BuildCeilingTests
                 },
             ],
         };
-        var built = SketchWorldBuilder.Build(Flat, floated);
+        var built = WorldBuilder.Build(Flat, floated);
         var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
         var top = built.ResolvedIntent.Cores![0].Box!.Value.MaxY;
 
@@ -154,7 +154,7 @@ public sealed class BuildCeilingTests
                 },
             ],
         };
-        var built = SketchWorldBuilder.Build(Flat, seated);
+        var built = WorldBuilder.Build(Flat, seated);
         await Assert.That(built.Declines.Any(f => f.Rule == ObjectiveRules.OverBuildCeiling)).IsFalse();
     }
 }

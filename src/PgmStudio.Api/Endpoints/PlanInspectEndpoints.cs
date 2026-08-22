@@ -156,7 +156,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
                     "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
                 return;
             }
-            var built = SketchWorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
+            var built = WorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
             payload = WorldColumnPayload.Of(built.World);
             // The compiled layout's own complaints ride with the dressing's: a plan that compiles to a board
             // naming something the studio does not have is still a plan whose picture is missing it. This

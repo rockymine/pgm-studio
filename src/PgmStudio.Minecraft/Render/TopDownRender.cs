@@ -111,7 +111,7 @@ public static class TopDownRender
     /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
     /// a generator emit its own top-down the moment it finishes building, over the exact world it just made
     /// rather than one re-read off disk. <paramref name="provenance"/> is the record the build itself kept
-    /// (<see cref="SketchWorld.Provenance"/> via <c>PgmStudio.Export</c>); null reads by the material estimate,
+    /// (<see cref="BuiltWorld.Provenance"/> via <c>PgmStudio.Export</c>); null reads by the material estimate,
     /// exactly as a caller with no world build behind it — a corpus scan — already does. <paramref
     /// name="treePoints"/> is the isolated foliage layer's point-and-radius reading, from the same build's
     /// dressing document (<c>DressingScope.TreeFootprints</c>); null falls back to the leaf/log mass, exactly

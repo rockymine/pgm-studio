@@ -117,7 +117,7 @@ public static class StructureFinder
     }
 
     /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.
-    /// <paramref name="provenance"/> is the record the build kept (<see cref="SketchWorld.Provenance"/> via
+    /// <paramref name="provenance"/> is the record the build kept (<see cref="BuiltWorld.Provenance"/> via
     /// <c>PgmStudio.Export</c>); null reads by the step-tested material estimate.</summary>
     public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea,
         int maximumStep = DefaultMaximumStep, WorldProvenance? provenance = null)

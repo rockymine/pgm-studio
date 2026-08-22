@@ -11,7 +11,7 @@ namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// Drives the committed base 2-island seed (<c>tools/seeds/base-2island.*.json</c>) through the export
-/// pipeline — rasterize → <see cref="SketchWorldBuilder"/> → world — and asserts the world invariants the
+/// pipeline — rasterize → <see cref="WorldBuilder"/> → world — and asserts the world invariants the
 /// live end-to-end run checks: islands are bedrock-floored, spawn/wool cubes rest on the terrain surface
 /// (their 2×2 markers sit at the authored anchor), and the observer platform floats at the authored Y.
 /// Expectations are derived from the seed's own intent, so the test survives geometry edits to the seed.
@@ -41,11 +41,11 @@ public sealed class BaseSeedWorldTests
     public async Task Seed_builds_a_world_with_the_expected_structure_invariants(string seed)
     {
         var (layout, intent) = LoadSeed(seed);
-        var built = SketchWorldBuilder.Build(layout, intent);
+        var built = WorldBuilder.Build(layout, intent);
         var w = built.World;
 
         // Surface top per column, recomputed the same way the builder does.
-        var surface = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layout)).SurfaceTop;
+        var surface = TerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layout)).SurfaceTop;
         int Surf(int x, int z) => surface.GetValueOrDefault((x, z), 1);
 
         // Each spawn: on a real island (surface > the bedrock fallback), bedrock floor at y0, and the 2×2 wool
@@ -100,7 +100,7 @@ public sealed class BaseSeedWorldTests
     public async Task Seed_world_round_trips_through_anvil(string seed)
     {
         var (layout, intent) = LoadSeed(seed);
-        var built = SketchWorldBuilder.Build(layout, intent);
+        var built = WorldBuilder.Build(layout, intent);
 
         var dir = Path.Combine(Path.GetTempPath(), "seedworld_" + Guid.NewGuid().ToString("N"));
         try
@@ -115,7 +115,7 @@ public sealed class BaseSeedWorldTests
 
             (int Id, int Data) At(int x, int y, int z) => read.GetValueOrDefault((x, y, z), (0, 0));
 
-            var surface = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layout)).SurfaceTop;
+            var surface = TerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layout)).SurfaceTop;
 
             // A spawn marker and the observer floor must survive the region-file serialisation.
             var s = intent.Spawns[0];

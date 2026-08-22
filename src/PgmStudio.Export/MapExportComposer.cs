@@ -24,7 +24,7 @@ using PgmStudio.Geom;
 /// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing
 /// the XML it just wrote.</param>
 public sealed record ExportComposition(
-    Refusal? Refusal, string? Xml, SketchWorld? World, Dict? Doc = null);
+    Refusal? Refusal, string? Xml, BuiltWorld? World, Dict? Doc = null);
 
 /// <summary>
 /// The shared pipeline behind <c>GET /map/{slug}/xml</c> and <c>GET /map/{slug}/export</c>: the
@@ -62,7 +62,7 @@ public static class MapExportComposer
             // held to is inside that call rather than in front of it, so a driver reaching it directly is
             // judged by the same chain this route is.
             if (layoutBytes is not null)
-                return ComposeSketch(doc, Encoding.UTF8.GetString(layoutBytes), intent!);
+                return BuildAndCompose(doc, Encoding.UTF8.GetString(layoutBytes), intent!);
 
             // OB20 — every declared <gamemode> against PGM's own closed enum. Checked first on this leg, and
             // against every map regardless of origin or world state: it needs no ground and no built intent,
@@ -110,7 +110,7 @@ public static class MapExportComposer
     /// a headless driver keeps its own crash semantics.
     /// <para><b>Every gate a sketch map is held to is in this chain</b>, so which door a caller came through
     /// cannot change what it is judged by.</para></summary>
-    public static ExportComposition ComposeSketch(
+    public static ExportComposition BuildAndCompose(
         Dict doc, string layoutJson, MapIntent intent, Action<Dict>? decorate = null)
     {
         // OB20 — every declared <gamemode> against PGM's own closed enum. First, because it needs no ground
@@ -124,7 +124,7 @@ public static class MapExportComposer
         if (SketchLayoutCheck.Check(layoutJson) is { Refuses: true } oversized)
             return Refuse("board too large", [.. oversized.Refusals], 422);
 
-        var built = SketchWorldBuilder.Build(layoutJson, intent);
+        var built = WorldBuilder.Build(layoutJson, intent);
         var goals = built.ResolvedIntent;
 
         // The ground this export ships, as the build itself read it. A sketch map's stored segments are
@@ -153,7 +153,7 @@ public static class MapExportComposer
         if (Playable(goals, doc) is { Refuses: true } unplayable)
             return Refuse("not a playable map", [.. unplayable.Refusals]);
 
-        var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
+        var renewCubes = WorldBuilder.RenewableCubeFootprints(goals);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
         return new(null, sketchXml, built, doc);
     }
@@ -367,19 +367,19 @@ public static class MapExportComposer
     }
 
     // The stamped rooms a goal may not reach into: every spawn's and every wool's resolved frame, read
-    // through the same public frame resolution SketchWorldBuilder itself stamps by, so the export gate can
+    // through the same public frame resolution WorldBuilder itself stamps by, so the export gate can
     // never disagree with the world it just built.
     private static List<GoalKeepOut> KeepOuts(MapIntent goals)
     {
         var keepOuts = new List<GoalKeepOut>();
         foreach (var spawn in goals.Spawns)
         {
-            var frame = SketchWorldBuilder.SpawnRoom(spawn).Frame;
+            var frame = WorldBuilder.SpawnRoom(spawn).Frame;
             keepOuts.Add(new GoalKeepOut("spawn", spawn.Team, new BlockRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)));
         }
         foreach (var wool in goals.Wools ?? [])
         {
-            var frame = SketchWorldBuilder.WoolFrame(wool);
+            var frame = WorldBuilder.WoolFrame(wool);
             keepOuts.Add(new GoalKeepOut("wool room", wool.Owner, new BlockRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)));
         }
         return keepOuts;

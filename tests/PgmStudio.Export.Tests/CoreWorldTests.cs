@@ -41,7 +41,7 @@ public sealed class CoreWorldTests
     {
         var plan = PlanModel.Parse(json)!;
         var (layout, intent) = PlanCompiler.Compile(plan);
-        var built = SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
+        var built = WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
         return (built.World, built.ResolvedIntent);
     }
 

@@ -11,7 +11,7 @@ namespace PgmStudio.Export;
 /// stored <see cref="MapIntent.IslandTeams"/> entry when present (the plan-compile pre-fill, or the configure
 /// step's manual assignment), else a spawn's team on the island, else a wool's owner, else <see cref="Neutral"/>.
 /// Consumed by the plan-compile endpoint (to pre-fill ownership once, when the plan is created) and by
-/// <see cref="SketchWorldBuilder"/> (to paint), so the id space the painter reads is exactly the one the
+/// <see cref="WorldBuilder"/> (to paint), so the id space the painter reads is exactly the one the
 /// configure UI writes — nothing re-derives on a different decomposition.
 /// </summary>
 public static class TeamTerritory

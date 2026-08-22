@@ -15,7 +15,7 @@ Rectangles and cuboids treat `min` as inclusive and `max` as exclusive: a single
 `[x, x+1) × [z, z+1)`, sampled at its centre `(x+0.5, z+0.5)`.
 
 - *Looks wrong:* a rect built as `anchor ± half` around a `Size`-wide structure appears one
-  column too large on the +X/+Z sides (e.g. `SketchWorldBuilder.CubeRect` returns `cx±4` for a
+  column too large on the +X/+Z sides (e.g. `WorldBuilder.CubeRect` returns `cx±4` for a
   cube whose blocks span `[cx-4, cx+3]` — exactly right under this convention).
 - *Enforced:* `Analysis/Region/RegionGeometry2d.cs` maps `rectangle` to `Box(min, max)` with no
   `+1` and a single `block` to `Box(x, z, x+1, z+1)`; `RegionAuthoringEncoder` writes a block as
@@ -38,7 +38,7 @@ per owner. `SymmetryExpander.Expand` at export time is a **fill-in for missing e
 intents it is a no-op.
 
 - *Looks wrong:* a consumer that iterates only `intent.Spawns`/`intent.Wools` (e.g.
-  `SketchWorldBuilder`) appears to miss the mirrored teams that `SymmetryExpander` "will add
+  `WorldBuilder`) appears to miss the mirrored teams that `SymmetryExpander` "will add
   later" — but those teams are already present in the stored intent, so world and XML agree.
 - *Enforced:* `SpawnStep.razor.cs` (`PlaceAndOrbit` + `WriteIntent`),
   `SymmetryExpander.FillSpawns`/`FillWools` dedup guards, and the orbit note in `CLAUDE.md`
@@ -49,7 +49,7 @@ Every producer of `intent.Spawns` dedupes by team: `SpawnStep.PlaceAndOrbit` gua
 `spawns.All(s => s.Team != tk)`, `SymmetryExpander.FillSpawns` skips teams already in its
 `have` set, and `LaneMapGenerator` emits exactly one spawn per team slot.
 
-- *Looks wrong:* code keyed on team id alone (e.g. `SketchWorldBuilder`'s
+- *Looks wrong:* code keyed on team id alone (e.g. `WorldBuilder`'s
   `monLoc[(woolIndex, team)]` indexer) appears to lose data if a team had two spawns — the
   overwrite is real but the state is unreachable.
 - *Enforced:* the three producers above; no other code path appends to `intent.Spawns`.

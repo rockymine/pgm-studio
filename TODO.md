@@ -27,27 +27,13 @@ what it is, so the contract came first; a gate belonged to whichever door someon
 was one place a use case lives, so the application layer came second; and the loop could not answer for
 itself until both. Phase 5 is what was never in the chain.
 
-**Five entries left**, and none of them blocks another: the drift the survey measured beside the work,
+**Four entries left**, and none of them blocks another: the drift the survey measured beside the work,
 each entry drivable from itself. A finding made while working lands in `BACKLOG.md`.
 
 ## Phase 5 — the names, and what the survey turned up beside them
 
 None of these blocks anything. They are the drift the survey measured, and each is small enough to take while
 a phase above is compiling.
-
-- [ ] **WE11 — The world builder is named for the tool whose document happens to reach it.**
-  `SketchWorldBuilder` (`Export`) synthesises the voxel world, the world spawn and the resolved intent for
-  **every** map — a plan compiles to a layout and arrives here too — and `MapExportComposer.ComposeSketch` is
-  the composition every export runs. `SketchTerrainBuilder` (`Minecraft/Stamping`) is the same misnaming one
-  layer down. The loop's four names are settled and none of these is one of them: rename to what they build —
-  the world — and leave `SketchLayout`, `SketchRasterizer` and the sketch endpoints alone, because those
-  genuinely belong to the drawing. **Seven identifiers** across `Export` and `Minecraft` — the types
-  `SketchWorldBuilder`, `SketchWorld`, `SketchTerrainBuilder`, `SketchTerrain` and the methods `ComposeSketch`,
-  `SketchWorld`, `SketchTerrain` — at 21 sites; the `Pgm`, `Api` and `Client` ones are the tool's and stay.
-
-  *`Compose` is two methods and wants deciding with them: `MapExportComposer.Compose` is the entry point that
-  delegates to `ComposeSketch`, and `MapXmlComposer.Compose` is the document leg. Two composers whose main
-  method has one name is the same fault a layer up.*
 
 - [ ] **WS5 — Objective suggestion is map-contract analysis living in the world package.**
   `Minecraft/Suggest/` holds `MonumentSuggester` and `CoreSuggester`; the first names a monument, a wool, an

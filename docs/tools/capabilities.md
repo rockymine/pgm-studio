@@ -216,7 +216,7 @@ anything standing higher.
 
 **A shape cannot put itself above that line, and this is the part an author has to know before reaching for
 the technique.** The cap is derived at build time as twenty blocks over the highest ground the world actually
-builds — `BuildCeiling.Of(terrain.SurfaceTop.Values.Max())` in `SketchWorldBuilder`, the rule `plan.md`
+builds — `BuildCeiling.Of(terrain.SurfaceTop.Values.Max())` in `WorldBuilder`, the rule `plan.md`
 states as `G6` amendment 14 — and an erected shape **is** one of those columns. Raising a wall of terrain
 therefore raises the ceiling that would have capped it, by exactly the same twenty blocks, and hands the rest
 of the board that ceiling too. Measured on `pgm-studio-mapgen`'s `alabaster-rake`: five pillars topping at
@@ -287,7 +287,7 @@ four buildable matches — `"obsidian"`, `"emerald block"`, `"gold block"`, `"en
 resolves to the same block) — the four its own docstring measures carrying 84% of declared destroyables
 (`docs/world-scan/objective-suggestion.md` §3). **The two ends of the pipe are
 not automatically kept in step.** `DestroyableGenerator` writes `Materials` verbatim into the emitted
-`<destroyable materials="…">`, while `SketchWorldBuilder` stamps the structure from
+`<destroyable materials="…">`, while `WorldBuilder` stamps the structure from
 `DestroyableMaterials.BlockId(Materials)`, which silently falls back to obsidian for anything outside the
 four. Authoring one of the four words is exactly OB12's contract kept whole — the XML's filter and the
 stamped blocks name the same material — while authoring anything else ships a `<destroyable>` whose declared
@@ -501,7 +501,7 @@ building for this instead of a shape.
 | compile | `Pgm/Plan/PlanCompiler.cs` | `PlanModel` → `(SketchLayout, MapIntent)` |
 | rasterize | `Pgm/Sketch/SketchRasterizer.cs` | layout JSON → columns `(x, z, yFloor, yTop)` |
 | solve relief | `Geom/Relief/` | `ReliefSpec` → a surface per island |
-| build the world | `Export/SketchWorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
+| build the world | `Export/WorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
 | paint | `Minecraft/Painting/TerrainPainter.cs` | raw stone → rim, wall, surface, fill |
 | dress | `Minecraft/Dressing/Decorator.cs` | props → trees, houses, boulders, paths, water, ground cover |
 | stamp buildings | `Minecraft/Houses/HouseStamper.cs` | `Footprint` + `HouseStyle` → walls, roof, openings |
@@ -509,7 +509,7 @@ building for this instead of a shape.
 | write the goal | `Pgm/Authoring/IntentGenerator.cs` | resolved intent → the map document |
 | write the XML | `Export/MapXmlComposer.cs` → `Pgm/XmlWriter.cs` | document → `map.xml` |
 
-`SketchWorldBuilder` is the one to read before changing anything downstream, because **order is the
+`WorldBuilder` is the one to read before changing anything downstream, because **order is the
 contract**: floors, then wool cages, then spawn cubes and monuments, then plan-derived structures, then the
 build-region outline, then destroyables and cores, then the terrain finish, then the dressing, then the
 observer platform. Painting happens *after* every stamp so it can skip a column whose top is not terrain, and
@@ -596,7 +596,7 @@ stated on the console rather than silently swapped (`docs/world-export/decoratio
 available.** A material test cannot separate a cottage's stone-brick wall from a plaza paved in the
 same stone brick, or from a mesa an author painted to read as built, and no palette refinement fixes that — a
 block does not know what placed it. `PgmStudio.Minecraft.WorldProvenance` is what a built world carries
-instead: `SketchWorldBuilder` claims every rasterized column as `Ground` first, then each stamp — a room
+instead: `WorldBuilder` claims every rasterized column as `Ground` first, then each stamp — a room
 floor, a wool cage, a spawn cube, a wall, an iron cube, a redstone line, a destroyable, a core, a
 dressing-placed building — claims its own footprint as `Structure` over it, and the dressing pass's other
 placements — a tree, a boulder, a road, a water course, a bed of flora — claim theirs as `Prop`; all of it

@@ -19,7 +19,7 @@ which is emitted as a layout and an intent and loaded through `POST /map/from-do
 That is not an arrangement the code enforces; it is where the doors happen to be. A second driver linking
 `Pgm`, `Minecraft` and `Export` directly is a few lines away at any time, and the moment one exists, a gate
 raised behind one door is a gate the other never meets. The export answers that by construction: **every
-gate a sketch map is judged by sits inside `MapExportComposer.ComposeSketch`**, so which door a caller came
+gate a sketch map is judged by sits inside `MapExportComposer.BuildAndCompose`**, so which door a caller came
 through cannot change what its map is held to.
 
 Doing that for one chain is not doing it for the pipeline. A step whose only home is an HTTP handler can only

@@ -8,11 +8,11 @@ namespace PgmStudio.Export.Tests;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Every gate a sketch map is held to is inside <see cref="MapExportComposer.ComposeSketch"/>, so which door
+/// Every gate a sketch map is held to is inside <see cref="MapExportComposer.BuildAndCompose"/>, so which door
 /// a caller came through cannot change what its map is judged by.
 ///
 /// <para>The HTTP export reaches the chain through <c>Compose</c> and the headless driver reaches
-/// <c>ComposeSketch</c> directly, so a gate asked in front of the branch is asked of one of them and not the
+/// <c>BuildAndCompose</c> directly, so a gate asked in front of the branch is asked of one of them and not the
 /// other. That is what these assert, from the driver's side: the two that used to sit in front — an unloadable
 /// <c>&lt;gamemode&gt;</c> and a map that cannot be walked — refuse here.</para>
 ///
@@ -20,7 +20,7 @@ using Dict = Dictionary<string, object?>;
 /// this build produced rather than whatever the last <c>sketch/finish</c> rasterized into the store, so a
 /// board cut apart after its finish is judged as it will ship rather than as it was last filed.</para>
 /// </summary>
-public sealed class ComposeSketchGateChainTests
+public sealed class BuildAndComposeGateChainTests
 {
     /// <summary>Two plates with forty blocks of void between them, and nothing bridging.</summary>
     private const string TwoIslands =
@@ -57,7 +57,7 @@ public sealed class ComposeSketchGateChainTests
     [Test]
     public async Task A_gamemode_PGM_cannot_load_refuses_on_the_driver_road_too()
     {
-        var result = MapExportComposer.ComposeSketch(Doc("not-a-real-mode"), OneIsland, Intent());
+        var result = MapExportComposer.BuildAndCompose(Doc("not-a-real-mode"), OneIsland, Intent());
 
         await Assert.That(result.Refusal).IsNotNull();
         await Assert.That(result.Refusal!.Status).IsEqualTo(409);
@@ -70,7 +70,7 @@ public sealed class ComposeSketchGateChainTests
     [Test]
     public async Task A_board_cut_in_two_refuses_on_the_driver_road_too()
     {
-        var result = MapExportComposer.ComposeSketch(Doc(), TwoIslands, Intent());
+        var result = MapExportComposer.BuildAndCompose(Doc(), TwoIslands, Intent());
 
         await Assert.That(result.Refusal).IsNotNull();
         await Assert.That(result.Refusal!.Error).IsEqualTo("not traversable");
@@ -82,7 +82,7 @@ public sealed class ComposeSketchGateChainTests
     [Test]
     public async Task The_same_map_on_ground_that_joins_composes()
     {
-        var result = MapExportComposer.ComposeSketch(Doc(), OneIsland, Intent());
+        var result = MapExportComposer.BuildAndCompose(Doc(), OneIsland, Intent());
 
         await Assert.That(result.Refusal).IsNull()
             .Because($"it answered {result.Refusal?.Message}");

@@ -638,6 +638,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The world builder is named for what it builds (`WE11`).** `SketchWorldBuilder` synthesises the voxel
+  world, the world spawn and the resolved intent for **every** map — a plan compiles to a layout and arrives
+  there too — so it was named for the tool whose document happens to reach it rather than for its work. Five
+  identifiers: `WorldBuilder`, `BuiltWorld`, `TerrainBuilder`, `BuiltTerrain`, and
+  `MapExportComposer.BuildAndCompose`, which says both halves of what it does where `ComposeSketch` named a
+  tool and hid one. `SketchLayout`, `SketchRasterizer` and the sketch endpoints keep their names: those
+  genuinely belong to the drawing.
 - **Five routes take a posted plan and say which of three kinds of thing they answer (`TN5`).** A caller read
   five summaries in a row to learn that only one of them changes anything and only one is about the generator.
   Now the tag and `plan.md` both say it: one **transforms** (`compile` → the layout and intent a map is built
@@ -1049,7 +1056,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   board is still rectangles and the other saying that it happened. The account is `reports/opus5-run4.md` there, the errata it
   measured is `GENERATION-NOTES.md` §17, and the decision is that the one driver lives **beside the specs**
   rather than beside `tools/mapgen` — it drives the HTTP API a person also drives, while `mapgen` builds
-  from a spec through `ComposeSketch` and cannot repaint a compiled shape at all. `tools/drive.py` is it,
+  from a spec through `BuildAndCompose` and cannot repaint a compiled shape at all. `tools/drive.py` is it,
   `tools/README.md` is the document no driver had, and `tools/drive.ps1` is retired. Four boards were
   authored to produce it, one per objective shape the system carries.
 - **A malformed terrain material is refused by name rather than answering 500 (B253).** A
@@ -1123,7 +1130,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   converging four snap implementations at radii 2/3/4/6. A destroy goal now gates export traversability
   like a wool (the author's ruling), and `POST /plan/inspect` answers each goal's walk to its own and the
   enemy's spawn with the enemy÷own ratio — banded the same day as GO1 [3.0, 4.0] (B188's
-  fast half; B212's unit discipline). `tools/mapgen` builds through `MapExportComposer.ComposeSketch`, the
+  fast half; B212's unit discipline). `tools/mapgen` builds through `MapExportComposer.BuildAndCompose`, the
   export's own sketch leg, so a headless build passes OB17 (wool monuments now included), OB19 and the
   playability judgement instead of shipping past them. The refusal envelope became one shape whichever gate
   raised it, and the orphaned-relief 409 speaks it (`SK1`).
@@ -2139,7 +2146,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   disagreed with it. The vocabulary and those defaults are **served** (`GET /api/objectives/vocabulary`) —
   the Blazor client cannot reach `ObjectiveDefaults`, and a picker showing a default the stamper does not
   build is exactly what that one home exists to prevent. The material list is now one list for the same
-  reason: `DestroyableMaterials` is both what the picker offers and what `SketchWorldBuilder` resolves, so a
+  reason: `DestroyableMaterials` is both what the picker offers and what `WorldBuilder` resolves, so a
   material cannot be offered that silently stamps obsidian while the XML names emerald.
   (`PlanTool` inspector; `plan-canvas.js` selection payload, `plan-bridge.js setMarkerField`;
   `ObjectiveVocabularyEndpoint`; `DestroyableMaterials`; `tests/e2e/plan-objective-variants.mjs` places a
@@ -2477,7 +2484,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   **wool cages** (the 8×8×9 shells, team / wool colour), **iron cubes** (4×4×4), **approach walls** (bedrock,
   y=0→`TopY`), and the **wool-room prism tinted bedrock** — `RoomFloors` *is* that piece's fanned rect, so it
   tints the box already drawn instead of stacking a coincident one. Shells only; everything else stays grey.
-  `PlanStructurePreview` (`Api/Services`, beside `SketchWorldBuilder` — the one project reaching both `Pgm` and
+  `PlanStructurePreview` (`Api/Services`, beside `WorldBuilder` — the one project reaching both `Pgm` and
   `Minecraft`) derives the boxes from `PlanCompiler` output sized by the stampers' own constants/footprint
   helpers, normalizing their differing conventions (iron footprint max-inclusive; room floors / walls
   max-exclusive; wall `TopY` inclusive) into one min-inclusive/max-exclusive frame. Served on
@@ -2497,7 +2504,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   perfectly) yet resolved baseY 1 vs 13. `PositionSnap.SurfaceYOver` now derives every structure floor from the
   footprint it occupies (highest top among its columns) — equivariant by construction, since a footprint is its
   own mirror — via `CubeStamper.Footprint` / `StructureStamper.IronCubeFootprint`, in the iron stamper, both
-  cube kinds (`SketchWorldBuilder`) and the G73 preview alike. Room floors / redstone lines probe per-column and
+  cube kinds (`WorldBuilder`) and the G73 preview alike. Room floors / redstone lines probe per-column and
   were never affected. Surfaced by the G73 preview reporting true floors. (G74)
 - **Plan-editor derived-geometry overlays** — `POST /api/plan/inspect` (the canonical C# derived-structure feed
   for the editor's canvas; plan JSON in → ready-to-draw block-space overlay geometry out; malformed body → 400):
@@ -3830,7 +3837,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   had to be recovered geometrically — which is how `B250`'s first reading came out wrong. `StampId(Kind, Unit,
   Image)` replaces it: two images of one unit share an `Identity` and differ only in `Image`. It is minted
   where the fan happens — `PlanCompiler` as it fans a plan, `SymmetryExpander` as it fills a one-unit intent,
-  `SketchWorldBuilder` as a fallback for anything assembled by hand — because a stamper handed an entry out of
+  `WorldBuilder` as a fallback for anything assembled by hand — because a stamper handed an entry out of
   a fanned list can only count. The sidecar writes the three fields into its id table, and
   `StructureFinder`'s string heuristic is gone in favour of the field. (`StampIdTests`)
 - **Provenance records every pass that places something, not only the built ones (B216).** The record carried
@@ -3870,7 +3877,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   slot rather than collapsing the board to a single colour. (`StructureFinderIdentityTests`)
 - **A whole map from one JSON spec.** `tools/mapgen` (`README.md`) takes a spec — the board, the paint, the
   interior elevation, the trees, the buildings, and the houses the wool and spawn rooms are raised as — and
-  writes `region/` + `level.dat` + `map.xml` through `SketchWorldBuilder`/`IntentGenerator`, so it can only
+  writes `region/` + `level.dat` + `map.xml` through `WorldBuilder`/`IntentGenerator`, so it can only
   contain what an author could draw. The board comes either from the layout generator (`compose`) or from a
   literal plan document; `objective_mode` **retargets** the goals the generator placed (`ctw` / `dtm` /
   `dtcm`) rather than adding a second generator, since a wool room, a monument and a core are one team's
@@ -4060,7 +4067,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   assignments; `PlanCompiler` bakes them into the intent as the theme-JSON registry, a priority-resolved flat
   `pieceId → themeId` (boxes/collections expanded to member pieces), and the fanned piece footprints.
   **`TerrainThemeScope`** (the read side, `TeamTerritory`'s sibling) turns those into a per-cell `themeAt(x,z)`
-  the painter reads (smallest footprint wins an overlap); `SketchWorldBuilder` paints through it. Boxes stay
+  the painter reads (smallest footprint wins an overlap); `WorldBuilder` paints through it. Boxes stay
   pure annotation — expanded to piece ids at compile, never read at export. Authored on the plan tool's new
   **Theme** rail (`PlanThemePhase` + plan-bridge theme methods), two steps: **Create** defines named themes and
   **previews each one's materials** (rim/wall/surface/fill swatches server-rendered through the real materials +
@@ -4098,12 +4105,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   one shared decomposition on the canonical `IslandDetector` islands (the ids `islands_json`/configure use),
   each island owned by a stored `IslandTeams` value, else a spawn's team on it, else a wool's owner, else
   neutral — pre-filled once at `/plan/compile` and read at export, so the tint matches what configure
-  assigns. Wired map-wide into `SketchWorldBuilder.Build`; unit-tested per column and over built worlds. (G157)
+  assigns. Wired map-wide into `WorldBuilder.Build`; unit-tested per column and over built worlds. (G157)
 - **Anvil write side** — `AnvilRegionWriter` + `LevelDatWriter` (`PgmStudio.Minecraft`): emit the 1.8–1.12
   numeric Anvil format (region sector/location table, zlib chunks, nibble-packed `Blocks`/`Data`/`Add`
   sections; gzipped `level.dat` with world spawn + a real creation timestamp), the mirror of the read-only
   `AnvilRegion`. Write→read round-trip tested. (P9a, P9b)
-- **World synthesis + stampers** — `SketchTerrainBuilder` (bedrock floor at y=0 + stone fill from the sketch
+- **World synthesis + stampers** — `TerrainBuilder` (bedrock floor at y=0 + stone fill from the sketch
   columns, reporting each column's surface top), the shared `CubeStamper` room shell (floor · walls · roof,
   then the pad and doorway over them), `WoolCageStamper`
   + `WoolCageChests` (two-chest corner loadout), `SpawnCubeStamper` (spawn cube + auto-wired monuments:
@@ -4120,7 +4127,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   door ≤ interior − 2, so door-wall monuments are never exposed). Monument seats and chest corners derive
   from the interior (`MonumentSlots`/`InteriorCorners`), so capacity scales with the room and the validator
   refuses over-capacity plans, plus WX2/WX3/WX6 refusals and the WX4 shift lint; the structure preview
-  consumes the same frames (`SketchWorldBuilder.WoolFrame`/`SpawnRoom`), so it cannot disagree with the
+  consumes the same frames (`WorldBuilder.WoolFrame`/`SpawnRoom`), so it cannot disagree with the
   build; the composer legalizes emitted markers onto the lattice (`Composer.LegalizeMarker`, `box-4`).
   Markerless/plain-piece intents keep the legacy marker-anchored default shell. Spawn-piece **iron**
   resolves beside the room, never fused (WX8): the shell yields one edge (largest retained area, ties
@@ -4356,7 +4363,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **A bound shell that would swallow its own marker is refused at bind time (`B159`, `WX10`).** A goal marker
   hangs `BuildCeiling.MarkerOver` blocks over a ceiling `BuildCeiling.OverGround` over the ground, and a wool
   room's shell is authored geometry subject to no cap — so a tall storey stack put the map's own sky sign
-  inside the building it points at. Nothing compared the two: `SketchWorldBuilder.SafeFloor` clamps a shell
+  inside the building it points at. Nothing compared the two: `WorldBuilder.SafeFloor` clamps a shell
   against the *world* ceiling at 255 and no gate read that number against the build ceiling. `RoomStyleScope.
   Check` runs beside the house-style gate on `PUT /map/{slug}/sketch`, over the smallest room there is (WX2's
   6×6) — every sloped form only climbs further on a bigger footprint, so a style refused there has no
@@ -4788,9 +4795,9 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   guesses at, and a gate over prose that guesses is a gate that cries wolf.
 
 - **The export's gate chain does not depend on which door a caller came through (RP3).** `Compose` ran the
-  unknown-gamemode refusal and the traversability judgement in front of the branch and `ComposeSketch` ran
-  the rest, so `tools/mapgen` — which links `ComposeSketch` and speaks no HTTP — met the second half only.
-  A sketch map's whole chain now sits in `ComposeSketch`: `OB20`, `SK2`, `OB17`, `EX1`, `OB19`, then
+  unknown-gamemode refusal and the traversability judgement in front of the branch and `BuildAndCompose` ran
+  the rest, so `tools/mapgen` — which links `BuildAndCompose` and speaks no HTTP — met the second half only.
+  A sketch map's whole chain now sits in `BuildAndCompose`: `OB20`, `SK2`, `OB17`, `EX1`, `OB19`, then
   `EX2`/`EX3`/`EX4`. `EX1` moved with a second consequence: on the sketch leg it reads the ground **this
   build** rasterizes rather than the segments the last `sketch/finish` stored, which is the reason `OB17`
   already gave — a subtract cut, a relief solve or an edit after the finish each move where ground is
@@ -5064,7 +5071,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a tree read at the same scale. `DressingScope` answers what the pass needs from the map — what was placed,
   how it is mirrored, and what must stay bare: spawns and their margin, wool spawns, rooms and monuments,
   anchors, structure floors and walls, and every column a stamp already stands on.
-- **Export endpoint** — `SketchWorldBuilder` assembles the world from a map's sketch layout + intent and
+- **Export endpoint** — `WorldBuilder` assembles the world from a map's sketch layout + intent and
   returns a resolved intent (integer-snapped spawns + monument locations derived from the world air cells,
   capturers defaulted to every non-owner team) so the XML agrees with the world. `GET /api/map/{slug}/export`
   returns a `{slug}/` ZIP (`map.xml` + `level.dat` + `region/*.mca`) for sketch-origin maps and plain
@@ -5088,7 +5095,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   finding carries the span it measured instead. A 4000×4000 board never failed: it walked 16 million columns
   and took the machine with it, and
   and the cost is paid per column of the extent whether ground is drawn there or not. Asked where the layout
-  is stored, at every preview that walks the board, and in `ComposeSketch`, so a headless driver meets the
+  is stored, at every preview that walks the board, and in `BuildAndCompose`, so a headless driver meets the
   same measure. `SK*` moved to `Pgm/Sketch/SketchRules.cs` so the family has one home, and a malformed
   dressing document now answers `DR-DOC` at the preview exactly as it does at export, rather than being
   swallowed into *could not build layout*.
@@ -5831,7 +5838,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   (`destroyables-and-cores.md` OB7) rather than a fixed `"ctw"`. Cosmetic only, as the entry that filed it
   said — PGM already resolved the real objective against the `<core>`/`<destroyable>` elements regardless of
   what the scoreboard's first line claimed.
-- **The export path is a project, not a folder inside the web app (B119).** `SketchWorldBuilder`,
+- **The export path is a project, not a folder inside the web app (B119).** `WorldBuilder`,
   `MapXmlComposer` and `MapExportComposer` — plus the four map-facing readers only they used
   (`DressingScope`, `TerrainThemeScope`, `TeamTerritory`, `RoomStyleScope`) — moved out of `Api/Services` into
   a new `PgmStudio.Export`, which references `Domain`, `Analysis`, `Minecraft` and `Pgm`: every one of them
@@ -5987,7 +5994,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   terrain, and ground under-reported by exactly that much. `PgmStudio.Minecraft.WorldProvenance` is the fix —
   a per-column record of which pass claimed a cell, composited in placement order (`Ground` from the
   rasterizer, `Structure` from every stamp and every dressing-placed building that follows it, a later claim
-  covering an earlier one) — built by `SketchWorldBuilder` alongside the voxels and persisted beside the
+  covering an earlier one) — built by `WorldBuilder` alongside the voxels and persisted beside the
   region files a build writes (`WorldProvenanceFile`, one run-length-encoded sidecar per region directory,
   bundled into a downloaded world's zip too, since a block carries no provenance byte of its own).
   `RenderCategories.Of(blockId, provenance)` reads a recorded claim as authoritative for the Ground/Structure
@@ -6063,7 +6070,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   The fix is the direction of the derivation rather than a filter: `Decorator.Decorate` reports a
   `StructureClaim` per image it actually raised, built inside the same loop that stamps and from
   `HouseStamper.StampedCells` on that image, so every early return leaves an empty list and a dropped building
-  claims nothing; `SketchWorldBuilder` records what the pass reported. `DressingScope.StructureFootprints` and
+  claims nothing; `WorldBuilder` records what the pass reported. `DressingScope.StructureFootprints` and
   its private `StampedFootprint` are deleted — the second derivation is gone rather than corrected — and
   `DressingTally` becomes `DressingPlacement`, since what the pass reports is now what landed rather than a
   count of what was asked for. Seven regression tests at the placement, the two that matter being a house
@@ -6094,7 +6101,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   painted staircase-plus-apron under all three rim modes together with an L-shaped house stamp at three
   overhangs, hashed before and after the change and byte-identical (`38F79F3F…3BC9`).
 - **A claim covers what the stamp wrote and no more (B203, occupancy half).** The entry claimed four
-  `ClaimRect` calls in `SketchWorldBuilder` re-derived a rect the stamper beside them had already computed.
+  `ClaimRect` calls in `WorldBuilder` re-derived a rect the stamper beside them had already computed.
   **Checked site by site, two did, and they were two different faults.** The wall, the goal box, the bedrock
   platform, the wool frame and the spawn frame each compute one value and hand it to both the stamper and the
   claim, which is the correct pattern and was never a duplication; the iron cube already shares
@@ -6145,7 +6152,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   fills its cube where a single one does not, everything thinner than its block reads as not filling it, a
   pass reading a build looks through a leaf and never through a log, soil is terrain and never a built
   surface, and stone is natural ground while not being soil. The occupancy half of `B203` — the claim rects
-  `SketchWorldBuilder` re-derives beside four of its stamps — is still open and now has `StructureClaim`
+  `WorldBuilder` re-derives beside four of its stamps — is still open and now has `StructureClaim`
   (`B202`) to land in.
 - **The building plan and the relief landmass no longer share a name (B205).** `PgmStudio.Geom.Footprint` is
   the ground a relief is solved over — a landmass as a dense grid of land cells. `PgmStudio.Minecraft.Footprint`
@@ -6324,7 +6331,7 @@ these are the ones that shipped a map that could not be played as intended, and 
 - **A spawn and a wool room stand on the ground the world built, and now say so (B222).** The entry's premise
   was stale, and measuring it is what showed that. `PlanCompiler` writes a Y onto both markers and it is the
   piece's plan-space `Surface` — the flat nominal ground, the number the relief solve abandons — so the code
-  reads exactly like the mistake the build ceiling made. It is not that mistake: `SketchWorldBuilder` resolves
+  reads exactly like the mistake the build ceiling made. It is not that mistake: `WorldBuilder` resolves
   both anchors against the terrain it has just laid, through `FrameFloor` over the room's own footprint, the
   same way `B128` resolved the destroyable and core anchors. Compiling a plan whose pieces sit at surfaces 30
   and 24, then **replacing the carried Y with a lie before the world is built**, moves nothing.
@@ -6344,7 +6351,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   relief solve abandons. That is why boards came out with a ceiling under their own terrain and a destroy goal
   stamped above it.
 
-  The cap is **the highest terrain column the world actually builds, plus 20**, derived in `SketchWorldBuilder`
+  The cap is **the highest terrain column the world actually builds, plus 20**, derived in `WorldBuilder`
   at the first point that knows the answer and written back onto the resolved intent, so the
   `<max-build-height>` the XML declares and the altitude the markers are stamped at are one number. It sits at
   the floor of `G6`'s band rather than in the middle of it, for `G6`'s own second reason: a generous cap over
@@ -6488,7 +6495,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   carrier was available, which is the case it was always meant to name.
 
 - **The two objective gates are asked where the build is already paid for (RP4).** `OB17` and `OB19` fired
-  only inside `MapExportComposer.ComposeSketch`, so a driver first heard either at `GET /map/{slug}/export`
+  only inside `MapExportComposer.BuildAndCompose`, so a driver first heard either at `GET /map/{slug}/export`
   answering **409** — after paying for the most expensive call on the surface. Run 4 hit them three times
   across four boards, and neither was predictable from anything a cheaper read answered.
 
@@ -6503,7 +6510,7 @@ these are the ones that shipped a map that could not be played as intended, and 
 
   **`OB17` is asked early as a complaint.** `MapExportComposer.CheckGoalPlacement` is the read both callers
   share — the export refuses on it, `POST …/sketch/columns` carries it as complaints on a build it was going
-  to run anyway. That build already rasterized the ground it needs: `SketchWorld` carries its own `Columns`
+  to run anyway. That build already rasterized the ground it needs: `BuiltWorld` carries its own `Columns`
   now, so the composer stopped taking a second reading of the same layout beside the first.
 
 - **A prop the studio deleted no longer arrives as a remark (RP31).** `Severity` was `Refusal | Complaint`,

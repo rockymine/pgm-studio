@@ -7,7 +7,7 @@ becomes a stone body walled in clay, lipped in quartz, and topped in grass. It r
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
 **Status: the whole model — TP1–TP15, including scoped per-shape theming (TP10) — is built and shipped.**
-`TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `SketchWorldBuilder.Build`;
+`TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `WorldBuilder.Build`;
 the four-stage architecture of §5 is in place. A theme is resolved **per cell** through `TerrainThemeScope` (a
 sketch shape's own theme, else the map default); themes are authored in the Sketch tool's **Theme** phase and
 stored on the sketch layout. Depth is a per-bucket knob (`TopBand`
@@ -27,8 +27,8 @@ ids here are `TP*` (terrain paint), local to this file the way `structures.md` o
   edges with a known drop, which is what the rim/wall rules were written for.
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). Terrain materials attach here.
 - `docs/world-export/sketch-world-export.md` — the world the painter runs inside (layer scheme, `level.dat`).
-- `SketchTerrainBuilder` (`PgmStudio.Minecraft`) — the terrain this pass consumes: bedrock at y=0, stone
-  fill to each column's surface top, and the per-cell `SketchTerrain.SurfaceTop`.
+- `TerrainBuilder` (`PgmStudio.Minecraft`) — the terrain this pass consumes: bedrock at y=0, stone
+  fill to each column's surface top, and the per-cell `BuiltTerrain.SurfaceTop`.
 - `TerrainPainter` / `TerrainProfile` / `TerrainTheme` (`PgmStudio.Minecraft`) — the implementation:
   the pass, the classifier core, and the theme.
 
@@ -36,7 +36,7 @@ ids here are `TP*` (terrain paint), local to this file the way `structures.md` o
 
 ## 1. The painter's domain
 
-The painter touches **only stone**. Terrain arrives from `SketchTerrainBuilder` as a bedrock floor at y=0
+The painter touches **only stone**. Terrain arrives from `TerrainBuilder` as a bedrock floor at y=0
 with a stone column filling `[1, surfaceTop)` above it; every structure the stampers add — the wool-cage
 and spawn-cube **bedrock plateaus**, their shells, the objectives — is bedrock, wool, obsidian, anything
 but stone. So the pass runs **last**, after every stamp, and rewrites stone blocks only. Bedrock at y=0 and
@@ -44,7 +44,7 @@ the full room pieces (a wool room sits on a solid bedrock plateau, not on painta
 **by construction**, not by a special case — nothing the painter is allowed to touch survives underneath a
 room. This is the one invariant that makes the rest safe to state simply.
 
-The only input beyond the world is the per-column **surface top** (`SketchTerrain.SurfaceTop`, the first
+The only input beyond the world is the per-column **surface top** (`BuiltTerrain.SurfaceTop`, the first
 air Y over the column) — the elevation the whole model reads from. A column's top solid block sits at
 `surfaceTop − 1`.
 
@@ -201,7 +201,7 @@ stained glass) with the owning team's colour — **the same 0–15 damage scale 
 team's clay wall matches its wools — falling back to `neutral` on a cell with no team. It is a **material,
 not a wall feature**: it works on any bucket (a team-tinted rim or surface is just a theme that puts it
 there) and composes inside a `LayeredMaterial` or a pattern, because the tint reads the owning team from the
-shared `BucketContext`. The painter fills that context per cell from a `teamDamageAt(x, z)` map that `SketchWorldBuilder` gets from
+shared `BucketContext`. The painter fills that context per cell from a `teamDamageAt(x, z)` map that `WorldBuilder` gets from
 **`TeamTerritory`** — one shared ownership decomposition. It splits the terrain footprint into the
 **canonical** islands (`IslandDetector`, the same 1-based ids `islands_json` and the configure canvas use)
 and gives each island its team: a stored `intent.IslandTeams` value wins, else a spawn's team on the island,
@@ -263,10 +263,10 @@ theme layer that knows nothing about geometry, meeting at one data type. That is
 flexible (any depth knob, any pattern, any scope) without becoming tangled — each kind of change lands on
 exactly one seam, and the core never moves.
 
-**The runtime seam.** `TerrainPainter` runs **last** in `SketchWorldBuilder.Build`, after the stampers, and
+**The runtime seam.** `TerrainPainter` runs **last** in `WorldBuilder.Build`, after the stampers, and
 rewrites **only stone** — so bedrock and every structure are excluded by construction and a re-run is
 idempotent. It reads inputs already in hand: the finished world (column heights + materials), the per-cell
-surface grid (`SketchTerrain.SurfaceTop`), and — only for scoped theming — the shape footprints the rasterizer
+surface grid (`BuiltTerrain.SurfaceTop`), and — only for scoped theming — the shape footprints the rasterizer
 already walks. Running after the stampers is what makes TP6 free: the rooms, cubes and approach walls
 are already non-stone columns, so "consult the stamps" is just "read the finished world."
 

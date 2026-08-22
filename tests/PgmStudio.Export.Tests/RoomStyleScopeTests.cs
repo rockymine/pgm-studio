@@ -97,8 +97,8 @@ public sealed class RoomStyleScopeTests
     [Test]
     public async Task A_spawn_asking_for_no_building_gets_its_pad_and_nothing_over_it()
     {
-        var open = SketchWorldBuilder.Build(BoundRaw(spawn: "null"), Intent());
-        var built = SketchWorldBuilder.Build(Plain, Intent());
+        var open = WorldBuilder.Build(BoundRaw(spawn: "null"), Intent());
+        var built = WorldBuilder.Build(Plain, Intent());
 
         // The pad is still there — a spawn is its point first, and the shell is what is optional around it.
         var point = open.ResolvedIntent.Spawns[0].Point;
@@ -126,7 +126,7 @@ public sealed class RoomStyleScopeTests
         // Sandstone walls: a block no built-in shell ever places, so finding it says the binding travelled the
         // whole way rather than that a default happened to match.
         var sandstone = HouseStyle.Wool with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 7) };
-        var built = SketchWorldBuilder.Build(Bound(cage: sandstone), Intent());
+        var built = WorldBuilder.Build(Bound(cage: sandstone), Intent());
 
         await Assert.That(Count(built.World, -10, 10, Blocks.Sandstone)).IsGreaterThan(0);
         // And only the cages: a spawn room is a different kind, so it kept its own built-in shell.
@@ -137,8 +137,8 @@ public sealed class RoomStyleScopeTests
     public async Task An_unbound_map_exports_the_shell_it_always_did()
     {
         // The stage-one promise, held at the far end of the pipeline: the two worlds are the same world.
-        var plain = SketchWorldBuilder.Build(Plain, Intent());
-        var bound = SketchWorldBuilder.Build(Bound(cage: HouseStyle.Wool, spawn: HouseStyle.Spawn), Intent());
+        var plain = WorldBuilder.Build(Plain, Intent());
+        var bound = WorldBuilder.Build(Bound(cage: HouseStyle.Wool, spawn: HouseStyle.Spawn), Intent());
 
         for (var y = 1; y < 30; y++)
         for (var x = -25; x <= 25; x += 1)
@@ -153,7 +153,7 @@ public sealed class RoomStyleScopeTests
         // have to face the same one. Counted as the shell's *own* material rather than every block in the room
         // — the two spawn rooms differ by design in what they hold, since each seats a monument for the other
         // team's wool.
-        var built = SketchWorldBuilder.Build(
+        var built = WorldBuilder.Build(
             Bound(spawn: HouseStyle.Spawn with { Wall = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 9) }),
             Intent());
 

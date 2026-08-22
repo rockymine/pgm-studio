@@ -42,7 +42,7 @@ public static class TerrainPreview
             if (!surface.TryGetValue((x, z), out var cur) || top > cur) surface[(x, z)] = top;
         if (surface.Count == 0) return EmptyPaint("empty plan");
 
-        var world = SketchWorldBuilder.Build(layoutJson, intent).World;
+        var world = WorldBuilder.Build(layoutJson, intent).World;
 
         int minX = surface.Keys.Min(c => c.X), maxX = surface.Keys.Max(c => c.X);
         int minZ = surface.Keys.Min(c => c.Z), maxZ = surface.Keys.Max(c => c.Z);
@@ -83,7 +83,7 @@ public static class TerrainPreview
     /// walks the sequence this stops after the first element of.</para></summary>
     public static IReadOnlyList<SurfaceCell> SketchPaintCells(string layoutJson, MapIntent intent)
     {
-        var terrain = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson));
+        var terrain = TerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson));
         var surface = terrain.SurfaceTop;
         if (surface.Count == 0) return [];
 

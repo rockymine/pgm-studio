@@ -27,7 +27,7 @@ public readonly record struct StructureBox(
 /// plan, without building a world. The plan editor's iso view draws these so the author sees what will land in
 /// the columns they drew (the shells only; interiors are not modelled).
 ///
-/// <para>The boxes must agree with <see cref="SketchWorldBuilder"/> block for block, or the preview lies about
+/// <para>The boxes must agree with <see cref="WorldBuilder"/> block for block, or the preview lies about
 /// the map. So everything is taken from the build's own sources rather than re-derived: the geometry from
 /// <see cref="PlanCompiler"/> output, the sizes from the stampers' constants and footprint helpers
 /// (<see cref="HouseStamper"/>, <see cref="StructureStamper.IronCubeFootprint"/>), and every floor from the same
@@ -51,17 +51,17 @@ public static class PlanStructurePreview
     public static IReadOnlyList<StructureBox> Build(PlanModel plan)
     {
         var (layout, intent) = PlanCompiler.Compile(plan);
-        var surface = SketchTerrainBuilder.SurfaceTops(
+        var surface = TerrainBuilder.SurfaceTops(
             SketchRasterizer.RasterizeColumns(JsonSerializer.Serialize(layout, SketchLayout.Json)));
 
         var boxes = new List<StructureBox>();
 
         // Spawn cubes + wool cages: the frame-resolved shell (its plan piece, or the marker-anchored
-        // default), resting on the columns it spans — the same SketchWorldBuilder frames the build stamps.
+        // default), resting on the columns it spans — the same WorldBuilder frames the build stamps.
         var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
         foreach (var s in intent.Spawns)
         {
-            var room = SketchWorldBuilder.SpawnRoom(s);
+            var room = WorldBuilder.SpawnRoom(s);
             boxes.Add(RoomBox("spawn-cube", teamColor.GetValueOrDefault(s.Team), room.Frame, surface));
             // Only a placeable iron cube is drawn (WX9): an unplaceable marker stamps nothing, so a box
             // for it would show a structure the export refuses to place.
@@ -75,7 +75,7 @@ public static class PlanStructurePreview
             }
         }
         foreach (var w in intent.Wools ?? [])
-            boxes.Add(RoomBox("wool-cage", w.Color, SketchWorldBuilder.WoolFrame(w), surface));
+            boxes.Add(RoomBox("wool-cage", w.Color, WorldBuilder.WoolFrame(w), surface));
 
         // Destroyables: the same ObjectiveStamper.DestroyableBox the world build stamps from, so the preview
         // cannot show a structure the export would not place (OB8). Inclusive box → +1 for the exclusive frame.
@@ -123,7 +123,7 @@ public static class PlanStructurePreview
     private static StructureBox RoomBox(
         string kind, string? color, RoomFrame frame, IReadOnlyDictionary<(int X, int Z), int> surface)
     {
-        var floor = SketchWorldBuilder.FrameFloor(frame, surface);
+        var floor = WorldBuilder.FrameFloor(frame, surface);
         return new StructureBox(kind, color, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ, floor, floor + CubeHeight);
     }
 }

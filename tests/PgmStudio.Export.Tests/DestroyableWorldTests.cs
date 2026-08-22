@@ -46,11 +46,11 @@ public sealed class DestroyableWorldTests
         return (built.World, built.ResolvedIntent);
     }
 
-    private static SketchWorld Built(string json)
+    private static BuiltWorld Built(string json)
     {
         var plan = PlanModel.Parse(json)!;
         var (layout, intent) = PlanCompiler.Compile(plan);
-        return SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
+        return WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
     }
 
     // The authored marker, and the same marker restated with fields on it.
@@ -234,7 +234,7 @@ public sealed class DestroyableWorldTests
              ],"islands":[]}}
             """;
 
-        var built = SketchWorldBuilder.Build(layoutJson, intent);
+        var built = WorldBuilder.Build(layoutJson, intent);
         await Assert.That(built.ResolvedIntent.Destroyables!.Count).IsEqualTo(2);
 
         foreach (var destroyable in built.ResolvedIntent.Destroyables!)
@@ -285,7 +285,7 @@ public sealed class DestroyableWorldTests
              ],"islands":[]}}
             """;
 
-        var built = SketchWorldBuilder.Build(layoutJson, intent);
+        var built = WorldBuilder.Build(layoutJson, intent);
         await Assert.That(built.ResolvedIntent.Destroyables!.Count).IsEqualTo(2);
 
         foreach (var mesaGoal in built.ResolvedIntent.Destroyables!)

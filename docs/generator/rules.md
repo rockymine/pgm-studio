@@ -600,7 +600,7 @@ disagree with the one that runs.
   course beneath the ground's own surface block** under each destroyable — never thicker, which
   would read as a wall grown out of the floor rather than a plate under it. It stops the goal being
   undermined from below and the ground under it being mined out from under it (`StructureStamper.
-  StampPlatform`, called from the destroyable stamp in `SketchWorldBuilder`).
+  StampPlatform`, called from the destroyable stamp in `WorldBuilder`).
 - **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
   a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
   `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap

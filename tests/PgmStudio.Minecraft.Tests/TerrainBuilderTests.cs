@@ -8,12 +8,12 @@ namespace PgmStudio.Minecraft.Tests;
 /// Terrain synthesis: bedrock floor at y=0, stone filling each column's <c>[YFloor, YTop)</c> span above
 /// it, stacked segments handled independently, and the reported surface top = the tallest <c>YTop</c>.
 /// </summary>
-public sealed class SketchTerrainBuilderTests
+public sealed class TerrainBuilderTests
 {
     [Test]
     public async Task Bedrock_floor_and_stone_fill_a_ground_column()
     {
-        var terrain = SketchTerrainBuilder.Build([(0, 0, 0, 4)]);   // 4-thick ground column
+        var terrain = TerrainBuilder.Build([(0, 0, 0, 4)]);   // 4-thick ground column
         var w = terrain.World;
 
         await Assert.That(w.GetBlock(0, 0, 0)).IsEqualTo((Blocks.Bedrock, 0));   // floor
@@ -26,7 +26,7 @@ public sealed class SketchTerrainBuilderTests
     [Test]
     public async Task Floating_segment_leaves_a_void_over_the_bedrock_floor()
     {
-        var terrain = SketchTerrainBuilder.Build([(5, 10, 10, 13)]);   // sky bridge, no ground
+        var terrain = TerrainBuilder.Build([(5, 10, 10, 13)]);   // sky bridge, no ground
         var w = terrain.World;
 
         await Assert.That(w.GetBlock(5, 0, 10)).IsEqualTo((Blocks.Bedrock, 0));  // floor under footprint
@@ -40,7 +40,7 @@ public sealed class SketchTerrainBuilderTests
     [Test]
     public async Task Stacked_segments_on_one_cell_fill_independently_and_surface_is_the_tallest()
     {
-        var terrain = SketchTerrainBuilder.Build([(2, 2, 0, 2), (2, 2, 5, 8)]);
+        var terrain = TerrainBuilder.Build([(2, 2, 0, 2), (2, 2, 5, 8)]);
         var w = terrain.World;
 
         await Assert.That(w.GetBlock(2, 0, 2)).IsEqualTo((Blocks.Bedrock, 0));

@@ -43,10 +43,10 @@ public sealed class MirrorCentreWorldTests
         }
         """;
 
-    private static SketchWorld Build(string json)
+    private static BuiltWorld Build(string json)
     {
         var (layout, intent) = PlanCompiler.Compile(PlanModel.Parse(json)!);
-        return SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
+        return WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
     }
 
     /// <summary>Two inclusive spans are images of each other about the boundary at 0 when each one's low end

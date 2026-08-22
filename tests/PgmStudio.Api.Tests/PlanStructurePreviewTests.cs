@@ -35,7 +35,7 @@ public sealed class PlanStructurePreviewTests
         var boxes = PlanStructurePreview.Build(plan);
         var (layout, intent) = PlanCompiler.Compile(plan);
         var layoutJson = JsonSerializer.Serialize(layout, SketchLayout.Json);
-        return (boxes, SketchWorldBuilder.Build(layoutJson, intent).World);
+        return (boxes, WorldBuilder.Build(layoutJson, intent).World);
     }
 
     private static StructureBox First(IReadOnlyList<StructureBox> boxes, string kind)

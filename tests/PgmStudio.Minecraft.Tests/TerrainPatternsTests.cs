@@ -422,7 +422,7 @@ public sealed class TerrainPatternsTests
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
             columns.Add((x, z, 1, 9));
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
         var arc = profile.PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterArc);
 
@@ -440,7 +440,7 @@ public sealed class TerrainPatternsTests
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
             columns.Add((x, z, 1, 9));
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         var theme = TerrainTheme.Default with
         {
             Wall = new WallRunMaterial([new WallStripe(new SolidMaterial(Blocks.Wool, 0), 1), new WallStripe(new SolidMaterial(Blocks.Wool, 15), 1)]),
@@ -605,7 +605,7 @@ public sealed class TerrainPatternsTests
     private static TerrainProfile ProfileOf(IEnumerable<(int X, int Z)> footprint)
     {
         var columns = footprint.Select(cell => (cell.X, cell.Z, 1, 9)).ToList();
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         return new TerrainProfile(terrain.World, terrain.SurfaceTop);
     }
 

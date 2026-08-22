@@ -173,7 +173,7 @@ public static class DressingScope
     /// <summary>The ground no prop may take in front of a door: one rectangle per doored face, the face's own
     /// width, reaching <see cref="SpawnApproach"/> out from a spawn room and <see cref="WoolApproach"/> from
     /// each wool entry. Read from the same room resolution the stamper builds
-    /// (<see cref="SketchWorldBuilder.SpawnRoom"/>/<see cref="SketchWorldBuilder.WoolFrame"/>), so the approach
+    /// (<see cref="WorldBuilder.SpawnRoom"/>/<see cref="WorldBuilder.WoolFrame"/>), so the approach
     /// is measured from the building that actually stands, not from a second derivation.
     /// <para>Part of <see cref="KeptClearAt"/>, which is what makes it a keep-out rather than a refusal: a prop
     /// authored into a lane does not land, and the pass says so. Every kind is turned away, boulders included —
@@ -183,9 +183,9 @@ public static class DressingScope
         var rects = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
 
         foreach (var spawn in intent.Spawns)
-            AddFrontages(rects, SketchWorldBuilder.SpawnRoom(spawn).Frame, SpawnApproach);
+            AddFrontages(rects, WorldBuilder.SpawnRoom(spawn).Frame, SpawnApproach);
         foreach (var wool in intent.Wools ?? [])
-            AddFrontages(rects, SketchWorldBuilder.WoolFrame(wool), WoolApproach);
+            AddFrontages(rects, WorldBuilder.WoolFrame(wool), WoolApproach);
 
         return (x, z) => rects.Any(r => x >= r.MinX && x <= r.MaxX && z >= r.MinZ && z <= r.MaxZ);
     }

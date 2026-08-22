@@ -174,7 +174,7 @@ public sealed class TerrainPainterTests
         for (var x = 0; x < 9; x++)
         for (var z = 0; z < 9; z++)
             columns.Add((x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
 
         // The high side of the step between the first and second tread (x = 3, looking down onto x = 2) —
@@ -204,7 +204,7 @@ public sealed class TerrainPainterTests
         for (var x = 0; x < 9; x++)
         for (var z = 0; z < 9; z++)
             columns.Add((x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
 
         // The outer face is nought all the way round, whichever tread it falls on.
@@ -293,7 +293,7 @@ public sealed class TerrainPainterTests
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
             columns.Add((x, z, 1, 9));
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.Default);
 
         var w = terrain.World;
@@ -361,7 +361,7 @@ public sealed class TerrainPainterTests
         await Assert.That(built.World.GetBlock(0, 8, 2)).IsEqualTo((Blocks.Wool, 5));   // rim = team wool
     }
 
-    private static SketchTerrain Build(List<(int, int, int, int)> columns) => SketchTerrainBuilder.Build(columns);
+    private static BuiltTerrain Build(List<(int, int, int, int)> columns) => TerrainBuilder.Build(columns);
 
     [Test]
     public async Task The_painter_never_touches_a_stamped_structure_column()
@@ -371,7 +371,7 @@ public sealed class TerrainPainterTests
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
             columns.Add((x, z, 1, 9));
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         // a "structure": bedrock all the way up the (2,2) column, taller than the terrain.
         for (var y = 0; y <= 12; y++) terrain.World.SetBlock(2, y, 2, Blocks.Bedrock);
 
@@ -399,7 +399,7 @@ public sealed class TerrainPainterTests
         for (var x = 0; x < 12; x++)
         for (var z = 0; z < 12; z++)
             columns.Add((x, z, 1, x < 6 ? 9 : 14));
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         int TeamAt(int x, int z) => x < 6 ? 14 : 11;   // a tint that differs across the two plateaus
 
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);

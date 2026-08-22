@@ -18,7 +18,7 @@ namespace PgmStudio.Export.Tests;
 /// spawn cubes with auto-derived monuments, and an observer platform — plus a resolved intent whose spawns
 /// are integer-snapped and whose monument locations point at the world air cells.
 /// </summary>
-public sealed class SketchWorldBuilderTests
+public sealed class WorldBuilderTests
 {
     private const string Layout =
         """
@@ -45,7 +45,7 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task Builds_terrain_cages_and_a_floating_observer_spawn()
     {
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
 
         // Terrain: bedrock floor at y=0 under the footprint.
         await Assert.That(built.World.GetBlock(0, 0, 0)).IsEqualTo((Blocks.Bedrock, 0));
@@ -63,7 +63,7 @@ public sealed class SketchWorldBuilderTests
     {
         // No Build intent is authored here and none is needed: the cap is measured off the terrain the world
         // built (y=1 across this flat sketch), so it comes out at 21 and the markers five over that.
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
         var floorY = BuildCeiling.Of(1) + BuildCeiling.MarkerOver;
 
         // The default 10×10 shell centres on the (snapped) wool spawn point for each room.
@@ -100,7 +100,7 @@ public sealed class SketchWorldBuilderTests
             Structures = new StructureIntent { RoomFloors = [new RoomFloor(piece, new StampId("roomfloor", "r0", 0))] },
         };
 
-        var built = SketchWorldBuilder.Build(plateau, intent);
+        var built = WorldBuilder.Build(plateau, intent);
         var pad = built.ResolvedIntent.Wools![0].Spawn;
         await Assert.That(pad.Y).IsEqualTo(4);
 
@@ -141,7 +141,7 @@ public sealed class SketchWorldBuilderTests
             Meta = new MetaIntent { Name = "Islands", Authors = [] },
         };
 
-        var w = SketchWorldBuilder.Build(layout, intent).World;
+        var w = WorldBuilder.Build(layout, intent).World;
         // A left edge (x=-30) → red clay wall (14); B right edge (x=29) → blue clay (11);
         // the anchorless island C edge → neutral light-grey clay (8).
         await Assert.That(w.GetBlock(-30, 2, 0)).IsEqualTo((Blocks.StainedClay, 14));
@@ -154,7 +154,7 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task Resolves_snapped_spawns_and_derived_monument_locations()
     {
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
         var resolved = built.ResolvedIntent;
 
         // Spawns snapped to whole integers, Y = floor + 1 (standing on the cube floor).
@@ -191,7 +191,7 @@ public sealed class SketchWorldBuilderTests
             Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
-        var mons = SketchWorldBuilder.Build(Layout, intent).ResolvedIntent.Wools![0].Monuments;
+        var mons = WorldBuilder.Build(Layout, intent).ResolvedIntent.Wools![0].Monuments;
 
         await Assert.That(mons.Any(m => m.Team == "blue")).IsTrue();           // blue has a spawn → kept
         await Assert.That(mons.Any(m => m.Team == "green")).IsFalse();         // green has no spawn → skipped
@@ -216,7 +216,7 @@ public sealed class SketchWorldBuilderTests
             Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
-        var built = SketchWorldBuilder.Build(Layout, intent);
+        var built = WorldBuilder.Build(Layout, intent);
         // Gold cube anchored at (20,0), floor y=1: the -Z wall strip (layer 4 → y=5) is orange stained clay.
         await Assert.That(built.World.GetBlock(19, 5, -4)).IsEqualTo((Blocks.StainedClay, 1));
     }
@@ -239,7 +239,7 @@ public sealed class SketchWorldBuilderTests
             Meta = new MetaIntent { Name = "Tall", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
-        var built = SketchWorldBuilder.Build(tall, intent);   // must not throw
+        var built = WorldBuilder.Build(tall, intent);   // must not throw
         // Floor clamped to MaxHeight - RoofLayer - 1 = 247; the 2×2 wool marker sits there.
         await Assert.That(built.World.GetBlock(10, 247, 0).Id).IsEqualTo(Blocks.Wool);
     }
@@ -262,7 +262,7 @@ public sealed class SketchWorldBuilderTests
             Meta = new MetaIntent { Name = "NoObs", Authors = [new AuthorIntent { Name = "alice" }] },
         };
 
-        var built = SketchWorldBuilder.Build(offset, intent);
+        var built = WorldBuilder.Build(offset, intent);
 
         await Assert.That(built.World.GetBlock(0, 0, 0).Id).IsEqualTo(Blocks.Air);                 // origin is off-island
         await Assert.That((built.SpawnX, built.SpawnZ)).IsNotEqualTo((0, 0));                       // not the naive origin
@@ -275,7 +275,7 @@ public sealed class SketchWorldBuilderTests
         // A buildable platform clear of the terrain (which ends at x=40): the outline is the whole marker, and
         // the export path is what has to carry it — the geometry itself is BuildMarkerStamper's.
         var intent = SampleIntent();
-        var built = SketchWorldBuilder.Build(Layout, new MapIntent
+        var built = WorldBuilder.Build(Layout, new MapIntent
         {
             Teams = intent.Teams, Spawns = intent.Spawns, Wools = intent.Wools,
             Observer = intent.Observer, Meta = intent.Meta,
@@ -298,7 +298,7 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task A_wool_rooms_footprint_is_claimed_structure_regardless_of_what_it_is_built_from()
     {
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
 
         // The default 10×10 shell centred on the (snapped) red wool spawn (-10, 10) — well inside its frame.
         await Assert.That(built.Provenance.LayerAt(-10, 10)).IsEqualTo(ProvenanceLayer.Structure);
@@ -339,7 +339,7 @@ public sealed class SketchWorldBuilderTests
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
             Meta = new MetaIntent { Name = "Plaza", Authors = [] },
         };
-        var built = SketchWorldBuilder.Build(themedLayout, intent);
+        var built = WorldBuilder.Build(themedLayout, intent);
 
         // The material alone reads Structure — proving the theme actually painted the built-looking block.
         // Surface top is y=4 (base_height 4), the one-block bedrock floor takes y=0, so the painted surface
@@ -362,7 +362,7 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task Two_different_wool_rooms_claim_two_different_owners()
     {
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
 
         var redOwner = built.Provenance.OwnerAt(-10, 10);    // red wool room
         var blueOwner = built.Provenance.OwnerAt(10, 10);    // blue wool room
@@ -376,7 +376,7 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task A_wool_room_and_a_spawn_cube_claim_different_owners_even_though_both_are_structure()
     {
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
 
         var woolOwner = built.Provenance.OwnerAt(-10, 10);   // red wool room
         var spawnOwner = built.Provenance.OwnerAt(20, 0);    // blue's spawn cube
@@ -389,7 +389,7 @@ public sealed class SketchWorldBuilderTests
     [Test]
     public async Task Every_column_of_a_ground_claim_shares_the_no_owner_reading()
     {
-        var built = SketchWorldBuilder.Build(Layout, SampleIntent());
+        var built = WorldBuilder.Build(Layout, SampleIntent());
         // Terrain far from every stamp: still plain rasterized ground, so its owner is the shared "nothing
         // identified" reading rather than a per-column identity nobody assigned it.
         await Assert.That(built.Provenance.LayerAt(0, -30)).IsEqualTo(ProvenanceLayer.Ground);
@@ -409,7 +409,7 @@ public sealed class SketchWorldBuilderTests
             WaterLanes = new WaterLaneIntent { Rects = [new Rect(-5, -5, 5, 5)] },
         };
 
-        var built = SketchWorldBuilder.Build(Layout, intent);
+        var built = WorldBuilder.Build(Layout, intent);
 
         await Assert.That(built.ResolvedIntent.WaterLanes).IsNotNull();
         await Assert.That(built.ResolvedIntent.WaterLanes!.Rects.Count).IsEqualTo(1);
@@ -420,13 +420,13 @@ public sealed class SketchWorldBuilderTests
     /// on the board is the foundation's own. <b>Probed at y=2</b>, not y=0: the world carries a bedrock floor
     /// at y=0 everywhere, so the bottom course cannot tell a foundation from open ground. At y=2 a filled
     /// column is bedrock and a natural one is the plateau's dirt.</summary>
-    private static SketchWorld RoomFloorOnly()
+    private static BuiltWorld RoomFloorOnly()
     {
         const string plateau =
             """
             {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]}}
             """;
-        return SketchWorldBuilder.Build(plateau, new MapIntent
+        return WorldBuilder.Build(plateau, new MapIntent
         {
             Teams = [new TeamDef { Id = "red", Color = "red" }],
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },

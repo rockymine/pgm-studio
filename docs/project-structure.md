@@ -231,7 +231,7 @@ file-based scripts `dotnet run` builds on demand, and three folders hold no code
 |---|---|---|
 | `PgmStudio.RoundTrip` | `Pgm`, `Analysis`, `Minecraft` | the corpus regression net (`--goldens`): the four map-level derivations over every corpus map, diffed against `corpus-goldens.json` |
 
-**`Export` exists so the export path is reachable without the web host.** `SketchWorldBuilder` and
+**`Export` exists so the export path is reachable without the web host.** `WorldBuilder` and
 `MapXmlComposer` sat inside `Api` until `B119`, which meant a script wanting to build a world carried
 ASP.NET Core, FastEndpoints, the DB layer and the Blazor host to reach them. Cutting `Export` out is what
 lets a file-based script link the real composition instead of growing a second copy of it — which is what

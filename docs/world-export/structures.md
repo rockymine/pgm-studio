@@ -47,7 +47,7 @@ Every wool cage and spawn room is stamped from one resolved **`RoomFrame`**: the
 the interior, the pad, and the doors, derived by `RoomFrames.Resolve` from three authored inputs —
 the **piece rect**, the **marker**, and the **entry interfaces** (a spawn substitutes its
 yaw-derived door edge). The world builder and the plan editor's structure preview consume the same
-frame (`SketchWorldBuilder.WoolFrame`/`SpawnFrame`), so the drawn box and the stamped shell cannot
+frame (`WorldBuilder.WoolFrame`/`SpawnFrame`), so the drawn box and the stamped shell cannot
 disagree — the OB8 discipline the destroyable/core boxes established.
 
 The frame's inputs ride the intent per orbit image: the compiler attaches the role piece's fanned
@@ -185,10 +185,10 @@ the preview both call, so the stamped volume, the emitted region and the drawn b
 
 1. **The frame** — `RoomFrames.Resolve` (`PgmStudio.Domain`), a pure resolver
    `(piece rect, marker, entry rects | yaw edge) → RoomFrame`: the inset footprint, the interior,
-   the pad (after WX3/WX4), and the doors. `SketchWorldBuilder.WoolFrame`/`SpawnFrame` derive it
+   the pad (after WX3/WX4), and the doors. `WorldBuilder.WoolFrame`/`SpawnFrame` derive it
    (with the legacy default for piece-less markers) and `PlanStructurePreview` consumes the same
    derivation — the preview cannot lie. The floor is the highest surface over the footprint
-   (`SketchWorldBuilder.FrameFloor`), which is its own mirror, so orbit images rest level.
+   (`WorldBuilder.FrameFloor`), which is its own mirror, so orbit images rest level.
 2. **The shell template** — `CubeStamper` stamps the frame's footprint: floor + perimeter walls +
    roof, each a course stack its `RoomStyle` supplies (§7), the roof hole proportional with a cap
    (`RoofHoleSpan` — the 8-wide shell keeps its 4×4 hole), then the pad and the doors stamped over
@@ -866,7 +866,7 @@ not — a fairness break of exactly the kind the orbit exists to prevent, and on
 see while choosing it.
 
 The binding lives on the **sketch layout**, under a `roomStyles` key beside the geometry, because that is what
-the export reads: `SketchWorldBuilder` is handed the layout JSON and nothing else about the map. It is a
+the export reads: `WorldBuilder` is handed the layout JSON and nothing else about the map. It is a
 **snapshot**, not a library reference (`docs/tools/library.md`) — picking a style copies its JSON in, so editing
 that library row later cannot rebuild a shipped map's rooms. The `style_id` a map picked from is not stored,
 which is the point: there is no reference to go stale, and the Rooms step's "from *Slate cage*" caption is a

@@ -32,7 +32,7 @@ public sealed class CoreSuggesterWorldTests
     {
         var plan = PlanModel.Parse(json)!;
         var (layout, intent) = PlanCompiler.Compile(plan);
-        var built = SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
+        var built = WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
 
         // The plan's world is small and bounded, so sampling it is cheaper than teaching VoxelWorld to enumerate.
         var world = new Dictionary<(int X, int Y, int Z), int>();
@@ -112,7 +112,7 @@ public sealed class CoreSuggesterWorldTests
             }
             """)!;
         var (layout, intent) = PlanCompiler.Compile(plan);
-        var built = SketchWorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
+        var built = WorldBuilder.Build(JsonSerializer.Serialize(layout, SketchLayout.Json), intent);
 
         var world = new Dictionary<(int X, int Y, int Z), int>();
         for (var x = -120; x <= 120; x++)

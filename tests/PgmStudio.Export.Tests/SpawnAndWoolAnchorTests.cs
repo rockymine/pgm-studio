@@ -40,7 +40,7 @@ public sealed class SpawnAndWoolAnchorTests
     private static (double Spawn, double Wool) Built(PlanModel plan, MapIntent? substitute = null)
     {
         var (layout, intent) = PlanCompiler.Compile(plan);
-        var built = SketchWorldBuilder.Build(layout.ToJson(), substitute ?? intent);
+        var built = WorldBuilder.Build(layout.ToJson(), substitute ?? intent);
         return (built.ResolvedIntent.Spawns[0].Point.Y, built.ResolvedIntent.Wools![0].Spawn.Y);
     }
 

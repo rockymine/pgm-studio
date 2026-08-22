@@ -122,7 +122,7 @@ can.
 `surface`, so the cap was computed from the plan's flat nominal world — a ground level the relief solve then
 abandons, which produced boards whose ceiling sat below their own terrain. The author's rule measures it where
 the answer exists: **twenty blocks over the highest ground the world actually builds** (`G6`, amendment 14),
-derived in `SketchWorldBuilder` and written onto the intent as `MaxHeight`. Measuring the *terrain* is the
+derived in `WorldBuilder` and written onto the intent as `MaxHeight`. Measuring the *terrain* is the
 whole of it — not a house, a tree or a stamped structure standing on it, or a taller shell would raise the
 ceiling that allows a taller shell. A plan-level number would be a second source for one value, and the one
 that gets overwritten.

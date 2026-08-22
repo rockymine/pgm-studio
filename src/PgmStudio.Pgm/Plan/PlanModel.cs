@@ -212,7 +212,7 @@ public sealed class PlanReference
 /// to <see cref="Surface"/>, so the cap was computed from the plan's <b>flat nominal</b> world — a ground
 /// level the relief solve then abandons, which produced boards with a ceiling under their own terrain. The
 /// author's rule measures it where the answer exists instead: twenty blocks over the highest ground the world
-/// actually builds, derived in <c>SketchWorldBuilder</c> (<see cref="PgmStudio.Domain.BuildCeiling"/>). A
+/// actually builds, derived in <c>WorldBuilder</c> (<see cref="PgmStudio.Domain.BuildCeiling"/>). A
 /// plan-level number would be a second source for one value, and the one that gets overwritten.
 /// <see cref="Surface"/> stays exactly as it was — load-bearing and correct as a plan-space concept.</para></summary>
 public sealed class PlanGlobals

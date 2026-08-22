@@ -36,15 +36,15 @@ public sealed class IsolatedSpawnStructuresWorldTests
 
     /// <summary>The first spawn-side renewable iron placement of the resolved intent (WX8).</summary>
     private static IronResolution SpawnIron(MapIntent resolved)
-        => resolved.Spawns.SelectMany(s => SketchWorldBuilder.SpawnRoom(s).Iron).First(i => i.Placeable);
+        => resolved.Spawns.SelectMany(s => WorldBuilder.SpawnRoom(s).Iron).First(i => i.Placeable);
 
     private static (VoxelWorld World, MapIntent Resolved, IReadOnlyDictionary<(int X, int Z), int> Surface) Build()
     {
         var plan = PlanModel.Parse(File.ReadAllText(SeedPath()))!;
         var (layout, intent) = PlanCompiler.Compile(plan);
         var layoutJson = JsonSerializer.Serialize(layout, SketchLayout.Json);
-        var built = SketchWorldBuilder.Build(layoutJson, intent);
-        var surface = SketchTerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson)).SurfaceTop;
+        var built = WorldBuilder.Build(layoutJson, intent);
+        var surface = TerrainBuilder.Build(SketchRasterizer.RasterizeColumns(layoutJson)).SurfaceTop;
         return (built.World, built.ResolvedIntent, surface);
     }
 

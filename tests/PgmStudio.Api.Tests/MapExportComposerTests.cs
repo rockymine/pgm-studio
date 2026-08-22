@@ -56,10 +56,10 @@ public sealed class MapExportComposerTests
         return await resp.Content.ReadFromJsonAsync<JsonElement>();
     }
 
-    // ComposeSketch is the one chain every export runs, so what it
+    // BuildAndCompose is the one chain every export runs, so what it
     // refuses and where the decoration lands are contract, not plumbing.
     [Test]
-    public async Task ComposeSketch_decorates_the_document_between_projection_and_judgement()
+    public async Task BuildAndCompose_decorates_the_document_between_projection_and_judgement()
     {
         var intent = new PgmStudio.Pgm.Authoring.MapIntent
         {
@@ -74,7 +74,7 @@ public sealed class MapExportComposerTests
                 },
             ],
         };
-        var result = PgmStudio.Export.MapExportComposer.ComposeSketch(
+        var result = PgmStudio.Export.MapExportComposer.BuildAndCompose(
             [], IslandLayout, intent, doc =>
             {
                 doc["name"] = "Chainproof";
@@ -89,7 +89,7 @@ public sealed class MapExportComposerTests
     }
 
     [Test]
-    public async Task ComposeSketch_refuses_a_goal_over_the_void_with_the_export_gate_finding()
+    public async Task BuildAndCompose_refuses_a_goal_over_the_void_with_the_export_gate_finding()
     {
         var intent = new PgmStudio.Pgm.Authoring.MapIntent
         {
@@ -104,7 +104,7 @@ public sealed class MapExportComposerTests
                 },
             ],
         };
-        var result = PgmStudio.Export.MapExportComposer.ComposeSketch([], IslandLayout, intent);
+        var result = PgmStudio.Export.MapExportComposer.BuildAndCompose([], IslandLayout, intent);
 
         await Assert.That(result.Refusal).IsNotNull();
         await Assert.That(result.Refusal!.Status).IsEqualTo(409);

@@ -355,7 +355,7 @@ case-insensitively, so this never fires on a case difference — only on a `kind
 `kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Dressing section).
 
 **Which gate runs does not depend on which door the caller came through.** A sketch map's whole chain —
-`OB20`, `SK2`, `OB17`, `EX1`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, so the
+`OB20`, `SK2`, `OB17`, `EX1`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.BuildAndCompose`, so the
 headless driver, which links that method and speaks no HTTP, is judged by exactly what `GET /export` is
 judged by. The traversability judgement is asked there over the ground **this build** rasterizes rather than
 over the segments the last `sketch/finish` stored, which is the same reason `OB17` is: a subtract cut, a
@@ -376,7 +376,7 @@ cannot resolve). The studio's own generator never writes an id outside that set;
 hand-edited label or a corpus-derived one the export would otherwise ship straight into a load failure.
 
 **A sketch-origin map's export answers two more 409s, from `MapExportComposer` itself rather than from
-pre-flight.** They exist because `ComposeSketch` already builds that map's world and holds its resolved
+pre-flight.** They exist because `BuildAndCompose` already builds that map's world and holds its resolved
 intent, so it can ask them against the ground the rasterizer actually produced instead of the plan's
 rectangles — the case a subtract cut, a relief solve, or a post-compile sketch edit opens, none of which
 re-enters the compile gate, and the case a map begun in Sketch never reaches at all.

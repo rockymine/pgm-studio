@@ -362,7 +362,7 @@ public sealed record MonumentIntent
 /// placed with no piece) purely as information for a caller with no built world to read yet, such as
 /// the plan editor's own preview; it is never authoritative and no consumer downstream of the world build may
 /// read it. <see cref="Box"/>.MinY, once the world is built, is the real answer — resolved by
-/// <c>SketchWorldBuilder</c> from the terrain the relief actually solved under the column, plus
+/// <c>WorldBuilder</c> from the terrain the relief actually solved under the column, plus
 /// <see cref="Float"/> — and the only place a compiled-but-unbuilt intent's height claim should be trusted at
 /// all is that it names the right ground column (Anchor.X/Z), not the right ground level.</para>
 /// </summary>

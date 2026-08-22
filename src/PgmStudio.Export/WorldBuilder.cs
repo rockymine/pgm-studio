@@ -34,7 +34,7 @@ namespace PgmStudio.Export;
 /// Carried rather than re-derived: every gate that asks where the ground is has to ask the reading the world
 /// was actually built from, and a second <see cref="SketchRasterizer.RasterizeColumns"/> over the same layout
 /// is a second answer free to disagree with the first.</param>
-public sealed record SketchWorld(
+public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
     IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<(int X, int Z, int YFloor, int YTop)>? Columns = null)
@@ -50,7 +50,7 @@ public sealed record SketchWorld(
 /// a spawn cube + auto-wired monuments at each team spawn, and the observer platform. Pure — no DB, no IO —
 /// so it unit-tests directly.
 /// </summary>
-public static class SketchWorldBuilder
+public static class WorldBuilder
 {
 
     /// <summary>
@@ -90,11 +90,11 @@ public static class SketchWorldBuilder
         };
     }
 
-    public static SketchWorld Build(string layoutJson, MapIntent intent)
+    public static BuiltWorld Build(string layoutJson, MapIntent intent)
     {
         intent = WithStampIds(intent);
         var columns = SketchRasterizer.RasterizeColumns(layoutJson);
-        var terrain = SketchTerrainBuilder.Build(columns);
+        var terrain = TerrainBuilder.Build(columns);
         var world = terrain.World;
         int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.SurfaceTop, 1);
 
@@ -342,7 +342,7 @@ public static class SketchWorldBuilder
         List<Finding>? complaints = goalComplaints.Count > 0 || dressed.Declines.Count > 0
             ? [.. goalComplaints, .. dressed.Declines]
             : null;
-        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns);
+        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).

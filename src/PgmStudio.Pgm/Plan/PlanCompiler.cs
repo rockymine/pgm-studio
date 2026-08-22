@@ -206,7 +206,7 @@ public static class PlanCompiler
                     Stamp = Stamp("spawn", s.Id, spawnIndex, k),
                     // Y here is the plan's own flat nominal height, exactly as ResolveGoalAnchor's is:
                     // informational, carried for a caller with no built world to read yet, and never the
-                    // spawn's real Y. SketchWorldBuilder resolves that against the terrain the relief
+                    // spawn's real Y. WorldBuilder resolves that against the terrain the relief
                     // actually left — FrameFloor over the room's own footprint, and the exported point is the
                     // pad it puts the player on (WX5). Reading this number as the answer is what B222 was
                     // filed over; it is not read, and SpawnAndWoolAnchorTests holds that.
@@ -267,7 +267,7 @@ public static class PlanCompiler
                             })]
                         : [],
                     // Nominal, like the spawn's above and the goal anchor's below: the wool's real Y is the
-                    // course its cage puts it on, over the ground SketchWorldBuilder measured.
+                    // course its cage puts it on, over the ground WorldBuilder measured.
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
                 if (isRoomPiece)
@@ -328,7 +328,7 @@ public static class PlanCompiler
             }
 
         // No MaxHeight: the ceiling is measured off the terrain the world build produces, not asserted from
-        // plan space, so this leaves it unset for SketchWorldBuilder to fill (BuildCeiling).
+        // plan space, so this leaves it unset for WorldBuilder to fill (BuildCeiling).
         var build = new BuildIntent
         {
             Areas = FanRects(plan.BuildZones.Select(z => z.Rect), d),
@@ -602,7 +602,7 @@ public static class PlanCompiler
     // from the symmetry centre, the same frame a piece's own rect is authored in, so a goal can stand on
     // ground that exists only as an authored sketch shape with no plan piece behind it. `Surface` here is the
     // plan's own flat nominal height — informational only, carried on the compiled intent for a caller with
-    // no built world to read yet — never the goal's real Y, which SketchWorldBuilder resolves later against
+    // no built world to read yet — never the goal's real Y, which WorldBuilder resolves later against
     // the terrain the relief actually left (Float is what measures that gap; see DestroyableIntent.Float).
     // Null when a named piece does not resolve — the validator has already reported the dangling reference.
     private static (double X, double Z, int Surface)? ResolveGoalAnchor(PlanModel plan, ContactGraph d, string pieceId, double[] at)

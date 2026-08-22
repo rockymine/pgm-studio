@@ -55,13 +55,13 @@ turns the geometry into a stone `VoxelWorld`; the stampers seat rooms, cubes and
 painter rewrites the stone surface into grass, dirt, quartz, clay. Every one is a pass in *realize*, and
 they run in that order for one reason: each reads what the last produced. The dressing pass is the next
 link — it reads the finished, **painted** world and the ground the map keeps clear, and it runs **last**,
-after `TerrainPainter.Paint` in `SketchWorldBuilder.Build`.
+after `TerrainPainter.Paint` in `WorldBuilder.Build`.
 
 Running after the painter is what makes the whole stage tractable. The painter has already decided, per
 cell, what the surface *is* — and the single fact the dressing pass needs is exactly that: soil accepts
 flora, quartz does not; grass can be replaced by a path, a monument's wool cannot. So the pass reads the
 top block of each column and the ground the map keeps clear, and never has to re-derive either. The one
-elevation model it needs is the same `SketchTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
+elevation model it needs is the same `BuiltTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
 first air Y above each column) the painter and every stamper already read.
 
 The break from the painter is the geometry. `TerrainMaterial.Resolve` only ever answers *which block* a
@@ -191,7 +191,7 @@ says so (`DR-KEEP`), and the world builds. Every kind is turned away, boulders i
 low-cover carve-out for a boulder does not survive the size a boulder actually reaches, and a mask that reads
 a prop's kind before deciding whether a lane is a lane is a rule nobody driving the studio can predict. The
 lane is measured from the room resolution the stamper actually builds
-(`SketchWorldBuilder.SpawnRoom`/`WoolFrame`), deliberately not from the protection region projected around
+(`WorldBuilder.SpawnRoom`/`WoolFrame`), deliberately not from the protection region projected around
 it: the ruling is about the building and the way players walk out of it. A legacy wool cage with a door per
 wall keeps the lane on all four faces.
 
@@ -577,7 +577,7 @@ route crossing kept-clear ground one cell at a time is the ordinary shape of a p
 needs restated.
 
 **Its footprint claims provenance the same way a room's does, only later.** `Decorate` reports a
-`PlacementClaim` for every building it raises and `SketchWorldBuilder` records each as `WorldProvenance`'s
+`PlacementClaim` for every building it raises and `WorldBuilder` records each as `WorldProvenance`'s
 `Structure` layer, so a house standing on a plaza the painter finished in the same material as its own walls
 still reads as a building rather than fusing with the ground it stands on: two different passes claimed the two
 sets of cells, whatever either is made of.
@@ -621,7 +621,7 @@ what stands out.
 
 The id is minted **where the fan happens** rather than where the blocks land: `PlanCompiler` sets it as it
 fans a plan's placements, `SymmetryExpander` sets it as it fills an intent that carries only one unit, and
-`SketchWorldBuilder` gives a list index to anything that arrived without one. A stamper receiving an entry out
+`WorldBuilder` gives a list index to anything that arrived without one. A stamper receiving an entry out
 of an already-fanned list cannot know which authored unit it came from and can only count, which is exactly
 the ambiguity this replaced.
 
@@ -707,7 +707,7 @@ room stampers already call it, and the pass reaches sideways to it rather than g
 **`PgmStudio.Export`** — **reading + wiring.** `DressingScope` answers the three things the pass needs from
 a map: what was placed, how the map is mirrored, and what must be left bare. Unlike `TerrainThemeScope` there
 is no scope to resolve — a prop is not a recipe applied to a footprint, so reading it is reading a list.
-`SketchWorldBuilder.Build` then calls `Decorator.Decorate` immediately after `TerrainPainter.Paint`.
+`WorldBuilder.Build` then calls `Decorator.Decorate` immediately after `TerrainPainter.Paint`.
 
 **`PgmStudio.Api/Services`** — **the preview.** `DressingPreview` draws a prop by placing it — a sample patch
 painted with a theme and run through the real `Decorator` — and draws every picker's cards the same way, so a

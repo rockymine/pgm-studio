@@ -4,7 +4,7 @@ namespace PgmStudio.Minecraft.Stamping;
 
 /// <summary>The synthesised terrain plus, per footprint cell, its surface top (the first air Y above the
 /// solid column) — the reference structures rest on and spawns snap to.</summary>
-public sealed record SketchTerrain(VoxelWorld World, IReadOnlyDictionary<(int X, int Z), int> SurfaceTop);
+public sealed record BuiltTerrain(VoxelWorld World, IReadOnlyDictionary<(int X, int Z), int> SurfaceTop);
 
 /// <summary>
 /// Turns <c>SketchRasterizer.RasterizeColumns</c> output — <c>(X, Z, YFloor, YTop)</c> solid segments — into
@@ -13,9 +13,9 @@ public sealed record SketchTerrain(VoxelWorld World, IReadOnlyDictionary<(int X,
 /// disjoint segments per cell (e.g. ground + a sky bridge) each fill independently; the surface top is the
 /// tallest segment's <c>YTop</c>.
 /// </summary>
-public static class SketchTerrainBuilder
+public static class TerrainBuilder
 {
-    public static SketchTerrain Build(IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
+    public static BuiltTerrain Build(IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
     {
         var world = new VoxelWorld();
         var surface = new Dictionary<(int X, int Z), int>();
@@ -33,7 +33,7 @@ public static class SketchTerrainBuilder
 
         foreach (var (x, z) in footprint) world.SetBlock(x, 0, z, Blocks.Bedrock);
 
-        return new SketchTerrain(world, surface);
+        return new BuiltTerrain(world, surface);
     }
 
     /// <summary>Just the per-cell surface tops of <paramref name="columns"/> — the same map <see cref="Build"/>
