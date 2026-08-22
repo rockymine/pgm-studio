@@ -88,6 +88,16 @@ response type fails there, and one on the list that grows a body cannot leave it
 are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
+**And a field that takes one of a handful of words says which.** `PgmStudio.Vocabulary` holds ten closed
+sets — `MapStage` and the nine in `TerrainVocabulary` — because three parties have to spell a `map.stage`, a
+`style.kind`, a theme bucket, a room part or a roof form identically. They are `const string`s rather than a
+C# enum, since the party writing one furthest down is `Minecraft` and it cannot see `Contracts`, so every one
+of them crossed as a bare `string` and an agent learned the four stages by being refused one. A `[WordSet]`
+naming the declaring class now ties the field to its set, and a schema processor reads the words off that
+class into the field's `enum`: **23 fields** publish theirs, and `WordSetSchemaTests` holds each to the words
+its class declares and every set to being published by something. The words are still stated once, where
+they were stated already; nothing is copied into the document.
+
 **The wire contract is generated once and kept by hand twice more, and only one of the two still matters.**
 The route attributes in `Api/Endpoints` are the generator's source. Beside them sit the route strings written
 out in the Blazor client and the endpoint tables in the eight `docs/tools/` documents, neither derived from

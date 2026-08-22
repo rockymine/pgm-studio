@@ -52,7 +52,9 @@ words** three parties have to spell identically: a `map.stage`, a `style.kind`, 
 roof form. A gate below `Api` raises a finding, the HTTP surface answers it and the client renders it, so the
 record goes in the one leaf all three reach and is *serialized* rather than mirrored; the same reasoning puts
 the words there, since `Minecraft` writes a `style.kind` and cannot see `Contracts`. `Contracts` references it
-and keeps the DTOs. A word set with only one consumer is not vocabulary — it is that consumer's constant.
+and keeps the DTOs, and a DTO field marks the set it takes with `[WordSet(typeof(…))]` so the published
+schema names the words instead of calling the field a `string`. A word set with only one consumer is not
+vocabulary — it is that consumer's constant.
 
 **Client folders, by role rather than by page.** `Pages/` holds standalone **routable** pages only;
 `Features/<Tool>/` is one bundle per tool — its routable `*Tool` host plus that tool's private phases, steps

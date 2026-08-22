@@ -31,7 +31,7 @@ public sealed record UnaskedGate(string Gate, string Why, string Ask);
 /// <param name="Stage">Where the map has got to, which is what decides how much of the list can be
 /// answered.</param>
 public sealed record MapFindingsDto(
-    string Stage,
+    [property: WordSet(typeof(MapStage))] string Stage,
     IReadOnlyList<Finding> Findings,
     IReadOnlyList<UnaskedGate> Unasked)
 {

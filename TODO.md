@@ -26,12 +26,3 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   schemas still carry nothing at all and are the second pass. The measure is the field percentage at
   `/api/openapi/v1.json`, not the schema one.
 
-- [ ] **RP37 — The closed word sets are published as free strings.** `PgmStudio.Vocabulary` exists so three
-  parties spell a `map.stage`, a `style.kind`, a theme bucket, a room part and a roof form identically — ten
-  sets, `MapStage` plus the nine in `TerrainVocabulary` — and every one of them reaches the wire as a bare
-  `string`. `Severity`, `RuleCategory` and `RuleConcern` are the document's only `enum`s, because they
-  are the only ones declared as C# enums. So a generated client types `role` as `string` and an agent learns
-  the four stages by being refused. Publish each set as a schema `enum` — a `JsonStringEnumConverter`-backed
-  enum where the set is genuinely closed, or NSwag's schema processor reading the `All` array where the
-  `const string` shape has to stay for `Minecraft`.
-

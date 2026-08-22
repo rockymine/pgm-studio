@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Contracts;
 
 /// <summary>One entry in the map list (GET /api/maps).
@@ -17,7 +19,7 @@ public sealed record MapSummary(
     IReadOnlyList<string> Gamemodes,
     string? Version,
     string? Objective,
-    string Stage,
+    [property: WordSet(typeof(MapStage))] string Stage,
     bool HasSurface = false,
     bool HasPlan = false,
     bool HasSketch = false);
@@ -46,7 +48,8 @@ public sealed record MapMove(string Does, string Route, bool Next);
 /// rebuild <em>before</em> offering the action — and they were half of one: which documents exist says what
 /// a move can read, and the stage says which move is the one being waited on. Both, and the moves they
 /// imply, are answered together so a driver reads its options instead of learning them.</para></summary>
-public sealed record MapState(string Stage, MapLayers Layers, IReadOnlyList<MapMove> Moves);
+public sealed record MapState(
+    [property: WordSet(typeof(MapStage))] string Stage, MapLayers Layers, IReadOnlyList<MapMove> Moves);
 
 /// <summary>Whether the map came from a sketch — which is what drops the Monuments step.</summary>
 public sealed record MapOriginDto(bool Sketch);

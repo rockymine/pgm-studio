@@ -50,7 +50,9 @@ editor, the HTTP surface and the `style.kind` column must spell identically, and
 that value, cannot see `Contracts`. Both are now in a leaf that references nothing, so the record is
 serialized rather than mirrored and the words are named rather than re-typed. `Contracts` keeps the DTOs and
 takes the leaf as its one reference; `Client` still reaches nothing but `Contracts`, `Geom` and, through the
-first, this.
+first, this. A DTO field marks the set it takes with `[WordSet(typeof(MaterialKind))]`, which is what puts
+the words in the published schema without a second copy of them: the attribute names the declaring class and
+the generator reads them off it.
 
 **`Export` added no edge and inverted none.** Every project it reaches (`Domain`, `Analysis`, `Minecraft`,
 `Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms:
@@ -100,9 +102,9 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 17 | 3,415 | `Playability/` 8 · `Region/` 3 · `Footprint/` 2 · `Layer/` 2 · `Suggest/` 2 |
-| `Api` | 85 | 10,425 | `Endpoints/` 47 · `Services/` 35 · `Http/` 2 · 1 at root |
+| `Api` | 86 | 10,483 | `Endpoints/` 48 · `Services/` 35 · `Http/` 2 · 1 at root |
 | `Client` | 186 | 22,934 | `Features/` 109 (nested) · `Components/` 59 (nested) · `Pages/` 7 · `Models/` 5 · `Layout/` 3 · 3 at root |
-| `Contracts` | 31 | 1,973 | flat |
+| `Contracts` | 31 | 1,994 | flat |
 | `Data` | 14 | 2,443 | `Features/` 4 · `Map/` 4 · `Theme/` 3 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 26 | 2,539 | flat |
 | `Export` | 8 | 1,606 | flat |
@@ -111,7 +113,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Migrations` | 24 | 1,577 | `Migrations/` 23 · 1 at root |
 | `Minecraft` | 78 | 15,000 | `Stamping/` 16 · `Anvil/` 12 · `Palette/` 11 · `Houses/` 10 · `Painting/` 8 · `Render/` 8 · `Dressing/` 7 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 148 | 22,776 | `Compose/` 42 (nested) · `Authoring/` 21 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Derive/` 10 · `Shapes/` 10 · `Plan/` 7 · `Sketch/` 7 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 6 | 629 | flat |
+| `Vocabulary` | 7 | 678 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

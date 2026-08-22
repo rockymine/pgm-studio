@@ -66,6 +66,9 @@ builder.Services.SwaggerDocument(o =>
     // `refusal`/`complaint` — a schema a generated client would fail against.
     o.SerializerSettings = json =>
         json.Converters.Add(new JsonStringEnumConverter(JsonNamingPolicy.CamelCase));
+    // A field that takes one of a closed set of words publishes them, rather than crossing as a bare string
+    // an agent has to learn by being refused one. PgmStudio.Api.Endpoints.WordSetSchemas says how.
+    o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new WordSetSchemas());
     // Keyed on the tag exactly as the generator emits it, which title-cases the path segment.
     o.TagDescriptions = tags =>
     {

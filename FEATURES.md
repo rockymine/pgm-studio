@@ -707,6 +707,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **A field that takes one of a handful of words says which (`RP37`).** Ten closed sets live in
+  `PgmStudio.Vocabulary` — `MapStage` and the nine in `TerrainVocabulary` — because three parties have to
+  spell a `map.stage`, a `style.kind`, a theme bucket, a room part or a roof form identically, and all ten
+  crossed as a bare `string`: `Severity`, `RuleCategory` and `RuleConcern` were the document's only `enum`s,
+  being the only three declared as C# enums. So a generated client typed `role` as `string` and an agent
+  learned the four stages by being refused one.
+
+  They stay `const string`s — the party writing one furthest down is `Minecraft`, which cannot see
+  `Contracts` — and the tie is made machine-legible instead: `[WordSet(typeof(RoofForms))]` on the field, and
+  a schema processor that reads the words off the named class into the field's `enum`. **23 fields** publish
+  theirs. Nothing is copied: the words are still declared once, where they were declared already, and
+  `WordSetSchemaTests` holds each marked field to its class's list, every set to being published by
+  something, and the count to only moving up — which is the only guard there can be, since an unmarked
+  `string` is indistinguishable from a field that genuinely takes free text.
 - **The rule catalogue answers what a caller can meet (`RP35`).** `GET /api/rules` answered 169 rows and
   81 of them were law nothing checks, published in rows identical to the ones a caller can actually fail on.
   It answers **111** now: every one of the 77 gate constants, and the **34** layout rules something can name

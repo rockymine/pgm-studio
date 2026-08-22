@@ -14,5 +14,8 @@ public static class MapStage
     public const string Configure = "configure";
     public const string Edit = "edit";
 
+    /// <summary>The four, in the order a map moves through them.</summary>
+    public static readonly string[] All = [Plan, Sketch, Configure, Edit];
+
     public static bool IsValid(string? stage) => stage is Plan or Sketch or Configure or Edit;
 }
