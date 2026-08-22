@@ -8,44 +8,79 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-## The board is empty
+## The boundary: one contract, one use case, one class of fault
 
-The programme `docs/architecture.md` named has run. It was a dependency chain and it drained in order:
+`docs/architecture.md` is the survey these came out of. The studio has one front door — 149 HTTP endpoints —
+and a pipeline behind it whose steps have no home but the routes that reach them, and every entry here is a
+fact the studio knows and cannot say in a shape a caller can parse. They depend on each other
+in the order listed: the contract first, because the request shape and the client both hang off it; the
+application layer second, because it is where a gate stops belonging to a door; the fault class third; the
+lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
 
-**Say what the surface is.** Every operation declares what it answers, what it takes and which of 404, 409
-and 422 are its own; the endpoint tables are held to all three in both directions; every route the client
-calls is held to the schema. There is no generated client and will not be one — the response types already
-come from `Contracts`, and what a generated one would still buy is a path check that costs nothing
-(`RP41`, `RP42`, `RP43`, `RP40`, and `RP29`/`RP12`/`RP11` before them).
+- [ ] **RP33 — Three names in `Contracts` say the wrong thing, and one file is a drawer.** `OkDto` is
+  `{"ok": true}`, which the HTTP 200 beside it already says; its own docstring admits the field exists so a
+  test has something to assert on. It answers one route (`PATCH …/metadata`) where eleven siblings answer
+  `{}` through `AppliedDto` — two spellings of *nothing happened worth reporting*. Settle on one, and
+  consider whether either should be a truthful `204` on the `NoBody` list instead. `AckDtos.cs` is named for
+  acknowledgements and holds thirteen records, most of which are not: `SvgDto`, `PlayerDto`,
+  `CompiledPlanDto`, `ThemeMapPreviewDto`, `MapOriginDto`. Split it by subject the way the folder rule
+  states. Twelve routes and one file; no wire changes unless the `204` question is answered yes.
 
-**One place a use case lives.** The handlers that read stored state, do work and write it back are seven
-operations in `Api/Services` rather than bodies inside the door they were reached through. Under them: one
-refusal shape, one load-or-404 prologue where 47 had been written out, one slug derivation where three had
-drifted apart (`RP13`).
+- [ ] **RP34 — Two records name the same box and spell it two ways.** `BoundsDto`
+  (`Contracts/AnalysisDtos.cs:5`) is four `int`s answered camelCase (`minX`) by the two region-analysis
+  reads; `Bounds2dDto` (`Contracts/RegionTreeDtos.cs:84`) is four `double`s answered snake_case (`min_x`) by
+  the region tree and the four region writes. Same concept — a footprint in block coordinates — under two
+  types, and the wire genuinely differs, so merging them changes one of the two surfaces and needs its
+  callers checked first. `bounds_2d` is the contract's own word for it, which is the tiebreak on spelling.
 
-**The loop answers for itself.** `GET /map/{slug}/findings` asks every gate the stored documents can reach
-and names the ones it did not; `GET /map/{slug}/layers` says where a map has got to and what may be done to
-it next. A driver acts, then asks (`RP32`, `RP16`).
+- [ ] **RP35 — `/api/rules` answers 169 rules and 88 of them are raised.** `RuleCatalog.Read` concatenates
+  the **77 gate rules** declared as `const string` in the fourteen `*Rules` classes with **92 layout rules**
+  parsed out of `docs/generator/rules.md`, of which the plan validator fires **fifteen**:
+  `BZ5 BZ11 CT12 EL1 FR8 G2 G5 SP1 SP2 SP8 SP9 ST2 ST8 ST9 WL1`. The other 77 are law nothing checks,
+  published in rows identical to the ones a caller can actually fail on.
 
-**And the drift the survey measured beside it** is gone: the world builder is named for what it builds, a
-world is read where the format is and derived from where the derivations are, the board draws as characters
-off a posted plan, the comments describe the code as it stands, and the census counts itself (`WE11`, `WS5`,
-`TN4`, `TN5`, `RP10`, `RP8`, `RP19`).
+  **Four gate rules are in the same position and were put there deliberately** — `WX1`, `WX5`, `WX7` and
+  `WX9` state how a room frame is derived rather than refusing anything, and they are constants because a
+  rule may not live only in a markdown file (the author's ruling). So the cut below needs a line drawn that
+  is not *is it raised*: those four are the studio's own answer to "what is `WX7`", asked by a reader of
+  `structures.md` rather than of a finding.
 
-## What to pull up next
+  **Cut them rather than label them** (the author's ruling): the catalogue answers *what is this finding*, and
+  a rule nothing raises has no finding to explain. `rules.md` keeps all 92 as the generator's law; it is not
+  the API's to publish. Three go from `rules.md` too, being history rather than law — `BZ1` "Superseded by
+  FR1+FR2", `EL6` "[retired 2026-08-14]", `PC-S` "retired — the old per-seam sliver lint", which is free to
+  delete now that `PC-C`'s law is no longer stated inside its body. `BZ5` stays: retired as a prohibition,
+  still fired.
 
-`BACKLOG.md` holds the long tail, grouped by concept. **Pull up a whole group rather than a task**, per
-`CLAUDE.md` § *Status & task board*: a group's entries are gathered because they spend the same foundation,
-and reading that foundation for duplication is what makes the entries small enough to do. That is what this
-programme kept proving — nearly every entry on it turned out to be a duplication wearing the shape of a
-feature, and naming the duplication is what did the work.
+  **`GO1` is the one exception and is not deleted** — the author's amendment is ahead of what the studio
+  measures, and it rejoins the catalogue when *Distance, and the walk every measure is taken with* enforces
+  it. `RulesEndpointTests` gains the assertion from the other side: every row answered has an emit site.
+  `RP46` is the same seam from the other direction.
 
-Two findings were filed while it ran and are waiting there: `C47` (three Edit phases each carrying their own
-HTTP half, so the routes they reach are written in no single place) and `RP47` (the history sweep's grep was
-one phrasing of several).
+- [ ] **RP36 — 108 schemas describe the type and none of its fields.** The schema publishes the docstrings
+  the DTOs carry: 201 of 222 schemas have a description, but only 174 fields do, and in 108 of those schemas
+  the type's prose is doing the fields' work. `PlanPiece` is the worked case — its blurb explains `rect`,
+  `surface` and `mirrors` and says nothing about `role`, which is the one field a caller has to fill and the
+  one whose allowed words it cannot guess. Write a `<param>` per field on the records a driver posts or
+  reads: the write-route requests first (`RP12` authors them), then `PlanModel` and the plan pieces. Twenty-one
+  schemas still carry nothing at all and are the second pass. The measure is the field percentage at
+  `/api/openapi/v1.json`, not the schema one.
 
-**The obvious group to pull up is `The boundary: one contract, one use case, one class of fault`** — six
-entries, and the one this programme came out of. `RP33`–`RP38` are its remainder: three names in `Contracts`
-that say the wrong thing, two records naming one box two ways, a rule catalogue publishing more than is
-raised, 108 schemas describing a type and none of its fields, closed word sets crossing as free strings, and
-a region stating its numbers flat to create and nested to patch. Every one of those is a shape said twice.
+- [ ] **RP37 — The closed word sets are published as free strings.** `PgmStudio.Vocabulary` exists so three
+  parties spell a `map.stage`, a `style.kind`, a theme bucket, a room part and a roof form identically — ten
+  sets, `MapStage` plus the nine in `TerrainVocabulary` — and every one of them reaches the wire as a bare
+  `string`. `Severity`, `RuleCategory` and `RuleConcern` are the document's only `enum`s, because they
+  are the only ones declared as C# enums. So a generated client types `role` as `string` and an agent learns
+  the four stages by being refused. Publish each set as a schema `enum` — a `JsonStringEnumConverter`-backed
+  enum where the set is genuinely closed, or NSwag's schema processor reading the `All` array where the
+  `const string` shape has to stay for `Minecraft`.
+
+- [ ] **RP38 — A region states its numbers flat to create and nested to patch.** `POST /map/{slug}/regions`
+  reads `min_x`, `base_y`, `center_x` and the rest off the body root; `PATCH /map/{slug}/regions/{regionId}`
+  reads the same sixteen numbers out of a `coords` object, and its `bounds` object is a third spelling of the
+  four a create sends flat. So the contract carries two records — `RegionCreateRequest` and
+  `RegionCoordsDto`, `Contracts/EditRequests.cs` — whose number fields are identical and whose nesting is
+  not, and a caller that has learned one cannot write the other. Settle on one envelope. Nesting is the
+  better half: it separates the shape's numbers from the id, the category and the draft mark, and it is
+  already what the patch route and `Bounds2dDto` use. One editor signature, six client call sites, and the
+  two records become one. `RP34` is the same seam on the answer side.
