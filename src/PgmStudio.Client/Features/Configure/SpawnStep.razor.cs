@@ -11,6 +11,8 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
+using Ctx = AuthoringContext;
+
 // Teams · spawn step: the point tool drops team 0's spawn; the rest are orbit-filled from the confirmed
 // symmetry. Placement is island-aware — the clicked island's team (from the team-assignment step's
 // islandTeams) owns the spawn, and each orbit-filled spawn is reassigned by the island it lands in (so a
@@ -25,10 +27,9 @@ public partial class SpawnStep
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
     private sealed class Spawn { public string Team = ""; public double X, Y, Z, Yaw; public bool Authored; }
 
-    private readonly List<Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private readonly Dictionary<string, string> islandTeams = new();   // island id → team id
     private string? symMode; private double symCx, symCz;
     private List<IslandDto> islands = new();
@@ -44,7 +45,7 @@ public partial class SpawnStep
     private string Slug => Wizard.Slug;
     private Spawn? Selected => selectedTeamId == ObserverId ? observer : spawns.FirstOrDefault(s => s.Team == selectedTeamId);
     private static bool IsObserver(Spawn s) => s.Team == ObserverId;
-    private Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
+    private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string Hex(string teamId) => teamId == ObserverId ? ObserverHex : GameColors.ChatHex(TeamOf(teamId)?.Color ?? "");
     private string TeamName(string id) => id == ObserverId ? "Observer" : TeamOf(id)?.Name ?? id;
 
@@ -61,9 +62,7 @@ public partial class SpawnStep
     private void LoadFromIntent()
     {
         teams.Clear();
-        if (Wizard.Intent["teams"] is JsonArray arr)
-            foreach (var t in arr.OfType<JsonObject>())
-                teams.Add(new Team { Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color") });
+        teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
         islandTeams.Clear();
         if (Wizard.Intent["islandTeams"] is JsonObject it)
             foreach (var kv in it) if (kv.Value?.GetValue<string>() is { Length: > 0 } v) islandTeams[kv.Key] = v;

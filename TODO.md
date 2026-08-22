@@ -26,14 +26,6 @@ refusal envelope and declined — the interoperability it buys needs a caller ou
 is none, while the dereference it is prized for is already reachable from the `rule` each finding carries.
 The reasoning is `docs/design-decisions.md` § *The HTTP surface*; the entry that asked it is retired.
 
-- [ ] **TC4 — Three Configure steps parse the intent's teams a fourth, fifth and sixth time.**
-  `AuthoringContext.LoadTeams(intent)` reads the teams out of the intent document and six steps call it.
-  `SpawnStep`, `TeamAssignStep` and `ProtectionStep` each declare their own
-  `private sealed class Team { Id, Name, Color }` — the same three fields `Ctx.Team` carries — and walk the
-  same `JsonObject` themselves. Delete the three and call the helper, adding to it only what a caller
-  genuinely reads beyond those fields. Same disease as the six private island types `RP11` collapsed, on the
-  other document: the intent rather than `GET /map/{slug}`.
-
 - [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
   `docs/tools/capabilities.md` is 707 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB
   of the same question next door, and the two were written by different hands from the same code. `GET /map/{slug}/layers` puts the allowed

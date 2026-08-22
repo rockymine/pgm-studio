@@ -11,6 +11,8 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
+using Ctx = AuthoringContext;
+
 // Teams · step 1 (N02, "Teams & island assignment"): create the teams (symmetry suggests the count) and
 // tag islands to them. Writes the intent's teams + maxPlayers slice, plus the islandTeams authoring aid.
 // The reused WorldCanvas runs in island-select mode (base layer only): selecting a team then clicking an
@@ -21,9 +23,8 @@ public partial class TeamAssignStep
     [Inject] private HttpClient Http { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
 
-    private readonly List<Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private int maxPlayers = 12;
     private string? selectedTeamId;
     private List<IslandDto> islands = new();
@@ -33,7 +34,7 @@ public partial class TeamAssignStep
     private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
-    private Team? Selected => teams.FirstOrDefault(t => t.Id == selectedTeamId);
+    private Ctx.Team? Selected => teams.FirstOrDefault(t => t.Id == selectedTeamId);
     private static string Hex(string color) => GameColors.ChatHex(color);
 
     // Teams the symmetry suggests = its orbit order (rot_90 → 4, mirror/rot_180 → 2); no symmetry → no suggestion.
@@ -55,9 +56,7 @@ public partial class TeamAssignStep
     private void LoadFromIntent()
     {
         teams.Clear();
-        if (Wizard.Intent["teams"] is JsonArray arr)
-            foreach (var t in arr.OfType<JsonObject>())
-                teams.Add(new Team { Id = Str(t, "id"), Name = Str(t, "name"), Color = Str(t, "color") });
+        teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
         if (Wizard.Intent["maxPlayers"] is JsonValue mv && mv.TryGetValue(out int mp)) maxPlayers = mp;
         islandTeams.Clear();
         if (Wizard.Intent["islandTeams"] is JsonObject it)
@@ -92,7 +91,7 @@ public partial class TeamAssignStep
     {
         teams.Clear();
         foreach (var c in SuggestedColors)
-            teams.Add(new Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value });
+            teams.Add(new Ctx.Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value });
         selectedTeamId = teams.FirstOrDefault()?.Id;
         WriteTeams();
     }
@@ -100,13 +99,13 @@ public partial class TeamAssignStep
     private void AddTeam()
     {
         if (GameColors.NextTeamColor(teams.Select(t => t.Color)) is not { } c) return;
-        var team = new Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value };
+        var team = new Ctx.Team { Id = c.Value.Replace(' ', '-') + "-team", Name = c.Label, Color = c.Value };
         teams.Add(team);
         selectedTeamId = team.Id;
         WriteTeams();
     }
 
-    private async Task RemoveTeam(Team t)
+    private async Task RemoveTeam(Ctx.Team t)
     {
         teams.Remove(t);
         foreach (var isl in islandTeams.Where(kv => kv.Value == t.Id).Select(kv => kv.Key).ToList())
@@ -159,5 +158,4 @@ public partial class TeamAssignStep
         Wizard.MarkDirty();
     }
 
-    private static string Str(JsonObject o, string key) => o[key]?.GetValue<string>() ?? "";
 }

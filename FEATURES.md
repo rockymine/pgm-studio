@@ -707,6 +707,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **One team record across the Configure steps (`TC4`).** `AuthoringContext.LoadTeams` reads the teams out
+  of the intent and six steps called it; `SpawnStep`, `TeamAssignStep` and `ProtectionStep` each declared
+  their own `private sealed class Team { Id, Name, Color }` — the same three fields — and walked the same
+  `JsonArray` themselves. **Nine steps read them one way now.** A step walking the document itself is a
+  second reader free to disagree about what a missing field means, which is the same disease the six private
+  island types `RP11` collapsed, on the other document.
+
+  The Edit tool's two `Team` records stay: they read `GET /map/{slug}` rather than the intent, and carry the
+  dye colour and the player caps the intent has no field for. Sharing a name is not sharing a shape.
 - **One verb owns a write boundary (`RP27`).** `PgmDb.InOneWriteAsync` is the studio's name for "this
   replacement lands whole or not at all", and the three map-level writers asked it by that name while
   **nine library-store writes** opened `BeginTransactionAsync` by hand and committed at the end. They were

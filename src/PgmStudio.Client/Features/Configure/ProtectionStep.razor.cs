@@ -8,6 +8,8 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Client.Features.Configure;
 
+using Ctx = AuthoringContext;
+
 // Teams · protection step: draw the rectangle(s) over a spawn — a protection zone is a union of rectangles,
 // listed flat (one row per rectangle, with the generated region name + an authored/orbit badge, like the
 // Spawn-points step) and edited one at a time (the Build · Buildable-layer pattern). The first rect over a
@@ -19,13 +21,12 @@ public partial class ProtectionStep
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    private sealed class Team { public string Id = ""; public string Name = ""; public string Color = ""; }
     private sealed class Spawn { public string Team = ""; public double X, Y, Z; }
     private sealed class ProtRect { public int Id; public double MinX, MinZ, MaxX, MaxZ; }   // an authored rect (stable id)
     // A list row: a rectangle (authored or orbit), its canvas region id, owning team, and the generated name.
     private sealed record Row(string RegionId, string Team, bool Authored, double MinX, double MinZ, double MaxX, double MaxZ, string Name);
 
-    private readonly List<Team> teams = new();
+    private readonly List<Ctx.Team> teams = new();
     private string? symMode; private double symCx, symCz;
     private readonly List<Spawn> spawns = new();
     private readonly List<ProtRect> authored = new();               // the authored team's rects (stable ids, editable)
@@ -36,7 +37,7 @@ public partial class ProtectionStep
     private WorldCanvas? canvas;
 
     private string Slug => Wizard.Slug;
-    private Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
+    private Ctx.Team? TeamOf(string id) => teams.FirstOrDefault(t => t.Id == id);
     private string Hex(string teamId) => GameColors.ChatHex(TeamOf(teamId)?.Color ?? "");
     private string TeamName(string id) => TeamOf(id)?.Name ?? id;
 
@@ -76,9 +77,7 @@ public partial class ProtectionStep
     private void LoadFromIntent()
     {
         teams.Clear();
-        if (Wizard.Intent["teams"] is JsonArray arr)
-            foreach (var t in arr.OfType<JsonObject>())
-                teams.Add(new Team { Id = S(t, "id"), Name = S(t, "name"), Color = S(t, "color") });
+        teams.AddRange(Ctx.LoadTeams(Wizard.Intent));
         if (Wizard.Intent["symmetry"] is JsonObject sym)
         {
             symMode = sym["mode"]?.GetValue<string>();
