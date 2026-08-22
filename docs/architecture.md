@@ -94,8 +94,9 @@ Three operations now do live somewhere: `MapExportLoader` loads what the pure co
 `SketchFinish` rasterizes a drawing and advances the stage, and `MapFromDocuments` turns a plan, a layout and
 an intent back into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
 envelope — and each has more than one caller or is written to take one. They sit in `Api/Services` because
-that is the lowest project reaching everything they need today; `RP13` is where they move to a project of
-their own with the CLI as a second adapter.
+that is the lowest project reaching everything they need, and that is where they stay: a project of their own
+would buy separation and no second consumer, since the driver that would have been one speaks HTTP.
+`RP13` is the ten handlers of the same shape that have not moved there yet.
 
 **The order between steps is the part that has no home at all.** Storing an intent projects the map document
 from the intent's own `meta`, so authors written before it are overwritten — a rule stated in `flow.md`, in

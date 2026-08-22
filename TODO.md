@@ -35,16 +35,14 @@ is the author's call and the trade is stated: this is one coherent programme wit
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the fourteen carry a question only the author can answer
+## Three of the fourteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
-the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
-is kept in the table with the answer beside it, because the answer is the part an implementer needs.
+the file and line are named. These are not, and each is blocked on a decision rather than on work.
 
 | Entry | The question |
 |---|---|
-| `RP13` | *Answered, and re-measured since: the destination is **`Api/Services`**, not a project of its own — the second adapter a project was for does not exist. The entry carries the evidence.* The steps are named: the thirteen handlers that read and write, three of which are already operations. |
-| `RP32` | Which gates a map is asked at which stage, and whether the answer may pay for a build. Both decide the route's shape, so they come before it is written rather than during. |
+| `RP32` | **May a read pay for a build?** `GET /map/{slug}/findings` can answer the plan and layout gates from stored documents in milliseconds. The export gates (`OB17`, `EX1`) need the rasterized world, which is seconds of work a `GET` would be doing on every call. Either it rebuilds and is slow but complete, or it answers what is cheap and names the gates it did not ask. The answer decides the route's shape and its contract, so it comes first. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
 
@@ -98,17 +96,41 @@ consumers that keep the contract by hand instead of reading the records it is bu
 
 One entry: the ten steps that still belong to the door they are reached through.
 
-- [~] **RP13 — Ten use cases still live behind the door they are reached through.** Of **127** handlers the
-  bodies total 2,057 lines at a median of 10, so the volume is not the problem: **thirteen** read state and
-  write it back. Three are already operations in `Api/Services` that answer `Findings` and let the layer above
-  render the envelope — `MapExportLoader`, `SketchFinish`, `MapFromDocuments`. Take the remaining ten there,
-  and fold the load-or-404 prologue, which stands **37 times word for word**, into one.
+- [~] **RP13 — Ten use cases still live behind the door they are reached through.** A use case here is a
+  handler that **reads stored state, does work, and writes it back** — the shape the three already in
+  `Api/Services` have, which answer `Findings` and let the layer above render the envelope
+  (`MapExportLoader`, `SketchFinish`, `MapFromDocuments`). Move these ten there, unchanged in behaviour, and
+  fold the load-or-404 prologue — **37 occurrences, word for word** — into one:
+
+  | Route | Class |
+  |---|---|
+  | `POST /sketch` | `SketchCreateEndpoint` |
+  | `PUT /map/{slug}/plan` | `MapPlanPutEndpoint` |
+  | `PUT /map/{slug}/sketch` | `SketchPutEndpoint` |
+  | `PUT /map/{slug}/sketch/from-plan` | `SketchFromPlanEndpoint` |
+  | `DELETE /map/{slug}/sketch/discard-if-empty` | `SketchDiscardIfEmptyEndpoint` |
+  | `PUT /map/{slug}/intent` | `IntentPutEndpoint` |
+  | `PUT /map/{slug}/intent/from-plan` | `IntentFromPlanEndpoint` |
+  | `PATCH /map/{slug}/metadata` | `MetadataEndpoint` |
+  | `PATCH /map/{slug}/symmetry` | `SymmetryPatchEndpoint` |
+  | `POST /map/import-folder` | `ImportFolderEndpoint` |
+
+  **The cheapest of them is already an operation, misfiled.** `IntentWrite.StoreAndProjectAsync`
+  (`Endpoints/AuthoringIntentEndpoints.cs:37`) *is* the two intent writes, in the shape a service wants;
+  moving it moves two rows at once. `WriteSupport.RunEditAsync` (`Endpoints/WriteEndpoints.cs:17`) is the same
+  story one layer over — **23 call sites** across the region, spawn, wool and write endpoints — and is why
+  none of the Edit tool's routes is on the list: they are one path already, in the wrong folder. It belongs in
+  `Api/Services` with the rest, and moving it changes no behaviour at all.
 
   **`Api/Services` is the place, not a project of its own.** The second adapter a project was for does not
   exist: `tools/mapgen` is deleted, and the driver that replaced it — `drive.py` in the mapgen repo — is a
   Python HTTP client that cannot consume a .NET assembly at all. That a .NET CLI can already reach these
   operations is settled by `tools/seed-library.cs`, which references `PgmStudio.Api` and calls
   `Api.Services.LibrarySeed` directly. A new project would buy separation, not a consumer.
+
+  *Re-derive the list with: an endpoint class that both loads state (`GetBySlugAsync`, `artifacts.Load*`,
+  `ReadDocAsync`) and writes it (`Writes.StoreAsync`, `artifacts.StoreAsync`, `.UpdateAsync`,
+  `MapAuthors.ReplaceAsync`), minus anything reaching `WriteSupport.RunEditAsync`.*
 
 ## Phase 4 — the loop answers for itself
 
@@ -127,10 +149,8 @@ hears a late gate early. `RP32` is what is left of that here: the instances are 
   validator, the house-style checks) lives below `Api` and is reachable from an endpoint today, which is what
   `MapExportLoader` already does for the export's.
 
-  *Two answers are the author's before it starts: **which gates at which stage** — a plan-stage map can be
-  asked the plan validator, a built one the export chain — and **how expensive an answer may be**, since the
-  export gates need the rasterized world and a read that rebuilds it is not a read. The honest alternative is
-  to answer what is available without a build and say which gates were not asked.*
+  *The one answer it needs first is in the table above: whether a read may pay for a build. Which gates a
+  map is asked at which stage follows from it — a stage only decides which documents exist to ask of.*
 
 - [ ] **RP16 — The lifecycle is a column nothing reads and 709 lines of prose.** `map.stage` holds
   `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other
