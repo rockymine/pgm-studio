@@ -33,7 +33,7 @@ paths, **149 operations**, 291 schemas, **257 of them carrying the docstring bes
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
 What that document can say is bounded by what is declared, and the write surface states all of it. Of the
-**67 POST/PUT/PATCH routes**, **64 publish a request body** — 22 by binding a request type, 42 by naming the
+**67 POST/PUT/PATCH routes**, **64 publish a request body** — 25 by binding a request type, 39 by naming the
 shape they take while still reading it themselves — and the three that do not read no body at all, which is
 the truth rather than a gap. `SchemaCompletenessTests` holds both halves as counts that only move down, and
 both are now zero.
@@ -47,18 +47,35 @@ rather than about what a caller may post.
 
 Three things follow from that, and they are the same fact seen from three sides.
 
-**The one global input gate covers a seventh of the surface.** `RequiredFields` refuses anything a request
-DTO declares non-nullable and the body did not supply — and its first line is
-`if (context.Request is not { } request) return;`, so it is a no-op for every endpoint that has no request
-type. The promise it makes holds for the 22 routes that bind one. A declared shape is not a bound one: the
-42 routes that name their shape to the generator still read it themselves, so the document is true about them
-and the gate still does not run.
+**The one global input gate covers a sixth of the surface, and that is the shape of the thing rather than a
+shortfall.** `RequiredFields` refuses anything a request DTO declares non-nullable and the body did not
+supply — and its first line is `if (context.Request is not { } request) return;`, so it is a no-op for every
+endpoint that has no request type. The promise it makes holds for the **25 routes that bind one**. A declared
+shape is not a bound one: the 39 that name their shape to the generator still read it themselves, so the
+document is true about them and the gate does not run.
 
-**A validation that cannot live in a schema lives in the code by hand.** Of the Edit tool's 53 refusal sites
-across `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a number
-is not one. Those are a request schema written as `throw` statements, because the request they guard has no
-declared shape to hang them on. The other 38 are not: `NoSuchSubject`, `Conflict`, `Unresolved` and
-`Inapplicable` read the map the edit lands on, and no binding replaces them.
+**Binding is not a sweep, because two of the three things a body can be wrong about are not the binder's.**
+A field the JSON cannot carry into its type and a field that is missing are; a value outside a closed set is
+the gate's, and — decisively — an *update* body needs to tell an absent field from a null one, which a bound
+record cannot do once every field is optional. Every edit update reads `ContainsKey` to tell "leave this
+alone" from "clear it", so every edit update stays hand-read. What binds is the creates whose record has a
+field the caller must supply: a spawn's and an observer spawn's `region_id`, a team's `id`, and with them the
+`yaw` and `max_players` a binder refuses for not being a number. `WriteSupport.Stated` is how a bound record
+reaches the editors, which live in `Pgm` and cannot see `Contracts`: written back out through the wire's own
+serializer into the same doc-tree dict the hand-read path builds, so an editor reads one shape either way.
+
+**A refusal from the edge is a refusal like any other.** A binder that will not read a body used to answer
+FastEndpoints' `{statusCode, message, errors}` — the one shape on the surface a caller needed a second parser
+for, against what `docs/refusals.md` says. `Refusals.UseRefusalEnvelope` makes it `RQ1` per field in the one
+envelope, and both halves of "this body will not read" now name the field **as the wire spells it**: a
+property stating its own JSON name reports `region_id`, not the `regionId` the record declares.
+
+**A validation that cannot live in a schema still lives in the code by hand.** Of the Edit tool's 53 refusal
+sites across `Pgm/Editing`, **15 are `Unreadable`** — a field is absent, a value is outside a closed set, a
+number is not one. Three of those are now unreachable over HTTP, shadowed by the bindings above, and stay as
+the library guards they are: `SpawnEditor` and `TeamEditor` are public API in `Pgm` and cannot assume a bound
+caller. The other 38 sites are a different thing entirely: `NoSuchSubject`, `Conflict`, `Unresolved` and
+`Inapplicable` read the map the edit lands on, and no binding will ever replace them.
 
 **Every operation now says what it answers.** An endpoint that declares no response type is published as
 **204 No Content** — the generator's default, and a claim rather than a silence, so an undeclared route does

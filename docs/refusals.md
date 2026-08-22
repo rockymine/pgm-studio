@@ -82,7 +82,13 @@ route stop agreeing.
 
 **The edge answers it too, not only the gates.** No route under `/api` answers a failure in a shape of its
 own, and none answers one with no body at all: `Refusals` writes every one of them, so a caller writes one
-parser for a refusal — which is the only reason to have one envelope. The Edit tool's thirty-six write routes
+parser for a refusal — which is the only reason to have one envelope. **The binder is part of the edge**:
+a bound request that will not read is refused before any handler runs, and
+`Refusals.UseRefusalEnvelope` turns the framework's own `{statusCode, message, errors}` into `RQ1` per field
+under `error: "request will not read"`. `RequiredFields` answers the other half — a field that is missing
+rather than unreadable — as `RQ1` under `error: "incomplete request"`. Both name the field **as the wire
+spells it**, which is the only name a caller can look for: a property stating its own JSON name reports
+`region_id`, not the `regionId` its record declares. The Edit tool's thirty-six write routes
 answer it through one path: `EditException` carries the finding, and `WriteSupport.RunEditAsync` writes
 `Refusals.Of` with it.
 

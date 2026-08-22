@@ -1,3 +1,4 @@
+using FastEndpoints;
 using PgmStudio.Contracts;
 using PgmStudio.Domain;
 using PgmStudio.Vocabulary;
@@ -122,4 +123,29 @@ internal static class Refusals
         Complaints.Add(http, findings.Complaints);
         return false;
     }
+
+    /// <summary>
+    /// The binder's refusals, in the envelope every other refusal already uses. A bound request DTO is
+    /// refused before any handler runs — a field the JSON cannot carry into its type, a body that is not an
+    /// object — and the framework's default answers <c>{statusCode, message, errors}</c>, a second shape a
+    /// caller would need a second parser for.
+    ///
+    /// <para>Each failure becomes one <c>RQ1</c> finding naming its field, which is what
+    /// <see cref="RequiredFields"/> already answers for a field that is missing rather than unreadable: the
+    /// two halves of "this body will not read" say the same thing the same way. A failure the binder raises
+    /// against no field in particular carries none.</para>
+    /// </summary>
+    public static void UseRefusalEnvelope(this ErrorOptions errors)
+    {
+        errors.ProducesMetadataType = typeof(RefusalDto);
+        errors.ResponseBuilder = (failures, _, _) => Of("request will not read",
+            failures.Select(failure => new Finding(
+                RequestRules.Unreadable, failure.ErrorMessage,
+                Field: string.IsNullOrWhiteSpace(failure.PropertyName) ? null : Camel(failure.PropertyName))));
+    }
+
+    /// <summary>The binder names a property as the DTO declares it; the wire carries it as the serializer
+    /// writes it, and a finding's field is the caller's spelling.</summary>
+    private static string Camel(string name) =>
+        name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
 }

@@ -194,6 +194,14 @@ not take, **404** (`RQ4`) for an unknown map, region, team, wool, monument, spaw
 **409** (`RQ5`) for an id already in use. Payload validation runs **before** the lookup, so a malformed body
 aimed at something that does not exist answers 400 rather than 404.
 
+**Three creates are refused earlier still, by the binder.** `POST …/spawns`, `PATCH …/observer-spawn` and
+`POST …/teams` bind their request record, so a missing `region_id` or `id` is `RQ1` from `RequiredFields` and
+a `yaw` or `max_players` that is not a number is `RQ1` from the binder — both before the map is read, and both
+in the same envelope the editors answer. Every **update** stays hand-read, and deliberately: an update tells an
+absent field from a null one by asking whether the key is there at all, which is how *leave the team alone*
+differs from *clear its dye colour*, and a bound record whose fields are all optional cannot tell the two
+apart.
+
 **Every one of them rewrites the whole document**, which is what makes two editors a problem: an edit reads
 the map, patches it and writes all of it back, so two callers working on different parts at once keep only
 the second, with no conflict and no finding. `GET /map/{slug}` answers the map's **revision** as an `ETag`,

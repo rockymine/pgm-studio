@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace PgmStudio.Api.Tests;
@@ -111,6 +112,73 @@ public sealed class UnreadableBodyTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         var body = await resp.Content.ReadFromJsonAsync<Refusal>();
         await Assert.That(body!.Findings.Select(f => f.Field)).DoesNotContain("name");
+    }
+
+    /// <summary>
+    /// A bound request that will not read is refused in the same envelope a gate uses. The binder's own
+    /// <c>{statusCode, message, errors}</c> is the one shape on the surface a caller would have needed a
+    /// second parser for, and `docs/refusals.md` says there is none — so the builder answers <c>RQ1</c> per
+    /// field instead, naming the field as the wire spells it.
+    /// </summary>
+    [Test]
+    public async Task A_value_the_binder_cannot_read_is_refused_in_the_one_envelope()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var resp = await client.PostAsync("/api/compose/pin", Json(
+            """{"players":"lots","teams":2,"symmetry":"mirror_x","cell":8,"seed":1,"composerVersion":"v3","schema":1}"""));
+        var body = await resp.Content.ReadFromJsonAsync<Refusal>();
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(body!.Error).IsEqualTo("request will not read");
+        await Assert.That(body.Findings.Select(finding => finding.Rule).Distinct()).IsEquivalentTo(["RQ1"]);
+        await Assert.That(body.Findings.Select(finding => finding.Field)).Contains("players");
+    }
+
+    /// <summary>
+    /// A missing field is named as the <b>caller</b> spells it, not as the record declares it. The two differ
+    /// wherever a property states its own JSON name — a spawn's <c>region_id</c> is <c>RegionId</c> in the
+    /// record — and naming the property sends an author looking for a field their body does not have.
+    /// </summary>
+    [Test]
+    public async Task A_missing_field_is_named_as_the_wire_spells_it()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await OriginateAsync(client);
+
+        var resp = await client.PostAsync($"/api/map/{slug}/spawns", Json("""{"team":"red"}"""));
+        var body = await resp.Content.ReadFromJsonAsync<Refusal>();
+
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That(body!.Findings.Select(finding => finding.Field)).Contains("region_id");
+        await Assert.That(body.Findings.Select(finding => finding.Field)).DoesNotContain("regionId");
+    }
+
+    /// <summary>And the field a bound create left optional stays optional: a team stating only its id takes
+    /// every default the editor names, so binding cannot have turned a documented convenience into a
+    /// refusal.</summary>
+    [Test]
+    public async Task A_bound_create_still_takes_its_defaults()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await OriginateAsync(client);
+
+        var resp = await client.PostAsync($"/api/map/{slug}/teams", Json("""{"id":"red"}"""));
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+
+        var team = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("team");
+        await Assert.That(team.GetProperty("name").GetString()).IsEqualTo("red");
+        await Assert.That(team.GetProperty("color").GetString()).IsEqualTo("red");
+        await Assert.That(team.GetProperty("max_players").GetInt32()).IsEqualTo(20);
+    }
+
+    private static async Task<string> OriginateAsync(HttpClient client)
+    {
+        var made = await client.PostAsync("/api/sketch", Json("""{"name":"Weirgate"}"""));
+        return (await made.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
     }
 
     private static StringContent Json(string body) => new(body, Encoding.UTF8, "application/json");

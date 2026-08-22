@@ -8,17 +8,18 @@ namespace PgmStudio.Api.Endpoints;
 // ── spawns ──────────────────────────────────────────────────────────────────────────
 
 /// <summary>POST /api/map/{slug}/spawns — link a spawn to a region.</summary>
-public sealed class SpawnCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+public sealed class SpawnCreateEndpoint(MapRepository repo, MapReader reader, MapWriter writer)
+    : Endpoint<SpawnCreateRequest>
 {
     public override void Configure()
     {
         Post("/map/{slug}/spawns");
         AllowAnonymous();
-        Description(b => b.Accepts<SpawnCreateRequest>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(SpawnCreateRequest req, CancellationToken ct)
     {
-        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var p = WriteSupport.Stated(req);
         var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.AddSpawnLink(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }
@@ -60,17 +61,18 @@ public sealed class SpawnDeleteEndpoint(MapRepository repo, MapReader reader, Ma
 }
 
 /// <summary>PATCH /api/map/{slug}/observer-spawn — set/replace the observer spawn.</summary>
-public sealed class ObserverSpawnSetEndpoint(MapRepository repo, MapReader reader, MapWriter writer) : EndpointWithoutRequest
+public sealed class ObserverSpawnSetEndpoint(MapRepository repo, MapReader reader, MapWriter writer)
+    : Endpoint<ObserverSpawnRequest>
 {
     public override void Configure()
     {
         Patch("/map/{slug}/observer-spawn");
         AllowAnonymous();
-        Description(b => b.Accepts<ObserverSpawnRequest>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
-    public override async Task HandleAsync(CancellationToken ct)
+    public override async Task HandleAsync(ObserverSpawnRequest req, CancellationToken ct)
     {
-        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
+        var p = WriteSupport.Stated(req);
         var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.SetObserverSpawn(doc, p), ct);
         await Send.ResponseAsync(b!, s, ct);
     }

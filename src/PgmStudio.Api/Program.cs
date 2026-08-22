@@ -4,6 +4,7 @@ using System.Text.Json.Serialization;
 using FastEndpoints;
 using FastEndpoints.Swagger;
 using PgmStudio.Domain;
+using PgmStudio.Api.Endpoints;
 using PgmStudio.Api.Http;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
@@ -248,6 +249,11 @@ app.UseFastEndpoints(c =>
     // Query/route/form values bind through the ambient culture unless told otherwise; this makes the
     // wire boundary itself invariant rather than leaning on the process-wide pin above.
     c.Binding.UseInvariantNumbers();
+    // A binder that refuses is a gate like any other, and answers the one envelope docs/refusals.md
+    // describes: RQ1 per field, named, so a caller parses a binding failure with the same reader it
+    // already has for a gate's. The binder's own {statusCode, message, errors} shape is the one thing on
+    // the surface a caller would need a second parser for.
+    c.Errors.UseRefusalEnvelope();
 });
 
 // The generated document and the page over it. Both are served from the app's own assets — nothing is

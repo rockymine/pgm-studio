@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Serialization;
 using FastEndpoints;
 using PgmStudio.Domain;
 using PgmStudio.Vocabulary;
@@ -34,7 +35,7 @@ internal sealed class RequiredFields : IGlobalPreProcessor
         var missing = request.GetType()
             .GetProperties(BindingFlags.Public | BindingFlags.Instance)
             .Where(property => property.CanRead && Required(property) && Absent(property.GetValue(request)))
-            .Select(property => property.Name)
+            .Select(OnTheWire)
             .ToList();
         if (missing.Count == 0) return;
 
@@ -42,8 +43,8 @@ internal sealed class RequiredFields : IGlobalPreProcessor
             context.HttpContext, 400, "incomplete request",
             missing.Select(field => new Finding(
                 RequestRules.Unreadable,
-                $"field '{Camel(field)}' is required and was not supplied",
-                Field: Camel(field))),
+                $"field '{field}' is required and was not supplied",
+                Field: field)),
             ct);
     }
 
@@ -67,6 +68,13 @@ internal sealed class RequiredFields : IGlobalPreProcessor
     /// </summary>
     private static bool Absent(object? value) => value is null;
 
-    private static string Camel(string name) =>
-        name.Length == 0 ? name : char.ToLowerInvariant(name[0]) + name[1..];
+    /// <summary>The name the caller wrote, which is the only name they can look for. A property states its
+    /// own where the two differ — <c>RegionId</c> crosses as <c>region_id</c> — and the rest follow the
+    /// serializer's camelCase. Naming the property instead sends an author looking for a field their body
+    /// does not have.</summary>
+    private static string OnTheWire(PropertyInfo property) =>
+        property.GetCustomAttribute<JsonPropertyNameAttribute>()?.Name
+        ?? (property.Name.Length == 0
+            ? property.Name
+            : char.ToLowerInvariant(property.Name[0]) + property.Name[1..]);
 }

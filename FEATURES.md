@@ -638,6 +638,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The creates that a binding genuinely refuses are bound, and the binder answers the one envelope
+  (`RP40`).** Binding is not a sweep, and the reason is in the update: every edit update reads `ContainsKey`
+  to tell *leave this alone* from *clear it*, and a bound record whose fields are all optional cannot tell
+  an absent field from a null one — so every update stays hand-read. What binds is the three creates whose
+  record has a field the caller must supply: `POST …/spawns` and `PATCH …/observer-spawn` (`region_id`) and
+  `POST …/teams` (`id`), and with them the `yaw` and `max_players` a binder refuses for not being a number.
+  `WriteSupport.Stated` carries a bound record to the editors, which live in `Pgm` and cannot see
+  `Contracts`, by writing it back out through the wire's own serializer into the same doc-tree dict the
+  hand-read path builds. **25 routes bind**, 39 declare and read.
+
+  Two defects fell out of it. A bound route answered a binding failure in FastEndpoints' own
+  `{statusCode, message, errors}` — the one shape on the surface a caller needed a second parser for, against
+  what `docs/refusals.md` states — now `RQ1` per field through `Refusals.UseRefusalEnvelope`. And
+  `RequiredFields` named the **property** rather than the wire field, so a missing `region_id` was reported
+  as `regionId`: a name an author cannot find in the body they sent.
 - **No generated client, and the check it would have bought (`RP43`).** The question was whether
   `NSwag.CodeGeneration.CSharp` as a build-time package plus a committed generated file was worth what it
   fixes. Measured after `RP11` drained, it is not: a generated client's whole value is the response types,
