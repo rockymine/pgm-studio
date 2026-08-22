@@ -26,12 +26,13 @@ refusal envelope and declined — the interoperability it buys needs a caller ou
 is none, while the dereference it is prized for is already reachable from the `rule` each finding carries.
 The reasoning is `docs/design-decisions.md` § *The HTTP surface*; the entry that asked it is retired.
 
-- [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
-  `docs/tools/capabilities.md` is 707 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB
-  of the same question next door, and the two were written by different hands from the same code. `GET /map/{slug}/layers` puts the allowed
-  moves on the map's own response, so that question has a runtime answer and neither document should be
-  trying to hold it. What is left is the half prose is actually good at and neither file
-  is organised around: **how to make a good map** — the art direction, what an objective needs around it,
-  what the corpus does — as against **what the system can be asked for**, which is the API's to say. Split
-  them on that line: the capability half goes, the craft half moves to where its subject lives under
+- [~] **RP23 — `docs/tools/capabilities.md` is 707 lines answering "what can I ask for", which the API now
+  answers itself.** The schema names every route, its body and its failure codes; `GET /api/rules` names
+  every refusal with its fix; `GET /map/{slug}/layers` puts the allowed moves on the map's own response.
+  What prose is good at and this file is not organised around is the other half: **how to make a good map** —
+  what an objective needs around it, what the corpus does — as against **what the system can be asked for**.
+  Split it on that line: the capability half goes, the craft half moves to where its subject lives under
   `docs/gameplay/`.
+
+  The mapgen half landed: `pgm-studio-mapgen`'s six root documents became two, and `AUTHORING-BRIEF.md`
+  points at the four self-describing reads instead of restating them. This entry is the studio's own side.

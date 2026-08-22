@@ -270,11 +270,24 @@ be about a house, a distance, a tree, a destroy stamp, the plan model, a gate or
 under whichever of those owns it. What left the pool entirely, so nobody refiles it: `B142` `B147` `B148`
 `B149` `B152` `B155` `B156` `B157` `B158` `B160` `B161` `B164` `B167` `B168` `B172` `B180` `B186` `B188`
 `B201` all carry a `FEATURES.md` line; `B136` `B153` `B170` `B173` `B182` `B183` are composition law and live
-as numbered rules in `pgm-studio-mapgen` (`ART-DIRECTION.md`, `REVIEWER-BRIEF.md`), which `B189` was filed to
-keep true and is withdrawn with them; `B199` is withdrawn because the surface's inward band (`B200`) already
+in `pgm-studio-mapgen/AUTHORING-BRIEF.md` § *What the studio checks for you, and what it does not*, which
+`B189` was filed to keep true and is withdrawn with them; `B199` is withdrawn because the surface's inward band (`B200`) already
 says what a concentric house floor would have; and four folded into a neighbour — `B176` into `B162`, `B97`
 into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, and a walled wool room reading
 as an isolated marker into `B99`.
+
+- [ ] **WE14 — An approach wall is claimed one column wider than it is built, on both axes.**
+  `StructureStamper.StampWall` walks its footprint **max-exclusive** — which is what the intent's rect means,
+  and `SketchWorldBuilder` says so — while `ClaimStructures` hands the same rect to
+  `WorldProvenance.ClaimRect`, which walks it **max-inclusive**. `StampRoomFloors` already takes the
+  foundation cells from the stamper rather than re-deriving them; a wall wants the same treatment, so the
+  claim is the cells the stamp filled. Every read that trusts the sidecar — `--topdown --layer structure`
+  says `STRUCTURE READING: RECORDED PROVENANCE` — draws the wall a column thicker than it plays, and a bedrock
+  line's thickness is exactly what decides whether it can be built over.
+
+  *`maps/grok-ridge`: the sidecar draws 26 × 3, the world holds 25 × 2. `--column` at `(−25, 36)`,
+  `(−12, 36)` and `(−1, 36)` reads stone brick y17 — the mid terrace, no wall — while `(−25, 35)`, `(−12, 35)`
+  and `(−1, 34)` read cobweb y21 over bedrock y20…16.*
 
 - [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
   picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
@@ -298,11 +311,12 @@ as an isolated marker into `B99`.
 - [ ] **B245 — `PgmStudio.RoundTrip --help` should say what each render answers, not just how to invoke it.**
   An agent choosing between `--topdown --layer …`, `--section`, `--heightmap`, `--surface`,
   `--traversability-map`, `--structures`, `--mirror` and `--column` has nothing in the tool
-  saying which question each one answers or where each is known to mislead. That knowledge exists — the table
-  in `pgm-studio-mapgen/REVIEWER-BRIEF.md` carries it, caveats included (`B99` on isolated markers, `B149` on
-  `--buildings` under-counting a studio-built town, `B129` on the one-plane cut) — but it lives in a brief an
-  agent may not have been given, beside the repository that owns the commands. Put one line per read in
-  `--help`: what it draws, and what it is known not to show.
+  saying which question each one answers or where each is known to mislead. Put one line per read in
+  `--help`: what it draws, and what it is known not to show. The three caveats that have each cost a reader
+  a wrong conclusion: `--traversability-map` reads an approach wall's cobweb course as impassable, so every
+  board carrying one reports isolated markers (`B99`); `--buildings` finds roofs by material and cannot see
+  a town this studio built (`B149`); and `--section` samples **one plane**, so anything a few blocks either
+  side of the cut is not in the picture (`B129`).
 
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
   `TopDownRender.ReadColumns` takes `LayerExtractors.Surface` with no exclusions and derives the frame from

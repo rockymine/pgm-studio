@@ -6077,7 +6077,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   bottom (lime stained clay at y12 over clay to y1 over bedrock at y0); and Ashen Quarry's quarry-mouth void
   is a diagonal notch, not a straight edge — missing columns at z26/27/28/29 run 5/23/42/60 wide (x −9..−5,
   −26..−4, −44..−3, −61..−2) and close to zero at z30, which is exactly the diagonal land-polygon boundary
-  `AGENT-REPORT-2.md` describes.
+  `pgm-studio-mapgen/reports/ashen-quarry-report.md` describes.
 - **Three read-backs stopped misinforming (B124).** `BlockPalette.Name(31, 1)` answered "Tall Grass" for the
   plain single-block plant vanilla itself calls "Grass" — tall grass is the two-block `175:2` — so every
   surface census, decoration table and column probe told an author the opposite of what a `tallShare: 0`
