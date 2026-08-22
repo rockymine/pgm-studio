@@ -204,14 +204,24 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
-- [ ] **RP48 — The answer shapes describe the type and not the fields.** `RP36` closed the request side:
-  189 of the 190 fields a write route reads carry a `<param>`, and `SchemaCompletenessTests` holds every
-  posted shape to it. The answer side is where the remaining gap is — **466 of 1,283** fields across the
-  whole document carry a description, so a caller reading a response schema meets a name and a type. The
-  populous ones are the analysis and region reads (`RegionTreeDto` and its four companions, `CoverageDto`,
-  `BuildabilityDto`, the suggestion DTOs) and the evaluator's own answers (`EvaluationDto`, `TermDto`,
-  `FeasibilityDto`), several of which explain their fields in the type's prose. Extend the posted-shape test
-  to the answered ones once they are written, so the guard is the same one in both directions.
+- [ ] **RP49 — `doc-status.md` describes a `docs/` tree that no longer exists.** The file whose subject is
+  whether the documents are current is itself the stalest thing in the repository. Of its **50 rows citing a
+  document path, 33 name a file that is not there** — the whole `docs/contracts/` folder it is written around
+  was split by subject long ago, so `contracts/plan-editor.md`, `contracts/sketch-relief.md`,
+  `contracts/canvas-interaction.md` and thirty more resolve to nothing. Of the 17 that do resolve, **15 carry
+  the wrong line count** and two are right: `generator/ideas.md` is listed at 191 lines and is 471,
+  `world-export/decoration.md` at 504 and is 744, `tools/capabilities.md` at 478 and is 707.
+
+  A reader cannot tell which rows to trust, so the whole file reads as noise — and a row being right is
+  indistinguishable from a row being stale, which is the failure *Documents rot silently* describes, in the
+  document that exists to catch it. **The line counts are the part that cannot survive by hand**: they are
+  wrong between every pair of commits, exactly as `project-structure.md`'s size table was before `RP8` made
+  `tools/census.sh` write it. Either generate the table the same way, or drop the counts and keep only what
+  prose can hold — the path and what the document covers. Decide which before rewriting the 50 rows, because
+  hand-restoring counts buys a table that is wrong again by the next commit.
+
+  *Measured 2026-08-22 by resolving each cited path against the tree and counting the lines behind the ones
+  that resolve.*
 
 - [ ] **RP47 — The history sweep's grep was one phrasing of several.** `RP10` swept
   `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
@@ -229,18 +239,6 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *The grep: `^\s*(///|//).*(previously|formerly|before this said|the old |used to be|had been|stopped being)`
   over `src/`, minus `Migrations/`. Worth leaving in the commit message so the next reading starts where this
   one stopped.*
-
-- [ ] **C47 — Three Edit phases each carry their own HTTP half, and the routes are split across it.**
-  `BuildRegionsPhase`, `ObjectivePhase` and `TeamsPhase` each declare the same four members —
-  `Post(path, body)`, `Patch(path, body)`, `Delete(path)` and `Send(call)` — over the prefix
-  `$"api/map/{Slug}/{path}"`, and take the tail from the call site: `Patch($"teams/{t.Id}", payload)`,
-  `Delete($"wools/{w.Id}/monuments/{m.Id}")`. **21 call sites** reach routes that are written in no single
-  place, so `ClientRouteTests` names the prefix as its one exception and reads none of the 21. Put them in one
-  helper beside `RegionEdits` (`Features/Edit/RegionEdits.cs`, which already takes `Http, Slug, …` and is
-  shared by all three), with the whole route literal there — which drops three copies of `Send` with it.
-
-  *Evidence: `BuildRegionsPhase.razor.cs:163`, `ObjectivePhase.razor.cs:252`, `TeamsPhase.razor.cs:278` are
-  the same two lines three times. The exception in `ClientRouteTests.Composed` is what this deletes.*
 
 - [ ] **C46 — The Export button says nothing while the world is being built.** `GET /map/{slug}/export`
   answers in 0.3–0.7 s on a 100×140 board (`docs/tools/configure.md`), which is short enough that no job or
@@ -1259,27 +1257,6 @@ braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
-- [ ] **RP44 — The complaint channel is on every success and in no schema.** `Complaints.CarryAsync` adds a
-  `warnings` key to any 2xx JSON object whose request raised one — `RQ3` for a field nothing could keep, the
-  `DR-*` declines a dressing pass made, a layout's own remarks — and **no DTO declares it**, so
-  `/api/openapi/v1.json` says a success carries only the shape the route named. An agent reading the document
-  cannot learn that a 200 may be carrying the very findings `architecture.md` calls the driver's most
-  useful read, and the client cannot type a body that has one: `PlanTool` still takes `/plan/compile`'s
-  success as a `JsonElement` for exactly this reason, because `CompiledPlanDto` has no field for the
-  `warnings` beside its layout and intent.
-
-  One key on every 2xx wants one answer, not a field added to fifty records. Either publish it as a response
-  **header** the schema can name once, or wrap the declared shape — and the choice decides whether existing
-  callers change, so it is the author's. `Finding` is already the element type either way.
-
-- [ ] **TC4 — Three Configure steps parse the intent's teams a fourth, fifth and sixth time.**
-  `AuthoringContext.LoadTeams(intent)` reads the teams out of the intent document and six steps call it.
-  `SpawnStep`, `TeamAssignStep` and `ProtectionStep` each declare their own
-  `private sealed class Team { Id, Name, Color }` — the same three fields `Ctx.Team` carries — and walk the
-  same `JsonObject` themselves. Delete the three and call the helper, adding to it only what a caller
-  genuinely reads beyond those fields. Same disease as the six private island types `RP11` collapsed, on the
-  other document: the intent rather than `GET /map/{slug}`.
-
 - [ ] **TN6 — A compile that failed leaves a button promising the build it cannot do.** The compile drawer's
   draft button is `Disabled="@(compiledLayout is null || draftBusy)"` (`PlanTool.razor:669`) while its label
   is `BuildLabel`, which reads only whether the map is built. So a **422** leaves *Rebuild this map* on
@@ -1288,18 +1265,6 @@ braces, worth having once the studio is used by someone who did not write it.
   the drawer is in: label the button for the state (*Fix the plan first*, or the count of blocking findings)
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
-
-- [ ] **RP45 — The refusal envelope is the studio's own, and a standard one now has somewhere to point.**
-  Every refusal answers `{error, message, findings}`, which every client has to be taught. RFC 9457 Problem
-  Details is the shape the rest of the world reads, and its `type` is a URI that dereferences to what the
-  fault means — which `GET /api/rules?rule=<id>` now is, carrying `means`, `fix`, `category` and `concerns`.
-  So the one thing that made the standard awkward here is gone.
-
-  **The cost is that every caller changes**, which the no-backward-compatibility rule makes a decision rather
-  than a migration: `RefusalDto`, `Refusals`, `ServerRefusal.SentenceAsync` in the client, and the shape
-  `refusals.md` documents. The open question is whether a `findings` extension member alongside `title`,
-  `status` and `detail` is worth the churn, or whether one envelope nobody outside this deployment reads is
-  fine as it is. **The author's.**
 
 - [ ] **C45 — The authors editor fetches every avatar from a third-party host at render time.**
   `AuthorsEditor.razor:39` renders `https://mc-heads.net/avatar/{uuid}/16` as an `<img src>`, so every author
@@ -1313,26 +1278,6 @@ braces, worth having once the studio is used by someone who did not write it.
   an author row shows without it — the uuid's own colour, an initial, a vendored silhouette — and whether a
   fetched avatar is worth a server-side proxy with a cache. `AvatarEmpty` beside it is already the
   no-uuid case, so there is a fallback to widen rather than one to invent.
-
-- [ ] **RP27 — Nine library writes still open a transaction by hand.** `PgmDb.InOneWriteAsync` is the verb
-  for "this replacement lands whole or not at all", and the three map-level writers ask it by that name.
-  The style, theme and house-part stores do not: `RoomStyleStore` (2), `HousePartStore` (4), `ThemeStore` (2)
-  and `MapMetadataEndpoint` (`WriteEndpoints.cs:58`) each write `await using var tx = await
-  db.BeginTransactionAsync(ct)` and commit at the end. They are correct today — every one is a leaf write
-  nothing calls into — but `BeginTransactionAsync` throws on a second transaction over one connection, so
-  the first caller that puts one inside another gets a runtime fault rather than a joined write, and one
-  concept with two call shapes is what the shared verb exists to stop. Convert them; the four that return a
-  value mid-body need the `Func<Task<T>>` overload, which does not exist yet.
-
-- [ ] **RP23 — Two documents answer "what can I ask for", in two repositories, and neither is verified.**
-  `docs/tools/capabilities.md` is 716 lines of it here; `pgm-studio-mapgen`'s `AUTHORING-BRIEF.md` is 20 KB
-  of the same question next door, and the two were written by different hands from the same code. Once
-  `RP16` puts the allowed moves on the map's own response, that question has a runtime answer and neither
-  document should be trying to hold it. What is left is the half prose is actually good at and neither file
-  is organised around: **how to make a good map** — the art direction, what an objective needs around it,
-  what the corpus does — as against **what the system can be asked for**, which is the API's to say. Split
-  them on that line: the capability half goes, the craft half moves to where its subject lives under
-  `docs/gameplay/`. Blocked on `RP16`; rewriting either before then is work thrown away twice.
 
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
 (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created

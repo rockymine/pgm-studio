@@ -154,6 +154,26 @@ front of the opening would first be used by the **8th** monument.
 don't leak the tree. (Failures do currently escape the structured-error path — that part is a
 real finding — but the leak claim is not.)
 
+## The HTTP surface
+
+### The refusal envelope is the studio's own, and RFC 9457 was weighed and declined
+Every refusal answers `{error, message, findings[]}` rather than RFC 9457 Problem Details, whose
+`type` is a URI dereferencing to what the fault means.
+
+- *Looks wrong:* a bespoke envelope where a standard exists is the textbook case for adopting the
+  standard, and the one thing that used to make it awkward here is gone — `GET /api/rules?rule=<id>`
+  is exactly the lookup a `type` URI would point at, and it now answers only ids a caller can
+  actually meet.
+- *Why it stands:* the standard buys interoperability with clients outside the deployment, and
+  there are none — `CLAUDE.md` states one deployment, no published API and no third party reading
+  anything this writes. What it would cost is every caller: `RefusalDto`, `Refusals`,
+  `ServerRefusal.SentenceAsync` and the shape `refusals.md` documents. A caller that wants the
+  dereference already has it from the `rule` each finding carries, without the envelope changing
+  shape to say so.
+- *Enforced:* one envelope, written in one place — `Refusals.WriteAsync` and the
+  `ErrorOptions.ResponseBuilder` behind `UseRefusalEnvelope`; `docs/refusals.md` § *How every gate
+  says no* is the description, and `DocumentedFailureTests` holds the routes to it.
+
 ## Tests & fixtures
 
 ### "Synthetic fixtures only" permits committed seed JSON; "corpus harnesses" means the real map corpus

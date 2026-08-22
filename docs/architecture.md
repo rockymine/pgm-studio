@@ -280,9 +280,11 @@ id's bullet, which is the id the parser takes such a line for — so `GET /api/r
 empty list for as long as both were true. It is a constant now.
 
 The distinction the catalogue now draws is between the **category** of a fault, which is a small closed set an
-agent branches on, and the **rule**, which is specific, stable and for a reader. What remains unanswered is
-the envelope: a refusal is the studio's own `{error, message, findings}` rather than RFC 9457 Problem Details,
-whose `type` URI would be the `/api/rules` lookup that now exists.
+agent branches on, and the **rule**, which is specific, stable and for a reader. The envelope stays the
+studio's own `{error, message, findings}` rather than RFC 9457 Problem Details: the standard buys
+interoperability with clients outside the deployment and there are none, while the dereference it is prized
+for is already reachable from the `rule` each finding carries. `docs/design-decisions.md` § *The HTTP
+surface* carries the reasoning.
 
 ## The measurement is next door
 
@@ -384,7 +386,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | a request shape that is bound, not only declared | a request record per route, bound at the edge — parse rather than validate | the 15 `Unreadable` throws that stand where a binding would have refused, and the one global input gate covering a third of the write surface |
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 77 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |
-| a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
+| a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | nothing here: **declined**, because the interoperability it buys needs a caller outside this deployment and there is none, while the dereference is already reachable from the `rule` a finding carries (`docs/design-decisions.md`) |
 | a lifecycle a caller can read | the stage, the layers and the moves they allow, on the map's own read — a marker rather than a lock, since nothing reading back up is not the same as nothing going back | **shipped** on `GET /map/{slug}/layers`; `capabilities.md` had been the only answer to a runtime question |
 | a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | the build an agent paid to hear a refusal — **shipped**, for the two objective gates at their own steps and for every readable gate at once on `GET /map/{slug}/findings` |
 
