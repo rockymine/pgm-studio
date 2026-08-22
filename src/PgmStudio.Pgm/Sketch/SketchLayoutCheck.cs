@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Vocabulary;
@@ -41,6 +42,41 @@ public static class SketchLayoutCheck
     /// <summary>Read a layout as posted. A body that is not a layout at all is not this gate's to report —
     /// that is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
     public static Findings Check(string layoutJson) => Check(SketchLayout.Stated(layoutJson));
+
+    /// <summary>
+    /// Whether a board carries any finish at all — a theme registry, a relief, or props — and which of the
+    /// three it does not, or null where it carries at least one.
+    ///
+    /// <para>Asked at the <b>finish</b> rather than in <see cref="Check(SketchLayout?)"/>, because a board
+    /// mid-draw has every right to be bare and only finishing declares the drawing done. That is the same
+    /// reason <c>SK6</c> and <c>SK7</c> live at that stage: it is the last point where what a board does not
+    /// have can still be said.</para>
+    /// </summary>
+    public static Finding? Unfinished(SketchLayout? layout)
+    {
+        if (layout is null) return null;
+
+        var absent = new List<string>();
+        if (layout.Themes is not { Count: > 0 }) absent.Add("no theme registry, so every column paints the built-in finish");
+        if (layout.Relief is not { Count: > 0 }) absent.Add("no relief, so the ground is as flat as the shapes stated it");
+        if (!HasProps(layout)) absent.Add("nothing placed on it — no tree, boulder, path or building");
+        if (absent.Count < 3) return null;
+
+        return new Finding(SketchRules.NoFinish,
+            "the board is finished carrying no finish: " + string.Join("; ", absent)
+            + ". A board of bare ground is a legitimate one, so this stops nothing — but it exports as raw "
+            + "stone, and nothing later says so",
+            Severity.Complaint);
+    }
+
+    /// <summary>Whether the dressing document holds a prop. The document is carried as an opaque snapshot, so
+    /// this reads the one key the pass reads rather than deserializing a shape this project does not own.
+    /// </summary>
+    private static bool HasProps(SketchLayout layout) =>
+        layout.Dressing is { ValueKind: JsonValueKind.Object } dressing
+        && dressing.TryGetProperty("props", out var props)
+        && props.ValueKind == JsonValueKind.Array
+        && props.GetArrayLength() > 0;
 
     public static Findings Check(SketchLayout? layout)
     {

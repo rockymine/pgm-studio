@@ -350,7 +350,48 @@ public static class MapExportComposer
                         + "with nothing under it cannot be won",
                         Subjects: [wool.Owner]));
 
+        findings.AddRange(GoalsSharingGround(goals));
         return findings;
+    }
+
+    /// <summary><b><c>OB24</c> — two goals built into the same blocks.</b> Asked over the resolved boxes,
+    /// which is the only reading that knows how big each structure came out: a plan states a marker and a
+    /// style, and the volume around it is settled by the stamper.
+    ///
+    /// <para>The cause is nearly always the orbit rather than the author's hand. A goal occupies its own
+    /// position <em>and every image of it</em>, so a second goal drawn where the symmetry maps the first
+    /// lands inside it — and the plan, which reads the two as distinct placements at distinct coordinates,
+    /// has nothing to object to. The boxes are what disagree, and they only exist here.</para></summary>
+    private static IEnumerable<Finding> GoalsSharingGround(MapIntent goals)
+    {
+        var placed = PlacedBoxes(goals).ToList();
+        for (var i = 0; i < placed.Count; i++)
+            for (var j = i + 1; j < placed.Count; j++)
+            {
+                if (!placed[i].Box.Intersects(placed[j].Box)) continue;
+                yield return new Finding(ObjectiveRules.GoalsShareGround,
+                    $"the {placed[i].Kind} '{placed[i].Name}' and the {placed[j].Kind} '{placed[j].Name}' are "
+                    + $"built into the same blocks — {Span(placed[i].Box)} and {Span(placed[j].Box)} overlap, "
+                    + "so breaking one is breaking the other",
+                    Subjects: [placed[i].Name, placed[j].Name]);
+            }
+    }
+
+    /// <summary>A box as a reader checks it in-game: the two corners, nothing else. The record's own
+    /// <c>ToString</c> prints its derived widths too, which is three numbers of noise per corner in a
+    /// sentence whose whole job is a coordinate.</summary>
+    private static string Span(BlockBox box) =>
+        $"({box.MinX}, {box.MinY}, {box.MinZ})–({box.MaxX}, {box.MaxY}, {box.MaxZ})";
+
+    /// <summary>Every destroyable and core as the volume it was stamped into, named as a player meets it.</summary>
+    private static IEnumerable<(string Kind, string Name, BlockBox Box)> PlacedBoxes(MapIntent goals)
+    {
+        foreach (var destroyable in goals.Destroyables ?? [])
+            if (destroyable.Box is { } box)
+                yield return ("destroyable", GoalName(destroyable.Name, destroyable.Owner), box);
+        foreach (var core in goals.Cores ?? [])
+            if (core.Box is { } box)
+                yield return ("core", GoalName(core.Name, core.Owner), box);
     }
 
     // Every destroyable/core as ground rather than as a marker, from the resolved intent's own stamped box —

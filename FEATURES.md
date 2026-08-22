@@ -1451,6 +1451,28 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **A board finished carrying no finish says so (`TS15`, `SK8`).** `SK3` names a shape citing a theme the
+  layout does not carry, `SK4` a shape drawing nothing and `SK7` a layout rasterizing to no ground — all
+  three need something stated to disagree with, so a board stating **no** theme registry, **no** relief and
+  **no** props slipped between them and exported as raw stone with every stage answering 200. `SK8` rides on
+  the finish's success naming which of the three are absent. A complaint and never a refusal: ground alone is
+  a legitimate board, and finishing is the stage that declares the drawing done, which is why `SK6` and `SK7`
+  live there too. Measured on the two run-5 boards it was written from — it fires on `haiku-r5-hollow-crown`
+  and is silent on `fable-r5-whitebarrow`.
+  (`SketchRules.cs`, `SketchLayoutCheck.Unfinished`, `SketchFinish.cs`, `SketchLayoutCheckTests.cs`)
+- **Two goals built into the same blocks are refused (`OB24`).** Nothing checked a goal against another goal:
+  `OB17` asks whether one stands in void, a spawn or a wool room, and `OB19` whether a prop crowds one. So a
+  destroyable stamped **inside a core's casing** — one structure serving two objectives, where breaking either
+  is breaking the other — exported clean. The cause is the orbit rather than the author's hand: a goal
+  occupies its own position and every image of it, so a second goal drawn where the symmetry maps the first
+  lands inside it and the plan, reading two placements at two coordinates, has nothing to object to. Asked at
+  the export over the resolved boxes, which is the only reading that knows how big each structure came out,
+  and the finding names both goals with the two overlapping corners.
+  (`ObjectiveRules.cs`, `MapExportComposer.GoalsSharingGround`, `MapExportComposerTests.cs`)
+
+  *`maps/haiku-r5-hollow-crown` is where it was found and the world it shipped is the evidence: the
+  destroyable's `(18,13,23)–(21,16,26)` sits inside the core's `(18,13,23)–(23,18,28)`, sharing a minimum
+  corner exactly, and the same at the mirrored end.*
 - **A route that answers a picture says how to ask for one — and stops claiming a picture is all it answers
   (`RP50`).** `format`, `view` and `scale` are read off the query string rather than bound to a request
   record, which is right and is why they reached no parameter list: five preview routes published

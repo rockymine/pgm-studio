@@ -387,6 +387,13 @@ re-enters the compile gate, and the case a map begun in Sketch never reaches at 
   (`MapExportComposer.CheckGoalPlacement`) of the same build and answers it as a **complaint**, so an author
   hears it while drawing rather than at the door.
 
+- **`OB24` — two goals built into the same blocks**, asked over the resolved boxes and therefore only here:
+  a plan reads two placements at two coordinates and the volume around each is the stamper's to settle. The
+  cause is nearly always the symmetry rather than the author's hand — a goal occupies its own position *and
+  every image of it*, so a second goal drawn where the orbit maps the first lands inside it, and nothing
+  earlier looks wrong. A destroyable stamped inside a core is one structure serving two objectives: breaking
+  either is breaking the other. The finding names both goals and the two boxes that overlap.
+
 **`OB19` is not among them any more.** A tree, a boulder or a building inside a goal's clearance is
 **declined** by the dressing pass — the prop is not in the world, the finding names it and carries the
 prop's id, and the map exports. The author's ruling is the reason: `OB17` indicts the objective itself and

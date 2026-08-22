@@ -124,6 +124,41 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
+    public async Task A_board_carrying_none_of_a_finish_is_told_so_and_one_carrying_any_of_it_is_not()
+    {
+        // The silence the other gates cannot cover: each of them needs something stated to disagree with, so
+        // a board stating no theme, no relief and no props slips between them and exports as raw stone.
+        // Any one of the three is a board being finished on purpose, and says nothing.
+        await Assert.That(SketchLayoutCheck.Unfinished(SketchLayout.Stated(Layout(Rect)))!.Rule)
+            .IsEqualTo(SketchRules.NoFinish);
+
+        foreach (var carried in (string[])[
+            ""","themes":{"t":{}}""",
+            ""","relief":{"i":{"base":10}}""",
+            ""","dressing":{"props":[{"kind":"boulder","id":"b","x":0,"z":0}]}""",
+        ])
+            await Assert.That(SketchLayoutCheck.Unfinished(SketchLayout.Stated(Layout(Rect, carried))))
+                .IsNull().Because($"a board carrying {carried} is finished");
+
+        // An empty registry is not a finish: a key holding nothing says the same as no key.
+        await Assert.That(SketchLayoutCheck.Unfinished(
+            SketchLayout.Stated(Layout(Rect, ""","themes":{},"dressing":{"props":[]}"""))))
+            .IsNotNull();
+    }
+
+    [Test]
+    public async Task The_bare_board_is_a_complaint_naming_all_three_and_never_a_refusal()
+    {
+        // A board of bare ground is legitimate — a test piece, a shape being tried — so this stops nothing.
+        var bare = SketchLayoutCheck.Unfinished(SketchLayout.Stated(Layout(Rect)))!;
+
+        await Assert.That(bare.Refuses).IsFalse();
+        await Assert.That(bare.Severity).IsEqualTo(Severity.Complaint);
+        foreach (var absent in (string[])["theme registry", "relief", "nothing placed on it"])
+            await Assert.That(bare.Message).Contains(absent);
+    }
+
+    [Test]
     public async Task A_body_that_is_not_a_layout_is_not_this_gates_to_report()
     {
         // An unreadable body is the request's own fault (RQ1), answered where the body is read — this gate

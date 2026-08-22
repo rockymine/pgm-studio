@@ -654,6 +654,15 @@ at all, and 422 `SK7` when the layout rasterizes to no ground. It does *not* ask
 landmass rather than a side, and one continent both teams stand on is a common and correct shape. Symmetry
 decides whether a board has two sides, and it is stated in the setup rather than counted in the ground.
 
+**And it complains about a board with no finish at all.** `SK8` rides on the success when the stored layout
+carries **no theme registry, no relief and no props** — the finding names which of the three are absent. Ground
+alone is a legitimate board, so this stops nothing; what it stops is the board shipping unremarked. Every other
+gate here needs something stated to disagree with — `SK3` a shape citing a theme the layout does not carry,
+`SK4` a shape drawing nothing, `SK7` a layout rasterizing to no ground — so a board stating none of it slips
+between all three and exports as raw stone with every stage answering 200. It is asked at the finish rather
+than at the `PUT`, for the reason `SK6` and `SK7` are: a board mid-draw has every right to be bare, and only
+finishing declares the drawing done.
+
 **A recompile refuses to orphan a relief.** `PUT .../sketch/from-plan` answers **409** in the refusal envelope
 (`docs/refusals.md`) — one `SK1` finding per island the new geometry has no home for, the island id riding as
 the finding's subject — and writes nothing. Island identity is derived from the geometry, so a recompile that

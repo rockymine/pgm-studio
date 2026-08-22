@@ -112,6 +112,82 @@ public sealed class MapExportComposerTests
     }
 
     [Test]
+    public async Task OB24_refuses_a_destroyable_and_a_core_built_into_the_same_blocks()
+    {
+        // The shape a rot_180 board produces by itself: a destroyable drawn at one position and a core at the
+        // position the orbit maps it onto, so each lands inside the other's image. The plan reads two
+        // placements at two coordinates and has nothing to object to; the boxes are what disagree, and they
+        // exist only once the stampers have run.
+        var shared = new PgmStudio.Pgm.Authoring.Pt(20, 0, 20);   // mid-island, so nothing else refuses first
+        var intent = new PgmStudio.Pgm.Authoring.MapIntent
+        {
+            Teams = [new PgmStudio.Pgm.Authoring.TeamDef { Id = "red-team", Name = "Red", Color = "dark red" }],
+            Spawns = [new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "red-team", Point = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10) }],
+            Destroyables =
+            [
+                new PgmStudio.Pgm.Authoring.DestroyableIntent
+                {
+                    Owner = "red-team", Name = "Cairn", Style = "cube-3", Materials = "end stone",
+                    Anchor = shared, Float = 2,
+                },
+            ],
+                        // Size/Height/Shell default to 0 on a hand-built intent — the compiler fills 5/5/1 — and a core
+            // of no size stamps nothing, so it has to be said here or the gate has one box to compare.
+            Cores =
+            [
+                new PgmStudio.Pgm.Authoring.CoreIntent
+                {
+                    Owner = "red-team", Name = "Heart", Anchor = shared, Float = 2,
+                    Size = 5, Height = 5, Shell = 1,
+                },
+            ],
+        };
+
+        var result = PgmStudio.Export.MapExportComposer.BuildAndCompose([], IslandLayout, intent);
+
+        await Assert.That(result.Refusal).IsNotNull()
+            .Because("a destroyable stamped inside a core is one structure serving two objectives");
+        await Assert.That(result.Refusal!.Status).IsEqualTo(409);
+        var shares = result.Refusal!.Findings.SingleOrDefault(finding => finding.Rule == "OB24");
+        await Assert.That(shares).IsNotNull()
+            .Because($"refused with: {string.Join(" | ", result.Refusal!.Findings.Select(f => f.Rule + " " + f.Message))}");
+        await Assert.That(shares!.Subjects!).Contains("Cairn");
+        await Assert.That(shares!.Subjects!).Contains("Heart");
+    }
+
+    [Test]
+    public async Task Two_goals_that_stand_apart_are_not_refused_for_sharing_ground()
+    {
+        // The other half, so the gate is not passing by refusing everything: the same two goals, moved apart.
+        var intent = new PgmStudio.Pgm.Authoring.MapIntent
+        {
+            Teams = [new PgmStudio.Pgm.Authoring.TeamDef { Id = "red-team", Name = "Red", Color = "dark red" }],
+            Spawns = [new PgmStudio.Pgm.Authoring.SpawnIntent { Team = "red-team", Point = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10) }],
+            Destroyables =
+            [
+                new PgmStudio.Pgm.Authoring.DestroyableIntent
+                {
+                    Owner = "red-team", Name = "Cairn", Style = "cube-3", Materials = "end stone",
+                    Anchor = new PgmStudio.Pgm.Authoring.Pt(10, 0, 10), Float = 2,
+                },
+            ],
+                        Cores =
+            [
+                new PgmStudio.Pgm.Authoring.CoreIntent
+                {
+                    Owner = "red-team", Name = "Heart", Anchor = new PgmStudio.Pgm.Authoring.Pt(30, 0, 30),
+                    Float = 2, Size = 5, Height = 5, Shell = 1,
+                },
+            ],
+        };
+
+        var result = PgmStudio.Export.MapExportComposer.BuildAndCompose([], IslandLayout, intent);
+
+        await Assert.That(result.Refusal?.Findings.Any(finding => finding.Rule == "OB24") ?? false).IsFalse()
+            .Because($"goals twenty blocks apart share no blocks: {result.Refusal?.Message}");
+    }
+
+    [Test]
     public async Task OB17_refuses_a_destroyable_that_overhangs_the_void()
     {
         await ApiTestFactory.ResetSchemaAsync();

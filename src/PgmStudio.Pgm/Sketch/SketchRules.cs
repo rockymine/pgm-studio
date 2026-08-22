@@ -65,4 +65,14 @@ public static class SketchRules
     /// <remarks>Draw at least one shape that encloses ground. Where shapes are present, the <c>warnings</c> on this same response name the ones that drew nothing and why.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string NothingDrawn = "SK7";
+
+    /// <summary>A board is finished carrying no finish: no theme registry, no relief and no props. Ground
+    /// alone is a legitimate board — a test piece, a shape being tried — so this is a <b>complaint</b> and
+    /// never a refusal. It exists because it is the one silence this stage kept: <c>SK3</c> names a shape
+    /// citing a theme the layout does not carry, <c>SK4</c> a shape drawing nothing and <c>SK7</c> a layout
+    /// rasterizing to no ground, and all three need something stated to disagree with. A board stating none
+    /// of it slips between them and exports a world of raw stone with every stage answering 200.</summary>
+    /// <remarks>Give the board a theme registry, a relief, or props — whichever it was meant to have. The finding names which of the three are absent, and a board that is deliberately bare may ignore it.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
+    public const string NoFinish = "SK8";
 }

@@ -17,23 +17,8 @@ one; the document that would draw one is refused for the order of its own keys; 
 at all raises nothing, because there is nothing stated to disagree with; and what it records itself having
 drawn is a column wider than what it laid.
 
-The order is what each one unblocks. `TS15` gives the finish stage a voice; `WS6` is the substantial one, and
-`WE14` is a claim to correct while that code is open.
-
-- [ ] **TS15 — A board with no finish at all is the one silence the sketch stage keeps.** `SK3` names a shape
-  citing a theme the layout does not carry, `SK4` a shape drawing nothing, `SK7` a layout rasterizing to no
-  ground — but a layout carrying **no** theme registry, **no** relief and **no** props raises nothing, because
-  there is nothing to disagree with. Add `SK8` as a **complaint** on `POST /api/map/{slug}/sketch/finish`,
-  beside `SK6`/`SK7` in `Pgm/Sketch/SketchRules.cs`, naming which of the three the stored layout is missing.
-  A complaint rather than a refusal: a bare test board is legitimate, and finishing is the stage that declares
-  the drawing done, which is why the other two live there.
-
-  The gap is not the author's attention, it is the pipeline's. A weak model fixes every finding it is given
-  and stops where the findings stop; silence reads as approval.
-
-  *`maps/haiku-r5-hollow-crown` exported clean with `themes: null`, `mapTheme: null`, `relief: null`,
-  `roomStyles: null`, `dressing.props: []`. Every stage answered 200. The same author fixed `ST9`, `G8`,
-  `LN2`, `PL11` and `DC3` the moment each was raised. Haiku's four run-4 boards are the same shape.*
+The order is what each one unblocks. `WS6` is the substantial one, and `WE14` is a claim to correct while
+that code is open.
 
 - [ ] **WS6 — The read-backs answer over HTTP, and say what each one answers.** Everything an agent does
   runs through the API and the API describes itself — except the one thing it does *after* building, which is

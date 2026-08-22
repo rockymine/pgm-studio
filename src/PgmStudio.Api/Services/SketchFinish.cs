@@ -43,8 +43,14 @@ public static class SketchFinish
         // have contributes no ground, so an island the author expected can be missing from the artifacts this
         // writes.
         var layoutJson = Encoding.UTF8.GetString(data);
-        var checkedBoard = SketchLayoutCheck.Check(layoutJson);
+        var stated = SketchLayout.Stated(layoutJson);
+        var checkedBoard = SketchLayoutCheck.Check(stated);
         if (checkedBoard.Refuses) return Refuse(422, "board too large", [.. checkedBoard.Refusals]);
+
+        // A board carrying no finish at all is the one thing the earlier gates cannot see: each of them needs
+        // something stated to disagree with, and a board that states none of it slips between them.
+        if (SketchLayoutCheck.Unfinished(stated) is { } bare)
+            checkedBoard = new Findings([.. checkedBoard, bare]);
 
         var cells = SketchRasterizer.RasterizeColumns(layoutJson);
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);

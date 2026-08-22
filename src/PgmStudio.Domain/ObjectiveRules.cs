@@ -73,4 +73,12 @@ public static class ObjectiveRules
     [Rule(RuleCategory.Unknown, RuleConcern.Intent, RuleConcern.World)]
     public const string UnknownGamemode = "OB20";
 
+    /// <summary>Two goals are built into the same blocks. A destroyable stamped inside a core's casing is one
+    /// structure serving two objectives: breaking either is breaking the other, and the blocks a match is
+    /// played for belong to whichever stamper ran last. The usual cause is the symmetry rather than the
+    /// author's hand — a goal drawn at one position and a second at the position the orbit maps the first
+    /// onto, so each lands on the other's image and nothing in the plan looks wrong.</summary>
+    /// <remarks>Move one of the two. Under a mirror or a rotation a goal occupies its own position and every image of it, so check a second goal against the images of the first and not only against where it was drawn — POST /api/plan/inspect answers goalDistances over the fanned closure.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
+    public const string GoalsShareGround = "OB24";
 }
