@@ -638,6 +638,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **Five routes take a posted plan and say which of three kinds of thing they answer (`TN5`).** A caller read
+  five summaries in a row to learn that only one of them changes anything and only one is about the generator.
+  Now the tag and `plan.md` both say it: one **transforms** (`compile` → the layout and intent a map is built
+  from, the only answer a caller acts on), two **judge** (`evaluate` scores the board; `feasibility` judges
+  the *composer*), two **project** (`inspect` derives the geometry a canvas draws, `columns` builds the world
+  the plan would make).
+
+  And `feasibility` is tagged **`Diagnostics`** rather than `Plan`, with `DontAutoTag()` because the
+  path-segment tagger would otherwise file it with the loop it is deliberately not part of. Its findings cite
+  the task that would unblock each gap, so the report is a statement about what the generator cannot do yet;
+  an author or an agent shown it beside `evaluate` reads it as a verdict on their board and edits a plan to
+  satisfy a limitation that is the studio's. It stays reachable and stays out of the list a driver iterates.
 - **A driver's loop is *act, then ask* (`RP32`, `RP16`).** Every gate was reachable only through the step it
   lived behind, so a fault authored at one step was heard at another and a caller had to know which route to
   ask. **`GET /map/{slug}/findings`** asks every gate the stored documents can answer at once — the plan's

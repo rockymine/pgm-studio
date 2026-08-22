@@ -22,35 +22,13 @@ all of that exists, and almost all of it is stated in prose that nothing verifie
 written down two or three times, drifts, and is discovered again by an agent that paid a build cycle for it.
 `docs/architecture.md` is the survey; this board is the work it named.
 
-**The order was a dependency chain, and three of its four links have drained.** Nothing could be verified
-until the surface said what it is, so the contract came first; a gate belonged to whichever door someone put
-it behind until there was one place a use case lives, so the application layer came second; and the loop
-could not answer for itself until both. The phases keep their numbering so every commit's name still points
-somewhere.
+**The order was a dependency chain, and it has drained.** Nothing could be verified until the surface said
+what it is, so the contract came first; a gate belonged to whichever door someone put it behind until there
+was one place a use case lives, so the application layer came second; and the loop could not answer for
+itself until both. Phase 5 is what was never in the chain.
 
-**Six entries left**, and none of them blocks another. What remains is one naming question the loop raised
-and the drift the survey measured beside it — small work, each entry drivable from itself. A finding made
-while working lands in `BACKLOG.md`.
-
-## Phase 4 — the loop answers for itself
-
-What makes the pipeline drivable without a fifteen-document briefing: a caller asks what it may do next, and
-hears a late gate early. Both reads ship; one entry is left, and it is about what a route's *summary* says
-rather than about what the loop can do.
-
-- [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
-  `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule
-  law (score + lint), `feasibility` judges the **composer** rather than the map ("could the composer have
-  produced this plan" — its own docstring calls the report "a live map of composer gaps"), `inspect` derives
-  geometry (distances, wall rects, the canvas overlays) and `columns` projects the world the plan would build.
-  Two judgements, one transform, two projections — a real grouping that appears in no document, so a caller
-  reads five summaries to learn that only one of them changes anything and only one of them is about the
-  generator. Name the kinds in `plan.md`'s endpoint table and in the OpenAPI tag.
-
-  *The author's ruling on `feasibility`: it reports the composer's own limits, so it belongs to the studio
-  and not to the authoring loop. Keep the route, mark it a diagnostic, and keep it out of the agent-facing
-  surface the way `B249`'s override is kept out — an agent shown a report of what the generator cannot do
-  will treat it as a statement about its board.*
+**Five entries left**, and none of them blocks another: the drift the survey measured beside the work,
+each entry drivable from itself. A finding made while working lands in `BACKLOG.md`.
 
 ## Phase 5 — the names, and what the survey turned up beside them
 

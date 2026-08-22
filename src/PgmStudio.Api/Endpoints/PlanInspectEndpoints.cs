@@ -350,14 +350,20 @@ public sealed class PlanEvaluateEndpoint : EndpointWithoutRequest<EvaluationDto>
 }
 
 /// <summary>
-/// POST /api/plan/feasibility — the plan editor's <b>producibility</b> read: could the composer have produced this
-/// plan? The question <see cref="PlanEvaluateEndpoint"/> does not ask, and the two genuinely diverge — a plan can
-/// score 0 with no rule fired and still be outside everything the emitters can build.
+/// POST /api/plan/feasibility — <b>a diagnostic about the composer, not a read about the board.</b> Could the
+/// composer have produced this plan? The question <see cref="PlanEvaluateEndpoint"/> does not ask, and the two
+/// genuinely diverge — a plan can score 0 with no rule fired and still be outside everything the emitters can
+/// build.
+///
+/// <para><b>Which is why it is tagged apart from the loop.</b> Its findings cite a rule id or the id of the
+/// task that would unblock them, so the report is a live map of composer gaps — a statement about what the
+/// generator cannot do yet. An author or an agent shown it beside <c>evaluate</c> reads it as a verdict on
+/// their board and starts editing a plan to satisfy a limitation that is the studio's. It stays reachable,
+/// and it stays out of the list a driver iterates through.</para>
 ///
 /// <para>The request body is a plan wire document; the response is a <see cref="FeasibilityDto"/>: the per-box
 /// reads (each naming the parameter tuple that reproduces it, or the nearest candidate and why it misses) plus the
-/// unit-level findings that belong to the arrangement. Findings cite a rule id or the id of the task that would
-/// unblock them, so the report doubles as a live map of composer gaps. Boxes come from the plan's authored
+/// unit-level findings that belong to the arrangement. Boxes come from the plan's authored
 /// <c>boxes</c> annotation, so a plan without them reads empty rather than erroring. A malformed body is answered
 /// 400, never 500.</para>
 /// </summary>
@@ -366,7 +372,10 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
     public override void Configure()
     {
         Post("/plan/feasibility"); AllowAnonymous();
-        Description(b => b.Accepts<PlanModel>("application/json"));
+        // The generator tags by the first path segment, which would file this with the loop it is
+        // deliberately not part of.
+        DontAutoTag();
+        Description(b => b.Accepts<PlanModel>("application/json").WithTags("Diagnostics"));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

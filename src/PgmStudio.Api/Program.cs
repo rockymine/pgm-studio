@@ -73,9 +73,21 @@ builder.Services.SwaggerDocument(o =>
                     + "the sketch, the intent, the analysis reads over its ground, and the world and map.xml "
                     + "it exports to.";
         tags["Maps"] = "The map list, and what originates one.";
-        tags["Plan"] = "The board as cell rectangles, answered without storing anything — compile, evaluate, "
-                     + "inspect, feasibility, columns. This is the loop a plan is iterated in.";
+        // Five routes take a posted plan and answer three different kinds of thing, which is what a caller
+        // reading five summaries in a row is otherwise left to work out.
+        tags["Plan"] = "The board as cell rectangles, posted and answered without storing anything — the loop "
+                     + "a plan is iterated in. Five routes take one, and they answer three kinds of thing. "
+                     + "One TRANSFORMS: compile turns a plan into the layout and intent a map is built from, "
+                     + "and is the only one of the five a caller acts on. Two JUDGE: evaluate scores the "
+                     + "board against the rule law, and feasibility is a studio diagnostic reporting the "
+                     + "composer's own limits rather than anything about the board. Two PROJECT: inspect "
+                     + "derives the geometry a canvas draws, and columns builds the world the plan would "
+                     + "make.";
         tags["Plans"] = "The stored plan library, the generator's kept candidates included.";
+        tags["Diagnostics"] = "What the studio can say about itself rather than about a map. Read these to "
+                            + "find out what the tool cannot do yet; a finding here is never a fault in the "
+                            + "document that was posted, and acting on one as though it were means editing a "
+                            + "board to satisfy a limitation that is the studio's.";
         tags["Compose"] = "The layout generator: roll a board from a player count, a symmetry and a seed.";
         tags["Shapes"] = "The shape vocabulary a composed board is built from.";
         tags["Terrain"] = "Materials, themes, patterns, and the previews over them.";
