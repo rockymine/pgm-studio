@@ -12,10 +12,10 @@ namespace PgmStudio.Api.Tests;
 /// leaves behind is a whole one: the plan is there to re-plan from, the drawing has been rasterized into
 /// geometry, the intent has been projected into the document, and the authors survived that projection.
 ///
-/// <para>The last of those is the operation's reason for existing. Storing an intent projects the map
-/// document from the intent's own <c>meta</c>, which a compiled intent leaves empty — so authors written
-/// before the intent are overwritten. The sequence is what enforces it, and this is where that is checked.
-/// </para>
+/// <para>The last of those is what makes one request enough: a compiled intent names nobody, so the credits
+/// are stated beside the three documents rather than in a second call. That the projection does not clear
+/// people it was never given is <c>IntentWriteTests</c>' — here the question is only that a body stating an
+/// author leaves a map credited to them.</para>
 ///
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
@@ -64,9 +64,8 @@ public sealed class MapFromDocumentsTests
         await Assert.That(layers.GetProperty("intent").GetBoolean()).IsTrue();
     }
 
-    /// <summary>The rule the operation exists to enforce: a compiled intent's <c>meta.authors</c> is empty and
-    /// storing it projects the document, so an author applied before the intent is lost. Stated in the body,
-    /// the author survives — which is only true because the sequence applies them afterwards.</summary>
+    /// <summary>A compiled intent's <c>meta.authors</c> is empty, so the credits cannot come from it. Stated
+    /// in the body, the map is credited to them by the same request that loads it.</summary>
     [Test]
     public async Task The_authors_survive_the_intent_projection()
     {

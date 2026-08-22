@@ -72,8 +72,14 @@ internal static class IntentWrite
     // account — a `uuid` it resolves to a player — or a pseudonym, the element's own text, and either alone
     // is a whole author, so a name Mojang does not know is kept as a pseudonym rather than dropped: the
     // intent already models one (`AuthorIntentJson` reads a bare string into `Name`) and the codec already
-    // writes one (`XmlWriter.WriteAuthors` emits `<author>Name</author>` when the uuid is empty), so
-    // discarding it here lost a stated author in silence. Null = leave authors untouched.
+    // writes one (`XmlWriter.WriteAuthors` emits `<author>Name</author>` when the uuid is empty).
+    //
+    // Null is what an intent naming nobody answers, and the caller leaves the map's own people alone for it.
+    // The intent owns the map's structure and not its credits: those are stated through PATCH …/metadata and
+    // live in the map's rows, so a projection that wrote an empty list here would clear an answer it was
+    // never given — which is what a compiled intent does, since it carries a `meta` naming the map and no
+    // people in it. Clearing the authors is the metadata route's, where a stated empty list means exactly
+    // that.
     private static async Task<List<object?>?> ResolveAuthorsAsync(MojangClient mojang, MapIntent intent, CancellationToken ct)
     {
         if (intent.Meta is not { } m) return null;
@@ -95,7 +101,7 @@ internal static class IntentWrite
         }
         await Add(m.Authors, "author");
         await Add(m.Contributors, "contributor");
-        return resolved;
+        return resolved.Count > 0 ? resolved : null;
     }
 }
 
@@ -129,10 +135,12 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
 /// slices onto it first (<see cref="IntentCarry"/>), then project it exactly as a normal PUT does.
 ///
 /// <para>The plan owns the map's structure, so a rebuild is meant to replace its teams, spawns, wools and
-/// build zones. What it does not own is who wrote the map — the compiler states <c>authors</c> and leaves it
-/// empty, so a plain replace wiped the credits off every map that had been through Configure. That is the
-/// whole of what <see cref="IntentCarry.CarryAuthored"/> carries: <c>meta.authors</c> and
-/// <c>meta.contributors</c>. <b>The confirmed symmetry and the island-team tags are deliberately NOT carried</b>
+/// build zones. What it does not own is who wrote the map, and two separate things keep that true. The
+/// projection leaves the map's people alone where the intent names none, which is the rule for every intent
+/// write and not only this one. And <see cref="IntentCarry.CarryAuthored"/> copies <c>meta.authors</c> and
+/// <c>meta.contributors</c> off the stored intent onto the compiled one, so the artifact this route stores
+/// still says who the map is by — the projection would keep them either way, and an intent that disagreed
+/// with the map about its own credits is the thing being avoided. <b>The confirmed symmetry and the island-team tags are deliberately NOT carried</b>
 /// — see <see cref="IntentCarry"/> for why each would do harm rather than preserve an answer — so a rebuild
 /// clears both and Configure's World and Teams phases are walked again. The layout write is the same shape for
 /// a different reason (<c>…/sketch/from-plan</c>), where the finish does ride across.</para>

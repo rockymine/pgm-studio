@@ -1135,17 +1135,6 @@ in the order listed: the contract first, because the request shape and the clien
 application layer second, because it is where a gate stops belonging to a door; the fault class third; the
 lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
 
-- [ ] **RP32 — Nothing answers "what is wrong with this map right now".** Every gate is reachable only
-through the step it lives behind, so a fault authored at one step is heard at another; `RP4` and `RP30` are
-two instances of that shape, each fixed one route at a time. A driver's loop is *act and hope the next call
-mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
-current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs with
-`RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. It must **call**
-the gates rather than restate them, since a summary that re-implements one is a second copy free to disagree
-with it — but that needs no new layer: every gate it would ask (`SketchLayoutCheck`, the plan validator, the
-house-style checks) lives below `Api` and is reachable from an endpoint today, which is what
-`MapExportLoader` already does for the export's.
-
 - [ ] **RP33 — Three names in `Contracts` say the wrong thing, and one file is a drawer.** `OkDto` is
   `{"ok": true}`, which the HTTP 200 beside it already says; its own docstring admits the field exists so a
   test has something to assert on. It answers one route (`PATCH …/metadata`) where eleven siblings answer
@@ -1382,7 +1371,10 @@ braces, worth having once the studio is used by someone who did not write it.
   row on the Overview and the plan's Identity step is an unpinned request from the user's own browser to a
   host nobody here reviews — the runtime-CDN shape `CLAUDE.md` § *JS dependencies* rules out, in image form,
   and dead the moment egress is restricted. It is dead already: headless Chromium in the cloud container
-  answers `net::ERR_CONNECTION_RESET` for it, which is two of `configure-objectives`' ten checks. Decide what
+  answers `net::ERR_CONNECTION_RESET` for it, which is two of `configure-objectives`' ten checks. **The
+  username lookup behind the row has the same problem and now costs a second spec**: `/api/minecraft/player`
+  proxies to Mojang server-side, the container reaches neither, and `paint` filters the 404 out of its
+  cleanliness check exactly as `configure-objectives` does — two specs carrying a filter for one dependency. Decide what
   an author row shows without it — the uuid's own colour, an initial, a vendored silhouette — and whether a
   fetched avatar is worth a server-side proxy with a cache. `AvatarEmpty` beside it is already the
   no-uuid case, so there is a fallback to widen rather than one to invent.

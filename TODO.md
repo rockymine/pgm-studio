@@ -35,7 +35,7 @@ is the author's call and the trade is stated: this is one coherent programme wit
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Three of the sixteen carry a question only the author can answer
+## Four of the sixteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -43,7 +43,8 @@ is kept in the table with the answer beside it, because the answer is the part a
 
 | Entry | The question |
 |---|---|
-| `RP13` | *Answered by the author: **its own project**, and an operation is a step of the pipeline — the thing that builds the map, callable from two sides with no dependency on the UI running.* The steps are named now: the thirteen handlers that read and write, three of which are already operations. |
+| `RP13` | *Answered, and re-measured since: the destination is **`Api/Services`**, not a project of its own — the second adapter a project was for does not exist. The entry carries the evidence.* The steps are named: the thirteen handlers that read and write, three of which are already operations. |
+| `RP32` | Which gates a map is asked at which stage, and whether the answer may pay for a build. Both decide the route's shape, so they come before it is written rather than during. |
 | `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
 | `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
 
@@ -95,8 +96,7 @@ consumers that keep the contract by hand instead of reading the records it is bu
 
 ## Phase 2 — one place a use case lives
 
-Two entries: the ten steps that still belong to a door, and the rule one of those doors breaks
-silently.
+One entry: the ten steps that still belong to the door they are reached through.
 
 - [~] **RP13 — Ten use cases still live behind the door they are reached through.** Of **127** handlers the
   bodies total 2,057 lines at a median of 10, so the volume is not the problem: **thirteen** read state and
@@ -110,22 +110,28 @@ silently.
   operations is settled by `tools/seed-library.cs`, which references `PgmStudio.Api` and calls
   `Api.Services.LibrarySeed` directly. A new project would buy separation, not a consumer.
 
-- [ ] **PG2 — Storing an intent drops the authors, answers 200, and says nothing.** Measured on the current
-  tree against a driven map: `PATCH /map/{slug}/metadata` with an author answers 200 and the author is there;
-  `PUT /map/{slug}/intent/from-plan` then answers 200 and the author is **gone**. Storing an intent projects
-  the map document from the intent's own `meta`, which a compiled intent leaves empty, so anything written
-  before it is overwritten with nothing.
-
-  The rule is written in `flow.md`, in the mapgen driver, its README and its generation notes, and enforced
-  in exactly one place — inside `MapFromDocuments`, whose sequence is the answer. The driver, which does not
-  use that door, carries it as a **comment** above the call it has to make second. A rule a caller has to
-  remember is a rule that is one refactor from being forgotten: make the write itself say so — carry the
-  stored authors through the projection, or refuse the write that would drop them. Not a silent 200.
-
 ## Phase 4 — the loop answers for itself
 
 What makes the pipeline drivable without a fifteen-document briefing: a caller asks what it may do next, and
-hears a late gate early.
+hears a late gate early. `RP30` and `RP4` are one commit by `RP4`'s own ruling, and `RP32` is the general
+form of both — a fault heard at the wrong place, fixed one route at a time until something answers the
+question outright.
+
+- [ ] **RP32 — Nothing answers "what is wrong with this map right now".** Every gate is reachable only
+  through the step it lives behind, so a fault authored at one step is heard at another; `RP4` and `RP30` are
+  two instances of that shape, each fixed one route at a time. A driver's loop is *act and hope the next call
+  mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
+  current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs
+  with `RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. It must
+  **call** the gates rather than restate them, since a summary that re-implements one is a second copy free
+  to disagree with it — but that needs no new layer: every gate it would ask (`SketchLayoutCheck`, the plan
+  validator, the house-style checks) lives below `Api` and is reachable from an endpoint today, which is what
+  `MapExportLoader` already does for the export's.
+
+  *Two answers are the author's before it starts: **which gates at which stage** — a plan-stage map can be
+  asked the plan validator, a built one the export chain — and **how expensive an answer may be**, since the
+  export gates need the rasterized world and a read that rebuilds it is not a read. The honest alternative is
+  to answer what is available without a build and say which gates were not asked.*
 
 - [ ] **RP16 — The lifecycle is a column nothing reads and 709 lines of prose.** `map.stage` holds
   `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other

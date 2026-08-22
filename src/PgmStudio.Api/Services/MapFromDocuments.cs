@@ -23,10 +23,10 @@ public sealed record MapLoad(
 /// actually built, and the intent it is played for. The map that comes out is a studio map rather than a
 /// world: it can be re-planned, re-read and pre-flighted, which is what an imported world can never be.
 ///
-/// <para><b>The order is the operation.</b> Storing an intent projects the map document from the intent's own
-/// <c>meta</c>, and a compiled intent carries an empty <c>meta.authors</c> — so authors stated before the
-/// intent are overwritten by the projection and have to be applied after it. That rule was written down in
-/// four places and enforced in none; here it is the sequence itself, and no caller can get it wrong.</para>
+/// <para><b>The authors ride in the body.</b> A compiled intent names nobody, so who a map is credited to is
+/// stated beside the three documents and written as part of the load rather than in a second call. The
+/// projection leaves the map's people alone where the intent names none, so the two may be applied in either
+/// order; stating them here is what makes one request enough.</para>
 ///
 /// <para>A map already stored under the slug is <b>replaced</b>: the documents name one map, and loading them
 /// twice is a reload rather than a second map. A load that fails partway takes back what it wrote, the way

@@ -99,13 +99,16 @@ the document the merge produced rather than the one that was posted.
 
 **Intent onto a map.** `PUT /api/map/{slug}/intent/from-plan` carries much less: the **authors and
 contributors the stored intent already held**, and nothing else. The plan owns the map's structure, so a
-rebuild is meant to replace its teams, spawns, wools and build zones; what it was silently destroying was the
-credits, since a compiled intent states `authors` and leaves it empty.
+rebuild is meant to replace its teams, spawns, wools and build zones. What it does not own is who wrote the
+map.
 
-**The carry is intent-to-intent, which decides the order on a first build.** There is no stored intent to
-carry from the first time, and storing one *projects the map document from the intent's own `meta`* — so a
-`PATCH /api/map/{slug}/metadata` that set the authors earlier is overwritten by the projection. Set them
-after. On every rebuild afterwards the carry does its job and the order stops mattering.
+**The credits are the metadata route's, and an intent naming nobody says nothing about them.** A compiled
+intent states `authors` and leaves it empty, which is not the same as stating that a map has none — so the
+projection writes the people an intent names and leaves the map's own alone where it names none. Clearing
+them is `PATCH /api/map/{slug}/metadata`'s, where a stated empty list means exactly that. **The order of the
+two calls does not matter**, on a first build or any other. The carry is intent-to-intent and does a
+different job: it keeps the *stored intent* truthful about the people, so the artifact and the map do not
+disagree.
 
 Two slices that look like they should ride across deliberately do not, and it is worth knowing because both
 are Configure's work. **`islandTeams`** is a derivation rather than a decision, and island ids are positional,
@@ -134,11 +137,9 @@ It exists because nothing else can take a map back. `POST /map/import-folder` re
 all — so a map authored against one studio could reach another only as a world, arriving without its plan, its
 drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.
 
-**The order inside it is the operation, not the caller's to remember.** Storing an intent projects the map
-document from the intent's own `meta`, and a compiled intent carries an empty `meta.authors` — so authors
-applied before the intent are overwritten by that projection, silently and with a 200 on every call. Stated in
-the body, they are applied after it. Driving the same sequence by hand means keeping that rule; this route is
-where it became code.
+**The authors ride in the body, and the operation applies them.** The three documents say what a map is
+made of and a compiled intent names nobody, so the credits are stated beside them and written as part of the
+load rather than in a second call the caller has to remember.
 
 **And the plain writes are not merges.** `PUT /api/map/{slug}/sketch` replaces the layout blob verbatim, which
 is what makes a deletion stick, and `PUT /api/map/{slug}/intent` replaces the stored intent wholesale for the

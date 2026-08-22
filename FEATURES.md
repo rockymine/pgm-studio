@@ -6347,6 +6347,23 @@ these are the ones that shipped a map that could not be played as intended, and 
   and an instance would be the duplication `CLAUDE.md` names under *One type, one responsibility*.
   `terrain` is the relief alone: a piece's stated height is plan geometry, so no `PL*` rule carries it.
 
+- **A rebuild keeps the map's authors, and the order of the two calls stopped mattering (PG2).** The rebuild
+  drawer promises it in so many words — *Keeps your terrain themes, room shells and placed dressing, and the
+  map's authors* — and `PUT /map/{slug}/intent/from-plan` deleted them. So did `PUT …/intent`. The loop a
+  driver runs is state the metadata, then rebuild; both calls answered **200** and the credits were gone
+  after the second, with nothing in either body saying so.
+
+  `ResolveAuthorsAsync` returned null — *leave them alone* — only where an intent had **no `meta` at all**.
+  A compiled intent has one, naming the map and nobody else, so it returned an empty list and the projection
+  wrote it over the map's people. An intent naming nobody now answers null too: the intent owns the map's
+  structure and not its credits, those are stated through `PATCH …/metadata` and live in the map's own rows,
+  and clearing them stays that route's, where a stated empty list means exactly that.
+
+  `IntentCarry.CarryAuthored` keeps its job for a different reason than the one it was written for — it makes
+  the *stored intent* truthful about the people, so the artifact and the map cannot disagree — and
+  `MapFromDocuments` keeps stating the authors in the body, which is what makes one request enough rather
+  than the only thing holding the credits up. `flow.md`'s "set them after" is gone: the order is free.
+
 - **A prop the studio deleted no longer arrives as a remark (RP31).** `Severity` was `Refusal | Complaint`,
   and `Complaint`'s own docstring ruled out half of what it carried — *"a complaint the author may ignore …
   none of them the tool's to overrule"*. True of `OB23` and `DC3`, where the world is built and the goal
