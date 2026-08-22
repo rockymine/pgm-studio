@@ -69,15 +69,23 @@ response type fails there, and one on the list that grows a body cannot leave it
 are declared too: the six `image/png` routes, the three `text/plain` ones and the export's `application/zip` all say so, so
 `/api-docs` renders a theme swatch beside the route that draws it.
 
-**The wire contract is generated once and kept by hand twice more.** The route attributes in
-`Api/Endpoints` are the generator's source. Beside them sit **152 route strings** written out in the Blazor
-client and the endpoint tables in the eight `docs/tools/` documents, neither of which is derived from the
-schema. The client reads **59 responses as `JsonElement`** against 16 typed reads, across 38 files, so the
-response shape is a third copy living in per-component parsing code; `Contracts` carries its DTOs for 149
-endpoints. The split across the client's features says which half of the studio was built against a declared
-shape: **Catalog 3 typed / 0 untyped and Generator 3 / 0**, against **Configure 1 / 27** and **Edit 0 / 14**.
-The two pages with a typed contract are the two newest, and they are what the rest would look like read
-through a generated client. The tables are the same problem seen from the prose side: three heavily used
+**The wire contract is generated once and kept by hand twice more, and only one of the two still matters.**
+The route attributes in `Api/Endpoints` are the generator's source. Beside them sit the route strings written
+out in the Blazor client and the endpoint tables in the eight `docs/tools/` documents, neither derived from
+the schema.
+
+The response half is finished. The client now reads **71 responses as a typed shape from `Contracts` against
+2 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
+copy that lived in per-component parsing code is gone. What is left hand-written is the path: **75 literal and
+98 interpolated route strings across 33 files**, where a typo is a runtime 404 that reads like a missing map.
+
+**That is why the studio has no generated client, and will not get one.** A generated client's whole value is
+the response types, and those already come from `Contracts` at 71 of 73 call sites; what it would still buy is
+the path check, at the price of a build-time package and a second copy of the whole surface committed to the
+tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
+`ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
+serves, with one named exception for the twenty-one that three Edit phases compose out of a prefix and a tail
+(`C47`). The tables are the same problem seen from the prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
 hand-maintained copy of a machine-readable fact does.
 

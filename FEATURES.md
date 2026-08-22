@@ -638,6 +638,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **No generated client, and the check it would have bought (`RP43`).** The question was whether
+  `NSwag.CodeGeneration.CSharp` as a build-time package plus a committed generated file was worth what it
+  fixes. Measured after `RP11` drained, it is not: a generated client's whole value is the response types,
+  and the client already reads **71 responses as a typed shape from `Contracts` against 2 as `JsonElement`**,
+  so a renamed field is a compile error today. What it would still buy is the path — **75 literal and 98
+  interpolated route strings across 33 files** — at the price of a second copy of the whole surface committed
+  to the tree, which is the second accepted shape `CLAUDE.md` forbids. `ClientRouteTests` buys that check for
+  nothing instead: every route string the client names is a route the schema serves, with one named exception
+  for the twenty-one three Edit phases compose from a prefix and a tail (`C47`), guarded so the exception
+  cannot outlive its reason.
 - **The endpoint tables are checked in both directions, and the schema carries the failure codes (`RP42`).**
   `DocumentedRouteTests` held every tabled path to a route the API serves and nothing held the reverse, so a
   route could exist in no document at all — **15 did** — and a row could claim a code the schema never

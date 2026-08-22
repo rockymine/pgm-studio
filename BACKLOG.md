@@ -204,6 +204,18 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
+- [ ] **C47 — Three Edit phases each carry their own HTTP half, and the routes are split across it.**
+  `BuildRegionsPhase`, `ObjectivePhase` and `TeamsPhase` each declare the same four members —
+  `Post(path, body)`, `Patch(path, body)`, `Delete(path)` and `Send(call)` — over the prefix
+  `$"api/map/{Slug}/{path}"`, and take the tail from the call site: `Patch($"teams/{t.Id}", payload)`,
+  `Delete($"wools/{w.Id}/monuments/{m.Id}")`. **21 call sites** reach routes that are written in no single
+  place, so `ClientRouteTests` names the prefix as its one exception and reads none of the 21. Put them in one
+  helper beside `RegionEdits` (`Features/Edit/RegionEdits.cs`, which already takes `Http, Slug, …` and is
+  shared by all three), with the whole route literal there — which drops three copies of `Send` with it.
+
+  *Evidence: `BuildRegionsPhase.razor.cs:163`, `ObjectivePhase.razor.cs:252`, `TeamsPhase.razor.cs:278` are
+  the same two lines three times. The exception in `ClientRouteTests.Composed` is what this deletes.*
+
 - [ ] **C46 — The Export button says nothing while the world is being built.** `GET /map/{slug}/export`
   answers in 0.3–0.7 s on a 100×140 board (`docs/tools/configure.md`), which is short enough that no job or
   poll is warranted and long enough that the control sits inert with no sign the click landed. Disable it for
