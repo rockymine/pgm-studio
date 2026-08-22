@@ -520,8 +520,14 @@ the stat corpus.
 - **PC-S retired [expert]** The old per-seam *sliver* lint (PC-S — a shared border below the corridor
   minimum flagged as suspect) is **gone**: a narrow seam is legal connecting geometry per *Definitions*,
   so there is no per-seam width lint. Corridor quality of an assembled footprint is measured by
-  lane-chain analysis, not seam by seam. **PC-C stays** — a bare corner between pieces not already in the
-  same land component is still linted (a point never connects).
+  lane-chain analysis, not seam by seam.
+
+The corner lint stays, and it is declared in code rather than stated here. `PC-C` is
+`PgmStudio.Pgm.Plan.PlanRules.CornerContact`, so `GET /api/rules?rule=PC-C` answers what it means and what to
+do about it, with the category and concerns every gate rule carries. A bare corner between pieces not already
+in the same land component is still linted, and the plan validator is the only thing that fires it — a rule a
+gate raises has to resolve in the catalogue, and a second statement of it in this file would be a copy free to
+disagree with the one that runs.
 
 - **PC1 [expert]** Pieces carry no semantic role by default — a piece is a modeling unit (cut for
   elevation, cornering, or interface-driving), and one *lane* is typically several pieces. Meaning
@@ -729,6 +735,13 @@ both corrected.)
     example boards were never sized honestly — so FR8 lands as the share rule and the run widths are
     served raw by `POST /plan/inspect`. No existing rule changed; G5 (hop gaps) and CT12 (the strait)
     measure different things and coexist.
+
+18. **PC-C moved out of this file (2026-08-22).** No behaviour change: the corner lint fires on exactly the
+    boards it fired on before. The rule was stated only *inside* the retired `PC-S`'s bullet, which is the id
+    the parser reads that line as, so `GET /api/rules?rule=PC-C` answered an empty list while the lint raised
+    it and `LayoutEvaluator` rejected boards for it. It is now `PlanRules.CornerContact`, and this file cites
+    it — the author's ruling that a rule may not live only in a markdown file, applied to the one layout id a
+    gate raises under its own name.
 
 ## Correction protocol
 

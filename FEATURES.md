@@ -6289,7 +6289,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   that added it, which is what makes it worth keying on — and nothing answered the other question a reader has
   on meeting one: *what is `SP7`*. The ids were spread across eight `*Rules` classes and one 644-line document,
   and a reader who did not already know which family an id belonged to had nowhere to start. **`GET /api/rules`**
-  answers all 168, `?family=PL` narrows to one family and `?rule=SP7` to one rule; a name nothing matches is an
+  answers all 169, `?family=PL` narrows to one family and `?rule=SP7` to one rule; a name nothing matches is an
   empty list rather than a 404, so a caller asking "is there a rule called that" does not have to tell an absent
   rule from a mistyped route by the status code.
 
@@ -6307,13 +6307,19 @@ these are the ones that shipped a map that could not be played as intended, and 
   states `WX1`–`WX10` as ten bullets, and only five of them had a `const` to resolve to — so `WX1`, `WX5`,
   `WX7`, `WX8` and `WX9`, cited across eight source files, four test files and three documents, answered an
   empty list from `GET /api/rules`. All five are now declared in `RoomFrameRules` with the two sentences the
-  catalogue reads, taking it to **76 gate rules**; the document keeps the account — the negotiation `WX8`
-  runs, the parities `WX3` turns on — and says outright that the constant is the declaration.
-  `PlanValidator` cites `RoomFrameRules.IronFit` and `RoomFrameRules.PadClearance` where it had written
-  `"WX8"` and `"WX4"`, which is the rule `refusals.md` § *Adding one* already states. `WX4`'s constant is
-  `PadClearance` rather than `NoPadRoom` because the rule has two outcomes — a pad shifted inward, and a pad
-  with nowhere to shift to — and the old name only covered the second, which is why the lint could not use
-  it.
+  catalogue reads; the document keeps the account — the negotiation `WX8` runs, the parities `WX3` turns on —
+  and says outright that the constant is the declaration. `PlanValidator` cites `RoomFrameRules.IronFit` and
+  `RoomFrameRules.PadClearance` where it had written `"WX8"` and `"WX4"`, which is the rule `refusals.md`
+  § *Adding one* already states. `WX4`'s constant is `PadClearance` rather than `NoPadRoom` because the rule
+  has two outcomes — a pad shifted inward, and a pad with nowhere to shift to — and the old name only covered
+  the second, which is why the lint could not use it.
+
+  **`PC-C` came out of `rules.md` the same way, and it is the one that was actually broken.** The corner lint
+  fires it and `LayoutEvaluator` rejects a composed board for it, while `rules.md` stated it only *inside* the
+  retired `PC-S`'s bullet — the id the parser reads that line as — so `GET /api/rules?rule=PC-C` answered an
+  empty list and the catalogue published the retired rule instead of the live one. It is
+  `PlanRules.CornerContact` now, `unsatisfiable` over `plan`, cited by both the lint and the evaluator's hard
+  term, and `rules.md` cites it back under amendment 18. **77 gate rules.**
 
 - **A fault carries a class and says what it is about (RP14, RP26).** The only machine-legible thing a finding
   carried was the id, so a caller deciding whether to fix the request, change the design, change the map or
@@ -6328,7 +6334,7 @@ these are the ones that shipped a map that could not be played as intended, and 
   A word outside either closed set is `RQ1` at 400, since an empty list would read as "no rules do that".
 
   **Both belong to the rule, not to the finding**, which is the whole of why it is cheap. A category is fixed
-  by the id, and the 76 constants are raised from 96 sites — a field on `Finding` would have 24 of them
+  by the id, and the 77 constants are raised from 97 sites — a field on `Finding` would have 25 of them
   restating what another site already fixed with nothing checking they agree, and `Finding` lives in a leaf
   that cannot see the catalogue. So they are a `[Rule]` attribute beside each constant, read by reflection
   exactly as the docstring already is: `RuleCategory`, `RuleConcern` and `RuleAttribute` in

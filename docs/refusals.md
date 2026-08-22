@@ -103,7 +103,8 @@ a rule that changed its name between the two would be two rules.
 | `CO1` | the composer's — a well-formed descriptor naming a board it cannot emit; the sentence carries which knob and which value, because the emitter that stopped is the only thing that knows | `Pgm/Compose/ComposeException.cs` → `ComposeRules` |
 | `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Domain/RequestRules.cs` |
 | `ED*` | the document editors' own two — `ED1` a reference the document cannot resolve (an apply-rule naming an unknown filter, a filter naming itself), `ED2` an edit the document is not in a state to take (a group with fewer children than its type takes, an apply-rule with no region, filter or action). The other six an edit is refused for are the request's, above | `Pgm/Editing/EditRules.cs` |
-| `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `PC-*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
+| `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
+| `PC-C` | a corner contact between pieces nothing else joins — the one of that checklist a gate raises under its own name, so it is declared rather than stated | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
 
 ## One question, asked at every grain
 
@@ -391,7 +392,7 @@ repository's to infer. What they carry instead is `evidence`: `corpus`, `expert`
 `rules.md`'s own terms, which says how far to trust each one.
 
 **The category is what a caller branches on, and the concerns are what a prefix could never carry.** An id is
-specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 76 ids —
+specific, stable and for a reader; `category` is the closed set an agent reads instead of learning 77 ids —
 `malformed` (fix the shape), `unknown` (fix a name), `conflict` (choose which wins), `unsatisfiable` (change
 the design), `unplayable` (change the map), `forbidden` (ask for something else), `unavailable` (try again, or
 look upstream), `internal` (report it). Each word is defined by the action it implies rather than by how the
@@ -408,8 +409,8 @@ uncapped. `?concerns=objective` answers every rule that touches one; repeating i
 400 rather than answered with an empty list, which a caller would read as "no rules do that".
 
 Both come off a **`[Rule]` attribute beside the constant**, so they are declared once per rule rather than
-restated at each site that raises one: the 76 constants are raised from 96 sites, and a field on the finding
-would have 24 of those restating what another site already fixed with nothing checking they agree.
+restated at each site that raises one: the 77 constants are raised from 97 sites, and a field on the finding
+would have 25 of those restating what another site already fixed with nothing checking they agree.
 
 **A layout rule carries neither**, having no declaration site to write one on. Nor do four gate rules —
 `WX1`, `WX5`, `WX7` and `WX9` — which state how a room frame is derived and refuse nothing: no finding cites

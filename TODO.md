@@ -26,15 +26,16 @@ written down two or three times, drifts, and is discovered again by an agent tha
 says what it is, so the contract comes first — over the boundary `RP28` settled, since a shape cannot be
 declared where no project can hold it. A gate belongs to whichever door someone put it behind until there is
 one place a use case lives, so the application layer is second. A caller cannot branch on a fault until the
-fault has a class, so the taxonomy is third. And a state machine over a pipeline whose steps are still HTTP
-handlers has nothing to hold, so the lifecycle is last.
+fault has a class, so the taxonomy is third — **that phase has drained**, and its numbering is kept so the
+two behind it keep the names every commit cites. And a state machine over a pipeline whose steps are still
+HTTP handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — seventeen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — sixteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Three of the seventeen carry a question only the author can answer
+## Three of the sixteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -120,21 +121,6 @@ silently.
   use that door, carries it as a **comment** above the call it has to make second. A rule a caller has to
   remember is a rule that is one refactor from being forgotten: make the write itself say so — carry the
   stored authors through the projection, or refuse the write that would drop them. Not a silent 200.
-
-## Phase 3 — one class of fault
-
-One entry left: the id a gate fires that nothing can look up.
-
-- [~] **RP15 — Nothing checks that an id a gate cites resolves, and one of them does not.** The plan
-  validator names sixteen rule ids as bare string literals, and `PC-C` is not a rule anyone can look up:
-  `rules.md` states it only *inside* the retired `PC-S`'s bullet, which is the id the catalogue's parser
-  takes that line for, so `GET /api/rules?rule=PC-C` answers empty. Add the assertion that runs the other
-  way — every id a gate or a lint can emit resolves in the catalogue — and give `PC-C` a bullet of its own
-  or retire it with the lint. `RulesEndpointTests` only checks the forward direction, that a declared rule
-  carries a sentence.
-
-  *The fifteen literals beside it are layout rules and stay literals until those move out of `rules.md`,
-  which is `RP35`'s ground and the author's ruling: the layout law is untouched this pass.*
 
 ## Phase 4 — the loop answers for itself
 

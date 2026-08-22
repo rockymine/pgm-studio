@@ -9,7 +9,9 @@ namespace PgmStudio.Pgm.Plan;
 /// The plan rule ids a finding cites — the structural ones the validator owns itself. Rules it merely
 /// <em>enforces</em> for another document keep that document's own id instead: a core, a two-team goal and a
 /// goal footprint cite <see cref="ObjectiveRules"/>, a room frame cites <see cref="RoomFrameRules"/>, and the
-/// lint table cites the layout-rules checklist. Stable names, kept apart from any task-tracking id.
+/// lint table cites the layout-rules checklist. <see cref="CornerContact"/> is the one of that checklist
+/// declared here rather than stated in <c>rules.md</c>: this validator is the only thing that fires it, and a
+/// rule a gate raises has to resolve in the catalogue. Stable names, kept apart from any task-tracking id.
 /// </summary>
 public static class PlanRules
 {
@@ -79,6 +81,17 @@ public static class PlanRules
     /// <remarks>The symmetry fan copies whole islands, so every piece of one connected landmass must agree about <c>mirrors</c>. A non-fanned piece is for an isolated on-axis island; a mid that touches team land is authored as half its ground and completed by the fan.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan)]
     public const string MixedMirrors = "PL12";
+
+    /// <summary>Two pieces meet at a single point and along no edge, and nothing else joins them. A corner is
+    /// never a connection — a point has no walkable corridor mouth — so the board reads as one area where
+    /// players find two, and the diagonal is the sneaky crossing that is not there. Suppressed where the pair
+    /// already reaches the same land component through real interfaces, since the corner is then redundant
+    /// rather than misleading.</summary>
+    /// <remarks>Bridge the two with a piece sharing a real border with each — one block of shared edge is
+    /// enough, and makes all three one land component — or move them apart so the board stops suggesting a
+    /// crossing. Widening the corner is not one of the options: no amount of point contact connects.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
+    public const string CornerContact = "PC-C";
 }
 
 /// <summary>
@@ -454,7 +467,9 @@ public static class PlanValidator
         var comp = ComponentIndex(d);
         foreach (var c in d.Contacts)
             if (c.Kind == ContactKind.Corner && !SameComponent(comp, c.A, c.B))
-                yield return Lint("PC-C", $"corner contact between separate areas: '{c.A}' and '{c.B}' touch at a point, not a corridor (no land interface)", c.A, c.B);
+                yield return Lint(PlanRules.CornerContact,
+                    $"corner contact between separate areas: '{c.A}' and '{c.B}' touch at a point, not a "
+                    + "corridor (no land interface)", c.A, c.B);
     }
 
     // Map each piece id to its land component index (components join pieces via real land interfaces and

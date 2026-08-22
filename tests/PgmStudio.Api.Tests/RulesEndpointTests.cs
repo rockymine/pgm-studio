@@ -142,6 +142,25 @@ public sealed class RulesEndpointTests
         await Assert.That(uncategorized).IsEquivalentTo(NothingRaises);
     }
 
+    /// <summary>
+    /// <b>No id is answered twice.</b> The catalogue reads two sources — the constants and the bullets in
+    /// <c>rules.md</c> — and nothing stops one id being in both: a rule declared in code and left stated as a
+    /// bullet answers two rows, and a caller reading the first gets whichever the ordering happened to put
+    /// there. <c>PC-C</c> is the live case, declared in <c>PlanRules</c> and cited by <c>rules.md</c> rather
+    /// than stated in it; re-adding the bullet is the mistake this catches.
+    /// </summary>
+    [Test]
+    public async Task No_rule_is_answered_twice()
+    {
+        var doubled = (await RulesAsync())
+            .GroupBy(rule => rule.Rule)
+            .Where(group => group.Count() > 1)
+            .Select(group => $"{group.Key} from {string.Join(" and ", group.Select(rule => rule.Owner))}")
+            .ToList();
+
+        await Assert.That(doubled).IsEmpty();
+    }
+
     /// <summary>A layout rule carries neither, and that is not an omission: it is stated as a markdown bullet,
     /// which has nowhere to write one.</summary>
     [Test]

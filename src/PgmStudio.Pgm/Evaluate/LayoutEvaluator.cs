@@ -21,7 +21,7 @@ public static class LayoutEvaluator
     [
         // hard terms — the acceptance gate
         new StructuralIntegrity(),
-        new LintRejectTerm("PC-C"),
+        new LintRejectTerm(PlanRules.CornerContact),
         new LintRejectTerm("G2"),
         new GapHopBand(),
         new BandWoolClearance(),

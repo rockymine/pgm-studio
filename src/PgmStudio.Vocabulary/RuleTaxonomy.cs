@@ -112,8 +112,8 @@ public enum RuleConcern
 /// does and <c>RuleCatalog</c> reads it the same way it reads the docstring — there is no table to fall out
 /// of step with.
 ///
-/// <para><b>Both belong to the rule, not to the finding.</b> A category is fixed by the id: the 76 constants
-/// are raised from 96 sites, so a field on <see cref="Finding"/> would have 24 sites restating a fact another
+/// <para><b>Both belong to the rule, not to the finding.</b> A category is fixed by the id: the 77 constants
+/// are raised from 97 sites, so a field on <see cref="Finding"/> would have 25 sites restating a fact another
 /// site already fixed, with nothing checking they agree. A caller joins on the id, which is what
 /// <c>/api/rules</c> is for.</para>
 ///
