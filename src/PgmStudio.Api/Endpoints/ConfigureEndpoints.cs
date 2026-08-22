@@ -48,7 +48,7 @@ internal static class ScanConfig
 public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
     : EndpointWithoutRequest<ConfigureStateDto>
 {
-    public override void Configure() { Get("/configure/{slug}/state"); AllowAnonymous(); }
+    public override void Configure() { Get("/configure/{slug}/state"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -76,7 +76,7 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db,
     public override void Configure()
     {
         Patch("/configure/{slug}/exclude-island"); AllowAnonymous();
-        Description(b => b.Accepts<ExcludeIslandRequest>("application/json"));
+        Description(b => b.Accepts<ExcludeIslandRequest>("application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

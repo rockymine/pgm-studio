@@ -57,7 +57,7 @@ public sealed class PlanListEndpoint(PlanStore store) : EndpointWithoutRequest<L
 /// <summary>GET /api/plans/{id} — one plan with its <c>*.plan.json</c> document, to load into the editor.</summary>
 public sealed class PlanGetEndpoint(PlanStore store) : EndpointWithoutRequest<PlanDetail>
 {
-    public override void Configure() { Get("/plans/{id}"); AllowAnonymous(); }
+    public override void Configure() { Get("/plans/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

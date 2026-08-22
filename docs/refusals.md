@@ -70,8 +70,15 @@ looked at a single finding. `message` is the findings' sentences joined with `; 
 The status code stays the gate's own: **400** for a document that is wrong as posted, **404** for a subject
 the route names and the studio does not have, **409** for one that is well-formed but conflicts with the map's
 state, **422** for one that cannot be processed, **500** for a fault that is the studio's own. That is a fact
-about the request rather than about the fault, so each endpoint names its own — the tool documents' endpoint
-tables carry which.
+about the request rather than about the fault, so each endpoint names its own.
+
+**And each endpoint declares which**, so the codes reach a caller from the schema rather than only from a
+document. The 400 and 500 are published once, by the configurator every route passes through; the other three
+are this route's own and are stated at it, through `Answers.Refuses` — **95 of the 149 operations** carry at
+least one. Declared per route rather than derived from the path: a path holding `{slug}` nearly always answers
+404, and a schema that guesses is the one thing a caller cannot act on. The `Fails with` column of every
+endpoint table in `docs/tools/` names exactly the same set, and `DocumentedFailureTests` fails if a row and its
+route stop agreeing.
 
 **The edge answers it too, not only the gates.** No route under `/api` answers a failure in a shape of its
 own, and none answers one with no body at all: `Refusals` writes every one of them, so a caller writes one

@@ -23,7 +23,7 @@ using PgmStudio.Minecraft.Suggest;
 public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db)
     : EndpointWithoutRequest<List<MonumentSuggestionDto>>
 {
-    public override void Configure() { Get("/map/{slug}/monument-suggestions"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/monument-suggestions"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

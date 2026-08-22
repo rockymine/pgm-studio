@@ -53,7 +53,7 @@ public sealed class StyleListEndpoint(ThemeStore store) : EndpointWithoutRequest
 /// <summary>GET /api/styles/{id} — one style.</summary>
 public sealed class StyleGetEndpoint(ThemeStore store) : EndpointWithoutRequest<StyleDto>
 {
-    public override void Configure() { Get("/styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Get("/styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -80,7 +80,7 @@ public sealed class StyleCreateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 /// not a map's applied snapshot).</summary>
 public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRequest, StyleDto>
 {
-    public override void Configure() { Put("/styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Put("/styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(StyleSaveRequest req, CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public sealed class StyleUpdateEndpoint(ThemeStore store) : Endpoint<StyleSaveRe
 /// would otherwise complain about.</summary>
 public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -130,7 +130,7 @@ public sealed class ThemeListEndpoint(ThemeLibrary library) : EndpointWithoutReq
 /// <summary>GET /api/themes/{id} — a theme with its per-bucket style bindings.</summary>
 public sealed class ThemeGetEndpoint(ThemeStore store) : EndpointWithoutRequest<ThemeDetail>
 {
-    public override void Configure() { Get("/themes/{id}"); AllowAnonymous(); }
+    public override void Configure() { Get("/themes/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -170,7 +170,7 @@ public sealed class ThemeCreateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRe
 /// <summary>PUT /api/themes/{id} — replace a theme's knobs and its whole set of bucket bindings.</summary>
 public sealed class ThemeUpdateEndpoint(ThemeStore store) : Endpoint<ThemeSaveRequest, ThemeDetail>
 {
-    public override void Configure() { Put("/themes/{id}"); AllowAnonymous(); }
+    public override void Configure() { Put("/themes/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(ThemeSaveRequest req, CancellationToken ct)
     {
@@ -209,7 +209,7 @@ public sealed class ThemeDeleteEndpoint(ThemeStore store) : EndpointWithoutReque
 /// consumes and a map snapshots when it applies the theme).</summary>
 public sealed class ThemeJsonEndpoint(ThemeLibrary library) : EndpointWithoutRequest<ThemeJsonDto>
 {
-    public override void Configure() { Get("/themes/{id}/json"); AllowAnonymous(); }
+    public override void Configure() { Get("/themes/{id}/json"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

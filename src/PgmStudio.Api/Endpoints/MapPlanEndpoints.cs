@@ -54,7 +54,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
 /// <c>/maps/{slug}/plan</c>. 404 if the candidate doesn't exist.</summary>
 public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest<OriginatedDto>
 {
-    public override void Configure() { Post("/plan/{planId}/author"); AllowAnonymous(); }
+    public override void Configure() { Post("/plan/{planId}/author"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -83,7 +83,7 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
         Get("/map/{slug}/plan");
         AllowAnonymous();
         // The blob as stored; see SketchGetEndpoint for why the shape is declared rather than sent.
-        Description(b => b.Produces<PlanModel>(200, "application/json"));
+        Description(b => b.Produces<PlanModel>(200, "application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -107,7 +107,7 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
     {
         Get("/map/{slug}/plan/ascii");
         AllowAnonymous();
-        Description(b => b.PlainText());
+        Description(b => b.PlainText().Refuses(404, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -141,7 +141,7 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
     {
         Get("/map/{slug}/plan/flow");
         AllowAnonymous();
-        Description(b => b.PlainText());
+        Description(b => b.PlainText().Refuses(404, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -165,7 +165,7 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
     public override void Configure()
     {
         Put("/map/{slug}/plan"); AllowAnonymous();
-        Description(b => b.Accepts<PlanModel>("application/json"));
+        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404, 409));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

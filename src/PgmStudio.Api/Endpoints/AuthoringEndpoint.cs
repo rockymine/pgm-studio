@@ -25,7 +25,7 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Ma
         // Declared rather than sent as the record: the tree is built in Analysis, which cannot see Contracts,
         // so mapping it here would be a second walk of the same recursion free to disagree with the first.
         // RegionTreeShapeTests holds the record to what the encoder actually writes instead.
-        Description(b => b.Produces<RegionTreeDto>(200, "application/json"));
+        Description(b => b.Produces<RegionTreeDto>(200, "application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -60,7 +60,7 @@ public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifac
         AllowAnonymous();
         // Declared rather than sent as the record: the blob is answered exactly as the scan wrote it, and
         // re-serialising it through IslandDto would drop whatever a newer detection put there.
-        Description(b => b.Produces<List<IslandDto>>(200, "application/json"));
+        Description(b => b.Produces<List<IslandDto>>(200, "application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -82,7 +82,7 @@ public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : Endpoint
     private static readonly Dictionary<string, int> WoolDamage =
         BlockColors.BlockDamageToColor.ToDictionary(kv => kv.Value, kv => kv.Key);
 
-    public override void Configure() { Get("/map/{slug}/scan-summary"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/scan-summary"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

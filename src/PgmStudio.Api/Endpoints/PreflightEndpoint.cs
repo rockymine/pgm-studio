@@ -29,7 +29,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 {
     private const byte Void = 2;   // Buildability verdict for an open-void column (no ground)
 
-    public override void Configure() { Get("/map/{slug}/preflight"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/preflight"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -27,7 +27,7 @@ internal static class AnalysisLoad
 /// <summary>GET /api/map/{slug}/regions — derived region facets + category counts.</summary>
 public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : EndpointWithoutRequest<RegionsDto>
 {
-    public override void Configure() { Get("/map/{slug}/regions"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/regions"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -46,7 +46,7 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
 /// <summary>GET /api/map/{slug}/buildability — per-column verdict grid.</summary>
 public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<BuildabilityDto>
 {
-    public override void Configure() { Get("/map/{slug}/buildability"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/buildability"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -71,7 +71,7 @@ public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, F
 /// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity.</summary>
 public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<TraversabilityDto>
 {
-    public override void Configure() { Get("/map/{slug}/traversability"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/traversability"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -97,7 +97,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
     {
         Get("/map/{slug}/coverage");
         AllowAnonymous();
-        Description(b => b.AlsoPng());
+        Description(b => b.AlsoPng().Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -140,7 +140,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
 /// placeable blocks its spawn kit grants? (budget-aware traversability).</summary>
 public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<KitReach.Result>
 {
-    public override void Configure() { Get("/map/{slug}/kit-reach"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/kit-reach"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -160,7 +160,7 @@ public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, Featu
 /// <summary>GET /api/map/{slug}/wool-availability — per declared wool, is it obtainable?</summary>
 public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolAvailabilityResponseDto>
 {
-    public override void Configure() { Get("/map/{slug}/wool-availability"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/wool-availability"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -180,7 +180,7 @@ public sealed class WoolAvailabilityEndpoint(MapRepository repo, MapReader reade
 /// pre-existing block there blocks wool placement (PGM warns on load).</summary>
 public sealed class MonumentObstructionEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<MonumentObstructionResponseDto>
 {
-    public override void Configure() { Get("/map/{slug}/monument-obstruction"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/monument-obstruction"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -202,7 +202,7 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
     public override void Configure()
     {
         Post("/map/{slug}/wool-sources"); AllowAnonymous();
-        Description(b => b.Accepts<WoolSearchRequest>("application/json"));
+        Description(b => b.Accepts<WoolSearchRequest>("application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -236,7 +236,7 @@ public sealed class WoolSourcesInRegionEndpoint(MapRepository repo, MapReader re
 /// <summary>GET /api/map/{slug}/wool-suggestions — wool colours in the world not yet declared as objectives.</summary>
 public sealed class WoolSuggestionsEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<WoolSuggestionsResponseDto>
 {
-    public override void Configure() { Get("/map/{slug}/wool-suggestions"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/wool-suggestions"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -259,7 +259,7 @@ public sealed class ResourcesInRegionEndpoint(MapRepository repo, MapReader read
     public override void Configure()
     {
         Post("/map/{slug}/resources"); AllowAnonymous();
-        Description(b => b.Accepts<ResourceSearchRequest>("application/json"));
+        Description(b => b.Accepts<ResourceSearchRequest>("application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

@@ -67,6 +67,15 @@ ordinary planned map.
 `map.xml`, scans it into the database, and hands it to Configure with an empty intent. Nothing upstream
 exists: the regions are drawn over ground somebody else built.
 
+**The front door itself**, which no tool owns because it stands before all of them. Every other endpoint in
+this folder takes a map; these are what a caller with no map reaches for first.
+
+| Endpoint | Answers | Fails with |
+|---|---|---|
+| `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the layers it holds — the list a driver picks a slug out of | — |
+| `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
+| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under. A map already at that slug is replaced — see *The three documents are also the way back in* below | 422 the layout carries no ground |
+
 ## The hand-offs
 
 Five transitions, and each is a single call. This is the part worth knowing precisely, because the merge rules

@@ -14,7 +14,7 @@ public sealed class SpawnCreateEndpoint(MapRepository repo, MapReader reader, Ma
     {
         Post("/map/{slug}/spawns");
         AllowAnonymous();
-        Description(b => b.Accepts<SpawnCreateRequest>("application/json").Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Accepts<SpawnCreateRequest>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -31,7 +31,7 @@ public sealed class SpawnUpdateEndpoint(MapRepository repo, MapReader reader, Ma
     {
         Patch("/map/{slug}/spawns/{regionId}");
         AllowAnonymous();
-        Description(b => b.Accepts<SpawnUpdateRequest>("application/json").Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Accepts<SpawnUpdateRequest>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -49,7 +49,7 @@ public sealed class SpawnDeleteEndpoint(MapRepository repo, MapReader reader, Ma
     {
         Delete("/map/{slug}/spawns/{regionId}");
         AllowAnonymous();
-        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -66,7 +66,7 @@ public sealed class ObserverSpawnSetEndpoint(MapRepository repo, MapReader reade
     {
         Patch("/map/{slug}/observer-spawn");
         AllowAnonymous();
-        Description(b => b.Accepts<ObserverSpawnRequest>("application/json").Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Accepts<ObserverSpawnRequest>("application/json").Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -83,7 +83,7 @@ public sealed class ObserverSpawnDeleteEndpoint(MapRepository repo, MapReader re
     {
         Delete("/map/{slug}/observer-spawn");
         AllowAnonymous();
-        Description(b => b.Produces<AppliedDto>(200, "application/json"));
+        Description(b => b.Produces<AppliedDto>(200, "application/json").Refuses(404, 409, 422));
     }
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -65,7 +65,7 @@ public sealed class RoofStyleListEndpoint(HousePartLibrary library) : EndpointWi
 /// <summary>GET /api/roof-styles/{id} — one roof with its per-part courses.</summary>
 public sealed class RoofStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<RoofStyleDetail>
 {
-    public override void Configure() { Get("/roof-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Get("/roof-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -101,7 +101,7 @@ public sealed class RoofStyleCreateEndpoint(HousePartStore store, HousePartLibra
 public sealed class RoofStyleUpdateEndpoint(HousePartStore store, HousePartLibrary library)
     : Endpoint<RoofStyleSaveRequest, RoofStyleDetail>
 {
-    public override void Configure() { Put("/roof-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Put("/roof-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
     {
@@ -130,7 +130,7 @@ public sealed class RoofStyleDraftPreviewEndpoint(HousePartLibrary library)
 /// building is one the library must refuse to forget, the answer a style already gives a theme.</summary>
 public sealed class RoofStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/roof-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/roof-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -165,7 +165,7 @@ public sealed class StoreyStyleListEndpoint(HousePartLibrary library)
 
 public sealed class StoreyStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<StoreyStyleDetail>
 {
-    public override void Configure() { Get("/storey-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Get("/storey-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -198,7 +198,7 @@ public sealed class StoreyStyleCreateEndpoint(HousePartStore store)
 public sealed class StoreyStyleUpdateEndpoint(HousePartStore store)
     : Endpoint<StoreyStyleSaveRequest, StoreyStyleDetail>
 {
-    public override void Configure() { Put("/storey-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Put("/storey-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
     {
@@ -223,7 +223,7 @@ public sealed class StoreyStyleDraftPreviewEndpoint(HousePartLibrary library)
 
 public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/storey-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/storey-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -256,7 +256,7 @@ public sealed class PorchStyleListEndpoint(HousePartLibrary library)
 
 public sealed class PorchStyleGetEndpoint(HousePartStore store) : EndpointWithoutRequest<PorchStyleDetail>
 {
-    public override void Configure() { Get("/porch-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Get("/porch-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -277,7 +277,7 @@ public sealed class PorchStyleCreateEndpoint(HousePartStore store) : Endpoint<Po
 
 public sealed class PorchStyleUpdateEndpoint(HousePartStore store) : Endpoint<PorchStyleSaveRequest, PorchStyleDetail>
 {
-    public override void Configure() { Put("/porch-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Put("/porch-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
     {
@@ -298,7 +298,7 @@ public sealed class PorchStyleDraftPreviewEndpoint : Endpoint<PorchStyleSaveRequ
 
 public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
 {
-    public override void Configure() { Delete("/porch-styles/{id}"); AllowAnonymous(); }
+    public override void Configure() { Delete("/porch-styles/{id}"); AllowAnonymous(); Description(b => b.Refuses(409)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

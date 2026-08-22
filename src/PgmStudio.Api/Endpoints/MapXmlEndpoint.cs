@@ -28,7 +28,7 @@ public sealed class MapXmlEndpoint(MapRepository repo, MapReader reader, Feature
     {
         Get("/map/{slug}/xml");
         AllowAnonymous();
-        Description(b => b.MapXml());
+        Description(b => b.MapXml().Refuses(404, 409, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

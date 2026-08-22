@@ -187,7 +187,7 @@ public sealed class PlanCompileEndpoint : EndpointWithoutRequest<CompiledPlanDto
     public override void Configure()
     {
         Post("/plan/compile"); AllowAnonymous();
-        Description(b => b.Accepts<PlanModel>("application/json"));
+        Description(b => b.Accepts<PlanModel>("application/json").Refuses(422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

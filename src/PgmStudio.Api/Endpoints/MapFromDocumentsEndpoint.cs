@@ -25,7 +25,7 @@ public sealed class MapFromDocumentsEndpoint(
     WorldFeatureWriter features, PgmDb db, MojangClient mojang)
     : Endpoint<MapFromDocumentsRequest, MapLoadedDto>
 {
-    public override void Configure() { Post("/map/from-documents"); AllowAnonymous(); }
+    public override void Configure() { Post("/map/from-documents"); AllowAnonymous(); Description(b => b.Refuses(422)); }
 
     public override async Task HandleAsync(MapFromDocumentsRequest request, CancellationToken ct)
     {

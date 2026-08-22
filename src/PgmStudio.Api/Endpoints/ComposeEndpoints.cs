@@ -186,7 +186,7 @@ public sealed class ComposeBrowseEndpoint : EndpointWithoutRequest<ComposePage>
 /// </summary>
 public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeRequestDto, PlanDetail>
 {
-    public override void Configure() { Post("/compose/pin"); AllowAnonymous(); }
+    public override void Configure() { Post("/compose/pin"); AllowAnonymous(); Description(b => b.Refuses(422)); }
 
     public override async Task HandleAsync(ComposeRequestDto req, CancellationToken ct)
     {
@@ -219,7 +219,7 @@ public sealed class ComposePinEndpoint(PlanStore store) : Endpoint<ComposeReques
 /// hold tray can show a thumbnail of a persisted plan. 404 when the plan is missing.</summary>
 public sealed class PlanSvgEndpoint(PlanStore store) : EndpointWithoutRequest<SvgDto>
 {
-    public override void Configure() { Get("/plans/{id}/svg"); AllowAnonymous(); }
+    public override void Configure() { Get("/plans/{id}/svg"); AllowAnonymous(); Description(b => b.Refuses(404, 422)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -247,7 +247,7 @@ public sealed class PlanAsciiEndpoint(PlanStore store) : EndpointWithoutRequest
     {
         Get("/plans/{id}/ascii");
         AllowAnonymous();
-        Description(b => b.PlainText());
+        Description(b => b.PlainText().Refuses(404, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -272,7 +272,7 @@ public sealed class PlanPngEndpoint(PlanStore store) : EndpointWithoutRequest
     {
         Get("/plans/{id}/png");
         AllowAnonymous();
-        Description(b => b.Png());
+        Description(b => b.Png().Refuses(404, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

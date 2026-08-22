@@ -84,7 +84,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
     public override void Configure()
     {
         Post("/map/import-url"); AllowAnonymous();
-        Description(b => b.Accepts<ImportUrlRequest>("application/json"));
+        Description(b => b.Accepts<ImportUrlRequest>("application/json").Refuses(403, 413, 415, 422, 502));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -323,7 +323,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
     public override void Configure()
     {
         Post("/map/import-folder"); AllowAnonymous();
-        Description(b => b.Accepts<ImportFolderRequest>("application/json"));
+        Description(b => b.Accepts<ImportFolderRequest>("application/json").Refuses(404, 409, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

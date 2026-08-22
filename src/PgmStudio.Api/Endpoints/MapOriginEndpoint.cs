@@ -14,7 +14,7 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class MapOriginEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapOriginDto>
 {
-    public override void Configure() { Get("/map/{slug}/origin"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/origin"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

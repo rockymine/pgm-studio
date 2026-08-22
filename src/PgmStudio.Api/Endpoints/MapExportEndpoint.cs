@@ -29,7 +29,7 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
     {
         Get("/map/{slug}/export");
         AllowAnonymous();
-        Description(b => b.WorldZipOrMapXml());
+        Description(b => b.WorldZipOrMapXml().Refuses(404, 409, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)

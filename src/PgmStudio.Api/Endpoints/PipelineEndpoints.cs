@@ -19,7 +19,7 @@ using Dict = Dictionary<string, object?>;
 public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter writer, MapsRoots roots)
     : EndpointWithoutRequest<WorldScanDto>
 {
-    public override void Configure() { Post("/map/{slug}/scan-world"); AllowAnonymous(); }
+    public override void Configure() { Post("/map/{slug}/scan-world"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

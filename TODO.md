@@ -30,12 +30,12 @@ fault has a class, so the taxonomy is third — **that phase has drained**, and 
 two behind it keep the names every commit cites. And a state machine over a pipeline whose steps are still
 HTTP handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — twelve entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — eleven entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Two of the twelve carry a question the author has now answered
+## Two of the eleven carry a question the author has now answered
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These two were blocked on a decision rather than on work; the ruling is in the
@@ -49,9 +49,9 @@ row, and the entry below builds to it.
 
 ## Phase 1 — say what the surface is
 
-Every operation declares what it answers, and every write route that reads a body declares what it takes.
-What is left is the difference between a declared shape and a bound one, and the two consumers that keep the
-contract by hand instead of reading the records it is built from.
+Every operation declares what it answers, what it takes and which refusals are its own, and the endpoint
+tables are held to all three. What is left is the difference between a declared shape and a bound one, and
+the one consumer that still keeps the contract by hand.
 
 - [ ] **RP40 — Bind the shapes the surface now declares.** The 39 declared bodies are read by hand behind
   the declaration, so `RequiredFields` runs on only the 22 routes that bind one, and the **15**
@@ -61,14 +61,6 @@ contract by hand instead of reading the records it is built from.
   a binding genuinely refuses something — a missing `region_id`, a `yaw` that is not a number, a
   `max_players` that is not an integer — and leave the rest declared. The other 38 refusal sites in
   `Pgm/Editing` read the map the edit lands on and stay whatever happens here.
-
-- [ ] **RP42 — The endpoint tables are checked one way and derived none.** `DocumentedRouteTests` asserts
-  every tabled path exists; nothing asserts a route *appears* in a table, or that the status codes a row
-  claims are codes the schema publishes. Generating the tables is the wrong fix — the "Answers" column is
-  editorial prose written for that tool's reader, and a generated sentence would be worse. Check instead:
-  every `/api` route is in exactly one table or on a named list of the deliberately unlisted, and each row's
-  codes are a subset of its operation's. `DocumentedBodyTests` posts 8 documented bodies against 67 write
-  routes and is the file it belongs beside.
 
 - [ ] **RP43 — Decide whether a generated client is worth its dependency.** Route strings are what stays
   hand-written after `RP11`: **152 literal and 106 interpolated** across 49 files, where a typo is a runtime

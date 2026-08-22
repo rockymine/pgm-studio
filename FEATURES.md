@@ -638,6 +638,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The endpoint tables are checked in both directions, and the schema carries the failure codes (`RP42`).**
+  `DocumentedRouteTests` held every tabled path to a route the API serves and nothing held the reverse, so a
+  route could exist in no document at all — **15 did** — and a row could claim a code the schema never
+  published, which **44 of 54 rows** did. Generating the tables is the wrong fix: the `Answers` column is
+  editorial prose and a sentence assembled from a schema says less in more words. So `DocumentedFailureTests`
+  checks them instead — every served route is in some row or on a named list of three that belong to another
+  document (`/health`, `/rules`, `/rules/terms`), and a row's `Fails with` column names **exactly** the
+  refusals its operation publishes. The three tests read a row through one `EndpointTables`, strictly where a
+  parser's mistake would be a false failure over prose and loosely where it could only weaken the check.
+
+  Making that pass put the codes in the document. The tables had been right and the schema poor — the only
+  refusals declared were the 400 and 500 every route publishes from one place — so **95 routes now declare
+  their own** through `Answers.Refuses`, per route rather than derived from the path. `/api-docs` shows a
+  caller which of 404, 409 and 422 a route can answer, and the rows for `from-documents`, the map list, the
+  player lookup, the three remaining previews and the five dressing vocabularies exist at last.
 - **Every write route that reads a body says what it takes (`RP41`).** Three preview routes — a terrain
   material, a terrain theme, a room style — could not declare theirs, and declaring any one failed the
   *whole* `/api/openapi/v1.json` with *"Discriminator value for FieldPatternMaterial not found"*: a 500 on the

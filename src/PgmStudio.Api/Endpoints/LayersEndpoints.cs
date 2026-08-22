@@ -142,7 +142,7 @@ internal static class LayerData
 /// </summary>
 public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
-    public override void Configure() { Get("/map/{slug}/layers/top-surface"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/layers/top-surface"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -165,7 +165,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
 /// </summary>
 public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<SegmentsDto>
 {
-    public override void Configure() { Get("/map/{slug}/segments"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/segments"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
@@ -208,7 +208,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 /// </summary>
 public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<ColumnFloorDto>
 {
-    public override void Configure() { Get("/map/{slug}/column-floor"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/column-floor"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

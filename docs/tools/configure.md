@@ -419,8 +419,8 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `GET /map/{slug}/intent` | — | the stored intent, or an empty one | 404 unknown map |
-| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **409 `RQ5`** a stale `If-Match` · 404 |
-| `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags; `warnings` carries any field of the **posted** intent the reader had nowhere to keep (`RQ3`) | 404 |
+| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **409 `RQ5`** a stale `If-Match` · 404 · 422 the stored map will not carry the projection |
+| `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags; `warnings` carries any field of the **posted** intent the reader had nowhere to keep (`RQ3`) | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 
 **Getting a world in**
 
@@ -429,7 +429,7 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | `GET /maps/import-candidates` | — | the importable folders: `{folder, slug, region_files}` | — |
 | `POST /map/import-folder` | `{folder, slug?}` | the slug and one count per kind of feature row the scan wrote — creates the row and scans into MariaDB | 400 `RQ1` · 404 `RQ4` no such folder · 409 `RQ5` slug taken · 422 `IM6` it is a map already · 422 `IM5` no `.mca` |
 | `POST /map/import-url` | `{url, slug?}` | the same, fetched server-side | 400 `RQ1` · 403 `IM1` host · 413 `IM3` too large · 415 `IM4` not a zip · 422 `IM5` no region · 502 `IM2` the host did not serve it |
-| `POST /map/{slug}/scan-world` | — | the same counts, over a world already on disk: re-reads `<root>/<slug>/region` and rewrites the map's feature rows. What `import-folder` runs at the end, reachable on its own for a world that changed | 404 · 422 `IM5` no `.mca` |
+| `POST /map/{slug}/scan-world` | — | the same counts, over a world already on disk: re-reads `<root>/<slug>/region` and rewrites the map's feature rows. What `import-folder` runs at the end, reachable on its own for a world that changed | 404 unknown map, or no world folder for it under the configured roots |
 | `GET /map/{slug}/scan-summary` · `/islands` · `/symmetry` | — | the detection brief, the island polygons, the detected symmetry | 404 |
 | `PATCH /map/{slug}/symmetry` | `{status, confirmed_type?, centre?}` | confirms or rejects what was detected — `confirmed` or `none`, with an optional override of the mode and centre | 404 |
 | `GET /configure/{slug}/state` · `PATCH /configure/{slug}/exclude-island` | `{island, excluded}` | the scan config; excluding re-runs symmetry without re-scanning | 404 |
@@ -487,7 +487,7 @@ design.
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
 | `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of every prop the dressing pass dropped building it — `OB19` among them | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
-| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each | the same 409s and 422 as `/xml` (OB17/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each | 404 unknown map · the same 409 and 422 as `/xml` (OB17/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 

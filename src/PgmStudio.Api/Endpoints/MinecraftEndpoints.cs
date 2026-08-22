@@ -16,7 +16,7 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class PlayerLookupEndpoint(MojangClient mojang) : EndpointWithoutRequest<PlayerDto>
 {
-    public override void Configure() { Get("/minecraft/player"); AllowAnonymous(); }
+    public override void Configure() { Get("/minecraft/player"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

@@ -79,9 +79,22 @@ shape: **Catalog 3 typed / 0 untyped and Generator 3 / 0**, against **Configure 
 The two pages with a typed contract are the two newest, and they are what the rest would look like read
 through a generated client. The tables are the same problem seen from the prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
-hand-maintained copy of a machine-readable fact does. They are back, and `DocumentedRouteTests` now fails on
-the next one — but a test that catches drift is not the same as a table that cannot drift, and the schema is
-what a generated one would read.
+hand-maintained copy of a machine-readable fact does.
+
+**The tables are now checked in both directions, and generating them is still the wrong fix.** A row's
+`Answers` column is editorial prose — what the route is *for*, which of two bodies it takes, why a field is
+not carried — and a sentence assembled from a schema would say less in more words. So three tests hold the
+hand-written tables to the generated document instead: every path a row names is a route the API serves,
+every route the API serves is in some row or on a named list of three that belong to another document, and a
+row's `Fails with` column names exactly the refusals its operation publishes. All three read a row through
+one `EndpointTables`, and they read it differently on purpose — strictly where a parser's mistake would be a
+false failure over prose, loosely where it could only ever weaken the check.
+
+Making the third of those pass is what put the codes in the schema. The tables had been right and the
+document poor: **44 of 54 rows** named a 404, a 409 or a 422 that `/api/openapi/v1.json` did not publish,
+because the only refusals declared were the 400 and 500 every route carries from one place. **95 routes now
+declare their own**, through `Answers.Refuses`, per route rather than derived from the path — a path holding
+`{slug}` nearly always answers 404, and nearly is a guess.
 
 ## The use case has no name
 

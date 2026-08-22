@@ -25,7 +25,7 @@ using PgmStudio.Geom;
 public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db)
     : EndpointWithoutRequest<CoreSuggestionsDto>
 {
-    public override void Configure() { Get("/map/{slug}/core-suggestions"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/core-suggestions"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

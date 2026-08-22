@@ -19,7 +19,7 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
         // Declared rather than sent as the record: the document is the codec's encoding of the whole
         // contract, so mapping it here would be a second codec free to disagree with the first.
         // MapDocumentShapeTests holds the record to what the serializer writes instead.
-        Description(b => b.Produces<MapDocumentDto>(200, "application/json"));
+        Description(b => b.Produces<MapDocumentDto>(200, "application/json").Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -37,7 +37,7 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
 /// a rebuild before offering the action rather than after performing it.</summary>
 public sealed class MapLayersEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapLayers>
 {
-    public override void Configure() { Get("/map/{slug}/layers"); AllowAnonymous(); }
+    public override void Configure() { Get("/map/{slug}/layers"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {

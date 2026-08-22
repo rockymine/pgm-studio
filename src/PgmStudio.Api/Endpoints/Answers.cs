@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
+using PgmStudio.Contracts;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -42,4 +43,23 @@ internal static class Answers
     /// rather than adding to it.</summary>
     public static RouteHandlerBuilder WorldZipOrMapXml(this RouteHandlerBuilder builder) =>
         builder.Produces(200, typeof(byte[]), "application/zip", "application/xml");
+
+    /// <summary>
+    /// The refusals this route can answer, beyond the 400 and 500 every route publishes from one place.
+    /// Each is a <see cref="RefusalDto"/> like those, so what a code adds is <b>which</b> refusal a caller
+    /// must be ready for: <c>404</c> the subject named in the path is not stored, <c>409</c> an
+    /// <c>If-Match</c> names a revision the document is no longer at, or a row is still bound elsewhere,
+    /// <c>422</c> what is stored will not carry the request. The two import routes add their own.
+    ///
+    /// <para>Declared per route rather than derived from the path. A path holding <c>{slug}</c> nearly always
+    /// answers 404, and nearly is a guess — a schema that guesses is the one thing a caller cannot act on,
+    /// which is the whole reason the codes are written down at all. <see cref="Refusals"/> is where each is
+    /// raised, and the <c>Fails with</c> column of every endpoint table in <c>docs/tools/</c> is held to what
+    /// is declared here, so a row and a route cannot drift apart without failing a test.</para>
+    /// </summary>
+    public static RouteHandlerBuilder Refuses(this RouteHandlerBuilder builder, params int[] codes)
+    {
+        foreach (var code in codes) builder.Produces<RefusalDto>(code, "application/json");
+        return builder;
+    }
 }
