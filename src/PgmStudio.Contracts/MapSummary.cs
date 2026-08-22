@@ -32,3 +32,18 @@ public sealed record MapStageCounts(int Sketch, int Configure, int Edit);
 /// action of its own would land on work that already exists: the plan editor's build is an origination on a
 /// map with no <see cref="Sketch"/> or <see cref="World"/>, and a rebuild on one that has them.</summary>
 public sealed record MapLayers(bool Plan, bool Sketch, bool World, bool Intent);
+
+/// <summary>One thing a caller may do to a map from where it is.</summary>
+/// <param name="Does">What the move accomplishes, in the words the tool documents use.</param>
+/// <param name="Route">The route that does it, with <c>{slug}</c> left for the caller to fill.</param>
+/// <param name="Next">Whether this is a move the map's own stage is waiting on. Several moves are open at
+/// once and only some are the one the author was about to make.</param>
+public sealed record MapMove(string Does, string Route, bool Next);
+
+/// <summary>Where a map has got to, what it holds, and what may be done to it from here.
+///
+/// <para>The layers were always an affordance answer — a tool reads them to tell an origination from a
+/// rebuild <em>before</em> offering the action — and they were half of one: which documents exist says what
+/// a move can read, and the stage says which move is the one being waited on. Both, and the moves they
+/// imply, are answered together so a driver reads its options instead of learning them.</para></summary>
+public sealed record MapState(string Stage, MapLayers Layers, IReadOnlyList<MapMove> Moves);

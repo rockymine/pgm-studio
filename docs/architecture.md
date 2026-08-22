@@ -183,20 +183,33 @@ The load-the-map-or-404 prologue appears **37 times** verbatim in `Api/Endpoints
 
 ## The lifecycle is data, and nothing reads it
 
-`map.stage` holds one of `plan`, `sketch`, `configure`, `edit`. It is written at map creation by the four
-originating endpoints and once more by `sketch/finish`. Every other read is the dashboard's: the maps list
-groups by it and the client's stage chips filter on it. **No endpoint refuses anything because of it, and no
-endpoint answers what a map at a given stage may be asked for.**
+`map.stage` holds one of `plan`, `sketch`, `configure`, `edit`. It is written at map creation by
+`MapOrigin` and once more by `sketch/finish`. **No endpoint refuses anything because of it**, and that is the
+product statement rather than a gap: a stage is a progress marker, so the one-way flow means nothing reads
+back up and not that a built map may never be re-planned.
 
-`docs/tools/capabilities.md` is 709 lines answering exactly that question in prose. `flow.md` states the four
-levels of description and the five hand-offs between them, and states them well — but only as prose. There is
-no type for a level, no transition table, and no way for a caller to ask what it may do next. An agent
-learns the pipeline by reading markdown that nothing verifies, or by trying a call and reading the refusal.
+**What a map at a stage may be asked for is answered by the map**, on `GET /map/{slug}/layers`: the stage,
+the layers it holds, and the moves those allow, each with the route that performs it. `capabilities.md` is
+709 lines answering the same question in prose, and `flow.md` states the four levels and the hand-offs
+between them well — but a driver reads the map rather than the markdown now, and what the markdown says is
+checked against the routes the moves name.
 
 That was also what made the export gates expensive, and the fix there is the shape the lifecycle wants at
 scale: `OB17` is asked at the preview that already paid for the build, and `OB19` stopped being a gate at all
-— the prop it indicts is declined and the map ships. What remains is that a caller has to know which route to
-ask; nothing answers what is wrong with a map outright (`RP32`).
+— the prop it indicts is declined and the map ships.
+
+**Two reads finish it.** `GET /map/{slug}/findings` asks every gate the stored documents can answer, at once,
+by calling the same methods the steps themselves call — so a fault authored at one step is heard where it was
+authored rather than three calls later. It does not build: the export gates need the rasterized world, and
+each is named in `unasked` with the route that does pay, because a list silent about what it skipped reads as
+*nothing is wrong*. `GET /map/{slug}/layers` answers the other half — where the map has got to and what may be
+done to it from here, each move with its route. A driver's loop is *act, then ask*.
+
+**A stage is a progress marker and not a lock**, which is the product statement the transition table rests
+on: `flow.md`'s one-way flow means nothing reads back up, not that a built map may never be re-planned. So no
+endpoint refuses on `map.stage`, and what decides whether a move is offered is which documents are stored —
+rebuilding a drawing from a plan needs a plan, whatever stage the map is at. The stage only says which of the
+open moves is the one being waited on.
 
 ## A fault carries an id, a class and what it is about
 
@@ -349,8 +362,8 @@ answer already and stopped one step short of the form that makes it machine-read
 | a use case that is not an HTTP handler | ports and adapters: an application layer of request-in / `Findings`-out operations, with HTTP, the CLI and tests as three adapters | a step of the pipeline reachable only through its own door, and the 37-fold load-or-404 prologue |
 | a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 77 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
-| a lifecycle that is enforced | a state machine over `MapStage` with a transition table, and the allowed transitions on the map's own response | `capabilities.md` as the only answer to a runtime question, and an agent that learns the pipeline by trying it |
-| a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | the build an agent paid to hear a refusal — **shipped** for the two objective gates, and `RP32` is the general answer |
+| a lifecycle a caller can read | the stage, the layers and the moves they allow, on the map's own read — a marker rather than a lock, since nothing reading back up is not the same as nothing going back | **shipped** on `GET /map/{slug}/layers`; `capabilities.md` had been the only answer to a runtime question |
+| a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | the build an agent paid to hear a refusal — **shipped**, for the two objective gates at their own steps and for every readable gate at once on `GET /map/{slug}/findings` |
 
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so
 a declared request shape and a generated client now have something to hang off. The application layer comes

@@ -638,6 +638,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A driver's loop is *act, then ask* (`RP32`, `RP16`).** Every gate was reachable only through the step it
+  lived behind, so a fault authored at one step was heard at another and a caller had to know which route to
+  ask. **`GET /map/{slug}/findings`** asks every gate the stored documents can answer at once — the plan's
+  coherence and completeness, the layout's board check and its bound house styles — by calling the same
+  methods those steps call rather than restating them, and answers `refuses` by the name every other gate is
+  read by. **A read does not pay for a build**: the export gates need the rasterized world, so each is named
+  in `unasked` with what it needs and the route that does pay, because a list silent about what it skipped
+  reads as *nothing is wrong*.
+
+  **`GET /map/{slug}/layers` answers the other half** — where the map has got to, what it holds, and what may
+  be done from here, each move `{does, route, next}`. **A stage is a progress marker, not a lock**: nothing
+  refuses on `map.stage`, because the one-way flow means nothing reads back up rather than that a built map
+  may never be re-planned. A move is offered because the documents it reads are stored, not because the stage
+  is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
+  ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
+  from a rebuild before offering the action; it is the whole answer now.
 - **A use case has a home below the door it is reached through (`RP13`).** Ten handlers read stored state,
   did work and wrote it back while living in the endpoint that happened to reach them, so a gate landed
   behind whatever route needed it and the next driver reached around it. They are now **seven operations** in

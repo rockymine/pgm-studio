@@ -177,6 +177,18 @@ the ones that arrived as a parsed `map.xml`, which on a development checkout is 
 this one. That is the whole difference between the two halves of the studio: one authors a map into existence,
 the other opens one that already exists.
 
+**A stage is a progress marker and not a lock.** The one-way flow above means nothing reads back up — a later
+level never writes into an earlier one — and that is all it means: a configured map may be re-planned, and no
+endpoint refuses on `map.stage`. What the stage is *for* is saying which of the moves already open is the one
+the author was about to make.
+
+**`GET /api/map/{slug}/layers` answers all of it**: the stage, the layers, and the moves they allow, each with
+its route. A move is offered because the documents it reads are stored rather than because the stage is right
+— rebuilding a drawing from a plan needs a plan, whatever stage the map is at — so a driver reads its options
+instead of learning them from this document. Its pair is `GET /api/map/{slug}/findings`, which answers what is
+wrong with the map right now from every gate the stored documents can reach, and names the gates it did not
+ask along with the route that does pay for them.
+
 ## What nothing owns
 
 Worth knowing before looking for a control that is not there.

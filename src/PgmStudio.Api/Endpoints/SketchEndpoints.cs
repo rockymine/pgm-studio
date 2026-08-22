@@ -114,6 +114,11 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
 /// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
 /// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
+
+/// <summary>PUT /api/map/{slug}/sketch — replace the stored layout blob (the bridge's getState()). 400
+/// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
+/// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
+/// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
 public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
 {
     public override void Configure()
@@ -146,35 +151,6 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         Revisions.Answer(HttpContext, written.Revision!.Value);
         await Send.OkAsync(new OkDto(), ct);
     }
-}
-
-/// <summary>The gate a sketch's bound <c>roomStyles</c> runs through before the layout is stored — the wool
-/// cage and the spawn against the same universal checks, since neither wears a rule the other doesn't: the
-/// style's own materials and geometry (<c>HS*</c>), and the one thing a style cannot answer about itself,
-/// whether the shell it builds stands under the map's build ceiling (<c>WX10</c>).</summary>
-internal static class SketchRoomStyleGate
-{
-    public static Findings Check(string layoutJson)
-    {
-        // A layout the room-style shape does not parse against is not this gate's business — the blob is
-        // authoring-source JSON of arbitrary shape, and only a well-formed roomStyles snapshot is checked, the
-        // same leniency RoomStyleScope already gives export.
-        (HouseStyle? Wool, HouseStyle? Spawn) styles;
-        try { styles = RoomStyleScope.StylesOf(layoutJson); }
-        catch (JsonException) { return Findings.None; }
-
-        var findings = new List<Finding>();
-        if (styles.Wool is { } wool)
-            findings.AddRange(HouseStyleValidation.Check(wool).Under("roomStyles.cage"));
-        if (styles.Spawn is { } spawn)
-            findings.AddRange(HouseStyleValidation.Check(spawn).Under("roomStyles.spawn"));
-        // And what neither can answer about itself: a shell too tall to stand under the map's build ceiling,
-        // which is a fact about the pair of numbers rather than about the style's own materials.
-        findings.AddRange(RoomStyleScope.Check(styles.Wool, "roomStyles.cage"));
-        findings.AddRange(RoomStyleScope.Check(styles.Spawn, "roomStyles.spawn"));
-        return findings;
-    }
-
 }
 
 /// <summary>PUT /api/map/{slug}/sketch/from-plan — replace the stored layout with one a plan compiled,

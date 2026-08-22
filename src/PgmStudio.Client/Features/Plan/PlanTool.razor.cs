@@ -80,17 +80,17 @@ public partial class PlanTool
     // out loud once rather than discovering afterwards; a plan that has never been built has nothing to
     // lose and gets no interruption. Null until the fetch lands, and on the bare /plan-editor route, where
     // there is no map to ask about.
-    private MapLayers? layers;
+    private MapState? state;
     private bool confirmingRebuild;
 
-    private bool Rebuilds => layers is { } l && (l.Sketch || l.World);
+    private bool Rebuilds => state is { Layers: { } held } && (held.Sketch || held.World);
     private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
 
     private async Task LoadLayersAsync()
     {
-        if (!MapBacked) { layers = null; return; }
-        try { layers = await Http.GetFromJsonAsync<MapLayers>($"api/map/{Slug}/layers"); }
-        catch { layers = null; }   // unreachable / not a map row → treat as a first build, never block one
+        if (!MapBacked) { state = null; return; }
+        try { state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/layers"); }
+        catch { state = null; }   // unreachable / not a map row → treat as a first build, never block one
     }
 
     private string tool = "select";

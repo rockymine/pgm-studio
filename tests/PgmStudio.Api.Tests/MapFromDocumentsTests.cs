@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 
@@ -57,11 +58,14 @@ public sealed class MapFromDocumentsTests
 
         // The four layers a whole map carries — the plan to re-plan from, the drawing, the world geometry the
         // finish wrote, and the intent. An imported world would have only the third.
-        var layers = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/layers");
-        await Assert.That(layers.GetProperty("plan").GetBoolean()).IsTrue();
-        await Assert.That(layers.GetProperty("sketch").GetBoolean()).IsTrue();
-        await Assert.That(layers.GetProperty("world").GetBoolean()).IsTrue();
-        await Assert.That(layers.GetProperty("intent").GetBoolean()).IsTrue();
+        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/layers");
+        await Assert.That(state!.Layers.Plan).IsTrue();
+        await Assert.That(state.Layers.Sketch).IsTrue();
+        await Assert.That(state.Layers.World).IsTrue();
+        await Assert.That(state.Layers.Intent).IsTrue();
+
+        // And a map holding all four is offered the export, which a map holding none of them is not.
+        await Assert.That(state.Moves.Select(move => move.Route)).Contains("GET /api/map/{slug}/export");
     }
 
     /// <summary>A compiled intent's <c>meta.authors</c> is empty, so the credits cannot come from it. Stated

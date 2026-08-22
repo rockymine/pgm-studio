@@ -22,58 +22,21 @@ all of that exists, and almost all of it is stated in prose that nothing verifie
 written down two or three times, drifts, and is discovered again by an agent that paid a build cycle for it.
 `docs/architecture.md` is the survey; this board is the work it named.
 
-**The order below is not a preference, it is a dependency chain.** Nothing can be verified until the surface
-says what it is, so the contract came first; a gate belongs to whichever door someone put it behind until
-there is one place a use case lives, so the application layer came second. **Those two phases have drained**,
-along with the taxonomy between them, and all three keep their numbering so the phases still open carry the
-names every commit cites. What is left is the two that had to wait for them: a state machine over a pipeline
-whose steps were HTTP handlers had nothing to hold, and a caller could not ask what was wrong until the
-gates it would ask lived somewhere.
+**The order was a dependency chain, and three of its four links have drained.** Nothing could be verified
+until the surface said what it is, so the contract came first; a gate belonged to whichever door someone put
+it behind until there was one place a use case lives, so the application layer came second; and the loop
+could not answer for itself until both. The phases keep their numbering so every commit's name still points
+somewhere.
 
-**The board is within the soft cap again** — eight entries against `CLAUDE.md`'s ~6–12, now that Phase 1 has
-drained. The order is still the point: this is one coherent programme, and the phases below run in the order
-their dependencies do. **Nothing new is added here until a phase drains.** A finding made while working lands
-in `BACKLOG.md`.
-
-## Two of the eight carry a question the author has now answered
-
-The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
-the file and line are named. These two were blocked on a decision rather than on work; the ruling is in the
-row, and the entry below builds to it.
-
-| Entry | The question, and the ruling |
-|---|---|
-| `RP32` | **May a read pay for a build? No.** `GET /map/{slug}/findings` answers every gate it can reach from the stored documents, in milliseconds, and **names the gates it did not ask and why** — the export gates (`OB17`, `EX1`) need the rasterized world, which is seconds a `GET` would spend on every call. Nothing is lost by not paying it: those gates are already answered where the build is paid for, which is what `RP4` and `RP30` settled. A response that is silent about what it skipped would be the failure; one that names it is a complete answer to a bounded question. |
-| `RP16` | **A stage is a progress marker, not a lock.** `flow.md`'s one-way flow means nothing reads back up — a later level never writes into an earlier one — not that a built map may never be re-planned. So the transition table names the forward moves as affordances and no endpoint grows a refusal on `map.stage`. |
-
+**Six entries left**, and none of them blocks another. What remains is one naming question the loop raised
+and the drift the survey measured beside it — small work, each entry drivable from itself. A finding made
+while working lands in `BACKLOG.md`.
 
 ## Phase 4 — the loop answers for itself
 
 What makes the pipeline drivable without a fifteen-document briefing: a caller asks what it may do next, and
-hears a late gate early. `RP32` is what is left of that here: the instances are fixed, and the general form
-— a caller asking what is wrong outright rather than hearing it one route at a time — is not.
-
-- [ ] **RP32 — Nothing answers "what is wrong with this map right now".** Every gate is reachable only
-  through the step it lives behind, so a fault authored at one step is heard at another; `RP4` and `RP30`
-  were two instances of that shape, each fixed one route at a time, and this is the shape itself. A driver's loop is *act and hope the next call
-  mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
-  current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs
-  with `RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. It must
-  **call** the gates rather than restate them, since a summary that re-implements one is a second copy free
-  to disagree with it — but that needs no new layer: every gate it would ask (`SketchLayoutCheck`, the plan
-  validator, the house-style checks) lives below `Api` and is reachable from an endpoint today, which is what
-  `MapExportLoader` already does for the export's.
-
-  *The one answer it needs first is in the table above: whether a read may pay for a build. Which gates a
-  map is asked at which stage follows from it — a stage only decides which documents exist to ask of.*
-
-- [ ] **RP16 — The lifecycle is a column nothing reads and 709 lines of prose.** `map.stage` holds
-  `plan`/`sketch`/`configure`/`edit`, is written at creation and once at `sketch/finish`, and every other
-  read is the dashboard's filter. No endpoint refuses on it and none answers what a map at a stage may be
-  asked for — `docs/tools/capabilities.md` answers that question in prose that nothing verifies. Give it a
-  transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver reads
-  its affordances instead of learning them. The operations a transition would move between now exist, which
-  is what it had been waiting for.
+hears a late gate early. Both reads ship; one entry is left, and it is about what a route's *summary* says
+rather than about what the loop can do.
 
 - [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
   `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule
