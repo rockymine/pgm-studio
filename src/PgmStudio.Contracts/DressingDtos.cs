@@ -29,4 +29,7 @@ public sealed record PropPreviewRequest(string PropJson, string? ThemeJson);
 /// "spruce" has to take a spruce's proportions too, or the tree is named one thing and shaped another. It
 /// travels with the card rather than being tabulated in the client, so the species table stays stated once —
 /// on the server, where the grower reads it.</para></summary>
+/// <param name="Key">What a prop names the option by.</param>
+/// <param name="Label">The option as an author reads it.</param>
+/// <param name="Svg">The card picture, drawn by the algorithm the export runs.</param>
 public sealed record PropOptionDto(string Key, string Label, string Svg, string? Defaults = null);

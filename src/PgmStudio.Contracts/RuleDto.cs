@@ -29,6 +29,12 @@ namespace PgmStudio.Contracts;
 /// <param name="Concerns">What the rule is about, one word or several. A rule concerns a combination —
 /// <c>WX6</c> is a plan, a structure and an objective at once — which a one-token family prefix cannot say.
 /// Absent for a layout rule.</param>
+/// <param name="Rule">The stable id a finding carries — <c>PL9</c>, <c>HS1</c>, <c>WL2</c>.</param>
+/// <param name="Family">Its letters, which group rules by what they are about rather than by which gate
+/// asks.</param>
+/// <param name="Owner">Where the rule is stated, which is the file to read next: a declaring constant for a
+/// gate rule, <c>docs/generator/rules.md</c> and its section for a layout rule.</param>
+/// <param name="Means">What the rule refuses, in one sentence.</param>
 public sealed record RuleDto(
     string Rule, string Family, string Owner, string Means, string? Fix = null, string? Evidence = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] RuleCategory? Category = null,

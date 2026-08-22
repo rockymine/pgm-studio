@@ -14,5 +14,11 @@ namespace PgmStudio.Contracts;
 /// <param name="Band"><c>[lo, hi]</c>, or null where <see cref="BandSource"/> is <c>none</c>.</param>
 /// <param name="LearnsFromTraced">Whether the envelope generator may widen this term's band with the traced
 /// real-map corpus. Null for a hard term, which has no band to widen.</param>
+/// <param name="Term">The metric id a violation names and a profile keys on.</param>
+/// <param name="Rule">The <c>rules.md</c> id it scores — what to ask <c>GET /api/rules</c> about.</param>
+/// <param name="Kind"><c>hard</c> where the term refuses a board outright, <c>soft</c> where it scores one
+/// against a band.</param>
+/// <param name="BandSource">Where <paramref name="Band"/> came from: <c>authored</c>, <c>envelope</c>, or
+/// <c>none</c>.</param>
 public sealed record TermDto(
     string Term, string Rule, string Kind, double[]? Band, string BandSource, bool? LearnsFromTraced);

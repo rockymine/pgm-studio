@@ -15,6 +15,7 @@ namespace PgmStudio.Contracts;
 /// </summary>
 /// <param name="BoundingBox">The extent the canvas fits to — the stored surface box, or the detected
 /// islands' AABB where no box was stored. Null on a map with neither.</param>
+/// <param name="Groups">The root regions, one entry per category, in the order the editor offers them.</param>
 public sealed record RegionTreeDto(
     IReadOnlyList<RegionGroupDto> Groups,
     [property: JsonPropertyName("bounding_box")] Bounds2dDto? BoundingBox);
@@ -22,6 +23,10 @@ public sealed record RegionTreeDto(
 /// <summary>One category of root regions, in the order the editor offers them. <see cref="Name"/> is the
 /// derived category the group is keyed on (<c>spawn</c>, <c>build</c>, <c>objective</c>, <c>other</c>) and
 /// <see cref="Label"/> is what it is called on screen.</summary>
+/// <param name="Name">The derived category the group is keyed on — <c>spawn</c>, <c>build</c>,
+/// <c>objective</c>, <c>other</c>.</param>
+/// <param name="Label">What the group is called on screen.</param>
+/// <param name="Regions">Its root regions, each carrying whatever is nested under it.</param>
 public sealed record RegionGroupDto(string Name, string Label, IReadOnlyList<RegionNodeDto> Regions);
 
 /// <summary>
@@ -50,6 +55,24 @@ public sealed record RegionGroupDto(string Name, string Label, IReadOnlyList<Reg
 /// activity that drew it can still show it. Absent once the region is wired, and on every imported one.</param>
 /// <param name="Polygon2d">The region's footprint as rings, for the types that have one. Present only where
 /// the geometry could be computed against the map's extent.</param>
+/// <param name="Type">What the region is made of — <c>cuboid</c>, <c>circle</c>, <c>union</c>,
+/// <c>mirror</c> — which is what says which keys <paramref name="Coords"/> carries.</param>
+/// <param name="Bounds">Its extent in plan, where it has one.</param>
+/// <param name="IsNegative">Whether the region subtracts rather than adds — a <c>negative</c> or the
+/// complement side of a compound.</param>
+/// <param name="SyntheticId">Whether <paramref name="Id"/> is empty because the region is anonymous and
+/// inline, rather than because it is missing.</param>
+/// <param name="Category">The region's <b>own</b> derived category, which is not always the group it renders
+/// under: a build region nested inside a rule container renders under <c>other</c> and is a build region
+/// still.</param>
+/// <param name="Subtype">What refines the category — a spawn is a <c>point</c> or a <c>protection</c>, a
+/// wool a <c>room</c>, <c>monument</c> or <c>spawner</c>.</param>
+/// <param name="Wiring">The spatial filter events applied here — <c>enter=only-blue</c>,
+/// <c>block_break=…</c>. Absent on a region nothing is wired to.</param>
+/// <param name="Children">Every region nested under this one.</param>
+/// <param name="Source">The region a transform derives from — what a <c>mirror</c> mirrors, what a
+/// <c>translate</c> moves — as a node of its own rather than an id, so it draws without a second
+/// lookup.</param>
 public sealed record RegionNodeDto(
     string Id,
     string Type,
@@ -72,6 +95,10 @@ public sealed record RegionNodeDto(
 /// spells it. The values cross as they are written rather than being coerced, because a reader that clamps an
 /// infinity has silently drawn a different region.
 /// </summary>
+/// <param name="MinX">The west edge: a number, or <c>-oo</c> where the region is unbounded that way.</param>
+/// <param name="MinZ">The north edge, or <c>-oo</c>.</param>
+/// <param name="MaxX">The east edge, or <c>oo</c>.</param>
+/// <param name="MaxZ">The south edge, or <c>oo</c>.</param>
 public sealed record RegionExtentDto(
     [property: JsonPropertyName("min_x")] JsonElement MinX,
     [property: JsonPropertyName("min_z")] JsonElement MinZ,
@@ -83,12 +110,17 @@ public sealed record RegionExtentDto(
 /// disjoint shapes has several — and <see cref="Exterior"/> and <see cref="Holes"/> repeat the first part's
 /// rings at the top level, for a reader that draws one outline and does not handle the multi-part case.
 /// </summary>
+/// <param name="Polygons">Every part of the footprint — a union of disjoint shapes has several.</param>
+/// <param name="Exterior">The first part's outline, repeated here for a reader that draws one shape.</param>
+/// <param name="Holes">The first part's holes, repeated for the same reason.</param>
 public sealed record RegionPolygonDto(
     IReadOnlyList<RegionRingsDto> Polygons,
     IReadOnlyList<IReadOnlyList<double>> Exterior,
     IReadOnlyList<IReadOnlyList<IReadOnlyList<double>>> Holes);
 
 /// <summary>One part of a footprint: its outline, and the rings cut out of it.</summary>
+/// <param name="Exterior">The outline, as <c>[x, z]</c> pairs.</param>
+/// <param name="Holes">The rings cut out of it, each a list of the same pairs.</param>
 public sealed record RegionRingsDto(
     IReadOnlyList<IReadOnlyList<double>> Exterior,
     IReadOnlyList<IReadOnlyList<IReadOnlyList<double>>> Holes);

@@ -18,18 +18,25 @@ namespace PgmStudio.Contracts;
 public sealed record AppliedDto;
 
 /// <summary>A row was made, and this is the id every later route names it by.</summary>
+/// <param name="Id">The row number the library lists it under and every later route names it by.</param>
 public sealed record CreatedDto(long Id);
 
 /// <summary>A map was originated, and this is the slug every later route names it by.</summary>
+/// <param name="Slug">What every later route names the map by.</param>
 public sealed record OriginatedDto(string Slug);
 
 /// <summary>Whether a still-pristine draft was dropped. False is the ordinary answer — a draft with any real
 /// work in it is left alone, and so is a slug no map is stored under.</summary>
+/// <param name="Discarded">Whether the draft was dropped.</param>
 public sealed record DiscardedDto(bool Discarded);
 
 /// <summary>The sketch is rasterized and the map has moved to Configure, with the page that continues it.</summary>
+/// <param name="Slug">The map the sketch became.</param>
+/// <param name="ConfigureUrl">The page that continues it, ready to navigate to.</param>
 public sealed record SketchFinishedDto(string Slug, string ConfigureUrl);
 
 /// <summary>The stored layout was replaced by one a plan compiled, and the terrain that had nowhere to land
 /// on the new board. Empty unless <c>?force=true</c> accepted the loss.</summary>
+/// <param name="Orphaned">The islands whose terrain had nowhere to land on the new board, by id. Empty
+/// unless <c>?force=true</c> accepted the loss, since otherwise the write is refused rather than made.</param>
 public sealed record SketchFromPlanDto(IReadOnlyList<string> Orphaned);

@@ -33,6 +33,8 @@ public sealed record ConfigureStateDto(
 ///
 /// <para>Map-independent: the plan editor opens without a map.</para>
 /// </summary>
+/// <param name="Destroyable">What a DTM goal may be made of, and what an unauthored one is.</param>
+/// <param name="Core">What a DTC goal may be made of, and what an unauthored one is.</param>
 public sealed record ObjectiveVocabularyDto(
     DestroyableVocabularyDto Destroyable,
     CoreVocabularyDto Core);
@@ -40,6 +42,8 @@ public sealed record ObjectiveVocabularyDto(
 /// <summary>The destroyable designs on offer and what an unauthored one is made of.</summary>
 /// <param name="Styles">The shapes a destroyable can be built as.</param>
 /// <param name="MaterialChoices">The blocks it can be built from.</param>
+/// <param name="Style">The shape an unauthored destroyable is built as.</param>
+/// <param name="Materials">The material an unauthored one is built from.</param>
 /// <param name="Float">How far above the ground it stands. A destroyable on the ground is trivially covered,
 /// which is why the default is not zero.</param>
 public sealed record DestroyableVocabularyDto(
@@ -52,6 +56,13 @@ public sealed record DestroyableVocabularyDto(
 /// <summary>What an unauthored core is: its casing, its shell, how far it floats, and how far its lava may
 /// fall before the core counts as leaked. A core resting on the ground cannot leak, which is what
 /// <see cref="Float"/> is for.</summary>
+/// <param name="Size">The casing's width and depth, in blocks.</param>
+/// <param name="Height">The casing's height, in blocks.</param>
+/// <param name="Shell">How thick the casing wall is.</param>
+/// <param name="Float">How far above the ground the casing stands. A core resting on the ground cannot
+/// leak, which is why the default is not zero.</param>
+/// <param name="Leak">How far the lava must fall below the casing to count as leaked.</param>
+/// <param name="OpenTop">Whether the casing is left uncapped, its lava flush with the rim.</param>
 public sealed record CoreVocabularyDto(
     int Size, int Height, int Shell, int Float, int Leak, bool OpenTop);
 
@@ -74,14 +85,21 @@ public sealed record SymmetryDto(
 
 /// <summary>One mode the detector scored: whether the islands fold that way and how strongly. Every mode is
 /// reported, detected or not, so a caller sees what was ruled out as well as what was found.</summary>
+/// <param name="Type">The mode scored — <c>mirror_x</c>, <c>mirror_z</c>, <c>rot_180</c>, <c>rot_90</c>.</param>
+/// <param name="Detected">Whether the islands fold that way at all.</param>
+/// <param name="Confidence">How strongly, 0–1.</param>
 public sealed record SymmetryModeDto(string Type, bool Detected, double Confidence);
 
 /// <summary>The point a map folds about, in world coordinates. Half-integers are ordinary: a fold between two
 /// blocks sits on the seam rather than on either.</summary>
+/// <param name="Cx">Where the map folds, east–west.</param>
+/// <param name="Cz">Where the map folds, north–south.</param>
 public sealed record SymmetryCenterDto(double Cx, double Cz);
 
 /// <summary>The mode a map is taken to have. <paramref name="UserOverride"/> is present only when the author
 /// set it by hand, which is what distinguishes a confirmed detection from a corrected one.</summary>
+/// <param name="Type">The mode the map is taken to have.</param>
+/// <param name="Confidence">How strongly it holds, 0–1. An author's own ruling is full confidence.</param>
 public sealed record SymmetryPrimaryDto(
     string Type,
     double Confidence,
