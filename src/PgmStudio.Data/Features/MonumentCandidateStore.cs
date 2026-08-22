@@ -3,7 +3,7 @@ using LinqToDB.Async;
 using LinqToDB.Data;
 using PgmStudio.Data.Schema;
 using PgmStudio.Minecraft;
-using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Analysis.Suggest;
 
 namespace PgmStudio.Data.Features;
 

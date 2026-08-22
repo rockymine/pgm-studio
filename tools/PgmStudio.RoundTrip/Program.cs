@@ -903,7 +903,8 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
         ? new PgmStudio.Geom.BlockBox(0, 0, 0, 0, 0, 0)
         : new PgmStudio.Geom.BlockBox(chunks.Min(c => c.ChunkX) * 16, 0, chunks.Min(c => c.ChunkZ) * 16,
             chunks.Max(c => c.ChunkX) * 16 + 15, 255, chunks.Max(c => c.ChunkZ) * 16 + 15);
-    var monuments = PgmStudio.Minecraft.Suggest.MonumentSuggester.Gather(chunks, worldBox);
+    var monuments = PgmStudio.Analysis.Suggest.MonumentSuggester.Gather(
+        PgmStudio.Minecraft.Suggest.WorldReader.Read(chunks, worldBox), worldBox);
     await WriteParquet(Path.Combine(outDir, "monument_candidates.parquet"), monuments.Select(c => new ScanMonumentRow
     {
         CandX = c.X, CandY = c.Y, CandZ = c.Z, Source = c.Source,
@@ -1157,8 +1158,8 @@ static async Task<int> RunMonumentSlices(string regionDir, string xmlDataPath, s
 }
 
 static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoStyle,
-    PgmStudio.Minecraft.Suggest.PedestalKind pedestal, PgmStudio.Minecraft.Suggest.LabelKind label,
-    PgmStudio.Minecraft.Suggest.CapKind cap, int margin)
+    PgmStudio.Analysis.Suggest.PedestalKind pedestal, PgmStudio.Analysis.Suggest.LabelKind label,
+    PgmStudio.Analysis.Suggest.CapKind cap, int margin)
 {
     using var jd = System.Text.Json.JsonDocument.Parse(File.ReadAllText(xmlDataPath));
     static int Coord(System.Text.Json.JsonElement loc, string a) => (int)Math.Floor(loc.GetProperty(a).GetDouble());
@@ -1198,12 +1199,12 @@ static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoSt
                 if (want.Contains((b.X, b.Y, b.Z))) adj[(b.X, b.Y, b.Z)] = b.Id;
     }
     // reuse the suggester's single id↔kind table, so auto-style can't drift from detection
-    PgmStudio.Minecraft.Suggest.PedestalKind PedestalBelow(int x, int y, int z) =>
-        PgmStudio.Minecraft.Suggest.MonumentSuggester.ClassifyPedestal(adj.GetValueOrDefault((x, y - 1, z), 0));
-    PgmStudio.Minecraft.Suggest.CapKind CapAbove(int x, int y, int z) =>
-        PgmStudio.Minecraft.Suggest.MonumentSuggester.ClassifyCap(adj.GetValueOrDefault((x, y + 1, z), 0));
+    PgmStudio.Analysis.Suggest.PedestalKind PedestalBelow(int x, int y, int z) =>
+        PgmStudio.Analysis.Suggest.MonumentSuggester.ClassifyPedestal(adj.GetValueOrDefault((x, y - 1, z), 0));
+    PgmStudio.Analysis.Suggest.CapKind CapAbove(int x, int y, int z) =>
+        PgmStudio.Analysis.Suggest.MonumentSuggester.ClassifyCap(adj.GetValueOrDefault((x, y + 1, z), 0));
 
-    var suggestions = new Dictionary<(int, int, int), PgmStudio.Minecraft.Suggest.MonumentSuggestion>();
+    var suggestions = new Dictionary<(int, int, int), PgmStudio.Analysis.Suggest.MonumentSuggestion>();
     foreach (var cl in clusters)
     {
         var box = new PgmStudio.Geom.BlockBox(
@@ -1215,7 +1216,8 @@ static SuggestEval EvalSuggest(string regionDir, string xmlDataPath, bool autoSt
         var cp = autoStyle
             ? cl.Select(q => CapAbove(q.x, q.y, q.z)).GroupBy(k => k).OrderByDescending(g => g.Count()).First().Key
             : cap;
-        foreach (var s in PgmStudio.Minecraft.Suggest.MonumentSuggester.Suggest(chunks, box, new PgmStudio.Minecraft.Suggest.MonumentStyle(ped, label, cp)))
+        var read = PgmStudio.Minecraft.Suggest.WorldReader.Read(chunks, box.Expand(2));
+        foreach (var s in PgmStudio.Analysis.Suggest.MonumentSuggester.Suggest(read, box, new PgmStudio.Analysis.Suggest.MonumentStyle(ped, label, cp)))
             if (!suggestions.TryGetValue((s.X, s.Y, s.Z), out var prev) || prev.Confidence < s.Confidence)
                 suggestions[(s.X, s.Y, s.Z)] = s;
     }
@@ -1249,9 +1251,9 @@ static int RunSuggestMonuments(string[] args, string regionDir, string xmlDataPa
     string Flag(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : def; }
     var margin = int.Parse(Flag("--margin", "8"));
     var autoStyle = args.Contains("--auto-style");
-    var pedestal = Enum.Parse<PgmStudio.Minecraft.Suggest.PedestalKind>(Flag("--pedestal", "Any"), true);
-    var label = Enum.Parse<PgmStudio.Minecraft.Suggest.LabelKind>(Flag("--label", "Any"), true);
-    var cap = Enum.Parse<PgmStudio.Minecraft.Suggest.CapKind>(Flag("--cap", "Any"), true);
+    var pedestal = Enum.Parse<PgmStudio.Analysis.Suggest.PedestalKind>(Flag("--pedestal", "Any"), true);
+    var label = Enum.Parse<PgmStudio.Analysis.Suggest.LabelKind>(Flag("--label", "Any"), true);
+    var cap = Enum.Parse<PgmStudio.Analysis.Suggest.CapKind>(Flag("--cap", "Any"), true);
     var slug = Path.GetFileName(Path.GetDirectoryName(Path.GetFullPath(regionDir).TrimEnd('/'))) ?? "map";
 
     var e = EvalSuggest(regionDir, xmlDataPath, autoStyle, pedestal, label, cap, margin);
@@ -1270,9 +1272,9 @@ static int RunSuggestMonumentsCorpus(string[] args, string[] corpusRoots, string
     string Flag(string name, string def) { var i = Array.IndexOf(args, name); return i >= 0 && i + 1 < args.Length ? args[i + 1] : def; }
     var margin = int.Parse(Flag("--margin", "8"));
     var autoStyle = args.Contains("--auto-style");
-    var pedestal = Enum.Parse<PgmStudio.Minecraft.Suggest.PedestalKind>(Flag("--pedestal", "Any"), true);
-    var label = Enum.Parse<PgmStudio.Minecraft.Suggest.LabelKind>(Flag("--label", "Any"), true);
-    var cap = Enum.Parse<PgmStudio.Minecraft.Suggest.CapKind>(Flag("--cap", "Any"), true);
+    var pedestal = Enum.Parse<PgmStudio.Analysis.Suggest.PedestalKind>(Flag("--pedestal", "Any"), true);
+    var label = Enum.Parse<PgmStudio.Analysis.Suggest.LabelKind>(Flag("--label", "Any"), true);
+    var cap = Enum.Parse<PgmStudio.Analysis.Suggest.CapKind>(Flag("--cap", "Any"), true);
 
     int maps = 0, truth = 0, tp = 0, fp = 0, fn = 0, colorOk = 0;
     foreach (var root in corpusRoots.Where(Directory.Exists))
@@ -1710,7 +1712,7 @@ static Dictionary<string, object?> Semantic(PgmStudio.Domain.MapXml m) => new()
 
 readonly record struct SuggestEval(
     int Truth, int Tp, int Fp, int Fn, int ColorOk, int Clusters,
-    List<PgmStudio.Minecraft.Suggest.MonumentSuggestion> Sites);
+    List<PgmStudio.Analysis.Suggest.MonumentSuggestion> Sites);
 
 // Parquet shape for monument_slices.parquet (snake_case columns, one row per cell).
 // ── --scan-out parquet rows (column names match the importer + the reference pipeline output) ────────────

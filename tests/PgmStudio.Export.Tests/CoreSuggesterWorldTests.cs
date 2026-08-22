@@ -5,7 +5,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
-using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Analysis.Suggest;
 
 namespace PgmStudio.Export.Tests;
 

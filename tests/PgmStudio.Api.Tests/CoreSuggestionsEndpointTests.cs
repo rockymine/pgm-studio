@@ -9,7 +9,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Geom;
-using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Analysis.Suggest;
 
 namespace PgmStudio.Api.Tests;
 

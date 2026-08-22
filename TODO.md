@@ -27,29 +27,13 @@ what it is, so the contract came first; a gate belonged to whichever door someon
 was one place a use case lives, so the application layer came second; and the loop could not answer for
 itself until both. Phase 5 is what was never in the chain.
 
-**Four entries left**, and none of them blocks another: the drift the survey measured beside the work,
+**Three entries left**, and none of them blocks another: the drift the survey measured beside the work,
 each entry drivable from itself. A finding made while working lands in `BACKLOG.md`.
 
 ## Phase 5 — the names, and what the survey turned up beside them
 
 None of these blocks anything. They are the drift the survey measured, and each is small enough to take while
 a phase above is compiling.
-
-- [ ] **WS5 — Objective suggestion is map-contract analysis living in the world package.**
-  `Minecraft/Suggest/` holds `MonumentSuggester` and `CoreSuggester`; the first names a monument, a wool, an
-  objective or a core **91 times** over 453 lines, the second 18 over 186. `CLAUDE.md` charters `Minecraft` as
-  "the world" and `Analysis` as the derivations over it, and `docs/world-scan/` already owns this subject —
-  *monument and objective suggestion* — as a documentation folder. Move both to `Analysis`, where the other
-  reads of a scanned world sit, and the package charter stops needing an exception. The consumers are
-  `Api/Endpoints/MonumentEndpoints` and the two candidate stores in `Data`, all of which already reach
-  `Analysis`.
-
-  **The move is not a file move, and that is the work.** `Analysis` and `Minecraft` are siblings — both
-  reference only `Domain` and `Geom` — and the suggesters read `AnvilRegion`, `Nbt`, `Blocks` and
-  `MonumentSliceExtractor`, all `Minecraft`. So either `Analysis` gains an edge to `Minecraft`, or the pair
-  splits at the seam it already has: the chunk read stays where the chunks are, and what it derives — a
-  monument, a core, the confidence behind each — goes to `Analysis`. The second is the one the charter
-  describes.
 
 - [ ] **TN4 — The cheapest read of a plan is the one that needs a map row first.** `PlanBoardAscii.Render`
   is reachable through `GET /map/{slug}/plan/ascii` and `GET /plans/{id}/ascii` — both requiring stored

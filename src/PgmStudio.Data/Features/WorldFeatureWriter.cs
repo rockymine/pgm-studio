@@ -10,6 +10,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Analysis.Suggest;
 
 namespace PgmStudio.Data.Features;
 
@@ -65,13 +66,19 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         var segs = FeatureExtractors.Segments(chunks)
             .Select(s => new LayerSegmentRow { MapId = mapId, WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList();
 
+        // The world, read once, for both suggesters. Decoding is the world package's and what a monument or
+        // a core is is a derivation, so the read happens here — at the one caller that has both — and each
+        // suggester is handed the reading rather than the chunks.
+        var box = WorldBox(chunks);
+        var read = WorldReader.Read(chunks, box);
+
         // Gather monument candidates over the whole world (F9) so the authoring tier can Score
         // suggestions without re-reading the .mca — idempotent delete-then-insert, like the features.
-        var monuments = MonumentSuggester.Gather(chunks, WorldBox(chunks));
+        var monuments = MonumentSuggester.Gather(read, box);
 
         // Cores are gathered in the same pass and for the same reason: the signature needs block materials,
         // which nothing persisted afterwards carries.
-        var cores = CoreSuggester.Gather(chunks);
+        var cores = CoreSuggester.Gather(read.Blocks.ToDictionary(cell => cell.Key, cell => cell.Value.Id));
 
         // The whole replacement is one write. It drops six tables before it fills five of them, so a fault
         // between the two halves leaves a map whose features are gone and whose new ones are half there —

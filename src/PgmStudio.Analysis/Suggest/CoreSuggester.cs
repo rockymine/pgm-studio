@@ -1,8 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
-using PgmStudio.Minecraft.Anvil;
 
-namespace PgmStudio.Minecraft.Suggest;
+namespace PgmStudio.Analysis.Suggest;
 
 /// <summary>
 /// One core proposed from the world: the casing's block box, the lava it encloses, and the shell thickness and
@@ -39,9 +38,9 @@ public sealed record CoreSuggestion(BlockBox Casing, int LavaBlocks, int Shell, 
 /// proposes a <c>&lt;region&gt;</c> — that is a human's loose box (OB12), is not in the world, and cannot be
 /// detected; a confirmed suggestion gets the exact structure box the authoring side emits.</para>
 ///
-/// <para><b>Gather, not serve.</b> This reads <c>.mca</c> and therefore runs once, inside the single ingest
-/// pass, beside <see cref="MonumentSuggester.Gather"/>. The world is discarded afterwards, so a suggestion not
-/// captured then cannot be recovered without re-importing the map.</para>
+/// <para><b>Gather, not serve.</b> This runs once, inside the single ingest pass, over the world that pass
+/// decoded — beside <see cref="MonumentSuggester.Gather"/>. The world is discarded afterwards, so a
+/// suggestion not captured then cannot be recovered without re-importing the map.</para>
 ///
 /// <para>Destroyables are not proposed here, and not because they are undetectable — 98% of declared ones are
 /// a standalone connected mass, and 95% have a symmetric partner. They have no <i>local</i> signature: a DTM
@@ -62,16 +61,6 @@ public static class CoreSuggester
 
     private static readonly (int X, int Y, int Z)[] Faces =
         [(1, 0, 0), (-1, 0, 0), (0, 1, 0), (0, -1, 0), (0, 0, 1), (0, 0, -1)];
-
-    /// <summary>Propose every core in the world, ordered by position so the result is stable across runs.</summary>
-    public static List<CoreSuggestion> Gather(IEnumerable<AnvilRegion.Chunk> chunks)
-    {
-        var world = new Dictionary<(int, int, int), int>();
-        foreach (var chunk in chunks)
-            foreach (var block in AnvilRegion.Blocks(chunk))
-                world[(block.X, block.Y, block.Z)] = block.Id;
-        return Gather(world);
-    }
 
     /// <summary>Propose every core in a decoded world (block position → id, air absent).</summary>
     public static List<CoreSuggestion> Gather(IReadOnlyDictionary<(int X, int Y, int Z), int> world)

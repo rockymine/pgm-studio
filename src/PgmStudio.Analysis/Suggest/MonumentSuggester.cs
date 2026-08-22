@@ -1,11 +1,7 @@
-using System.Text;
-using fNbt;
 using PgmStudio.Domain;
-using static PgmStudio.Minecraft.Anvil.Nbt;
 using PgmStudio.Geom;
-using PgmStudio.Minecraft.Anvil;
 
-namespace PgmStudio.Minecraft.Suggest;
+namespace PgmStudio.Analysis.Suggest;
 
 /// <summary>The pedestal block an author placed directly under the (air) monument block. Drawn from the
 /// corpus: bedrock 33%, stained clay 16%, stained glass 14%, wool 11%, floating(=air) 9% — see
@@ -110,10 +106,9 @@ public static class MonumentSuggester
     /// <summary>Suggest monument blocks inside <paramref name="box"/> for the declared
     /// <paramref name="style"/> — the live path, kept as <see cref="Score"/> over <see cref="Gather"/>
     /// (the same composition the candidate store serves from the DB; this guards the factoring against the
-    /// corpus parity harness). Chunks outside the box (+2 margin) are skipped.</summary>
-    public static List<MonumentSuggestion> Suggest(
-        IEnumerable<AnvilRegion.Chunk> chunks, BlockBox box, MonumentStyle style) =>
-        Score(Gather(chunks, box.Expand(2)), box, style);
+    /// corpus parity harness). The reading is taken over the box plus a two-block margin.</summary>
+    public static List<MonumentSuggestion> Suggest(WorldReading read, BlockBox box, MonumentStyle style) =>
+        Score(Gather(read, box.Expand(2)), box, style);
 
     /// <summary>
     /// Gather pass (ingest, reads the world) — find every anchor (monument-label wall signs, wool-head /
@@ -125,23 +120,12 @@ public static class MonumentSuggester
     /// monument count. <paramref name="world"/> is the gather region (the whole world at ingest; the
     /// box+2 on the live path).
     /// </summary>
-    public static List<MonumentCandidate> Gather(IEnumerable<AnvilRegion.Chunk> chunks, BlockBox world)
+    public static List<MonumentCandidate> Gather(WorldReading read, BlockBox world)
     {
-        var (blocks, tileList, entityList) = RegionScan.Read(chunks, world.Contains, world.IntersectsChunk);
-        var signs = tileList
-            .Where(t => Str(t.Te.Get("id")) == "Sign")
-            .Select(t => new Sign(t.X, t.Y, t.Z, MonumentSliceExtractor.ReadSignText(t.Te)))
-            .ToList();
-        var stands = entityList
-            .Where(e => Str(e.En.Get("id")) == "ArmorStand" && world.Contains(e.Fx, (int)Math.Floor(e.Fy), e.Fz))
-            .Select(e => new ArmorStand(e.Fx, e.Fy, e.Fz, HeadWool(e.En), Str(e.En.Get("CustomName"))))
-            .ToList();
-        // Item frames holding a WOOL item — each resolved to the support block it's mounted on + the colour.
-        var frames = entityList
-            .Select(e => FrameWool(e.En))
-            .Where(fr => fr is not null)
-            .Select(fr => fr!.Value)
-            .ToList();
+        var blocks = read.Blocks;
+        var signs = read.Signs;
+        var stands = read.Stands;
+        var frames = read.Frames;
 
         var candidates = new List<MonumentCandidate>();
 
@@ -196,13 +180,13 @@ public static class MonumentSuggester
             int? best = null;
             for (var y = lo; y <= hi; y++)
             {
-                if (!world.Contains(st.Fx, y, st.Fz) || blocks.ContainsKey((st.Fx, y, st.Fz))) continue;   // air
-                blocks.TryGetValue((st.Fx, y - 1, st.Fz), out var bl);
+                if (!world.Contains(st.X, y, st.Z) || blocks.ContainsKey((st.X, y, st.Z))) continue;   // air
+                blocks.TryGetValue((st.X, y - 1, st.Z), out var bl);
                 if (!PedestalMatches(PedestalKind.Any, bl.Id)) continue;
                 if (best is null || Math.Abs(y - target) < Math.Abs(best.Value - target)) best = y;
             }
-            if (best is { } yy && Cell(st.Fx, yy, st.Fz) is (var below, var above))
-                candidates.Add(new MonumentCandidate(st.Fx, yy, st.Fz, "armorstand", below.Id, below.Data, above.Id, above.Data,
+            if (best is { } yy && Cell(st.X, yy, st.Z) is (var below, var above))
+                candidates.Add(new MonumentCandidate(st.X, yy, st.Z, "armorstand", below.Id, below.Data, above.Id, above.Data,
                     st.HeadWool ?? ColorFromText(st.CustomName ?? ""), null, null, null, null, null,
                     st.HeadWool, st.CustomName, st.CustomName));
         }
@@ -422,32 +406,4 @@ public static class MonumentSuggester
     private static string? ColorFromStain((int Id, int Data) b) =>
         b.Id is 35 or 95 or 159 && b.Data is >= 0 and < 16 ? PgmStudio.Domain.BlockColors.BlockColor(b.Data) : null;
 
-    /// <summary>An item frame entity holding a wool item → the (support block it's mounted on, wool colour),
-    /// or null when it isn't a wool-bearing item frame. The monument sits directly above/below the support.</summary>
-    private static (int X, int Y, int Z, string Color)? FrameWool(NbtCompound frame)
-    {
-        if (Str(frame.Get("id")) is not ("ItemFrame" or "minecraft:item_frame")) return null;
-        if (frame.Get("Item") is not NbtCompound item) return null;
-        if (Str(item.Get("id")) is not { } iid || !iid.ToLowerInvariant().EndsWith("wool")) return null;
-        if (Int(frame.Get("TileX")) is not { } tx || Int(frame.Get("TileY")) is not { } ty
-            || Int(frame.Get("TileZ")) is not { } tz || Int(frame.Get("Facing")) is not { } fac
-            || !FrameSupport.TryGetValue(fac, out var s)) return null;
-        return (tx + s.dx, ty, tz + s.dz, PgmStudio.Domain.BlockColors.BlockColor(Int(item.Get("Damage")) ?? 0));
-    }
-
-    private static string? HeadWool(NbtCompound stand)
-    {
-        // 1.8 Equipment[4] = head; 1.9+ ArmorItems[3] = head.
-        foreach (var (list, headIdx) in new[] { ("Equipment", 4), ("ArmorItems", 3) })
-            if (stand.Get<NbtList>(list) is { } eq && eq.Count > headIdx && eq[headIdx] is NbtCompound item)
-            {
-                var id = Str(item.Get("id"));
-                if (id is not null && id.ToLowerInvariant().EndsWith("wool"))
-                    return PgmStudio.Domain.BlockColors.BlockColor(Int(item.Get("Damage")) ?? 0);
-            }
-        return null;
-    }
-
-    private readonly record struct Sign(int X, int Y, int Z, string Text);
-    private readonly record struct ArmorStand(int Fx, double FeetY, int Fz, string? HeadWool, string? CustomName);
 }

@@ -121,7 +121,10 @@ variants, the recipes and the material names); **`Stamping/`** writes structures
 objectives, chests, signs, markers, the claim each one records); **`Houses/`** is the building family, which is
 large enough to be its own subject (the plan, the style, the presets, the stamper, windows, roofs, wing
 joints); **`Painting/`** is the terrain painter and its profile/theme family; **`Suggest/`** reads a built
-world back and proposes monuments and cores. `Dressing/`, `Render/` and `Views/` were already broken out.
+world back into the plain facts a derivation needs — blocks by position, and the signs, armour stands and
+wool-bearing item frames that carry an author's words. What those facts *mean* — a monument, a core, the
+confidence behind each — is `Analysis/Suggest/`, because a derivation does not belong beside the format it
+happened to be read out of. `Dressing/`, `Render/` and `Views/` were already broken out.
 
 The folder is `Palette/` rather than `Blocks/` for a reason worth recording: `Blocks.cs` declares a class
 called `Blocks`, and a namespace of that name shadows it — `Blocks.Gravel` stops compiling the moment
@@ -212,9 +215,9 @@ and the harness; its `FromJson` is the production codec.
 | `Minecraft` | **Folded (`A7`).** Six folders by what a file is for, plus the three already broken out (§3). | none |
 | `Import` | **Clean, identity blurred.** It is parquet→relational replay; it is *not* the world scan, which lives in `Data/Features/WorldFeatureWriter`. | the distinction stated in its own header |
 | `Pgm` | **Two charters in one project** (§3). Both halves are internally well-shaped. | the split decision, §7.1 |
-| `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`. | none |
+| `Analysis` | **Right internal shape** — `Region/`, `Layer/`, `Playability/`, `Footprint/`, `Suggest/`. | none |
 | `Data` | **Right internal shape** — `Schema/`, `Map/`, `Features/`, and since then `Theme/` and `Plan/` for the library and plan stores. | none |
-| `Export` | **New (`B119`), flat and small.** Seven files — the sketch world builder, the destroy/core/wool scope readers, and the `map.xml` composer — with no DB reference, so `Api` and a headless CLI reach it identically. | none yet; a fold if it grows the way `Minecraft` did |
+| `Export` | **New (`B119`), flat and small.** Seven files — the world builder, the destroy/core/wool scope readers, and the `map.xml` composer — with no DB reference, so `Api` and a headless CLI reach it identically. | none yet; a fold if it grows the way `Minecraft` did |
 | `Api` | **Acceptable for a composition root**, though 41 endpoint files and 21 services is where feature folders start to pay. | optional grouping |
 | `Client` | **Well organized** — `Pages/` for routable pages, `Features/<Tool>/` for a tool's own bodies, `Components/` for the shared vocabulary, and 11 JS layers under `wwwroot/js/studio/`. | none |
 

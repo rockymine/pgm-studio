@@ -1,7 +1,6 @@
-using PgmStudio.Minecraft;
-using PgmStudio.Minecraft.Suggest;
+using PgmStudio.Analysis.Suggest;
 
-namespace PgmStudio.Minecraft.Tests;
+namespace PgmStudio.Analysis.Tests;
 
 /// <summary>
 /// The core signature (<see cref="CoreSuggester"/>) on synthetic worlds — the enclosure rule and the things it

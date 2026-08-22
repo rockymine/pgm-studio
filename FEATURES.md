@@ -638,6 +638,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A world is read where the format is, and derived from where the derivations are (`WS5`).**
+  `MonumentSuggester` and `CoreSuggester` sat in `Minecraft`, whose charter is the world, while the first
+  names a monument, a wool, an objective or a core **91 times** over 453 lines. `Analysis` and `Minecraft`
+  are siblings, so the pair split at the seam it already had rather than one gaining an edge to the other:
+  `Domain.WorldReading` is what crosses — blocks by position, and the signs, armour stands and wool-bearing
+  item frames that carry an author's words — `Minecraft/Suggest/WorldReader` produces it, and
+  `Analysis/Suggest/` derives from it.
+
+  Everything format-shaped stops at the reader: which NBT list a 1.8 world keeps a head in and which a 1.9
+  one does, how an item frame states the block it hangs on, how four sign lines become a sentence. The
+  payoff is in the tests — `MonumentSuggesterTests` now builds a `WorldReading` by hand instead of
+  assembling Anvil chunks with NBT inside them, so what a monument *is* can be stated without a world file.
+  The ingest pass reads once and hands the same reading to both suggesters.
 - **The world builder is named for what it builds (`WE11`).** `SketchWorldBuilder` synthesises the voxel
   world, the world spawn and the resolved intent for **every** map — a plan compiles to a layout and arrives
   there too — so it was named for the tool whose document happens to reach it rather than for its work. Five
