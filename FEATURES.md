@@ -761,7 +761,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the findings beside it — and the plan tool takes `CompiledPlanDto` again.
 
   `ComplaintChannelTests` holds the claim to a real answer (a write posted with a field the reader cannot
-  keep, which is the cheapest way to make a gate remark) and to the whole surface in the schema. It also
+  keep, which is the cheapest way to make a gate remark) and to the whole surface in the schema — and asks
+  *"is this answer an object"* by its own reading rather than the processor's, which is what caught the two
+  agreeing on a mistake when `RP48` made the library answers `allOf` compositions with no type of their own. It also
   named a case nothing had: **a success whose JSON body is an array has nowhere to hold the key**, so the
   twenty-one list reads name the header alone — none can raise one today, and one that grew a gate would be
   reporting into a log rather than onto the wire.

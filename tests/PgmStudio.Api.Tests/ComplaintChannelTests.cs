@@ -94,25 +94,31 @@ public sealed class ComplaintChannelTests
     private static bool Names(JsonElement response, string section, string name) =>
         response.TryGetProperty(section, out var members) && members.TryGetProperty(name, out _);
 
-    /// <summary>Whether the answer's JSON body is an object — following the one <c>$ref</c> the extended
-    /// shape wraps, since that is where the declared type's own kind is stated.</summary>
+    /// <summary>Whether the answer's JSON body is an object. It is asked <b>independently</b> of the
+    /// processor rather than by the same reading: a record that inherits its fields states none of its own
+    /// and composes its base with <c>allOf</c>, and a check that walked only the first branch would agree
+    /// with a processor that did the same and both would be wrong together — which is what happened.</summary>
     private static bool IsJsonObject(JsonElement response, JsonElement document)
     {
         if (!response.TryGetProperty("content", out var content)) return false;
         if (!content.TryGetProperty("application/json", out var json)) return false;
-        if (!json.TryGetProperty("schema", out var schema)) return false;
-
-        if (schema.TryGetProperty("allOf", out var all) && all.EnumerateArray().FirstOrDefault() is { } first)
-            schema = Resolved(first, document);
-        else schema = Resolved(schema, document);
-
-        return schema.TryGetProperty("type", out var type) && type.GetString() == "object";
+        return json.TryGetProperty("schema", out var schema) && Object(schema, document, 0);
     }
 
-    private static JsonElement Resolved(JsonElement schema, JsonElement document) =>
-        schema.TryGetProperty("$ref", out var reference) && reference.GetString() is { } target
-            ? document.GetProperty("components").GetProperty("schemas").GetProperty(target.Split('/')[^1])
-            : schema;
+    /// <summary>An object anywhere down the composition: through a <c>$ref</c>, or through any branch of an
+    /// <c>allOf</c>. The depth bound is a cycle guard, not a limit anything real reaches.</summary>
+    private static bool Object(JsonElement schema, JsonElement document, int depth)
+    {
+        if (depth > 8) return false;
+        if (schema.TryGetProperty("$ref", out var reference) && reference.GetString() is { } target)
+            return Object(
+                document.GetProperty("components").GetProperty("schemas").GetProperty(target.Split('/')[^1]),
+                document, depth + 1);
+
+        if (schema.TryGetProperty("type", out var type) && type.GetString() == "object") return true;
+        return schema.TryGetProperty("allOf", out var all)
+            && all.EnumerateArray().Any(part => Object(part, document, depth + 1));
+    }
 
     private static bool Carries(JsonElement response) =>
         response.GetProperty("content").GetProperty("application/json").GetProperty("schema")

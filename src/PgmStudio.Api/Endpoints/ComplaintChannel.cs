@@ -46,13 +46,20 @@ internal sealed class ComplaintChannel : IOperationProcessor
             {
                 if (!media.Contains("json", StringComparison.OrdinalIgnoreCase)) continue;
                 if (content.Schema is not { } answered) continue;
-                if (!answered.ActualSchema.Type.HasFlag(JsonObjectType.Object)) continue;
+                if (!IsObject(answered.ActualSchema)) continue;
 
                 content.Schema = Extended(answered, context);
             }
         }
         return true;
     }
+
+    /// <summary>Whether the answer is a JSON object — which is where <c>Complaints</c> can put the key.
+    /// A record that inherits its fields states none of its own and composes the base with <c>allOf</c>
+    /// instead, so the type has to be looked for through that rather than read off the top.</summary>
+    private static bool IsObject(JsonSchema schema) =>
+        schema.Type.HasFlag(JsonObjectType.Object)
+        || schema.AllOf.Any(part => IsObject(part.ActualSchema));
 
     /// <summary>The answer the route names, plus the key it may carry.</summary>
     private static JsonSchema Extended(JsonSchema answered, OperationProcessorContext context)
