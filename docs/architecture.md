@@ -116,8 +116,10 @@ levels of description and the five hand-offs between them, and states them well 
 no type for a level, no transition table, and no way for a caller to ask what it may do next. An agent
 learns the pipeline by reading markdown that nothing verifies, or by trying a call and reading the refusal.
 
-That is also what makes `RP4` expensive. An agent pays a full world build to discover that a goal overhangs
-void, because the only thing that will tell it is the gate at the end.
+That was also what made the export gates expensive, and the fix there is the shape the lifecycle wants at
+scale: `OB17` is asked at the preview that already paid for the build, and `OB19` stopped being a gate at all
+— the prop it indicts is declined and the map ships. What remains is that a caller has to know which route to
+ask; nothing answers what is wrong with a map outright (`RP32`).
 
 ## A fault carries an id, a class and what it is about
 
@@ -272,7 +274,7 @@ answer already and stopped one step short of the form that makes it machine-read
 | a fault category beside the fault id | a closed category set carried beside the rule, as gRPC, Stripe and RFC 9457 all do | five ids for one fault, `PL2` against `EX2`, and every caller that had to learn 77 ids to branch once — **shipped**, as `category` and `concerns` on `/api/rules` |
 | a refusal envelope that is a standard | RFC 9457 Problem Details — `type` as a URI that dereferences to the rule, `title`, `status`, `detail`, findings as an extension | a bespoke envelope every client must be taught, and a rule catalogue that is already a lookup service but is not linked as one |
 | a lifecycle that is enforced | a state machine over `MapStage` with a transition table, and the allowed transitions on the map's own response | `capabilities.md` as the only answer to a runtime question, and an agent that learns the pipeline by trying it |
-| a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | `RP4`, and the build an agent pays to hear a refusal |
+| a pre-flight for a late gate | run each gate at the earliest stage that has the facts, and report it as a complaint there | the build an agent paid to hear a refusal — **shipped** for the two objective gates, and `RP32` is the general answer |
 
 **They depend on each other in one order, and the first of them is in place.** The surface is described, so
 a declared request shape and a generated client now have something to hang off. The application layer comes

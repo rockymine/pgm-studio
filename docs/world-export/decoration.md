@@ -22,7 +22,7 @@ entry rather than authoring. The model was worked out against a live prototype w
 the boulder elevations, the grown tree, the forest scatter — was emitted by the real algorithm rather than
 hand-drawn; what it settled is stated here, and the C# is the authority for all of it. Rule ids here are `DR*` (dressing), local to this file the way
 `structures.md` owns `WX*` and `terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen,
-so decoration law lives in the world-export docs, not there. The one exception is §3.1's clearance refusal,
+so decoration law lives in the world-export docs, not there. The one exception is §3.1's clearance decline,
 `OB19`: it fires from this pass's own ground read but it is a claim about an *objective*, so it takes the
 `OB*` id `destroyables-and-cores.md` owns rather than minting a second family for one rule.
 
@@ -169,12 +169,14 @@ comes from the box the stamper wrote wherever there is one, for the same reason 
 (OB8): the ground kept open is then the ground the structure occupies by construction, rather than by two
 derivations agreeing. `ObjectiveFootprint` answers for an intent that has not been through a world build.
 
-A tree, a boulder or a building inside that ground is a different case, and it is **refused rather than
-dropped** (`OB19`, `DressingScope.GoalClearanceViolations`). Those three are authored, so dropping one here
-would silently discard a placement the author can see on the canvas; instead `MapExportComposer` answers
-**409**, naming the prop's kind and id, its offending cell, and the goal it reaches into. The check fans each
-tree and boulder's anchor and each building's whole footprint across the map's own symmetry — the same images
-`Decorator` itself would stamp — so a violation only one team's mirror carries is still caught. The clearance
+A tree, a boulder or a building inside that ground is a different case, and it is **declined** (`OB19`,
+`DressingScope.GoalClearanceAt`): the prop is not in the world, the finding names its kind, its id, the cell
+it rested on and the goal it reached into, and the map still exports. A goal is what the map is for and a
+prop is removable — which is the whole difference from `OB17`, where the goal itself is what stands wrong and
+there is nothing to drop. The mask is wider than the cover one: the goal's own ground plus a `GoalStandoff`
+square about the marker. Because the pass fans a prop before it sites it, a clearance only one team's mirror
+reaches still drops the whole prop — a rock standing on one half of a mirrored map and missing from the other
+is worse than neither. The clearance
 is why the refusal is wanted at all: an objective is the one thing on a map that wants its approach legible,
 so a defender can see what is coming and an attacker pays something visible for arriving. For those three
 props the kept-open ground reaches further than the cover clearance: never nearer than **ten blocks to the

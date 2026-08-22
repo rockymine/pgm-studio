@@ -37,8 +37,15 @@ public sealed class DecoratorTests
 
     private static DressingContext Context(
         Dictionary<(int X, int Z), int> top, IReadOnlyList<PlacedProp> props,
-        Func<int, int, KeepOut?>? keptClear = null, string? symmetry = null, double centerX = 0, double centerZ = 0)
-        => new(top, props, keptClear ?? ((_, _) => null), new DressingSymmetry(symmetry, centerX, centerZ));
+        Func<int, int, KeepOut?>? keptClear = null, string? symmetry = null, double centerX = 0, double centerZ = 0,
+        Func<int, int, bool>? goalClearance = null)
+        => new(top, props, keptClear ?? ((_, _) => null), new DressingSymmetry(symmetry, centerX, centerZ),
+               IsGoalClearance: goalClearance);
+
+    /// <summary>A goal's clearance over the square [16,24]² — the shape `DressingScope.GoalClearanceAt`
+    /// derives from a goal at (20, 20), stated here as the literal it is so these tests read the pass rather
+    /// than the derivation.</summary>
+    private static bool ClearanceAt20(int x, int z) => x is >= 16 and <= 24 && z is >= 16 and <= 24;
 
     private static IEnumerable<(int X, int Y, int Z, int Id, int Data)> Placed(
         VoxelWorld world, IEnumerable<(int X, int Z)> cells, int fromY, int toY)
@@ -1221,5 +1228,76 @@ public sealed class DecoratorTests
         await Assert.That(dropped.Declines).IsNotEmpty();
         await Assert.That(dropped.Declines.Where(finding => finding.Severity != Severity.Decline)
             .Select(finding => $"{finding.Rule} ({finding.Message})")).IsEmpty();
+    }
+
+    // ── OB19 — a goal's clearance turns a placed prop away ─────────────────────────────────────────────
+
+    /// <summary>
+    /// <b>A tree in a goal's clearance is declined, not refused.</b> A goal is what the map is for, so
+    /// nothing may stand on the ground it is read against — and a prop is removable, so the pass drops it and
+    /// the map still exports. The finding keeps <c>OB19</c> rather than a <c>DR-*</c>: the rule an author
+    /// looks up is the one that names the goal, not the one that names the ground.
+    /// </summary>
+    [Test]
+    public async Task A_tree_inside_a_goals_clearance_is_declined_under_OB19()
+    {
+        var (world, top) = Plateau(60);
+        var dropped = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "t-goal", X = 20, Z = 20, Species = "oak", Height = 14, Seed = 5 }],
+            goalClearance: ClearanceAt20));
+
+        await Assert.That(dropped.Trees).IsEqualTo(0);
+        var decline = dropped.Declines.Single();
+        await Assert.That(decline.Rule).IsEqualTo(ObjectiveRules.PropInClearance);
+        await Assert.That(decline.Severity).IsEqualTo(Severity.Decline);
+        await Assert.That(decline.SubjectIds).IsEquivalentTo(new[] { "t-goal" });
+        await Assert.That(decline.Message).Contains("inside a goal's clearance");
+    }
+
+    /// <summary>A building is judged on the whole floor it stamps, so a footprint whose corner reaches the
+    /// clearance goes even though its anchors sit outside it.</summary>
+    [Test]
+    public async Task A_building_whose_footprint_reaches_the_clearance_is_declined()
+    {
+        var (world, top) = Plateau(60);
+        var dropped = Decorator.Decorate(world, Context(top,
+            [new HouseProp { Id = "h-goal", Wings = [new AuthoredWing([[23, 23], [29, 29]])] }],
+            goalClearance: ClearanceAt20));
+
+        await Assert.That(dropped.Houses).IsEqualTo(0);
+        await Assert.That(dropped.Declines.Single().Rule).IsEqualTo(ObjectiveRules.PropInClearance);
+    }
+
+    /// <summary>
+    /// <b>The mirror counts.</b> A prop authored nowhere near a goal still stands beside one on the other
+    /// half of the board, and the whole prop drops for it — a rock standing on one side and missing from the
+    /// other is worse than neither. This is the reading the pass gets for free by fanning before it sites,
+    /// and the reason the check belongs here rather than over the authored points.
+    /// </summary>
+    [Test]
+    public async Task A_prop_whose_mirror_lands_in_the_clearance_is_declined_whole()
+    {
+        var (world, top) = Plateau(60, from: -30);
+        var dropped = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "t-mirror", X = -20, Z = -20, Species = "oak", Height = 14, Seed = 5 }],
+            symmetry: "rot_180", goalClearance: ClearanceAt20));
+
+        await Assert.That(dropped.Trees).IsEqualTo(0);
+        await Assert.That(dropped.Declines.Single().SubjectIds).IsEquivalentTo(new[] { "t-mirror" });
+    }
+
+    /// <summary>Ground cover crosses a goal's ground freely: grass and flowers under a floating monument hide
+    /// nothing and change nothing a player can reach. Only the tall kind turns away, at the narrower mask
+    /// `AllowsCover` holds, and the placement clearance never sees a flora field at all.</summary>
+    [Test]
+    public async Task Ground_cover_crosses_a_goals_clearance()
+    {
+        var (world, top) = Plateau(60);
+        var covered = Decorator.Decorate(world, Context(top,
+            [new FloraProp { Id = "f1", Seed = 1, Points = [[16, 16], [24, 16], [24, 24], [16, 24]] }],
+            goalClearance: ClearanceAt20));
+
+        await Assert.That(covered.Declines).IsEmpty();
+        await Assert.That(covered.Plants).IsGreaterThan(0);
     }
 }

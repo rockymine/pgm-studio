@@ -30,12 +30,12 @@ fault has a class, so the taxonomy is third — **that phase has drained**, and 
 two behind it keep the names every commit cites. And a state machine over a pipeline whose steps are still
 HTTP handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — fifteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — fourteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the fifteen carry a question only the author can answer
+## Four of the fourteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -113,12 +113,12 @@ One entry: the ten steps that still belong to the door they are reached through.
 ## Phase 4 — the loop answers for itself
 
 What makes the pipeline drivable without a fifteen-document briefing: a caller asks what it may do next, and
-hears a late gate early. `RP32` is the general form of what is left here — a fault heard at the wrong place,
-fixed one route at a time until something answers the question outright.
+hears a late gate early. `RP32` is what is left of that here: the instances are fixed, and the general form
+— a caller asking what is wrong outright rather than hearing it one route at a time — is not.
 
 - [ ] **RP32 — Nothing answers "what is wrong with this map right now".** Every gate is reachable only
-  through the step it lives behind, so a fault authored at one step is heard at another; `RP4` is the
-  instance still open, and `RP30` was the one beside it. A driver's loop is *act and hope the next call
+  through the step it lives behind, so a fault authored at one step is heard at another; `RP4` and `RP30`
+  were two instances of that shape, each fixed one route at a time, and this is the shape itself. A driver's loop is *act and hope the next call
   mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
   current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs
   with `RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. It must
@@ -139,34 +139,6 @@ fixed one route at a time until something answers the question outright.
   transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver reads
   its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
   to hold.
-
-- [ ] **RP4 — The export's two objective gates are asked at the one route that cannot report them cheaply.**
-  `OB17` (a goal overhanging void, in a spawn, in a wool room) and `OB19` (a tree, boulder or building inside
-  a goal's clearance) are raised in `MapExportComposer.ComposeSketch`, so a driver first hears either at
-  `GET /map/{slug}/export` answering 409. Run 4 hit them three times across four boards.
-
-  **`POST …/sketch/columns` already holds everything both need** — it calls the same
-  `SketchWorldBuilder.Build(layoutJson, intent)` and reports `built.Declines`, so the build is paid there and
-  the gates are simply not asked. `RefuseGoalClearance` is `DressingScope.GoalClearanceViolations(layout,
-  goals)` and needs no world; `RefuseObjectivePlacement(columns, goals)` reads the columns that route
-  rasterizes. Ask both there, beside the `DR-*` complaints.
-
-  `OB17` is unpredicted for **one case**, not all: `PlanValidator` runs `ObjectivePlacement.Check` at compile,
-  and the silence is the absolutely-placed goal (`B128`), which has no plan ground to judge. `OB19` has no
-  earlier answer at all.
-
-  *The author's ruling on what each is at export. `OB17` stays a refusal: it indicts the objective itself,
-  there is nothing to drop, and a map in that state is not exportable. `OB19` indicts a prop, and a prop is
-  removable, so it becomes a decline like every `DR-*` — the tree, boulder or building drops, the finding
-  names it, the map exports. `OB19` leaving the refusal set rewrites `configure.md` §What it refuses and its
-  two endpoint rows, `decoration.md:26,173`, `destroyables-and-cores.md:606` and `sketch.md:752` in the same
-  commit — the channel it needed is there, so a declined prop reaches a caller of either artifact route in the
-  `Pgm-Warnings` header rather than as a line in a file inside a zip.*
-
-  *Evidence: `hollowbank` placed a destroyable at `(0, 45)` on a plan piece and cut a sally port through
-  that piece in the layout — compile 200, export 409 `OB17`. `alabaster-rake` put a shed run at
-  `x 15..24, z 58..62` against a goal anchored `(5, 47)`; the keep-out is a 10-block square about the anchor
-  tested against the footprint plus its eaves, and neither cycle was predictable before the build.*
 
 - [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
   `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule

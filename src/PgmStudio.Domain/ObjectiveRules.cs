@@ -45,8 +45,10 @@ public static class ObjectiveRules
     public const string Placement = "OB17";
 
     /// <summary>A tree, boulder or building stands inside a goal's clearance: the ground its structure covers
-    /// grown by four blocks, and never nearer than ten blocks to the marker itself (the author's numbers).</summary>
-    /// <remarks>Move the tree, boulder or building the finding names, or move the goal. Nothing is dropped for you, because a prop deleted silently is a placement the author can still see on the canvas.</remarks>
+    /// grown by four blocks, and never nearer than ten blocks to the marker itself (the author's numbers). The
+    /// prop is declined — a goal is what the map is for, and a prop is removable, so the map is built without
+    /// it rather than refused for it.</summary>
+    /// <remarks>Move the tree, boulder or building the finding names, or move the goal. Nothing was built where the finding points: the prop is not in the world, and the placement is still on the canvas to correct.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Objective, RuleConcern.Feature)]
     public const string PropInClearance = "OB19";
 

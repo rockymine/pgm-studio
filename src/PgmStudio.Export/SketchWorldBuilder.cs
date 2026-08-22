@@ -30,9 +30,14 @@ namespace PgmStudio.Export;
 /// caller that asked for the build has to be told rather than sent looking in a sidecar.
 /// <para>Null when nothing was declined, the same convention the pass itself answers in — read
 /// <see cref="Declines"/>, which never is.</para></param>
+/// <param name="Columns">The ground this build stood on, as the rasterizer read it — one solid span per cell.
+/// Carried rather than re-derived: every gate that asks where the ground is has to ask the reading the world
+/// was actually built from, and a second <see cref="SketchRasterizer.RasterizeColumns"/> over the same layout
+/// is a second answer free to disagree with the first.</param>
 public sealed record SketchWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
-    IReadOnlyList<Finding>? Declined = null)
+    IReadOnlyList<Finding>? Declined = null,
+    IReadOnlyList<(int X, int Z, int YFloor, int YTop)>? Columns = null)
 {
     /// <summary>Every prop that did not land, and why. Never null — a caller spreading this into a list of
     /// warnings must not have to tell an absent list from an empty one.</summary>
@@ -282,7 +287,8 @@ public static class SketchWorldBuilder
             DressingScope.PropsOf(layoutJson),
             DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals),
             DressingScope.SymmetryOf(layoutJson),
-            DressingScope.GoalGroundAt(goals)));
+            DressingScope.GoalGroundAt(goals),
+            DressingScope.GoalClearanceAt(goals)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
@@ -336,7 +342,7 @@ public static class SketchWorldBuilder
         List<Finding>? complaints = goalComplaints.Count > 0 || dressed.Declines.Count > 0
             ? [.. goalComplaints, .. dressed.Declines]
             : null;
-        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints);
+        return new SketchWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).

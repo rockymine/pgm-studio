@@ -91,7 +91,7 @@ a rule that changed its name between the two would be two rules.
 | Family | Owns | Where |
 |---|---|---|
 | `PL*` | the plan's own structure | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
-| `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes. Two are **complaints on a built world**: `DC3` a goal built in a material its own size is wrong for, `OB23` a goal topping out over the build ceiling — the world is built and the goal stands, which is what makes them complaints rather than declines | `Domain/ObjectiveRules.cs` |
+| `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes. Two are **complaints on a built world**: `DC3` a goal built in a material its own size is wrong for, `OB23` a goal topping out over the build ceiling — the world is built and the goal stands, which is what makes them complaints rather than declines. `OB19` is the decline beside them: the prop the pass turned away is not in the world at all | `Domain/ObjectiveRules.cs` |
 | `WX*` | room frames — the shell, the pad, the doors, the iron, and the shell's height against the build ceiling | `Domain/RoomFrames.cs` → `RoomFrameRules` |
 | `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
@@ -131,7 +131,7 @@ walkable; and coverage asks the question the four gates never do — not *can* a
 any route go*. A board can pass every gate above it and read a third dead.
 
 **Where a gate is asked decides who meets it.** The export's whole chain for a sketch map — `OB20`, `SK2`,
-`OB17`, `EX1`, `OB19`, then `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, the method the
+`OB17`, `EX1`, then `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, the method the
 headless driver links directly, so a gate cannot fire on one front door and not the other. `Compose` keeps
 only the leg a map that ships its own world takes, and asks `EX1` there over the scanned segments; the sketch
 leg asks it over the ground that build just rasterized, because that is the world about to be written.

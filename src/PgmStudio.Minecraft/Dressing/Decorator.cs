@@ -34,15 +34,20 @@ namespace PgmStudio.Minecraft.Dressing;
 /// forbidden, it is <b>kept open</b>: grass, fern and flowers grow across it and under a floating monument
 /// the way they grow anywhere, because none of them changes what a player can see or reach. What may not
 /// stand there is <b>cover</b> — the two-block grass that hides a footstep among it, since an objective is
-/// the one thing on a map that wants its approach legible. A tree, a boulder or a building is refused
-/// earlier still (OB19 at export), because those are authored and dropping one silently would discard a
-/// placement the author can see.</param>
+/// the one thing on a map that wants its approach legible.</param>
+/// <param name="IsGoalClearance">The wider mask a <b>placed</b> prop may not rest in: the same goal ground
+/// plus a standoff square about each anchor. A tree, a boulder or a building standing here is <c>OB19</c>,
+/// and the prop is declined rather than the map refused — a goal is what the map is for, and a prop is
+/// removable, so the finding names what dropped and the map still exports. Separate from
+/// <paramref name="IsGoalGround"/> because the two answer different questions of different things: that one
+/// says what may not <em>hide</em> a goal, this says what may not <em>stand on</em> one.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
     Func<int, int, KeepOut?> KeptClearAt,
     DressingSymmetry Symmetry,
-    Func<int, int, bool>? IsGoalGround = null)
+    Func<int, int, bool>? IsGoalGround = null,
+    Func<int, int, bool>? IsGoalClearance = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -52,6 +57,9 @@ public sealed record DressingContext(
 
     /// <summary>Whether cover may stand on a cell — everything except the ground a goal is read against.</summary>
     public bool AllowsCover(int x, int z) => IsGoalGround is null || !IsGoalGround(x, z);
+
+    /// <summary>Whether a placed prop may rest on a cell — false inside a goal's clearance.</summary>
+    public bool AllowsProp(int x, int z) => IsGoalClearance is null || !IsGoalClearance(x, z);
 }
 
 /// <summary>
@@ -492,6 +500,16 @@ public static class Decorator
             // set at all — the whole point of the plan being one BuildingPlan rather than one FirstOverlap call
             // per rectangle. Reported once for the whole prop, at whichever image and cell collided first — an
             // author redrawing a second orbit image's clash does not need it named twice.
+            // A goal's clearance turns a building away wherever any cell of its floor reaches in, and is
+            // asked first: it covers the ground the goal's own structure stamps, which the keep-out mask also
+            // holds, and the rule an author looks up for a building beside a goal names the goal.
+            if (FirstIn(image, context.AllowsProp) is { } crowded)
+            {
+                declined.Add(new Finding(ObjectiveRules.PropInClearance,
+                    $"building '{house.Id}' stands on ({crowded.X}, {crowded.Z}), inside a goal's clearance",
+                    Severity.Decline, Subjects: [house.Id]));
+                return [];
+            }
             // A door's approach turns a building away like it turns a tree away. The rest of the mask does
             // not reach a building — someone drew that rectangle where it is, and a room's own margin is not
             // a reason to lose it — but the lane in front of a door is the one piece of ground the map is
@@ -648,6 +666,16 @@ public static class Decorator
     {
         foreach (var (x, z) in plan.Cells())
             if (context.KeptClearAt(x, z) == KeepOut.Approach) return (x, z);
+        return null;
+    }
+
+    /// <summary>The first cell of a footprint the predicate turns away, or null where it takes all of them.
+    /// Reported once for the whole building, like every other whole-prop cause: an author redrawing it does
+    /// not need each cell named.</summary>
+    private static (int X, int Z)? FirstIn(BuildingPlan plan, Func<int, int, bool> allows)
+    {
+        foreach (var (x, z) in plan.Cells())
+            if (!allows(x, z)) return (x, z);
         return null;
     }
 
@@ -956,6 +984,15 @@ public static class Decorator
         {
             if (cell.Y != restsAt) continue;
             var ground = (X: anchor.X + cell.X, Z: anchor.Z + cell.Z);
+            // Asked before the map's own keep-out mask: a goal's clearance covers the ground its structure
+            // stamps, which that mask also holds as built, and the rule an author looks up for a prop beside
+            // a goal is the one that names the goal.
+            if (!context.AllowsProp(ground.X, ground.Z))
+            {
+                decline = Declined(ObjectiveRules.PropInClearance, id, kind,
+                    $"rests on ({ground.X}, {ground.Z}), inside a goal's clearance");
+                return false;
+            }
             if (context.KeptClearAt(ground.X, ground.Z) is { } keptFor)
             {
                 decline = Declined(DressingRules.KeptClear, id, kind,

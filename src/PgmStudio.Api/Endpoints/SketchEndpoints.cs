@@ -370,6 +370,13 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
             var built = SketchWorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
             payload = WorldColumnPayload.Of(built.World);
             Complaints.Add(HttpContext, built.Declines);
+
+            // OB17, asked here because this build already paid for everything it needs — the same ground the
+            // export reads and the same resolved goals. A refusal at the export door is the last place to
+            // learn a goal stands over the void; carried here it reaches an author while they are still
+            // drawing, as a complaint, since nothing about this request is being refused.
+            Complaints.Add(HttpContext,
+                MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent).AsComplaints());
         }
         // A dressing document that will not read is refused by name, exactly as the export refuses it — the
         // preview and the export cannot disagree about what a malformed prop list is.

@@ -603,10 +603,11 @@ to diamond, anything softer to iron) because that pairing is the corpus norm and
 better one — but it is a generation choice now, not a legality check, and the export gate is silent about a
 kit an author hand-edits away from it.
 
-A second export-time refusal, `OB19` — a tree, a boulder or a building standing inside a goal's clearance —
-is a dressing rule rather than an objective one, and its home is `world-export/decoration.md` §3.1. A third,
-`OB20` — a declared `<gamemode>` outside PGM's own closed enum, checked by `MapExportComposer` before either
-of the other two — is stated in full above, at `OB7`: it exists because `OB7`'s own "not the truth" was once
+`OB19` — a tree, a boulder or a building standing inside a goal's clearance — is a dressing rule rather than
+an objective one, and its home is `world-export/decoration.md` §3.1. It is not a refusal: the prop is
+declined and the map exports, because a prop is removable where a misplaced goal is not. A second
+export-time refusal, `OB20` — a declared `<gamemode>` outside PGM's own closed enum, checked by
+`MapExportComposer` before `OB17` — is stated in full above, at `OB7`: it exists because `OB7`'s own "not the truth" was once
 misread as "unvalidated", and `MetaGenerator` wrote a joined, space-separated value on that reading (`B155`).
 `configure.md` carries the endpoint-facing summary, the same split as `OB17`.
 

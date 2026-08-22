@@ -205,16 +205,13 @@ public static class DressingScope
             });
     }
 
-    /// <summary>Every tree, boulder or building whose footprint reaches into a goal's clearance
-    /// (<see cref="GoalGroundAt"/>, plus the marker's own <see cref="GoalStandoff"/>), fanned across the
-    /// map's own symmetry exactly as <see cref="Decorator"/> places it. These three are refused rather than
-    /// dropped, because a goal is what the map is for: a caller needs the one offending prop and the goal it
-    /// collides with named, not a silently discarded placement. Ground cover crosses this ground freely and is never
-    /// checked here — only the tall kind turns away from it, and only at the narrower
-    /// <see cref="GoalClearance"/>, inside <see cref="Decorator"/> itself.</summary>
-    public static List<(string Kind, string PropId, int X, int Z)> GoalClearanceViolations(
-        string layoutJson, MapIntent goals)
-        => Violations(layoutJson, EitherOf(GoalGroundAt(goals), GoalDiscsAt(goals)));
+    /// <summary>The ground a placed prop may not rest on: a goal's own ground (<see cref="GoalGroundAt"/>)
+    /// plus the marker's <see cref="GoalStandoff"/> square. Wider than the cover mask and asked of different
+    /// things — a tree, a boulder or a building standing here is <c>OB19</c> and is declined by the pass, so
+    /// the finding names the prop that dropped and the map still exports. Ground cover crosses this ground
+    /// freely: only the tall kind turns away, and only at the narrower <see cref="GoalClearance"/>.</summary>
+    public static Func<int, int, bool> GoalClearanceAt(MapIntent goals)
+        => EitherOf(GoalGroundAt(goals), GoalDiscsAt(goals));
 
     // The marker-centred half of a goal's prop keep-out: a GoalStandoff square around each anchor.
     private static Func<int, int, bool> GoalDiscsAt(MapIntent intent)
@@ -236,24 +233,8 @@ public static class DressingScope
     private static Func<int, int, bool> EitherOf(Func<int, int, bool> first, Func<int, int, bool> second)
         => (x, z) => first(x, z) || second(x, z);
 
-    private static List<(string Kind, string PropId, int X, int Z)> Violations(
-        string layoutJson, Func<int, int, bool> keepOut)
-    {
-        var symmetry = SymmetryOf(layoutJson);
-        var violations = new List<(string Kind, string PropId, int X, int Z)>();
-
-        foreach (var prop in PropsOf(layoutJson))
-        {
-            var kind = ClearanceKind(prop);
-            if (kind is null) continue;
-            if (FirstClearanceHit(prop, symmetry, keepOut) is { } cell)
-                violations.Add((kind, prop.Id, cell.X, cell.Z));
-        }
-        return violations;
-    }
-
-    // The three prop kinds this refusal covers; everything else (a path, a channel, a flower field) is
-    // generated rather than authored the same way, and flora's own clearance rule already lives in Decorator.
+    // The three prop kinds a clearance turns away; everything else (a path, a channel, a flower field) is
+    // generated rather than authored the same way, and flora's own clearance rule lives in Decorator.
     private static string? ClearanceKind(PlacedProp prop) => prop switch
     {
         TreeProp => "tree",
@@ -261,16 +242,6 @@ public static class DressingScope
         HouseProp => "building",
         _ => null,
     };
-
-    private static (int X, int Z)? FirstClearanceHit(
-        PlacedProp prop, DressingSymmetry symmetry, Func<int, int, bool> isGoalGround)
-    {
-        for (var image = 0; image < symmetry.Order; image++)
-            foreach (var cell in ClearanceFootprint(prop, symmetry, image))
-                if (isGoalGround(cell.X, cell.Z))
-                    return cell;
-        return null;
-    }
 
     /// <summary>Every dressing-placed tree's anchor and measured canopy radius, fanned across the map's
     /// symmetry orbit — the authored points the point-and-radius foliage render draws (§6,

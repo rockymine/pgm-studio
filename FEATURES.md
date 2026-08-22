@@ -6380,6 +6380,25 @@ these are the ones that shipped a map that could not be played as intended, and 
   the sidecar says the rule, the cell and the prop. The lost-complaint log now fires only where neither
   carrier was available, which is the case it was always meant to name.
 
+- **The two objective gates are asked where the build is already paid for (RP4).** `OB17` and `OB19` fired
+  only inside `MapExportComposer.ComposeSketch`, so a driver first heard either at `GET /map/{slug}/export`
+  answering **409** — after paying for the most expensive call on the surface. Run 4 hit them three times
+  across four boards, and neither was predictable from anything a cheaper read answered.
+
+  **`OB19` is a decline now, and that is the author's ruling.** It indicts a prop, and a prop is removable, so
+  the dressing pass turns it away instead of the export refusing the map: the tree, boulder or building is not
+  in the world, the finding names it with the cell it rested on, and the map ships. The mask is
+  `DressingScope.GoalClearanceAt` — the goal's own ground plus a `GoalStandoff` square about the marker — and
+  it is asked before the map's general keep-out, so a prop beside a goal cites the rule that names the goal
+  rather than the one that names the ground. The pass fans a prop before it sites it, so a clearance only one
+  team's mirror reaches drops the whole prop. `OB17` stays a refusal: it indicts the objective itself and
+  there is nothing to drop.
+
+  **`OB17` is asked early as a complaint.** `MapExportComposer.CheckGoalPlacement` is the read both callers
+  share — the export refuses on it, `POST …/sketch/columns` carries it as complaints on a build it was going
+  to run anyway. That build already rasterized the ground it needs: `SketchWorld` carries its own `Columns`
+  now, so the composer stopped taking a second reading of the same layout beside the first.
+
 - **A prop the studio deleted no longer arrives as a remark (RP31).** `Severity` was `Refusal | Complaint`,
   and `Complaint`'s own docstring ruled out half of what it carried — *"a complaint the author may ignore …
   none of them the tool's to overrule"*. True of `OB23` and `DC3`, where the world is built and the goal

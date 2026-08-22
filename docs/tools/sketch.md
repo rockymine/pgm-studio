@@ -748,8 +748,9 @@ smeared down it, and water is a run like any other. The client decides what is *
 the camera is — so nothing is culled here. A board of forty thousand columns runs about a megabyte.
 
 A map begun in Sketch has no intent, and an empty one is the right answer rather than a gap: it states no
-objectives, so a preview showing none is showing what is there. A prop standing where a goal is later placed
-is `OB19`'s to refuse at export, by name and without dropping it, so this preview needs no rule of its own.
+objectives, so a preview showing none is showing what is there. Once a goal is placed, a prop standing in its
+clearance is `OB19`'s — the pass declines it and this preview carries the finding under `warnings` like every
+other drop, so it needs no rule of its own.
 
 **The finish libraries**, all map-independent and all `library.md`'s to describe. `/styles` and `/themes` are
 the terrain-paint library a theme is pulled from or pushed to; `/room-styles` is the shell library the Rooms

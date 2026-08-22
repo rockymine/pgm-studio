@@ -161,60 +161,41 @@ public sealed class DressingScopeTests
         ],
     };
 
+    /// <summary>
+    /// <b>The mask, cell by cell.</b> It is two shapes over one goal: the ground the structure occupies
+    /// grown by <c>GoalClearance</c>, and a <c>GoalStandoff</c> square about the marker, which reaches
+    /// further than the first on anything smaller than a hall. What the mask turns away is the pass's to
+    /// decide — <c>DecoratorTests</c> holds that — and this is the geometry it decides against.
+    /// </summary>
     [Test]
-    public async Task A_boulder_directly_inside_the_clearance_is_flagged()
+    public async Task The_clearance_covers_the_structures_ground_and_the_markers_standoff()
     {
-        var violations = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"boulder\",\"id\":\"b1\",\"x\":18,\"z\":18,\"seed\":1}]}"), GoalAt20);
+        var clearance = DressingScope.GoalClearanceAt(GoalAt20);
 
-        await Assert.That(violations.Count).IsEqualTo(1);
-        await Assert.That(violations[0].Kind).IsEqualTo("boulder");
-        await Assert.That(violations[0].PropId).IsEqualTo("b1");
+        // Directly beside the goal: inside the box-grown clearance, which ends at 24.
+        await Assert.That(clearance(18, 18)).IsTrue();
+        await Assert.That(clearance(24, 24)).IsTrue();
+
+        // Past the structure's own clearance and still inside the marker's ten-block standoff, which ends at
+        // 30 — the author's radius, measured from the marker rather than from however wide the structure
+        // under it happens to be.
+        await Assert.That(clearance(28, 20)).IsTrue();
+        await Assert.That(clearance(30, 20)).IsTrue();
+
+        // One block past the standoff, and the far side of the board, are both clean.
+        await Assert.That(clearance(31, 20)).IsFalse();
+        await Assert.That(clearance(0, 0)).IsFalse();
     }
 
+    /// <summary>A map with no destroyable and no core states no clearance, so the mask turns nothing away
+    /// rather than every cell or none by accident.</summary>
     [Test]
-    public async Task A_building_is_flagged_the_moment_its_footprint_overlaps_the_clearance()
+    public async Task A_map_with_no_goal_has_no_clearance()
     {
-        // The anchor corners sit outside the clearance rect, but the 5×5 footprint they enclose reaches into
-        // its [16,16]-[24,24] corner — a building is checked as the whole floor it stamps, not a single point.
-        var violations = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"house\",\"id\":\"h1\",\"seed\":1,\"wings\":[[[23,23],[27,27]]]}]}"),
-            GoalAt20);
+        var clearance = DressingScope.GoalClearanceAt(new MapIntent());
 
-        await Assert.That(violations.Count).IsEqualTo(1);
-        await Assert.That(violations[0].Kind).IsEqualTo("building");
-        await Assert.That(violations[0].PropId).IsEqualTo("h1");
-    }
-
-    [Test]
-    public async Task A_tree_only_its_mirror_reaches_the_clearance_is_still_flagged()
-    {
-        // Authored at (-20,-20) — nowhere near the goal at (20,20) — but the map is rot_180 about the origin,
-        // so its OTHER image lands at (19,19), inside the clearance rect. The check fans every prop across
-        // the same orbit Decorator itself stamps, so a violation only one team's mirror carries is still
-        // caught rather than missed because the authored half looks clean.
-        var violations = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":-20,\"z\":-20}]}"), GoalAt20);
-
-        await Assert.That(violations.Count).IsEqualTo(1);
-        await Assert.That(violations[0].Kind).IsEqualTo("tree");
-        await Assert.That(violations[0].X).IsEqualTo(19);
-        await Assert.That(violations[0].Z).IsEqualTo(19);
-    }
-
-    [Test]
-    public async Task The_markers_standoff_reaches_past_the_structures_own_clearance()
-    {
-        // A tree at (28,20): outside the box-grown clearance (ends at 24) but inside the marker's ten-block
-        // standoff (ends at 30) — the author's radius, measured from the marker rather than from however
-        // wide the structure under it happens to be. One block past the standoff is clean.
-        var inside = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":28,\"z\":20}]}"), GoalAt20);
-        await Assert.That(inside.Count).IsEqualTo(1);
-
-        var past = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":31,\"z\":20}]}"), GoalAt20);
-        await Assert.That(past).IsEmpty();
+        await Assert.That(clearance(0, 0)).IsFalse();
+        await Assert.That(clearance(20, 20)).IsFalse();
     }
 
     // ── a door's approach is part of the keep-out mask ────────────────────────────────────────────────
@@ -264,19 +245,6 @@ public sealed class DressingScopeTests
         await Assert.That(keptClear(0, 21)).IsNull();
     }
 
-    [Test]
-    public async Task Ground_cover_never_reaches_this_check()
-    {
-        // A flora field is generated, not authored the way a tree/boulder/building is — it is turned away
-        // only where it grows TALL, and only by AllowsCover inside Decorator itself (decoration.md §3.1). This
-        // refusal never sees it at all, whatever ground it covers.
-        var violations = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"flora\",\"id\":\"f1\",\"seed\":1,\"points\":[[16,16],[24,16],[24,24],[16,24]]}]}"),
-            GoalAt20);
-
-        await Assert.That(violations).IsEmpty();
-    }
-
     // ── the point-and-radius foliage render's source ───────────────────────────────────────────────────
     [Test]
     public async Task Every_tree_reports_its_anchor_and_a_positive_measured_radius()
@@ -285,8 +253,8 @@ public sealed class DressingScopeTests
             ",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":30,\"z\":30,"
             + "\"species\":\"oak\",\"height\":16}]}"));
 
-        // The fixture's setup carries rot_180, so one authored tree fans to two images — the same order every
-        // other footprint here reads (GoalClearanceViolations).
+        // The fixture's setup carries rot_180, so one authored tree fans to two images — the same order the
+        // dressing pass itself stamps them in.
         await Assert.That(points.Count).IsEqualTo(2);
         var here = points.Single(point => point.X == 30 && point.Z == 30);
 
@@ -294,15 +262,6 @@ public sealed class DressingScopeTests
         // Both images of the same authored tree carry the same measured radius — the crown is a property of
         // the prop, not of where a particular image happens to land.
         await Assert.That(points.Select(point => point.Radius).Distinct()).Count().IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task Nothing_reaches_the_clearance_from_either_image_is_clean()
-    {
-        var violations = DressingScope.GoalClearanceViolations(
-            Layout(",\"dressing\":{\"props\":[{\"kind\":\"tree\",\"id\":\"t1\",\"seed\":1,\"x\":0,\"z\":0}]}"), GoalAt20);
-
-        await Assert.That(violations).IsEmpty();
     }
 
     /// <summary>A flat grass field over <paramref name="span"/> blocks from <paramref name="origin"/>, and the

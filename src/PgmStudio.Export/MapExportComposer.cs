@@ -131,11 +131,12 @@ public static class MapExportComposer
         var built = SketchWorldBuilder.Build(layoutJson, intent);
         var goals = built.ResolvedIntent;
 
-        // The ground this export ships, read once and answered to by both gates that need it. A sketch map's
-        // stored segments are whatever the last `sketch/finish` rasterized, and a subtract cut, a relief solve
-        // or an edit after the finish each move where ground is without re-entering that stage — so the
-        // layout in hand is the only reading that describes the world about to be written.
-        var columns = SketchRasterizer.RasterizeColumns(layoutJson);
+        // The ground this export ships, as the build itself read it. A sketch map's stored segments are
+        // whatever the last `sketch/finish` rasterized, and a subtract cut, a relief solve or an edit after
+        // the finish each move where ground is without re-entering that stage — so the layout in hand is the
+        // only reading that describes the world about to be written, and it is the build's reading rather
+        // than a second one taken beside it.
+        var columns = built.Columns!;
 
         // OB17 — asked against the ground the rasterizer actually produced, not the plan's rectangles. A map
         // begun in Sketch never passes the compile gate at all, so this is the only place every export is
@@ -149,11 +150,6 @@ public static class MapExportComposer
         // above and the document the projection has just written. It reads the spawns, wools and goals the
         // slices emit, so it cannot be asked before them.
         if (RefuseUntraversable(doc, Surface(columns), AtY0(columns)) is { } cutOff) return cutOff;
-
-        // OB19 — a tree, boulder or building may not stand inside a goal's clearance. Refused rather than
-        // dropped: these three are authored, and dropping one would silently discard a placement the author
-        // can see on the canvas.
-        if (RefuseGoalClearance(layoutJson, goals) is { } clearanceRefusal) return clearanceRefusal;
 
         // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
         // the intent they were written from. Every gate above it quantifies over a collection and so passes a
@@ -311,19 +307,36 @@ public static class MapExportComposer
 
     /// <summary>Every column the board draws — a walkable surface, the same reading a scanned map's
     /// <c>layer_segment</c> rows give.</summary>
-    private static HashSet<(int, int)> Surface(List<(int X, int Z, int YFloor, int YTop)> columns)
+    private static HashSet<(int, int)> Surface(IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns)
         => [.. columns.Select(column => (column.X, column.Z))];
 
     /// <summary>The columns whose span reaches the world floor, which is what tells ground apart from a
     /// bridge or a platform standing over void.</summary>
-    private static HashSet<(int, int)> AtY0(List<(int X, int Z, int YFloor, int YTop)> columns)
+    private static HashSet<(int, int)> AtY0(IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns)
         => [.. columns.Where(column => column.YFloor <= 0 && 0 <= column.YTop)
                       .Select(column => (column.X, column.Z))];
 
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
 
     private static ExportComposition? RefuseObjectivePlacement(
-        List<(int X, int Z, int YFloor, int YTop)> columns, MapIntent goals)
+        IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns, MapIntent goals)
+    {
+        var findings = CheckGoalPlacement(columns, goals);
+        return findings.Count == 0 ? null : Refuse("objective placement", [.. findings]);
+    }
+
+    /// <summary>
+    /// <b><c>OB17</c> — every goal that stands where a goal may not: over the void, inside a spawn room, or
+    /// inside a wool room.</b> Asked against the ground the rasterizer actually produced rather than the
+    /// plan's rectangles, so it reads the world about to be written; a map begun in Sketch never passes the
+    /// compile gate at all, which is what makes this the only reading every map gets.
+    ///
+    /// <para>Public because the export is not the only place worth asking it. It refuses here, where a map in
+    /// that state cannot be shipped; <c>POST …/sketch/columns</c> asks the same question of the same build and
+    /// carries the answer as complaints, so an author hears it while drawing rather than at the door.</para>
+    /// </summary>
+    public static Findings CheckGoalPlacement(
+        IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns, MapIntent goals)
     {
         var groundColumns = Surface(columns);
         bool IsLand(int x, int z) => groundColumns.Contains((x, z));
@@ -340,9 +353,7 @@ public static class MapExportComposer
                         + "with nothing under it cannot be won",
                         Subjects: [wool.Owner]));
 
-        if (findings.Count == 0) return null;
-
-        return Refuse("objective placement", findings);
+        return findings;
     }
 
     // Every destroyable/core as ground rather than as a marker, from the resolved intent's own stamped box —
@@ -383,17 +394,4 @@ public static class MapExportComposer
     // exclusive (the same conversion PlanValidator's compile-time reading makes).
     private static BlockRect Rect(BlockBox box) => new(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
 
-    // ── OB19 — a tree, boulder or building may not crowd a goal ──────────────────────────────────────────
-
-    private static ExportComposition? RefuseGoalClearance(string layoutJson, MapIntent goals)
-    {
-        var findings = new List<Finding>();
-        findings.AddRange(DressingScope.GoalClearanceViolations(layoutJson, goals)
-            .Select(violation => new Finding(ObjectiveRules.PropInClearance,
-                $"{violation.Kind} '{violation.PropId}' at ({violation.X}, {violation.Z}) stands inside a "
-                + "goal's clearance",
-                Subjects: [violation.PropId])));
-
-        return findings.Count == 0 ? null : Refuse("prop blocks a goal", findings);
-    }
 }

@@ -181,8 +181,15 @@ public sealed class MapExportComposerTests
             .Select(finding => finding.GetProperty("rule").GetString())).IsEquivalentTo(new[] { "EX2" });
     }
 
+    /// <summary>
+    /// <b><c>OB19</c> drops the tree and exports the map.</b> A goal is what the map is for, so nothing may
+    /// stand on the ground it is read against — and a prop is removable, which is what makes this a decline
+    /// rather than a refusal: the pass leaves the tree out, the finding names it, and the world ships. The
+    /// author hears it in <c>Pgm-Warnings</c> on the way out and in <c>warnings</c> from the preview that
+    /// runs the same pass, instead of a 409 at the door with nothing built.
+    /// </summary>
     [Test]
-    public async Task OB19_refuses_a_tree_standing_inside_a_goals_clearance()
+    public async Task OB19_declines_a_tree_standing_inside_a_goals_clearance()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
@@ -204,16 +211,24 @@ public sealed class MapExportComposerTests
         };
         await Assert.That((await client.PutAsJsonAsync($"/api/map/{slug}/intent", intent)).IsSuccessStatusCode).IsTrue();
 
-        var body = await Refuse409Async(client, slug);
-        await Assert.That(body.GetProperty("error").GetString()).IsEqualTo("prop blocks a goal");
-        // One finding per offending prop, in the shape every gate answers in: the rule id to act on, the
-        // sentence naming what stands where, and the prop's own id as the subject the canvas highlights.
-        var findings = body.GetProperty("findings");
-        await Assert.That(findings.GetArrayLength()).IsEqualTo(1);
-        await Assert.That(findings[0].GetProperty("rule").GetString()).IsEqualTo("OB19");
-        await Assert.That(findings[0].GetProperty("message").GetString()).Contains("tree 't1'");
-        var subjects = findings[0].GetProperty("subjects").EnumerateArray().Select(s => s.GetString()).ToList();
-        await Assert.That(subjects).Contains("t1");
+        var export = await client.GetAsync($"/api/map/{slug}/export");
+        await Assert.That(export.IsSuccessStatusCode).IsTrue().Because(await export.Content.ReadAsStringAsync());
+
+        // One line on the way out: the count, then the rule an author looks up. It stays OB19 rather than
+        // becoming a DR-* — the rule that names the goal, not the one that names the ground.
+        await Assert.That(export.Headers.TryGetValues("Pgm-Warnings", out var warnings)).IsTrue();
+        await Assert.That(warnings!.Single()).IsEqualTo("1 OB19");
+
+        // And in full from the preview that runs the same pass, with the prop's own id as the subject the
+        // canvas highlights.
+        var columns = await client.PostAsync($"/api/map/{slug}/sketch/columns",
+            new StringContent(IslandLayoutWithTree, Encoding.UTF8, "application/json"));
+        await Assert.That(columns.IsSuccessStatusCode).IsTrue();
+        var declined = (await columns.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("warnings");
+        var ob19 = declined.EnumerateArray().Single(f => f.GetProperty("rule").GetString() == "OB19");
+        await Assert.That(ob19.GetProperty("severity").GetString()).IsEqualTo("decline");
+        await Assert.That(ob19.GetProperty("message").GetString()).Contains("tree 't1'");
+        await Assert.That(ob19.GetProperty("subjects").EnumerateArray().Select(s => s.GetString())).Contains("t1");
     }
 
     /// <summary>The control: the same shape of map as the refusals above, minus the fault each one looks

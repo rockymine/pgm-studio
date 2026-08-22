@@ -355,7 +355,7 @@ case-insensitively, so this never fires on a case difference — only on a `kind
 `kind` missing outright, or a field of the wrong JSON shape (`docs/tools/sketch.md`'s Dressing section).
 
 **Which gate runs does not depend on which door the caller came through.** A sketch map's whole chain —
-`OB20`, `SK2`, `OB17`, `EX1`, `OB19`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, so the
+`OB20`, `SK2`, `OB17`, `EX1`, `EX2`/`EX3`/`EX4` — is inside `MapExportComposer.ComposeSketch`, so the
 headless driver, which links that method and speaks no HTTP, is judged by exactly what `GET /export` is
 judged by. The traversability judgement is asked there over the ground **this build** rasterizes rather than
 over the segments the last `sketch/finish` stored, which is the same reason `OB17` is: a subtract cut, a
@@ -383,10 +383,17 @@ re-enters the compile gate, and the case a map begun in Sketch never reaches at 
 
 - **`OB17` — objective placement**, asked again here the same way the compile gate asks it
   (`ObjectivePlacement.Check`, `destroyables-and-cores.md`): a destroyable or a core may not overhang the
-  void, or reach into a spawn's or a wool room's frame.
-- **`OB19` — a tree, a boulder or a building inside a goal's clearance** (`DressingScope.GoalClearanceViolations`,
-  `world-export/decoration.md` §3.1), refused rather than dropped because those three are authored and a
-  silent drop would discard a placement the author can see on the canvas. Ground cover is exempt.
+  void, or reach into a spawn's or a wool room's frame. `POST …/sketch/columns` asks the same read
+  (`MapExportComposer.CheckGoalPlacement`) of the same build and answers it as a **complaint**, so an author
+  hears it while drawing rather than at the door.
+
+**`OB19` is not among them any more.** A tree, a boulder or a building inside a goal's clearance is
+**declined** by the dressing pass — the prop is not in the world, the finding names it and carries the
+prop's id, and the map exports. The author's ruling is the reason: `OB17` indicts the objective itself and
+there is nothing to drop, while `OB19` indicts a prop, and a prop is removable. It reaches a caller the way
+every other decline does — `warnings` from `POST …/sketch/columns`, `Pgm-Warnings` from `/xml` and
+`/export`, and `region/dressing-report.json` inside the zip. Ground cover is still exempt: only a placed prop
+is turned away.
 
 `OB18` briefly refused a kit/material mismatch as an unwinnable goal (an obsidian destroyable
 against an iron pickaxe); the premise was false — an iron pickaxe breaks obsidian, it just does not drop it,
@@ -395,10 +402,9 @@ so the mismatch made a raid slow, not impossible — and the refusal was removed
 is rare in practice, but a hand-edited kit that leaves the pairing off no longer blocks export.
 
 Each answers the one refusal envelope — `{error, message, findings[]}`, `docs/refusals.md` — the gate named in `error` and the fault in the findings
-(every declared id PGM's enum did not recognize), `findings` for OB17 (one per goal, each carrying its own
-`rule`/`message`/`subjects`), `props` for OB19 (`{kind, id, x, z}`
-each). Neither applies to a map with no stored sketch layout: they read the sketch's own rasterized ground
-and dressing list, which only a sketch-origin map carries.
+(every declared id PGM's enum did not recognize) and `findings` for OB17, one per goal, each carrying its own
+`rule`/`message`/`subjects`. Neither applies to a map with no stored sketch layout: they read the sketch's own
+rasterized ground, which only a sketch-origin map carries.
 
 **Import refuses a folder with a `map.xml`** (422), a non-allowlisted host (403), an archive with no
 `region/*.mca` (422), and a slug already taken (409).
@@ -480,8 +486,8 @@ design.
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of every prop the dressing pass dropped building it | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop blocks a goal` OB19 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
-| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of every prop the dressing pass dropped building it — `OB19` among them | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
+| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each | the same 409s and 422 as `/xml` (OB17/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 
@@ -510,8 +516,9 @@ Two habits make this reliable. **Read the world before writing the intent**: `wo
 `monument-suggestions` say what colours and capture points actually exist, which is the difference between
 authoring a map and guessing at one. And **treat pre-flight as the answer for its four checks, not the XML**:
 it names which one failed and why, where `GET /xml` only says 409 — but on a sketch-origin map, a
-pre-flight-clean document can still 409 on `OB17`/`OB19` (*What it refuses*, above), since those two read the
-world `GET /xml` itself builds rather than anything pre-flight inspects.
+pre-flight-clean document can still 409 on `OB17` (*What it refuses*, above), since it reads the world
+`GET /xml` itself builds rather than anything pre-flight inspects — and `POST …/sketch/columns` is where to
+hear it first, as a complaint on a build that was going to happen anyway.
 
 **Ask the playability reads before paying for a build.** `GET /export` is the most expensive call in the
 studio — it synthesises the whole voxel world before it answers — so hearing `EX1` from it is hearing, after
