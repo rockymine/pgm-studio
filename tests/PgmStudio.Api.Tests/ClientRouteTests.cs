@@ -13,9 +13,9 @@ namespace PgmStudio.Api.Tests;
 /// the typed reads already in place is exactly this check, at the price of a build-time package and a second
 /// copy of the whole surface committed to the tree.</para>
 ///
-/// <para>Only a string naming a <b>whole</b> route is checked. Three Edit phases compose theirs from a
-/// prefix stated once and a tail passed at the call site, and neither half is a route on its own — that is
-/// <c>C47</c>, and until it lands those routes are the ones nothing here can read.</para>
+/// <para>Only a string naming a <b>whole</b> route is checked, and every route the client calls is written
+/// as one: the Edit tool's writes are named operations on <c>MapEdits</c>, each carrying its own literal, so
+/// there is no half-route for this to be blind to.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class ClientRouteTests
@@ -39,32 +39,7 @@ public sealed class ClientRouteTests
     [Test]
     public async Task The_client_names_its_routes_as_whole_strings()
     {
-        await Assert.That(ClientRoutes().Select(route => route.Path).Distinct().Count()).IsGreaterThan(70);
-    }
-
-    /// <summary>The one string in the client that names half a route. Three Edit phases each declare
-    /// <c>Post</c>, <c>Patch</c> and <c>Delete</c> over this prefix and take the tail from the call site, so
-    /// neither half is a route and the twenty-one routes they reach are the ones nothing here can read. It is
-    /// spelled identically in all three, which is what lets it be named once — and
-    /// <see cref="The_only_half_route_is_the_one_C47_names"/> fails when <c>C47</c> puts those routes in one
-    /// place, so the exception cannot outlive its reason.</summary>
-    private const string Composed = "api/map/{Slug}/{path}";
-
-    [Test]
-    public async Task The_only_half_route_is_the_one_C47_names()
-    {
-        var files = Directory.EnumerateFiles(ClientRoot(), "*.*", SearchOption.AllDirectories)
-            .Where(file => file.EndsWith(".cs") || file.EndsWith(".razor"))
-            .Where(file => !file.Contains("/obj/") && !file.Contains("/bin/"))
-            .Where(file => File.ReadAllText(file).Contains(Composed))
-            .Select(Path.GetFileName)
-            .Order()
-            .ToList();
-
-        await Assert.That(files).IsEquivalentTo(
-            (string[])["BuildRegionsPhase.razor.cs", "ObjectivePhase.razor.cs", "TeamsPhase.razor.cs"])
-            .Because("the composed-route exception is named for three Edit phases and nothing else; a fourth "
-                     + "file spreading it, or C47 landing and removing it, changes what this test excludes");
+        await Assert.That(ClientRoutes().Select(route => route.Path).Distinct().Count()).IsGreaterThan(80);
     }
 
     private readonly record struct Call(string Path, string Raw, string Where);
@@ -103,7 +78,6 @@ public sealed class ClientRouteTests
                 foreach (Match match in Regex.Matches(lines[i], @"""(/?api/[^""]*)"""))
                 {
                     var raw = match.Groups[1].Value;
-                    if (raw == Composed) continue;
                     var route = raw.StartsWith('/') ? raw : '/' + raw;
                     var query = route.IndexOf('?');
                     if (query >= 0) route = route[..query];

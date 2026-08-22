@@ -26,18 +26,6 @@ refusal envelope and declined — the interoperability it buys needs a caller ou
 is none, while the dereference it is prized for is already reachable from the `rule` each finding carries.
 The reasoning is `docs/design-decisions.md` § *The HTTP surface*; the entry that asked it is retired.
 
-- [ ] **C47 — Three Edit phases each carry their own HTTP half, and the routes are split across it.**
-  `BuildRegionsPhase`, `ObjectivePhase` and `TeamsPhase` each declare the same four members —
-  `Post(path, body)`, `Patch(path, body)`, `Delete(path)` and `Send(call)` — over the prefix
-  `$"api/map/{Slug}/{path}"`, and take the tail from the call site: `Patch($"teams/{t.Id}", payload)`,
-  `Delete($"wools/{w.Id}/monuments/{m.Id}")`. **23 call sites** reach routes that are written in no single
-  place, so `ClientRouteTests` names the prefix as its one exception and reads none of the 23. Put them in one
-  helper beside `RegionEdits` (`Features/Edit/RegionEdits.cs`, which already takes `Http, Slug, …` and is
-  shared by all three), with the whole route literal there — which drops three copies of `Send` with it.
-
-  *Evidence: `BuildRegionsPhase.razor.cs:163`, `ObjectivePhase.razor.cs:252`, `TeamsPhase.razor.cs:278` are
-  the same two lines three times. The exception in `ClientRouteTests.Composed` is what this deletes.*
-
 - [ ] **RP48 — The answer shapes describe the type and not the fields.** `RP36` closed the request side:
   189 of the 190 fields a write route reads carry a `<param>`, and `SchemaCompletenessTests` holds every
   posted shape to it. The answer side is where the remaining gap is — **466 of 1,283** fields across the

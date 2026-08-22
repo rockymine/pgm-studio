@@ -149,7 +149,7 @@ public partial class ObjectivePhase
     private async Task AddWool()
     {
         if (NextWoolColor() is not { } c) return;
-        await Post("wools", new Dictionary<string, object?> { ["color"] = c.Value });
+        await Ran(MapEdits.AddWool(Http, Slug, new Dictionary<string, object?> { ["color"] = c.Value }));
         await Reload();
         var added = wools.FirstOrDefault(w => GameColors.DyeColors.Any(d => d.Value == w.Color && d.Value == c.Value));
         if (added is not null) await SelectWool(added.Id);
@@ -158,7 +158,7 @@ public partial class ObjectivePhase
     private async Task SaveWool(Dictionary<string, object?> patch)
     {
         if (selWool is null) return;
-        if (await Patch($"wools/{selWool}", patch)) await Reload();
+        if (await Ran(MapEdits.PatchWool(Http, Slug, selWool, patch))) await Reload();
     }
 
     private Task SaveWoolColor(ChangeEventArgs e) => SaveWool(new() { ["color"] = e.Value?.ToString() });
@@ -170,24 +170,28 @@ public partial class ObjectivePhase
 
     private Task SaveWoolLocation() => SaveWool(new() { ["location"] = BuildLoc(wLocX, wLocY, wLocZ) });
 
-    private async Task DeleteWool(Wool w) { if (await Delete($"wools/{w.Id}")) { selWool = null; await Reload(); } }
+    private async Task DeleteWool(Wool w) { if (await Ran(MapEdits.DeleteWool(Http, Slug, w.Id))) { selWool = null; await Reload(); } }
 
     // ── monuments ───────────────────────────────────────────────────────────────
 
     private async Task AddMonument(Wool w)
     {
         if (NextMonumentTeam(w) is not { } team) return;
-        if (await Post($"wools/{w.Id}/monuments", new Dictionary<string, object?> { ["team"] = team.Id })) await Reload();
+        if (await Ran(MapEdits.AddMonument(Http, Slug, w.Id, new Dictionary<string, object?> { ["team"] = team.Id })))
+            await Reload();
     }
 
     private async Task SaveMonument(Wool w, Monument m, Dictionary<string, object?> patch)
     {
-        if (await Patch($"wools/{w.Id}/monuments/{m.Id}", patch)) await Reload();
+        if (await Ran(MapEdits.PatchMonument(Http, Slug, w.Id, m.Id, patch))) await Reload();
     }
 
     private Task SaveMonumentLocation(Wool w, Monument m) => SaveMonument(w, m, new() { ["location"] = BuildLoc(mLocX, mLocY, mLocZ) });
 
-    private async Task DeleteMonument(Wool w, Monument m) { if (await Delete($"wools/{w.Id}/monuments/{m.Id}")) { selMon = null; await Reload(); } }
+    private async Task DeleteMonument(Wool w, Monument m)
+    {
+        if (await Ran(MapEdits.DeleteMonument(Http, Slug, w.Id, m.Id))) { selMon = null; await Reload(); }
+    }
 
     // ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -226,7 +230,9 @@ public partial class ObjectivePhase
     private async Task SetRegionY(int y)
     {
         if (selRegion is null) return;
-        if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } })) await Reload();
+        if (await Ran(MapEdits.PatchRegion(Http, Slug, selRegion,
+                new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } })))
+            await Reload();
     }
 
     // Geometry editing (canvas drag-resize + inspector coord fields) — persist + keep canvas/inspector in sync.
@@ -249,15 +255,12 @@ public partial class ObjectivePhase
 
     // ── http ────────────────────────────────────────────────────────────────────
 
-    private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
-    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    /// <summary>Run one edit and keep its refusal on screen. The route and the sentence are
+    /// <see cref="MapEdits"/>'s; where the sentence goes is this phase's.</summary>
+    private async Task<bool> Ran(Task<HttpResponseMessage> call)
     {
-        error = null;
-        var resp = await call;
-        if (resp.IsSuccessStatusCode) return true;
-        error = await ServerRefusal.SentenceAsync(resp);
+        error = await MapEdits.RefusedAsync(call);
+        if (error is null) return true;
         StateHasChanged();
         return false;
     }

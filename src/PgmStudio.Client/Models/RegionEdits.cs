@@ -31,7 +31,7 @@ public static class RegionEdits
     private static async Task<Dictionary<string, double>?> PatchAsync(
         HttpClient http, string slug, RegionNode node, Dictionary<string, object?> body, string? coordKey = null, double coordValue = 0)
     {
-        var resp = await http.PatchAsJsonAsync($"api/map/{slug}/regions/{node.Id}", body);
+        using var resp = await MapEdits.PatchRegion(http, slug, node.Id, body);
         if (!resp.IsSuccessStatusCode) return null;
         // the edited coord (e.g. cuboid min_y) lives only in Coords; the response carries the new footprint
         if (coordKey is not null) node.Coords[coordKey] = coordValue;

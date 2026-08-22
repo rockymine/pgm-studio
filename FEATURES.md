@@ -707,6 +707,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **The Edit tool's routes are written in one place (`C47`).** Three phases each declared the same
+  `Post`/`Patch`/`Delete`/`Send` over the prefix `api/map/{Slug}/{path}` and took the tail from the call
+  site, so **23 writes** reached routes that were a route in no single string — and `ClientRouteTests`, the
+  one gate over the last hand-written half of the contract, named that prefix as its exception and could
+  read none of them.
+
+  They are named operations on `MapEdits` now — `DeleteRegion`, `PatchMonument`, `SetObserverSpawn` — each
+  carrying its whole literal, so a phase reads as what it does rather than as a string built two lines
+  apart. `RegionEdits` routes its own PATCH through the same place, which is what makes `MapEdits` the one
+  file every `api/map/{slug}/…` write is written in. The exception is gone and **88 distinct client routes**
+  are checked against the schema, up from 70-odd.
+
+  What did not move is the three copies of `Send`: picking a refusal's sentence is shared (`RefusedAsync`),
+  and where that sentence goes and what re-renders around it is component state and stays in the component.
 - **The one key that rides on any success is declared (`RP44`).** `Complaints` adds `warnings` to any 2xx
   JSON object whose request raised one — an `RQ3` for a field nothing could keep, a `DR-*` decline, a
   layout's own remarks — and the document said nothing about it: **no schema carried the key and no

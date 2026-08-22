@@ -123,7 +123,10 @@ public partial class TeamsPhase
     {
         suggestionBusy = true; StateHasChanged();
         foreach (var s in SuggestedTeams())
-            await Post("teams", new Dictionary<string, object?> { ["id"] = s.Slug, ["name"] = s.Name, ["color"] = s.Color, ["max_players"] = 20, ["min_players"] = 0 });
+            await Ran(MapEdits.AddTeam(Http, Slug, new Dictionary<string, object?>
+            {
+                ["id"] = s.Slug, ["name"] = s.Name, ["color"] = s.Color, ["max_players"] = 20, ["min_players"] = 0,
+            }));
         suggestionBusy = false;
         await Reload();   // teams now non-empty → suggestion hides itself
     }
@@ -190,7 +193,10 @@ public partial class TeamsPhase
         var used = teams.Select(t => t.Id).ToHashSet();
         var slug = baseId; var n = 2;
         while (used.Contains(slug)) slug = $"{baseId}-{n++}";
-        await Post("teams", new Dictionary<string, object?> { ["id"] = slug, ["name"] = name, ["color"] = color, ["max_players"] = 20, ["min_players"] = 0 });
+        await Ran(MapEdits.AddTeam(Http, Slug, new Dictionary<string, object?>
+        {
+            ["id"] = slug, ["name"] = name, ["color"] = color, ["max_players"] = 20, ["min_players"] = 0,
+        }));
         await Reload();
         await SelectTeam(slug);
     }
@@ -205,7 +211,7 @@ public partial class TeamsPhase
             ["max_players"] = t.MaxPlayers,
             ["min_players"] = t.MinPlayers,
         };
-        await Patch($"teams/{t.Id}", payload);
+        await Ran(MapEdits.PatchTeam(Http, Slug, t.Id, payload));
     }
 
     private async Task RenameTeam(Team t, string? raw)
@@ -214,12 +220,12 @@ public partial class TeamsPhase
         if (newId.Length == 0 || newId == t.Id) return;
         if (teams.Any(x => x.Id == newId)) { error = $"Team ID \"{newId}\" is already in use."; StateHasChanged(); return; }
         var payload = new Dictionary<string, object?> { ["id"] = newId, ["name"] = t.Name, ["color"] = t.Color, ["dye_color"] = string.IsNullOrEmpty(t.DyeColor) ? null : t.DyeColor, ["max_players"] = t.MaxPlayers, ["min_players"] = t.MinPlayers };
-        if (await Patch($"teams/{t.Id}", payload)) { await Reload(); await SelectTeam(newId); }
+        if (await Ran(MapEdits.PatchTeam(Http, Slug, t.Id, payload))) { await Reload(); await SelectTeam(newId); }
     }
 
     private async Task DeleteTeam(Team t)
     {
-        if (await Delete($"teams/{t.Id}")) { selTeam = null; await Reload(); }
+        if (await Ran(MapEdits.DeleteTeam(Http, Slug, t.Id))) { selTeam = null; await Reload(); }
     }
 
     // ── spawn assignment ────────────────────────────────────────────────────────
@@ -232,14 +238,21 @@ public partial class TeamsPhase
         var wasObs = observer?.RegionId == id;
         if (spawnTeam == "__observer__")
         {
-            if (existing is not null) await Delete($"spawns/{id}");
-            await Patch("observer-spawn", new Dictionary<string, object?> { ["region_id"] = id, ["yaw"] = spawnYaw, ["kit"] = spawnKit });
+            if (existing is not null) await Ran(MapEdits.DeleteSpawn(Http, Slug, id));
+            await Ran(MapEdits.SetObserverSpawn(Http, Slug,
+                new Dictionary<string, object?> { ["region_id"] = id, ["yaw"] = spawnYaw, ["kit"] = spawnKit }));
         }
         else if (spawnTeam.Length > 0)
         {
-            if (wasObs) await Delete("observer-spawn");
-            if (existing is not null) await Patch($"spawns/{id}", new Dictionary<string, object?> { ["team"] = spawnTeam, ["yaw"] = spawnYaw, ["kit"] = spawnKit });
-            else await Post("spawns", new Dictionary<string, object?> { ["region_id"] = id, ["team"] = spawnTeam, ["yaw"] = spawnYaw, ["kit"] = spawnKit });
+            if (wasObs) await Ran(MapEdits.DeleteObserverSpawn(Http, Slug));
+            if (existing is not null)
+                await Ran(MapEdits.PatchSpawn(Http, Slug, id,
+                    new Dictionary<string, object?> { ["team"] = spawnTeam, ["yaw"] = spawnYaw, ["kit"] = spawnKit }));
+            else
+                await Ran(MapEdits.AddSpawn(Http, Slug, new Dictionary<string, object?>
+                {
+                    ["region_id"] = id, ["team"] = spawnTeam, ["yaw"] = spawnYaw, ["kit"] = spawnKit,
+                }));
         }
         await Reload();
         await SelectSpawn(id);
@@ -249,8 +262,8 @@ public partial class TeamsPhase
     {
         if (selSpawn is null) return;
         var id = selSpawn;
-        if (observer?.RegionId == id) await Delete("observer-spawn");
-        else await Delete($"spawns/{id}");
+        if (observer?.RegionId == id) await Ran(MapEdits.DeleteObserverSpawn(Http, Slug));
+        else await Ran(MapEdits.DeleteSpawn(Http, Slug, id));
         await Reload();
         await SelectSpawn(id);
     }
@@ -275,15 +288,12 @@ public partial class TeamsPhase
 
     // ── http helpers ────────────────────────────────────────────────────────────
 
-    private async Task<bool> Post(string path, object body) => await Send(Http.PostAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
-    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    /// <summary>Run one edit and keep its refusal on screen. The route and the sentence are
+    /// <see cref="MapEdits"/>'s; where the sentence goes is this phase's.</summary>
+    private async Task<bool> Ran(Task<HttpResponseMessage> call)
     {
-        error = null;
-        var resp = await call;
-        if (resp.IsSuccessStatusCode) return true;
-        error = await ServerRefusal.SentenceAsync(resp);
+        error = await MapEdits.RefusedAsync(call);
+        if (error is null) return true;
         StateHasChanged();
         return false;
     }

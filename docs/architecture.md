@@ -122,18 +122,21 @@ The route attributes in `Api/Endpoints` are the generator's source. Beside them 
 out in the Blazor client and the endpoint tables in the eight `docs/tools/` documents, neither derived from
 the schema.
 
-The response half is finished. The client now reads **71 responses as a typed shape from `Contracts` against
-2 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
-copy that lived in per-component parsing code is gone. What is left hand-written is the path: **75 literal and
-98 interpolated route strings across 33 files**, where a typo is a runtime 404 that reads like a missing map.
+The response half is finished. The client now reads **72 responses as a typed shape from `Contracts` against
+1 as `JsonElement`**, so a renamed DTO field is a compile error rather than a null at run time, and the third
+copy that lived in per-component parsing code is gone. What is left hand-written is the path, where a typo is
+a runtime 404 that reads like a missing map — and every one of the **88 distinct routes** the client names is
+now written as a whole string, so the gate below can read it.
 
 **That is why the studio has no generated client, and will not get one.** A generated client's whole value is
 the response types, and those already come from `Contracts` at 71 of 73 call sites; what it would still buy is
 the path check, at the price of a build-time package and a second copy of the whole surface committed to the
 tree — the "second accepted shape" that `CLAUDE.md` forbids for exactly the reason it would rot here.
 `ClientRouteTests` buys the same check for nothing: every route string in the client is a route the schema
-serves, with one named exception for the twenty-one that three Edit phases compose out of a prefix and a tail
-(`C47`). The tables are the same problem seen from the prose side: three heavily used
+serves, with no exception left — the Edit tool's twenty-three writes were composed from a prefix stated in
+three phases and a tail passed at the call site, which is not a route and could not be read; they are named
+operations on `MapEdits` now, each carrying its own literal. The tables are the same problem seen from the
+prose side: three heavily used
 analysis routes had drifted out of every one of them, which is not a documentation lapse but what a
 hand-maintained copy of a machine-readable fact does.
 

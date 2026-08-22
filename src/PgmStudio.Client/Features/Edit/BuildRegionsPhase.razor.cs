@@ -54,7 +54,7 @@ public partial class BuildRegionsPhase
     {
         heightStatus = "Saving…"; StateHasChanged();
         var body = new Dictionary<string, object?> { ["max_build_height"] = string.IsNullOrWhiteSpace(maxHeight) ? null : (object?)double.Parse(maxHeight!) };
-        if (await Patch("metadata", body)) { heightDirty = false; heightStatus = "Saved."; }
+        if (await Ran(MapEdits.SetMetadata(Http, Slug, body))) { heightDirty = false; heightStatus = "Saved."; }
         StateHasChanged();
     }
 
@@ -125,20 +125,22 @@ public partial class BuildRegionsPhase
 
     private async Task DeleteRegion(string id)
     {
-        if (await Delete($"regions/{id}")) await LoadRegions();
+        if (await Ran(MapEdits.DeleteRegion(Http, Slug, id))) await LoadRegions();
     }
 
     private async Task RenameRegion(string newId)
     {
         if (selRegion is null) return;
-        if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["id"] = newId })) await LoadRegions(newId);
+        if (await Ran(MapEdits.PatchRegion(Http, Slug, selRegion, new Dictionary<string, object?> { ["id"] = newId })))
+            await LoadRegions(newId);
     }
 
     // Side-view slice: set a point/block region's Y (coords patch), then reload keeping it selected.
     private async Task SetRegionY(int y)
     {
         if (selRegion is null) return;
-        if (await Patch($"regions/{selRegion}", new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } }))
+        if (await Ran(MapEdits.PatchRegion(Http, Slug, selRegion,
+                new Dictionary<string, object?> { ["coords"] = new Dictionary<string, object?> { ["y"] = y } })))
             await LoadRegions(selRegion);
     }
 
@@ -160,14 +162,12 @@ public partial class BuildRegionsPhase
         StateHasChanged();
     }
 
-    private async Task<bool> Patch(string path, object body) => await Send(Http.PatchAsJsonAsync($"api/map/{Slug}/{path}", body));
-    private async Task<bool> Delete(string path) => await Send(Http.DeleteAsync($"api/map/{Slug}/{path}"));
-    private async Task<bool> Send(Task<HttpResponseMessage> call)
+    /// <summary>Run one edit and keep its refusal on screen. The route and the sentence are
+    /// <see cref="MapEdits"/>'s; where the sentence goes is this phase's.</summary>
+    private async Task<bool> Ran(Task<HttpResponseMessage> call)
     {
-        error = null;
-        var resp = await call;
-        if (resp.IsSuccessStatusCode) return true;
-        error = await ServerRefusal.SentenceAsync(resp);
+        error = await MapEdits.RefusedAsync(call);
+        if (error is null) return true;
         StateHasChanged();
         return false;
     }
