@@ -73,16 +73,17 @@ builder.Services.SwaggerDocument(o =>
                     + "the sketch, the intent, the analysis reads over its ground, and the world and map.xml "
                     + "it exports to.";
         tags["Maps"] = "The map list, and what originates one.";
-        // Five routes take a posted plan and answer three different kinds of thing, which is what a caller
-        // reading five summaries in a row is otherwise left to work out.
+        // Six routes take a posted plan and answer three different kinds of thing, which is what a caller
+        // reading six summaries in a row is otherwise left to work out.
         tags["Plan"] = "The board as cell rectangles, posted and answered without storing anything — the loop "
-                     + "a plan is iterated in. Five routes take one, and they answer three kinds of thing. "
+                     + "a plan is iterated in. Six routes take one, and they answer three kinds of thing. "
                      + "One TRANSFORMS: compile turns a plan into the layout and intent a map is built from, "
                      + "and is the only one of the five a caller acts on. Two JUDGE: evaluate scores the "
                      + "board against the rule law, and feasibility is a studio diagnostic reporting the "
-                     + "composer's own limits rather than anything about the board. Two PROJECT: inspect "
-                     + "derives the geometry a canvas draws, and columns builds the world the plan would "
-                     + "make.";
+                     + "composer's own limits rather than anything about the board. Three PROJECT: inspect "
+                     + "derives the geometry a canvas draws, columns builds the world the plan would make, "
+                     + "and ascii draws the board as characters — the one read that shows a relation between "
+                     + "two rectangles, and the one a caller with no image viewer can act on.";
         tags["Plans"] = "The stored plan library, the generator's kept candidates included.";
         tags["Diagnostics"] = "What the studio can say about itself rather than about a map. Read these to "
                             + "find out what the tool cannot do yet; a finding here is never a fault in the "

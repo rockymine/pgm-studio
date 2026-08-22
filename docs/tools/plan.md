@@ -495,13 +495,14 @@ shape is committed to a world.
 `GET /map/{slug}/plan` hands back — and store nothing, so they can be asked of a document that has never been
 posted anywhere. That is what makes them the cheapest way to find out whether a board is well formed.
 
-**Five routes take a posted plan, and they answer three kinds of thing.** Reading five summaries in a row
+**Six routes take a posted plan, and they answer three kinds of thing.** Reading five summaries in a row
 does not say which, so it is said here. One **transforms**: `compile` turns a plan into the layout and intent
-a map is built from, and is the only one of the five whose answer a caller acts on. Two **judge**:
+a map is built from, and is the only one whose answer a caller acts on. Two **judge**:
 `evaluate` scores the board against the rule law, and `feasibility` judges the *composer* — could it have
 produced this plan — which is a statement about what the generator cannot do yet rather than about the board,
-and is why it is tagged `Diagnostics` and kept out of the list a driver iterates through. Two **project**:
-`inspect` derives the geometry a canvas draws, and `columns` builds the world the plan would make.
+and is why it is tagged `Diagnostics` and kept out of the list a driver iterates through. Three **project**:
+`inspect` derives the geometry a canvas draws, `columns` builds the world the plan would make, and `ascii`
+draws the board as characters.
 
 ```json POST /api/plan/inspect
 {"globals": {"cell": 5, "symmetry": "rot_180"}, "pieces": []}
@@ -512,6 +513,7 @@ and is why it is tagged `Diagnostics` and kept out of the list a driver iterates
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (the open absolute-width question's raw data); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus each destroy goal's walk to its own and the enemy's spawn (blocks over the fanned closure, with the enemy÷own ratio) — the same numbers `goal-spawn-ratio` scores against GO1's authored band [3.0, 4.0]. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, and findings citing the task that would unblock each gap. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
+| `POST /plan/ascii[?every=N]` | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. **The read that shows a relation between two rectangles**, which no number can: a sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance here and invisible in every other read of the same board. `every` draws one character per N cells for a board wider than a terminal | 400 malformed |
 | `POST /plan/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the world the plan compiles to, as per-column runs, in the encoding `sketch.md` documents, plus, under `warnings`, every prop the dressing pass declined (`DR-*`) and everything the compiled layout names that the studio does not have (`SK3`/`SK4`/`SK5`). It compiles and builds, so it is the heaviest read here and the only one that answers what stands above the ground. It does not gate: `/plan/compile` is where a plan is refused, and a preview of an incoherent plan is still worth looking at | 400 malformed or unbuildable |
 | `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |
 

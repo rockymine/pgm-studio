@@ -638,6 +638,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The board as characters, off a posted plan (`TN4`).** `PlanBoardAscii.Render` was reachable only through
+  two routes that need a stored map, while `compile`, `evaluate`, `inspect`, `feasibility` and `columns` all
+  answer a document that has never been posted anywhere. `POST /plan/ascii` puts it beside them.
+
+  It matters because it is **the read that shows a relation between two rectangles**, which no number can: a
+  sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance in the grid
+  and invisible in every other read of the same board. It is also the one a caller with no image viewer can
+  act on. Because it had needed a map row, the driver next door carried a 94-line Python reimplementation of
+  the renderer; the test asserts the posted grid is character-for-character the stored route's, so a second
+  copy has nothing left to answer.
 - **A world is read where the format is, and derived from where the derivations are (`WS5`).**
   `MonumentSuggester` and `CoreSuggester` sat in `Minecraft`, whose charter is the world, while the first
   names a monument, a wool, an objective or a core **91 times** over 453 lines. `Analysis` and `Minecraft`

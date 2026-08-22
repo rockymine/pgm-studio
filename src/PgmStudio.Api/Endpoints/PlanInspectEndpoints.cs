@@ -10,10 +10,48 @@ using PgmStudio.Pgm.Compose;
 using PgmStudio.Pgm.Evaluate;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Render;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
+
+/// <summary>
+/// POST /api/plan/ascii — the board as a grid of characters, one per proxy cell, off a posted plan.
+///
+/// <para><b>The read that shows a relation between two rectangles.</b> The other projections answer numbers
+/// and geometry, and a number cannot say that a sixteen-cell bar is reached by a four-cell build zone —
+/// which is a landform 60% dead, visible at a glance in a grid and invisible in every other read of the same
+/// board. It is also the read a caller with no image viewer can act on.</para>
+///
+/// <para>Posted rather than stored, which is what puts it beside <c>inspect</c> and <c>columns</c> instead of
+/// behind a map row. <c>?every=N</c> draws one character per N cells, for a board wider than a terminal. The
+/// same render answers <c>GET /plans/{id}/ascii</c> and <c>GET /map/{slug}/plan/ascii</c> for a board that is
+/// stored.</para>
+/// </summary>
+public sealed class PlanAsciiPostEndpoint : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Post("/plan/ascii"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json").PlainText());
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var plan = PlanModel.Stated(await RawBody.ReadAsync(HttpContext, ct));
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
+
+        HttpContext.Response.ContentType = "text/plain; charset=utf-8";
+        await HttpContext.Response.WriteAsync(
+            PlanBoardAscii.Render(plan, every: Query<int?>("every", false) ?? 1), ct);
+    }
+}
 
 /// <summary>
 /// POST /api/plan/inspect — the live derived-geometry feed for the plan editor's canvas overlays. The request

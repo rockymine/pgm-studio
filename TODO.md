@@ -27,23 +27,13 @@ what it is, so the contract came first; a gate belonged to whichever door someon
 was one place a use case lives, so the application layer came second; and the loop could not answer for
 itself until both. Phase 5 is what was never in the chain.
 
-**Three entries left**, and none of them blocks another: the drift the survey measured beside the work,
+**Two entries left**, and none of them blocks another: the drift the survey measured beside the work,
 each entry drivable from itself. A finding made while working lands in `BACKLOG.md`.
 
 ## Phase 5 — the names, and what the survey turned up beside them
 
 None of these blocks anything. They are the drift the survey measured, and each is small enough to take while
 a phase above is compiling.
-
-- [ ] **TN4 — The cheapest read of a plan is the one that needs a map row first.** `PlanBoardAscii.Render`
-  is reachable through `GET /map/{slug}/plan/ascii` and `GET /plans/{id}/ascii` — both requiring stored
-  state — while `compile`, `evaluate`, `inspect`, `feasibility` and `columns` all answer a posted plan with
-  nothing stored. The grid is the read that shows a *relation between two rectangles*, which is what the
-  other five cannot: `pgm-studio-mapgen`'s own notes name a sixteen-cell bar reached by a four-cell build
-  zone as the whole of a 60%-dead landform, "visible at a glance and invisible in the render that was
-  actually looked at". Because the render needs a row, the mapgen repo carries `tools/board.py`, a 94-line
-  Python reimplementation of it. Add `POST /plan/ascii` beside the other five, so the copy next door has
-  nothing left to answer.
 
 - [ ] **RP10 — Sweep the history out of the code comments.** `CLAUDE.md` § *Code comments* states the rule —
   a comment says what the code does and why, in the present tense, and never what it used to do — and the
