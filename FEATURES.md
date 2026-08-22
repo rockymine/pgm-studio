@@ -5666,6 +5666,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **The census is counted, not typed (`RP8`).** `project-structure.md` §3's size table was a snapshot nothing
+  regenerated, and **every row had drifted** — `Client` read 80 files against 186, `Pgm` 137 against 148 — while
+  the folder breakdowns were worse than stale: counted at one level where the folders nest, so `Compose/` read
+  42 against its 28 direct children and the 48/85 split §7.1's argument rested on could not be reproduced from
+  either number. A table nobody can regenerate is wrong between every pair of commits, so the fix is a counter
+  rather than a re-count: `tools/census.sh` writes it between two markers, and `--check` fails when it is
+  stale. A folder's count is what it *holds*, recursively, and one holding another says `(nested)`. The prose
+  around it now cites the shape rather than the totals, which is what stops the argument going stale with the
+  numbers.
 - **`tools/relief` is gone, and the measurements it took stay (`RP19`).** The prototype drew ten figures,
   a topographic view, a section and a step map into a gitignored `out/`, so nothing it rendered reached the
   tree — and `world-export/relief.md`, which its README called the document it was the live twin of, carried

@@ -8,44 +8,44 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-## The vision, and why this is the whole board
+## The board is empty
 
-**The studio is one pipeline with two audiences, and only one of them can read prose.** A person drives it
-through a browser — panels, a canvas, a wizard. An agent drives it through `/api` and a CLI, and everything
-it can learn about a map it has to learn from a response body. Both are first-class, and the second one is
-the reason the first can be trusted: an agent that can author a map end to end is a continuous test that the
-tool actually works, and every place it stumbles is a place a person was going to stumble more quietly.
+The programme `docs/architecture.md` named has run. It was a dependency chain and it drained in order:
 
-**What is being built is a studio that can describe itself.** The four levels a map is described at, the
-gates in front of each hand-off, the rules those gates cite and what a map may be asked for at each stage —
-all of that exists, and almost all of it is stated in prose that nothing verifies. So the same fact is
-written down two or three times, drifts, and is discovered again by an agent that paid a build cycle for it.
-`docs/architecture.md` is the survey; this board is the work it named.
+**Say what the surface is.** Every operation declares what it answers, what it takes and which of 404, 409
+and 422 are its own; the endpoint tables are held to all three in both directions; every route the client
+calls is held to the schema. There is no generated client and will not be one — the response types already
+come from `Contracts`, and what a generated one would still buy is a path check that costs nothing
+(`RP41`, `RP42`, `RP43`, `RP40`, and `RP29`/`RP12`/`RP11` before them).
 
-**The order was a dependency chain, and it has drained.** Nothing could be verified until the surface said
-what it is, so the contract came first; a gate belonged to whichever door someone put it behind until there
-was one place a use case lives, so the application layer came second; and the loop could not answer for
-itself until both. Phase 5 is what was never in the chain.
+**One place a use case lives.** The handlers that read stored state, do work and write it back are seven
+operations in `Api/Services` rather than bodies inside the door they were reached through. Under them: one
+refusal shape, one load-or-404 prologue where 47 had been written out, one slug derivation where three had
+drifted apart (`RP13`).
 
-**One entry left**, and none of them blocks another: the drift the survey measured beside the work,
-each entry drivable from itself. A finding made while working lands in `BACKLOG.md`.
+**The loop answers for itself.** `GET /map/{slug}/findings` asks every gate the stored documents can reach
+and names the ones it did not; `GET /map/{slug}/layers` says where a map has got to and what may be done to
+it next. A driver acts, then asks (`RP32`, `RP16`).
 
-## Phase 5 — the names, and what the survey turned up beside them
+**And the drift the survey measured beside it** is gone: the world builder is named for what it builds, a
+world is read where the format is and derived from where the derivations are, the board draws as characters
+off a posted plan, the comments describe the code as it stands, and the census counts itself (`WE11`, `WS5`,
+`TN4`, `TN5`, `RP10`, `RP8`, `RP19`).
 
-None of these blocks anything. They are the drift the survey measured, and each is small enough to take while
-a phase above is compiling.
+## What to pull up next
 
-- [ ] **RP8 — `project-structure.md`'s census disagrees with the tree it describes.** The size table at §3 is
-  a snapshot nothing regenerates, and **every row of it has drifted**. Measured over `src/**/*.cs`
-  (plus `.razor` for `Client`, excluding `bin`/`obj`), true against stated: `Geom` 44/5,362 (44/4,967),
-  `Domain` 25/2,372 (25/2,252), `Contracts` 25/1,547 (13/965), `Vocabulary` 4/434 (4/393), `Migrations`
-  24/1,577 (21/1,469), `Minecraft` 79/15,474 (74/14,307), `Import` 4/471 (4/472), `Pgm` 148/22,716
-  (137/20,641), `Analysis` 15/2,831 (16/2,609), `Data` 14/2,436 (14/2,316), `Export` 8/1,629 (7/1,171),
-  `Api` 70/9,657 (69/8,675), `Client` 186/23,095 (80/13,436). The folder breakdowns are worse than stale —
-  counted at one level where the folders nest, so `Pgm/Compose` reads 42 against 28 direct children, and the
-  "48 files are the codec / 85 files and 11,522 lines are the generator" split the §7.1 argument rests on
-  cannot be reproduced from either number.
+`BACKLOG.md` holds the long tail, grouped by concept. **Pull up a whole group rather than a task**, per
+`CLAUDE.md` § *Status & task board*: a group's entries are gathered because they spend the same foundation,
+and reading that foundation for duplication is what makes the entries small enough to do. That is what this
+programme kept proving — nearly every entry on it turned out to be a duplication wearing the shape of a
+feature, and naming the duplication is what did the work.
 
-  A table nobody can regenerate is wrong between every pair of commits, so the fix is a counter, not a
-  re-count: one script under `tools/` that writes the table (the `envelope-stats` pattern — a generator of a
-  committed artifact), and the prose reworded to cite the shape rather than the totals.
+Two findings were filed while it ran and are waiting there: `C47` (three Edit phases each carrying their own
+HTTP half, so the routes they reach are written in no single place) and `RP47` (the history sweep's grep was
+one phrasing of several).
+
+**The obvious group to pull up is `The boundary: one contract, one use case, one class of fault`** — six
+entries, and the one this programme came out of. `RP33`–`RP38` are its remainder: three names in `Contracts`
+that say the wrong thing, two records naming one box two ways, a rule catalogue publishing more than is
+raised, 108 schemas describing a type and none of its fields, closed word sets crossing as free strings, and
+a region stating its numbers flat to create and nested to patch. Every one of those is a shape said twice.

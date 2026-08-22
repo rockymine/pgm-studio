@@ -1232,15 +1232,6 @@ lifecycle last, because a state machine over a pipeline of HTTP handlers has not
   already what the patch route and `Bounds2dDto` use. One editor signature, six client call sites, and the
   two records become one. `RP34` is the same seam on the answer side.
 
-- [ ] **RP39 — The size table in `project-structure.md` is measured from an older tree.** Every row is low.
-  Today: `Geom` 44/5,362 · `Domain` 25/2,372 · `Vocabulary` 4/434 · `Migrations`
-  24/1,577 · `Minecraft` 79/15,474 · `Import` 4/471 · `Pgm` **148**/22,716 · `Analysis` 15/2,831 · `Data`
-  14/2,436 · `Export` 8/1,629 · `Api` 70/9,689 · `Client` 82/13,513 — every row but `Contracts`, which was
-  corrected where it was touched. The prose under it derives from the same reading and is wronger: *"that
-  describes 48 files … the other 85 files and 11,522 lines are the layout generator"* sums to 133 against
-  `Pgm`'s 148, so the split argument cites a tree that no longer exists.
-  Re-measure both, and say in the document that the numbers are a reading rather than a derivation — nothing
-  regenerates them, which is why they rot silently.
 
 ## The remainder: work no concept above has claimed
 

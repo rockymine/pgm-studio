@@ -221,6 +221,9 @@ renamed or retired changes its `vocabulary.md` row in the same commit.
 - **`dotnet run tools/deriver/figure-check.cs`** gates `model.md`'s ASCII figures by pushing each one, parsed
   out of the doc itself, through the classifier that names that kind of thing. Run it after editing a figure
   or a classifier — a shape that reads as the wrong family cannot be spotted by eye.
+- **`./tools/census.sh`** writes `docs/project-structure.md`'s size table from the tree, and `--check` fails
+  when it is stale. Run it after anything that moves files between projects or folders: a hand-written census
+  is wrong between every pair of commits, which is how every row of the last one came to have drifted.
 - **`./tools/build-scripts.sh`** builds the file-based tool scripts, which are **not** in `PgmStudio.slnx` and
   which `dotnet build` therefore never touches. Run it after renaming or moving anything in `src/` that a
   script names: without it a rename leaves a script uncompilable while the solution stays green, which is how
@@ -242,7 +245,7 @@ So a script earns a place in `tools/` only by being **re-run**, which is one of 
 
 - a **gate** that fails — `reproduction-gate`, `figure-check`, the fingerprints;
 - a **generator of a committed artifact** — `envelope-stats` writes `seed-envelopes.md`, `fingerprints` writes
-  `composer-fingerprints.json`;
+  `composer-fingerprints.json`, `census.sh` writes `project-structure.md`'s size table;
 - an **operational tool** the product needs — `seed-library` seeds the database, `library-map` writes the
   catalogue map's layout and intent for `POST /map/from-documents` to load.
 
