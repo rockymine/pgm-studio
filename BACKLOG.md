@@ -428,6 +428,21 @@ author. Beside them, one where the *reader* disagrees with a document that is ri
 
 ### The house: what it stamps, where it stands, and what an author can say
 
+- [ ] **WE15 — A hand-built core stamps nothing, because its size defaults to zero.**
+  `CoreIntent.Size`, `Height` and `Shell` are plain `int`s defaulting to **0**, so a core assembled anywhere
+  other than `PlanCompiler` — which fills 5/5/1 — casts no blocks and resolves an empty `Box`. Nothing says
+  so: the export answers 200 and the `map.xml` carries a `<core>` over a region holding nothing, which is a
+  goal at zero health. `CorePlacement`'s own schema documents the defaults a caller may omit (`size` null = 5,
+  `shell` null = 1, "65% of corpus cores"), so the intent record is the one layer where absent means nothing
+  rather than the default. Give the three fields their initializers, or refuse a core of no size at the same
+  gate `OB24` is asked at.
+
+  It bites the workflow the authoring brief describes: an agent patches a compiled intent by hand, and a
+  round-trip through a tool that drops zero-valued keys leaves a core that builds nothing.
+
+  *Found writing `OB24`'s test: a hand-built `CoreIntent` at the same anchor as a destroyable produced no
+  overlap, because it produced no box at all.*
+
 - [ ] **WE12 — A spawn may stand without a house and a wool may not.** The two are the same shape — a source
   (a spawn point, a wool spawner), a protection region, and a structure over them — and the structure is
   decoupled on one and welded to the other: an author can already say a spawn has no housing, and a wool

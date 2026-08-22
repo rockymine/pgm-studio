@@ -163,11 +163,23 @@ public static class StructureStamper
     public static void StampWall(VoxelWorld world, int minX, int minZ, int maxX, int maxZ, int topY)
     {
         var top = Math.Clamp(topY, 0, VoxelWorld.MaxHeight - 1);
-        for (var x = minX; x < maxX; x++)
-        for (var z = minZ; z < maxZ; z++)
+        foreach (var (x, z) in WallCells(minX, minZ, maxX, maxZ))
         {
             for (var y = 0; y <= top; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
             if (top + 1 < VoxelWorld.MaxHeight) world.SetBlock(x, top + 1, z, Blocks.Cobweb);
         }
+    }
+
+    /// <summary>The columns <see cref="StampWall"/> fills, for a caller recording what it covered — the same
+    /// reason <see cref="FoundationCells"/> and <see cref="RedstoneLineCells"/> exist. The footprint is
+    /// <b>max-exclusive</b> and a provenance rect is max-inclusive, so a wall whose bounds are carried across
+    /// by hand is recorded a column wider than it is built on each axis, and every read that trusts the
+    /// sidecar draws a bedrock line thicker than it plays — which is exactly what decides whether it can be
+    /// built over.</summary>
+    public static IEnumerable<(int X, int Z)> WallCells(int minX, int minZ, int maxX, int maxZ)
+    {
+        for (var x = minX; x < maxX; x++)
+        for (var z = minZ; z < maxZ; z++)
+            yield return (x, z);
     }
 }

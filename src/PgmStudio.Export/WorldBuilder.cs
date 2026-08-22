@@ -390,8 +390,14 @@ public static class WorldBuilder
         if (s is null) return;
         for (var i = 0; i < s.Walls.Count; i++)
         {
+            // The columns the stamp filled, from the stamper's own walk. Its footprint is max-EXCLUSIVE and
+            // ClaimRect's is max-inclusive, so a rect carried across by hand records a bedrock line a column
+            // thicker on each axis than the one a player meets — 26x3 in the sidecar for a 25x2 wall — and a
+            // wall's thickness is exactly what decides whether it can be built over.
             var w = s.Walls[i];
-            provenance.ClaimRect(w.MinX, w.MinZ, w.MaxX, w.MaxZ, ProvenanceLayer.Structure, w.Stamp);
+            provenance.Claim(
+                StructureStamper.WallCells(w.MinX, w.MinZ, w.MaxX, w.MaxZ),
+                ProvenanceLayer.Structure, w.Stamp);
         }
         for (var i = 0; i < s.IronCubes.Count; i++)
         {

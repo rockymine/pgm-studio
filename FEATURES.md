@@ -1451,6 +1451,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **A wall's claim stops where its bedrock does (`WE14`).** `StructureStamper.StampWall` fills
+  `[minX, maxX)` and `WorldProvenance.ClaimRect` walks max-inclusive, so a rect carried from one to the other
+  recorded an approach wall a column wider on each axis than it is built — 26 × 3 in the sidecar for the
+  25 × 2 the world holds. Every read that trusts provenance drew it that way, `--topdown --layer structure`
+  saying `STRUCTURE READING: RECORDED PROVENANCE` while it did, and a bedrock line's thickness is exactly what
+  decides whether it can be built over. The wall now publishes `WallCells` and the claim is made over that
+  walk, which is the rule `FoundationCells` and `RedstoneLineCells` already followed and the wall was the last
+  footprint not to.
+  (`StructureStamper.cs`, `WorldBuilder.ClaimStructures`, `WorldBuilderTests.cs`, `decoration.md`)
 - **A board finished carrying no finish says so (`TS15`, `SK8`).** `SK3` names a shape citing a theme the
   layout does not carry, `SK4` a shape drawing nothing and `SK7` a layout rasterizing to no ground — all
   three need something stated to disagree with, so a board stating **no** theme registry, **no** relief and

@@ -592,6 +592,15 @@ distinction a reader needs in the other direction as well: `StructureFinder` ask
 therefore never handed a tree, however that tree's blocks happen to read. It changes no picture — a claimed
 prop still draws by its own material, so leaves stay foliage and a road's gravel stays ground.
 
+**And a claim is walked, not carried across as a rectangle.** Every stamper that fills a footprint publishes
+the columns it filled — `StructureStamper.FoundationCells` for a room floor, `WallCells` for an approach wall,
+`RedstoneLineCells` for an entrance row — and the claim is made over that walk. The two conventions are
+genuinely different and neither is wrong: a stamp's footprint is **max-exclusive**, because that is what an
+intent rect means over whole world blocks, and `WorldProvenance.ClaimRect` is **max-inclusive**. So a rect
+handed from one to the other is recorded a column wider on each axis than it is built — a 25 × 2 bedrock wall
+drawn as a 26 × 3 bar by every read that trusts the sidecar, and a bedrock line's thickness is exactly what
+decides whether it can be built over.
+
 **The claim comes from the placement, and that direction is the point.** The pass drops a building **whole**
 when any of its orbit images overlaps something already standing (MG7), stands over no ground, or fails its
 turn — so a claim rebuilt afterwards from the layout document cannot see any of it, and claims every authored

@@ -10,15 +10,10 @@ Board rules live in `CLAUDE.md` (§ "Status & task board").
 
 ## The studio's eyes: what it can be asked to show, and what it says about what it drew
 
-Five entries out of one afternoon of driving the pipeline, and one concept under them. The studio can be
+Five entries out of one afternoon of driving the pipeline, and one concept under them: the studio can be
 asked for almost anything and describes every answer — **except what a board looks like once it is built**.
-It cannot show a world at all outside a CLI; where it can draw a picture, nothing declares how to ask for
-one; the document that would draw one is refused for the order of its own keys; a board carrying no finish
-at all raises nothing, because there is nothing stated to disagree with; and what it records itself having
-drawn is a column wider than what it laid.
-
-The order is what each one unblocks. `WS6` is the substantial one, and `WE14` is a claim to correct while
-that code is open.
+Four have landed. What remains is the one they were all edges of: it cannot show a world at all outside a
+CLI, so the last thing an agent does — look at what it made — is the one thing the API has no answer for.
 
 - [ ] **WS6 — The read-backs answer over HTTP, and say what each one answers.** Everything an agent does
   runs through the API and the API describes itself — except the one thing it does *after* building, which is
@@ -39,19 +34,6 @@ that code is open.
   reports isolated markers (`B99`); `--buildings` finds roofs by material and cannot see a town this studio
   built (`B149`); `--section` samples **one plane** (`B129`). Withdraws `B245`, which asked for that sentence
   in `--help` alone.
-
-- [ ] **WE14 — An approach wall is claimed one column wider than it is built, on both axes.**
-  `StructureStamper.StampWall` walks its footprint **max-exclusive** — which is what the intent's rect means,
-  and `SketchWorldBuilder` says so — while `ClaimStructures` hands the same rect to
-  `WorldProvenance.ClaimRect`, which walks it **max-inclusive**. `StampRoomFloors` already takes the
-  foundation cells from the stamper rather than re-deriving them; a wall wants the same treatment, so the
-  claim is the cells the stamp filled. Every read that trusts the sidecar — `--topdown --layer structure`
-  says `STRUCTURE READING: RECORDED PROVENANCE` — draws the wall a column thicker than it plays, and a bedrock
-  line's thickness is exactly what decides whether it can be built over.
-
-  *`maps/grok-ridge`: the sidecar draws 26 × 3, the world holds 25 × 2. `--column` at `(−25, 36)`,
-  `(−12, 36)` and `(−1, 36)` reads stone brick y17 — the mid terrace, no wall — while `(−25, 35)`, `(−12, 35)`
-  and `(−1, 34)` read cobweb y21 over bedrock y20…16.*
 
 ## What the front door still cannot say, and the copies that outlived their reason
 

@@ -438,6 +438,67 @@ public sealed class WorldBuilderTests
         });
     }
 
+    /// <summary>The same plateau carrying one approach wall: 25 blocks along x, 2 across z, so the two
+    /// conventions disagree visibly on both axes rather than only on a square.</summary>
+    private static BuiltWorld WallOnly()
+    {
+        const string plateau =
+            """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]}}
+            """;
+        return WorldBuilder.Build(plateau, new MapIntent
+        {
+            Teams = [new TeamDef { Id = "red", Color = "red" }],
+            Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
+            Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
+            Structures = new StructureIntent
+            {
+                Walls = [new WallStructure(-10, 4, 15, 6, 8, true, new StampId("wall", "w0", 0))],
+            },
+        });
+    }
+
+    [Test]
+    public async Task A_walls_claim_stops_where_its_bedrock_does()
+    {
+        // StampWall fills [minX, maxX) and ClaimRect walks max-inclusive, so a rect carried across by hand
+        // recorded a bedrock line a column wider on each axis than the one a player meets. Every read that
+        // trusts the sidecar draws it that way, and a wall's thickness is exactly what decides whether it can
+        // be built over.
+        var built = WallOnly();
+
+        // The last column inside the footprint carries the bedrock and the claim that names it.
+        await Assert.That(built.World.GetBlock(14, 2, 5).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(built.Provenance.OwnerAt(14, 5)?.Kind).IsEqualTo("wall");
+
+        // One column past the max-exclusive bound on either axis: no bedrock, and no claim.
+        foreach (var (x, z) in new[] { (15, 5), (14, 6), (15, 6) })
+        {
+            await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsNotEqualTo((x, z, Blocks.Bedrock));
+            await Assert.That((x, z, built.Provenance.OwnerAt(x, z)?.Kind)).IsEqualTo((x, z, (string?)null));
+        }
+    }
+
+    [Test]
+    public async Task Every_column_a_wall_claims_carries_the_wall()
+    {
+        // The invariant over the whole footprint rather than at a corner: as many claimed columns as the
+        // stamp filled, each of them bedrock. A rect one wider on either axis fails along the whole edge —
+        // 26 x 3 = 78 claimed against the 25 x 2 = 50 that were built.
+        var built = WallOnly();
+
+        var claimed = 0;
+        for (var x = -15; x <= 20; x++)
+        for (var z = 0; z <= 10; z++)
+        {
+            if (built.Provenance.OwnerAt(x, z) is not { Kind: "wall" }) continue;
+            claimed++;
+            await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsEqualTo((x, z, Blocks.Bedrock));
+        }
+
+        await Assert.That(claimed).IsEqualTo(25 * 2);   // [-10,15) x [4,6), max-exclusive on both axes
+    }
+
     [Test]
     public async Task A_room_floors_claim_stops_where_its_bedrock_does()
     {
