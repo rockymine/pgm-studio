@@ -308,15 +308,25 @@ as an isolated marker into `B99`.
   bedrock — accurate, and it shows none of the buildings a few blocks either side, no room interiors, and
   nothing of the town's silhouette.*
 
-- [ ] **B245 — `PgmStudio.RoundTrip --help` should say what each render answers, not just how to invoke it.**
-  An agent choosing between `--topdown --layer …`, `--section`, `--heightmap`, `--surface`,
-  `--traversability-map`, `--structures`, `--mirror` and `--column` has nothing in the tool
-  saying which question each one answers or where each is known to mislead. Put one line per read in
-  `--help`: what it draws, and what it is known not to show. The three caveats that have each cost a reader
-  a wrong conclusion: `--traversability-map` reads an approach wall's cobweb course as impassable, so every
-  board carrying one reports isolated markers (`B99`); `--buildings` finds roofs by material and cannot see
-  a town this studio built (`B149`); and `--section` samples **one plane**, so anything a few blocks either
-  side of the cut is not in the picture (`B129`).
+- [ ] **WS6 — The read-backs answer over HTTP, and say what each one answers.** Everything an agent does
+  runs through the API and the API describes itself — except the one thing it does *after* building, which is
+  look at what it built. Eight renderers live in `Minecraft/Render/` (`TopDownRender`, `SectionRender`,
+  `HeightProfileRender`, `SurfaceReport`, `TraversabilityRender`, `StructureFinder`, `ColumnReport`,
+  `MirrorReport`) and reach a caller only through `PgmStudio.RoundTrip`'s flags, which no schema names — so a
+  brief has to carry a table of them and an agent has to know a .NET binary exists.
+
+  `Api` already references `Minecraft`, and the pattern is already built: `?format=png` through
+  `PngAnswer` + `.AlsoPng()`, which six routes use, and `/map/{slug}/coverage` proves a world read can be
+  answered from stored segments and the layout artifact rather than from a region directory on disk. Settle
+  the source per read — `--section` and `--column` want voxels, which is what `/export` builds — and give
+  each its own route.
+
+  **What each read answers is then written once**, as the endpoint description the schema publishes, and the
+  CLI prints the same sentence. Three caveats belong in it, each having cost a reader a wrong conclusion:
+  `--traversability-map` reads an approach wall's cobweb course as impassable, so every board carrying one
+  reports isolated markers (`B99`); `--buildings` finds roofs by material and cannot see a town this studio
+  built (`B149`); `--section` samples **one plane** (`B129`). Withdraws `B245`, which asked for that sentence
+  in `--help` alone.
 
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
   `TopDownRender.ReadColumns` takes `LayerExtractors.Surface` with no exclusions and derives the frame from
@@ -367,7 +377,7 @@ as an isolated marker into `B99`.
   contract itself is not waivable: PGM has to be able to read the result.
 
   **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
-  the briefs hand an agent, not in `PgmStudio.RoundTrip`'s `--help` (`B245`). The authoring briefs already tell an agent
+  the briefs hand an agent, not in `PgmStudio.RoundTrip`'s `--help` (`WS6`). The authoring briefs already tell an agent
   that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
 
 Three gates, three ways of being wrong about their own verdict: one that misreports its cause, one that cannot
