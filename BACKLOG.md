@@ -204,6 +204,22 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
+- [ ] **RP50 — Five routes declare a PNG answer and nothing declares how to ask for one.** `?format=png` and
+  `?view=` are read by `PngAnswer.Wanted`/`.View` straight off `HttpContext.Request.Query`, so they reach no
+  parameter list: `room-styles/preview`, `preview-snapshot`, `terrain/theme-preview`, `material-preview` and
+  `prop-preview` each publish `image/png` as a response content type over `parameters: []`. The schema says a
+  picture can come back and nothing says how to get one, which leaves the one instruction the brief cannot
+  drop — *read the schema, not a document* — false at the five routes that draw a picture.
+
+  Declare both as query parameters where `.AlsoPng()` is applied, so the flag that makes a route answer PNG
+  is also the flag that documents it, and let `view` carry the names each route actually has —
+  `preview-snapshot` refuses `isometric` and `cutaway` by name, which is a closed word set the schema can
+  publish rather than a sentence in `sketch.md`. `docs/tools/library.md`'s endpoint table gains the two
+  columns in the same commit.
+
+  *Found by the run-5 authoring test: an agent that read the schema first could not find the query surface
+  and fell back to `sketch.md` prose, which is the failure the schema exists to prevent.*
+
 - [ ] **RP49 — `doc-status.md` describes a `docs/` tree that no longer exists.** The file whose subject is
   whether the documents are current is itself the stalest thing in the repository. Of its **50 rows citing a
   document path, 33 name a file that is not there** — the whole `docs/contracts/` folder it is written around
