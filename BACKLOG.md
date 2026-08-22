@@ -217,6 +217,10 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   publish rather than a sentence in `sketch.md`. `docs/tools/library.md`'s endpoint table gains the two
   columns in the same commit.
 
+  **A third knob is missing rather than undeclared: there is no size.** A house section answers **72 × 108**
+  and a theme swatch **128 × 104**, which is the picture `AD-S6` asks an author to read a roof idiom off. A
+  scale or a width belongs beside `format` and `view`.
+
   *Found by the run-5 authoring test: an agent that read the schema first could not find the query surface
   and fell back to `sketch.md` prose, which is the failure the schema exists to prevent.*
 
@@ -450,7 +454,25 @@ model — everything else from that pool has moved to the heading its subject ow
 
 Four places the paint and the document disagree — an overlap resolved by opposite rules, a shape whose
 interior is never themed, a palette stacked down a column it should top, and a band stack the editor cannot
-author.
+author. Beside them, one where the *reader* disagrees with a document that is right.
+
+- [ ] **TL2 — A material is refused for the order of its own properties, and a mis-shaped bucket is blamed
+  on the studio.** Two faults in one reader, both about whose fault a document is.
+
+  **`kind` must be the first property of a material object.** Move it last and nothing else, and
+  `POST /terrain/material-preview` and `/room-styles/preview-snapshot` answer **400 — "a material names no
+  kind"** on a document whose `kind` is right there. The discriminator is read positionally, so any generic
+  tool that reorders JSON — a formatter, a re-serializer, `json.dumps(…, sort_keys=True)` — breaks a document
+  that worked. Read `kind` wherever it sits (`AllowOutOfOrderMetadataProperties`, or the converter's own
+  lookahead); a caller cannot be asked to preserve key order in JSON, where it carries no meaning.
+
+  **A bucket given the wrong shape answers 500.** `{"surface": {"kind":"solid","id":2,"data":0}}` — a bare
+  material where the surface bucket takes a stack — takes `POST /terrain/theme-preview` down as *"the studio
+  failed to answer this request"*. The document is wrong and says so; the answer blames the reader. `RQ1` at
+  400, naming the field, is what the same class already answers everywhere else.
+
+  *Both found by `tools/drive.py` taking the render of every authored house: eight refusals across four
+  styles that preview at 200 when their keys are left where the author wrote them.*
 
 - [ ] **B144 — Settle how height and paint resolve an overlap, and warn where they disagree.** Height takes the
   **taller** add-shape (`MergeCell`); paint takes the **smallest-area** shape (`ShapeScopeOwners`, "the most
