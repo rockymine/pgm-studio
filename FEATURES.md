@@ -1451,6 +1451,33 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **The world read-backs answer over HTTP (`WS6`), withdrawing `B245`.** Everything a caller does runs
+  through the API and the API describes itself — except the one thing done *after* building, which is looking
+  at what was built. Eight renderers in `Minecraft/Render/` reached a caller only through
+  `PgmStudio.RoundTrip`'s flags, so a brief had to carry a table of them and an agent had to know a .NET
+  binary existed. They answer now, one route each: `render/topdown` (five layers, `material`, `ymax`),
+  `render/section` (`axis`, `from`/`to`, `at`, `ymin`/`ymax`), `render/heightmap`, `render/surface`,
+  `render/traversability`, `render/structures`, `render/mirror`, and **`column`** as `text/plain` — the
+  workhorse, since every picture beside it is a projection and it is what is actually at a coordinate.
+
+  **What each read answers is written once.** `WorldReadCatalog` holds the sentences and both surfaces serve
+  them: each route publishes its own as the summary the schema carries, and `PgmStudio.RoundTrip --help`
+  prints the same text beside the flags — which is why `B245`, asking for it in `--help` alone, is withdrawn
+  rather than done. The three caveats ride with them: `traversability` reads an approach wall's cobweb as
+  impassable (`B99`), `structures` cannot see a town this studio built (`B149`), `section` samples one plane
+  (`B129`).
+
+  **The world is built for the request and no gate runs**, deliberately: a board that fails one is exactly
+  the board somebody needs to look at. The map document is projected from the resolved intent rather than
+  composed through the export, which would lose the world to the first gate that fired. A map with no stored
+  layout is a 404 — a statement that there is no world here to build, not a fault.
+
+  Beside them, `Answers.Reads(…)` and a `QueryWords` processor generalise `RP50`'s lesson: **a word read off
+  the request rather than bound to a record is still a word the schema names**, with its closed set published
+  as an enum. `PngQuery` now expresses its own three through it. Every renderer gained a `Png(…)` returning
+  the finished picture — legend and scale bar included — so nothing writes a temp file to answer a request.
+  (`WorldReadEndpoints.cs`, `QueryWords.cs`, `WorldReadCatalog.cs`, the seven renderers,
+  `WorldReadEndpointTests.cs`, `docs/world-scan/read-backs.md`)
 - **A wall's claim stops where its bedrock does (`WE14`).** `StructureStamper.StampWall` fills
   `[minX, maxX)` and `WorldProvenance.ClaimRect` walks max-inclusive, so a rect carried from one to the other
   recorded an approach wall a column wider on each axis than it is built — 26 × 3 in the sidecar for the

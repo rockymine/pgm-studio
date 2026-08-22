@@ -54,23 +54,30 @@ public static class HeightProfileRender
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
         var chunks = mcas.SelectMany(AnvilRegion.ReadChunks).ToList();
         var name = Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir);
-        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name);
+        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name) is null ? 1 : 0;
     }
 
     /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/> — no round trip
     /// through a region file.</summary>
+    /// <summary>The finished elevation picture as bytes, for a caller that wants the image rather than a
+    /// file. Null where the world holds no ground column.</summary>
+    public static byte[]? Png(VoxelWorld world, int scale, int contourInterval, bool greyscale,
+        bool markWater, bool drawContours, string name)
+        => Emit([.. AnvilRegion.FromWorld(world)], null, scale, contourInterval, greyscale, markWater,
+            drawContours, name);
+
     public static int Run(VoxelWorld world, string outPng, int scale, int contourInterval, bool greyscale,
         bool markWater, bool drawContours, string name)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
-        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name);
+        return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name) is null ? 1 : 0;
     }
 
-    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, int scale, int contourInterval,
+    private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, int scale, int contourInterval,
         bool greyscale, bool markWater, bool drawContours, string name)
     {
         var result = Render(chunks, contourInterval, greyscale, markWater, drawContours);
-        if (result is null) { Console.Error.WriteLine("no ground columns"); return 1; }
+        if (result is null) { if (outPng is not null) Console.Error.WriteLine("no ground columns"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         List<Legend.Entry> entries =
@@ -82,7 +89,9 @@ public static class HeightProfileRender
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS - Y {result.LowestY}..{result.HighestY}");
-        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        var png = PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
+        if (outPng is null) return png;
+        File.WriteAllBytes(outPng, png);
 
         Console.WriteLine($"height profile {name}: {result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
             $"ground y {result.LowestY}..{result.HighestY} (span {result.HighestY - result.LowestY})" +
@@ -90,7 +99,7 @@ public static class HeightProfileRender
         if (result.Flooded.Count > 0)
             Console.WriteLine($"  under liquid {result.Flooded.Count} columns, waterline y {result.Flooded.Values.Min()}..{result.Flooded.Values.Max()}");
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
-        return 0;
+        return png;
     }
 
     /// <summary>The pure render, no file or console I/O.</summary>

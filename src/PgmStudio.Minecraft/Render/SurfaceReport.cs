@@ -88,6 +88,16 @@ public static class SurfaceReport
         return columns.Count == 0 ? null : Render(columns, topMaterials, out _);
     }
 
+    /// <summary>The finished picture as bytes — the legend and the scale bar included, which is what makes it
+    /// readable — for a caller that wants the image rather than a file. Null where the world decodes to no
+    /// columns at all. <see cref="Emit"/> is this plus a write and the console tables.</summary>
+    public static byte[]? Png(VoxelWorld world, int scale, int topMaterials = 12)
+    {
+        var columns = new Dictionary<(int X, int Z), Cell>();
+        foreach (var chunk in AnvilRegion.FromWorld(world)) Scan(chunk, columns);
+        return columns.Count == 0 ? null : Drawn(Render(columns, topMaterials, out _), scale);
+    }
+
     private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int topMaterials, bool verbose)
     {
         var columns = new Dictionary<(int X, int Z), Cell>();
@@ -107,11 +117,23 @@ public static class SurfaceReport
             ReportRelief(columns);
         }
 
-        // The same honesty a structure read-back already bakes into its own caption (TopDownRender's
-        // provenance line): a viewer who only ever looks at the picture has no other way to learn that its
-        // magenta is not one material but a stand-in for several the vocabulary was never taught, so the count
-        // is folded into the swatch that explains it — a wrapped legend row, not a caption line that can run
-        // off a narrow image the way appending it to the fixed-width scale label would.
+        File.WriteAllBytes(outPng, Drawn(result, scale));
+        var unnamed = result.Unnamed.Count == 0 ? null
+            : $"{result.Unnamed.Count} block{(result.Unnamed.Count == 1 ? "" : "s")} no family claims";
+        Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({scale} px/block); " +
+            $"ground tones by terrain-paint family, structure charcoal, water blue, partial blocks amber, unnamed materials magenta" +
+            (unnamed is null ? "" : $" ({unnamed})"));
+        return 0;
+    }
+
+    /// <summary>The rendered cells as the finished PNG: upscaled, with the legend and the scale bar under it.
+    ///
+    /// <para>The unnamed-material count rides in the legend swatch that explains it rather than in a caption.
+    /// A viewer who only ever looks at the picture has no other way to learn that its magenta is not one
+    /// material but a stand-in for several the vocabulary was never taught — and a wrapped legend row survives
+    /// a narrow image, which a fixed-width scale label with the note appended does not.</para></summary>
+    private static byte[] Drawn(Result result, int scale)
+    {
         var unnamedNote = result.Unnamed.Count == 0 ? null
             : $"{result.Unnamed.Count} BLOCK{(result.Unnamed.Count == 1 ? "" : "S")} NO FAMILY CLAIMS";
 
@@ -128,11 +150,7 @@ public static class SurfaceReport
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
-        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
-        Console.WriteLine($"{(verbose ? "\n  " : "")}wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block); " +
-            $"ground tones by terrain-paint family, structure charcoal, water blue, partial blocks amber, unnamed materials magenta" +
-            (unnamedNote is null ? "" : $" ({unnamedNote.ToLowerInvariant()})"));
-        return 0;
+        return PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
     }
 
     /// <summary>The full cubes standing on this board's ground that <see cref="TerrainPalette.Families"/> does

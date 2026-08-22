@@ -53,19 +53,24 @@ public static class TraversabilityRender
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
-        return Emit(chunks, outPng, map, scale);
+        return Emit(chunks, outPng, map, scale) is null ? 1 : 0;
     }
 
     /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
-    public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale)
-        => Emit(AnvilRegion.FromWorld(world).ToList(), outPng, map, scale);
+    /// <summary>The finished navigability picture as bytes, for a caller that wants the image rather than a
+    /// file. Null where the world holds no ground column.</summary>
+    public static byte[]? Png(VoxelWorld world, MapXml? map, int scale)
+        => Emit([.. AnvilRegion.FromWorld(world)], null, map, scale);
 
-    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale)
+    public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale)
+        => Emit(AnvilRegion.FromWorld(world).ToList(), outPng, map, scale) is null ? 1 : 0;
+
+    private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, MapXml? map, int scale)
     {
         var markers = map is null ? [] : Markers(map);
         var bridgeable = map is null ? null : BridgeableColumns(map);
         var result = Render(chunks, markers, bridgeable);
-        if (result is null) { Console.Error.WriteLine("no ground columns"); return 1; }
+        if (result is null) { if (outPng is not null) Console.Error.WriteLine("no ground columns"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         List<Legend.Entry> entries =
@@ -81,14 +86,16 @@ public static class TraversabilityRender
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS");
-        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        var png = PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
+        if (outPng is null) return png;
+        File.WriteAllBytes(outPng, png);
 
         Console.WriteLine($"traversability: {result.NavigableCount} navigable columns" +
             (result.BridgeableCount > 0 ? $" ({result.BridgeableCount} bridged over void)" : "") +
             $", {result.ComponentCount} component(s)" +
             (result.MarkerCount > 0 ? $", {result.MarkerCount} objective marker(s), {result.IsolatedCount} isolated" : ""));
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
-        return 0;
+        return png;
     }
 
     /// <summary>Every spawn region, wool room / location, destroyable region and core region as a box to

@@ -43,45 +43,28 @@ internal sealed class PngQuery : IOperationProcessor
                 Schema = new JsonSchema { Type = JsonObjectType.String, Format = "binary" },
             };
 
-        operation.Parameters.Add(Word(PngAnswer.Format, ["png"],
-            "Ask for the picture instead of the SVG-in-JSON. Absent answers the JSON."));
-
-        if (preview.Views.Length > 1)
-            operation.Parameters.Add(Word(PngAnswer.View_, preview.Views,
-                $"Which view to draw. Absent draws '{preview.Views[0]}'. Only read with format=png."));
-
-        operation.Parameters.Add(new OpenApiParameter
-        {
-            Name = PngAnswer.Scale,
-            Kind = OpenApiParameterKind.Query,
-            IsRequired = false,
-            Schema = new JsonSchema
-            {
-                Type = JsonObjectType.Integer,
-                Minimum = 1,
-                Maximum = PngAnswer.MaxScale,
-            },
-            Description =
-                $"How many times its own size to draw the picture, 1 to {PngAnswer.MaxScale}. A magnification "
-                + "rather than a redraw: the same view, at more pixels. Absent, and anything outside the "
-                + "range, draws at 1 — a scale is how the answer is looked at rather than part of the "
-                + "question, so a bad one costs a bigger picture and not the picture.",
-        });
+        foreach (var word in Words(preview))
+            operation.Parameters.Add(QueryWords.Declared(word));
         return true;
     }
 
-    /// <summary>One query word out of a closed set, published as the set it comes from.</summary>
-    private static OpenApiParameter Word(string name, string[] words, string description)
+    /// <summary>The three words <see cref="PngAnswer"/> reads, as the shared declaration every other route's
+    /// query words travel as — so a caller meets one shape whether a knob is a picture's or a read's.</summary>
+    internal static IEnumerable<QueryWord> Words(PngPreview preview)
     {
-        var schema = new JsonSchema { Type = JsonObjectType.String };
-        foreach (var word in words) schema.Enumeration.Add(word);
-        return new OpenApiParameter
-        {
-            Name = name,
-            Kind = OpenApiParameterKind.Query,
-            IsRequired = false,
-            Schema = schema,
-            Description = description,
-        };
+        yield return new QueryWord(PngAnswer.Format,
+            "Ask for the picture instead of the SVG-in-JSON. Absent answers the JSON.", ["png"]);
+
+        if (preview.Views.Length > 1)
+            yield return new QueryWord(PngAnswer.View_,
+                $"Which view to draw. Absent draws '{preview.Views[0]}'. Only read with format=png.",
+                preview.Views);
+
+        yield return new QueryWord(PngAnswer.Scale,
+            $"How many times its own size to draw the picture, 1 to {PngAnswer.MaxScale}. A magnification "
+            + "rather than a redraw: the same view, at more pixels. Absent, and anything outside the range, "
+            + "draws at 1 — a scale is how the answer is looked at rather than part of the question, so a bad "
+            + "one costs a bigger picture and not the picture.",
+            Min: 1, Max: PngAnswer.MaxScale);
     }
 }

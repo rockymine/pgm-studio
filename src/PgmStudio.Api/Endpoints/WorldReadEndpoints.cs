@@ -1,0 +1,390 @@
+using FastEndpoints;
+using PgmStudio.Api.Services;
+using PgmStudio.Data.Map;
+using PgmStudio.Data.Schema;
+using PgmStudio.Domain;
+using PgmStudio.Export;
+using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Render;
+using PgmStudio.Pgm;
+using PgmStudio.Pgm.Authoring;
+
+namespace PgmStudio.Api.Endpoints;
+
+/// <summary>
+/// Reading a built world back — the eight pictures and one text read that until now existed only behind
+/// <c>PgmStudio.RoundTrip</c>'s flags.
+///
+/// <para><b>Everything an agent does runs through the API and the API describes itself, except the one thing
+/// it does after building: look at what it built.</b> A renderer reachable only from a .NET binary is a
+/// capability no schema names, so a brief had to carry a table of flags and an agent had to know the binary
+/// existed. These are the same renderers, over the same world, answering over HTTP — and what each one draws
+/// is written once, as the endpoint description the schema publishes.</para>
+///
+/// <para><b>The world is built for the request.</b> A map that ships its own region files has one on disk, but
+/// a sketch-authored map's world exists only as the layout and the intent it is derived from — the same
+/// position <c>GET …/export</c> is in, and it builds one too. The build here runs <b>no gate</b>, deliberately:
+/// a board that fails one is exactly the board somebody needs to look at, and a read-back that refuses the
+/// broken case is a read-back that is never there when it is wanted.</para>
+///
+/// <para>The map document is projected from the resolved intent rather than composed through the export, for
+/// the same reason: the projection is what the overlays need — the spawns, the goals and the apply rules a
+/// picture draws on top of the terrain — and going through the export would lose the world to the first gate
+/// that fired.</para>
+/// </summary>
+internal sealed record BuiltRead(BuiltWorld Built, MapXml? Map, string Name);
+
+/// <summary>How a world read is loaded, once, for the endpoints below to draw from.</summary>
+internal static class WorldReads
+{
+    /// <summary>The world a map's stored documents describe, with the map document projected onto it, or null
+    /// when the map has no stored sketch layout — which is every map that ships its own region files, and is
+    /// a 404 rather than a fault: there is no world here to build.</summary>
+    public static async Task<BuiltRead?> LoadAsync(
+        MapRow map, MapReader reader, MapArtifactStore artifacts, CancellationToken ct)
+    {
+        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        if (layout is null) return null;
+
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        var built = WorldBuilder.Build(System.Text.Encoding.UTF8.GetString(layout), intent);
+
+        // The overlays read a map document, and the one that describes this world is the projection of the
+        // intent the build just resolved — spawns snapped to the structures it placed, goal locations filled
+        // in from the cubes it cast. Projected here rather than read off the stored document, which was
+        // written before any of that was known.
+        MapXml? projected = null;
+        try
+        {
+            var doc = await reader.ReadDocAsync(map, ct);
+            IntentGenerator.Apply(doc, built.ResolvedIntent);
+            projected = Deserializer.FromDict(doc);
+        }
+        catch (Exception fault) when (fault is InvalidOperationException or KeyNotFoundException
+                                          or FormatException or ArgumentException)
+        {
+            // A document that will not project costs the overlays and not the picture. The terrain is what
+            // was asked for; the markers on top of it are the part that needs a readable document.
+        }
+
+        return new BuiltRead(built, projected, map.Slug);
+    }
+}
+
+/// <summary>One world read that answers a picture: the world is loaded once, the view is drawn, and a view
+/// that draws nothing is a 422 rather than an empty image.</summary>
+internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest
+{
+    /// <summary>How many pixels a block takes, 1–16, default 4. Bigger than a preview's scale because these
+    /// draw a whole board rather than a swatch, and a board at one pixel a block is a thumbnail.</summary>
+    protected int Scale => Query<int?>("scale", isRequired: false) is { } asked
+        ? Math.Clamp(asked, 1, 16) : 4;
+
+    protected int? OptionalInt(string name) => Query<int?>(name, isRequired: false);
+
+    protected abstract byte[]? Draw(BuiltRead read);
+
+    /// <summary>What this read cannot draw, for the 422 that says so.</summary>
+    protected virtual string Empty => "this world has no column to draw";
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no world for the studio to build and "
+                    + "read back — a map that ships its own region files is read from those instead")], ct);
+            return;
+        }
+
+        byte[]? png;
+        try { png = Draw(read); }
+        catch (Exception fault) when (fault is InvalidOperationException or ArgumentException
+                                          or FormatException or OverflowException)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
+            return;
+        }
+
+        if (png is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
+                [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+            return;
+        }
+
+        HttpContext.Response.ContentType = "image/png";
+        await HttpContext.Response.Body.WriteAsync(png, ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/render/topdown — the board from above, one question per image. <c>layer</c>
+/// picks what is drawn: <c>ground</c> the terrain alone, <c>structure</c> what the build recorded itself
+/// placing (the provenance sidecar, so it draws the buildings that were authored rather than the blocks that
+/// look like buildings), <c>foliage</c> the planting, <c>objectives</c> the goals and spawns, <c>combined</c>
+/// all of it. <c>material</c> switches the colouring from category to the real palette. The one read for
+/// "what did I build and where"; it keeps no Y, so a riser, a ramp's steps and a room's floor are invisible
+/// in it — <c>section</c> and <c>column</c> are the two that do.</summary>
+internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/topdown");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/topdown"));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            new QueryWord("layer", "What to draw. Absent draws them all together.",
+                ["ground", "structure", "foliage", "objectives", "combined"]),
+            new QueryWord("material",
+                "Present colours by the real block palette instead of by category. The category reading is "
+                + "what answers \"what kind of thing is here\"; the material reading answers \"what is it "
+                + "made of\"."),
+            new QueryWord("ymax", "Ignore everything above this height, for looking under a roof or a canopy."),
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "this world has no non-air column, so there is nothing to look down on";
+
+    protected override byte[]? Draw(BuiltRead read) => TopDownRender.Png(
+        read.Built.World, read.Map, Scale, OptionalInt("ymax"), read.Name,
+        Query<string?>("material", isRequired: false) is not null
+            ? TopDownColorMode.Material : TopDownColorMode.Category,
+        Enum.TryParse<TopDownLayer>(Query<string?>("layer", isRequired: false), ignoreCase: true, out var layer)
+            ? layer : TopDownLayer.Combined,
+        read.Built.Provenance);
+}
+
+/// <summary>GET /api/map/{slug}/render/section — a vertical cut with a Y scale, and one of only two reads
+/// that keep Y at all. <c>axis</c> is <c>x</c> or <c>z</c> (which way the cut runs), <c>from</c>/<c>to</c> its
+/// extent along that axis and <c>at</c> the other coordinate it is taken at. It samples <b>one plane</b>, so
+/// anything a few blocks either side is not in the picture — a cut through a house that misses its walls
+/// reads as floor, air, roof, and that is a correct reading of that plane rather than a broken
+/// building.</summary>
+internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/section");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/section"));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            new QueryWord("axis", "Which way the cut runs. Absent runs along x.", ["x", "z"]),
+            new QueryWord("from", "Where the cut starts along that axis. Absent is -64."),
+            new QueryWord("to", "Where it ends. Absent is 64."),
+            new QueryWord("at", "The other coordinate the plane is taken at. Absent is 0."),
+            new QueryWord("ymin", "The lowest course drawn. Absent draws from the lowest block in the cut."),
+            new QueryWord("ymax", "The highest. Absent draws to the highest block in the cut."),
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "nothing stands along that cut";
+
+    protected override byte[]? Draw(BuiltRead read) => SectionRender.Png(
+        read.Built.World,
+        string.Equals(Query<string?>("axis", isRequired: false), "z", StringComparison.OrdinalIgnoreCase)
+            ? SectionAxis.AlongZ : SectionAxis.AlongX,
+        OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, OptionalInt("at") ?? 0,
+        Scale, OptionalInt("ymin"), OptionalInt("ymax"));
+}
+
+/// <summary>GET /api/map/{slug}/render/heightmap — elevation as tone, with contour lines every
+/// <c>contour</c> blocks (default 4). The read for whether a relief solved into the shape it was drawn as,
+/// and the one that shows a flat pad butted against a hill as the ruled edge it is.</summary>
+internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/heightmap");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/heightmap"));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            new QueryWord("contour", "Blocks between contour lines. Absent draws one every 4."),
+            new QueryWord("grey", "Present draws elevation in grey rather than in tone, for a board whose own "
+                + "palette fights the height reading."),
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "this world has no ground column, so it has no elevation to draw";
+
+    protected override byte[]? Draw(BuiltRead read) => HeightProfileRender.Png(
+        read.Built.World, Scale, OptionalInt("contour") ?? 4,
+        Query<string?>("grey", isRequired: false) is not null,
+        markWater: true, drawContours: true, read.Name);
+}
+
+/// <summary>GET /api/map/{slug}/render/surface — the paint, read as the tone families
+/// <c>TerrainPalette.Families</c> names, so a board can be checked against the palette it was authored from.
+/// Magenta is the honest answer for a block no family claims, and the legend says how many.</summary>
+internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/surface");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/surface"));
+        Description(b => b.Png().Refuses(404, 422).Reads(new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "this world decodes to no column, so it has no surface to read";
+
+    protected override byte[]? Draw(BuiltRead read) => SurfaceReport.Png(read.Built.World, Scale);
+}
+
+/// <summary>GET /api/map/{slug}/render/traversability — the navigable components, with the spawns and goals
+/// drawn on them. <b>An approach wall's cobweb course reads as impassable</b> (`B99`), so every board
+/// carrying one reports its wool room isolated and the export gate — which navigates on the columns rather
+/// than on this picture — passes it. A wall is meant to be crossed over the top.</summary>
+internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/traversability");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/traversability"));
+        Description(b => b.Png().Refuses(404, 422).Reads(new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "this world has no ground column, so there is nothing to walk";
+
+    protected override byte[]? Draw(BuiltRead read) =>
+        TraversabilityRender.Png(read.Built.World, read.Map, Scale);
+}
+
+/// <summary>GET /api/map/{slug}/render/structures — the building census by block material, for a world the
+/// studio did <b>not</b> build. On one it did, <c>render/topdown?layer=structure</c> is the read to take:
+/// this one finds roofs by material and cannot see a town in stone and quartz (`B149`), while the structure
+/// layer draws what the build recorded itself placing.</summary>
+internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/structures");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/structures"));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            new QueryWord("minarea", "The smallest footprint counted as a structure, in blocks. Absent is 16."),
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "this world decodes to no column, so it holds no structure to find";
+
+    protected override byte[]? Draw(BuiltRead read) => StructureFinder.Png(
+        read.Built.World, Scale, OptionalInt("minarea") ?? 16, provenance: read.Built.Provenance);
+}
+
+/// <summary>GET /api/map/{slug}/render/mirror — what the board looks like against its own symmetry: the
+/// columns that agree with their image, and the ones that do not. The read for whether a board a caller
+/// believes is symmetric actually is.</summary>
+internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : WorldRenderEndpoint(repo, reader, artifacts)
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/mirror");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/mirror"));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            new QueryWord("mode", "Which symmetry to compare against. Absent uses the one the map states.",
+                ["none", "mirror_x", "mirror_z", "mirror_d1", "mirror_d2", "rot_90", "rot_180"]),
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+    }
+
+    protected override string Empty => "this world decodes to no column, so it has no image to compare";
+
+    protected override byte[]? Draw(BuiltRead read) => MirrorReport.Png(
+        read.Built.World, Scale,
+        Query<string?>("mode", isRequired: false) ?? read.Built.ResolvedIntent.Symmetry?.Mode,
+        read.Built.ResolvedIntent.Symmetry?.CenterX ?? 0,
+        read.Built.ResolvedIntent.Symmetry?.CenterZ ?? 0);
+}
+
+/// <summary>
+/// GET /api/map/{slug}/column?at=x,z&amp;at=x,z — one or more columns bedrock-to-sky, every block named, as
+/// <c>text/plain</c>.
+///
+/// <para><b>The workhorse, and the only honest answer.</b> Every picture beside it is a projection: a layer
+/// stack, a wall's courses, a stamped room's floor, a goal's clearance and a void column are none of them
+/// visible from above, and a section shows only the plane it cuts. This shows what is actually at a
+/// coordinate — which is why it is the read to reach for when a picture and a document disagree.</para>
+///
+/// <para>Text rather than JSON because it is read by a person or an agent rather than parsed, and because it
+/// is the one read a caller with no image reader can act on — the same reason the plan grid and the flow
+/// account answer as characters.</para>
+/// </summary>
+internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/column");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("column"));
+        Description(b => b.PlainText().Refuses(404, 422).Reads(
+            new QueryWord("at", "A column to read, as two whole numbers: `at=x,z`. Repeat it for more than "
+                + "one, and they are answered in the order asked. At least one is required.")));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var wanted = new List<(int X, int Z)>();
+        foreach (var at in HttpContext.Request.Query["at"])
+        {
+            var pair = (at ?? "").Split(',', StringSplitOptions.TrimEntries);
+            if (pair.Length != 2 || !int.TryParse(pair[0], out var x) || !int.TryParse(pair[1], out var z))
+            {
+                await Refusals.UnreadableAsync(HttpContext, "unreadable column",
+                    $"'{at}' is not a column — each `at` is two whole numbers, `at=x,z`", ct, field: "at");
+                return;
+            }
+            wanted.Add((x, z));
+        }
+        if (wanted.Count == 0)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "no column asked for",
+                "name at least one column to read: `?at=x,z`, repeated for more than one", ct, field: "at");
+            return;
+        }
+
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no world for the studio to build and "
+                    + "read back")], ct);
+            return;
+        }
+
+        var stacks = ColumnReport.Render(
+            PgmStudio.Minecraft.Anvil.AnvilRegion.FromWorld(read.Built.World), wanted);
+
+        var written = new System.Text.StringBuilder();
+        foreach (var cell in wanted)
+        {
+            var stack = stacks[cell];
+            written.AppendLine($"=== column ({cell.X}, {cell.Z}) — {stack.Count} solid block(s) ===");
+            if (stack.Count == 0)
+            {
+                written.AppendLine("  (void — no block recorded at any height)");
+                continue;
+            }
+            foreach (var block in stack)
+                written.AppendLine($"  y{block.Y,3}  {block.Id,4}:{block.Data,-2}  {block.Name}");
+        }
+
+        await Send.StringAsync(written.ToString(), contentType: "text/plain; charset=utf-8", cancellation: ct);
+    }
+}

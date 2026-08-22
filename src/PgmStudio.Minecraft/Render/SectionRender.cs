@@ -55,22 +55,31 @@ public static class SectionRender
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
         return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, axis, rangeMin, rangeMax, fixedCoord,
-            scale, yMin, yMax, tickInterval);
+            scale, yMin, yMax, tickInterval) is null ? 1 : 0;
     }
 
     /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
+    /// <summary>The finished cut as bytes, for a caller that wants the image rather than a file. Null where
+    /// nothing stands along the plane asked for.</summary>
+    public static byte[]? Png(VoxelWorld world, SectionAxis axis, int rangeMin, int rangeMax,
+        int fixedCoord, int scale, int? yMin, int? yMax, int tickInterval = 8)
+        => Emit(AnvilRegion.FromWorld(world), null, axis, rangeMin, rangeMax, fixedCoord, scale, yMin, yMax,
+            tickInterval);
+
     public static int Run(VoxelWorld world, string outPng, SectionAxis axis, int rangeMin, int rangeMax,
         int fixedCoord, int scale, int? yMin, int? yMax, int tickInterval = 8)
-        => Emit(AnvilRegion.FromWorld(world), outPng, axis, rangeMin, rangeMax, fixedCoord, scale, yMin, yMax, tickInterval);
+        => Emit(AnvilRegion.FromWorld(world), outPng, axis, rangeMin, rangeMax, fixedCoord, scale, yMin, yMax, tickInterval) is null ? 1 : 0;
 
-    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, SectionAxis axis, int rangeMin,
+    private static byte[]? Emit(IEnumerable<AnvilRegion.Chunk> chunks, string? outPng, SectionAxis axis, int rangeMin,
         int rangeMax, int fixedCoord, int scale, int? yMin, int? yMax, int tickInterval)
     {
         var result = Render(chunks, axis, rangeMin, rangeMax, fixedCoord, yMin, yMax, tickInterval);
-        if (result is null) { Console.Error.WriteLine("no blocks found along that cut"); return 1; }
+        if (result is null) { if (outPng is not null) Console.Error.WriteLine("no blocks found along that cut"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.Width, result.Height, scale);
-        PngWriter.Write(outPng, result.Width * scale, result.Height * scale, scaled);
+        var png = PngWriter.Encode(result.Width * scale, result.Height * scale, scaled);
+        if (outPng is null) return png;
+        File.WriteAllBytes(outPng, png);
 
         var alongLabel = axis == SectionAxis.AlongX ? "x" : "z";
         var fixedLabel = axis == SectionAxis.AlongX ? "z" : "x";
@@ -80,7 +89,7 @@ public static class SectionRender
         Console.WriteLine($"  gridlines every {result.TickInterval} block(s) (heavy every {result.TickInterval * 5}), " +
             $"row 0 = y{result.HighestY}, last row = y{result.LowestY}");
         Console.WriteLine($"  wrote {outPng} ({result.Width * scale}x{result.Height * scale} px, {scale} px/block)");
-        return 0;
+        return png;
     }
 
     /// <summary>The pure render: chunks in, an RGB pixel buffer out. No file or console I/O.</summary>

@@ -36,9 +36,15 @@ public static class MirrorReport
     private const int Unpaired = 0xE0483C, Axis = 0x4FC3F7;
 
     /// <summary>Read a built world still in memory and write the picture.</summary>
+    /// <summary>The finished symmetry picture as bytes, for a caller that wants the image rather than a
+    /// file. Null where the world decodes to no column.</summary>
+    public static byte[]? Png(VoxelWorld world, int scale, string? mode,
+                              double centerX = 0, double centerZ = 0)
+        => Emit(AnvilRegion.FromWorld(world), null, scale, mode, centerX, centerZ);
+
     public static int Run(VoxelWorld world, string outPng, int scale, string? mode,
                           double centerX = 0, double centerZ = 0)
-        => Emit(AnvilRegion.FromWorld(world), outPng, scale, mode, centerX, centerZ);
+        => Emit(AnvilRegion.FromWorld(world), outPng, scale, mode, centerX, centerZ) is null ? 1 : 0;
 
     /// <summary>Read a built region directory from disk and write the picture.</summary>
     public static int Run(string regionDir, string outPng, int scale, string? mode,
@@ -47,14 +53,14 @@ public static class MirrorReport
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
-        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, mode, centerX, centerZ);
+        return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, mode, centerX, centerZ) is null ? 1 : 0;
     }
 
-    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, string? mode,
+    private static byte[]? Emit(IEnumerable<AnvilRegion.Chunk> chunks, string? outPng, int scale, string? mode,
                             double centerX, double centerZ)
     {
         var result = Render(chunks, mode, centerX, centerZ);
-        if (result is null) { Console.Error.WriteLine("no columns decoded"); return 1; }
+        if (result is null) { if (outPng is not null) Console.Error.WriteLine("no columns decoded"); return null; }
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         List<Legend.Entry> entries =
@@ -71,10 +77,12 @@ public static class MirrorReport
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS" +
                         $"  -  {(mode ?? "NONE").ToUpperInvariant()} ABOUT ({centerX:0.#}, {centerZ:0.#})  -  {verdict}");
-        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        var png = PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
+        if (outPng is null) return png;
+        File.WriteAllBytes(outPng, png);
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block), "
                         + $"{verdict.ToLowerInvariant()}");
-        return 0;
+        return png;
     }
 
     /// <summary>The pure read: chunks in, picture and counts out. No file or console I/O. A mode with no

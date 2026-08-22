@@ -113,7 +113,7 @@ document rather than what a reader is looking for.
 | `tools/` | one document per studio tool, end to end — `flow.md` first, then `plan`, `sketch`, `configure`, `edit`, `generator`, `shapes`, `library`. Written from the code and usable as agent input, which is why each carries its endpoints. Beside them: `capabilities.md`, what the system can be *asked* for at each stage, and `mapgen-review.md`, the `MG` fault pool behind it. |
 | `generator/` | the layout-generation track — eight files, no others (below). |
 | `world-export/` | what the export **writes** into a world: `relief`, `terrain-painting`, `structures`, `decoration`, `tree-corpus`, `sketch-world-export`, `ideas`. |
-| `world-scan/` | what the studio **reads** out of a world it did not build: monument and objective suggestion, terrain ground truth, the block palette, the corpus studies behind them. |
+| `world-scan/` | what the studio **reads** out of a world — `read-backs.md` is the eight pictures and the column read, over HTTP and at the CLI; beside it, what it reads out of a world it did *not* build: monument and objective suggestion, terrain ground truth, the block palette, the corpus studies behind them. |
 | `pgm/` | the map contract — destroyables/cores, water lanes, regions and filters, include resolution, what the studio refuses to read, the intent model, `template.xml`. |
 | `client/` | the browser half: the canvas JS layer, the component vocabulary, routing and how the client is served. |
 | `gameplay/` | what a map is played for — `approaches.md` (what the ground around an objective does, and the one document whose claims are the author's), the match-flow account, the traffic ground truth. |

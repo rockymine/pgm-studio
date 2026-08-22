@@ -32,6 +32,20 @@ string[] defaultRoots = (Environment.GetEnvironmentVariable("PGM_STUDIO_MAPS_ROO
     .Split([';', ','], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 var verbose = args.Contains("--verbose");
 
+// --help: what each world read answers, and where each is known to mislead. The sentences come from
+// PgmStudio.Minecraft.Render.WorldReadCatalog, which is also what the HTTP routes publish as their own
+// summaries — a description of what a picture shows is exactly the text that gets written twice and then
+// disagrees, so it is written once and served twice.
+if (args.Contains("--help") || args.Contains("-h"))
+{
+    Console.WriteLine("PgmStudio.RoundTrip — the corpus harness, and the world read-backs.\n");
+    Console.Write(PgmStudio.Minecraft.Render.WorldReadCatalog.Help());
+    Console.WriteLine("  --goldens [featureRoot] [--update]");
+    Console.WriteLine("      The four map-level derivations over the whole corpus, against the recorded");
+    Console.WriteLine("      digest, so a change that moves a verdict says which maps moved.");
+    return 0;
+}
+
 // --goldens [featureRoot] [--update]: run the four map-level derivations — region categories,
 // buildability, traversability, wool availability — over the whole corpus and compare each map against the
 // recorded digest, so a change that moves a verdict on a real map says which maps. A feature root (a

@@ -8,33 +8,6 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-## The studio's eyes: what it can be asked to show, and what it says about what it drew
-
-Five entries out of one afternoon of driving the pipeline, and one concept under them: the studio can be
-asked for almost anything and describes every answer — **except what a board looks like once it is built**.
-Four have landed. What remains is the one they were all edges of: it cannot show a world at all outside a
-CLI, so the last thing an agent does — look at what it made — is the one thing the API has no answer for.
-
-- [ ] **WS6 — The read-backs answer over HTTP, and say what each one answers.** Everything an agent does
-  runs through the API and the API describes itself — except the one thing it does *after* building, which is
-  look at what it built. Eight renderers live in `Minecraft/Render/` (`TopDownRender`, `SectionRender`,
-  `HeightProfileRender`, `SurfaceReport`, `TraversabilityRender`, `StructureFinder`, `ColumnReport`,
-  `MirrorReport`) and reach a caller only through `PgmStudio.RoundTrip`'s flags, which no schema names — so a
-  brief has to carry a table of them and an agent has to know a .NET binary exists.
-
-  `Api` already references `Minecraft`, and the pattern is already built: `?format=png` through
-  `PngAnswer` + `.AlsoPng()`, which six routes use, and `/map/{slug}/coverage` proves a world read can be
-  answered from stored segments and the layout artifact rather than from a region directory on disk. Settle
-  the source per read — `--section` and `--column` want voxels, which is what `/export` builds — and give
-  each its own route.
-
-  **What each read answers is then written once**, as the endpoint description the schema publishes, and the
-  CLI prints the same sentence. Three caveats belong in it, each having cost a reader a wrong conclusion:
-  `--traversability-map` reads an approach wall's cobweb course as impassable, so every board carrying one
-  reports isolated markers (`B99`); `--buildings` finds roofs by material and cannot see a town this studio
-  built (`B149`); `--section` samples **one plane** (`B129`). Withdraws `B245`, which asked for that sentence
-  in `--help` alone.
-
 ## What the front door still cannot say, and the copies that outlived their reason
 
 Not a headed group in `BACKLOG.md` — these were scattered across three of them, and they are one concept all

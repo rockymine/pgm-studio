@@ -105,7 +105,7 @@ public static class TopDownRender
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
         return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, WorldProvenanceFile.TryRead(regionDir),
             Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir),
-            treePoints);
+            treePoints) is null ? 1 : 0;
     }
 
     /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
@@ -116,21 +116,30 @@ public static class TopDownRender
     /// name="treePoints"/> is the isolated foliage layer's point-and-radius reading, from the same build's
     /// dressing document (<c>DressingScope.TreeFootprints</c>); null falls back to the leaf/log mass, exactly
     /// as the disk-reading overload's caller with no document does.</summary>
+    /// <summary>The finished picture as bytes, for a caller that wants the image rather than a file — the
+    /// legend and the scale bar included, since those are what make it readable. Null where the world holds
+    /// no non-air column.</summary>
+    public static byte[]? Png(VoxelWorld world, MapXml? map, int scale, int? yMax, string name,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
+        => Emit([.. AnvilRegion.FromWorld(world)], null, map, scale, yMax, colorMode, layer, provenance, name,
+            treePoints);
+
     public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name,
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine("world has no chunks"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, provenance, name, treePoints);
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, provenance, name, treePoints) is null ? 1 : 0;
     }
 
-    private static int Emit(List<AnvilRegion.Chunk> chunks, string outPng, MapXml? map, int scale, int? yMax,
+    private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, MapXml? map, int scale, int? yMax,
         TopDownColorMode colorMode, TopDownLayer layer, WorldProvenance? provenance, string name,
         IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var result = Render(chunks, map, yMax, colorMode, layer, provenance, treePoints);
-        if (result is null) { Console.Error.WriteLine("no non-air columns"); return 1; }
+        if (result is null) { if (outPng is not null) Console.Error.WriteLine("no non-air columns"); return null; }
 
         // Whether the Ground/Structure split is a recorded fact or a material guess is the one thing a legend
         // swatch cannot say on its own (B133), so it is baked into the picture itself rather than left to a
@@ -144,7 +153,9 @@ public static class TopDownRender
             LegendEntries(colorMode, layer, result.TreePointCount > 0), out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS"
                        + (provenanceState is null ? "" : $"  -  {provenanceState}"));
-        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        var png = PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
+        if (outPng is null) return png;
+        File.WriteAllBytes(outPng, png);
 
         Console.WriteLine($"topdown {name} ({layer}/{colorMode}{(provenanceState is null ? "" : $", {provenanceState}")}): " +
             $"{result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
@@ -155,7 +166,7 @@ public static class TopDownRender
                 ? $"  {result.TreePointCount} tree(s), drawn as point + measured crown radius"
                 : $"  no dressing document given — drawn as the leaf/log mass (no tree points to plot)");
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block)");
-        return 0;
+        return png;
     }
 
     /// <summary>The legend a caller's picture actually carries — one entry per colour <see cref="Paint"/> can

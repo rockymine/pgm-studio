@@ -27,7 +27,8 @@ internal static class Answers
     /// <see cref="PngQuery"/> can publish the query words beside the media type: the flag that makes a route
     /// answer a picture is the flag that documents how to ask for one, which is what keeps the two from
     /// drifting apart. The same array reaches <see cref="PngAnswer.AnsweredAsync"/>, so the enum the schema
-    /// names and the names a refusal lists are one list.</para></summary>
+    /// names and the names a refusal lists are one list.</para>
+    ///
     /// <para>It attaches metadata and nothing else, deliberately. A second <c>Produces</c> for 200
     /// <b>replaces</b> the first rather than adding to it — as <see cref="WorldZipOrMapXml"/> below says —
     /// so declaring the picture that way took the JSON answer off a route that answers JSON by default, and
@@ -35,6 +36,13 @@ internal static class Answers
     /// the media type to the 200 the endpoint's own response type already put there.</para></summary>
     public static RouteHandlerBuilder AlsoPng(this RouteHandlerBuilder builder, params string[] views) =>
         builder.WithMetadata(new PngPreview(views));
+
+    /// <summary>The query words this route reads off the request rather than binding to a record — a
+    /// magnification, a view name, the extent of a cut. <see cref="QueryWords"/> publishes them, so a knob
+    /// that exists is a knob the schema names; declared here, beside the route, because the reader and the
+    /// declaration drifting apart is the whole fault this exists to stop.</summary>
+    public static RouteHandlerBuilder Reads(this RouteHandlerBuilder builder, params QueryWord[] words) =>
+        builder.WithMetadata(new DeclaredQuery(words));
 
     /// <summary>The route answers a picture and nothing else.</summary>
     public static RouteHandlerBuilder Png(this RouteHandlerBuilder builder) =>

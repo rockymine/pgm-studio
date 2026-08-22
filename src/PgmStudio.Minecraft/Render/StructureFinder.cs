@@ -113,21 +113,27 @@ public static class StructureFinder
         var mcas = Directory.GetFiles(regionDir, "*.mca");
         if (mcas.Length == 0) { Console.Error.WriteLine($"no region files in {regionDir}"); return 1; }
         return Emit(mcas.SelectMany(AnvilRegion.ReadChunks), outPng, scale, minimumArea, maximumStep,
-            WorldProvenanceFile.TryRead(regionDir));
+            WorldProvenanceFile.TryRead(regionDir)) is null ? 1 : 0;
     }
 
     /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.
     /// <paramref name="provenance"/> is the record the build kept (<see cref="BuiltWorld.Provenance"/> via
     /// <c>PgmStudio.Export</c>); null reads by the step-tested material estimate.</summary>
+    /// <summary>The finished structure census as bytes, for a caller that wants the image rather than a
+    /// file. Null where the world decodes to no column.</summary>
+    public static byte[]? Png(VoxelWorld world, int scale, int minimumArea,
+        int maximumStep = DefaultMaximumStep, WorldProvenance? provenance = null)
+        => Emit(AnvilRegion.FromWorld(world), null, scale, minimumArea, maximumStep, provenance);
+
     public static int Run(VoxelWorld world, string outPng, int scale, int minimumArea,
         int maximumStep = DefaultMaximumStep, WorldProvenance? provenance = null)
-        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea, maximumStep, provenance);
+        => Emit(AnvilRegion.FromWorld(world), outPng, scale, minimumArea, maximumStep, provenance) is null ? 1 : 0;
 
-    private static int Emit(IEnumerable<AnvilRegion.Chunk> chunks, string outPng, int scale, int minimumArea,
+    private static byte[]? Emit(IEnumerable<AnvilRegion.Chunk> chunks, string? outPng, int scale, int minimumArea,
         int maximumStep, WorldProvenance? provenance)
     {
         var result = Render(chunks, minimumArea, maximumStep, provenance);
-        if (result is null) { Console.Error.WriteLine("no columns decoded"); return 1; }
+        if (result is null) { if (outPng is not null) Console.Error.WriteLine("no columns decoded"); return null; }
 
         Report(result.Structures);
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
@@ -145,10 +151,12 @@ public static class StructureFinder
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS" +
                         $"  -  STRUCTURE EXTENT: {extentReading.ToUpperInvariant()}");
-        PngWriter.Write(outPng, result.BlocksWide * scale, legendHeight, withLegend);
+        var png = PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
+        if (outPng is null) return png;
+        File.WriteAllBytes(outPng, png);
         Console.WriteLine($"  wrote {outPng} ({result.BlocksWide * scale}x{legendHeight} px, {scale} px/block), " +
             $"{result.Structures.Count} structure(s) over the terrain, extent: {extentReading}");
-        return 0;
+        return png;
     }
 
     /// <summary>The pure render: chunks in, findings + an RGB pixel buffer out. No file or console I/O.

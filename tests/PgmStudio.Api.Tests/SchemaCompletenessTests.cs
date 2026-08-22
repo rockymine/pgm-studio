@@ -263,6 +263,17 @@ public sealed class SchemaCompletenessTests
         ("GET /api/map/{slug}/coverage", "image/png"),
         ("GET /api/plans/{id}/png", "image/png"),
 
+        // The world read-backs: the eight pictures and one text read that used to exist only behind
+        // PgmStudio.RoundTrip's flags. Each is the last read an agent takes — look at what was built.
+        ("GET /api/map/{slug}/render/topdown", "image/png"),
+        ("GET /api/map/{slug}/render/section", "image/png"),
+        ("GET /api/map/{slug}/render/heightmap", "image/png"),
+        ("GET /api/map/{slug}/render/surface", "image/png"),
+        ("GET /api/map/{slug}/render/traversability", "image/png"),
+        ("GET /api/map/{slug}/render/structures", "image/png"),
+        ("GET /api/map/{slug}/render/mirror", "image/png"),
+        ("GET /api/map/{slug}/column", "text/plain"),
+
         ("GET /api/plans/{id}/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/flow", "text/plain"),
