@@ -285,4 +285,39 @@ public sealed class RoomStyleJsonTests
         await Assert.That(HouseStyleJson.DeserializeOr("", HouseStyle.Spawn)).IsEqualTo(HouseStyle.Spawn);
         await Assert.That(HouseStyleJson.DeserializeOr("{ not json", HouseStyle.Wool)).IsEqualTo(HouseStyle.Wool);
     }
+
+    [Test]
+    public async Task A_style_reads_the_same_however_its_keys_are_ordered()
+    {
+        // A style is a hand-editable document, and key order carries no meaning in JSON — so a formatter, a
+        // re-serializer or anything else that reorders one must not change the building it stamps. The
+        // discriminator on a course material is what this is really about: read positionally, a reordered
+        // style refuses as "a material names no kind" about a kind that is right there.
+        var written = HouseStyleJson.Serialize(HouseStyle.Wool);
+        var reordered = Sorted(System.Text.Json.Nodes.JsonNode.Parse(written)!).ToJsonString();
+
+        await Assert.That(reordered).IsNotEqualTo(written);
+        await Assert.That(HouseStyleJson.Serialize(HouseStyleJson.Deserialize(reordered))).IsEqualTo(written);
+    }
+
+    /// <summary>The same document with every object's keys in alphabetical order — what any tool that
+    /// round-trips JSON through a sorted map produces.</summary>
+    private static System.Text.Json.Nodes.JsonNode Sorted(System.Text.Json.Nodes.JsonNode node)
+    {
+        switch (node)
+        {
+            case System.Text.Json.Nodes.JsonObject obj:
+                var sorted = new System.Text.Json.Nodes.JsonObject();
+                foreach (var pair in obj.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+                    sorted[pair.Key] = pair.Value is null ? null : Sorted(pair.Value.DeepClone());
+                return sorted;
+            case System.Text.Json.Nodes.JsonArray array:
+                var items = new System.Text.Json.Nodes.JsonArray();
+                foreach (var item in array)
+                    items.Add(item is null ? null : Sorted(item.DeepClone()));
+                return items;
+            default:
+                return node.DeepClone();
+        }
+    }
 }

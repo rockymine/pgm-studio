@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Tests;
@@ -116,5 +117,29 @@ public sealed class TerrainThemeJsonTests
         // The composer names it the same word the wire does. Contracts is not reachable from here (Minecraft
         // sits below it), so the string is spelled out — which is the thing that has to match anyway.
         await Assert.That(TerrainThemeComposer.KindOf(theme.Wall)).IsEqualTo("logChecker");
+    }
+
+    [Test]
+    public async Task A_material_reads_the_same_wherever_its_kind_sits()
+    {
+        // Key order carries no meaning in JSON, so a document reordered by a formatter or a re-serializer has
+        // to say what it said before. Both spellings, and the tell that this is a real check: they differ.
+        const string first = """{"kind":"solid","id":98,"data":0}""";
+        const string last = """{"id":98,"data":0,"kind":"solid"}""";
+        await Assert.That(first).IsNotEqualTo(last);
+        await Assert.That(TerrainThemeJson.DeserializeMaterial(last))
+            .IsEqualTo(TerrainThemeJson.DeserializeMaterial(first));
+    }
+
+    [Test]
+    public async Task A_bucket_stated_with_no_material_is_the_document_s_fault()
+    {
+        // `rim` and `surface` take a band — {"material": …, "depth": N} — so a bare material at either leaves
+        // the band's own material null. Unnamed here it reaches the painter a whole raster later as a null
+        // dereference, which reads as the studio's fault rather than the document's.
+        await Assert.That(() => TerrainThemeJson.Deserialize("""{"surface":{"kind":"solid","id":2,"data":0}}"""))
+            .Throws<JsonException>();
+        // An absent bucket keeps its default and is not a fault: every bucket has one.
+        await Assert.That(TerrainThemeJson.Deserialize("{}")).IsEqualTo(TerrainTheme.Default);
     }
 }

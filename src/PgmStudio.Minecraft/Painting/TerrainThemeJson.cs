@@ -13,11 +13,16 @@ namespace PgmStudio.Minecraft.Painting;
 public static class TerrainThemeJson
 {
     /// <summary>Canonical options: camelCase names, compact. The <c>kind</c> discriminator comes from the
-    /// polymorphism attributes on <see cref="TerrainMaterial"/>.</summary>
+    /// polymorphism attributes on <see cref="TerrainMaterial"/>, and
+    /// <see cref="JsonSerializerOptions.AllowOutOfOrderMetadataProperties"/> reads it wherever it falls in the
+    /// object rather than only as the first key — a discriminator's position is a serialization detail, and
+    /// key order carries no meaning in JSON, so any tool that reorders a document must not change what it
+    /// says.</summary>
     public static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
+        AllowOutOfOrderMetadataProperties = true,
     };
 
     public static string Serialize(TerrainTheme theme) => JsonSerializer.Serialize(theme, Options);
@@ -25,15 +30,32 @@ public static class TerrainThemeJson
     /// <summary>Read a theme, upgrading anything written before the model it names existed. See
     /// <see cref="Upgrade"/> for what is carried forward and why.</summary>
     public static TerrainTheme Deserialize(string json)
-        => Read<TerrainTheme>(Upgraded(json));
+        => Materialized(Read<TerrainTheme>(Upgraded(json)));
 
     /// <summary>Read a theme and say what of it went unread — see
     /// <see cref="PgmStudio.Domain.DocumentShape"/> for why that is a complaint and not a refusal.</summary>
     public static TerrainTheme Deserialize(string json, out IReadOnlyList<string> unread)
     {
         var node = Upgraded(json);
-        var theme = Read<TerrainTheme>(node);
+        var theme = Materialized(Read<TerrainTheme>(node));
         unread = PgmStudio.Domain.DocumentShape.Unread(node, theme);
+        return theme;
+    }
+
+    /// <summary>Refuse a bucket that was stated and carries no material. Every bucket has a default, so an
+    /// absent key is fine; a key holding the wrong shape is not. <c>rim</c> and <c>surface</c> take a band —
+    /// <c>{"material": …, "depth": N}</c> — so a bare material written at either leaves the band's own
+    /// material null, and the painter reads it a whole raster later as a null dereference. Named here, at the
+    /// read, the fault is the document's and says which field it is.</summary>
+    private static TerrainTheme Materialized(TerrainTheme theme)
+    {
+        foreach (var (field, missing) in (ReadOnlySpan<(string, bool)>)
+                 [("rim", theme.Rim?.Material is null), ("surface", theme.Surface?.Material is null),
+                  ("wall", theme.Wall is null), ("fill", theme.Fill is null)])
+            if (missing)
+                throw new JsonException(
+                    $"'{field}' names no material — rim and surface take a band, {{\"material\": …, " +
+                    "\"depth\": N}, and wall and fill take a material directly");
         return theme;
     }
 

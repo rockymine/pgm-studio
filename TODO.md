@@ -17,27 +17,8 @@ one; the document that would draw one is refused for the order of its own keys; 
 at all raises nothing, because there is nothing stated to disagree with; and what it records itself having
 drawn is a column wider than what it laid.
 
-The order is what each one unblocks. `TL2` is a reader fix that makes the previews answerable today; `RP50`
-puts the way to ask for them in the schema; `TS15` gives the finish stage a voice; `WS6` is the substantial
-one, and `WE14` is a claim to correct while that code is open.
-
-- [ ] **TL2 — A material is refused for the order of its own properties, and a mis-shaped bucket is blamed
-  on the studio.** Two faults in one reader, both about whose fault a document is.
-
-  **`kind` must be the first property of a material object.** Move it last and nothing else, and
-  `POST /terrain/material-preview` and `/room-styles/preview-snapshot` answer **400 — "a material names no
-  kind"** on a document whose `kind` is right there. The discriminator is read positionally, so any generic
-  tool that reorders JSON — a formatter, a re-serializer, `json.dumps(…, sort_keys=True)` — breaks a document
-  that worked. Read `kind` wherever it sits (`AllowOutOfOrderMetadataProperties`, or the converter's own
-  lookahead); a caller cannot be asked to preserve key order in JSON, where it carries no meaning.
-
-  **A bucket given the wrong shape answers 500.** `{"surface": {"kind":"solid","id":2,"data":0}}` — a bare
-  material where the surface bucket takes a stack — takes `POST /terrain/theme-preview` down as *"the studio
-  failed to answer this request"*. The document is wrong and says so; the answer blames the reader. `RQ1` at
-  400, naming the field, is what the same class already answers everywhere else.
-
-  *Both found by `tools/drive.py` taking the render of every authored house: eight refusals across four
-  styles that preview at 200 when their keys are left where the author wrote them.*
+The order is what each one unblocks. `RP50` puts the way to ask for a picture in the schema; `TS15` gives the
+finish stage a voice; `WS6` is the substantial one, and `WE14` is a claim to correct while that code is open.
 
 - [ ] **RP50 — Five routes declare a PNG answer and nothing declares how to ask for one.** `?format=png` and
   `?view=` are read by `PngAnswer.Wanted`/`.View` straight off `HttpContext.Request.Query`, so they reach no

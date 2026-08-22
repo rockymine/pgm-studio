@@ -56,6 +56,12 @@ Every kind resolves one block per cell, and every one of them **nests**: whereve
 below, any of the fourteen may stand — so a voronoi band can be a team tint, a layer of a stack can be a
 noise field, and a wall stripe can be a checkerboard. `id` and `data` are the block and its variant.
 
+`kind` is what the reader dispatches on, and it is read **wherever it sits in the object**: a material, a
+style or a theme reordered by a formatter or a re-serializer says exactly what it said before, because key
+order carries no meaning in JSON. A `kind` that is absent, or names none of the fourteen, is refused at the
+read with `GET /api/terrain/patterns` named — which is the endpoint that answers every kind's own field list,
+and the one to read rather than guessing a field name off a kind's.
+
 **`solid` — one block everywhere.** The leaf every other kind bottoms out in.
 
 ```json
@@ -213,6 +219,12 @@ They **fall through** in that order: an unpainted rim falls to the surface, an u
 fill, and the fill to nothing — which is why the fill alone cannot be switched off. Only the rim and the
 surface carry a `depth`. Both, and the wall, may be disabled outright, and disabled is not the same as unbound:
 a theme that binds no rim keeps the built-in one, while a theme whose rim is *off* paints no rim at all.
+
+**The rim and the surface take a band, and the wall and the fill take a material.** A band is
+`{"material": …, "depth": N}`, because those two are the buckets with a depth to state; the other two are a
+material written directly. A bucket key left out entirely keeps its default, and a bucket stated with the
+wrong one of those two shapes is refused at the read, naming the field — a bare material at `surface` leaves
+the band holding no material at all, which the painter would otherwise meet a whole raster later.
 
 Three knobs sit beside the buckets rather than in them. **`bedrock`** is the floor course, either an absolute
 thickness or a terrain-relative depth, and the band resolver always clamps a bucket's depth to the stone above

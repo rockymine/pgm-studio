@@ -21,11 +21,16 @@ public static class HouseStyleJson
 {
     /// <summary>Canonical options: camelCase names, compact, enums as their camelCase names — so
     /// <c>eave</c> reads <c>"flush"</c> and <c>door</c> reads <c>"stainedGlassPane"</c> rather than an
-    /// ordinal nobody could edit by hand or diff usefully.</summary>
+    /// ordinal nobody could edit by hand or diff usefully.
+    /// <see cref="JsonSerializerOptions.AllowOutOfOrderMetadataProperties"/> reads a course material's
+    /// <c>kind</c> wherever it falls in the object rather than only as the first key — a discriminator's
+    /// position is a serialization detail, and key order carries no meaning in JSON, so any tool that
+    /// reorders a style must not change what it says.</summary>
     public static readonly JsonSerializerOptions Options = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = false,
+        AllowOutOfOrderMetadataProperties = true,
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 

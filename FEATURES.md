@@ -1439,6 +1439,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `"rough"`/`"natural"` was never the actual fault — `sketch.md`'s Dressing section says so explicitly now,
   since the theory that case broke parsing is exactly the kind of claim worth writing down as settled.
   (`DressingJson.cs`, `DressingJsonTests.cs`; DR-DOC)
+- **A material reads the same wherever its `kind` sits, and a bucket with no material is the document's fault
+  (`TL2`).** The dressing reader's key-order rule now holds at all three readers that can contain a material:
+  `TerrainThemeJson` and `HouseStyleJson` take `AllowOutOfOrderMetadataProperties` too, so a theme or a style
+  reordered by a formatter, a re-serializer or `sort_keys=True` says what it said before. It had not: the same
+  room style answered **200** as authored and **400 — "a material names no kind"** with `kind` moved last, the
+  two documents comparing equal as data, which is a rule about JSON that JSON does not have. Beside it, a
+  bucket **stated** with the wrong shape is refused at the read naming the field, rather than reaching
+  `TerrainPainter.ColumnBlocks` a whole raster later as a null dereference answering 500: `rim` and `surface`
+  take a band (`{"material": …, "depth": N}`), `wall` and `fill` a material directly, and an absent bucket
+  keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
+  eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
+  (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
 - **One block volume, one type (`B33`).** `BlockBox` (`PgmStudio.Domain`) is the single inclusive integer
   AABB for every role a block volume plays — the region an author boxes for a scan, the volume a stamper
   fills, the casing `CoreSuggester` proposes — carrying the union of the helpers the two former copies had
