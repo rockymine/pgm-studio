@@ -402,8 +402,6 @@ mid and the team sides fragment **differently**: the mid is *carved*, the team s
   Chains over stepping stones are **not** straits — each hop is G5's — and a mid island between the
   teams makes the crossing indirect by construction, so complex mids are out of this rule's reach.
 
-- **BZ1 [expert]** Superseded by FR1+FR2: zones are authored precisely in the plan editor;
-  terrain overlap is permitted, not meaningful.
 - **BZ2 [expert]** Lane backs (spawn, wool) sit **outside** the buildable area. Lanes and build
   zones *intentionally restrict and guide* the player — their function ensures gameplay and flow;
   a map is not an open greenfield playground. (The "narrower than the island" phrasing is
@@ -483,11 +481,9 @@ the stat corpus.
   only interface a plan authors deliberately is a **wall** (`walls`), which stamps a structure; a
   `cliffs` list was authored, read by nothing but the lint that demanded it, and is deleted. The
   corpus reading it produced is kept below as measurement.
-- **EL6 [expert; retired 2026-08-14]** **Cliff qualification** — what separates a real cliff from a
-  stepped path edge. Retired as a *lint*: it asked an author to annotate a seam, and the annotation
-  changed nothing about the built map. What it measured stands, and the same qualification is what
-  `ReliefReadback` applies to a **solved surface**, where a face's width and drop are read off the
-  ground rather than declared. Kept here for that reading: a cliff (a) cuts the **full width of a lane**,
+- **EL6 [expert]** **Cliff qualification** — what separates a real cliff from a stepped path edge. It is
+  read off a **solved surface**, where a face's width and drop are measured on the ground rather than
+  declared, which is what `ReliefReadback` applies. A cliff (a) cuts the **full width of a lane**,
   (b) is **≥10 blocks** wide, and (c) carries **Δ≥6**, *or* a shallow **Δ4 that walls a pit**
   (EL7's opposing-cliff geometry) with no gentle bypass — a lone Δ4 dead-end step-up is just a
   staircase edge, however wide. Of the corpus's 17 Δ≥4 seams this reproduces the author's
@@ -517,12 +513,10 @@ the stat corpus.
 
 ## PC — Pieces are anonymous
 
-- **PC-S retired [expert]** The old per-seam *sliver* lint (PC-S — a shared border below the corridor
-  minimum flagged as suspect) is **gone**: a narrow seam is legal connecting geometry per *Definitions*,
-  so there is no per-seam width lint. Corridor quality of an assembled footprint is measured by
-  lane-chain analysis, not seam by seam.
+A narrow seam is legal connecting geometry per *Definitions*, so there is no per-seam width lint: corridor
+quality of an assembled footprint is measured by lane-chain analysis, not seam by seam.
 
-The corner lint stays, and it is declared in code rather than stated here. `PC-C` is
+The corner lint is declared in code rather than stated here. `PC-C` is
 `PgmStudio.Pgm.Plan.PlanRules.CornerContact`, so `GET /api/rules?rule=PC-C` answers what it means and what to
 do about it, with the category and concerns every gate rule carries. A bare corner between pieces not already
 in the same land component is still linted, and the plan validator is the only thing that fires it — a rule a
@@ -737,11 +731,18 @@ both corrected.)
     measure different things and coexist.
 
 18. **PC-C moved out of this file (2026-08-22).** No behaviour change: the corner lint fires on exactly the
-    boards it fired on before. The rule was stated only *inside* the retired `PC-S`'s bullet, which is the id
-    the parser reads that line as, so `GET /api/rules?rule=PC-C` answered an empty list while the lint raised
-    it and `LayoutEvaluator` rejected boards for it. It is now `PlanRules.CornerContact`, and this file cites
-    it — the author's ruling that a rule may not live only in a markdown file, applied to the one layout id a
-    gate raises under its own name.
+    boards it fired on before. The rule had been stated inside another id's bullet, which is the id the parser
+    reads such a line as, so `GET /api/rules?rule=PC-C` answered an empty list while the lint raised it and
+    `LayoutEvaluator` rejected boards for it. It is `PlanRules.CornerContact`, and this file cites it — the
+    author's ruling that a rule may not live only in a markdown file, applied to the one layout id a gate
+    raises under its own name.
+
+19. **The catalogue serves only what is raised (2026-08-22).** No rule changed and none was deleted for
+    being unraised: `GET /api/rules` answers the layout rules a plan lint, an evaluator term or a
+    producibility finding can name — 34 of the 92 here — and `RulesEndpointTests` holds that set to the
+    source in both directions. `BZ1` and `PC-S` left the file, both having said only that they were
+    superseded, and `EL6` lost the account of its retirement as a lint and keeps the cliff qualification
+    `ReliefReadback` applies.
 
 ## Correction protocol
 
@@ -755,3 +756,10 @@ begins at a `- **<id>` bullet and runs to the next one, its family comes from th
 heading above it, and its `[corpus]`/`[expert]`/`[open]`/`[guess]` tag becomes the evidence a reader is shown.
 Amend freely inside that; a rule stated some other way is served with the wrong text or not at all, and the
 path is in `PgmStudio.Domain.csproj` rather than in code, so moving the file breaks the build.
+
+**The catalogue serves the rules the studio can cite, not all of these.** A plan-validator lint, an evaluator
+term and a producibility finding are the three things that name a layout rule to a caller, and
+`RuleCatalog.Raised` is the set they between them reach; `GET /api/rules` answers those and no others, because
+the question it exists for is *what is this finding* and a rule nothing raises has no finding to explain. The
+rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
+catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.

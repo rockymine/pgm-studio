@@ -43,22 +43,22 @@ public sealed class RulesEndpointTests
             new JsonSerializerOptions(JsonSerializerDefaults.Web)))!;
     }
 
-    /// <summary>The whole point in one call: an id a reader met in a refusal, answered with what it means and
-    /// what to do. <c>SP7</c> because it is the one that prompted this — a layout rule nobody could look up.
-    /// </summary>
+    /// <summary>The whole point in one call: an id a reader met in a finding, answered with what it means and
+    /// what to do. <c>WL2</c> because it is a layout rule — the half a reader has no other way to look
+    /// up.</summary>
     [Test]
     public async Task One_rule_can_be_asked_about_by_id()
     {
-        var rules = await RulesAsync("?rule=SP7");
+        var rules = await RulesAsync("?rule=WL2");
 
-        var sp7 = rules.Single();
-        await Assert.That(sp7.Family).IsEqualTo("SP");
-        await Assert.That(sp7.Owner).Contains("rules.md");
-        await Assert.That(sp7.Means).Contains("iron");
+        var wl2 = rules.Single();
+        await Assert.That(wl2.Family).IsEqualTo("WL");
+        await Assert.That(wl2.Owner).Contains("rules.md");
+        await Assert.That(wl2.Means).Contains("spawn");
         // A layout rule carries no fix — it is a claim about how a map plays, which is the author's to state —
         // and carries how well the corpus backs it instead.
-        await Assert.That(sp7.Fix).IsNull();
-        await Assert.That(sp7.Evidence).IsEqualTo("corpus");
+        await Assert.That(wl2.Fix).IsNull();
+        await Assert.That(wl2.Evidence).IsEqualTo("corpus");
     }
 
     /// <summary>A gate rule is the other shape: mechanical, so what to do about one is derivable and is
@@ -166,10 +166,10 @@ public sealed class RulesEndpointTests
     [Test]
     public async Task A_layout_rule_carries_neither()
     {
-        var sp7 = (await RulesAsync("?rule=SP7")).Single();
+        var wl2 = (await RulesAsync("?rule=WL2")).Single();
 
-        await Assert.That(sp7.Category).IsNull();
-        await Assert.That(sp7.Concerns).IsNull();
+        await Assert.That(wl2.Category).IsNull();
+        await Assert.That(wl2.Concerns).IsNull();
     }
 
     /// <summary>The category is the axis a caller branches on: one word answers every rule they would act on
@@ -215,6 +215,69 @@ public sealed class RulesEndpointTests
         await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
         await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("category");
         await Assert.That(finding.GetProperty("message").GetString()).Contains("unplayable");
+    }
+
+    /// <summary>
+    /// <b>Every layout rule answered can be met.</b> The catalogue answers the layout rules the studio can
+    /// cite rather than all 92 <c>rules.md</c> states, because the question it exists for is <i>what is this
+    /// finding</i>, and <c>RuleCatalog.Raised</c> is where that subset is stated. Nothing in the compiler
+    /// connects that set to the three kinds of site that name one — a plan validator lint, an evaluator
+    /// term's <c>RuleId</c>, a producibility finding's <c>Cites</c> — so this does, in both directions: a row
+    /// answered that no source names is a rule with no finding to explain, and an id a source names that the
+    /// catalogue does not answer is a finding a reader cannot look up.
+    ///
+    /// <para>The sweep is over <c>src/</c> as text rather than by reflection, because two of the three kinds
+    /// of site are string literals inside method bodies and nothing can reach them any other way. An id
+    /// spelled in a comment counts as a citation, which is the loose direction: it over-approximates what a
+    /// caller can meet, and over-approximating is the harmless half.</para>
+    /// </summary>
+    [Test]
+    public async Task Every_layout_rule_answered_is_one_a_source_can_cite()
+    {
+        var answered = (await RulesAsync())
+            .Where(rule => rule.Owner.Contains("rules.md"))
+            .Select(rule => rule.Rule)
+            .ToHashSet(StringComparer.Ordinal);
+
+        var stated = Stated();
+        var cited = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var file in Directory.EnumerateFiles(Source(), "*.cs", SearchOption.AllDirectories))
+        {
+            if (file.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}")
+                || file.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}")) continue;
+            foreach (Match match in Citation.Matches(File.ReadAllText(file)))
+                if (stated.Contains(match.Groups[1].Value)) cited.Add(match.Groups[1].Value);
+        }
+
+        // A sweep that finds nothing would pass one direction vacuously.
+        await Assert.That(cited).IsNotEmpty();
+        await Assert.That(answered.Except(cited).Order(StringComparer.Ordinal)).IsEmpty();
+        await Assert.That(cited.Except(answered).Order(StringComparer.Ordinal)).IsEmpty();
+    }
+
+    /// <summary>An id as a source names one: a bare string literal, which is how all three kinds of site
+    /// spell it.</summary>
+    private static readonly Regex Citation = new(@"""([A-Z]{1,3}(?:-[A-Z]+|[0-9]+))""");
+
+    /// <summary>Every id <c>rules.md</c> states, so a literal that merely looks like one — a task id, a
+    /// block name — is not mistaken for a citation.</summary>
+    private static HashSet<string> Stated()
+    {
+        var bullet = new Regex(@"^- \*\*(?<id>[A-Z]{1,3}(?:-[A-Z]+|[0-9]+))\b");
+        var path = Path.Combine(Source(), "..", "docs", "generator", "rules.md");
+        return [.. File.ReadLines(path)
+            .Select(line => bullet.Match(line))
+            .Where(match => match.Success)
+            .Select(match => match.Groups["id"].Value)];
+    }
+
+    /// <summary>The <c>src/</c> tree above the test output.</summary>
+    private static string Source()
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null && !Directory.Exists(Path.Combine(dir.FullName, "src"))) dir = dir.Parent;
+        return Path.Combine(dir?.FullName ?? throw new DirectoryNotFoundException(
+            "no src/ above the test output — the repository layout moved"), "src");
     }
 
     /// <summary>

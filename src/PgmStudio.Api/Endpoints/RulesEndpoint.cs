@@ -15,11 +15,11 @@ namespace PgmStudio.Api.Endpoints;
 ///
 /// <para>A refusal carries an id and one sentence about the document it was refused over. The id is stable
 /// forever and outlives the task that added it, which is what makes it worth keying on — and this is what
-/// answers the other question a reader has on meeting one: <i>what is <c>SP7</c></i>. The ids live in eight
+/// answers the other question a reader has on meeting one: <i>what is <c>WL2</c></i>. The ids live in eight
 /// <c>*Rules</c> classes across five projects, so a reader who does not already know which family an id
 /// belongs to has one place to ask rather than eight to search.</para>
 ///
-/// <para>Filter with <c>?family=PL</c> for one family, <c>?rule=SP7</c> for one rule,
+/// <para>Filter with <c>?family=PL</c> for one family, <c>?rule=WL2</c> for one rule,
 /// <c>?category=unplayable</c> for every rule a caller would answer the same way, or <c>?concerns=objective</c>
 /// for every rule that touches one. <c>concerns</c> may be repeated and <b>narrows</b>:
 /// <c>?concerns=objective&amp;concerns=plan</c> answers the rules that are about both, which is how the

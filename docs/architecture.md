@@ -242,19 +242,22 @@ structure and an objective at once — which is why `concerns` is a list and why
 `refusals.md` § *One question, asked at every grain* states in prose is now a query,
 `?concerns=objective&concerns=plan`.
 
-**Rules are stated three ways, and only two of them can be checked.** The 77 constants are one; the layout
-law in `docs/generator/rules.md`, embedded and parsed, is a second, and both are answered by `/api/rules`.
-The third is a bare string literal at the throw site — the plan validator cites fifteen ids that way, `SP1`,
-`SP2`, `EL1`, `ST8`, `WL1`, `CT12`, `BZ5` and the rest. All fifteen resolve today, because they are layout
-rules `rules.md` states as their own bullet. Nothing checks that they do: a typo produces a finding citing a
-rule nobody has, and the catalogue is not consulted.
+**Rules are stated three ways, and the third is a string literal.** The 77 constants are one; the layout law
+in `docs/generator/rules.md`, embedded and parsed, is a second. The third is a bare literal at the site that
+names it — a plan-validator lint (`SP1`, `SP2`, `EL1`, `ST8`, `WL1`, `CT12`, `BZ5` and nine more), an
+evaluator term's `RuleId`, a producibility finding's `Cites` — and no reflection can see one.
 
-`PC-C` is what that gap looks like once it has happened, and is the reason the check is worth building. The
-lint fired it for a corner contact between separate areas and `LayoutEvaluator` rejected boards for it, while
-`rules.md` named it only *inside* another rule's bullet — the retired `PC-S`, which is the id the parser took
-that line for — so `GET /api/rules?rule=PC-C` answered an empty list for as long as both were true. It is a
-constant now. `RulesEndpointTests` could not have caught it: it checks that every declared rule carries a
-sentence, which is the opposite direction, and the fifteen that remain are literals no reflection can see.
+**The catalogue answers what a caller can meet.** `rules.md` states 92 layout rules and those three kinds of
+site between them name 34; `/api/rules` answers those, because the question it exists for is *what is this
+finding* and a rule nothing raises has no finding to explain. `RuleCatalog.Raised` is where that set is
+stated, and `RulesEndpointTests` holds it to the source in both directions: a row answered that no source
+names fails, and an id named that the catalogue does not answer fails too. So a typo at a throw site is a
+failing test rather than a finding citing a rule nobody has.
+
+`PC-C` is what that gap looked like before the check existed. The lint fired it for a corner contact between
+separate areas and `LayoutEvaluator` rejected boards for it, while `rules.md` named it only *inside* another
+id's bullet, which is the id the parser takes such a line for — so `GET /api/rules?rule=PC-C` answered an
+empty list for as long as both were true. It is a constant now.
 
 The distinction the catalogue now draws is between the **category** of a fault, which is a small closed set an
 agent branches on, and the **rule**, which is specific, stable and for a reader. What remains unanswered is

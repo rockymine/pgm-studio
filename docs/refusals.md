@@ -116,7 +116,7 @@ a rule that changed its name between the two would be two rules.
 | `CO1` | the composer's — a well-formed descriptor naming a board it cannot emit; the sentence carries which knob and which value, because the emitter that stopped is the only thing that knows | `Pgm/Compose/ComposeException.cs` → `ComposeRules` |
 | `RQ*` | the request itself — a document that could not be read, a subject the route names and the studio does not have, a request conflicting with what is stored, a stored document that will not read back, a field that went unread, and a fault that is the studio's own | `Domain/RequestRules.cs` |
 | `ED*` | the document editors' own two — `ED1` a reference the document cannot resolve (an apply-rule naming an unknown filter, a filter naming itself), `ED2` an edit the document is not in a state to take (a group with fewer children than its type takes, an apply-rule with no region, filter or action). The other six an edit is refused for are the request's, above | `Pgm/Editing/EditRules.cs` |
-| `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `ST*` | the layout-rules checklist, cited by the plan lint and the producibility read | `docs/generator/rules.md` |
+| `CT` `SP` `WL` `LN` `HB` `FR` `MD` `BZ` `EL` `G*` `ST*` `GO*` | the layout-rules checklist, cited by the plan lint, the evaluator terms and the producibility read | `docs/generator/rules.md` |
 | `PC-C` | a corner contact between pieces nothing else joins — the one of that checklist a gate raises under its own name, so it is declared rather than stated | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
 
 ## One question, asked at every grain
@@ -391,7 +391,7 @@ thing that makes producing it impossible, where a gate reads a document and coll
 
 `GET /api/rules` answers **every rule the studio can cite**, with what it means and what to do about it — the
 question a reader has on meeting an id in a refusal and the one nothing else answers. `?family=PL` narrows to
-one family, `?rule=SP7` to one rule; a name nothing matches is an empty list rather than a 404, so a caller
+one family, `?rule=WL2` to one rule; a name nothing matches is an empty list rather than a 404, so a caller
 asking "is there a rule called that" does not have to tell an absent rule from a mistyped route by the status
 code. Each row is `{rule, family, owner, means, fix, evidence, category, concerns}`, and `owner` is the file
 to read next.
@@ -410,6 +410,14 @@ and its `fix` is the `<remarks>` of the same docstring, read out of the XML docu
 emits — so the sentence a caller is shown is the sentence in the source, and there is no catalogue to fall out
 of step with it. A layout rule comes out of `docs/generator/rules.md`, embedded in `PgmStudio.Domain` and
 parsed, because that document is the rule law and copying its statements into C# would have made a second law.
+
+**Every gate rule is answered; the layout rules are the ones a caller can meet.** `rules.md` states 92 and
+the catalogue answers the 34 something can name — a plan-validator lint, an evaluator term's `RuleId`, a
+producibility finding's `Cites`. The rest are the generator's law, and `rules.md` is where the law lives:
+publishing a rule nothing raises in a row identical to one a caller can fail on makes every row less
+informative, and there is no finding to explain. `RuleCatalog.Raised` states which, and
+`RulesEndpointTests` holds it to the source both ways — a row nothing names fails, and an id named that is
+not answered fails too.
 
 **A layout rule has no `fix`, and that is not an omission.** The gate rules are mechanical — a doorway too
 short, a document that will not parse — so what to do about one follows from what it refuses. The layout rules

@@ -30,7 +30,7 @@ public sealed record RuleDoc(
 
 /// <summary>
 /// <b>Every rule the studio can cite, in one list.</b> A finding carries an id and a sentence about the one
-/// document it was refused over; nothing anywhere answered "what is <c>SP7</c>", and the ids outlive the
+/// document it was refused over; nothing anywhere answered "what is <c>WL2</c>", and the ids outlive the
 /// tasks that added them, so a reader meeting one in a refusal a year later had nowhere to look it up.
 ///
 /// <para><b>Nothing here is written twice.</b> A gate rule's meaning is read out of the docstring beside its
@@ -43,6 +43,14 @@ public sealed record RuleDoc(
 /// amended only by its own correction protocol, so copying its statements into C# would have produced a
 /// second law that drifts.</para>
 ///
+/// <para><b>Only the layout rules the studio can cite are published.</b> <c>rules.md</c> states 92 and the
+/// catalogue answers the <see cref="Raised"/> subset of them, because the question it exists for is <i>what
+/// is this finding</i> and a rule nothing raises has no finding to explain. The rest are the generator's
+/// law, stated where the law lives and amended by its own correction protocol; publishing them in rows
+/// identical to the ones a caller can actually fail on makes every row less informative. Every gate rule is
+/// published, including the four <c>WX</c> constants nothing raises — those state how a room frame is
+/// derived, and the catalogue is the studio's own answer to what one means.</para>
+///
 /// <para><b>A layout rule has no fix, and that is not an omission.</b> The gate rules are mechanical — a
 /// doorway too short, a document that will not parse — and what to do about one is derivable. The layout
 /// rules are claims about how a map is played, which <c>CLAUDE.md</c> says are the author's to state and not
@@ -51,6 +59,28 @@ public sealed record RuleDoc(
 /// </summary>
 public static class RuleCatalog
 {
+    /// <summary>
+    /// The layout rules the studio can name in an answer, and so the ones the catalogue publishes. Three
+    /// kinds of site cite one: the plan validator's lints, an evaluator term's <c>RuleId</c>, and a
+    /// producibility finding's <c>Cites</c>. None of the three is reachable from here — they are all in
+    /// <c>Pgm</c>, which is above this — so the set is stated, and <c>RulesEndpointTests</c> holds it to the
+    /// source in both directions: an id here that nothing cites fails, and an id cited that is not here
+    /// fails too.
+    /// </summary>
+    public static readonly IReadOnlySet<string> Raised = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "BZ5", "BZ6", "BZ9", "BZ11",
+        "CT1", "CT4", "CT5", "CT8", "CT9", "CT12",
+        "EL1",
+        "FR4", "FR6", "FR8",
+        "G2", "G5", "G8",
+        "GO1",
+        "LN1", "LN2",
+        "SP1", "SP2", "SP8", "SP9",
+        "ST1", "ST2", "ST8", "ST9",
+        "WL1", "WL2", "WL7", "WL8", "WL9", "WL10",
+    };
+
     /// <summary>A rule id: two or three letters, then a number or a single-letter suffix (<c>PC-C</c>).</summary>
     private static readonly Regex IdShape = new(@"^[A-Z]{2,3}(?:-[A-Z]+|[0-9]+)$", RegexOptions.Compiled);
 
@@ -160,9 +190,9 @@ public static class RuleCatalog
 
     // ── the layout rules: rules.md itself ─────────────────────────────────────────────────────────────────
 
-    /// <summary>Every rule stated in <c>docs/generator/rules.md</c>, which is embedded in this assembly so the
-    /// catalogue reads the law rather than a copy of it. A rule runs from its own bullet to the next one, so
-    /// the sub-bullets under <c>CT1</c>'s forms stay part of <c>CT1</c>.</summary>
+    /// <summary>Every <see cref="Raised"/> rule stated in <c>docs/generator/rules.md</c>, which is embedded in
+    /// this assembly so the catalogue reads the law rather than a copy of it. A rule runs from its own bullet
+    /// to the next one, so the sub-bullets under <c>CT1</c>'s forms stay part of <c>CT1</c>.</summary>
     private static IEnumerable<RuleDoc> LayoutRules()
     {
         using var stream = typeof(RuleCatalog).Assembly.GetManifestResourceStream("layout-rules.md");
@@ -181,7 +211,8 @@ public static class RuleCatalog
         {
             if (line.StartsWith("## "))
             {
-                if (id.Length > 0) { yield return Finished(); id = ""; }
+                if (Raised.Contains(id)) yield return Finished();
+                id = "";
                 // "## SP — Spawn" and "## CT — The mid interface … [expert]": the letters before the dash are
                 // the family, the rest names the section a reader is being sent to.
                 var heading = line[3..].Split('—', 2);
@@ -194,7 +225,7 @@ public static class RuleCatalog
 
             if (LayoutRule.Match(line) is { Success: true } start)
             {
-                if (id.Length > 0) yield return Finished();
+                if (Raised.Contains(id)) yield return Finished();
                 id = start.Groups["id"].Value;
                 body.Clear();
                 body.Append(Opening(line[start.Length..], out evidence));
@@ -202,7 +233,7 @@ public static class RuleCatalog
             }
             if (id.Length > 0) body.Append(' ').Append(line.Trim());
         }
-        if (id.Length > 0) yield return Finished();
+        if (Raised.Contains(id)) yield return Finished();
     }
 
     /// <summary>What a rule's first line says once its own id line is taken off it: the bold run closes after

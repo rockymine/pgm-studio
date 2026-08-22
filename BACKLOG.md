@@ -1167,7 +1167,6 @@ place.
 
 ### User Experience and Graphical User Interface
 
-
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
 `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
 different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
@@ -1280,21 +1279,6 @@ braces, worth having once the studio is used by someone who did not write it.
   the drawer is in: label the button for the state (*Fix the plan first*, or the count of blocking findings)
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
-
-- [ ] **RP46 — Fifteen rule ids a gate raises are string literals, and nothing checks they resolve.** The
-  plan validator names `BZ5 BZ11 CT12 EL1 FR8 G2 G5 SP1 SP2 SP8 SP9 ST2 ST8 ST9 WL1` as bare strings at the
-  throw site. All fifteen resolve today because `rules.md` states each as its own bullet — and nothing says
-  so: a typo answers a finding citing a rule nobody has, and `PC-C` showed what that looks like when a bullet
-  is reworded around the id rather than deleted.
-
-  **The assertion and the move are one edit.** No reflection can see a literal, so a check that every id a
-  gate can emit resolves needs those fifteen to be constants — at which point
-  `RulesEndpointTests.Every_rule_id_declared_anywhere_is_in_the_catalogue` already *is* the check, in both
-  directions, with no new test. Declaring them takes a decision the author has deferred: where a layout rule's
-  `evidence` tag lives once the constant carries the `<summary>`, and what happens to
-  `RuleCatalog.LayoutRules()` and the embedded `rules.md` when the last fifteen leave it. `RP35` shares the
-  ground — it proposes cutting the 77 layout rules nothing raises, which is the same population read from the
-  other side.
 
 - [ ] **RP45 — The refusal envelope is the studio's own, and a standard one now has somewhere to point.**
   Every refusal answers `{error, message, findings}`, which every client has to be taught. RFC 9457 Problem
@@ -1441,7 +1425,6 @@ feature section.
   Low priority — explicit promotion already covers the need.
 
 ### Test coverage
-
 
 - [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
   Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client

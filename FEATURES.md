@@ -707,6 +707,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **The rule catalogue answers what a caller can meet (`RP35`).** `GET /api/rules` answered 169 rows and
+  81 of them were law nothing checks, published in rows identical to the ones a caller can actually fail on.
+  It answers **111** now: every one of the 77 gate constants, and the **34** layout rules something can name
+  — a plan-validator lint, an evaluator term's `RuleId`, a producibility finding's `Cites`. `rules.md` keeps
+  all 92 as the generator's law; publishing the other 58 explained findings that cannot happen.
+  `RuleCatalog.Raised` states the set, and `RulesEndpointTests` holds it to `src/` in **both** directions —
+  a row nothing names fails, and an id named that the catalogue does not answer fails too, which is the
+  check `architecture.md` said was missing and is what turns a typo at a throw site into a failing test.
+  That check is what `RP46` was filed for, and it landed over a wider population than the entry proposed:
+  the sweep reads `src/` as text rather than needing the fifteen validator literals to become constants,
+  which is what lets it cover the evaluator terms and the producibility citations in the same pass.
+
+  The four `WX` constants nothing raises stay: they state how a room frame is derived, and the catalogue is
+  the studio's own answer to what one means. So does `GO1`, which the entry had marked as an exception to
+  keep by hand — an evaluator term scores it, so it is simply raised. `BZ1` and `PC-S` left `rules.md`,
+  each having said only that it was superseded, and `EL6` lost the account of its retirement as a lint and
+  keeps the cliff qualification `ReliefReadback` applies to a solved surface.
 - **A write that answers nothing answers one shape, and the drawer is emptied (`RP33`).** Sixteen routes
   said *the write landed* two ways: eleven through `AppliedDto` — `{}` — and five through `OkDto`, whose own
   docstring admitted the field was there so a test would have something to assert on. `AppliedDto` is the
