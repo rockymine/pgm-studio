@@ -16,8 +16,31 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class KitReach
 {
+    /// <summary>What one wool costs this team to reach: the cheapest crossing, and whether the kit pays
+    /// for it.</summary>
+    /// <param name="Color">The wool to be captured.</param>
+    /// <param name="X">Where it stands, east–west.</param>
+    /// <param name="Z">Where it stands, north–south.</param>
+    /// <param name="BlocksNeeded">How many blocks the cheapest path asks the player to place.</param>
+    /// <param name="Reachable">Whether any path exists at all, at any cost.</param>
+    /// <param name="WithinBudget">Whether the kit grants enough blocks to pay for it.</param>
+    /// <param name="Severity">What the verdict is worth — the same word a finding carries.</param>
+    /// <param name="Message">The verdict in a sentence, with the numbers in it.</param>
     public sealed record WoolReach(string Color, int X, int Z, int BlocksNeeded, bool Reachable, bool WithinBudget, string Severity, string Message);
+    /// <summary>What one team's spawn kit can reach.</summary>
+    /// <param name="Team">The team, by id.</param>
+    /// <param name="Kit">The kit it spawns with, by name.</param>
+    /// <param name="Budget">How many placeable blocks that kit grants.</param>
+    /// <param name="WaterBucket">Whether the kit carries a water bucket, which crosses a gap no block
+    /// budget would.</param>
+    /// <param name="Wools">One reading per wool the team must capture.</param>
     public sealed record TeamReach(string Team, string Kit, int Budget, bool WaterBucket, List<WoolReach> Wools);
+    /// <summary>What every team's kit can reach.</summary>
+    /// <param name="HaveLayers">Whether the map has scanned column data. False means nothing was measured,
+    /// not that nothing is reachable.</param>
+    /// <param name="Severity">The worst verdict over every team.</param>
+    /// <param name="Message">That verdict in a sentence.</param>
+    /// <param name="Teams">One reading per team.</param>
     public sealed record Result(bool HaveLayers, string Severity, string Message, List<TeamReach> Teams);
 
     private const int Unreachable = int.MaxValue;

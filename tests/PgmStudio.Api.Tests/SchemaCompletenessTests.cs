@@ -89,21 +89,24 @@ public sealed class SchemaCompletenessTests
     private const int StillUntyped = 0;
 
     /// <summary>
-    /// <b>A request field says what it is, not only what type it is.</b> The schema publishes the docstrings
-    /// the records carry, so a field with no <c>&lt;param&gt;</c> reaches a caller as a name and a type — and
-    /// the type's own prose doing the fields' work reads as documented while telling an author nothing about
-    /// the one field they have to fill. This holds the records a driver <em>posts</em>, which are the ones
-    /// where the cost of guessing is a refusal.
+    /// <b>A field says what it is, not only what type it is.</b> The schema publishes the docstrings the
+    /// records carry, so a field with no <c>&lt;param&gt;</c> reaches a caller as a name and a type — and the
+    /// type's own prose doing the fields' work reads as documented while telling an author nothing about the
+    /// one field they have to fill.
+    ///
+    /// <para>Both directions are held to it: the records a driver <b>posts</b>, where the cost of guessing is
+    /// a refusal, and the records it <b>reads</b>, where the cost is a caller that cannot tell what it was
+    /// given. A route added tomorrow is covered by whichever half it touches.</para>
     /// </summary>
     [Test]
-    public async Task Every_field_of_a_posted_shape_says_what_it_is()
+    public async Task Every_field_of_a_crossing_shape_says_what_it_is()
     {
         var document = await DocumentAsync();
         var schemas = document.GetProperty("components").GetProperty("schemas");
 
         var silent = new List<string>();
         var fields = 0;
-        foreach (var name in Posted(document))
+        foreach (var name in Posted(document).Concat(Answered(document)).Distinct(StringComparer.Ordinal))
         {
             if (!schemas.TryGetProperty(name, out var schema)) continue;
             if (!schema.TryGetProperty("properties", out var properties)) continue;
@@ -116,14 +119,44 @@ public sealed class SchemaCompletenessTests
             }
         }
 
-        await Assert.That(fields).IsGreaterThan(100);   // a document that lost its request shapes passes vacuously
+        await Assert.That(fields).IsGreaterThan(1000);  // a document that lost its shapes passes vacuously
         await Assert.That(silent.Order(StringComparer.Ordinal)).IsEmpty();
     }
 
-    /// <summary>The one field in a posted shape with no docstring to read, because it has no declaration: a
-    /// polymorphic base publishes a discriminator the generator synthesises, and no property carries it.
-    /// Named rather than counted, so a genuinely undocumented field cannot hide behind it.</summary>
+    /// <summary>The one field with no docstring to read, because it has no declaration: a polymorphic base
+    /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
+    /// counted, so a genuinely undocumented field cannot hide behind it.</summary>
     private static readonly string[] Synthesised = ["TerrainMaterial.kind"];
+
+    /// <summary>Every schema a route answers on a 2xx, following the references down — a nested record is
+    /// read with the answer that carries it.</summary>
+    private static IEnumerable<string> Answered(JsonElement document)
+    {
+        var found = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var path in document.GetProperty("paths").EnumerateObject())
+            foreach (var verb in path.Value.EnumerateObject())
+            {
+                if (verb.Name is "parameters" or "summary" or "description" or "servers") continue;
+                if (!verb.Value.TryGetProperty("responses", out var responses)) continue;
+                foreach (var response in responses.EnumerateObject())
+                    if (response.Name.StartsWith('2')) Referenced(response.Value, found);
+            }
+
+        // The transitive half: a record named by an answer is answered, and so is everything it carries.
+        var schemas = document.GetProperty("components").GetProperty("schemas");
+        for (var grew = true; grew;)
+        {
+            grew = false;
+            foreach (var name in found.ToList())
+                if (schemas.TryGetProperty(name, out var schema))
+                {
+                    var nested = new HashSet<string>(StringComparer.Ordinal);
+                    Referenced(schema, nested);
+                    foreach (var reference in nested) grew |= found.Add(reference);
+                }
+        }
+        return found;
+    }
 
     /// <summary>Every schema a write route reads a body as, following the references down — a request record
     /// is a shape only because something posts it, and the nested records it carries are posted with
@@ -138,17 +171,18 @@ public sealed class SchemaCompletenessTests
                 if (verb.Value.TryGetProperty("requestBody", out var body)) Referenced(body, found);
             }
         return found;
+    }
 
-        static void Referenced(JsonElement node, HashSet<string> into)
-        {
-            if (node.ValueKind == JsonValueKind.Object)
-                foreach (var member in node.EnumerateObject())
-                    if (member.NameEquals("$ref") && member.Value.GetString() is { } reference)
-                        into.Add(reference.Split('/')[^1]);
-                    else Referenced(member.Value, into);
-            else if (node.ValueKind == JsonValueKind.Array)
-                foreach (var item in node.EnumerateArray()) Referenced(item, into);
-        }
+    /// <summary>Every schema named anywhere under a node, by following <c>$ref</c>.</summary>
+    private static void Referenced(JsonElement node, HashSet<string> into)
+    {
+        if (node.ValueKind == JsonValueKind.Object)
+            foreach (var member in node.EnumerateObject())
+                if (member.NameEquals("$ref") && member.Value.GetString() is { } reference)
+                    into.Add(reference.Split('/')[^1]);
+                else Referenced(member.Value, into);
+        else if (node.ValueKind == JsonValueKind.Array)
+            foreach (var item in node.EnumerateArray()) Referenced(item, into);
     }
 
     private static async Task<JsonElement> DocumentAsync()

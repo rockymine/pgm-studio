@@ -32,4 +32,6 @@ public sealed record PropPreviewRequest(string PropJson, string? ThemeJson);
 /// <param name="Key">What a prop names the option by.</param>
 /// <param name="Label">The option as an author reads it.</param>
 /// <param name="Svg">The card picture, drawn by the algorithm the export runs.</param>
+/// <param name="Defaults">The rest of the prop the option implies, as a JSON patch: picking "spruce" has to
+/// take a spruce's proportions too, or the tree is named one thing and shaped another.</param>
 public sealed record PropOptionDto(string Key, string Label, string Svg, string? Defaults = null);

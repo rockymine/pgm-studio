@@ -11,6 +11,9 @@ namespace PgmStudio.Contracts;
 /// <param name="Label">The candidate that came closest, as the emitter names it.</param>
 /// <param name="Cw">The corridor width it was tried at.</param>
 /// <param name="DifferingCells">How many cells separate it from the box.</param>
+/// <param name="Extra">Cells the candidate emits that the box does not have, as <c>[x, z, w, h]</c> cell
+/// rects — the canvas paints them, which is what turns "8 cells differ" into a visible answer.</param>
+/// <param name="Missing">Cells the box has that the candidate does not, in the same frame.</param>
 public sealed record NearestMissDto(
     string Label, int Cw, int DifferingCells,
     IReadOnlyList<int[]> Extra, IReadOnlyList<int[]> Missing);
@@ -24,13 +27,22 @@ public sealed record NearestMissDto(
 /// </summary>
 /// <param name="BoxId">The box this is about.</param>
 /// <param name="Kind">What the box is for — a spawn or wool approach, the hub, the frontline, the mid.</param>
+/// <param name="Identity">What the derivers read the geometry as — a <b>hint, never a verdict</b>, since a
+/// shape can be recognisably a ring while no ring is emittable at its wall widths.</param>
+/// <param name="ProducibleAs">The parameter tuple that reproduces the box exactly, or absent where none
+/// does.</param>
 /// <param name="Cw">The corridor width the reproducing tuple uses, absent where nothing reproduced it.</param>
+/// <param name="Nearest">The closest candidate, where nothing reproduced it exactly.</param>
+/// <param name="Findings">The directed reasons, as complaints — a box the emitters cannot reproduce is
+/// still a box an author drew.</param>
 public sealed record BoxFeasibilityDto(
     string BoxId, string Kind, string Identity,
     string? ProducibleAs, int? Cw,
     NearestMissDto? Nearest,
     IReadOnlyList<Finding> Findings)
 {
+    /// <summary>Whether anything reproduced the box exactly, which is exactly whether
+    /// <see cref="ProducibleAs"/> names a tuple.</summary>
     public bool Producible => ProducibleAs is not null;
 }
 

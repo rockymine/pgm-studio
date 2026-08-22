@@ -63,6 +63,8 @@ public sealed record MapDocumentDto(
 /// <param name="Uuid">The account credited, which is what the contract stores.</param>
 /// <param name="Role">What they are credited as, where the map says.</param>
 /// <param name="Contribution">What they contributed, where the map says.</param>
+/// <param name="Name">Their username, as a studio-side display cache. It is not part of the contract, so it
+/// is present only where the studio has resolved one.</param>
 public sealed record MapAuthorDto(string Uuid, string? Role, string? Contribution, string? Name);
 
 /// <summary>One team, as the contract states it.</summary>
@@ -83,6 +85,8 @@ public sealed record MapTeamDto(
 /// <param name="Team">The team that enters here, or absent for the observer spawn.</param>
 /// <param name="Kit">The kit given on entering.</param>
 /// <param name="Yaw">Which way the player faces, in degrees.</param>
+/// <param name="Region">Where they arrive: a region id where the spawn names one, a whole inline region
+/// where it states one — the contract's own choice, kept open here.</param>
 public sealed record MapSpawnDto(string? Team, string? Kit, double? Yaw, JsonElement Region);
 
 /// <summary>One wool objective and the monuments it is placed on, grouped the way the map document carries

@@ -108,15 +108,28 @@ public sealed record StructureIntent
 
 /// <summary>An entrance redstone line: a straight wire row between the two block ends (inclusive), a torch at
 /// each end, laid on top of the surface.</summary>
+/// <param name="X1">One end of the wire row, east–west.</param>
+/// <param name="Z1">That end, north–south.</param>
+/// <param name="X2">The other end, east–west.</param>
+/// <param name="Z2">That end, north–south.</param>
+/// <param name="Stamp">Which stamping of the structure this is, so the same line lays identically on every
+/// export.</param>
 public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, StampId Stamp = default);
 
 /// <summary>A wool room's bedrock foundation: the footprint filled from y=0 to the surface, and which room it
 /// belongs to.</summary>
+/// <param name="Area">The footprint filled from y=0 to the surface.</param>
+/// <param name="Stamp">Which stamping of the structure this is.</param>
 public readonly record struct RoomFloor(Rect Area, StampId Stamp = default);
 
 /// <summary>An iron cube anchored on a (whole-block) marker; a 4×4×4 iron structure resting on the surface.
 /// <see cref="Renew"/> flags a marker inside a spawn-role piece — its cube regrows via the map.xml renewables
 /// wiring (ST2).</summary>
+/// <param name="X">The marker it is anchored on, east–west.</param>
+/// <param name="Z">That marker, north–south.</param>
+/// <param name="Renew">Whether the marker sits inside a spawn-role piece, in which case the cube regrows
+/// through the map's renewables wiring.</param>
+/// <param name="Stamp">Which stamping of the structure this is.</param>
 public readonly record struct IronCube(int X, int Z, bool Renew, StampId Stamp = default);
 
 /// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
@@ -128,6 +141,16 @@ public readonly record struct IronCube(int X, int Z, bool Renew, StampId Stamp =
 /// reach the supply, so it is authored (<c>PlanWall.Side</c>) rather than left to whichever piece happened to
 /// have the smaller coordinate. Recomputed per orbit image, because a reflection swaps the two faces.</para>
 /// </summary>
+/// <param name="MinX">Its west edge, inclusive.</param>
+/// <param name="MinZ">Its north edge, inclusive.</param>
+/// <param name="MaxX">Its east edge, exclusive.</param>
+/// <param name="MaxZ">Its south edge, exclusive.</param>
+/// <param name="TopY">The height it rises to, inclusive.</param>
+/// <param name="ChestOnMinFace">Which of the wall's two faces its defence chests are set into — the
+/// low-coordinate one across the seam, or the high one. The wall is two blocks thick precisely so one face
+/// can be opened while the other stays solid, and which face that is decides which team can reach the
+/// supply. Recomputed per orbit image, since a reflection swaps the two.</param>
+/// <param name="Stamp">Which stamping of the structure this is.</param>
 public readonly record struct WallStructure(
     int MinX, int MinZ, int MaxX, int MaxZ, int TopY, bool ChestOnMinFace = true, StampId Stamp = default);
 
@@ -137,8 +160,14 @@ public readonly record struct WallStructure(
 /// (<c>rot_90</c>→4, everything else→2).</summary>
 public sealed record SymmetryIntent
 {
+    /// <summary>How the map folds — <c>mirror_x</c>, <c>mirror_z</c>, <c>mirror_d1</c>, <c>mirror_d2</c>,
+    /// <c>rot_180</c> or <c>rot_90</c>. It drives the orbit fill and the suggested team count.</summary>
     public string Mode { get; init; } = "";
+
+    /// <summary>Where it folds, east–west.</summary>
     public double CenterX { get; init; }
+
+    /// <summary>Where it folds, north–south.</summary>
     public double CenterZ { get; init; }
 }
 
@@ -148,7 +177,10 @@ public sealed record SymmetryIntent
 [JsonConverter(typeof(AuthorIntentJson))]
 public sealed record AuthorIntent
 {
+    /// <summary>The author's Minecraft username. The export resolves it to the uuid the contract stores.</summary>
     public string Name { get; init; } = "";
+
+    /// <summary>What they contributed, or absent for a plain credit.</summary>
     public string? Contribution { get; init; }
 }
 
@@ -199,8 +231,13 @@ public sealed class AuthorIntentJson : JsonConverter<AuthorIntent>
 /// <summary>Authored map identity.</summary>
 public sealed record MetaIntent
 {
+    /// <summary>The map's title.</summary>
     public string Name { get; init; } = "";
+
+    /// <summary>Who made it.</summary>
     public List<AuthorIntent> Authors { get; init; } = new();
+
+    /// <summary>Who helped, credited apart from the authors.</summary>
     public List<AuthorIntent> Contributors { get; init; } = new();
 }
 
@@ -267,8 +304,13 @@ public sealed record WaterLaneIntent
 /// source of the naming slug; <see cref="Color"/> is the display colour (may be multi-word, e.g. "dark red").</summary>
 public sealed record TeamDef
 {
+    /// <summary>What the rest of the intent names the team by.</summary>
     public string Id { get; init; } = "";
+
+    /// <summary>The team as a player reads it.</summary>
     public string Name { get; init; } = "";
+
+    /// <summary>The colour it plays in.</summary>
     public string Color { get; init; } = "";
 }
 
@@ -282,13 +324,19 @@ public sealed record SpawnIntent
     /// receives an entry out of an already-fanned list and can only count.</summary>
     public StampId Stamp { get; init; }
 
+    /// <summary>The team that enters here, by id.</summary>
     public string Team { get; init; } = "";
+
+    /// <summary>Where players materialise.</summary>
     public Pt Point { get; init; }
+
     /// <summary>The anti-grief zone around the spawn, as a union of rectangles (empty = unprotected). A
     /// simple spawn is one rect; a complex footprint needs several. The generator unions them into the
     /// team's spawn-protection region. Tolerates a legacy single-object blob on read (see the converter).</summary>
     [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Protection { get; init; } = new();
+
+    /// <summary>Which way players face on arriving, in degrees.</summary>
     public double Yaw { get; init; }
 
     /// <summary>The spawn-role plan piece the marker sits on — the rect that sizes the stamped spawn room
@@ -307,7 +355,10 @@ public sealed record SpawnIntent
 /// <summary>The observer/default spawn point.</summary>
 public sealed record ObserverIntent
 {
+    /// <summary>Where observers watch from.</summary>
     public Pt Point { get; init; }
+
+    /// <summary>Which way they face on arriving, in degrees.</summary>
     public double Yaw { get; init; }
 }
 
@@ -321,6 +372,7 @@ public sealed record WoolIntent
     /// receives an entry out of an already-fanned list and can only count.</summary>
     public StampId Stamp { get; init; }
 
+    /// <summary>The team that defends this wool, by id.</summary>
     public string Owner { get; init; } = "";
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
@@ -331,7 +383,12 @@ public sealed record WoolIntent
     /// single-object blob on read (see the converter).</summary>
     [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Room { get; init; } = new();
+    /// <summary>Where the wool is dispensed. The objective's <c>location</c> is this floored to whole
+    /// blocks.</summary>
     public Pt Spawn { get; init; }
+
+    /// <summary>Where it may be placed to score — one per capturing team, which is every team but the
+    /// owner.</summary>
     public List<MonumentIntent> Monuments { get; init; } = new();
 
     /// <summary>The wool-room-role plan piece the marker sits on — the rect that sizes the stamped cage
@@ -349,7 +406,10 @@ public sealed record WoolIntent
 /// <summary>A capture point: the team that captures this wool, and where they place it.</summary>
 public sealed record MonumentIntent
 {
+    /// <summary>The team that captures the wool here, by id.</summary>
     public string Team { get; init; } = "";
+
+    /// <summary>The block the wool is placed on.</summary>
     public Pt Location { get; init; }
 }
 
@@ -384,6 +444,9 @@ public sealed record DestroyableIntent
     public string Style { get; init; } = "";
     /// <summary>A PGM material match — the goal is these blocks, not the region that holds them.</summary>
     public string Materials { get; init; } = "";
+
+    /// <summary>The marker column. The structure is centred on it and floats above the terrain, so no Y is
+    /// authored.</summary>
     public Pt Anchor { get; init; }
     /// <summary>Blocks of air between the ground the world build solves under <see cref="Anchor"/>'s column and
     /// the structure's underside — an offset over the ground as built, not the plan's flat nominal
@@ -426,8 +489,13 @@ public sealed record CoreIntent
     public string Name { get; init; } = "";
     /// <summary>The marker column. The casing is centred on it and floats above the terrain, so no Y is authored.</summary>
     public Pt Anchor { get; init; }
+    /// <summary>The casing's width and depth, in blocks.</summary>
     public int Size { get; init; }
+
+    /// <summary>Its height.</summary>
     public int Height { get; init; }
+
+    /// <summary>How thick its wall is.</summary>
     public int Shell { get; init; }
     /// <summary>Omit the cap layer so the lava reaches the casing rim.</summary>
     public bool OpenTop { get; init; }
@@ -435,6 +503,9 @@ public sealed record CoreIntent
     /// the casing's underside — an offset over the ground as built, not the plan's flat nominal surface.
     /// Pairs with <see cref="Leak"/> (DC2).</summary>
     public int Float { get; init; }
+
+    /// <summary>How far the lava must fall below the casing to count as leaked. Together with
+    /// <see cref="Float"/> it says how far players must dig — <c>max(0, leak − float)</c>.</summary>
     public int Leak { get; init; }
 
     /// <summary>The casing's resolved block volume — filled by the world-export path, the only place that
@@ -449,5 +520,8 @@ public sealed record CoreIntent
 }
 
 /// <summary>A world point (spawn location).</summary>
+/// <param name="X">Its east–west position, in blocks.</param>
+/// <param name="Y">Its height.</param>
+/// <param name="Z">Its north–south position.</param>
 public readonly record struct Pt(double X, double Y, double Z);
 

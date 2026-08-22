@@ -75,6 +75,8 @@ public sealed record NavPointDto(string Kind, string Name, int X, int Z, int Com
 /// null where the whole map's navigability fails to reach it, whoever walks.</summary>
 /// <param name="Kind">What the point is: <c>spawn</c> or <c>wool</c>.</param>
 /// <param name="Name">The team or the colour it belongs to.</param>
+/// <param name="For">The team an entry denial cut it off from, where that is the cause — absent where the
+/// whole map's navigability fails to reach it, whoever walks.</param>
 public sealed record IsolatedPointDto(string Kind, string Name, string? For = null);
 
 /// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity over the navigability map.</summary>
@@ -137,6 +139,7 @@ public sealed record CoverageDto(
 /// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
 /// <param name="Key">What the check is, for a caller branching on it.</param>
 /// <param name="Label">The check as an author reads it.</param>
+/// <param name="Status">Its verdict: <c>pass</c>, <c>fail</c> or <c>skip</c>.</param>
 /// <param name="Detail">What it found, with the numbers in it.</param>
 public sealed record PreflightCheckDto(string Key, string Label, string Status, string Detail);
 

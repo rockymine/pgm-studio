@@ -7,6 +7,8 @@ namespace PgmStudio.Contracts;
 /// <paramref name="Slots"/> names each emitted piece's template slot, in emit order.</summary>
 /// <param name="Svg">The shape the emitter drew, ready to inject, or absent where it refused.</param>
 /// <param name="Rejection">Why it refused, or absent where it drew.</param>
+/// <param name="LandCells">The walkable terrain the fill spends — the box's land currency.</param>
+/// <param name="Slots">Each emitted piece's template slot, in emit order.</param>
 public sealed record ShapeProbeResult(
     string? Svg,
     ShapeRejectionDto? Rejection,
@@ -18,6 +20,12 @@ public sealed record ShapeProbeResult(
 /// <c>unsupported-knobs</c>, <c>form-does-not-fit</c>); <paramref name="Detail"/> is the emitter's own message
 /// where it has one, passed through rather than reworded. <paramref name="MinW"/>/<paramref name="MinH"/> carry
 /// the family's minimum box on a size refusal, so the panel can offer the exact resize.</summary>
+/// <param name="Code">Which case it is: <c>too-small</c>, <c>not-on-menu</c>, <c>illegal-dock</c>,
+/// <c>unsupported-knobs</c>, <c>form-does-not-fit</c>.</param>
+/// <param name="Detail">The emitter's own message where it has one, passed through rather than
+/// reworded.</param>
+/// <param name="MinW">The family's minimum box width on a size refusal, in the dock frame, so the panel can
+/// offer the exact resize.</param>
 /// <param name="MinH">The family's minimum box depth on a size refusal, in the dock frame.</param>
 public sealed record ShapeRejectionDto(string Code, string Detail, int? MinW, int? MinH);
 

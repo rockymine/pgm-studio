@@ -100,6 +100,8 @@ public sealed record SymmetryCenterDto(double Cx, double Cz);
 /// set it by hand, which is what distinguishes a confirmed detection from a corrected one.</summary>
 /// <param name="Type">The mode the map is taken to have.</param>
 /// <param name="Confidence">How strongly it holds, 0–1. An author's own ruling is full confidence.</param>
+/// <param name="UserOverride">Present only where the author set the mode by hand, which is what tells a
+/// confirmed detection from a corrected one.</param>
 public sealed record SymmetryPrimaryDto(
     string Type,
     double Confidence,

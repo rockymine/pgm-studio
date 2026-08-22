@@ -745,6 +745,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   named a case nothing had: **a success whose JSON body is an array has nowhere to hold the key**, so the
   twenty-one list reads name the header alone — none can raise one today, and one that grew a gate would be
   reporting into a log rather than onto the wire.
+- **An answered field says what it is too (`RP48`).** `RP36` closed the request side and left the answer
+  side at **251 of 1,032** fields described, so a caller reading a response schema met a name and a type. It
+  is **1,027** now, and `SchemaCompletenessTests` holds both directions with one test — the shapes a driver
+  posts and the shapes it reads, with the same named exception for the synthesised discriminator that has no
+  property to document.
+
+  **Two things fell out of writing it.** The five library `*Detail` records differed from their
+  `*SaveRequest` by exactly `id` — **53 fields declared twice**, and documenting both would have cemented
+  it. They inherit instead, so the docs live once and the published schema says what the answer actually is:
+  `allOf` the request, plus the id. And **`PgmStudio.Analysis` was the one project with no documentation
+  file**, so `KitReach`'s three records — answered directly by a route — could not have carried a
+  description whatever was written on them.
+
+  Two computed properties were leaking value tuples onto the wire as `{item1, item2, item3}` —
+  `BlockBox.CuboidMax` and `StampId.Identity`, both derived from the fields beside them. They are
+  `[JsonIgnore]`d: a name a caller cannot read is worse than a field they can compute.
 - **A posted field says what it is (`RP36`).** The schema publishes the docstrings the records carry, so a
   field with no `<param>` reached a caller as a name and a type, with the type's own prose doing the fields'
   work — which reads as documented while telling an author nothing about the one field they have to fill.
@@ -756,8 +772,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   synthesised discriminator, which has no property to document. The library save requests, the compose
   descriptor, `PlanModel` with its pieces, zones, boxes, walls and five kinds of marker, and `SketchLayout`
   are what moved; the plan's `role`, `kind` and box `kind` also publish their words, since the machinery
-  `RP37` built reaches a `Pgm` word set as readily as a `Vocabulary` one. Over the whole document the figure
-  is 466 of 1,283, up from 336 — the answer side is `RP48`.
+  `RP37` built reaches a `Pgm` word set as readily as a `Vocabulary` one.
 - **A field that takes one of a handful of words says which (`RP37`).** Ten closed sets live in
   `PgmStudio.Vocabulary` — `MapStage` and the nine in `TerrainVocabulary` — because three parties have to
   spell a `map.stage`, a `style.kind`, a theme bucket, a room part or a roof form identically, and all ten

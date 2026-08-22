@@ -11,6 +11,13 @@ namespace PgmStudio.Contracts;
 /// <param name="BoxW">The box it needs, in cells across.</param>
 /// <param name="BoxH">The box it needs, in cells down.</param>
 /// <param name="CorridorCells">The corridor width it was drawn at.</param>
+/// <param name="Tier">How far the shape gets: <c>in-mix</c> (a sampler draws it), <c>reachable</c> (the
+/// filler accepts it but nothing asks) or <c>emitter-only</c> (only a direct emitter call builds it).</param>
+/// <param name="Knobs">Display tokens for what was set — <c>flipped</c>, <c>side-tuck</c>,
+/// <c>attach 4</c>.</param>
+/// <param name="Note">Why the shape sits at its tier, so a badge is never bare. Absent for
+/// <c>in-mix</c>.</param>
+/// <param name="Svg">The card picture, ready to inject.</param>
 public sealed record CatalogShapeDto(
     string Id,
     string Kind,
@@ -29,6 +36,9 @@ public sealed record CatalogShapeDto(
 /// browse feed's observed census follows).</summary>
 /// <param name="Shapes">The cards this request matched.</param>
 /// <param name="Total">How many the whole catalog holds.</param>
+/// <param name="ByTier">How many the whole catalog holds per tier — the <b>whole</b> catalog, not the
+/// filtered slice, so a chip says what it would show before it is picked.</param>
+/// <param name="ByFamily">How many the whole catalog holds per family.</param>
 /// <param name="ByKind">How many the whole catalog holds per kind.</param>
 public sealed record CatalogPage(
     IReadOnlyList<CatalogShapeDto> Shapes,

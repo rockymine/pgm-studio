@@ -63,6 +63,10 @@ public sealed record BoxSpendDto(string Kind, int Boxes, int LandCells, int Foot
 /// breakdown, ordered largest-land first.</summary>
 /// <param name="LandCells">The walkable terrain the unit spent in total.</param>
 /// <param name="FootprintCells">The rectangles it seated in total.</param>
+/// <param name="BudgetCells">The envelope's land target for one team unit, already converted from the
+/// blocks² the envelope works in — carried converted rather than leaving a caller to guess the cell
+/// size.</param>
+/// <param name="ByKind">The breakdown, largest-land first.</param>
 public sealed record LandSpendDto(
     int LandCells,
     int FootprintCells,
@@ -81,6 +85,7 @@ public sealed record LandSpendDto(
 /// <param name="HardTerms">The hard terms it fired, by id. A card firing any is one the gate rejected.</param>
 /// <param name="TopSoft">The soft terms costing it the most, largest first.</param>
 /// <param name="Svg">The board picture, ready to inject.</param>
+/// <param name="Spend">What the unit spent against its land budget, absent where nothing measured it.</param>
 public sealed record ComposeCard(
     ComposeRequestDto Descriptor,
     double Score,
@@ -121,6 +126,8 @@ public sealed record ObservedForms(
 /// asking.</param>
 /// <param name="Scanned">How many seeds this page composed. Against the card count it is the match rate,
 /// and a low one under a strict filter is itself the signal to promote that filter to a held target.</param>
+/// <param name="Observed">The structural census over those same boards, counted <b>before</b> the sieve so
+/// a filter chip never hides the alternatives it is filtering against.</param>
 public sealed record ComposePage(
     IReadOnlyList<ComposeCard> Cards,
     int NextSeed,

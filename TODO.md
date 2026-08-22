@@ -26,15 +26,6 @@ refusal envelope and declined — the interoperability it buys needs a caller ou
 is none, while the dereference it is prized for is already reachable from the `rule` each finding carries.
 The reasoning is `docs/design-decisions.md` § *The HTTP surface*; the entry that asked it is retired.
 
-- [ ] **RP48 — The answer shapes describe the type and not the fields.** `RP36` closed the request side:
-  189 of the 190 fields a write route reads carry a `<param>`, and `SchemaCompletenessTests` holds every
-  posted shape to it. The answer side is where the remaining gap is — **466 of 1,283** fields across the
-  whole document carry a description, so a caller reading a response schema meets a name and a type. The
-  populous ones are the analysis and region reads (`RegionTreeDto` and its four companions, `CoverageDto`,
-  `BuildabilityDto`, the suggestion DTOs) and the evaluator's own answers (`EvaluationDto`, `TermDto`,
-  `FeasibilityDto`), several of which explain their fields in the type's prose. Extend the posted-shape test
-  to the answered ones once they are written, so the guard is the same one in both directions.
-
 - [ ] **RP27 — Nine library writes still open a transaction by hand.** `PgmDb.InOneWriteAsync` is the verb
   for "this replacement lands whole or not at all", and the three map-level writers ask it by that name.
   The style, theme and house-part stores do not: `RoomStyleStore` (2), `HousePartStore` (4), `ThemeStore` (2)

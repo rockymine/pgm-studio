@@ -32,9 +32,14 @@ public sealed class WordSetSchemaTests
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be
     /// marked — an unmarked <c>string</c> is what every one of these was, and is indistinguishable from a
-    /// field that genuinely takes free text — so the count is what holds a mark to being kept. It only moves
-    /// up: a mark dropped fails here, and a field newly marked raises it.</summary>
-    private const int Published = 23;
+    /// field that genuinely takes free text — so the count is what holds a mark to being kept: a mark
+    /// dropped fails here.
+    ///
+    /// <para>It is a count of <b>declarations</b>, not of published fields. A record that inherits its
+    /// fields carries the mark once, on the base, and publishes it through <c>allOf</c> — so consolidating
+    /// two records into one lowers this while the wire gains nothing and loses nothing. Lower it only for
+    /// that reason, and never because a mark went missing.</para></summary>
+    private const int Published = 17;
 
     /// <summary>Every marked field publishes exactly the words its class declares, in that order — so a word
     /// added to a set reaches the document with no second edit, and one removed cannot linger there.</summary>
@@ -49,7 +54,10 @@ public sealed class WordSetSchemaTests
             {
                 if (Declared(property) is not { } declaring) continue;
                 if (!schemas.TryGetProperty(record.Name, out var schema)) continue;
-                if (!schema.GetProperty("properties").TryGetProperty(Wire(property), out var field)) continue;
+                // A record that inherits its fields publishes only its own; the marked ones are checked on
+                // the base that declares them, which is where the attribute is.
+                if (!schema.TryGetProperty("properties", out var properties)) continue;
+                if (!properties.TryGetProperty(Wire(property), out var field)) continue;
 
                 var published = field.TryGetProperty("enum", out var words)
                     ? words.EnumerateArray().Select(word => word.GetString()).ToList()

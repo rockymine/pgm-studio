@@ -18,6 +18,11 @@ namespace PgmStudio.Contracts;
 /// <param name="ComposerVersion">Which composer composed it, present only on a generated row.</param>
 /// <param name="CreatedAt">When the row was made.</param>
 /// <param name="UpdatedAt">When it was last written.</param>
+/// <param name="Descriptor">The full reproducible request behind a generated row, so the browse hold-tray
+/// can identify and re-open it. Absent on an authored or imported row, which has none.</param>
+/// <param name="StaleComposer">Whether a generated row was made by an <b>older composer</b> than the one
+/// running. The stored plan is unaffected — its geometry is stored, not recomputed — but its descriptor no
+/// longer reproduces it. Always false for a row with no descriptor to go stale.</param>
 public sealed record PlanSummary(
     long Id,
     string Name,

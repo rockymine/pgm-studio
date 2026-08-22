@@ -31,8 +31,13 @@ public sealed class SketchReliefJson
     /// step is more than one, since that is what turns a riser into a wall.</summary>
     [JsonPropertyName("stairs")] public bool Stairs { get; set; }
 
+    /// <summary>The noise laid over everything the marks decide, or absent for a surface with none.</summary>
     [JsonPropertyName("grain")]  public ReliefGrainJson? Grain { get; set; }
+
+    /// <summary>The heights the author stated, each over the patch it states them for.</summary>
     [JsonPropertyName("marks")]  public List<ReliefMarkJson>? Marks { get; set; }
+
+    /// <summary>The shapes of ground lifted or lowered after the marks are solved.</summary>
     [JsonPropertyName("pushes")] public List<ReliefPushJson>? Pushes { get; set; }
 
     /// <summary>The spec the solver takes, with the map's symmetry folded in. The fold is passed whatever the
@@ -60,8 +65,14 @@ public sealed class SketchReliefJson
 /// from which seed.</summary>
 public sealed class ReliefGrainJson
 {
+    /// <summary>How far the noise moves the surface, in blocks. Zero leaves it as the marks solved it.</summary>
     [JsonPropertyName("amplitude")] public double Amplitude { get; set; }
+
+    /// <summary>How wide a feature the noise makes, in blocks — small is rubble, large is dunes.</summary>
     [JsonPropertyName("scale")]     public int Scale { get; set; } = 9;
+
+    /// <summary>The noise row it reads, so the same relief solves identically on every export until the
+    /// author rerolls it.</summary>
     [JsonPropertyName("seed")]      public uint Seed { get; set; } = 1;
 }
 
@@ -76,23 +87,48 @@ public sealed class ReliefMarkJson
     [JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Id { get; set; }
 
+    /// <summary>What shape of patch this mark states a height over: <c>point</c>, <c>line</c>, <c>area</c>,
+    /// <c>rim</c> or <c>scarp</c>. It decides which of the fields below are read; the rest are ignored, so a
+    /// mark can be retyped in place without being rewritten.</summary>
     [JsonPropertyName("kind")] public string Kind { get; set; } = "point";
 
-    [JsonPropertyName("at")]     public double[]? At { get; set; }        // point
-    [JsonPropertyName("r")]      public double Radius { get; set; } = 2;  // point
-    [JsonPropertyName("points")] public double[][]? Points { get; set; }  // line, scarp
-    [JsonPropertyName("ring")]   public double[][]? Ring { get; set; }    // area
+    /// <summary>A point's position, as an <c>[x, z]</c> pair.</summary>
+    [JsonPropertyName("at")]     public double[]? At { get; set; }
+
+    /// <summary>How far a point's height reaches, in blocks.</summary>
+    [JsonPropertyName("r")]      public double Radius { get; set; } = 2;
+
+    /// <summary>A line's or scarp's course, as <c>[x, z]</c> pairs.</summary>
+    [JsonPropertyName("points")] public double[][]? Points { get; set; }
+
+    /// <summary>An area's outline, as <c>[x, z]</c> pairs.</summary>
+    [JsonPropertyName("ring")]   public double[][]? Ring { get; set; }
     // A point, an area and a rim state one height and a line states one per vertex, so the field reads
     // either — `"h": 9` and `"h": [7, 9, 5]` are both what an author would write, and making one of them
     // wrong would be a rule the format exists to avoid.
+    /// <summary>The height the mark states. A point, an area and a rim state one and a line states one per
+    /// vertex, so the field reads either — <c>"h": 9</c> and <c>"h": [7, 9, 5]</c> are both what an author
+    /// would write.</summary>
     [JsonPropertyName("h"), JsonConverter(typeof(ScalarOrArrayJsonConverter))]
     public double[]? Heights { get; set; }
-    [JsonPropertyName("width")]  public double Width { get; set; } = 1.5; // line
-    [JsonPropertyName("depth")]  public int Depth { get; set; } = 1;      // rim
-    [JsonPropertyName("high")]   public double High { get; set; }         // scarp
-    [JsonPropertyName("low")]    public double Low { get; set; }          // scarp
-    [JsonPropertyName("face")]   public double Face { get; set; } = 2;    // scarp
-    [JsonPropertyName("band")]   public double Band { get; set; } = 5;    // scarp
+    /// <summary>How wide a line's stated height runs, in blocks.</summary>
+    [JsonPropertyName("width")]  public double Width { get; set; } = 1.5;
+
+    /// <summary>How many cells in from the island's outline a rim states its height over.</summary>
+    [JsonPropertyName("depth")]  public int Depth { get; set; } = 1;
+
+    /// <summary>The height on a scarp's upper side.</summary>
+    [JsonPropertyName("high")]   public double High { get; set; }
+
+    /// <summary>The height on its lower side.</summary>
+    [JsonPropertyName("low")]    public double Low { get; set; }
+
+    /// <summary>How far the drop itself runs across, in blocks — a narrow face is a cliff, a wide one a
+    /// slope.</summary>
+    [JsonPropertyName("face")]   public double Face { get; set; } = 2;
+
+    /// <summary>How far either side is held at its own height before the surface is free again.</summary>
+    [JsonPropertyName("band")]   public double Band { get; set; } = 5;
 
     private double FirstHeight => Heights is { Length: > 0 } heights ? heights[0] : 0;
 
@@ -117,12 +153,26 @@ public sealed class ReliefPushJson
     [JsonPropertyName("id"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Id { get; set; }
 
+    /// <summary>The ring drawn around the ground to move, as <c>[x, z]</c> pairs.</summary>
     [JsonPropertyName("ring")]      public double[][]? Ring { get; set; }
+
+    /// <summary>How far it lifts, in blocks. Negative lowers.</summary>
     [JsonPropertyName("amount")]    public double Amount { get; set; }
+
+    /// <summary>An amount per ring vertex, where the lift varies around the outline rather than being
+    /// even.</summary>
     [JsonPropertyName("amounts")]   public double[]? Amounts { get; set; }
+
+    /// <summary>How far outside the ring the lift eases back to the ground, in blocks.</summary>
     [JsonPropertyName("falloff")]   public double Falloff { get; set; } = 10;
+
+    /// <summary>How much the skirt wanders, so the lifted shape does not read as stamped.</summary>
     [JsonPropertyName("roughness")] public double Roughness { get; set; }
+
+    /// <summary>How much the top domes rather than sitting flat.</summary>
     [JsonPropertyName("crown")]     public double Crown { get; set; }
+
+    /// <summary>The noise row the roughness reads, so the shape is identical on every export.</summary>
     [JsonPropertyName("seed")]      public uint Seed { get; set; } = 1;
 
     public PushMark? ToPush() => Ring is { Length: >= 3 } ring

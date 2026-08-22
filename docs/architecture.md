@@ -112,10 +112,16 @@ instead of as a `JsonElement` it picked the key out of by hand.
 carry, and a field with no `<param>` reaches a caller as a name and a type — with the type's own prose doing
 the fields' work, which reads as documented while telling an author nothing about the one field they have to
 fill. `PlanPiece` was the worked case: its blurb explained `rect`, `surface` and `mirrors` and said nothing
-about `role`, the one field a caller must fill and the one whose allowed words it could not guess. **189 of
-the 190 fields** a write route reads now carry one, and `SchemaCompletenessTests` names the exception — a
-polymorphic base's synthesised discriminator, which has no property to document. Over the whole document the
-figure is **466 of 1,283**, which is the answer side's to close.
+about `role`, the one field a caller must fill and the one whose allowed words it could not guess.
+
+**Both directions carry it now.** Every field a write route reads and every field a route answers says what
+it is — **1,027 of the 1,032** an answer can carry, up from 251, and 189 of the 190 a request takes.
+`SchemaCompletenessTests` holds both halves to it and names the one exception, a polymorphic base's
+synthesised discriminator, which has no property to document. Two things fell out of writing it. The five
+library `*Detail` records differed from their `*SaveRequest` by exactly `id` — 53 fields declared twice — so
+they inherit instead and the schema says what they are, `allOf` the request plus the id. And `Analysis` was
+the one project with no documentation file at all, so three records answered directly by routes could not
+have carried a description whatever was written on them.
 
 **The wire contract is generated once and kept by hand twice more, and only one of the two still matters.**
 The route attributes in `Api/Endpoints` are the generator's source. Beside them sit the route strings written

@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace PgmStudio.Geom;
 
 /// <summary>
@@ -19,10 +21,21 @@ namespace PgmStudio.Geom;
 /// objective's box <i>means</i> is the paragraph above, and that travels with it.
 /// </para>
 /// </summary>
+/// <param name="MinX">Its west edge, inclusive.</param>
+/// <param name="MinY">Its floor, inclusive.</param>
+/// <param name="MinZ">Its north edge, inclusive.</param>
+/// <param name="MaxX">Its east edge, inclusive.</param>
+/// <param name="MaxY">Its ceiling, inclusive.</param>
+/// <param name="MaxZ">Its south edge, inclusive.</param>
 public readonly record struct BlockBox(int MinX, int MinY, int MinZ, int MaxX, int MaxY, int MaxZ)
 {
+    /// <summary>How many blocks it spans east–west.</summary>
     public int Width => MaxX - MinX + 1;
+
+    /// <summary>How many blocks it spans vertically.</summary>
     public int Height => MaxY - MinY + 1;
+
+    /// <summary>How many blocks it spans north–south.</summary>
     public int Depth => MaxZ - MinZ + 1;
 
     /// <summary>The centre of the volume's footprint, on the block lattice's half-steps — a 5-wide casing
@@ -34,6 +47,10 @@ public readonly record struct BlockBox(int MinX, int MinY, int MinZ, int MaxX, i
 
     /// <summary>The exclusive max a PGM cuboid wants: a cuboid spans blocks <c>[min, max)</c>, so its
     /// <c>max</c> attribute is one past the last block on each axis.</summary>
+    /// <remarks>Not serialized. A tuple crosses as <c>{item1, item2, item3}</c>, which names nothing a
+    /// caller can read, and this is derived from the six numbers beside it — so a wire field for it would be
+    /// a second, worse spelling of what is already there.</remarks>
+    [JsonIgnore]
     public (int X, int Y, int Z) CuboidMax => (MaxX + 1, MaxY + 1, MaxZ + 1);
 
     public bool Contains(int x, int y, int z) => x >= MinX && x <= MaxX && y >= MinY && y <= MaxY && z >= MinZ && z <= MaxZ;

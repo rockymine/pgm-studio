@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace PgmStudio.Domain;
 
 /// <summary>
@@ -30,6 +32,9 @@ public readonly record struct StampId(string Kind, string Unit, int Image)
 {
     /// <summary>What this is, with which image of it dropped — the key a reader groups on to find every image
     /// of one thing, and the one a render colours by so a mirrored pair shares a hue.</summary>
+    /// <remarks>Not serialized, for the reason <see cref="Geom.BlockBox.CuboidMax"/> is not: a tuple crosses
+    /// as <c>{item1, item2}</c> and this is the two fields beside it.</remarks>
+    [JsonIgnore]
     public (string Kind, string Unit) Identity => (Kind, Unit);
 
     /// <summary>The same unit seen as its <paramref name="image"/>-th image, for a caller naming the partner
