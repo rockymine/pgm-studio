@@ -3,13 +3,14 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
-/// <summary>One reusable terrain-paint style (GET /api/styles) — a named material recipe. <paramref name="Kind"/>
-/// is the material discriminator (<see cref="MaterialKind"/>); <paramref name="Params"/> is the serialized
-/// <c>TerrainMaterial</c> the painter reads. <paramref name="Preview"/> is the card picture of that material,
-/// rendered through the real painter: a library is browsed by what its entries look like, so the picture travels
-/// with the row rather than costing one request per card.</summary>
-public sealed record StyleDto(long Id, string Name, [property: WordSet(typeof(MaterialKind))] string Kind,
-    string Params, string Preview);
+/// <summary>One reusable terrain-paint style (GET /api/styles) — a named material recipe, as the save
+/// request plus the row's id and its card picture.</summary>
+/// <param name="Id">The row number a theme binds it by.</param>
+/// <param name="Preview">The card picture of the material, rendered through the real painter: a library is
+/// browsed by what its entries look like, so the picture travels with the row rather than costing one
+/// request per card.</param>
+public sealed record StyleDto(long Id, string Name, string Kind, string Params, string Preview)
+    : StyleSaveRequest(Name, Kind, Params);
 
 /// <summary>Create/update a style (POST /api/styles, PUT /api/styles/{id}).</summary>
 /// <param name="Name">What the library lists it under. It is the author's word, not a key — two styles may
@@ -20,26 +21,38 @@ public sealed record StyleDto(long Id, string Name, [property: WordSet(typeof(Ma
 /// object: the material hierarchy is fourteen shapes deep and a wire type restating it would be a second
 /// copy free to disagree with the deserializer. A body the painter cannot read is refused as
 /// <c>HS1</c>.</param>
-public sealed record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKind))] string Kind, string Params);
+public record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKind))] string Kind, string Params);
 
 /// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): the style that fills it, and the
 /// bucket's depth (rim/surface) and toggle. <paramref name="StyleId"/> 0 binds no style — the bucket keeps the
 /// built-in material and the binding carries only its depth and its toggle, which is how a theme says "no
 /// rim" without first being made to choose a rim material.</summary>
+/// <param name="Bucket">Which part of the ground this binding fills.</param>
+/// <param name="StyleId">The style that fills it, or <c>0</c> to bind none — which keeps the built-in
+/// material and is how a theme says "no rim" without first being made to choose a rim material.</param>
+/// <param name="Depth">How many top courses the bucket claims, where it claims a configurable number: the
+/// rim and the surface do, the wall's depth is the riser it finds, and the fill takes what is left.</param>
+/// <param name="Enabled">Whether the bucket is painted at all.</param>
 public sealed record ThemeBucketDto(
     [property: WordSet(typeof(ThemeBuckets))] string Bucket, long StyleId, int Depth, bool Enabled);
 
 /// <summary>One row in the theme library list (GET /api/themes), with the sample plateau the theme finishes —
 /// the same reason <see cref="StyleDto.Preview"/> travels with a style.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Preview">The card picture, drawn through the same code the export runs, so a library is
+/// browsed by what its entries look like.</param>
 public sealed record ThemeSummary(long Id, string Name, string Preview);
 
-/// <summary>A full theme (GET /api/themes/{id}) — the geometry knobs plus a style binding per bucket. The
-/// painter-ready JSON is served separately at GET /api/themes/{id}/json (assembled through the styles).</summary>
+/// <summary>A full theme (GET /api/themes/{id}): the save request plus the row's id, since an answer that
+/// restated the same fields would be one shape twice. The painter-ready JSON is served separately at
+/// GET /api/themes/{id}/json (assembled through the styles).</summary>
+/// <param name="Id">The row number a sketch pulls it in by.</param>
 public sealed record ThemeDetail(
     long Id, string Name,
-    bool BedrockRelative, int BedrockValue,
-    [property: WordSet(typeof(RimEdgeModes))] string RimEdges, bool WallOnTerrainFaces,
-    IReadOnlyList<ThemeBucketDto> Buckets);
+    bool BedrockRelative, int BedrockValue, string RimEdges, bool WallOnTerrainFaces,
+    IReadOnlyList<ThemeBucketDto> Buckets)
+    : ThemeSaveRequest(Name, BedrockRelative, BedrockValue, RimEdges, WallOnTerrainFaces, Buckets);
 
 /// <summary>Create or replace a theme built from existing styles (POST /api/themes, PUT /api/themes/{id}): the
 /// knobs plus the bucket→style bindings.</summary>
@@ -53,7 +66,7 @@ public sealed record ThemeDetail(
 /// only a face against a structure is.</param>
 /// <param name="Buckets">One binding per bucket the theme fills. A bucket left out keeps the built-in
 /// material, and a binding naming style <c>0</c> carries only its depth and its toggle.</param>
-public sealed record ThemeSaveRequest(
+public record ThemeSaveRequest(
     string Name,
     bool BedrockRelative, int BedrockValue,
     [property: WordSet(typeof(RimEdgeModes))] string RimEdges, bool WallOnTerrainFaces,
@@ -74,16 +87,23 @@ public sealed record ThemeImportRequest(string? Name, string ThemeJson);
 /// <summary>Both views of one material (POST /api/terrain/material-preview): <paramref name="Plan"/> is one
 /// course seen from above — where a voronoi, a noise field and a wall run vary — and <paramref name="Section"/>
 /// is one row of columns cut open downward, the axis a layer stack varies along.</summary>
+/// <param name="Plan">One course seen from above — where a voronoi, a noise field and a wall run vary.</param>
+/// <param name="Section">One row of columns cut open downward — the axis a layer stack varies along.</param>
 public sealed record MaterialPreviewDto(string Plan, string Section);
 
 /// <summary>A theme previewed (POST /api/terrain/theme-preview): <paramref name="Section"/> is a sample plateau
 /// painted with the theme and cut open — the buckets in their geometry — and <paramref name="Buckets"/> holds one
 /// top-down swatch per themeable bucket, keyed by <see cref="ThemeBuckets"/>.</summary>
+/// <param name="Section">The finished plateau, cut open downward.</param>
+/// <param name="Buckets">One picture per bucket, keyed by bucket, so a binding is judged on its own as well
+/// as in the whole.</param>
 public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string, string> Buckets);
 
 /// <summary>Why a style could not be forgotten (DELETE /api/styles/{id}, 409): the themes and room styles still
 /// binding it. A style is shared, so the refusal names what would break instead of surfacing a foreign-key
 /// error.</summary>
+/// <param name="Error">Why the style could not be deleted, in a sentence.</param>
+/// <param name="Themes">The themes still binding it, by name — what an author has to unbind first.</param>
 public sealed record StyleInUseDto(string Error, IReadOnlyList<string> Themes);
 
 // ── room styles ───────────────────────────────────────────────────────────────
@@ -93,10 +113,20 @@ public sealed record StyleInUseDto(string Error, IReadOnlyList<string> Themes);
 /// <summary>One course of a room style's part: which <see cref="RoomParts"/> it belongs to, where it sits in
 /// that part's stack (0 = the course nearest the part's own base), the style it resolves through, and how many
 /// courses it runs.</summary>
+/// <param name="Part">Which part of the shell the course belongs to.</param>
+/// <param name="Ordinal">Where it sits in that part's stack, 0 being the course nearest the part's own
+/// base. Counting up from the base is what pins a band: a stripe written at the fourth course stays at the
+/// fourth course when the wall grows.</param>
+/// <param name="StyleId">The library style it resolves through.</param>
+/// <param name="Height">How many courses it runs.</param>
 public sealed record RoomCourseDto(
     [property: WordSet(typeof(RoomParts))] string Part, int Ordinal, long StyleId, int Height);
 
 /// <summary>One row in the room-style library list (GET /api/room-styles), with the shell it stamps.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Preview">The card picture, drawn through the same code the export runs, so a library is
+/// browsed by what its entries look like.</param>
 public sealed record RoomStyleSummary(long Id, string Name, string Preview);
 
 /// <summary>The windows a room style cuts through its walls (<see cref="WindowForms"/>). <paramref name="Block"/>
@@ -107,6 +137,15 @@ public sealed record RoomStyleSummary(long Id, string Name, string Preview);
 /// <param name="HostBlock">The block a window may be cut <em>into</em>, or -1 to cut wherever one fits. On a
 /// banded wall a seat chosen by spacing lands half in one band and half in the next; naming the block the wall
 /// has to resolve to lets the panel decide instead.</param>
+/// <param name="Form">What the opening is filled with, or <c>none</c> for a blank wall.</param>
+/// <param name="Block">The block the opening is built from.</param>
+/// <param name="Data">That block's variant nibble — which wood, which dye. The geometry bits are the
+/// stamper's.</param>
+/// <param name="Sill">The course above the storey's own floor the opening starts at.</param>
+/// <param name="Width">How wide each opening is cut, in blocks.</param>
+/// <param name="Height">How tall each opening is cut.</param>
+/// <param name="Spacing">Clear blocks of wall between one opening and the next.</param>
+/// <param name="HostData">The variant nibble of that host block.</param>
 public sealed record RoomWindowDto(
     [property: WordSet(typeof(WindowForms))] string Form,
     int Block, int Data, int Sill, int Width, int Height, int Spacing,
@@ -114,16 +153,34 @@ public sealed record RoomWindowDto(
 
 /// <summary>The log ends that run out past the corners where two storeys meet — two per corner, one along each
 /// axis. <paramref name="Block"/> -1 is a building whose storeys meet without them.</summary>
+/// <param name="Block">The block the log ends are cut from, or -1 for a building whose storeys meet without
+/// them.</param>
+/// <param name="Data">That block's variant nibble — which wood.</param>
+/// <param name="Reach">How far each end runs out past the corner, in blocks.</param>
 public sealed record RoomBeamDto(int Block, int Data, int Reach);
 
 /// <summary>The beam over a doorway: stairs in the two corners of its top course, and what spans the middle of
 /// a wider one. <paramref name="Form"/> <c>none</c> leaves the opening a plain rectangle.</summary>
+/// <param name="Form">The beam's shape, or <c>none</c> to leave the opening a plain rectangle.</param>
+/// <param name="Block">The block the two corner stairs are cut from.</param>
+/// <param name="Fill">What spans the middle of a wider opening.</param>
+/// <param name="FillBlock">The block that middle is built from.</param>
+/// <param name="FillData">That block's variant nibble.</param>
 public sealed record RoomDoorHeadDto(
     [property: WordSet(typeof(DoorHeadForms))] string Form, int Block,
     [property: WordSet(typeof(DoorHeadFills))] string Fill, int FillBlock, int FillData);
 
 /// <summary>The porch a room style gives a strip of its footprint up for, or absent for a building whose walls
 /// stand on the whole of it. <paramref name="RailBlock"/> 0 leaves the deck open to step off anywhere.</summary>
+/// <param name="Depth">How deep a strip of footprint the walls give up. The room keeps at least three
+/// blocks whatever is asked for.</param>
+/// <param name="Inset">How far the deck stops short of each end of the wall it stands on. 0 runs it the
+/// full width.</param>
+/// <param name="Edge">Which wall it stands on. <c>front</c> follows the building's own front — the wall its
+/// doorway is cut through — rather than naming a fixed side.</param>
+/// <param name="Roof">The canopy's form.</param>
+/// <param name="RailBlock">The block the rail is built from, or 0 for a deck left open to step off
+/// anywhere.</param>
 public sealed record RoomPorchDto(int Depth, int Inset,
     [property: WordSet(typeof(PorchEdges))] string Edge,
     [property: WordSet(typeof(RoofForms))] string Roof, int RailBlock);
@@ -135,14 +192,20 @@ public sealed record RoomPorchDto(int Depth, int Inset,
 // RoomCourseDto shape the house uses, so one editor draws all of them.
 
 /// <summary>One row in the roof library, with the roof it stamps.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Preview">The card picture, drawn through the same code the export runs, so a library is
+/// browsed by what its entries look like.</param>
 public sealed record RoofStyleSummary(long Id, string Name, string Preview);
 
-/// <summary>A roof style: everything above the eave. Its courses are the <c>roof</c>, <c>verge</c> and
-/// <c>gable</c> parts.</summary>
+/// <summary>A roof style: everything above the eave — the save request plus the row's id. Its courses are
+/// the <c>roof</c>, <c>verge</c> and <c>gable</c> parts.</summary>
+/// <param name="Id">The row number a room style binds it by.</param>
 public sealed record RoofStyleDetail(
-    long Id, string Name, [property: WordSet(typeof(RoofForms))] string Form,
+    long Id, string Name, string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
-    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0);
+    IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0)
+    : RoofStyleSaveRequest(Name, Form, Pitch, Overhang, RoofHole, RidgeCap, Courses, RoofSlab, RoofSlabData);
 
 /// <summary>Create or replace a roof style. <paramref name="RoofSlab"/> is the block a half-course rise steps
 /// on every odd course, or -1 for a roof laid in whole blocks — the roof's own, since a roof style owns
@@ -164,7 +227,7 @@ public sealed record RoofStyleDetail(
 /// whole blocks. It is the number the slab/pitch pairing is checked against.</param>
 /// <param name="RoofSlabData">That slab's variant nibble — which wood, which stone. Which half of the cube it
 /// fills is the stamper's and is not stated here.</param>
-public sealed record RoofStyleSaveRequest(
+public record RoofStyleSaveRequest(
     string Name, [property: WordSet(typeof(RoofForms))] string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
     IReadOnlyList<RoomCourseDto> Courses, int RoofSlab = -1, int RoofSlabData = 0);
@@ -172,14 +235,20 @@ public sealed record RoofStyleSaveRequest(
 /// <summary>One row in the storey library, with the room it stamps. <paramref name="Clear"/> rides along
 /// because a house binding a stack of these has to say how tall the stack comes out, and asking the server
 /// per keystroke for a number it already sent would be a round trip for an integer.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Clear">The air a player stands in, carried on the row because a house binding a stack of
+/// these has to say how tall the stack comes out.</param>
+/// <param name="Preview">The card picture of the room it stamps.</param>
 public sealed record StoreyStyleSummary(long Id, string Name, int Clear, string Preview);
 
-/// <summary>A storey style: one room. <paramref name="Clear"/> is the air a player stands in — never under
-/// three, because a room has to be stood up in — and the courses are the <c>wall</c>, <c>post</c> and the
-/// three floor zones.</summary>
+/// <summary>A storey style: one room, as the save request plus the row's id. The courses are the
+/// <c>wall</c>, <c>post</c> and the three floor zones.</summary>
+/// <param name="Id">The row number a room style's storey stack names it by.</param>
 public sealed record StoreyStyleDetail(
     long Id, string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
-    IReadOnlyList<RoomCourseDto> Courses);
+    IReadOnlyList<RoomCourseDto> Courses)
+    : StoreyStyleSaveRequest(Name, Clear, BorderWidth, InlayInset, Windows, Courses);
 
 /// <summary>Create or replace a storey style.</summary>
 /// <param name="Name">What the library lists it under.</param>
@@ -190,20 +259,24 @@ public sealed record StoreyStyleDetail(
 /// <param name="Windows">The openings cut through this storey's wall, or <c>none</c> for a blank one.</param>
 /// <param name="Courses">The material stacks for the parts a storey owns — <c>wall</c>, <c>post</c> and the
 /// three floor zones. A part with no courses keeps the built-in finish.</param>
-public sealed record StoreyStyleSaveRequest(
+public record StoreyStyleSaveRequest(
     string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
     IReadOnlyList<RoomCourseDto> Courses);
 
 /// <summary>One row in the porch library, with the porch it stamps.</summary>
+/// <param name="Id">The row number every later route names it by.</param>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Preview">The card picture, drawn through the same code the export runs, so a library is
+/// browsed by what its entries look like.</param>
 public sealed record PorchStyleSummary(long Id, string Name, string Preview);
 
-/// <summary>A porch style: the strip of footprint the walls give up, and what stands on it. No courses — a
-/// porch's deck is the house's floor and its canopy the roof's material, so what is left to it is its
-/// shape.</summary>
+/// <summary>A porch style: the strip of footprint the walls give up and what stands on it, as the save
+/// request plus the row's id. No courses — a porch's deck is the house's floor and its canopy the roof's
+/// material, so what is left to it is its shape.</summary>
+/// <param name="Id">The row number a room style binds it by.</param>
 public sealed record PorchStyleDetail(
-    long Id, string Name, int Depth, int Inset,
-    [property: WordSet(typeof(PorchEdges))] string Edge,
-    [property: WordSet(typeof(RoofForms))] string Roof, int RailBlock);
+    long Id, string Name, int Depth, int Inset, string Edge, string Roof, int RailBlock)
+    : PorchStyleSaveRequest(Name, Depth, Inset, Edge, Roof, RailBlock);
 
 /// <summary>Create or replace a porch style.</summary>
 /// <param name="Name">What the library lists it under.</param>
@@ -216,7 +289,7 @@ public sealed record PorchStyleDetail(
 /// <param name="Roof">The canopy's form, from <see cref="RoofForms"/>.</param>
 /// <param name="RailBlock">The block the rail is built from, or 0 for a deck left open to step off
 /// anywhere.</param>
-public sealed record PorchStyleSaveRequest(
+public record PorchStyleSaveRequest(
     string Name, int Depth, int Inset,
     [property: WordSet(typeof(PorchEdges))] string Edge,
     [property: WordSet(typeof(RoofForms))] string Roof, int RailBlock);
@@ -224,25 +297,30 @@ public sealed record PorchStyleSaveRequest(
 /// <summary>One storey of a house: which storey style fills it, and the clear it takes <em>here</em> —
 /// 0 for the storey style's own. The position in the list is the position in the building, ground first, so
 /// there is no ordinal on the wire: reordering the list is reordering the house.</summary>
+/// <param name="StoreyStyleId">The storey style filling this level.</param>
+/// <param name="Clear">The air it takes <em>here</em>, or 0 for the storey style's own.</param>
 public sealed record RoomStoreyDto(long StoreyStyleId, int Clear);
 
-/// <summary>A full room style (GET /api/room-styles/{id}) — the per-part extents and knobs plus the courses
-/// bound to each part. A part with no courses keeps the built-in finish, the way an unbound theme bucket
-/// does.</summary>
+/// <summary>A full room style (GET /api/room-styles/{id}): the save request plus the row's id, since an
+/// answer that restated the same twenty-five fields would be one shape twice and the two would drift. A part
+/// with no courses keeps the built-in finish, the way an unbound theme bucket does.</summary>
+/// <param name="Id">The row number a sketch binds it by.</param>
 public sealed record RoomStyleDetail(
     long Id, string Name,
     int FloorDepth, int WallHeight,
-    [property: WordSet(typeof(RoofForms))] string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
+    string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
     int BorderWidth, int InlayInset,
     int Storeys, int StoreyClear,
     RoomWindowDto Windows, RoomPorchDto? Porch,
     string Door, int DoorHeight,
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses,
-    // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
-    // building has none" — which is what every stored style already was.
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null);
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null)
+    : RoomStyleSaveRequest(
+        Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
+        Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead);
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
 /// building: the parts it is finished in, the numbers that decide its proportions, and the library rows it
@@ -291,7 +369,7 @@ public sealed record RoomStyleDetail(
 /// absent for a gable left blank.</param>
 /// <param name="DoorHead">The beam over the doorway, or absent to leave the opening a plain
 /// rectangle.</param>
-public sealed record RoomStyleSaveRequest(
+public record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,
     [property: WordSet(typeof(RoofForms))] string RoofForm, int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
@@ -310,6 +388,11 @@ public sealed record RoomStyleSaveRequest(
 /// plane drawn at the scale of the pieces in it. A library <em>card</em> carries the section alone — the
 /// isometric is tens of kilobytes, which is nothing for the one style an editor has open and megabytes for a
 /// grid of them.</summary>
+/// <param name="Plan">The style from above.</param>
+/// <param name="Section">One plane cut open downward — the view a library card carries, since the isometric
+/// is tens of kilobytes.</param>
+/// <param name="Iso">The building in isometric.</param>
+/// <param name="Cutaway">One plane drawn at the scale of the pieces in it.</param>
 public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso, string Cutaway);
 
 /// <summary>One field of a material kind (<c>GET /api/terrain/patterns</c>), as the painter's deserializer
@@ -317,6 +400,12 @@ public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso
 /// <c>material[]</c>, <c>band[]</c>, <c>stripe[]</c>, <c>bandStack</c>, or an enum's name, in which case
 /// <paramref name="Choices"/> holds its values. A field with no <paramref name="Default"/> is
 /// <paramref name="Required"/> and has to be written.</summary>
+/// <param name="Name">The key the field is written under.</param>
+/// <param name="Type">What kind of value it takes — <c>int</c>, <c>bool</c>, <c>material</c>,
+/// <c>material[]</c>, <c>band[]</c>, <c>stripe[]</c>, <c>bandStack</c>, or an enum's name.</param>
+/// <param name="Required">Whether it has to be written. A field with no <paramref name="Default"/> is.</param>
+/// <param name="Default">What the deserializer uses when it is left out.</param>
+/// <param name="Choices">The values an enum-typed field takes, absent for the rest.</param>
 public sealed record MaterialFieldDto(
     string Name, string Type, bool Required, object? Default, IReadOnlyList<string>? Choices);
 
@@ -326,13 +415,23 @@ public sealed record MaterialFieldDto(
 /// <c>inset</c>, <c>arc</c>, <c>bend</c>, <c>height</c>, <c>team</c> — and therefore where it is legible: a
 /// kind reading <c>arc</c> says nothing away from a perimeter, and one reading <c>inset</c> draws rings and
 /// falls back off a footprint.</para></summary>
+/// <param name="Kind">The discriminator a theme tags it with.</param>
+/// <param name="Name">The label a picker offers it under.</param>
+/// <param name="Summary">What it draws, in a sentence.</param>
+/// <param name="Reads">Which facts about a cell it varies with — <c>position</c>, <c>depth</c>,
+/// <c>inset</c>, <c>arc</c>, <c>bend</c>, <c>height</c>, <c>team</c> — and therefore where it is legible: a
+/// kind reading <c>arc</c> says nothing away from a perimeter.</param>
+/// <param name="Fields">The knobs it takes, as the painter's deserializer will accept them.</param>
 public sealed record MaterialKindDto(
     [property: WordSet(typeof(MaterialKind))] string Kind, string Name, string Summary,
     IReadOnlyList<string> Reads, IReadOnlyList<MaterialFieldDto> Fields);
 
 /// <summary>A room style as the stamper's own JSON — the form the export consumes and the form a map
 /// snapshots when it binds one.</summary>
+/// <param name="StyleJson">The stamper's own JSON for the style, as text.</param>
 public sealed record StyleJsonDto(string StyleJson);
 
 /// <summary>A terrain theme as the painter's own JSON.</summary>
+/// <param name="ThemeJson">The painter's own JSON for the theme, as text — the form a sketch snapshots and
+/// <c>POST /api/themes/import</c> reads back.</param>
 public sealed record ThemeJsonDto(string ThemeJson);
