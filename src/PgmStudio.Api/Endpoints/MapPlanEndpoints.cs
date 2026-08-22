@@ -38,12 +38,7 @@ public sealed class PlanCreateEndpoint(MapRepository repo, MapArtifactStore arti
         }
         catch { /* empty / invalid body → default name */ }
 
-        var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(name), ct);
-        var now = DateTime.UtcNow;
-        var mapId = await repo.InsertAsync(new MapRow
-        {
-            Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Plan, CreatedAt = now, UpdatedAt = now,
-        });
+        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(repo, name, MapStage.Plan, ct);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, "{}"u8.ToArray(), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }
@@ -64,13 +59,8 @@ public sealed class AuthorPlanEndpoint(MapRepository repo, PgmDb db, MapArtifact
         if (candidate is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
         var name = string.IsNullOrWhiteSpace(candidate.Name) ? "Untitled plan" : candidate.Name.Trim();
-        var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(string.IsNullOrWhiteSpace(name) ? "plan" : name), ct);
-        var now = DateTime.UtcNow;
-        var mapId = await repo.InsertAsync(new MapRow
-        {
-            Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Plan,
-            PlanSourceId = candidate.Id, CreatedAt = now, UpdatedAt = now,
-        });
+        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(
+            repo, name, MapStage.Plan, ct, planSource: candidate.Id);
         await artifacts.SaveAsync(mapId, ArtifactKind.PlanJson, Encoding.UTF8.GetBytes(candidate.PlanJson), ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }

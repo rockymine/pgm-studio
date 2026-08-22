@@ -184,7 +184,7 @@ public sealed class ImportUrlEndpoint(MapRepository repo, WorldFeatureWriter wri
             }
 
             // ── 6. create record + scan into MariaDB ──
-            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw", Stage = MapStage.Configure });
+            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure);
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
 
             await Send.OkAsync(WorldScans.Of(slug, c) with { McaFiles = mca }, ct);
@@ -383,7 +383,7 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         long? mapId = null;
         try
         {
-            mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = slug, Gamemode = "ctw", Stage = MapStage.Configure });
+            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure);
             var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
             await Send.OkAsync(WorldScans.Of(slug, c), ct);
         }

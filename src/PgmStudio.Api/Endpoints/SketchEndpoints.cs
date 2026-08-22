@@ -67,9 +67,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         }
         catch { /* empty / invalid body → default name, no frame */ }
 
-        var slug = await SketchSlug.UniqueAsync(repo, SketchSlug.Slugify(name), ct);
-        var now = DateTime.UtcNow;
-        var mapId = await repo.InsertAsync(new MapRow { Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Sketch, CreatedAt = now, UpdatedAt = now });
+        var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(repo, name, MapStage.Sketch, ct);
         // Seed so GET works immediately: a framed create writes its setup; a frameless one stays empty {}.
         var seed = hasFrame ? SeedSetup(Math.Max(16, width), Math.Max(16, depth), mode, centerX, centerZ) : "{}"u8.ToArray();
         await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
@@ -90,26 +88,6 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
                 mirror_mode = mode,
             },
         });
-    }
-}
-
-/// <summary>Slug derivation shared by the sketch-origination endpoints (create blank / generate).</summary>
-internal static class SketchSlug
-{
-    public static string Slugify(string s)
-    {
-        var slug = Regex.Replace(s.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
-        return slug.Length > 0 ? slug : "sketch";
-    }
-
-    public static async Task<string> UniqueAsync(MapRepository repo, string baseSlug, CancellationToken ct)
-    {
-        if (await repo.GetBySlugAsync(baseSlug, ct) is null) return baseSlug;
-        for (var i = 2; ; i++)
-        {
-            var s = $"{baseSlug}-{i}";
-            if (await repo.GetBySlugAsync(s, ct) is null) return s;
-        }
     }
 }
 

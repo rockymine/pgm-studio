@@ -42,15 +42,9 @@ public static class MapFromDocuments
             return Refuse(400, "no name given", new Finding(RequestRules.Unreadable,
                 "neither a name nor the intent's own meta.name says what this map is called", Field: "name"));
 
-        var slug = SketchSlug.Slugify(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);
+        var slug = Slugs.Of(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);
         var existing = await repo.GetBySlugAsync(slug, ct);
-        if (existing is not null) await repo.DeleteMapAsync(existing.Id, ct);   // FK cascade takes the artifacts
-
-        var now = DateTime.UtcNow;
-        var mapId = await repo.InsertAsync(new MapRow
-        {
-            Slug = slug, Name = name, Gamemode = "ctw", Stage = MapStage.Plan, CreatedAt = now, UpdatedAt = now,
-        });
+        var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, ct);
 
         try
         {
