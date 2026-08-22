@@ -288,10 +288,10 @@
 
           <CanvasReadout @ref="readout" ZoomText="@zoomLabel" />
 
-          @* The derived-structure overlays used to live in the Settings panel, three clicks and a scroll from
-             the drawing they annotate. They are what the canvas shows, so they are chips on the canvas. In
-             3-D there is nothing to overlay — the isometric preview is one rendering of the finished heights
-             — so the row collapses to the rotate and the toggle back out. *@
+          @* The derived-structure overlays are what the canvas shows, so they are chips on the canvas rather
+             than settings a scroll away from the drawing they annotate. In 3-D there is nothing to overlay —
+             the isometric preview is one rendering of the finished heights — so the row collapses to the
+             rotate and the toggle back out. *@
           <CanvasLayerBar>
             @if (!threeD)
             {

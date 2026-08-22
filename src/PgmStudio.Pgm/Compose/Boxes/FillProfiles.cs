@@ -5,7 +5,7 @@ namespace PgmStudio.Pgm.Compose;
 /// <summary>
 /// The per-<see cref="BoxKind"/> fill profile as data: which approach families a box kind admits at a given
 /// interface width, and the footprint gate that decides whether a family fits a box. This is the single source
-/// the box menu and the footprint budget read, in place of the per-kind logic that used to be scattered across
+/// the box menu and the footprint budget read, rather than each kind answering for itself in
 /// <see cref="FillMenu"/> (wool) and <see cref="SpawnBoxEmitter"/> (spawn). It composes those rather than
 /// duplicating them: the <b>wool</b> profile is the §4 width→menu rule (<see cref="FillMenu.FamiliesFor"/>);
 /// the <b>spawn</b> profile is the un-escalated {I, L}. Two rows today (wool, spawn) — the hub/frontline rows,

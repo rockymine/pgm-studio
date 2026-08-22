@@ -58,10 +58,10 @@ public static class BlockFamilies
     /// rule this serves bars a building's footing from also being its roof, and does not bar stone as a
     /// category.
     ///
-    /// <para><b>It is soil and not "ground", and the name is the fix.</b> It used to be <c>IsGround</c>
-    /// beside <see cref="BlockRoles.IsNaturalGround"/>, which is the opposite kind of answer — everything left
-    /// after built, liquid, log and grown are taken away, derived rather than listed. A caller reaching for
-    /// "is this ground" had to know which of the two it wanted and nothing at the call site said so.</para>
+    /// <para><b>It is soil and not "ground", and the name is what keeps the two apart.</b>
+    /// <see cref="BlockRoles.IsNaturalGround"/> is the opposite kind of answer — everything left after built,
+    /// liquid, log and grown are taken away, derived rather than listed. Two members both called "ground"
+    /// would leave a caller reaching for one with nothing at the call site saying which it got.</para>
     /// </summary>
     public static readonly IReadOnlySet<int> Soil = new HashSet<int> { 2, 3, 12, 13, 60, 110 };
 

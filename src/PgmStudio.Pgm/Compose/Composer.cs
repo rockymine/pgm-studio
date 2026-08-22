@@ -38,8 +38,7 @@ public static class Composer
     /// its front anywhere. The composer no longer consults it: it centres the unit on its face
     /// (<see cref="UnitPlacement.CentreFaceOnAxis"/>) and the face's span is even
     /// (<see cref="TeamUnitAllocator"/>), so a composed front's residual offset is at most half a cell — one cell
-    /// of slack against a cap of four. The resample that used to test this here was measured to never fire and
-    /// has been removed.</para></summary>
+    /// of slack against a cap of four, which is why nothing resamples against it.</para></summary>
     internal const int FrontSlackCapCells = 4;
 
     public static PlanModel Compose(ComposeRequest request, IComposeRejectSink? rejects = null) =>

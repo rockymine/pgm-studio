@@ -8,9 +8,9 @@ namespace PgmStudio.Migrations.Migrations;
 /// <summary>
 /// Normalize stored authoring intents (<c>map_artifact.kind = 'map_intent_json'</c>) after rooms /
 /// spawn-protection became a <b>union of rectangles</b>: a wool's <c>room</c> and a spawn's
-/// <c>protection</c> used to be a single <c>{minX,minZ,maxX,maxZ}</c> object (or null) and are now an
-/// array of them. Wrap each legacy single object in a one-element array and turn an explicit null into an
-/// empty array, in place, so existing drafts keep loading without relying on the read-time tolerance
+/// <c>protection</c> are an array of <c>{minX,minZ,maxX,maxZ}</c>, and a blob written before that holds a
+/// single such object, or null. Wrap each single object in a one-element array and turn an explicit null into
+/// an empty array, in place, so existing drafts keep loading without relying on the read-time tolerance
 /// (<c>RectListJsonConverter</c>). Already-array blobs are left untouched. Forward-only — the data is a
 /// strict superset of the old shape, so there is nothing to roll back.
 /// </summary>

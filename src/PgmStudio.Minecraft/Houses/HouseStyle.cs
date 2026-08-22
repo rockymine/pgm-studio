@@ -441,9 +441,8 @@ public sealed record HouseStyle
     /// falls back to the building's, so a stack of identical storeys is a count rather than a repeated
     /// description.
     ///
-    /// <para><b>Every fallback a storey has is here.</b> The deck's used to be resolved inline in the stamper
-    /// two hundred lines away and against a different default, so a reader of this list would have concluded a
-    /// deck had no fallback at all — which it does, and has always had.</para></summary>
+    /// <para><b>Every fallback a storey has is here</b>, the deck's included. A fallback resolved in the
+    /// stamper instead is one a reader of this list would conclude does not exist.</para></summary>
     [JsonIgnore]
     public IReadOnlyList<Storey> Levels => Storeys.Count > 0
         ? [.. Storeys.Select(storey => storey with

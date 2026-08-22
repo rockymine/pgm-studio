@@ -9,9 +9,9 @@ namespace PgmStudio.Minecraft.Anvil;
 /// <see cref="Prop"/> is everything else the dressing pass put down — a tree, a boulder, flora, a path, a
 /// water course — which is placed rather than built and must not read as a building.
 ///
-/// <para><b><see cref="Prop"/> exists because a material test answers a different question.</b> The record
-/// used to stop at the first two, on the argument that a tree separates from built ground by material
-/// already. It does: what it cannot say is that a <em>pass</em> put it there, or which prop it belonged to.
+/// <para><b><see cref="Prop"/> exists because a material test answers a different question.</b> A tree does
+/// separate from built ground by material, which is the argument for recording only the first two. What
+/// material cannot say is that a <em>pass</em> put it there, or which prop it belonged to.
 /// Those are the two things a read-back has to prove — a flora prop that landed nothing looks exactly like a
 /// flora prop that was never authored, and two trees of one orbit cannot be told from two trees that happen
 /// to stand alike.</para>

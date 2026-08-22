@@ -210,7 +210,8 @@ public static class HouseStyleJson
     /// its statements were one part is told from one written after.</summary>
     private static bool IsMaterial(JsonNode? node) => node is JsonObject value && value.ContainsKey("kind");
 
-    /// <summary>Whether a stored material is the bare air one that used to stand in for no footing.</summary>
+    /// <summary>Whether a stored material is a bare air block, which is how a blob written before footing
+    /// was optional states that there is none.</summary>
     private static bool IsAir(JsonNode? material) =>
         material is JsonObject solid
         && solid["kind"]?.GetValue<string>() == "solid"

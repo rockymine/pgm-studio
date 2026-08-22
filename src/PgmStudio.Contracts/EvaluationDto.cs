@@ -42,9 +42,9 @@ public sealed record ViolationDto(
 /// ordered hard-first so the most actionable problems lead. Each violation carries the drawable evidence the
 /// canvas overlay paints, so a broken rule is <i>seen</i>, not only read.
 /// <para><see cref="Lint"/> is the structural validator's complaints — every non-blocking finding the check
-/// already computed (an unplaceable iron, a mid-lane spawn, an odd elevation step) — which used to be derived
-/// on every call and then discarded, so the loop an agent drives never saw them. Never affects
-/// <see cref="Valid"/> or <see cref="Score"/>.</para>
+/// already computed (an unplaceable iron, a mid-lane spawn, an odd elevation step). They are derived on every
+/// call whether or not they are carried, so carrying them costs nothing and is the only way the loop an agent
+/// drives sees them. Never affects <see cref="Valid"/> or <see cref="Score"/>.</para>
 /// </summary>
 public sealed record EvaluationDto(
     double Score, bool Valid, IReadOnlyList<ViolationDto> Violations,

@@ -14,10 +14,10 @@ namespace PgmStudio.Api.Endpoints;
 /// <c>GET /api/rules</c> — <b>every rule the studio can cite, with what it means and what to do about it.</b>
 ///
 /// <para>A refusal carries an id and one sentence about the document it was refused over. The id is stable
-/// forever and outlives the task that added it, which is what makes it worth keying on — and until now
-/// nothing answered the other question a reader has on meeting one: <i>what is <c>SP7</c></i>. The ids were
-/// spread across eight <c>*Rules</c> classes and one 644-line document, and a reader who did not already know
-/// which family an id belonged to had nowhere to start.</para>
+/// forever and outlives the task that added it, which is what makes it worth keying on — and this is what
+/// answers the other question a reader has on meeting one: <i>what is <c>SP7</c></i>. The ids live in eight
+/// <c>*Rules</c> classes across five projects, so a reader who does not already know which family an id
+/// belongs to has one place to ask rather than eight to search.</para>
 ///
 /// <para>Filter with <c>?family=PL</c> for one family, <c>?rule=SP7</c> for one rule,
 /// <c>?category=unplayable</c> for every rule a caller would answer the same way, or <c>?concerns=objective</c>

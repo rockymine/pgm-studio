@@ -14,9 +14,9 @@ namespace PgmStudio.Minecraft.Houses;
 /// <para><b>The roof is a height field, and every form is one formula over it</b> (<see cref="RoofField"/>).
 /// The stamper walks the roof's plan once, asks each cell what course it tops out at and how many courses it
 /// has to write to close the step down to its neighbours, and lays them. A flat lid, a gable, a hip, a gambrel,
-/// a shed and a saltbox are the same loop; only the answer differs. What used to be the gable's own end-wall
-/// pass generalizes with it: <b>the walls climb to meet the roof</b> wherever the roof stands above them, which
-/// is the gable's two ends, the shed's back wall and triangular flanks, and nothing at all under a hip.</para>
+/// a shed and a saltbox are the same loop; only the answer differs. The end walls follow the same
+/// generalization: <b>the walls climb to meet the roof</b> wherever the roof stands above them, which is the
+/// gable's two ends, the shed's back wall and triangular flanks, and nothing at all under a hip.</para>
 ///
 /// <para>Nothing is written outside the footprint plus its overhang, and nothing below the sill, so a house may
 /// be stamped onto finished terrain without reaching into it — with one exception a style has to ask for: the
@@ -114,8 +114,8 @@ public static class HouseStamper
     public static void Stamp(VoxelWorld world, BuildingPlan ground, int floorY, HouseStyle style,
                              int color = -1, IReadOnlyList<RoomDoor>? doors = null)
     {
-        // No room for two walls and an inside: a plan whose every cell is wall is a plan with no room in it,
-        // which is the same refusal a span under three blocks used to be and holds whatever shape it is.
+        // No room for two walls and an inside: a plan whose every cell is wall is a plan with no room in it.
+        // Asked of the ring rather than of a span, so it holds whatever shape the plan is.
         if (!ground.Cells().Any(cell => ground.Ring(cell.X, cell.Z) >= 1)) return;
 
         var front = style.Porch?.Edge ?? style.Front ?? FrontEdge(doors, ground);

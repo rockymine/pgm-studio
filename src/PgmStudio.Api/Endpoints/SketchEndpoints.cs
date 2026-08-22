@@ -156,8 +156,8 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
 /// <summary>PUT /api/map/{slug}/sketch/from-plan — replace the stored layout with one a plan compiled,
 /// carrying the map's existing finish onto it (<see cref="SketchLayout.CarryFinish"/>). The plan owns the
 /// board; the sketch owns its themes, room shells and dressing, and a plan cannot express any of those — so
-/// the compile path merges where <see cref="SketchPutEndpoint"/> replaces. Rebuilding a themed map from its
-/// plan used to hand back bare stone.
+/// the compile path merges where <see cref="SketchPutEndpoint"/> replaces. A replace here would rebuild a
+/// themed map into bare stone.
 ///
 /// <para><b>A relief is carried the same way but refuses rather than merging silently.</b> It is keyed by
 /// island, and island identity is derived from the geometry — so a recompile that re-fuses the board does not
@@ -214,7 +214,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         // The same gate the plain PUT runs, over the document that is actually stored — which is the merged
         // one, not the posted one, since the carry is what decides whether a shape's theme has a registry to
         // find. This road is the one an agent drives (compile, patch, put), so a board whose names match
-        // nothing used to be told on the road nobody takes.
+        // nothing is told here rather than only on the road a person takes.
         var document = SketchLayoutCheck.Check(merged);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 

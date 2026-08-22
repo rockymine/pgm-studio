@@ -8,9 +8,8 @@ using Dict = Dictionary<string, object?>;
 /// Map-identity slice of the declarative generator (new-map-authoring.md): sets the map name and the
 /// auto-derived fields — version, gamemode, and the objective text. Version is fixed; gamemode and the
 /// objective both follow which objective modules the intent actually carries (wools, destroyables, cores),
-/// the same rule <see cref="Gamemodes"/> applies to a parsed map (destroyables-and-cores.md OB7) — a
-/// destroy or core board is never labelled a capture map just because the studio's boilerplate used to say
-/// so.
+/// the same rule <see cref="Gamemodes"/> applies to a parsed map (destroyables-and-cores.md OB7), so a
+/// destroy or core board is labelled by what it carries rather than by whatever the boilerplate names first.
 /// <para>Authors/contributors are <b>not</b> set here — they're Minecraft usernames that need async
 /// resolution to uuids (<c>MojangClient</c>), which the intent endpoint does before saving. Proto
 /// (1.5.0) is an XML-export concern, not a persisted column.</para>

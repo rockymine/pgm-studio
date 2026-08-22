@@ -81,8 +81,9 @@ public sealed record DressingContext(
 /// same null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that
 /// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
 /// skips are not here — those are the ordinary shape of a route crossing ground the map keeps clear, not a
-/// decision an author needs restated one cell at a time — only the whole-prop causes that used to be silent:
-/// a house whose wings make no building, a house that collides with something already standing, a house with a
+/// decision an author needs restated one cell at a time — only the whole-prop causes, each of which loses
+/// something the author wrote: a house whose wings make no building, a house that collides with something
+/// already standing, a house with a
 /// cell of its footprint over no ground at all, and a tree or a boulder whose site finds no ground, lands on a
 /// column kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
 /// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a
@@ -712,11 +713,12 @@ public static class Decorator
     /// <summary>The course a building's floor sits at — one below the lowest ground its plan covers — or no
     /// floor and the first column of that plan with no ground under it.
     ///
-    /// <para><b>Every cell, not any cell.</b> A building seats on its lowest column, so a plan with one cell
-    /// on land and ten over void used to seat on that one and hang off the rest; nothing else covers it,
-    /// since the passage walk reads the bands <em>outside</em> the footprint and the excavation skips a
-    /// missing column rather than refusing it. Half a building on solid ground is worse than none, so the
-    /// quantifier is what a refusal is made of and the column it stopped at is what the refusal names.</para></summary>
+    /// <para><b>Every cell, not any cell.</b> A building seats on its lowest column, so asking whether
+    /// <em>any</em> cell has ground would seat a plan with one cell on land and ten over void on that one and
+    /// hang off the rest. Nothing else covers it: the passage walk reads the bands <em>outside</em> the
+    /// footprint and the excavation skips a missing column rather than refusing it. Half a building on solid
+    /// ground is worse than none, so the quantifier is what a refusal is made of and the column it stopped at
+    /// is what the refusal names.</para></summary>
     private static (int? Floor, (int X, int Z)? Bare) Ground(DressingContext context, BuildingPlan plan)
     {
         var lowest = int.MaxValue;

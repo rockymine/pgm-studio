@@ -135,8 +135,7 @@ public static class RectilinearUnion
     }
 
     /// <summary>The rectangles with area, as <see cref="CellRect"/> — the same exclusive-max integer
-    /// convention this walk already works in, which is why the private copy it used to build was never a
-    /// different shape from the one the leaf already exported.</summary>
+    /// convention this walk already works in, so the leaf's own shape is the one that leaves.</summary>
     private static List<CellRect> Real(IReadOnlyList<(int MinX, int MinZ, int MaxX, int MaxZ)> rects)
         => [.. rects.Where(r => r.MaxX > r.MinX && r.MaxZ > r.MinZ)
                     .Select(r => CellRect.FromBounds(r.MinX, r.MinZ, r.MaxX, r.MaxZ))];

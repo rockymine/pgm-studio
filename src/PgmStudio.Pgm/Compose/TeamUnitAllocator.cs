@@ -53,11 +53,10 @@ public static class TeamUnitAllocator
         var floor = laneWidthCells + 2;
         var hubU = rng.NextInt(floor, Math.Max(floor, depthCap) + 1);    // depth toward the axis — kept compact
         var hubV = rng.NextInt(floor, Math.Max(floor, wideCap) + 1);     // lateral span — elongates across the team's width
-        // the span is drawn free of parity. It used to be rounded to even under a laterally-flipping symmetry so
-        // the hub would coincide with its own image and the two sides' fronts line up — but the thing that has
-        // to coincide is the face, which carries its own parity law and is what the finished unit is centred on.
-        // The hub rides along and is free to sit off the axis, so half the size ladder no longer has to be spent
-        // buying an alignment it does not provide.
+        // The span is drawn free of parity, including under a laterally-flipping symmetry. What has to coincide
+        // with its own image is the face — it carries its own parity law and is what the finished unit is centred
+        // on — and the hub rides along, free to sit off the axis. Rounding it to even would spend half the size
+        // ladder buying an alignment the hub does not provide.
         // the frontline sits between the hub and the axis, so its reach pushes the hub's front edge back; the +2
         // gives a staple frontline's arms room for a real bay (a shallower reach collapses them to nubs)
         var frontReach = hasFrontline ? laneWidthCells + 2 : 0;

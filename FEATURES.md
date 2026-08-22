@@ -638,6 +638,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The comments stopped describing systems nobody can see (`RP10`).** `CLAUDE.md` § *Code comments* says a
+  comment is about the code as it stands and history lives in git; **24 comments across 21 files** had a state
+  that no longer exists as their subject — `RulesEndpoint` ("until now nothing answered…"), `MetaGenerator`
+  ("the studio's boilerplate used to say…"), `TeamUnitAllocator` ("it used to be rounded to even…"),
+  `FillProfiles` ("in place of the per-kind logic that used to be scattered…"), and twenty more. Each is now
+  the same claim stated as a fact about the present shape, which is always shorter: *the span is drawn free of
+  parity, including under a laterally-flipping symmetry* says what *it used to be rounded to even* said, and
+  says it without an account of a problem that is gone.
+
+  Seven of the 31 grep hits are `used to` meaning **in order to** — a corpus root used to locate a world, a
+  data nibble used to project a sign — and they stay. The entry expected six.
 - **The board as characters, off a posted plan (`TN4`).** `PlanBoardAscii.Render` was reachable only through
   two routes that need a stored map, while `compile`, `evaluate`, `inspect`, `feasibility` and `columns` all
   answer a document that has never been posted anywhere. `POST /plan/ascii` puts it beside them.

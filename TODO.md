@@ -27,28 +27,13 @@ what it is, so the contract came first; a gate belonged to whichever door someon
 was one place a use case lives, so the application layer came second; and the loop could not answer for
 itself until both. Phase 5 is what was never in the chain.
 
-**Two entries left**, and none of them blocks another: the drift the survey measured beside the work,
+**One entry left**, and none of them blocks another: the drift the survey measured beside the work,
 each entry drivable from itself. A finding made while working lands in `BACKLOG.md`.
 
 ## Phase 5 — the names, and what the survey turned up beside them
 
 None of these blocks anything. They are the drift the survey measured, and each is small enough to take while
 a phase above is compiling.
-
-- [ ] **RP10 — Sweep the history out of the code comments.** `CLAUDE.md` § *Code comments* states the rule —
-  a comment says what the code does and why, in the present tense, and never what it used to do — and the
-  tree does not keep it. **23 comments across 20 files** have a state that no longer exists as their subject:
-  `RulesEndpoint.cs` ("until now nothing answered…"), `MetaGenerator.cs` ("the studio's boilerplate used to
-  say…"), `TeamUnitAllocator.cs` ("it used to be rounded to even…"), `FillProfiles.cs` ("in place of the
-  per-kind logic that used to be scattered…"), `StructureFinder.cs`, `HouseStyle.cs`, `HouseStamper.cs` (two),
-  `Decorator.cs` (two), `EvaluationDto.cs`, `SketchEndpoints.cs` (two) and nine more. Each one is a
-  before-and-after
-  where a fact about the present shape would say the same thing shorter. Sweep them the way the port
-  attributions were swept: rewrite as the fact, delete where the fact is already stated above it. The grep
-  that finds them is `used to |had grown|until now|was (previously|formerly)|no longer (does|did)`, and it is
-  worth leaving in the commit message so the next sweep starts from the same list. It needs eyes: it answers
-  29 lines in 26 files, and six of those are `used to` meaning *in order to* — a corpus root "used to locate a
-  world", a tool "used to pick markers".
 
 - [ ] **RP8 — `project-structure.md`'s census disagrees with the tree it describes.** The size table at §3 is
   a snapshot nothing regenerates, and **every row of it has drifted**. Measured over `src/**/*.cs`

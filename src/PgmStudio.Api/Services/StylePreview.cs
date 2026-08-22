@@ -36,10 +36,10 @@ public static class StylePreview
     ///
     /// <para><b>The geometry is measured, not synthesised.</b> The square is traced and walked exactly as a
     /// real island is — <see cref="Geometry"/> — so the arc, the bend, the run direction and the inset a cell
-    /// reports are the ones a footprint of that shape actually produces. It used to hand every cell a fake arc
-    /// (its x column) and nothing else, which drew a wall run as stripes marching across open ground it would
-    /// never stripe, and drew a frame and a laid log as nothing at all: both read the bend, which was always
-    /// zero. An honest swatch shows a wall material hugging the border and flat in the middle, which is the
+    /// reports are the ones a footprint of that shape actually produces. A synthesised arc is what makes a
+    /// swatch lie: a wall run drawn off a cell's x column stripes open ground it would never stripe, and a
+    /// frame and a laid log read the bend, which a synthesised one leaves at zero, so both draw nothing at
+    /// all. An honest swatch shows a wall material hugging the border and flat in the middle, which is the
     /// fact about it worth knowing before it is built.</para></summary>
     public static string PlanSvg(TerrainMaterial material, TerrainBucket bucket = TerrainBucket.Surface,
         int columns = 32, int cell = 4)

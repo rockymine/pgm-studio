@@ -21,13 +21,13 @@ namespace PgmStudio.Minecraft.Render;
 /// from a path or a plaza, which are built surfaces with no height at all, and it is reported rather than
 /// used as a filter — a paved road is a real find, it is simply not a building.</para>
 ///
-/// <para><b>"Built" used to be the only test the flood applied, and it is a yes/no over every material at
-/// once.</b> Any two neighbouring built columns joined, whatever either was built <i>of</i> — a roof's edge
-/// touching the plaza it stands over fuses to the plaza even in two different materials, and a themed map
-/// that paints its terrain in the palette it builds with — a stone-brick cottage on a stone-brick town
-/// square, a clay cage on a clay field — fuses doubly, since the two are not just both built but built
-/// alike. Absent a recorded extent, what separates a building from the ground is not material but the step
-/// between them: a wall or a roof stands several blocks over the ground it grows from, while a plaza's own
+/// <para><b>"Built" alone cannot separate a building from the ground it stands on</b>, because it is a
+/// yes/no over every material at once: any two neighbouring built columns would join, whatever either was
+/// built <i>of</i>. A roof's edge touching the plaza it stands over fuses to the plaza even in two different
+/// materials, and a themed map that paints its terrain in the palette it builds with — a stone-brick cottage
+/// on a stone-brick town square, a clay cage on a clay field — fuses doubly, since the two are not just both
+/// built but built alike. Absent a recorded extent, what separates them is not material but the step between
+/// them: a wall or a roof stands several blocks over the ground it grows from, while a plaza's own
 /// surface is flat. The flood therefore joins two
 /// neighbouring built columns only when their tops are within <c>maximumStep</c> of each other, the same
 /// discipline <c>--buildings</c> already applies to a roof — a pitch or a storey rises a block or two at a

@@ -418,8 +418,8 @@ public static class ShapeEmitter
         at ??= [room.Width / 2.0, room.Height / 2.0];
         if (flip)
         {
-            // A CellRect is a value, so the mirrored rect is written back into the list rather than
-            // mutated through the reference the int[] used to hand out.
+            // A CellRect is a value, so the mirrored rect is written back into the list; there is no
+            // reference to mutate through.
             for (var i = 0; i < t.Count; i++)
                 t[i] = (t[i].Rect with { X = W - t[i].Rect.X - t[i].Rect.Width }, t[i].Slot);   // slot survives the mirror
             room = room with { X = W - room.X - room.Width };

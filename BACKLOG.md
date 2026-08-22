@@ -204,6 +204,23 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
+- [ ] **RP47 — The history sweep's grep was one phrasing of several.** `RP10` swept
+  `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
+  it. A second reading finds **31 comments across 27 files** outside `Migrations/` carrying the same fault in
+  other words — `previously`, `formerly`, `the old …`, `had been`, `stopped being`, `before this said`:
+  `DocAccess.cs:7` ("Previously copy-pasted…"), `PlanValidator.cs:112` ("Both were previously separate…"),
+  `FannedGraph.cs:100` ("The old full-corridor-width floor here misread…"), `UnitPlacement.cs:18`,
+  `Composer.cs:32`, `HubBoxEmitter.cs:184`, `SpawnTerms.cs:54` and twenty-four more. Rewrite each as a fact
+  about the present shape, the way `RP10` did.
+
+  **`Migrations/` is excluded and stays so.** A migration's subject *is* the shape it converts from, so "the
+  old columns are read as the defaults" is a statement about the data it meets rather than about a state that
+  no longer exists.
+
+  *The grep: `^\s*(///|//).*(previously|formerly|before this said|the old |used to be|had been|stopped being)`
+  over `src/`, minus `Migrations/`. Worth leaving in the commit message so the next reading starts where this
+  one stopped.*
+
 - [ ] **C47 — Three Edit phases each carry their own HTTP half, and the routes are split across it.**
   `BuildRegionsPhase`, `ObjectivePhase` and `TeamsPhase` each declare the same four members —
   `Post(path, body)`, `Patch(path, body)`, `Delete(path)` and `Send(call)` — over the prefix

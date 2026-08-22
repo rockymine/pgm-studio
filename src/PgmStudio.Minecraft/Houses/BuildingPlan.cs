@@ -361,9 +361,9 @@ public sealed class BuildingPlan
     }
 
     /// <summary>The runs of wall the plan stands in, measured once on first use: every maximal stretch of held
-    /// cells with open ground on one side of it. A rectangle answers four, one per facing, which is what lets a
-    /// caller that used to name a wall by its direction keep the answers it had; an L answers six and a T eight,
-    /// because a wall ends wherever the building turns — away from itself or back into itself.
+    /// cells with open ground on one side of it. A rectangle answers four, one per facing, so naming a wall by
+    /// its direction is enough for one; an L answers six and a T eight, because a wall ends wherever the
+    /// building turns — away from itself or back into itself — and a direction stops naming exactly one.
     ///
     /// <para>Ordered by facing, then by the line the wall stands on, then along it, so the order is a property
     /// of the plan rather than of how the wings were listed.</para></summary>

@@ -22,12 +22,12 @@ public enum BlockRole
 /// One classification of every block by its role, shared by every pass that has to tell the ground from what is
 /// standing on it.
 ///
-/// <para>It exists because the question was previously answered seven times. Each render carried its own
-/// "what must I step past" list, written as a negative and local to that one render, and seven lists written
-/// that way agreed wherever a map had tested them and diverged wherever none had. The divergences were not
-/// theoretical: the wooden fences were a build material to one pass and absent from four others, the rails were
-/// in five lists, two, or four depending on which rail, and fifteen blocks — mob heads, anvils, daylight
-/// sensors, spawners, banners, flower pots, cactus — were in no list at all and so were read as terrain by
+/// <para>It exists because a pass carrying its own "what must I step past" list writes it as a negative and
+/// local to that one pass, and lists written that way agree wherever a map has tested them and diverge
+/// wherever none has. The divergences are not theoretical: the wooden fences read as a build material to one
+/// pass and as nothing to four others, the rails land in five lists, two, or four depending on which rail, and
+/// fifteen blocks — mob heads, anvils, daylight
+/// sensors, spawners, banners, flower pots, cactus — fall into no list at all and are read as terrain by
 /// every pass that met them.</para>
 ///
 /// <para>The fix is to state what a block <em>is</em> once, positively, and let each pass compose the roles it
