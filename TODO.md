@@ -17,28 +17,8 @@ one; the document that would draw one is refused for the order of its own keys; 
 at all raises nothing, because there is nothing stated to disagree with; and what it records itself having
 drawn is a column wider than what it laid.
 
-The order is what each one unblocks. `RP50` puts the way to ask for a picture in the schema; `TS15` gives the
-finish stage a voice; `WS6` is the substantial one, and `WE14` is a claim to correct while that code is open.
-
-- [ ] **RP50 — Five routes declare a PNG answer and nothing declares how to ask for one.** `?format=png` and
-  `?view=` are read by `PngAnswer.Wanted`/`.View` straight off `HttpContext.Request.Query`, so they reach no
-  parameter list: `room-styles/preview`, `preview-snapshot`, `terrain/theme-preview`, `material-preview` and
-  `prop-preview` each publish `image/png` as a response content type over `parameters: []`. The schema says a
-  picture can come back and nothing says how to get one, which leaves the one instruction the brief cannot
-  drop — *read the schema, not a document* — false at the five routes that draw a picture.
-
-  Declare both as query parameters where `.AlsoPng()` is applied, so the flag that makes a route answer PNG
-  is also the flag that documents it, and let `view` carry the names each route actually has —
-  `preview-snapshot` refuses `isometric` and `cutaway` by name, which is a closed word set the schema can
-  publish rather than a sentence in `sketch.md`. `docs/tools/library.md`'s endpoint table gains the two
-  columns in the same commit.
-
-  **A third knob is missing rather than undeclared: there is no size.** A house section answers **72 × 108**
-  and a theme swatch **128 × 104**, which is the picture `AD-S6` asks an author to read a roof idiom off. A
-  scale or a width belongs beside `format` and `view`.
-
-  *Found by the run-5 authoring test: an agent that read the schema first could not find the query surface
-  and fell back to `sketch.md` prose, which is the failure the schema exists to prevent.*
+The order is what each one unblocks. `TS15` gives the finish stage a voice; `WS6` is the substantial one, and
+`WE14` is a claim to correct while that code is open.
 
 - [ ] **TS15 — A board with no finish at all is the one silence the sketch stage keeps.** `SK3` names a shape
   citing a theme the layout does not carry, `SK4` a shape drawing nothing, `SK7` a layout rasterizing to no

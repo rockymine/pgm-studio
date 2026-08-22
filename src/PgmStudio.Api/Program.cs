@@ -72,6 +72,9 @@ builder.Services.SwaggerDocument(o =>
     // One key rides on every success that has one, written by middleware rather than by any record — so the
     // document says so once, here. PgmStudio.Api.Endpoints.ComplaintChannel says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new ComplaintChannel());
+    // A route that answers a picture says how to ask for one, beside the media type that says it can.
+    // PgmStudio.Api.Endpoints.PngQuery says how.
+    o.DocumentSettings += doc => doc.OperationProcessors.Add(new PngQuery());
     // Keyed on the tag exactly as the generator emits it, which title-cases the path segment.
     o.TagDescriptions = tags =>
     {

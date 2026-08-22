@@ -1451,6 +1451,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **A route that answers a picture says how to ask for one — and stops claiming a picture is all it answers
+  (`RP50`).** `format`, `view` and `scale` are read off the query string rather than bound to a request
+  record, which is right and is why they reached no parameter list: five preview routes published
+  `image/png` over `parameters: []`, so the schema said a picture could come back and nothing said how to get
+  one. `Answers.AlsoPng(views)` now attaches the route's own closed set of view names as metadata and
+  `PngQuery` publishes all three — `view` as an **enum**, from the same array the endpoint hands
+  `PngAnswer.AnsweredAsync`, so what the document names and what a refusal lists cannot drift apart. A route
+  drawing one picture (`coverage`) declares no `view` at all.
+
+  Two more things travel with it. `AlsoPng` **no longer calls `Produces`**: a second `Produces` for 200
+  replaces the first, so declaring the picture that way had been deleting the JSON answer these routes give
+  by default — their 200 now carries both media types, which also gave six of them the `warnings` key they
+  could always have carried (110 → **116** answers declaring it) and made `DressingPreviewDto`'s eight fields
+  visible to the described-fields gate, which promptly failed until they were described. And **`scale`**
+  (1–8) is the size knob that never reached the wire though every renderer took one: a magnification through
+  `CellRaster.Scaled`, so a 72 × 108 house section — the picture `AD-S6` asks an author to read a roof idiom
+  off — can be asked for at 576 × 864. Out of range clamps and a non-number falls back to 1, because a scale
+  is how an answer is looked at rather than part of the question.
+  (`Answers.cs`, `PngQuery.cs`, `TerrainPreviewEndpoints.cs`, `CellRaster.cs`, `SchemaCompletenessTests.cs`,
+  `DressingPreviewTests.cs`)
 - **One block volume, one type (`B33`).** `BlockBox` (`PgmStudio.Domain`) is the single inclusive integer
   AABB for every role a block volume plays — the region an author boxes for a scan, the volume a stamper
   fills, the casing `CoreSuggester` proposes — carrying the union of the helpers the two former copies had

@@ -60,11 +60,22 @@ public static class DressingPreview
 
     /// <summary>One view of a placed prop as PNG bytes — <c>plan</c> from above, <c>section</c> from the
     /// side — or null for a view name that is neither. The same dressed patch <see cref="Views"/> draws.</summary>
-    public static byte[]? Png(PlacedProp prop, TerrainTheme theme, string view, int cell = 5)
+    public static byte[]? Png(PlacedProp prop, TerrainTheme theme, string view, int scale = 1)
     {
-        var (plan, section, _) = Rasters(prop, theme, cell);
-        return view switch { "plan" => plan.Png(), "section" => section.Png(), _ => null };
+        var (plan, section, _) = Rasters(prop, theme, Cell);
+        return view switch
+        {
+            "plan" => plan.Scaled(scale).Png(),
+            "section" => section.Scaled(scale).Png(),
+            _ => null,
+        };
     }
+
+    /// <summary>Pixels a block takes in a rastered view before the caller's scale.</summary>
+    private const int Cell = 5;
+
+    /// <summary>The views <see cref="Png"/> answers, first being the one it draws unasked.</summary>
+    public static readonly string[] PngViews = ["plan", "section"];
 
     /// <summary>Both views as the pictures they are, encoding unchosen — plus what the pass placed. One
     /// dressed patch feeds both, so the two encodings can never disagree about what stood on it.</summary>

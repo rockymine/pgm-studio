@@ -182,30 +182,41 @@ public static class StylePreview
 
     /// <summary>One view of a material as PNG bytes, or null for a view name that is not one — the same two
     /// views <see cref="Views(TerrainMaterial)"/> answers as SVG, at the same sizes.</summary>
-    public static byte[]? MaterialPng(TerrainMaterial material, string view)
+    public static byte[]? MaterialPng(TerrainMaterial material, string view, int scale = 1)
     {
         var wide = IsAreaPattern(TerrainThemeComposer.KindOf(material));
         return view switch
         {
-            "plan" => (wide ? PlanRaster(material, columns: 72, cell: 2) : PlanRaster(material)).Png(),
+            "plan" => (wide ? PlanRaster(material, columns: 72, cell: 2) : PlanRaster(material))
+                .Scaled(scale).Png(),
             "section" => (wide
                 ? SectionRaster(material, columns: 72, courses: 24, cell: 2)
-                : SectionRaster(material)).Png(),
+                : SectionRaster(material)).Scaled(scale).Png(),
             _ => null,
         };
     }
 
+    /// <summary>The views <see cref="MaterialPng"/> answers, first being the one it draws unasked.</summary>
+    public static readonly string[] MaterialPngViews = ["plan", "section"];
+
     /// <summary>One view of a theme as PNG bytes — <c>section</c> for the cut plateau, or a bucket name for
     /// its swatch — or null for a view name that is neither.</summary>
-    public static byte[]? ThemePng(TerrainTheme theme, string view) => view switch
+    public static byte[]? ThemePng(TerrainTheme theme, string view, int scale = 1) => view switch
     {
-        "section" => ThemeSectionRaster(theme).Png(),
-        ThemeBuckets.Rim => PlanRaster(theme.MaterialFor(TerrainBucket.Rim), TerrainBucket.Rim).Png(),
-        ThemeBuckets.Surface => PlanRaster(theme.MaterialFor(TerrainBucket.Surface), TerrainBucket.Surface).Png(),
-        ThemeBuckets.Wall => PlanRaster(theme.MaterialFor(TerrainBucket.Wall), TerrainBucket.Wall).Png(),
-        ThemeBuckets.Fill => PlanRaster(theme.MaterialFor(TerrainBucket.Fill), TerrainBucket.Fill).Png(),
+        "section" => ThemeSectionRaster(theme).Scaled(scale).Png(),
+        ThemeBuckets.Rim => Swatch(theme, TerrainBucket.Rim, scale),
+        ThemeBuckets.Surface => Swatch(theme, TerrainBucket.Surface, scale),
+        ThemeBuckets.Wall => Swatch(theme, TerrainBucket.Wall, scale),
+        ThemeBuckets.Fill => Swatch(theme, TerrainBucket.Fill, scale),
         _ => null,
     };
+
+    private static byte[] Swatch(TerrainTheme theme, TerrainBucket bucket, int scale) =>
+        PlanRaster(theme.MaterialFor(bucket), bucket).Scaled(scale).Png();
+
+    /// <summary>The views <see cref="ThemePng"/> answers: the cut plateau first, then one swatch per bucket.
+    /// The buckets come from <see cref="ThemeBuckets.All"/> rather than a second list of the same words.</summary>
+    public static readonly string[] ThemePngViews = ["section", .. ThemeBuckets.All];
 
     // The right half of any preview is team-owned land, the left neutral.
     private static int TeamOf(int x, int columns) => x < columns / 2 ? -1 : SampleTeam;

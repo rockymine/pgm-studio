@@ -8,10 +8,17 @@ namespace PgmStudio.Export;
 /// beside it.</summary>
 public static class CoverageRender
 {
-    public static byte[] Png(GroundCoverage.Result coverage, int cell = 3)
-        => new CellRaster(coverage.Width, coverage.Height, cell, (x, z) =>
+    /// <summary>The one view this render draws — a coverage grid has nothing to choose between, so the route
+    /// declares no <c>view</c> parameter and the name is only what the picture is.</summary>
+    public static readonly string[] PngViews = ["coverage"];
+
+    public static byte[] Png(GroundCoverage.Result coverage, int scale = 1)
+        => new CellRaster(coverage.Width, coverage.Height, Cell, (x, z) =>
         {
             var code = coverage.Cells[z * coverage.Width + x];
             return code == GroundCoverage.Void ? null : GroundCoverage.ClassColors[GroundCoverage.Classes[code]];
-        }).Png();
+        }).Scaled(scale).Png();
+
+    /// <summary>Pixels a cell takes before the caller's scale.</summary>
+    private const int Cell = 3;
 }

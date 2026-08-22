@@ -16,6 +16,11 @@ public sealed record CellRaster(int Columns, int Rows, int Cell, Func<int, int, 
 
     public string Svg() => SvgRaster.Raster(Columns, Rows, Cell, ColorAt);
 
+    /// <summary>The same picture drawn larger — every cell <paramref name="scale"/> times the pixels, and
+    /// nothing else changed. It is a magnification rather than a redraw, so what a preview chose to show at
+    /// its own cell size is what a caller asking for a bigger one gets more of.</summary>
+    public CellRaster Scaled(int scale) => scale <= 1 ? this : this with { Cell = Cell * scale };
+
     /// <summary>The same picture rasterized: each cell becomes a <see cref="Cell"/>-pixel square, encoded by
     /// the studio's own <see cref="PngWriter"/> — no imaging library, exactly as the world renders write.</summary>
     public byte[] Png(string background = Background)

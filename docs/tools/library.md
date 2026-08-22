@@ -471,6 +471,23 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
 | `GET /terrain/path-styles` · `/terrain/water-forms` · `/terrain/boulder-forms` · `/terrain/species` · `/terrain/woods` | the dressing vocabularies — every path style, water form, boulder form, tree species and wood a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
 
+**Every preview also draws a picture, and three query words say how to ask for one.** The default is
+SVG-in-JSON, which is what the client renders inline; `?format=png` answers **one** view as `image/png` bytes
+instead, which is the form an agent saves and looks at.
+
+| Word | Takes |
+|---|---|
+| `format` | `png`. Absent answers the JSON |
+| `view` | which view to draw, out of that route's own closed set — the first is what it draws unasked. A name outside the set is a **400** listing the ones it has. A route with one picture and nothing to choose declares no `view` at all |
+| `scale` | 1 to 8, absent is 1. A magnification rather than a redraw: the same view at more pixels, because a house section is 72 × 108 unasked and a roof idiom cannot be read off that. Anything outside the range, or not a number, draws at 1 — a scale is how the answer is looked at rather than part of the question, so a bad one costs a bigger picture and never the picture |
+
+The view sets, each stated once in the code and published as the `view` parameter's enum, so what the schema
+names and what a refusal lists are the same list: **`material-preview`** and **`prop-preview`** draw
+`plan`, `section`; **`room-styles/preview`** and **`preview-snapshot`** draw `section`, `plan` — the
+isometric and the cutaway are SVG only, since they draw a block as its own shape rather than as a filled cell
+and so have no raster to encode; **`theme-preview`** draws `section` plus one swatch per bucket
+(`rim`, `surface`, `wall`, `fill`); and **`GET /map/{slug}/coverage`** draws its one grid.
+
 **Worked bodies.** Each block below is posted verbatim by `DocumentedBodyTests`, so an example that stops
 being accepted fails a test rather than misleading a reader.
 

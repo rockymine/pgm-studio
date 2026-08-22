@@ -80,7 +80,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
     {
         Get("/map/{slug}/coverage");
         AllowAnonymous();
-        Description(b => b.AlsoPng().Refuses(404));
+        Description(b => b.AlsoPng(CoverageRender.PngViews).Refuses(404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -96,8 +96,8 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
 
         // One picture, so the view name has nothing to select and is not read — this is the one PNG route
         // with no view to get wrong.
-        if (await PngAnswer.AnsweredAsync(HttpContext, "coverage", "it draws one view",
-                _ => CoverageRender.Png(res), ct)) return;
+        if (await PngAnswer.AnsweredAsync(HttpContext, CoverageRender.PngViews,
+                (_, scale) => CoverageRender.Png(res, scale), ct)) return;
 
         var rows = Enumerable.Range(0, res.Height)
             .Select(iz => string.Concat(Enumerable.Range(0, res.Width)

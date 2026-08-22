@@ -317,6 +317,62 @@ public sealed class SchemaCompletenessTests
         string Name, IReadOnlyList<string> Media, IReadOnlyList<string> Success, IReadOnlyList<string> Codes,
         bool Takes);
 
+    /// <summary>
+    /// A route that answers a picture beside its JSON says how to ask for one.
+    ///
+    /// <para>The three words are read straight off the query string rather than bound to a request record,
+    /// which is right — a magnification is not part of the question a preview is asked — and it is exactly
+    /// why they reach no parameter list unless something puts them there. So the document said a picture
+    /// could come back over an empty <c>parameters</c>, which leaves the one instruction an authoring brief
+    /// cannot drop — read the schema, not a document — false at the routes that draw a picture.</para>
+    ///
+    /// <para>Asserted over the whole surface rather than route by route, for the same reason as everything
+    /// else here: a preview added tomorrow inherits the fault by default.</para>
+    /// </summary>
+    [Test]
+    public async Task Every_route_that_also_answers_a_picture_says_how_to_ask_for_one()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+
+        var checked_ = 0;
+        foreach (var path in document.RootElement.GetProperty("paths").EnumerateObject())
+            foreach (var verb in path.Value.EnumerateObject())
+            {
+                if (verb.Name is "parameters" or "summary" or "description" or "servers") continue;
+                // A route that answers *both* — the picture is a way of asking for the same answer. One that
+                // only ever draws a picture has nothing to ask for and declares no format.
+                var success = verb.Value.GetProperty("responses").EnumerateObject()
+                    .Where(response => response.Name.StartsWith('2'))
+                    .SelectMany(response => response.Value.TryGetProperty("content", out var content)
+                        ? content.EnumerateObject().Select(entry => entry.Name) : [])
+                    .ToList();
+                if (!success.Contains("image/png") || !success.Any(m => m.Contains("json"))) continue;
+
+                var name = $"{verb.Name.ToUpperInvariant()} {path.Name}";
+                var parameters = verb.Value.TryGetProperty("parameters", out var declared)
+                    ? declared.EnumerateArray().ToDictionary(p => p.GetProperty("name").GetString()!)
+                    : [];
+                checked_++;
+
+                await Assert.That(parameters.ContainsKey("format"))
+                    .IsTrue().Because($"{name} answers a picture and does not declare format");
+                await Assert.That(parameters.ContainsKey("scale"))
+                    .IsTrue().Because($"{name} answers a picture and does not declare scale");
+
+                // The view names are published as the closed set they are, not as a bare string an agent
+                // learns by being refused one. A route drawing a single picture declares no view at all.
+                if (!parameters.TryGetValue("view", out var view)) continue;
+                var views = view.GetProperty("schema").GetProperty("enum").EnumerateArray()
+                    .Select(entry => entry.GetString()).ToList();
+                await Assert.That(views.Count).IsGreaterThan(1)
+                    .Because($"{name} declares a view parameter over {views.Count} name(s)");
+            }
+
+        await Assert.That(checked_).IsEqualTo(6)
+            .Because($"{checked_} route(s) answer a picture beside their JSON, and six do");
+    }
+
     private static async Task<List<Operation>> OperationsAsync()
     {
         using var client = ApiTestFactory.Shared.CreateClient();

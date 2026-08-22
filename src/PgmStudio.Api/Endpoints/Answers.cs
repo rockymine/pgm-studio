@@ -20,9 +20,21 @@ internal static class Answers
 {
     /// <summary>The route draws a picture on <c>?format=png</c>, beside the SVG-in-JSON it answers by
     /// default — the form an agent saves and looks at. Six preview routes offer it; see
-    /// <see cref="PngAnswer"/> for the parameter and its refusal.</summary>
-    public static RouteHandlerBuilder AlsoPng(this RouteHandlerBuilder builder) =>
-        builder.Produces(200, typeof(byte[]), "image/png");
+    /// <see cref="PngAnswer"/> for the parameters and the refusal.
+    ///
+    /// <para><paramref name="views"/> is the closed set of view names, first being the one drawn unasked, or
+    /// empty for a route with one picture and nothing to choose. It travels as route metadata so
+    /// <see cref="PngQuery"/> can publish the query words beside the media type: the flag that makes a route
+    /// answer a picture is the flag that documents how to ask for one, which is what keeps the two from
+    /// drifting apart. The same array reaches <see cref="PngAnswer.AnsweredAsync"/>, so the enum the schema
+    /// names and the names a refusal lists are one list.</para></summary>
+    /// <para>It attaches metadata and nothing else, deliberately. A second <c>Produces</c> for 200
+    /// <b>replaces</b> the first rather than adding to it — as <see cref="WorldZipOrMapXml"/> below says —
+    /// so declaring the picture that way took the JSON answer off a route that answers JSON by default, and
+    /// the document read as though a preview could only ever hand back an image. <see cref="PngQuery"/> adds
+    /// the media type to the 200 the endpoint's own response type already put there.</para></summary>
+    public static RouteHandlerBuilder AlsoPng(this RouteHandlerBuilder builder, params string[] views) =>
+        builder.WithMetadata(new PngPreview(views));
 
     /// <summary>The route answers a picture and nothing else.</summary>
     public static RouteHandlerBuilder Png(this RouteHandlerBuilder builder) =>

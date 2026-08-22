@@ -60,28 +60,47 @@ public sealed class TerrainPatternsEndpoint : EndpointWithoutRequest<List<Materi
 /// 400 naming the ones it does.</summary>
 internal static class PngAnswer
 {
+    /// <summary>The three query words this surface reads. Named here because the processor that publishes
+    /// them and the reader that acts on them must spell them the same way.</summary>
+    internal const string Format = "format", View_ = "view", Scale = "scale";
+
+    /// <summary>The largest magnification a caller may ask for. A scale is pixels, not detail, and a picture
+    /// nobody can open is the same as no picture.</summary>
+    internal const int MaxScale = 8;
+
     public static bool Wanted(HttpContext http) =>
-        string.Equals(http.Request.Query["format"], "png", StringComparison.OrdinalIgnoreCase);
+        string.Equals(http.Request.Query[Format], "png", StringComparison.OrdinalIgnoreCase);
 
     public static string View(HttpContext http, string fallback) =>
-        http.Request.Query["view"].FirstOrDefault() ?? fallback;
+        http.Request.Query[View_].FirstOrDefault() ?? fallback;
+
+    /// <summary>How many times its own size the picture is drawn at, 1 where none was asked for. Anything
+    /// that is not a number in range reads as 1 rather than refusing: a magnification is a way of looking at
+    /// the answer, not part of the question, so a bad one costs a bigger picture and not the picture.</summary>
+    public static int ScaleOf(HttpContext http) =>
+        int.TryParse(http.Request.Query[Scale].FirstOrDefault(), out var asked)
+            ? Math.Clamp(asked, 1, MaxScale)
+            : 1;
 
     /// <summary>
     /// Answer this request as a PNG if one was asked for, and say whether it did.
     ///
-    /// <para><paramref name="draw"/> maps a view name to bytes and answers null for a name it does not have,
-    /// which is the only refusal this surface has. It is written here rather than by each caller because the
-    /// caller that resolves the name is this one: a view outside the closed set the endpoint draws is
-    /// <c>RQ1</c> like any other parameter fault, and <paramref name="views"/> is the half of the sentence
-    /// only the endpoint knows.</para>
+    /// <para><paramref name="draw"/> maps a view name and a scale to bytes, and answers null for a name it
+    /// does not have — the only refusal this surface has. It is written here rather than by each caller
+    /// because the caller that resolves the name is this one: a view outside the closed set the endpoint
+    /// draws is <c>RQ1</c> like any other parameter fault.</para>
+    ///
+    /// <para><paramref name="views"/> is that closed set, first being the one drawn unasked. It is the same
+    /// array the schema publishes as the <c>view</c> parameter's enum, so what the refusal names and what the
+    /// document names cannot drift apart.</para>
     /// </summary>
     public static async Task<bool> AnsweredAsync(
-        HttpContext http, string fallback, string views, Func<string, byte[]?> draw, CancellationToken ct)
+        HttpContext http, string[] views, Func<string, int, byte[]?> draw, CancellationToken ct)
     {
         if (!Wanted(http)) return false;
 
-        var view = View(http, fallback);
-        if (draw(view) is { } png)
+        var view = View(http, views[0]);
+        if (draw(view, ScaleOf(http)) is { } png)
         {
             http.Response.ContentType = "image/png";
             await http.Response.Body.WriteAsync(png, ct);
@@ -89,7 +108,8 @@ internal static class PngAnswer
         }
 
         await Refusals.UnreadableAsync(http, "no such view",
-            $"'{view}' is not a view this preview draws — {views}", ct, field: "view");
+            $"'{view}' is not a view this preview draws — it draws {string.Join(", ", views)}",
+            ct, field: View_);
         return true;
     }
 }
@@ -104,7 +124,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPre
     {
         Post("/terrain/material-preview");
         AllowAnonymous();
-        Description(b => b.Accepts<TerrainMaterial>("application/json").AlsoPng());
+        Description(b => b.Accepts<TerrainMaterial>("application/json").AlsoPng(StylePreview.MaterialPngViews));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -114,8 +134,8 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPre
         {
             var material = TerrainThemeJson.DeserializeMaterial(json, out var unread);
             Complaints.Unread(HttpContext, unread);
-            if (await PngAnswer.AnsweredAsync(HttpContext, "plan", "it draws plan and section",
-                    view => StylePreview.MaterialPng(material, view), ct)) return;
+            if (await PngAnswer.AnsweredAsync(HttpContext, StylePreview.MaterialPngViews,
+                    (view, scale) => StylePreview.MaterialPng(material, view, scale), ct)) return;
             await Send.OkAsync(StylePreview.Views(material), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid material JSON", ex, ct); }
@@ -131,7 +151,7 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDt
     {
         Post("/terrain/theme-preview");
         AllowAnonymous();
-        Description(b => b.Accepts<TerrainTheme>("application/json").AlsoPng());
+        Description(b => b.Accepts<TerrainTheme>("application/json").AlsoPng(StylePreview.ThemePngViews));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -140,9 +160,8 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDt
         try
         {
             var theme = TerrainThemeJson.Deserialize(json, out var unread);
-            if (await PngAnswer.AnsweredAsync(HttpContext, "section",
-                    "it draws section and one swatch per bucket (rim, surface, wall, fill)",
-                    view => StylePreview.ThemePng(theme, view), ct)) return;
+            if (await PngAnswer.AnsweredAsync(HttpContext, StylePreview.ThemePngViews,
+                    (view, scale) => StylePreview.ThemePng(theme, view, scale), ct)) return;
             await Send.OkAsync(StylePreview.ThemeViews(theme), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid theme JSON", ex, ct); }
@@ -158,7 +177,7 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
     {
         Post("/terrain/prop-preview");
         AllowAnonymous();
-        Description(b => b.AlsoPng());
+        Description(b => b.AlsoPng(DressingPreview.PngViews));
     }
 
     public override async Task HandleAsync(PropPreviewRequest req, CancellationToken ct)
@@ -191,8 +210,8 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
             return;
         }
 
-        if (await PngAnswer.AnsweredAsync(HttpContext, "plan", "it draws plan and section",
-                view => DressingPreview.Png(prop, theme, view), ct)) return;
+        if (await PngAnswer.AnsweredAsync(HttpContext, DressingPreview.PngViews,
+                (view, scale) => DressingPreview.Png(prop, theme, view, scale), ct)) return;
         await Send.OkAsync(DressingPreview.Views(prop, theme), ct);
     }
 }

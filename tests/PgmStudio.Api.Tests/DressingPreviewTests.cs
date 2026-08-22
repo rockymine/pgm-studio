@@ -65,6 +65,48 @@ public sealed class DressingPreviewTests
     }
 
     [Test]
+    public async Task A_picture_can_be_asked_for_larger_and_a_bad_scale_costs_only_the_size()
+    {
+        // The same view at more pixels, so what a preview chose to show is what a caller gets more of — a
+        // house section is 72x108 unasked, which is not a picture a roof idiom can be read off. A scale is
+        // how the answer is looked at rather than part of the question, so one outside the range clamps and
+        // one that is not a number falls back: a bad scale costs a bigger picture, never the picture.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        async Task<(int Width, int Height)> SizeAsync(string query)
+        {
+            var resp = await client.PostAsync($"/api/terrain/material-preview?format=png&view=plan{query}",
+                new StringContent("""{"kind":"solid","id":1,"data":0}""",
+                    System.Text.Encoding.UTF8, "application/json"));
+            await Assert.That(resp.StatusCode).IsEqualTo(System.Net.HttpStatusCode.OK);
+            var png = await resp.Content.ReadAsByteArrayAsync();
+            // IHDR's width and height, big-endian, at the fixed offset every PNG puts them
+            return (System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(16, 4)),
+                    System.Buffers.Binary.BinaryPrimitives.ReadInt32BigEndian(png.AsSpan(20, 4)));
+        }
+
+        var (width, height) = await SizeAsync("");
+        await Assert.That(await SizeAsync("&scale=4")).IsEqualTo((width * 4, height * 4));
+        // past the ceiling, and not a number at all
+        await Assert.That(await SizeAsync("&scale=99")).IsEqualTo((width * 8, height * 8));
+        await Assert.That(await SizeAsync("&scale=nope")).IsEqualTo((width, height));
+    }
+
+    [Test]
+    public async Task A_view_the_preview_does_not_draw_is_refused_by_naming_the_ones_it_does()
+    {
+        // The names in the sentence are the array the schema publishes as the view enum, so a caller reading
+        // the document and a caller reading a refusal are told the same set.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var resp = await client.PostAsync("/api/terrain/theme-preview?format=png&view=elevation",
+            new StringContent("{}", System.Text.Encoding.UTF8, "application/json"));
+
+        await Assert.That(resp.StatusCode).IsEqualTo(System.Net.HttpStatusCode.BadRequest);
+        var body = await resp.Content.ReadAsStringAsync();
+        foreach (var view in PgmStudio.Api.Services.StylePreview.ThemePngViews)
+            await Assert.That(body).Contains(view);
+    }
+
+    [Test]
     public async Task A_material_preview_can_be_asked_for_as_a_png()
     {
         using var client = ApiTestFactory.Shared.CreateClient();

@@ -2,12 +2,23 @@ namespace PgmStudio.Contracts;
 
 /// <summary>What a prop's preview patch placed, so an author can tell a knob that is doing nothing from one
 /// whose effect is simply too small to read at card size.</summary>
+/// <param name="Plants">Grass, ferns and flowers seated on the patch — what a flora spec's coverage
+/// actually produced, against what it asked for.</param>
+/// <param name="Boulders">Rocks seated on the patch, each counted once however many blocks it stands in.</param>
+/// <param name="Trees">Trees grown on the patch, counted by trunk rather than by leaf.</param>
+/// <param name="PathCells">Cells a path repainted. A band that reads as a ruled stripe and one that reads as
+/// a track differ by this number more than by anything in the document.</param>
+/// <param name="WaterCells">Cells a water prop filled.</param>
 public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int PathCells, int WaterCells);
 
 /// <summary>Both views of one placed prop (POST /api/terrain/prop-preview), produced by running the real pass
-/// over a sample patch. <paramref name="Plan"/> is the patch from above, which is where a path's paving and an
-/// area's density read; <paramref name="Section"/> is the same patch cut open, the only view a tree's
-/// silhouette or a boulder's half-buried profile is visible in.</summary>
+/// over a sample patch.</summary>
+/// <param name="Plan">The patch from above, as SVG — where a path's paving and an area's density read.
+/// <c>?format=png&amp;view=plan</c> answers the same view as an image.</param>
+/// <param name="Section">The same patch cut open, as SVG — the only view a tree's silhouette or a boulder's
+/// half-buried profile is visible in. <c>?format=png&amp;view=section</c> answers it as an image.</param>
+/// <param name="Counts">What the pass placed, so a knob doing nothing is told apart from one whose effect is
+/// too small to see at card size.</param>
 public sealed record DressingPreviewDto(string Plan, string Section, DressingCountsDto Counts);
 
 /// <summary>A prop previewed against a theme (POST /api/terrain/prop-preview): the prop's own JSON, and the

@@ -67,20 +67,25 @@ public static class RoomStylePreview
     /// lattice's whole trick is the quarter each stair is missing — so they have no raster to encode and stay
     /// SVG. Every other preview in the studio answers <c>?format=png</c>, and a building is the one picture
     /// the reviewer's checklist asks to be looked at, so the two that can are offered.</summary>
-    public static byte[]? Png(HouseStyle style, string view, int cell = 6)
+    public static byte[]? Png(HouseStyle style, string view, int scale = 1)
     {
         var world = Stamped(style);
         var box = Outer(style);
         return view switch
         {
-            "plan" => WorldViews.PlanRaster(world, box, cell).Png(),
-            "section" => WorldViews.SectionRaster(world, box, cell).Png(),
+            "plan" => WorldViews.PlanRaster(world, box, Cell).Scaled(scale).Png(),
+            "section" => WorldViews.SectionRaster(world, box, Cell).Scaled(scale).Png(),
             _ => null,
         };
     }
 
-    /// <summary>The view names <see cref="Png"/> answers, for the refusal that names them.</summary>
-    public const string PngViews = "it draws plan and section (the isometric and the cutaway are SVG only)";
+    /// <summary>Pixels a block takes in a rastered view before the caller's scale.</summary>
+    private const int Cell = 6;
+
+    /// <summary>The views <see cref="Png"/> answers, first being the one it draws unasked. The isometric and
+    /// the cutaway are not here: they draw a block as its own shape rather than as a filled cell, so they
+    /// have no raster to encode.</summary>
+    public static readonly string[] PngViews = ["section", "plan"];
 
     /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
     /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>

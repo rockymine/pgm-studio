@@ -22,8 +22,8 @@ internal static class StylePngAnswer
         this TEndpoint endpoint, HouseStyle style, CancellationToken ct)
         where TEndpoint : IEndpoint
     {
-        return await PngAnswer.AnsweredAsync(endpoint.HttpContext, "section", RoomStylePreview.PngViews,
-            view => RoomStylePreview.Png(style, view), ct);
+        return await PngAnswer.AnsweredAsync(endpoint.HttpContext, RoomStylePreview.PngViews,
+            (view, scale) => RoomStylePreview.Png(style, view, scale), ct);
     }
 }
 
@@ -148,7 +148,7 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
     {
         Post("/room-styles/preview");
         AllowAnonymous();
-        Description(b => b.AlsoPng());
+        Description(b => b.AlsoPng(RoomStylePreview.PngViews));
     }
 
     public override async Task HandleAsync(RoomStyleSaveRequest req, CancellationToken ct)
@@ -183,7 +183,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
     {
         Post("/room-styles/preview-snapshot");
         AllowAnonymous();
-        Description(b => b.Accepts<HouseStyle>("application/json").AlsoPng());
+        Description(b => b.Accepts<HouseStyle>("application/json").AlsoPng(RoomStylePreview.PngViews));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
