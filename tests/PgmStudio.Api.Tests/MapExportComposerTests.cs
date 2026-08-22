@@ -82,7 +82,7 @@ public sealed class MapExportComposerTests
                 doc["objective"] = "Prove the chain.";
             });
 
-        await Assert.That(result.IsError).IsFalse();
+        await Assert.That(result.Refusal).IsNull();
         await Assert.That(result.World).IsNotNull();
         await Assert.That(result.Xml!).Contains("Chainproof");
         await Assert.That(result.Xml!).Contains("Prove the chain.");
@@ -106,9 +106,9 @@ public sealed class MapExportComposerTests
         };
         var result = PgmStudio.Export.MapExportComposer.ComposeSketch([], IslandLayout, intent);
 
-        await Assert.That(result.IsError).IsTrue();
-        await Assert.That(result.ErrorStatus!.Value).IsEqualTo(409);
-        await Assert.That(result.Findings!.Select(finding => finding.Rule)).Contains("OB17");
+        await Assert.That(result.Refusal).IsNotNull();
+        await Assert.That(result.Refusal!.Status).IsEqualTo(409);
+        await Assert.That(result.Refusal!.Findings.Select(finding => finding.Rule)).Contains("OB17");
     }
 
     [Test]

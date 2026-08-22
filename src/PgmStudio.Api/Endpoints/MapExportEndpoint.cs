@@ -23,7 +23,7 @@ using PgmStudio.Minecraft.Anvil;
 /// (those already ship a world). Shares the gate + compose pipeline with <see cref="MapXmlEndpoint"/> via
 /// <see cref="MapExportLoader"/>, diverging only to bundle the region files for a sketch map.
 /// </summary>
-public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, FeatureData feature, PgmDb db, MapArtifactStore artifacts) : EndpointWithoutRequest
+public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest
 {
     public override void Configure()
     {
@@ -35,15 +35,14 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
-        var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var doc = await reader.ReadDocAsync(map, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var result = await MapExportLoader.ComposeAsync(map.Id, doc, layoutBytes, feature, artifacts, ct);
-        if (result.IsError)
+        if (result.Refusal is { } refusal)
         {
-            await Refusals.WriteAsync(HttpContext, result.ErrorStatus!.Value, result.Error!, result.Findings!, ct);
+            await Refusals.WriteAsync(HttpContext, refusal, ct);
             return;
         }
 

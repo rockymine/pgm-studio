@@ -32,9 +32,9 @@ public sealed class MapFromDocumentsEndpoint(
         var loaded = await MapFromDocuments.LoadAsync(
             HttpContext, request, repo, reader, writer, artifacts, features, db, mojang, ct);
 
-        if (loaded.IsError)
+        if (loaded.Refusal is { } refusal)
         {
-            await Refusals.WriteAsync(HttpContext, loaded.ErrorStatus!.Value, loaded.Error!, loaded.Findings!, ct);
+            await Refusals.WriteAsync(HttpContext, refusal, ct);
             return;
         }
 

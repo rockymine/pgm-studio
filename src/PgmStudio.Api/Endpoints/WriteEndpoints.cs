@@ -89,8 +89,7 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
 
         await using var tx = await db.BeginTransactionAsync(ct);

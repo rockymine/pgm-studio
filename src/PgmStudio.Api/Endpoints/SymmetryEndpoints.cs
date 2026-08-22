@@ -149,8 +149,7 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var existing = await SymmetryStore.LoadAsync(db, map.Id, ct);
         if (existing is not null) { await Send.OkAsync(SymmetryStore.ToJson(existing), ct); return; }
@@ -183,8 +182,7 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var body = await RawBody.ReadAsync(HttpContext, ct);
         var payload = (JsonNode.Parse(string.IsNullOrWhiteSpace(body) ? "{}" : body) as JsonObject) ?? new JsonObject();

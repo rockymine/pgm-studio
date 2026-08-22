@@ -12,11 +12,8 @@ namespace PgmStudio.Api.Services;
 
 /// <summary>What loading a map from its documents came to: a refusal, or the map that now exists.</summary>
 public sealed record MapLoad(
-    int? ErrorStatus, string? Error, IReadOnlyList<Finding>? Findings,
-    string? Slug = null, bool Replaced = false, int Cells = 0, int Islands = 0, Findings? Complaints = null)
-{
-    public bool IsError => ErrorStatus is not null;
-}
+    Refusal? Refusal, string? Slug = null, bool Replaced = false, int Cells = 0, int Islands = 0,
+    Findings? Complaints = null);
 
 /// <summary>
 /// A map, whole, from the three documents it is made of — the plan it was drawn from, the layout that was
@@ -64,10 +61,10 @@ public static class MapFromDocuments
             // The drawing is declared done here rather than left for a second call: a map loaded without its
             // geometry is a map Configure cannot open, which is the whole of what this operation is for.
             var finished = await SketchFinish.RunAsync(mapId, repo, artifacts, features, ct);
-            if (finished.IsError)
+            if (finished.Refusal is not null)
             {
                 await repo.DeleteMapAsync(mapId, ct);
-                return new(finished.ErrorStatus, finished.Error, finished.Findings);
+                return new(finished.Refusal);
             }
 
             // Then the intent, which stores it and projects the document from it — and only then the authors,
@@ -77,13 +74,13 @@ public static class MapFromDocuments
             if (status != 200)
             {
                 await repo.DeleteMapAsync(mapId, ct);
-                return new(status, "intent not stored", Findings(body));
+                return new(new Refusal(status, "intent not stored", Findings(body)));
             }
 
             if (request.Authors is { Count: > 0 } authors)
                 await MapAuthors.ReplaceAsync(db, mapId, authors.Select(Person), ct);
 
-            return new(null, null, null, slug, existing is not null,
+            return new(null, slug, existing is not null,
                        finished.Cells, finished.Islands, finished.Complaints);
         }
         catch
@@ -122,5 +119,5 @@ public static class MapFromDocuments
             ? list : [];
 
     private static MapLoad Refuse(int status, string error, params Finding[] findings) =>
-        new(status, error, findings);
+        new(Refusal.At(status, error, findings));
 }

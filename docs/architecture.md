@@ -128,6 +128,19 @@ the file rather than the use case. The 149 handler bodies are **2,146 lines betw
 **10**, with 91 of 149 at twelve lines or fewer and four over forty. The rest of `Endpoints/` is 149 class
 declarations, their `Configure` blocks and their constructors.
 
+**One refusal shape, and one question.** An operation hands back what it produced and, where the work did
+not happen, a `Vocabulary.Refusal` — the status, the gate's short label, the findings — which the layer that
+speaks HTTP renders into the envelope. Three results had declared that triple themselves and each carried its
+own `IsError`, so a caller asked three types the same question three ways; they compose it now, and a caller
+asks `result.Refusal is { } refusal` whichever operation answered. The status lives with the refusal rather
+than with the route because what went wrong is what decides it.
+
+**And one prologue.** Loading the map a route names and answering 404 if it is not stored was written out
+**forty-seven times** — thirty-seven as two lines in the endpoint, ten more through a local loader in
+`AnalysisEndpoints` that added the document read. `MapOfRoute.OfRouteAsync` and `WithDocOfRouteAsync` are the
+one line each is now: the slug is read off the request, because a route that loads a map by anything other
+than its own `{slug}` is doing something else and should say so.
+
 **The use cases are the thirteen handlers that read state and write it back**, and three of those also run a
 gate: `SketchFinish`, `SketchFromPlan`, `SketchPut`. Everything else is a read, or a thin pass-through to an
 editor in `Pgm/Editing`. So the problem is not volume; it is that a step of the pipeline has nowhere to live

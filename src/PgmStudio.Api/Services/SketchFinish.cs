@@ -15,11 +15,7 @@ namespace PgmStudio.Api.Services;
 /// <param name="Cells">How many ground columns the drawing rasterized to.</param>
 /// <param name="Islands">How many landmasses those columns fall into.</param>
 public sealed record SketchFinished(
-    int? ErrorStatus, string? Error, IReadOnlyList<Finding>? Findings,
-    int Cells = 0, int Islands = 0, Findings? Complaints = null)
-{
-    public bool IsError => ErrorStatus is not null;
-}
+    Refusal? Refusal, int Cells = 0, int Islands = 0, Findings? Complaints = null);
 
 /// <summary>
 /// Declaring a drawing done: rasterize the stored layout into world geometry, detect its landmasses, write
@@ -58,9 +54,9 @@ public static class SketchFinish
 
         await writer.WriteSketchAsync(mapId, cells, islands, ct);
         await repo.SetStageAsync(mapId, MapStage.Configure, ct);   // the draft has geometry → ready to configure
-        return new(null, null, null, cells.Count, islands.Count, checkedBoard);
+        return new(null, cells.Count, islands.Count, checkedBoard);
     }
 
     private static SketchFinished Refuse(int status, string error, params Finding[] findings) =>
-        new(status, error, findings);
+        new(Refusal.At(status, error, findings));
 }

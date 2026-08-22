@@ -18,8 +18,7 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
     public override void Configure() { Get("/map/{slug}/intent"); AllowAnonymous(); Description(b => b.Refuses(404)); }
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.MapIntentJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct), ct);
@@ -119,8 +118,7 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
-        var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var body = await RawBody.ReadAsync(HttpContext, ct);
         Complaints.Unread(HttpContext, body, IntentWrite.Stated(body));
@@ -157,8 +155,7 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
-        var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var compiled = await RawBody.ReadAsync(HttpContext, ct);
         // Over the posted document rather than the merged one: the carry only adds back this map's own

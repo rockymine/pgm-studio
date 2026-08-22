@@ -30,8 +30,7 @@ public sealed class RegionsTreeEndpoint(MapRepository repo, MapReader reader, Ma
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var doc = await reader.ReadDocAsync(map, ct);
         var regions = doc.GetValueOrDefault("regions") as Dict ?? new();
@@ -65,8 +64,7 @@ public sealed class IslandsEndpoint(MapRepository repo, MapArtifactStore artifac
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.IslandsJson, ct);
         if (data is null) { await Refusals.NotFoundAsync(HttpContext, "island decomposition", ct); return; }
 
@@ -86,8 +84,7 @@ public sealed class ScanSummaryEndpoint(MapRepository repo, PgmDb db) : Endpoint
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var wool = (await db.WoolBlocks.Where(w => w.MapId == map.Id)
                 .GroupBy(w => w.Color).Select(g => new { Color = g.Key, Count = g.Count() }).ToListAsync(ct))

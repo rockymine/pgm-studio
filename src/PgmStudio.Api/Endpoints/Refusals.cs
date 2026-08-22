@@ -28,6 +28,11 @@ internal static class Refusals
         return new RefusalDto(error, Finding.Summarize(listed), listed);
     }
 
+    /// <summary>Answer the refusal an operation handed back. The operation decided the status and named the
+    /// gate; this is only the rendering, which is the whole division between the two layers.</summary>
+    public static Task WriteAsync(HttpContext http, Refusal refusal, CancellationToken ct) =>
+        WriteAsync(http, refusal.Status, refusal.Error, refusal.Findings, ct);
+
     /// <summary>Write the refusal directly to the response, for an endpoint whose success body is a different
     /// type — <c>Send.ResponseAsync</c> is typed to the endpoint's own response and cannot carry this.</summary>
     public static Task WriteAsync(

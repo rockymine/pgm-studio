@@ -116,7 +116,7 @@ public sealed class MapExportComposerPlayabilityTests
     {
         var result = MapExportComposer.Compose(Doc(), null, isIntent: false, null, null, null, []);
 
-        await Assert.That(result.IsError).IsFalse();
+        await Assert.That(result.Refusal).IsNull();
     }
 
     /// <summary>And the same document does not, once the studio is the one that wrote it.</summary>
@@ -125,9 +125,9 @@ public sealed class MapExportComposerPlayabilityTests
     {
         var result = MapExportComposer.Compose(Doc(), null, isIntent: true, null, null, null, []);
 
-        await Assert.That(result.IsError).IsTrue();
-        await Assert.That(result.ErrorStatus).IsEqualTo(409);
-        await Assert.That(result.Error).IsEqualTo("not a playable map");
-        await Assert.That(result.Findings!.Single().Rule).IsEqualTo("EX2");
+        await Assert.That(result.Refusal).IsNotNull();
+        await Assert.That(result.Refusal!.Status).IsEqualTo(409);
+        await Assert.That(result.Refusal!.Error).IsEqualTo("not a playable map");
+        await Assert.That(result.Refusal!.Findings.Single().Rule).IsEqualTo("EX2");
     }
 }

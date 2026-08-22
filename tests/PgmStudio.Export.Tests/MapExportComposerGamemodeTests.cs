@@ -22,12 +22,12 @@ public sealed class MapExportComposerGamemodeTests
     {
         var result = MapExportComposer.Compose(Doc("not-a-real-mode"), null, isIntent: false, null, null, null, []);
 
-        await Assert.That(result.IsError).IsTrue();
-        await Assert.That(result.ErrorStatus).IsEqualTo(409);
-        await Assert.That(result.Error).IsEqualTo("unknown gamemode");
+        await Assert.That(result.Refusal).IsNotNull();
+        await Assert.That(result.Refusal!.Status).IsEqualTo(409);
+        await Assert.That(result.Refusal!.Error).IsEqualTo("unknown gamemode");
 
         // Every gate answers in the one finding shape: the rule, the sentence, and what it indicts.
-        var finding = result.Findings!.Single();
+        var finding = result.Refusal!.Findings.Single();
         await Assert.That(finding.Rule).IsEqualTo(ObjectiveRules.UnknownGamemode);
         await Assert.That(finding.Refuses).IsTrue();
         await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "not-a-real-mode" });
@@ -40,7 +40,7 @@ public sealed class MapExportComposerGamemodeTests
     {
         var result = MapExportComposer.Compose(Doc("ctw", "dtm"), null, isIntent: false, null, null, null, []);
 
-        await Assert.That(result.IsError).IsFalse();
+        await Assert.That(result.Refusal).IsNull();
         await Assert.That(result.Xml).Contains("<gamemode>ctw</gamemode>");
         await Assert.That(result.Xml).Contains("<gamemode>dtm</gamemode>");
         await Assert.That(result.Xml).DoesNotContain("ctw dtm");
@@ -51,7 +51,7 @@ public sealed class MapExportComposerGamemodeTests
     {
         var result = MapExportComposer.Compose(Doc(), null, isIntent: false, null, null, null, []);
 
-        await Assert.That(result.IsError).IsFalse();
+        await Assert.That(result.Refusal).IsNull();
         await Assert.That(result.Xml).DoesNotContain("<gamemode>");
     }
 }

@@ -128,8 +128,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
@@ -151,8 +150,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         using var ms = new MemoryStream();
         await HttpContext.Request.Body.CopyToAsync(ms, ct);
@@ -242,8 +240,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var compiled = await RawBody.ReadAsync(HttpContext, ct);
         try { using var _ = JsonDocument.Parse(compiled); }   // reject non-JSON; don't store garbage
@@ -305,8 +302,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
@@ -353,8 +349,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
@@ -418,8 +413,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
@@ -479,8 +473,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
@@ -540,13 +533,12 @@ public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore ar
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var finished = await SketchFinish.RunAsync(map.Id, repo, artifacts, writer, ct);
-        if (finished.IsError)
+        if (finished.Refusal is { } refusal)
         {
-            await Refusals.WriteAsync(HttpContext, finished.ErrorStatus!.Value, finished.Error!, finished.Findings!, ct);
+            await Refusals.WriteAsync(HttpContext, refusal, ct);
             return;
         }
 

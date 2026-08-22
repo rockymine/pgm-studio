@@ -24,8 +24,7 @@ public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter wri
     public override async Task HandleAsync(CancellationToken ct)
     {
         var slug = Route<string>("slug")!;
-        var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var regionDir = roots.RegionDir(slug);
         if (regionDir is null)

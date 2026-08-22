@@ -27,8 +27,7 @@ public sealed class MonumentSuggestionsEndpoint(MapRepository repo, PgmDb db)
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         if (!BlockBox.TryParse(HttpContext.Request.Query["box"].ToString(), out var box))
         {

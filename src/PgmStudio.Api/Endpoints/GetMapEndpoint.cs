@@ -24,8 +24,7 @@ public sealed class GetMapEndpoint(MapRepository repo, MapReader reader, MapWrit
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         // The revision this document is at, so an edit made from it can state what it was made against.
         if (await writer.RevisionAsync(map.Id, ct) is { } revision) Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(await reader.ReadDocAsync(map, ct), ct);
@@ -41,8 +40,7 @@ public sealed class MapLayersEndpoint(MapRepository repo, MapArtifactStore artif
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var kinds = await artifacts.KindsAsync(map.Id, ct);
         await Send.OkAsync(new MapLayers(

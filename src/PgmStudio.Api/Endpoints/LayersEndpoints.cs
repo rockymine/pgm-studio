@@ -146,8 +146,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.LayerParquet, ct);
         if (layer is null) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
@@ -178,8 +177,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
             return;
         }
 
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         // Optional world-window filter (xmin/xmax/zmin/zmax) → a localised slice for the mini side-view
         // (a point's column + neighbours, or a rectangle's footprint). Absent params = the whole map.
@@ -212,8 +210,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         if (!int.TryParse(HttpContext.Request.Query["x"], out var x) || !int.TryParse(HttpContext.Request.Query["z"], out var z))
         {
             await Refusals.UnreadableAsync(HttpContext, "column not named",

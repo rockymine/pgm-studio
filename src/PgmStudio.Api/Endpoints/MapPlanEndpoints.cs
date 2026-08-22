@@ -88,8 +88,7 @@ public sealed class MapPlanGetEndpoint(MapRepository repo, MapArtifactStore arti
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.PlanJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
@@ -112,8 +111,7 @@ public sealed class MapPlanAsciiEndpoint(MapRepository repo, MapArtifactStore ar
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
         if (data is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
@@ -146,8 +144,7 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
         var data = await artifacts.LoadAsync(map.Id, ArtifactKind.PlanJson, ct);
         if (data is null) { await Refusals.NotFoundAsync(HttpContext, "stored plan", ct); return; }
 
@@ -170,8 +167,7 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Refusals.NotFoundAsync(HttpContext, "map", ct); return; }
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         using var ms = new MemoryStream();
         await HttpContext.Request.Body.CopyToAsync(ms, ct);

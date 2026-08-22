@@ -24,11 +24,7 @@ using PgmStudio.Geom;
 /// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing
 /// the XML it just wrote.</param>
 public sealed record ExportComposition(
-    int? ErrorStatus, string? Error, IReadOnlyList<Finding>? Findings, string? Xml, SketchWorld? World,
-    Dict? Doc = null)
-{
-    public bool IsError => ErrorStatus is not null;
-}
+    Refusal? Refusal, string? Xml, SketchWorld? World, Dict? Doc = null);
 
 /// <summary>
 /// The shared pipeline behind <c>GET /map/{slug}/xml</c> and <c>GET /map/{slug}/export</c>: the
@@ -91,7 +87,7 @@ public static class MapExportComposer
             // Other maps get plain XML (they already ship a world). Intent maps additionally get the cached
             // surface palette + spawn-ore renewables — cache-only, never triggering a world scan on export.
             var xml = MapXmlComposer.Compose(doc, isIntent, surfacePalette, resources);
-            return new(null, null, null, xml, null);
+            return new(null, xml, null);
         }
         catch (DressingParseException ex)
         {
@@ -159,7 +155,7 @@ public static class MapExportComposer
 
         var renewCubes = SketchWorldBuilder.RenewableCubeFootprints(goals);
         var sketchXml = MapXmlComposer.Compose(doc, isIntent: true, surfaceBlockIds: null, resources: [], renewCubes);
-        return new(null, null, null, sketchXml, built, doc);
+        return new(null, sketchXml, built, doc);
     }
 
     // ── OB20 — every declared <gamemode> must resolve against PGM's own closed enum ────────────────────────
@@ -264,10 +260,11 @@ public static class MapExportComposer
     private static List<object?> Entries(Dict doc, string key) =>
         doc.GetValueOrDefault(key) as List<object?> ?? [];
 
-    /// <summary>One refusal: the status, the gate's short label and its findings, for the layer above to
-    /// answer in the one envelope every gate in the studio refuses in.</summary>
+    /// <summary>One refusal, for the layer above to answer in the one envelope every gate in the studio
+    /// refuses in. 409 is this composer's usual status — a document that is well-formed and conflicts with
+    /// what the map is — and the two that are not say so.</summary>
     private static ExportComposition Refuse(string error, IReadOnlyList<Finding> findings, int status = 409) =>
-        new(status, error, findings, null, null);
+        new(new Refusal(status, error, findings), null, null);
 
     private static ExportComposition? RefuseUnknownGamemode(Dict doc)
     {
