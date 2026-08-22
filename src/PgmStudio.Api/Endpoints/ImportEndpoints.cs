@@ -302,7 +302,7 @@ public sealed class ImportCandidatesEndpoint(MapRepository repo, ImportPolicy po
                 if (!Directory.Exists(region)) continue;
                 var mca = Directory.EnumerateFiles(region, "*.mca").Count();
                 if (mca == 0) continue;
-                var slug = ImportSlug.Of(folder);
+                var slug = Slugs.OfFolder(folder);
                 if (slug.Length == 0 || existing.Contains(slug)) continue;          // skip unsluggable / already-imported
                 candidates.Add(new ImportCandidateDto(folder, slug, mca));
             }
@@ -333,80 +333,11 @@ public sealed class ImportFolderEndpoint(MapRepository repo, WorldFeatureWriter 
         try { body = (JsonNode.Parse(string.IsNullOrWhiteSpace(raw) ? "{}" : raw) as JsonObject) ?? new(); }
         catch (JsonException fault) { await Refusals.UnreadableAsync(HttpContext, "invalid json body", fault, ct); return; }
 
-        var folder = (body["folder"]?.GetValue<string>() ?? "").Trim();
-        // candidate folders are single path segments under the imports root — reject anything that could escape it.
-        if (folder.Length == 0 || folder.Contains('/') || folder.Contains('\\') || folder.Contains(".."))
-        {
-            await Refusals.UnreadableAsync(HttpContext, "invalid folder",
-                "the world to import is named by one path segment under the imports root, with no separators "
-                + "and no '..'", ct, field: "folder");
-            return;
-        }
-        var worldDir = Path.Combine(policy.Root, folder);
-        var regionDir = Path.Combine(worldDir, "region");
-        if (!Directory.Exists(regionDir))
-        {
-            await Refusals.NotFoundAsync(HttpContext, "world folder", ct, named: folder);
-            return;
-        }
-        if (File.Exists(Path.Combine(worldDir, "map.xml")))
-        {
-            await Refusals.WriteAsync(HttpContext, 422, "not a new-map candidate",
-                [new Finding(ImportRules.AlreadyAMap,
-                    $"'{folder}' carries a map.xml, so it is a map already rather than a world to originate "
-                    + "one from", Field: "folder")], ct);
-            return;
-        }
-        if (!Directory.EnumerateFiles(regionDir, "*.mca").Any())
-        {
-            await Refusals.WriteAsync(HttpContext, 422, "nothing to import",
-                [new Finding(ImportRules.NoRegions,
-                    $"'{folder}/region' carries no *.mca, so there is no world in it to read", Field: "folder")], ct);
-            return;
-        }
+        var imported = await WorldFolderImport.FromAsync(
+            repo, writer, policy, Logger,
+            body["folder"]?.GetValue<string>() ?? "", body["slug"]?.GetValue<string>(), ct);
+        if (imported.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
-        var slug = ImportSlug.Of(body["slug"]?.GetValue<string>() ?? folder);
-        if (slug.Length == 0)
-        {
-            await Refusals.UnreadableAsync(HttpContext, "no slug given",
-                "neither the stated slug nor the folder name leaves anything a slug can be made of", ct,
-                field: "slug");
-            return;
-        }
-        if (await repo.GetBySlugAsync(slug, ct) is not null)
-        {
-            await Refusals.ConflictAsync(HttpContext, "slug already taken",
-                $"a map is already stored under '{slug}' — state another with slug=", ct, holding: [slug]);
-            return;
-        }
-
-        long? mapId = null;
-        try
-        {
-            mapId = await MapOrigin.AtAsync(repo, slug, slug, MapStage.Configure);
-            var c = await writer.WriteAsync(mapId.Value, regionDir, ct);
-            await Send.OkAsync(WorldScans.Of(slug, c), ct);
-        }
-        catch (Exception ex)
-        {
-            if (mapId is { } id) { try { await repo.DeleteMapAsync(id, ct); } catch { /* best effort */ } }
-            Logger.LogError(ex, "import-folder failed for {Slug}", slug);
-            await Refusals.WriteAsync(HttpContext, 500, "import failed",
-                [new Finding(RequestRules.Unhandled,
-                    "the import did not finish and what it had written has been rolled back — the fault is the "
-                    + "studio's own and the detail is in the server log")], ct);
-        }
-    }
-
-}
-
-/// <summary>Folder name → a valid map slug (lowercase <c>[a-z0-9_]</c>; spaces/punctuation collapse to '-').</summary>
-internal static class ImportSlug
-{
-    private static readonly Regex NonSlug = new("[^a-z0-9_]+", RegexOptions.Compiled);
-    public static string Of(string s)
-    {
-        var slug = NonSlug.Replace(s.Trim().ToLowerInvariant(), "-").Trim('-', '_');
-        return slug.Length > 64 ? slug[..64] : slug;
+        await Send.OkAsync(imported.Scan!, ct);
     }
 }

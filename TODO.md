@@ -23,19 +23,19 @@ written down two or three times, drifts, and is discovered again by an agent tha
 `docs/architecture.md` is the survey; this board is the work it named.
 
 **The order below is not a preference, it is a dependency chain.** Nothing can be verified until the surface
-says what it is, so the contract came first — over the boundary `RP28` settled, since a shape cannot be
-declared where no project can hold it. **That phase has drained**, and so has the taxonomy behind it; both
-keep their numbering so the phases still open carry the names every commit cites. A gate belongs to whichever
-door someone put it behind until there is one place a use case lives, so the application layer is next. And a
-state machine over a pipeline whose steps are still HTTP handlers has nothing to hold, so the lifecycle is
-last.
+says what it is, so the contract came first; a gate belongs to whichever door someone put it behind until
+there is one place a use case lives, so the application layer came second. **Those two phases have drained**,
+along with the taxonomy between them, and all three keep their numbering so the phases still open carry the
+names every commit cites. What is left is the two that had to wait for them: a state machine over a pipeline
+whose steps were HTTP handlers had nothing to hold, and a caller could not ask what was wrong until the
+gates it would ask lived somewhere.
 
-**The board is within the soft cap again** — nine entries against `CLAUDE.md`'s ~6–12, now that Phase 1 has
+**The board is within the soft cap again** — eight entries against `CLAUDE.md`'s ~6–12, now that Phase 1 has
 drained. The order is still the point: this is one coherent programme, and the phases below run in the order
 their dependencies do. **Nothing new is added here until a phase drains.** A finding made while working lands
 in `BACKLOG.md`.
 
-## Two of the nine carry a question the author has now answered
+## Two of the eight carry a question the author has now answered
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These two were blocked on a decision rather than on work; the ruling is in the
@@ -46,46 +46,6 @@ row, and the entry below builds to it.
 | `RP32` | **May a read pay for a build? No.** `GET /map/{slug}/findings` answers every gate it can reach from the stored documents, in milliseconds, and **names the gates it did not ask and why** — the export gates (`OB17`, `EX1`) need the rasterized world, which is seconds a `GET` would spend on every call. Nothing is lost by not paying it: those gates are already answered where the build is paid for, which is what `RP4` and `RP30` settled. A response that is silent about what it skipped would be the failure; one that names it is a complete answer to a bounded question. |
 | `RP16` | **A stage is a progress marker, not a lock.** `flow.md`'s one-way flow means nothing reads back up — a later level never writes into an earlier one — not that a built map may never be re-planned. So the transition table names the forward moves as affordances and no endpoint grows a refusal on `map.stage`. |
 
-
-## Phase 2 — one place a use case lives
-
-One entry: the ten steps that still belong to the door they are reached through.
-
-- [~] **RP13 — Ten use cases still live behind the door they are reached through.** A use case here is a
-  handler that **reads stored state, does work, and writes it back** — the shape the three already in
-  `Api/Services` have, which answer `Findings` and let the layer above render the envelope
-  (`MapExportLoader`, `SketchFinish`, `MapFromDocuments`). Move these ten there, unchanged in behaviour, and
-  fold the load-or-404 prologue — **37 occurrences, word for word** — into one:
-
-  | Route | Class |
-  |---|---|
-  | `POST /sketch` | `SketchCreateEndpoint` |
-  | `PUT /map/{slug}/plan` | `MapPlanPutEndpoint` |
-  | `PUT /map/{slug}/sketch` | `SketchPutEndpoint` |
-  | `PUT /map/{slug}/sketch/from-plan` | `SketchFromPlanEndpoint` |
-  | `DELETE /map/{slug}/sketch/discard-if-empty` | `SketchDiscardIfEmptyEndpoint` |
-  | `PUT /map/{slug}/intent` | `IntentPutEndpoint` |
-  | `PUT /map/{slug}/intent/from-plan` | `IntentFromPlanEndpoint` |
-  | `PATCH /map/{slug}/metadata` | `MetadataEndpoint` |
-  | `PATCH /map/{slug}/symmetry` | `SymmetryPatchEndpoint` |
-  | `POST /map/import-folder` | `ImportFolderEndpoint` |
-
-  **The cheapest of them is already an operation, misfiled.** `IntentWrite.StoreAndProjectAsync`
-  (`Endpoints/AuthoringIntentEndpoints.cs:37`) *is* the two intent writes, in the shape a service wants;
-  moving it moves two rows at once. `WriteSupport.RunEditAsync` (`Endpoints/WriteEndpoints.cs:17`) is the same
-  story one layer over — **23 call sites** across the region, spawn, wool and write endpoints — and is why
-  none of the Edit tool's routes is on the list: they are one path already, in the wrong folder. It belongs in
-  `Api/Services` with the rest, and moving it changes no behaviour at all.
-
-  **`Api/Services` is the place, not a project of its own.** The second adapter a project was for does not
-  exist: `tools/mapgen` is deleted, and the driver that replaced it — `drive.py` in the mapgen repo — is a
-  Python HTTP client that cannot consume a .NET assembly at all. That a .NET CLI can already reach these
-  operations is settled by `tools/seed-library.cs`, which references `PgmStudio.Api` and calls
-  `Api.Services.LibrarySeed` directly. A new project would buy separation, not a consumer.
-
-  *Re-derive the list with: an endpoint class that both loads state (`GetBySlugAsync`, `artifacts.Load*`,
-  `ReadDocAsync`) and writes it (`Writes.StoreAsync`, `artifacts.StoreAsync`, `.UpdateAsync`,
-  `MapAuthors.ReplaceAsync`), minus anything reaching `WriteSupport.RunEditAsync`.*
 
 ## Phase 4 — the loop answers for itself
 
@@ -112,8 +72,8 @@ hears a late gate early. `RP32` is what is left of that here: the instances are 
   read is the dashboard's filter. No endpoint refuses on it and none answers what a map at a stage may be
   asked for — `docs/tools/capabilities.md` answers that question in prose that nothing verifies. Give it a
   transition table, and put the allowed next moves with their routes on `GET /map/{slug}`, so a driver reads
-  its affordances instead of learning them. Needs `RP13`: transitions over HTTP handlers have nothing
-  to hold.
+  its affordances instead of learning them. The operations a transition would move between now exist, which
+  is what it had been waiting for.
 
 - [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
   `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule

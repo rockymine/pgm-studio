@@ -36,10 +36,6 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         Description(b => b.Accepts<SketchOriginateRequest>("application/json"));
     }
 
-    /// <summary>The name a blank "New sketch" draft is created with. A draft still carrying it (never
-    /// renamed) is one signal the draft is pristine — see <see cref="SketchDiscardIfEmptyEndpoint"/>.</summary>
-    public const string DefaultName = "Untitled sketch";
-
     // The default footprint: 2-team landscape (120×80), origin-centred, rotational symmetry — the same
     // default the editor/bridge use, applied to any frame field the body leaves out.
     private const double DefaultWidth = 120, DefaultDepth = 80;
@@ -48,7 +44,7 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var name = DefaultName;
+        var name = SketchDiscard.UntouchedName;
         var hasFrame = false;
         double width = DefaultWidth, depth = DefaultDepth, centerX = 0, centerZ = 0;
         var mode = DefaultMode;
@@ -529,41 +525,9 @@ public sealed class SketchDiscardIfEmptyEndpoint(MapRepository repo, PgmDb db, M
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var map = await repo.GetBySlugAsync(Route<string>("slug")!, ct);
-        if (map is null) { await Send.OkAsync(new DiscardedDto(false), ct); return; }
-
-        var pristine = map.Stage == MapStage.Sketch
-            && string.Equals(map.Name?.Trim(), SketchCreateEndpoint.DefaultName, StringComparison.Ordinal)
-            && !await db.Authors.AnyAsync(a => a.MapId == map.Id, ct)
-            && !await SketchHasShapesAsync(artifacts, map.Id, ct);
-
-        if (pristine) await repo.DeleteMapAsync(map.Id, ct);   // FK cascade removes the layout artifact
-        await Send.OkAsync(new DiscardedDto(pristine), ct);
+        var discarded = await SketchDiscard.IfUntouchedAsync(
+            repo, db, artifacts, Route<string>("slug")!, ct);
+        await Send.OkAsync(new DiscardedDto(discarded), ct);
     }
-
-    // The layout blob is {setup?, layers:[{layout:{shapes,islands}}]} (or a legacy single {layout:{…}}, or
-    // {} / setup-only for a fresh draft). "Empty" = no shapes in any layer.
-    private static async Task<bool> SketchHasShapesAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
-    {
-        var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
-        if (data is null || data.Length == 0) return false;
-        try { using var doc = JsonDocument.Parse(data); return HasShapes(doc.RootElement); }
-        catch { return false; }
-    }
-
-    private static bool HasShapes(JsonElement root)
-    {
-        if (root.ValueKind != JsonValueKind.Object) return false;
-        if (root.TryGetProperty("layers", out var layers) && layers.ValueKind == JsonValueKind.Array)
-            foreach (var l in layers.EnumerateArray())
-                if (LayoutHasShapes(l)) return true;
-        return LayoutHasShapes(root);   // legacy top-level {layout:{shapes}}
-    }
-
-    private static bool LayoutHasShapes(JsonElement el)
-        => el.ValueKind == JsonValueKind.Object
-           && el.TryGetProperty("layout", out var layout) && layout.ValueKind == JsonValueKind.Object
-           && layout.TryGetProperty("shapes", out var shapes) && shapes.ValueKind == JsonValueKind.Array
-           && shapes.GetArrayLength() > 0;
 }
 

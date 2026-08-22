@@ -638,6 +638,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A use case has a home below the door it is reached through (`RP13`).** Ten handlers read stored state,
+  did work and wrote it back while living in the endpoint that happened to reach them, so a gate landed
+  behind whatever route needed it and the next driver reached around it. They are now **seven operations** in
+  `Api/Services`, because several of the ten were one operation seen through different doors:
+
+  | Operation | What it is, and which rows it answers |
+  |---|---|
+  | `DocumentWrite` | the guarded replace behind `PUT …/plan`, `PUT …/sketch`, `PUT …/sketch/from-plan` and the intent write — a plan and a layout are stored the same way and refuse the same two things |
+  | `MapOrigin` | the row all six ways into the studio write, with three ways to take a slug because the three are a product statement |
+  | `MapEdit` | the thirty-six edit routes' one path, off `Endpoints` and HTTP-free |
+  | `IntentWrite` | already an operation, simply misfiled |
+  | `SketchDiscard` · `MapMetadata` · `SymmetryConfirm` · `WorldFolderImport` | the four that were only ever one route's, and are reachable without one now |
+
+  Under them, one refusal shape (`Vocabulary.Refusal`) where three results had each declared the same triple
+  and its own `IsError`; one load-or-404 prologue (`MapOfRoute`) where **47** had been written out; one slug
+  derivation (`Slugs`) where three had drifted apart. The revision crosses every operation as a value in and
+  out, which is what let `Writes` go entirely — its whole content was carrying an `HttpContext` down to where
+  the store is. `Api/Services` is 32 files and 3,620 lines; `Api/Endpoints` fell to 6,185.
 - **The creates that a binding genuinely refuses are bound, and the binder answers the one envelope
   (`RP40`).** Binding is not a sweep, and the reason is in the update: every edit update reads `ContainsKey`
   to tell *leave this alone* from *clear it*, and a bound record whose fields are all optional cannot tell

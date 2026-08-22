@@ -43,12 +43,8 @@ internal static class WriteSupport
     private static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web);
 }
 
-/// <summary>PATCH /api/map/{slug}/metadata — update name/version/objective/max_build_height
-/// (scalar columns) plus authors/contributors (the <c>author</c> table). Authors are id'd by uuid;
-/// the resolved username is cached in <c>author.name</c> for display.
-/// <para>The <c>gamemode</c> column is not writable here: it holds the author's original
-/// <c>&lt;gamemode&gt;</c> label, which is round-tripped as written, while the gamemode itself is derived
-/// from the map's objective modules and so cannot be set by hand.</para></summary>
+/// <summary>PATCH /api/map/{slug}/metadata — what a map is called, what it states and who wrote it. The
+/// operation is <see cref="MapMetadata"/>; this is the door to it.</summary>
 public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest
 {
     public override void Configure()
@@ -61,28 +57,10 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
 
-        await using var tx = await db.BeginTransactionAsync(ct);
-
-        var u = db.Maps.Where(x => x.Id == map.Id).AsUpdatable();
-        if (p.ContainsKey("name")) u = u.Set(x => x.Name, p["name"] as string ?? "");
-        if (p.ContainsKey("version")) u = u.Set(x => x.Version, NullIfEmpty(p["version"] as string));
-        if (p.ContainsKey("objective")) u = u.Set(x => x.Objective, NullIfEmpty(p["objective"] as string));
-        if (p.ContainsKey("max_build_height")) u = u.Set(x => x.MaxBuildHeight, p["max_build_height"] is { } v ? Convert.ToDouble(v) : null);
-        u = u.Set(x => x.UpdatedAt, DateTime.UtcNow);
-        await u.UpdateAsync(ct);
-
-        // Authors are a full replace, and the rule for what counts as a person is MapAuthors' — the load
-        // that reconstitutes a map from its documents states them the same way.
-        if (p.TryGetValue("authors", out var authorsRaw) && authorsRaw is List<object?> authors)
-            await MapAuthors.ReplaceAsync(db, map.Id, authors, ct);
-
-        await tx.CommitAsync(ct);
+        await MapMetadata.ApplyAsync(db, map.Id, await WriteSupport.ReadPayloadAsync(HttpContext, ct), ct);
         await Send.OkAsync(new Dict { ["ok"] = true }, ct);
     }
-
-    private static string? NullIfEmpty(string? s) => string.IsNullOrEmpty(s) ? null : s;
 }
 
 /// <summary>POST /api/map/{slug}/teams — add a team.</summary>

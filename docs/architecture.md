@@ -24,7 +24,9 @@ through cannot change what its map is held to.
 
 Doing that for one chain is not doing it for the pipeline. A step whose only home is an HTTP handler can only
 ever be reached by sending a request, so the next gate lands behind whatever route needs it, and the next
-driver reaches around it. That is `RP13`.
+driver reaches around it. Every step that reads stored state, does work and writes it back now has a home
+below the door — the seven operations below — so a gate is raised where the work is rather than where the
+request arrived.
 
 ## The boundary carries no schema
 
@@ -141,12 +143,17 @@ than with the route because what went wrong is what decides it.
 one line each is now: the slug is read off the request, because a route that loads a map by anything other
 than its own `{slug}` is doing something else and should say so.
 
-**Four of the ten the board named are in `Api/Services` now, as operations rather than handlers.**
-`DocumentWrite` is the guarded replace behind `PUT …/plan`, `PUT …/sketch`, `PUT …/sketch/from-plan` and the
-intent write — one operation, because a plan and a layout are stored the same way and refuse the same two
-things, and what differs between them is what each document says about *itself*. `MapEdit` is the thirty-six
-edit routes' one path, moved off `Endpoints` and made HTTP-free with it. `IntentWrite` was already an
-operation and was simply misfiled.
+**All ten the board named are in `Api/Services` now, as operations rather than handlers** — and they came to
+seven, because several of the ten were one operation seen through different doors. `DocumentWrite` is the
+guarded replace behind `PUT …/plan`, `PUT …/sketch`, `PUT …/sketch/from-plan` and the intent write: a plan
+and a layout are stored the same way and refuse the same two things, and what differs is what each document
+says about *itself*, which stays with the document that has it. `MapOrigin` is the row every one of the six
+ways into the studio writes. `IntentWrite` was already an operation and was simply misfiled. `SketchDiscard`,
+`MapMetadata`, `SymmetryConfirm` and `WorldFolderImport` are the four that were only ever one route's, and
+are now reachable without one. `MapEdit` is the thirty-six edit routes' one path, moved off `Endpoints` and
+made HTTP-free with it.
+
+`Api/Services` is **32 files and 3,620 lines** against `Api/Endpoints`' 46 and 6,185.
 
 **The revision now crosses as a value.** An operation is handed the revision the caller stated and answers
 the one it landed at; that the first arrives in an `If-Match` and the second leaves in an `ETag` is
@@ -163,8 +170,9 @@ Three operations now do live somewhere: `MapExportLoader` loads what the pure co
 an intent back into a whole map. Each is HTTP-free — it answers findings and lets the layer above render the
 envelope — and each has more than one caller or is written to take one. They sit in `Api/Services` because
 that is the lowest project reaching everything they need, and that is where they stay: a project of their own
-would buy separation and no second consumer, since the driver that would have been one speaks HTTP.
-`RP13` is the ten handlers of the same shape that have not moved there yet.
+would buy separation and no second consumer, since the driver that would have been one speaks HTTP. The ten
+handlers of the same shape have joined them, as seven operations — several of the ten turned out to be one
+operation reached through different doors.
 
 **The order between steps is the part that has no home at all.** Storing an intent projects the map document
 from the intent's own `meta`, so authors written before it are overwritten — a rule stated in `flow.md`, in
