@@ -8,14 +8,10 @@ namespace PgmStudio.Contracts;
 /// second walk of the same dictionary here would be free to disagree with the first.
 /// <c>EditAnswerShapeTests</c> holds each record to what its editor writes.
 ///
-/// <para>The shapes are few because the answers are: most edits hand back nothing, a few hand back the id
-/// the caller now names the thing by, and three hand back the row they just wrote.</para>
+/// <para>The shapes are few because the answers are: most edits hand back nothing — <see cref="AppliedDto"/>,
+/// beside the other acknowledgements — a few hand back the id the caller now names the thing by, and three
+/// hand back the row they just wrote.</para>
 /// </summary>
-/// <remarks>The edit was applied and there is nothing to hand back — the caller posted what is in the row,
-/// and the read that answers the stored form is a route of its own. Deletes, spawn links and the two intent
-/// writes all answer this.</remarks>
-public sealed record AppliedDto;
-
 /// <summary>A region was created, and this is the id every later route names it by. Region ids are the
 /// author's words rather than row numbers, which is why this is not <see cref="CreatedDto"/>.</summary>
 public sealed record RegionCreatedDto(string Id);

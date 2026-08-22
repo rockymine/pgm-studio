@@ -56,7 +56,7 @@ public sealed class SymmetryGetEndpoint(MapRepository repo, PgmDb db, MapArtifac
 /// ("confirmed"/"none"), an optional user-override confirmed_type, and an optional centre override.
 /// Mirrors the reference patch_symmetry.
 /// </summary>
-public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<OkDto>
+public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
     {
@@ -72,6 +72,6 @@ public sealed class SymmetryPatchEndpoint(MapRepository repo, PgmDb db) : Endpoi
             db, map.Id, await RawBody.ReadAsync(HttpContext, ct), ct);
         if (stated.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
-        await Send.OkAsync(new OkDto(), ct);
+        await Send.OkAsync(new AppliedDto(), ct);
     }
 }

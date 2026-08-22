@@ -283,7 +283,7 @@ errata file whose entries each cost an earlier run a build cycle.
 writing documents against the documentation and posting them cold: *"Every fault below is one the author
 could not have seen, because each of them answers 200."* A rectangle whose fields are `x`/`z`/`w`/`h` rather
 than `min_x`/`min_z`/`max_x`/`max_z` — fourteen of them across two maps — covers no ground and answers
-`{"ok": true}`. `relief` written inside `layout` rather than at the document root is dropped. A house prop
+a success. `relief` written inside `layout` rather than at the document root is dropped. A house prop
 over `HouseProp.MaxFootprint`, or a wing under three blocks, is dropped without a word; seven of seven houses
 vanished that way.
 

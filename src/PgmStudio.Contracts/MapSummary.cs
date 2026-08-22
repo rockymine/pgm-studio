@@ -47,3 +47,6 @@ public sealed record MapMove(string Does, string Route, bool Next);
 /// a move can read, and the stage says which move is the one being waited on. Both, and the moves they
 /// imply, are answered together so a driver reads its options instead of learning them.</para></summary>
 public sealed record MapState(string Stage, MapLayers Layers, IReadOnlyList<MapMove> Moves);
+
+/// <summary>Whether the map came from a sketch — which is what drops the Monuments step.</summary>
+public sealed record MapOriginDto(bool Sketch);

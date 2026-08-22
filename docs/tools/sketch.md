@@ -698,7 +698,7 @@ and the shape's id as its subject.
 **A part of the document nothing read is said the same way.** `SK3` covers a name that resolves to nothing;
 the layer under it is a *field* that resolves to nothing — a rectangle keyed `x`/`z`/`w`/`h` instead of
 `min_x`/`min_z`/`max_x`/`max_z`, a `relief` written one level too deep — which the deserializer drops before
-any gate can see it, leaving a board that covers no ground under an `{"ok": true}`. Both writes answer it as
+any gate can see it, leaving a board that covers no ground under a success. Both writes answer it as
 `RQ3` complaints naming the dotted path (`layers[0].layout.shapes[0].x`), over the body **as posted** rather
 than the merged one, since that is the document the caller can correct. The reading and its four exemptions
 are `docs/refusals.md`, *`RQ3`*.
@@ -721,8 +721,8 @@ Every endpoint is anonymous and rooted at `/api`.
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{ok: true}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{ok, orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `board too large` `SK2` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 

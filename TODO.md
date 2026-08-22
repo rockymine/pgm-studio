@@ -17,15 +17,6 @@ in the order listed: the contract first, because the request shape and the clien
 application layer second, because it is where a gate stops belonging to a door; the fault class third; the
 lifecycle last, because a state machine over a pipeline of HTTP handlers has nothing to hold.
 
-- [ ] **RP33 — Three names in `Contracts` say the wrong thing, and one file is a drawer.** `OkDto` is
-  `{"ok": true}`, which the HTTP 200 beside it already says; its own docstring admits the field exists so a
-  test has something to assert on. It answers one route (`PATCH …/metadata`) where eleven siblings answer
-  `{}` through `AppliedDto` — two spellings of *nothing happened worth reporting*. Settle on one, and
-  consider whether either should be a truthful `204` on the `NoBody` list instead. `AckDtos.cs` is named for
-  acknowledgements and holds thirteen records, most of which are not: `SvgDto`, `PlayerDto`,
-  `CompiledPlanDto`, `ThemeMapPreviewDto`, `MapOriginDto`. Split it by subject the way the folder rule
-  states. Twelve routes and one file; no wire changes unless the `204` question is answered yes.
-
 - [ ] **RP35 — `/api/rules` answers 169 rules and 88 of them are raised.** `RuleCatalog.Read` concatenates
   the **77 gate rules** declared as `const string` in the fourteen `*Rules` classes with **92 layout rules**
   parsed out of `docs/generator/rules.md`, of which the plan validator fires **fifteen**:

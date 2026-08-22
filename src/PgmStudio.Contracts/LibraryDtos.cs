@@ -207,3 +207,10 @@ public sealed record MaterialFieldDto(
 public sealed record MaterialKindDto(
     string Kind, string Name, string Summary,
     IReadOnlyList<string> Reads, IReadOnlyList<MaterialFieldDto> Fields);
+
+/// <summary>A room style as the stamper's own JSON — the form the export consumes and the form a map
+/// snapshots when it binds one.</summary>
+public sealed record StyleJsonDto(string StyleJson);
+
+/// <summary>A terrain theme as the painter's own JSON.</summary>
+public sealed record ThemeJsonDto(string ThemeJson);

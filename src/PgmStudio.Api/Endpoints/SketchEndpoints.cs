@@ -119,7 +119,7 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
 /// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
 /// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
 /// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
-public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
+public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
     {
@@ -149,7 +149,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         if (written.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
         Revisions.Answer(HttpContext, written.Revision!.Value);
-        await Send.OkAsync(new OkDto(), ct);
+        await Send.OkAsync(new AppliedDto(), ct);
     }
 }
 
@@ -223,7 +223,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         if (written.Refusal is { } stale) { await Refusals.WriteAsync(HttpContext, stale, ct); return; }
 
         Revisions.Answer(HttpContext, written.Revision!.Value);
-        await Send.OkAsync(new SketchFromPlanDto(true, orphans), ct);
+        await Send.OkAsync(new SketchFromPlanDto(orphans), ct);
     }
 }
 

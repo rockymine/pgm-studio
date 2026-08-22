@@ -707,6 +707,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **A write that answers nothing answers one shape, and the drawer is emptied (`RP33`).** Sixteen routes
+  said *the write landed* two ways: eleven through `AppliedDto` — `{}` — and five through `OkDto`, whose own
+  docstring admitted the field was there so a test would have something to assert on. `AppliedDto` is the
+  one, and it is a JSON object rather than a truthful `204` for a stated reason: a success is where
+  complaints ride, `Complaints`'s rule is that a 2xx JSON object answers `warnings` when a gate remarked and
+  carries no such key when none did, and a body-less response has nowhere to put one. The `NoBody` deletes
+  stay 204 because a library row deletion runs no gate. `SketchFromPlanDto` lost its `Ok` beside them and
+  answers the orphans alone.
+
+  **`PATCH …/metadata` was declaring one shape and sending another** — a hand-built `{"ok": true}` under a
+  declared `AppliedDto` — which neither the schema tests nor the record tests could see, one reading what an
+  operation says it answers and the other what the record serializes to. `AcknowledgementTests` reads the
+  response as text off three of the routes and is what catches it.
+
+  `AckDtos.cs` held thirteen records, five of which were not acknowledgements. It holds six now and is named
+  for what they are; the pictures went to `PreviewDtos.cs`, the two library documents to `LibraryDtos.cs`
+  (which holds every library entry, not only themes), `CompiledPlanDto` to `PlanDtos.cs`, `MapOriginDto` to
+  `MapSummary.cs` and `PlayerDto` to its own file.
 - **The studio has one box, and a region has one envelope (`RP34`, `RP38`).** A footprint in block
   coordinates was two records: `BoundsDto`, four `int`s answered camelCase by the two analysis reads, and
   `Bounds2dDto`, four `double`s answered `min_x`/`min_z`/`max_x`/`max_z` by the region tree and the region
@@ -867,8 +885,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   Ten answer the shape they were already sending, and no wire changed.
   `DELETE …/sketch/discard-if-empty` declares `DiscardedDto`, `POST /plans` and `POST /compose/pin` declare
-  `PlanDetail`; `PATCH /configure/{slug}/exclude-island` and `PATCH …/symmetry` answer `OkDto` where each had
-  built its own `{ok: true}`, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments` and
+  `PlanDetail`; `PATCH /configure/{slug}/exclude-island` and `PATCH …/symmetry` answer the shared
+  acknowledgement where each had built its own body, and `POST /themes/import` answers a shared `CreatedDto`. `GET …/segments` and
   `GET …/column-floor` get `SegmentsDto` and `ColumnFloorDto`, keeping the snake_case keys the side-view
   canvas reads by name. `GET …/islands` declares `IslandDto` and still sends the scan's blob as stored, the
   way `GET …/sketch` does.
@@ -4689,7 +4707,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   On `material-preview`, `theme-preview` and `room-styles/preview-snapshot`.
 - **And on the three documents an author actually writes (RP17).** The plan, the sketch layout and the intent
   each go into the studio as a blob stored verbatim, so a field the reader had nowhere to keep was stored with
-  it and read by nothing: fourteen rectangles keyed `x`/`z`/`w`/`h` covered no ground under an `{"ok": true}`,
+  it and read by nothing: fourteen rectangles keyed `x`/`z`/`w`/`h` covered no ground under a success,
   and a `relief` written one level too deep dropped without a word. The walk is asked at the edge over the body
   **as posted** — `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`, `PUT …/intent/from-plan`,
   `PUT …/plan`, `POST /plans`, `POST /plan/compile` — before any of them merges what it was sent into what the

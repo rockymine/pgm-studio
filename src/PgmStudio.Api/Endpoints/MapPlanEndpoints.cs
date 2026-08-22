@@ -148,7 +148,7 @@ public sealed class MapPlanFlowEndpoint(MapRepository repo, MapArtifactStore art
 }
 
 /// <summary>PUT /api/map/{slug}/plan — replace the stored plan blob (the plan editor's saved state).</summary>
-public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<OkDto>
+public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
     {
@@ -172,6 +172,6 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
         if (written.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
 
         Revisions.Answer(HttpContext, written.Revision!.Value);
-        await Send.OkAsync(new OkDto(), ct);
+        await Send.OkAsync(new AppliedDto(), ct);
     }
 }
