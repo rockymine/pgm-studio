@@ -69,6 +69,9 @@ builder.Services.SwaggerDocument(o =>
     // A field that takes one of a closed set of words publishes them, rather than crossing as a bare string
     // an agent has to learn by being refused one. PgmStudio.Api.Endpoints.WordSetSchemas says how.
     o.DocumentSettings += doc => doc.SchemaSettings.SchemaProcessors.Add(new WordSetSchemas());
+    // One key rides on every success that has one, written by middleware rather than by any record — so the
+    // document says so once, here. PgmStudio.Api.Endpoints.ComplaintChannel says how.
+    o.DocumentSettings += doc => doc.OperationProcessors.Add(new ComplaintChannel());
     // Keyed on the tag exactly as the generator emits it, which title-cases the path segment.
     o.TagDescriptions = tags =>
     {

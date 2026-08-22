@@ -99,6 +99,15 @@ kinds and box kinds — and `WordSetSchemaTests` holds each to the words its cla
 being published by something. The words are still stated once, where they were stated already; nothing is
 copied into the document.
 
+**And the one key that rides on any of them is declared.** `Complaints` adds `warnings` to any 2xx JSON
+object whose request raised one, and the document said nothing about it: no schema carried the key and no
+operation named a response header. Both are published now by an operation processor — every 2xx JSON object
+is `allOf` the answer the route names plus the optional `warnings`, and every 2xx names `Pgm-Warnings` —
+which puts one fact in one place rather than a field on a hundred records that no handler fills. **110
+answers carry the key and 151 name the header.** The client reads it in one place too, `ServerWarnings`
+beside `ServerRefusal`, which is what let the plan tool take `/plan/compile` as `CompiledPlanDto` again
+instead of as a `JsonElement` it picked the key out of by hand.
+
 **And a field says what it is, not only what type it is.** The schema publishes the docstrings the records
 carry, and a field with no `<param>` reaches a caller as a name and a type — with the type's own prose doing
 the fields' work, which reads as documented while telling an author nothing about the one field they have to

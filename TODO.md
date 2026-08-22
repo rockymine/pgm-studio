@@ -26,26 +26,6 @@ refusal envelope and declined — the interoperability it buys needs a caller ou
 is none, while the dereference it is prized for is already reachable from the `rule` each finding carries.
 The reasoning is `docs/design-decisions.md` § *The HTTP surface*; the entry that asked it is retired.
 
-- [ ] **RP44 — The complaint channel is on every success and in no schema.** `Complaints.CarryAsync` adds a
-  `warnings` key to any 2xx JSON object whose request raised one — `RQ3` for a field nothing could keep, the
-  `DR-*` declines a dressing pass made, a layout's own remarks — and **no schema declares it**, nor does any
-  operation name a response header: `/api/openapi/v1.json` has **zero** of each. So the document says a
-  success carries only the shape the route named, and an agent cannot learn from it that a 200 may be
-  carrying the very findings `architecture.md` calls the driver's most useful read. The client cannot type
-  one either — `PlanTool` takes `/plan/compile`'s success as a `JsonElement` for exactly this reason.
-
-  **Declare it, do not restate it.** A schema processor beside `WordSetSchemas` adds an optional `warnings`
-  of `Finding[]` to every 2xx JSON object schema, and names `Pgm-Warnings` as the response header the same
-  answers carry. No record grows a field, no caller changes, and the document gains the one key that can
-  appear on any of them — the shape `RP37` already proved out on the word sets. The client half is one
-  reader beside `ServerRefusal` (`Components/ServerRefusal.cs`), which is where the mirror-image question is
-  already answered for a refusal: one key on every success wants one place that reads it, not a field on
-  fifty records.
-
-  *`Complaints`'s own rule is what makes the declaration honest: a 2xx JSON object answers `warnings` when a
-  gate remarked and carries no such key when none did. That rule is why `AppliedDto` is an object rather
-  than a 204, and the schema is the last place it is not written down.*
-
 - [ ] **C47 — Three Edit phases each carry their own HTTP half, and the routes are split across it.**
   `BuildRegionsPhase`, `ObjectivePhase` and `TeamsPhase` each declare the same four members —
   `Post(path, body)`, `Patch(path, body)`, `Delete(path)` and `Send(call)` — over the prefix

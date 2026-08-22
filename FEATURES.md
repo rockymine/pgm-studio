@@ -707,6 +707,30 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **The one key that rides on any success is declared (`RP44`).** `Complaints` adds `warnings` to any 2xx
+  JSON object whose request raised one — an `RQ3` for a field nothing could keep, a `DR-*` decline, a
+  layout's own remarks — and the document said nothing about it: **no schema carried the key and no
+  operation named a response header**. So the schema the last two entries made honest was silent about the
+  one key that can appear on any of them, and the plan tool read `/plan/compile` as a `JsonElement` to pick
+  it out by hand.
+
+  It is published once, by an operation processor rather than by a field on a hundred records that no
+  handler would ever fill: every 2xx JSON object's schema becomes `allOf` the answer the route names plus
+  the optional `warnings`, and every 2xx names `Pgm-Warnings`. **110 answers carry the key, 151 name the
+  header.** `allOf` rather than a member on the referenced schema, because that schema is also a request
+  body and a nested field elsewhere and a complaint rides on neither. The rule is mechanical: the key where
+  `Complaints` can put one, the header wherever complaints can be handed over — which is everywhere, since
+  they are handed over before a response starts.
+
+  The client reads it in one place too. `ServerWarnings` is `ServerRefusal`'s mirror on the other side of the
+  status line — the header without touching the body, or the body once, giving back the declared shape and
+  the findings beside it — and the plan tool takes `CompiledPlanDto` again.
+
+  `ComplaintChannelTests` holds the claim to a real answer (a write posted with a field the reader cannot
+  keep, which is the cheapest way to make a gate remark) and to the whole surface in the schema. It also
+  named a case nothing had: **a success whose JSON body is an array has nowhere to hold the key**, so the
+  twenty-one list reads name the header alone — none can raise one today, and one that grew a gate would be
+  reporting into a log rather than onto the wire.
 - **A posted field says what it is (`RP36`).** The schema publishes the docstrings the records carry, so a
   field with no `<param>` reached a caller as a name and a type, with the type's own prose doing the fields'
   work — which reads as documented while telling an author nothing about the one field they have to fill.
@@ -895,10 +919,9 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the same eight counts, read once now rather than once per door. `PlanTool`'s own copy of `Finding` went
   with them, and `RegionsPhase.Ok` became `Ok<T>` because grouping and ungrouping answer different shapes.
 
-  **Two reads stay `JsonElement`, and both are the honest form.** `SketchTool` hands the layout blob
-  verbatim to the canvas, so typing it would re-serialize through `SketchLayout` and drop whatever a newer
-  editor wrote — the same reason the route answers it as stored. And `/plan/compile`'s success carries
-  `warnings` that no record declares, which is `RP44`.
+  **One read stays `JsonElement`, and it is the honest form.** `SketchTool` hands the layout blob verbatim to
+  the canvas, so typing it would re-serialize through `SketchLayout` and drop whatever a newer editor wrote —
+  the same reason the route answers it as stored.
 
 - **Every write route that can say what it takes now says it (RP12).** A route with no declared request type
   publishes no `requestBody`, so `/api-docs` offered no field to fill and a generated client would type every

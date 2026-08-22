@@ -265,7 +265,25 @@ parse the payload to find out there are none.
 One case sits outside both, and it is honest: a **refusal** carries refusals only, in the envelope's
 `findings`, because the work did not happen and nothing rode along with it. Where a non-JSON success loses a
 finding anyway — nothing handed it over before the response started, so neither carrier was available — the
-studio logs it as an error against the route rather than dropping it in silence.
+studio logs it as an error against the route rather than dropping it in silence. A success whose JSON body
+is an **array** is in that position by construction: twenty-one routes answer a list at the root and a list
+has nowhere to hold a key, so those name the header alone. Every one of them is a plain read with no posted
+document to complain about, and one that grew a gate would be reporting into a log rather than onto the
+wire.
+
+**The document says all of this, and no record does.** The key is written by middleware over whatever the
+route answered, so declaring it on a response DTO would mean a field on a hundred records that no handler
+ever fills — one fact restated a hundred times, and wrong the moment one of them is missed. It is published
+once instead, by an operation processor: every 2xx JSON object's schema becomes `allOf` the answer the route
+names plus the optional `warnings`, and every 2xx names `Pgm-Warnings` as a response header. `allOf` rather
+than a member added to the referenced schema, because that schema is also a request body and a nested field
+elsewhere, and a complaint rides on neither. `ComplaintChannelTests` holds the claim to a real answer — a
+write posted with a field the reader cannot keep — and to the whole surface in the schema.
+
+**The client reads it in one place too.** `ServerWarnings` is the mirror of `ServerRefusal`, on the other
+side of the status line: `Carried` reads the rule ids off the header without touching the body, and
+`AnsweredAsync<T>` takes the body once and hands back the declared shape and the findings beside it — once,
+because a response's content is a stream and the answer and the key cannot be read in two passes.
 
 **A report whose subject is findings is not this.** `/plan/evaluate` answers a `lint` list and
 `/plan/feasibility` a per-box one, and in both the findings are the answer being asked for rather than a remark

@@ -916,16 +916,14 @@ public partial class PlanTool
             using var resp = await Http.PostAsync("api/plan/compile", new StringContent(planJson, Encoding.UTF8, "application/json"));
             if (resp.IsSuccessStatusCode)
             {
-                var doc = await resp.Content.ReadFromJsonAsync<JsonElement>();
-                var layout = doc.GetProperty("layout");
-                var intent = doc.GetProperty("intent");
-                compiledLayoutRaw = layout.GetRawText();
-                compiledIntentRaw = intent.GetRawText();
-                compiledLayout = JsonSerializer.Serialize(layout, Pretty);
-                compiledIntent = JsonSerializer.Serialize(intent, Pretty);
-                compileWarnings = doc.TryGetProperty("warnings", out var w)
-                    ? JsonSerializer.Deserialize<List<Finding>>(w.GetRawText()) ?? []
-                    : [];
+                // The compiled pair and what the compile remarked on come out of one read: `warnings` is a
+                // member of the success rather than a wrapper around it, and the body is a stream.
+                var (compiled, warnings) = await ServerWarnings.AnsweredAsync<CompiledPlanDto>(resp);
+                compiledLayoutRaw = compiled?.Layout.GetRawText();
+                compiledIntentRaw = compiled?.Intent.GetRawText();
+                compiledLayout = compiled is null ? null : JsonSerializer.Serialize(compiled.Layout, Pretty);
+                compiledIntent = compiled is null ? null : JsonSerializer.Serialize(compiled.Intent, Pretty);
+                compileWarnings = [.. warnings];
                 compileTab = LayoutTabId;
             }
             else if ((int)resp.StatusCode == 422)
