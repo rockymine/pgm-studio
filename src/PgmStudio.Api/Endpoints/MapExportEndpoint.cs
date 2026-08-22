@@ -56,6 +56,10 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
             return;
         }
 
+        // What the build did not place, before a byte of the zip is written: a header cannot be set after the
+        // response has started, and this is the route where props actually drop.
+        Complaints.Add(HttpContext, result.World.Declines);
+
         // Sketch-originated: bundle the synthesised world with the XML. An IO or region-encoding failure
         // here escapes to Program.cs's unhandled-fault middleware, which answers the same envelope every
         // other refusal does (RQ2) rather than a raw exception.
@@ -92,8 +96,9 @@ public sealed class MapExportEndpoint(MapRepository repo, MapReader reader, Feat
                 foreach (var mca in Directory.GetFiles(regionDir, "*.mca"))
                     AddFile(archive, mca, $"{slug}/region/{Path.GetFileName(mca)}");
                 // Both sidecars travel: provenance says what landed, the decline report says what did not,
-                // and the second is the only record an HTTP caller ever gets of a dropped prop. The report is
-                // written only when something dropped, so its absence is the answer "everything stood".
+                // in full — the rule, the cell and the prop for each. The response header answers the same
+                // question in one line for a caller that never unzips. The report is written only when
+                // something dropped, so its absence is the answer "everything stood".
                 foreach (var sidecar in new[] { "provenance.json", "dressing-report.json" })
                 {
                     var path = Path.Combine(regionDir, sidecar);

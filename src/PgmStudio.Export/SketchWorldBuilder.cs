@@ -24,9 +24,10 @@ namespace PgmStudio.Export;
 /// <param name="Declined">Everything the build could not do as it was authored: a goal whose material its own
 /// size is wrong for or whose structure reaches over the build ceiling (<c>DC3</c>, <c>OB23</c>), and every
 /// prop the dressing pass did not place (a <c>DR-*</c> each), carrying the goal's or the prop's id as its
-/// subject. Complaints rather than refusals: the world was built, and some of what was authored is not
-/// standing in it as asked, which is a thing the caller that asked for the build has to be told rather than
-/// something to go looking for in a sidecar.
+/// subject. None of them stops the work — the world was built — and the two kinds are told apart by the
+/// severity each carries: the goals are complaints, since the goal stands and the remark is about how, and
+/// every prop is a <see cref="Severity.Decline"/>, since it is not in the world at all. Either way the
+/// caller that asked for the build has to be told rather than sent looking in a sidecar.
 /// <para>Null when nothing was declined, the same convention the pass itself answers in — read
 /// <see cref="Declines"/>, which never is.</para></param>
 public sealed record SketchWorld(

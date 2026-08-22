@@ -557,12 +557,15 @@ Each one is a **`decline`**, the severity between a refusal and a complaint: the
 stopped, and this prop is not in it, so there is nothing for the author to ignore. That is what a caller reads
 off a 2xx to answer *did what I posted survive* — a complaint beside a success would say the opposite.
 
-The declines travel two ways: back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
-`warnings` beside the payload, which is the loop an agent actually drives; as `region/dressing-report.json`
+The declines travel three ways. Back from `POST /map/{slug}/sketch/columns` and `POST /plan/columns` under
+`warnings` beside the payload, which is the loop an agent actually drives. As `region/dressing-report.json`
 beside the provenance sidecar (written only when something dropped, deleted on a rebuild that dropped
 nothing), **inside the export zip** — the two sidecars are the two halves of one census, provenance saying
 what landed and this saying what did not, and an HTTP caller that got only the first could not tell a prop
-that was never authored from one the pass refused.
+that was never authored from one the pass refused. And in the **`Pgm-Warnings` header** on
+`GET /map/{slug}/export` and `GET /map/{slug}/xml`: the count and each rule id once, which is what a caller
+reads without unzipping, and on the XML route — same world, same pass, same drops, no sidecar — the only
+answer there is.
 
 **One of the two is ordered, and the order is not obvious.** `DR-KEEP` reads the spawn doors' approaches
 and the goal rings, and those come off the map's **intent** — so `sketch/columns` asked before

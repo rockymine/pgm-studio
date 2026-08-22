@@ -480,8 +480,8 @@ design.
 |---|---|---|
 | `GET /map/{slug}/preflight` | `{intentMap, exportReady, checks[], log[], traversability}` | 404 |
 | `GET /map/{slug}/regions/tree` | the generated region tree, grouped | 404 |
-| `GET /map/{slug}/xml` | the `map.xml` | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop blocks a goal` OB19 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
-| `GET /map/{slug}/export` | the world ZIP | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
+| `GET /map/{slug}/xml` | the `map.xml`, with `Pgm-Warnings` carrying the count and rule ids of every prop the dressing pass dropped building it | every refusal is `{error, message, findings[]}` (`docs/refusals.md`), the gate in `error`: **409** `unknown gamemode` OB20 (every map, checked first) · **409** `not traversable` EX1 · **409** `objective placement` OB17 · **409** `prop blocks a goal` OB19 · **409** `not a playable map` EX2/EX3/EX4 · **422** `dressing document invalid` DR-DOC · 404 |
+| `GET /map/{slug}/export` | the world ZIP, with `Pgm-Warnings` as above and `region/dressing-report.json` inside it carrying the rule, the cell and the prop for each | the same 409s and 422 as `/xml` (OB17/OB19/DR-DOC/EX3/EX4 sketch-origin maps only; EX1/EX2 every intent-authored map; OB20 regardless of origin), plus non-2xx with a message on a zip/IO failure |
 
 ## Driving it without the UI
 

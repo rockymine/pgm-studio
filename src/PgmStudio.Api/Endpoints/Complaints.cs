@@ -21,6 +21,12 @@ namespace PgmStudio.Api.Endpoints;
 /// key because both sit on a success, and they are told apart by the <c>severity</c> each finding already
 /// carries — which is the only way a caller reading a 2xx can answer <i>did what I posted survive</i>.</para>
 ///
+/// <para><b>A success that is not JSON answers the header instead.</b> A world zip and a <c>map.xml</c> are
+/// the two responses that carry the most droppable work and the two with nowhere to put a key, so the count
+/// and the rules ride in <c>Pgm-Warnings</c> — set when the findings are handed over, which is before the
+/// body is written and therefore before a header is too late. It rides on a JSON success too: the columns
+/// payload is megabytes, and a caller deciding whether to look should not have to parse it first.</para>
+///
 /// <para><b>One key, one rule for when it appears.</b> A 2xx JSON object answers <c>warnings</c> when anything
 /// was complained about or declined and carries no such key when nothing was. That single rule is what makes an absent
 /// <c>warnings</c> readable: without it the key's absence covers an endpoint with no gate, one whose gate
@@ -40,6 +46,10 @@ internal static class Complaints
     /// <summary>The key a success answers them under.</summary>
     private const string Key = "warnings";
 
+    /// <summary>The header a success answers the same findings' shape under: the count, then each rule id
+    /// once. It is what a caller reads where the body cannot hold a key, and a cheap read where it can.</summary>
+    private const string Header = "Pgm-Warnings";
+
     /// <summary>The options the body was serialized with, so an injected key reads like the ones beside it.</summary>
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -51,6 +61,17 @@ internal static class Complaints
         var carried = Carried(http);
         foreach (var finding in findings)
             if (!finding.Refuses) carried.Add(finding);
+        Announce(http, carried);
+    }
+
+    /// <summary>Restate what is carried in the response header. Written here rather than at the end because
+    /// a header set after the first byte is too late, and the body of a zip is written straight through;
+    /// rewritten on every hand-over so a route that reports twice still answers one truthful count.</summary>
+    private static void Announce(HttpContext http, List<Finding> carried)
+    {
+        if (carried.Count == 0 || http.Response.HasStarted) return;
+        var rules = carried.Select(finding => finding.Rule).Distinct().Order(StringComparer.Ordinal);
+        http.Response.Headers[Header] = $"{carried.Count} {string.Join(' ', rules)}";
     }
 
     /// <summary>
@@ -125,12 +146,14 @@ internal static class Complaints
             var carried = Carried(http);
             if (held is null)
             {
-                // Complaints computed and nowhere to put them. That is the failure this channel exists to
-                // remove, so it is loud in the log rather than silent on the wire — but only where the work
-                // succeeded: a request that went on to be refused answers the refusal instead of an answer,
-                // and there is no success for anything to ride on.
-                if (carried.Count > 0 && http.Response.StatusCode is >= 200 and < 300)
-                    Complain(carried, "the success body is not JSON");
+                // Complaints computed and nowhere to put them at all — not a key, because the body is not a
+                // JSON object, and not the header, because nothing handed them over before the response
+                // started. That is the failure this channel exists to remove, so it is loud in the log rather
+                // than silent on the wire — but only where the work succeeded: a request that went on to be
+                // refused answers the refusal instead of an answer, and there is no success to ride on.
+                if (carried.Count > 0 && http.Response.StatusCode is >= 200 and < 300
+                    && !http.Response.Headers.ContainsKey(Header))
+                    Complain(carried, $"the success body is not JSON and no '{Header}' header was set");
                 return;
             }
 

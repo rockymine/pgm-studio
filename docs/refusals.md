@@ -231,14 +231,27 @@ caller reads `severity` on each finding — `warnings.some(w => w.severity === "
 was dropped*, which no status code and no other field says.
 
 **One key, and one rule for when it appears.** A 2xx JSON object answers `warnings` when something was
-complained about or declined, and carries no such key when nothing was. The single rule is what makes an absent `warnings`
+complained about or declined, and carries no such key when nothing was. The header keeps the same rule: it is
+there when something was, and absent otherwise. The single rule is what makes an absent `warnings`
 readable: without it the key's absence covers four states a caller cannot tell apart — an endpoint with no
 gate, one whose gate found nothing, one that dropped what its gate found, and one answering a shape with
 nowhere to put it. A caller reads `warnings ?? []` and is done.
 
-Two cases sit outside that rule, and both are honest. A **refusal** carries refusals only, in the envelope's
-`findings`: the work did not happen, so nothing rode along with it. And a success that is **not JSON** — a
-rendered PNG, an ASCII board, a parquet stream — has nowhere to put one; where that loses a complaint the
+**A success that is not JSON answers the header instead.** `Pgm-Warnings` carries the count and then each
+rule id once — `1 DR-SITE`, `3 DR-CLAIM DR-KEEP` — and is set when the findings are handed over, which is
+before the body is written and therefore before a header is too late. It is what `GET /map/{slug}/export` and
+`GET /map/{slug}/xml` answer: both build a world through the dressing pass, both drop props, and a zip and an
+XML document have nowhere to put a key. The zip still carries `region/dressing-report.json` with the rule,
+the cell and the prop for each; the header is what tells a caller that never unzips there is something in
+there to read, and on the XML route it is the only answer there is.
+
+The header rides on a JSON success too, beside the key rather than instead of it. `POST …/sketch/columns`
+answers megabytes of column runs, and a caller deciding whether to look at the warnings should not have to
+parse the payload to find out there are none.
+
+One case sits outside both, and it is honest: a **refusal** carries refusals only, in the envelope's
+`findings`, because the work did not happen and nothing rode along with it. Where a non-JSON success loses a
+finding anyway — nothing handed it over before the response started, so neither carrier was available — the
 studio logs it as an error against the route rather than dropping it in silence.
 
 **A report whose subject is findings is not this.** `/plan/evaluate` answers a `lint` list and

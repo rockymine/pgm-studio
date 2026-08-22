@@ -30,12 +30,12 @@ fault has a class, so the taxonomy is third — **that phase has drained**, and 
 two behind it keep the names every commit cites. And a state machine over a pipeline whose steps are still
 HTTP handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — sixteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — fifteen entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Four of the sixteen carry a question only the author can answer
+## Four of the fifteen carry a question only the author can answer
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
 the file and line are named. These are not, and each is blocked on a decision rather than on work. `RP13`
@@ -113,13 +113,12 @@ One entry: the ten steps that still belong to the door they are reached through.
 ## Phase 4 — the loop answers for itself
 
 What makes the pipeline drivable without a fifteen-document briefing: a caller asks what it may do next, and
-hears a late gate early. `RP30` and `RP4` are one commit by `RP4`'s own ruling, and `RP32` is the general
-form of both — a fault heard at the wrong place, fixed one route at a time until something answers the
-question outright.
+hears a late gate early. `RP32` is the general form of what is left here — a fault heard at the wrong place,
+fixed one route at a time until something answers the question outright.
 
 - [ ] **RP32 — Nothing answers "what is wrong with this map right now".** Every gate is reachable only
-  through the step it lives behind, so a fault authored at one step is heard at another; `RP4` and `RP30` are
-  two instances of that shape, each fixed one route at a time. A driver's loop is *act and hope the next call
+  through the step it lives behind, so a fault authored at one step is heard at another; `RP4` is the
+  instance still open, and `RP30` was the one beside it. A driver's loop is *act and hope the next call
   mentions it* rather than *act, then ask*. Add `GET /map/{slug}/findings`: every gate answerable at the map's
   current stage, as one `Findings` list carrying severity, so no route has to remember to report. It pairs
   with `RP16` on `GET /map/{slug}` — that answers what may be done next, this what is wrong now. It must
@@ -161,23 +160,13 @@ question outright.
   removable, so it becomes a decline like every `DR-*` — the tree, boulder or building drops, the finding
   names it, the map exports. `OB19` leaving the refusal set rewrites `configure.md` §What it refuses and its
   two endpoint rows, `decoration.md:26,173`, `destroyables-and-cores.md:606` and `sketch.md:752` in the same
-  commit, and needs `RP30` in it too: without that channel the loudest fault on the surface becomes a line in
-  a file inside a zip.*
+  commit — the channel it needed is there, so a declined prop reaches a caller of either artifact route in the
+  `Pgm-Warnings` header rather than as a line in a file inside a zip.*
 
   *Evidence: `hollowbank` placed a destroyable at `(0, 45)` on a plan piece and cut a sally port through
   that piece in the layout — compile 200, export 409 `OB17`. `alabaster-rake` put a shed run at
   `x 15..24, z 58..62` against a goal anchored `(5, 47)`; the keep-out is a 10-block square about the anchor
   tested against the footprint plus its eaves, and neither cycle was predictable before the build.*
-
-- [ ] **RP30 — The two routes that build the artifact are the two that do not say what they dropped.**
-  `POST …/sketch/columns` and `POST /plan/columns` answer every `DR-*` decline under `warnings`, naming the
-  rule, the cell and the prop. `GET /map/{slug}/export` writes them to `region/dressing-report.json` **inside
-  the zip** — `MapExportEndpoint.cs:90` calls that "the only record an HTTP caller ever gets of a dropped
-  prop" — and `GET /map/{slug}/xml` builds the same world through the same pass and reports nothing at all.
-  Neither calls `Complaints.Add`, so the middleware's lost-complaint log (`Complaints.cs:157`) never fires
-  either, and `refusals.md`'s promise that a non-JSON success "logs it rather than dropping it in silence"
-  does not hold on the one route where props actually drop. Hand the declines over on both, and answer them
-  in a response header carrying the count and the rule ids, so a caller that never unzips knows to look.
 
 - [ ] **TN5 — Five routes take a posted plan and nothing says what kind of answer each gives.**
   `POST /plan/compile` transforms (a plan → `{layout, intent}`), `evaluate` judges the board against the rule

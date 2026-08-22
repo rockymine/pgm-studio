@@ -6364,6 +6364,22 @@ these are the ones that shipped a map that could not be played as intended, and 
   `MapFromDocuments` keeps stating the authors in the body, which is what makes one request enough rather
   than the only thing holding the credits up. `flow.md`'s "set them after" is gone: the order is free.
 
+- **The two routes that build the artifact say what they dropped (RP30).** `GET /map/{slug}/export` wrote
+  every declined prop to `region/dressing-report.json` **inside the zip** — the only record an HTTP caller
+  ever got of one — and `GET /map/{slug}/xml` built the same world through the same dressing pass and
+  reported nothing at all. Neither handed the findings to `Complaints`, so the middleware's lost-complaint log
+  never fired either, and `refusals.md`'s promise that a non-JSON success "logs it rather than dropping it in
+  silence" did not hold on the one route where props actually drop.
+
+  Both hand them over now, and the channel grew a second carrier for the bodies that cannot hold a key:
+  **`Pgm-Warnings`**, the count and then each rule id once — `1 DR-SITE`. It is written by `Complaints.Add`
+  rather than per route, which is what makes it correct: a header set after the first byte is too late, and a
+  zip is written straight through, so the only safe moment is the hand-over. It rides on a JSON success as
+  well, beside the key — `POST …/sketch/columns` answers megabytes and a caller deciding whether to look
+  should not have to parse them first. The zip keeps its report: the header says there is something to read,
+  the sidecar says the rule, the cell and the prop. The lost-complaint log now fires only where neither
+  carrier was available, which is the case it was always meant to name.
+
 - **A prop the studio deleted no longer arrives as a remark (RP31).** `Severity` was `Refusal | Complaint`,
   and `Complaint`'s own docstring ruled out half of what it carried — *"a complaint the author may ignore …
   none of them the tool's to overrule"*. True of `OB23` and `DC3`, where the world is built and the goal
