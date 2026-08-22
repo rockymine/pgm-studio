@@ -638,6 +638,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **Every write route that reads a body says what it takes (`RP41`).** Three preview routes — a terrain
+  material, a terrain theme, a room style — could not declare theirs, and declaring any one failed the
+  *whole* `/api/openapi/v1.json` with *"Discriminator value for FieldPatternMaterial not found"*: a 500 on the
+  document and on `/api-docs`. Two faults sat under that one symptom. `FieldPatternMaterial` was an abstract
+  link between `TerrainMaterial` and its noise, turbulence and electric leaves, registered nowhere in the
+  `kind` mapping — flattened into `FieldPattern`, a static the three leaves share, the way `WallStripes` is
+  shared by the wall run and the wall diagonal one screen down in the same file. The stored theme JSON is
+  untouched: the three keep their five fields and stand directly under the discriminator that already named
+  them. Then a second, independent wall — the generator refuses a request DTO with no public properties, and
+  a discriminated union has none above its `kind` — answered by `c.Endpoints.AllowEmptyRequestDtos`, since the
+  schema it renders carries the mapping over all fourteen leaves either way. **64 of the 67 POST/PUT/PATCH
+  routes now publish a request body and the other three read none**, so `SchemaCompletenessTests.StillUntyped`
+  is 0 beside `StillUndeclared`.
 - **The hand-authoring surface the intent model replaced is gone (RP18).** The Edit tool was to be where an
   author typed a map's regions, filters and apply-rules; `MapIntent` is the answer to that instead, and the
   same protections a person would have wired by hand are what `IntentGenerator` emits — a protection drawn in
@@ -5526,6 +5539,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `POST /regions/group` + `/ungroup`. (ex-R1a; wire-after-group is parked.)
 
 ## Data & ops (D)
+- **`tools/relief` is gone, and the measurements it took stay (`RP19`).** The prototype drew ten figures,
+  a topographic view, a section and a step map into a gitignored `out/`, so nothing it rendered reached the
+  tree — and `world-export/relief.md`, which its README called the document it was the live twin of, carried
+  no image reference at all. Against `CLAUDE.md` § *Investigation stays local* it was none of the three
+  things that keep a script in `tools/`: not a gate, not a generator of a committed artifact, not an
+  operational tool. It also held a third copy of `Mirror`/`Fold`/`SymmetryError`, against the Traps rule that
+  the transform is one C# leaf plus the JS twin. The numbers it printed already stood in the document, which
+  now cites `Geom/Relief/` as what a disagreeing figure is settled against.
 - **A stated structural height survives a recompile (B107, backend half).** A spawn or wool-room piece is
   projected into the sketch as a `Role`-tagged shape whose `Floor`/`BaseHeight` already drive the relief's
   hold-pin — but `AppendStructuralShape` overwrote both with the plan's flat `surface` on every compile, so a

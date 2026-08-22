@@ -684,10 +684,8 @@ discipline or the format loses what made it cheap. On `quillon-barrow`, the id t
 and the finer-grained runs it forces; the sidecar grows from roughly 33 KB to roughly 35 KB, an owner-per-claim
 identity for about 8% more bytes.
 
-**The prototypes** render the model rather than a map. `tools/relief` emits ten figures plus a topographic
-view, a blocks-from-an-angle view, a section and a step map, and `--corpus` measures real worlds into the
-same terms. `tools/compose` holds twenty-two galleries — boards, bodies, boxes, edges, mids, seeds, hubs —
-each rendering the real emitters.
+**The galleries** render the model rather than a map: `tools/compose` holds twenty-two — boards, bodies,
+boxes, edges, mids, seeds, hubs — each rendering the real emitters.
 
 The rule that follows: **a stage that produced something should be looked at before the next stage consumes
 it.** A theme is checkable before a world is built, a plan is checkable before it compiles, a shape is

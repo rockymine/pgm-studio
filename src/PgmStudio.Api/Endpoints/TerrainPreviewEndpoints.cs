@@ -104,7 +104,7 @@ public sealed class MaterialPreviewEndpoint : EndpointWithoutRequest<MaterialPre
     {
         Post("/terrain/material-preview");
         AllowAnonymous();
-        Description(b => b.AlsoPng());
+        Description(b => b.Accepts<TerrainMaterial>("application/json").AlsoPng());
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -131,7 +131,7 @@ public sealed class ThemePreviewEndpoint : EndpointWithoutRequest<ThemePreviewDt
     {
         Post("/terrain/theme-preview");
         AllowAnonymous();
-        Description(b => b.AlsoPng());
+        Description(b => b.Accepts<TerrainTheme>("application/json").AlsoPng());
     }
 
     public override async Task HandleAsync(CancellationToken ct)

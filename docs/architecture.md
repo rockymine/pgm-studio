@@ -29,16 +29,21 @@ driver reaches around it. That is `RP13`.
 ## The boundary carries no schema
 
 The surface describes itself. `GET /api/openapi/v1.json` is generated from the routes and the DTOs — 118
-paths, **149 operations**, 247 schemas, **226 of them carrying the docstring beside the type** — and
+paths, **149 operations**, 291 schemas, **257 of them carrying the docstring beside the type** — and
 `/api-docs` is the page over it, where a route can be expanded and sent without writing a client. Both are served from the app's own assets.
 
-What that document can say is bounded by what is declared, and the write surface now states nearly all of
-it. Of the **67 POST/PUT/PATCH routes**, 61 publish a request body — 22 by binding a request type, 39 by
-naming the shape they take while still reading it themselves — and **six do not**. Three of those six read no
-body at all, which is the truth rather than a gap. The other three take a terrain material, a theme or a house
-style, and declaring any of them fails the whole document: the material hierarchy carries an abstract link the
-generator cannot resolve a discriminator for (`RP41`), so it is one hierarchy rather than three routes.
-`SchemaCompletenessTests` holds the three as a count that only moves down.
+What that document can say is bounded by what is declared, and the write surface states all of it. Of the
+**67 POST/PUT/PATCH routes**, **64 publish a request body** — 22 by binding a request type, 42 by naming the
+shape they take while still reading it themselves — and the three that do not read no body at all, which is
+the truth rather than a gap. `SchemaCompletenessTests` holds both halves as counts that only move down, and
+both are now zero.
+
+One of the 42 is why the count could reach zero. A material is a discriminated union with nothing above its
+discriminator — every field a body carries belongs to the leaf its `kind` names — so `TerrainMaterial`
+declares no property of its own, and the generator's default reads that as an empty request and refuses the
+whole document. `c.Endpoints.AllowEmptyRequestDtos` is what says otherwise: the rendered schema is complete
+either way, carrying the `kind` mapping over all fourteen leaves, so the refusal was about the base's shape
+rather than about what a caller may post.
 
 Three things follow from that, and they are the same fact seen from three sides.
 
@@ -46,7 +51,7 @@ Three things follow from that, and they are the same fact seen from three sides.
 DTO declares non-nullable and the body did not supply — and its first line is
 `if (context.Request is not { } request) return;`, so it is a no-op for every endpoint that has no request
 type. The promise it makes holds for the 22 routes that bind one. A declared shape is not a bound one: the
-39 routes that name their shape to the generator still read it themselves, so the document is true about them
+42 routes that name their shape to the generator still read it themselves, so the document is true about them
 and the gate still does not run.
 
 **A validation that cannot live in a schema lives in the code by hand.** Of the Edit tool's 53 refusal sites
@@ -214,8 +219,7 @@ Read together, none of that is new: it is the six findings above, seen from the 
 loop and its load-bearing order are what an absent application layer looks like to a caller. The fifteen
 required documents and the errata file are what an absent contract looks like. And the silent 200s were what
 an absent request shape looked like, on exactly the documents that matter most — the half of that answered by
-`RQ3` and by the three documents now declaring their shape, the half still open being every write route that
-states no shape at all.
+`RQ3` and by every write route that reads a body now declaring the shape it takes.
 
 ## Three things the request layer does not do
 

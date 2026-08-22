@@ -86,7 +86,7 @@ public sealed class SchemaCompletenessTests
     /// shape by being refused. Three of the sixty-seven POST/PUT/PATCH routes are there today, and all three
     /// take a material or a style, whose hierarchy the generator cannot render (`RP41`). The number only
     /// moves down, and a route added without a declaration pushes it up and fails here.</summary>
-    private const int StillUntyped = 3;
+    private const int StillUntyped = 0;
 
     /// <summary>The other half of the contract: what a route <b>takes</b>.</summary>
     [Test]

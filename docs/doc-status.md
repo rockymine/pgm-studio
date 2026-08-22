@@ -63,6 +63,12 @@ frontend port that never happened are gone. §3.3's moved `RegionCategorizer` pa
 `contracts/region-categorization.md`, which otherwise stands — it is careful about the implemented-versus-
 designed line and its subject is live.
 
+**`tools/relief` is deleted (`RP19`)**, and its README with it — the last row of §-the-tools that named a
+prototype. It drew ten figures into a gitignored `out/`, so nothing it rendered was ever committed, which is
+neither of the three things `CLAUDE.md` § *Investigation stays local* keeps a script in `tools/` for. The
+measurements it took stand in `world-export/relief.md`, which is where they were already written down, and
+the transform it carried its own copy of is `Geom.Symmetry`.
+
 **`contracts/sketch-relief.md` is now `world-export/relief.md`**, which settles §5's "Sketch has design
 documents but no current one" for the one document that survived. The detail behind the Sketch tool's later
 phases already lived in `docs/world-export/` — the painter, the stampers, the dressing pass, the tree corpus —

@@ -224,13 +224,12 @@ and the harness; its `FromJson` is the production codec.
 It is not one thing: four are real `.csproj` projects the solution builds, most of the rest are single
 file-based scripts `dotnet run` builds on demand, and three folders hold no code at all.
 
-**The three project-based tools**, each a `ProjectReference` graph like any `src/` project and each listed in
+**One project-based tool**, a `ProjectReference` graph like any `src/` project and listed in
 `PgmStudio.slnx`:
 
 | Tool | References | Is |
 |---|---|---|
 | `PgmStudio.RoundTrip` | `Pgm`, `Analysis`, `Minecraft` | the corpus regression net (`--goldens`): the four map-level derivations over every corpus map, diffed against `corpus-goldens.json` |
-| `relief` (`PgmStudio.Relief`) | `Geom`, `Minecraft` | the relief solver's own measurement CLI — the solver stays dependency-free; only the Anvil-reading half needed `Minecraft` |
 
 **`Export` exists so the export path is reachable without the web host.** `SketchWorldBuilder` and
 `MapXmlComposer` sat inside `Api` until `B119`, which meant a script wanting to build a world carried

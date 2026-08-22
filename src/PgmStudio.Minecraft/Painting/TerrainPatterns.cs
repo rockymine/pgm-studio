@@ -150,67 +150,88 @@ public sealed record CellMaterial(uint Seed, int CellSize, int Jitter, int Warp,
 }
 
 /// <summary>
-/// The shared shape of the three <b>field</b> patterns (TP13): a fractal field over the footprint cut into bands
-/// by <paramref name="Stops"/> — the value in [0,1) selects a band, so <c>n</c> stops give <c>n</c> materials in
-/// order. Only neighbouring bands can share a boundary, which is what makes a stop list read as a ramp from one
-/// material to the next rather than as a set of patches; and the band areas fall off towards the ends, so the
-/// first and last stop are accents and the middle ones are the body.
+/// Cutting a fractal field into bands, which is the whole of the three <b>field</b> patterns (TP13): the field
+/// value in [0,1) selects a band, so <c>n</c> stops give <c>n</c> materials in order. Only neighbouring bands
+/// can share a boundary, which is what makes a stop list read as a ramp from one material to the next rather
+/// than as a set of patches; and the band areas fall off towards the ends, so the first and last stop are
+/// accents and the middle ones are the body. <c>Octaves</c> adds finer detail without narrowing the field — see
+/// <see cref="PatternNoise.Field"/> — so raising it does not starve the outer stops.
 ///
-/// <para><paramref name="Octaves"/> adds finer detail without narrowing the field — see
-/// <see cref="PatternNoise.Field"/> — so raising it no longer starves the outer stops. The three patterns differ
-/// in one thing only: which <see cref="PatternNoise.NoiseShape"/> each octave takes.</para>
+/// <para>Shared so that noise, turbulence and electric differ only in the <see cref="PatternNoise.NoiseShape"/>
+/// each octave takes, which is the whole of the difference between them — the same way a wall run and a wall
+/// diagonal share <see cref="WallStripes"/> and differ only in the position they ask about. Each of the three
+/// stands directly under <see cref="TerrainMaterial"/>, so every material in the theme JSON is a leaf its
+/// <c>kind</c> discriminator names.</para>
 /// </summary>
-public abstract record FieldPatternMaterial(uint Seed, int Scale, int Octaves,
-    IReadOnlyList<TerrainMaterial> Stops, int Rise = 0) : TerrainMaterial
+internal static class FieldPattern
 {
-    /// <summary>How each octave is bent before the sum — the whole difference between the three.</summary>
-    protected abstract PatternNoise.NoiseShape Shape { get; }
-
-    public override (int Id, int Data) Resolve(in BucketContext ctx)
+    public static (int Id, int Data) Resolve(uint seed, int scale, int octaves, int rise,
+        PatternNoise.NoiseShape shape, IReadOnlyList<TerrainMaterial> stops, in BucketContext ctx)
     {
-        if (Stops is not { Count: > 0 }) return (Blocks.Stone, 0);
-        double v = PatternNoise.Field(ctx.X, ctx.Y, ctx.Z, Seed, Scale, Rise, Octaves, Shape);
-        int idx = Math.Clamp((int)(v * Stops.Count), 0, Stops.Count - 1);
-        return Stops[idx].Resolve(in ctx);
+        if (stops is not { Count: > 0 }) return (Blocks.Stone, 0);
+        double v = PatternNoise.Field(ctx.X, ctx.Y, ctx.Z, seed, scale, rise, octaves, shape);
+        int idx = Math.Clamp((int)(v * stops.Count), 0, stops.Count - 1);
+        return stops[idx].Resolve(in ctx);
     }
 
-    /// <summary>Value equality for the shared fields, including the stop list, and only between two of the same
-    /// pattern — a turbulence and an electric with identical numbers are still different materials.</summary>
-    protected bool SameField(FieldPatternMaterial? other)
-        => other is not null && GetType() == other.GetType() && Seed == other.Seed && Scale == other.Scale
-        && Octaves == other.Octaves && Rise == other.Rise && Stops.SequenceEqual(other.Stops);
+    /// <summary>Value equality over the five shared fields, including the stop list. The caller has already
+    /// narrowed to its own pattern, so a turbulence and an electric with identical numbers never reach here.
+    /// </summary>
+    public static bool Same(uint seed, int scale, int octaves, int rise, IReadOnlyList<TerrainMaterial> stops,
+        uint otherSeed, int otherScale, int otherOctaves, int otherRise, IReadOnlyList<TerrainMaterial> otherStops)
+        => seed == otherSeed && scale == otherScale && octaves == otherOctaves && rise == otherRise
+        && stops.SequenceEqual(otherStops);
 
-    protected int FieldHash() => HashCode.Combine(GetType(), Seed, Scale, Octaves, Rise, MaterialHash.Of(Stops));
+    public static int Hash(Type pattern, uint seed, int scale, int octaves, int rise,
+        IReadOnlyList<TerrainMaterial> stops)
+        => HashCode.Combine(pattern, seed, scale, octaves, rise, MaterialHash.Of(stops));
 }
 
 /// <summary>The plain fractal field: cloudy, rounded regions that fade into one another. The base every other
 /// field pattern is a bend of.</summary>
 public sealed record NoiseMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops, int Rise = 0)
-    : FieldPatternMaterial(Seed, Scale, Octaves, Stops, Rise)
+    : TerrainMaterial
 {
-    protected override PatternNoise.NoiseShape Shape => PatternNoise.NoiseShape.Plain;
-    public bool Equals(NoiseMaterial? other) => SameField(other);
-    public override int GetHashCode() => FieldHash();
+    public override (int Id, int Data) Resolve(in BucketContext ctx) =>
+        FieldPattern.Resolve(Seed, Scale, Octaves, Rise, PatternNoise.NoiseShape.Plain, Stops, in ctx);
+
+    public bool Equals(NoiseMaterial? other) => other is not null
+        && FieldPattern.Same(Seed, Scale, Octaves, Rise, Stops,
+            other.Seed, other.Scale, other.Octaves, other.Rise, other.Stops);
+
+    public override int GetHashCode() => FieldPattern.Hash(typeof(NoiseMaterial), Seed, Scale, Octaves, Rise, Stops);
 }
 
 /// <summary>The field folded at every zero crossing, so it creases instead of fading: billowed, marbled bands
 /// that swirl round one another. The same stops as a noise ramp, laid out like smoke rather than cloud.</summary>
 public sealed record TurbulenceMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops, int Rise = 0)
-    : FieldPatternMaterial(Seed, Scale, Octaves, Stops, Rise)
+    : TerrainMaterial
 {
-    protected override PatternNoise.NoiseShape Shape => PatternNoise.NoiseShape.Billow;
-    public bool Equals(TurbulenceMaterial? other) => SameField(other);
-    public override int GetHashCode() => FieldHash();
+    public override (int Id, int Data) Resolve(in BucketContext ctx) =>
+        FieldPattern.Resolve(Seed, Scale, Octaves, Rise, PatternNoise.NoiseShape.Billow, Stops, in ctx);
+
+    public bool Equals(TurbulenceMaterial? other) => other is not null
+        && FieldPattern.Same(Seed, Scale, Octaves, Rise, Stops,
+            other.Seed, other.Scale, other.Octaves, other.Rise, other.Stops);
+
+    public override int GetHashCode() =>
+        FieldPattern.Hash(typeof(TurbulenceMaterial), Seed, Scale, Octaves, Rise, Stops);
 }
 
 /// <summary>The fold inverted and sharpened, so the crossings become thin branching filaments and everything
 /// else falls away from them — veins through a body rather than bands across one.</summary>
 public sealed record ElectricMaterial(uint Seed, int Scale, int Octaves, IReadOnlyList<TerrainMaterial> Stops, int Rise = 0)
-    : FieldPatternMaterial(Seed, Scale, Octaves, Stops, Rise)
+    : TerrainMaterial
 {
-    protected override PatternNoise.NoiseShape Shape => PatternNoise.NoiseShape.Ridge;
-    public bool Equals(ElectricMaterial? other) => SameField(other);
-    public override int GetHashCode() => FieldHash();
+    public override (int Id, int Data) Resolve(in BucketContext ctx) =>
+        FieldPattern.Resolve(Seed, Scale, Octaves, Rise, PatternNoise.NoiseShape.Ridge, Stops, in ctx);
+
+    public bool Equals(ElectricMaterial? other) => other is not null
+        && FieldPattern.Same(Seed, Scale, Octaves, Rise, Stops,
+            other.Seed, other.Scale, other.Octaves, other.Rise, other.Stops);
+
+    public override int GetHashCode() =>
+        FieldPattern.Hash(typeof(ElectricMaterial), Seed, Scale, Octaves, Rise, Stops);
 }
 
 /// <summary>

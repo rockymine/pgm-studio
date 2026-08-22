@@ -183,7 +183,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
     {
         Post("/room-styles/preview-snapshot");
         AllowAnonymous();
-        Description(b => b.AlsoPng());
+        Description(b => b.Accepts<HouseStyle>("application/json").AlsoPng());
     }
 
     public override async Task HandleAsync(CancellationToken ct)

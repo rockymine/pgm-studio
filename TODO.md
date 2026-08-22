@@ -30,43 +30,28 @@ fault has a class, so the taxonomy is third — **that phase has drained**, and 
 two behind it keep the names every commit cites. And a state machine over a pipeline whose steps are still
 HTTP handlers has nothing to hold, so the lifecycle is last.
 
-**The board is deliberately larger than the soft cap** — fourteen entries against `CLAUDE.md`'s ~6–12. That
+**The board is deliberately larger than the soft cap** — twelve entries against `CLAUDE.md`'s ~6–12. That
 is the author's call and the trade is stated: this is one coherent programme with an order, and splitting it
 across two files would hide the order, which is the only part that matters. **Nothing new is added here
 until a phase drains.** A finding made while working lands in `BACKLOG.md`.
 
-## Three of the fourteen carry a question only the author can answer
+## Two of the twelve carry a question the author has now answered
 
 The rest are drivable from the entry plus `CLAUDE.md` — the shape is stated, the evidence is measured, and
-the file and line are named. These are not, and each is blocked on a decision rather than on work.
+the file and line are named. These two were blocked on a decision rather than on work; the ruling is in the
+row, and the entry below builds to it.
 
-| Entry | The question |
+| Entry | The question, and the ruling |
 |---|---|
-| `RP32` | **May a read pay for a build?** `GET /map/{slug}/findings` can answer the plan and layout gates from stored documents in milliseconds. The export gates (`OB17`, `EX1`) need the rasterized world, which is seconds of work a `GET` would be doing on every call. Either it rebuilds and is slow but complete, or it answers what is cheap and names the gates it did not ask. The answer decides the route's shape and its contract, so it comes first. |
-| `RP16` | The transition table is a product statement, not a derivation. `flow.md` says the flow is one-way — does that mean a built map may never be re-planned, or only that nothing reads back up? |
-| `RP19` | Keep `tools/relief`'s ten figures by committing them, or delete the tool. Either is right; which one depends on whether those figures are wanted in `relief.md`. |
+| `RP32` | **May a read pay for a build? No.** `GET /map/{slug}/findings` answers every gate it can reach from the stored documents, in milliseconds, and **names the gates it did not ask and why** — the export gates (`OB17`, `EX1`) need the rasterized world, which is seconds a `GET` would spend on every call. Nothing is lost by not paying it: those gates are already answered where the build is paid for, which is what `RP4` and `RP30` settled. A response that is silent about what it skipped would be the failure; one that names it is a complete answer to a bounded question. |
+| `RP16` | **A stage is a progress marker, not a lock.** `flow.md`'s one-way flow means nothing reads back up — a later level never writes into an earlier one — not that a built map may never be re-planned. So the transition table names the forward moves as affordances and no endpoint grows a refusal on `map.stage`. |
 
 
 ## Phase 1 — say what the surface is
 
-Every operation declares what it answers and, on all but three write routes, what it takes. What is left is
-the three the generator refuses, the difference between a declared shape and a bound one, and the two
-consumers that keep the contract by hand instead of reading the records it is built from.
-
-- [ ] **RP41 — Three preview routes cannot declare their body, and a hierarchy is why.**
-  `POST /terrain/material-preview` takes a `TerrainMaterial`, `/terrain/theme-preview` a `TerrainTheme` and
-  `/room-styles/preview-snapshot` a `HouseStyle`; all three reach `TerrainMaterial`, and declaring any of
-  them fails the whole document with *"Discriminator value for FieldPatternMaterial not found"* — a 500 on
-  `/api/openapi/v1.json` and `/api-docs`. `[JsonPolymorphic]` sits on `TerrainMaterial`
-  (`Minecraft/Painting/TerrainTheme.cs:72`) and names fourteen leaves; `FieldPatternMaterial`
-  (`TerrainPatterns.cs:163`) is an unregistered abstract link between it and three of them, which
-  System.Text.Json is content with and the generator is not.
-
-  Two answers, and the choice is the author's. Register the link, which is a schema-shaped change to a domain
-  type. Or **compose instead of inherit**: `FieldPatternMaterial` shares five fields across noise, turbulence
-  and electric and nothing else, which is the shape `CLAUDE.md` warns about, and the three would hold a value
-  rather than extend a base — a change to the stored theme JSON, so it needs the library read first.
-  `SchemaCompletenessTests.StillUntyped` is 3 and falls to 0 when this lands.
+Every operation declares what it answers, and every write route that reads a body declares what it takes.
+What is left is the difference between a declared shape and a bound one, and the two consumers that keep the
+contract by hand instead of reading the records it is built from.
 
 - [ ] **RP40 — Bind the shapes the surface now declares.** The 39 declared bodies are read by hand behind
   the declaration, so `RequiredFields` runs on only the 22 routes that bind one, and the **15**
@@ -218,17 +203,6 @@ a phase above is compiling.
   actually looked at". Because the render needs a row, the mapgen repo carries `tools/board.py`, a 94-line
   Python reimplementation of it. Add `POST /plan/ascii` beside the other five, so the copy next door has
   nothing left to answer.
-
-- [ ] **RP19 — `tools/relief` is 148 KB of source that generates nothing committed.** Its README calls it
-  "the live twin of `docs/world-export/relief.md` — every figure and every number in that document is
-  emitted by this tool",
-  and `relief.md` carries **no image references at all**; `out/` is gitignored, so nothing it draws is kept.
-  Against `CLAUDE.md` § *Investigation stays local* it is neither a gate, nor a generator of a committed
-  artifact, nor an operational tool. It also carries its own `Mirror`/`Fold`/`SymmetryError`
-  (`Terrain.cs:186,205,219`), which is the third copy of the transform the Traps section says must stay one
-  leaf plus the JS twin — and the same folder is on record for having drifted from the shipped solver once.
-  Either commit the ten figures it draws so `relief.md` shows them and the tool earns its bar, or delete it
-  and keep the measurements the document already states.
 
 - [ ] **RP10 — Sweep the history out of the code comments.** `CLAUDE.md` § *Code comments* states the rule —
   a comment says what the code does and why, in the present tense, and never what it used to do — and the

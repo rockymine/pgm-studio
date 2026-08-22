@@ -233,6 +233,14 @@ public sealed record TeamUpdateRequest(
 /// refused as <c>RQ1</c>.</param>
 public sealed record WoolCreateRequest(string? Color = null);
 
+/// <summary>A position in the world, in block coordinates. Fractional values are ordinary and are not
+/// rounded here: PGM floors a wool's <c>&lt;location&gt;</c> itself and never a monument's <c>&lt;block&gt;</c>,
+/// so a coordinate is carried as written and the contract decides what happens to it.</summary>
+/// <param name="X">East–west.</param>
+/// <param name="Y">Height.</param>
+/// <param name="Z">North–south.</param>
+public sealed record LocationDto(double X, double Y, double Z);
+
 /// <summary>Change a wool already added.</summary>
 /// <param name="Color">A new colour, which renames the wool and every monument on it. One already on the map
 /// is refused as <c>RQ5</c>.</param>
@@ -242,14 +250,6 @@ public sealed record WoolCreateRequest(string? Color = null);
 /// it.</param>
 /// <param name="WoolRoomRegion">The region holding the wool, by region id. <c>null</c> or empty clears
 /// it.</param>
-/// <summary>A position in the world, in block coordinates. Fractional values are ordinary and are not
-/// rounded here: PGM floors a wool's <c>&lt;location&gt;</c> itself and never a monument's <c>&lt;block&gt;</c>,
-/// so a coordinate is carried as written and the contract decides what happens to it.</summary>
-/// <param name="X">East–west.</param>
-/// <param name="Y">Height.</param>
-/// <param name="Z">North–south.</param>
-public sealed record LocationDto(double X, double Y, double Z);
-
 public sealed record WoolUpdateRequest(
     string? Color = null,
     string? Team = null,

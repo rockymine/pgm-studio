@@ -150,7 +150,9 @@ public sealed class TerrainPaletteTests
         LayeredMaterial layered => layered.Stack.Bands.SelectMany(layer => BlocksOf(layer.Material)),
         VoronoiMaterial voronoi => voronoi.Bands.SelectMany(band => BlocksOf(band.Material)),
         CellMaterial cell => cell.Palette.SelectMany(BlocksOf),
-        FieldPatternMaterial field => field.Stops.SelectMany(BlocksOf),
+        NoiseMaterial noise => noise.Stops.SelectMany(BlocksOf),
+        TurbulenceMaterial turbulence => turbulence.Stops.SelectMany(BlocksOf),
+        ElectricMaterial electric => electric.Stops.SelectMany(BlocksOf),
         WallRunMaterial run => run.Runs.SelectMany(stripe => BlocksOf(stripe.Material)),
         _ => [],
     };

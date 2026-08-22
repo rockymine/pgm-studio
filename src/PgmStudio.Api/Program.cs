@@ -228,6 +228,11 @@ app.Use(PgmStudio.Api.Endpoints.Complaints.CarryAsync);
 app.UseFastEndpoints(c =>
 {
     c.Endpoints.RoutePrefix = "api";
+    // A discriminated union declares nothing above its discriminator: every field a material body carries
+    // belongs to the leaf its `kind` names, so TerrainMaterial has no property of its own and the generator
+    // reads that as an empty request. The schema it renders is complete either way — the `kind` mapping over
+    // all fourteen leaves — so refusing the declaration would drop the one route whose body IS the union.
+    c.Endpoints.AllowEmptyRequestDtos = true;
     c.Endpoints.Configurator = ep =>
     {
         // A field the DTO declares non-nullable and the body did not carry is refused by name before any

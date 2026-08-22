@@ -346,9 +346,8 @@ standing there (MG5).
 **MG13 — The maps were judged from one view.** Every map was checked with `--topdown` at three pixels to the
 block, which shows the plan and hides everything about the third dimension: whether a drop is walkable,
 whether a room's floor sits where the relief left it, whether a goal has ground under it. The other readings
-exist and were not used — `--heightmap`, `--contour`, `--surface`, `--traversability-map`, `--buildings`,
-`--structures` in `tools/PgmStudio.RoundTrip`, and the relief prototype's own topographic, blocks-from-an-
-angle, section and step-map renders in `tools/relief`. Several of the faults above would have been visible in
+exist and were not used — `--heightmap`, `--contour`, `--surface`, `--traversability-map`, `--buildings`
+and `--structures` in `tools/PgmStudio.RoundTrip`. Several of the faults above would have been visible in
 the first one of those that was run.
 
 ## A second run, from the outside
