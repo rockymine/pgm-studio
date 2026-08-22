@@ -12,38 +12,39 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public sealed class SketchLayout
 {
+    /// <summary>The board-wide settings the shapes are drawn against: the symmetry the author draws through,
+    /// its centre, and the chunk grid.</summary>
     [JsonPropertyName("setup")]  public SketchSetup? Setup { get; set; }
-    [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }   // legacy single-layer (pre-S7)
+
+    /// <summary>A single layer's shapes, written at the top level. A layout stating <see cref="Layers"/>
+    /// carries them there instead, and one stating both reads the layers.</summary>
+    [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
+
+    /// <summary>The drawing, as ordered layers of shapes. Later layers are drawn over earlier ones, and a
+    /// shape's operation says whether it adds ground or takes it away.</summary>
     [JsonPropertyName("layers")] public List<SketchLayer>? Layers { get; set; }
 
-    // Terrain-paint theming lives on the sketch model (docs/world-export/terrain-painting.md TP10): a registry of
-    // named themes (id → the theme JSON the painter deserializes) and the map-default id covering every cell no
-    // shape scope claims. A shape's own theme override rides on SketchShape.Theme; a cell resolves shape → map
-    // default at export (TerrainThemeScope). Absent on a plain/unthemed sketch, which paints the built-in default.
+    /// <summary>The terrain themes this map paints with, id → the theme JSON the painter deserializes. Held
+    /// as snapshots rather than library ids, so editing a library row never repaints a shipped map. Absent on
+    /// a sketch that never picked one, which paints the built-in default.</summary>
     [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
+
+    /// <summary>Which of <see cref="Themes"/> covers every cell no shape's own theme scope claims.</summary>
     [JsonPropertyName("mapTheme")] public string? MapTheme { get; set; }
 
-    // The finish of the map's stamped rooms (docs/world-export/structures.md §9): one style for every wool cage
-    // and one for every spawn cube. Two snapshots rather than a registry-and-id, because there are exactly two
-    // bindings and nothing references them individually — a room style is map-wide on purpose. A cage that
-    // differed between teams would be a sightline that differed between teams, and the rooms are fanned across
-    // the symmetry orbit precisely so both sides face the same building.
-    // Snapshots, not library ids: editing a library row must never rebuild a shipped map's spawn rooms, the
-    // same rule the applied terrain theme follows. Absent on a sketch that never picked one, which stamps the
-    // built-in shells.
+    /// <summary>The finish of the map's stamped rooms: one style for every wool cage and one for every spawn
+    /// cube. Map-wide on purpose — a cage that differed between teams would be a sightline that differed
+    /// between teams. Snapshots, like the themes. Absent stamps the built-in shells.</summary>
     [JsonPropertyName("roomStyles")] public SketchRoomStyles? RoomStyles { get; set; }
 
-    // Dressing (docs/world-export/decoration.md) does NOT ride beside theming, and the difference is the point.
-    // A theme is a recipe applied to a footprint, so it is named, stored once and referenced; a prop was placed
-    // somewhere, so what is stored is the placement itself. This is the list of what the author put on the map —
-    // paths, trees, boulders, areas of cover — each carrying its own position and its own knobs. Absent on a
-    // sketch that never opened the phase, which dresses nothing.
+    /// <summary>What the author put on the map — paths, trees, boulders, areas of cover — each carrying its
+    /// own position and its own knobs. A prop is stored as the placement itself rather than as a named recipe,
+    /// which is what separates it from a theme. Absent dresses nothing.</summary>
     [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
-    // Interior elevation (docs/world-export/relief.md), keyed by island id. It rides top-level rather
-    // than inside the shapes for one reason: a plan recompile replaces every shape it produced, and a relief
-    // is expensive hand work a plan cannot express. It is not a finish key — a relief is geometry, it decides
-    // what the rasterizer emits, and it is carried across a recompile under its own rule (CarryRelief).
+    /// <summary>Interior elevation, keyed by island id. It rides at the top level rather than inside the
+    /// shapes because a plan recompile replaces every shape it produced and a relief is hand work a plan
+    /// cannot express, so it is carried across one under its own rule.</summary>
     [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
 
     public static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);

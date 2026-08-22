@@ -15,6 +15,10 @@ public sealed record DressingPreviewDto(string Plan, string Section, DressingCou
 /// all and what a path may repaint, so a preview that ignored the theme would promise a meadow on a plaza.
 /// <para>The prop arrives at whatever position it was placed at; the preview re-centres it on the sample, so a
 /// card shows the prop rather than the empty corner of the map it happens to sit in.</para></summary>
+/// <param name="PropJson">The prop's own JSON — one entry of a dressing document, at whatever position it was
+/// placed at.</param>
+/// <param name="ThemeJson">The painter's theme JSON the prop stands on. Absent previews it on the built-in
+/// finish, which is a different question from how it will look on the map.</param>
 public sealed record PropPreviewRequest(string PropJson, string? ThemeJson);
 
 /// <summary>One option a prop's picker offers, drawn rather than described (GET /api/terrain/path-styles,

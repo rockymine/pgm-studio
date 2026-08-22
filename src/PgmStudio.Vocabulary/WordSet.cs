@@ -40,7 +40,8 @@ public static class Words
             _ => [],
         };
 
-    /// <summary>The word out of one entry of a labelled set: the first half of its pair.</summary>
-    private static string? Id(object pair) =>
-        pair.GetType().GetField("Item1")?.GetValue(pair) as string;
+    /// <summary>The word out of one entry: the entry itself where the set is a plain sequence of words, or
+    /// the first half of its pair where each word carries a label.</summary>
+    private static string? Id(object entry) =>
+        entry as string ?? entry.GetType().GetField("Item1")?.GetValue(entry) as string;
 }

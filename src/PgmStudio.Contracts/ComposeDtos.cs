@@ -3,6 +3,18 @@ namespace PgmStudio.Contracts;
 /// <summary>The wire form of a generated plan's canonical versioned request descriptor — a browse card's
 /// identity. Reproducible within a composer version: the server re-composes the exact plan from these fields
 /// to pin or open it, so a card never has to carry its plan JSON.</summary>
+/// <param name="Players">Players per team, 5–32 — the range the seed envelopes are calibrated over. It is
+/// what drives the board's size.</param>
+/// <param name="Teams">2 or 4.</param>
+/// <param name="Symmetry">The board's symmetry: <c>rot_180</c>, <c>mirror_x</c> or <c>mirror_z</c> for two
+/// teams, and <c>rot_90</c> for four, which take no other.</param>
+/// <param name="Cell">Blocks per proxy cell — the plan grid's scale.</param>
+/// <param name="Seed">Drives every random draw the composer makes, so the same seed under the same composer
+/// version reproduces the same board.</param>
+/// <param name="ComposerVersion">Which composer built it. A card composed by an older one reproduces a
+/// different board from the same seed, which is what <c>staleComposer</c> on a plan row says.</param>
+/// <param name="Schema">The descriptor's own shape version, so a stored descriptor written before these
+/// fields changed still reads.</param>
 public sealed record ComposeRequestDto(
     int Players,
     int Teams,

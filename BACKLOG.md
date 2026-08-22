@@ -204,6 +204,15 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
+- [ ] **RP48 — The answer shapes describe the type and not the fields.** `RP36` closed the request side:
+  189 of the 190 fields a write route reads carry a `<param>`, and `SchemaCompletenessTests` holds every
+  posted shape to it. The answer side is where the remaining gap is — **466 of 1,283** fields across the
+  whole document carry a description, so a caller reading a response schema meets a name and a type. The
+  populous ones are the analysis and region reads (`RegionTreeDto` and its four companions, `CoverageDto`,
+  `BuildabilityDto`, the suggestion DTOs) and the evaluator's own answers (`EvaluationDto`, `TermDto`,
+  `FeasibilityDto`), several of which explain their fields in the type's prose. Extend the posted-shape test
+  to the answered ones once they are written, so the guard is the same one in both directions.
+
 - [ ] **RP47 — The history sweep's grep was one phrasing of several.** `RP10` swept
   `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
   it. A second reading finds **31 comments across 27 files** outside `Migrations/` carrying the same fault in

@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using System.Text.Json;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Plan;
 
@@ -26,6 +27,9 @@ public static class PlanRoles
     public const string WoolRoom = "wool-room";
     public const string Spawn = "spawn";
     public const string Buffer = "buffer";
+
+    /// <summary>The four a piece may carry, generating first.</summary>
+    public static readonly string[] All = [Piece, WoolRoom, Spawn, Buffer];
 
     /// <summary>The non-generating annotation roles — marks that document intent (spacing, reserved gaps and
     /// holes via <see cref="Buffer"/>) rather than produce terrain. Extend this to add more.</summary>
@@ -84,12 +88,28 @@ public static class PlanBoxKinds
 /// </summary>
 public sealed class PlanModel
 {
+    /// <summary>The document's own shape version. 1 is the only one there has been.</summary>
     [JsonPropertyName("plan")]       public int Version { get; set; } = 1;
+
+    /// <summary>What the plan is called and any note beside it, or absent for an unnamed one.</summary>
     [JsonPropertyName("meta")]       public PlanMeta? Meta { get; set; }
+
+    /// <summary>The board-wide parameters every piece is measured against: the cell scale, the symmetry the
+    /// unit is fanned by, the player count and the base surface height.</summary>
     [JsonPropertyName("globals")]    public PlanGlobals Globals { get; set; } = new();
+
+    /// <summary>The team-0 unit's rectangles — the ground the board is made of. Symmetry fans the rest, so
+    /// only one team's are authored.</summary>
     [JsonPropertyName("pieces")]     public List<PlanPiece> Pieces { get; set; } = [];
+
+    /// <summary>The rects over the void where players may bridge, build zones and water lanes alike.</summary>
     [JsonPropertyName("zones")]      public List<PlanZone> Zones { get; set; } = [];
+
+    /// <summary>Where the team-0 unit's spawns, wools, iron, destroyables and cores stand.</summary>
     [JsonPropertyName("placements")] public PlanPlacements Placements { get; set; } = new();
+
+    /// <summary>The barriers stamped along a piece interface — the one thing a plan authors deliberately at a
+    /// seam, since a cliff is whatever two heights meeting produce.</summary>
     [JsonPropertyName("walls")]      public List<PlanWall> Walls { get; set; } = [];
 
     /// <summary>Optional authoring annotation: the typed <see cref="PlanBox"/> envelopes grouping the pieces
@@ -186,9 +206,14 @@ public sealed class PlanModel
     }
 }
 
+/// <summary>What a plan is called, for the editor's title bar and the library list.</summary>
 public sealed class PlanMeta
 {
+    /// <summary>The plan's name. It is the author's word rather than a key — a stored plan is addressed by
+    /// its row id.</summary>
     [JsonPropertyName("name")]  public string Name { get; set; } = "";
+
+    /// <summary>A free note the author keeps beside it. Nothing reads it.</summary>
     [JsonPropertyName("notes")] public string? Notes { get; set; }
 }
 
@@ -198,9 +223,17 @@ public sealed class PlanMeta
 /// (about the centre) and <see cref="Opacity"/> (0–1 backdrop strength).</summary>
 public sealed class PlanReference
 {
+    /// <summary>The source map's slug — the map whose top-down render sits under the grid.</summary>
     [JsonPropertyName("map")]     public string Map { get; set; } = "";
+
+    /// <summary>An <c>[x, z]</c> nudge in proxy cells, applied after the render is auto-centred on the
+    /// symmetry centre.</summary>
     [JsonPropertyName("offset")]  public double[] Offset { get; set; } = [0, 0];
+
+    /// <summary>How much the render is scaled, about the centre. 1 is its own size.</summary>
     [JsonPropertyName("scale")]   public double Scale { get; set; } = 1;
+
+    /// <summary>How strongly the backdrop shows through, 0–1.</summary>
     [JsonPropertyName("opacity")] public double Opacity { get; set; } = 0.5;
 }
 
@@ -217,10 +250,22 @@ public sealed class PlanReference
 /// <see cref="Surface"/> stays exactly as it was — load-bearing and correct as a plan-space concept.</para></summary>
 public sealed class PlanGlobals
 {
+    /// <summary>Blocks per proxy cell — the scale every rect in the document is measured in.</summary>
     [JsonPropertyName("cell")]       public int Cell { get; set; } = 5;
+
+    /// <summary>How the authored unit is fanned into the rest of the board: <c>rot_180</c>, <c>rot_90</c>,
+    /// <c>mirror_x</c> or <c>mirror_z</c>.</summary>
     [JsonPropertyName("symmetry")]   public string Symmetry { get; set; } = "rot_180";
+
+    /// <summary>How many players the board is sized for, across all teams. It is what the seed envelopes
+    /// judge a board's proportions against.</summary>
     [JsonPropertyName("maxPlayers")] public int MaxPlayers { get; set; } = 12;
+
+    /// <summary>The base island height, in blocks — the ground a piece stands at unless it states a plateau
+    /// of its own.</summary>
     [JsonPropertyName("surface")]    public int Surface { get; set; } = 9;
+
+    /// <summary>Where the observers watch from, or absent for the derived height (surface + 15).</summary>
     [JsonPropertyName("observerY")]  public int? ObserverY { get; set; }
 }
 
@@ -229,10 +274,27 @@ public sealed class PlanGlobals
 /// (default true) marks the piece as fanned by symmetry; an on-axis neutral piece sets it false.</summary>
 public sealed class PlanPiece
 {
+    /// <summary>What the rest of the document calls this piece — a marker names the piece it stands on, and a
+    /// finding indicts one by this.</summary>
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
+
+    /// <summary>What the piece is for. A piece is anonymous by default and its meaning is derived from the
+    /// assembled graph; the three that are not carry intent the graph cannot show — a <c>wool-room</c> and a
+    /// <c>spawn</c> become regions the export treats specially, and a <c>buffer</c> makes no terrain at all
+    /// and states negative space. An unknown word reads as <c>piece</c>.</summary>
+    [WordSet(typeof(PlanRoles))]
     [JsonPropertyName("role")]    public string Role { get; set; } = PlanRoles.Piece;
+
+    /// <summary>The footprint, <c>[x, z, w, h]</c> in proxy cells, with <c>x,z</c> the minimum corner and the
+    /// origin at the symmetry centre.</summary>
     [JsonPropertyName("rect")]    public CellRect Rect { get; set; }
+
+    /// <summary>The height this piece's ground stands at — a plateau — or absent to take the board's own
+    /// surface.</summary>
     [JsonPropertyName("surface")] public int? Surface { get; set; }
+
+    /// <summary>Whether symmetry fans this piece into the other teams' images. Absent means it does; a
+    /// neutral piece lying on the axis sets it false, so it is not doubled onto itself.</summary>
     [JsonPropertyName("mirrors")] public bool? Mirrors { get; set; }
 
     [JsonIgnore] public bool MirrorsOrDefault => Mirrors ?? true;
@@ -271,14 +333,20 @@ public static class PlanZoneKinds
 /// not.</para></summary>
 public sealed class PlanZone
 {
+    /// <summary>What the rest of the document calls this zone.</summary>
     [JsonPropertyName("id")]    public string Id { get; set; } = "";
+
+    /// <summary>The zone's extent, <c>[x, z, w, h]</c> in proxy cells.</summary>
     [JsonPropertyName("rect")]  public CellRect Rect { get; set; }
+
+    /// <summary>Rects cut out of it where players may not build, in the same cells.</summary>
     [JsonPropertyName("holes")] public List<CellRect> Holes { get; set; } = [];
 
     /// <summary>The authored kind, absent for the default. A build zone writes no <c>kind</c> at all, so a plan
     /// of build zones serialises byte-for-byte as it did before the field existed — which matters because a
     /// composed plan's JSON is its identity (<see cref="Compose.ComposerFingerprint"/>), and a field that
     /// appeared on every zone would read as a geometry change in every board.</summary>
+    [WordSet(typeof(PlanZoneKinds))]
     [JsonPropertyName("kind")]  public string? Kind { get; set; }
 
     [JsonIgnore] public string KindOrDefault => PlanZoneKinds.Canonical(Kind);
@@ -298,8 +366,16 @@ public sealed class PlanZone
 /// compiles to.</para></summary>
 public sealed class PlanBox
 {
+    /// <summary>What the editor and the reporting tools call this box.</summary>
     [JsonPropertyName("id")]      public string Id { get; set; } = "";
+
+    /// <summary>Which part of the partition its pieces realize — a spawn or wool approach, the hub body they
+    /// seat on, the frontline that fronts it, or the mid between the fanned images.</summary>
+    [WordSet(typeof(PlanBoxKinds))]
     [JsonPropertyName("kind")]    public string Kind { get; set; } = PlanBoxKinds.Mid;
+
+    /// <summary>The envelope, <c>[x, z, w, h]</c> in proxy cells, drawn around its members rather than filled
+    /// by them.</summary>
     [JsonPropertyName("rect")]    public CellRect Rect { get; set; }
 
     /// <summary>The member piece ids, when the grouping is stated rather than inferred; <c>null</c>/empty
@@ -328,10 +404,19 @@ public interface IPlanMarker
 /// cells.</summary>
 public sealed class PlanPlacements
 {
+    /// <summary>Where the team enters the board.</summary>
     [JsonPropertyName("spawns")]       public List<SpawnPlacement> Spawns { get; set; } = [];
+
+    /// <summary>The wools this team must capture, each on the piece that holds its room.</summary>
     [JsonPropertyName("wools")]        public List<WoolPlacement> Wools { get; set; } = [];
+
+    /// <summary>The resource markers — iron inside a spawn piece renews itself.</summary>
     [JsonPropertyName("iron")]         public List<IronPlacement> Iron { get; set; } = [];
+
+    /// <summary>The DTM goals this team defends, each an anchor column the structure floats above.</summary>
     [JsonPropertyName("destroyables")] public List<DestroyablePlacement> Destroyables { get; set; } = [];
+
+    /// <summary>The DTC goals this team defends, each an anchor column the structure floats above.</summary>
     [JsonPropertyName("cores")]        public List<CorePlacement> Cores { get; set; } = [];
 
     /// <summary>Every marker with the word for its kind — the order ids are minted in, and the one place a
@@ -353,9 +438,20 @@ public sealed class PlanPlacements
 /// integers (the common case) round-trip verbatim.</summary>
 public sealed class SpawnPlacement : IPlanMarker
 {
+    /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
+    /// Minted by the editor where the author does not state one.</summary>
     [JsonPropertyName("id")]     public string Id { get; set; } = "";
+
+    /// <summary>The piece it stands on, by id.</summary>
     [JsonPropertyName("piece")]  public string Piece { get; set; } = "";
+
+    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
+    /// is half-cell, so a marker can sit at the middle of a 2×2-cell block.</summary>
     [JsonPropertyName("at")]     public double[] At { get; set; } = [0, 0];
+
+    /// <summary>Which way the player faces on arriving, in absolute board directions: <c>front</c> is −z,
+    /// <c>back</c> +z, <c>left</c> −x, <c>right</c> +x. It is fanned per orbit image, so the authored unit's
+    /// word is turned rather than repeated.</summary>
     [JsonPropertyName("facing")] public string Facing { get; set; } = "front";
 }
 
@@ -363,17 +459,34 @@ public sealed class SpawnPlacement : IPlanMarker
 /// empty = auto (the team's first wool takes the team colour, later wools take distinct dyes).</summary>
 public sealed class WoolPlacement : IPlanMarker
 {
+    /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
+    /// Minted by the editor where the author does not state one.</summary>
     [JsonPropertyName("id")]     public string Id { get; set; } = "";
+
+    /// <summary>The piece it stands on, by id.</summary>
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
+
+    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
+    /// is half-cell, so a marker can sit at the middle of a 2×2-cell block.</summary>
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
+
+    /// <summary>The wool's colour, or absent to have one chosen: the team's first wool takes the team colour
+    /// and later wools take distinct dyes.</summary>
     [JsonPropertyName("color")] public string? Color { get; set; }
 }
 
 /// <summary>An iron (resource) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>.</summary>
 public sealed class IronPlacement : IPlanMarker
 {
+    /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
+    /// Minted by the editor where the author does not state one.</summary>
     [JsonPropertyName("id")]     public string Id { get; set; } = "";
+
+    /// <summary>The piece it stands on, by id.</summary>
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
+
+    /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
+    /// is half-cell, so a marker can sit at the middle of a 2×2-cell block.</summary>
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 }
 
@@ -394,9 +507,18 @@ public sealed class IronPlacement : IPlanMarker
 /// </summary>
 public sealed class DestroyablePlacement : IPlanMarker
 {
+    /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
+    /// Minted by the editor where the author does not state one.</summary>
     [JsonPropertyName("id")]     public string Id { get; set; } = "";
+
+    /// <summary>The piece it stands on, by id, or empty to place it by absolute board position instead —
+    /// which is what lets a goal stand on ground that exists only as an authored sketch shape.</summary>
     [JsonPropertyName("piece")]     public string Piece { get; set; } = "";
+
+    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-cells: from the piece's minimum corner
+    /// where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]        public double[] At { get; set; } = [0, 0];
+
     /// <summary>pillar-1|2|3 · cube-3 · cube-4 · column-plus; empty = pillar-3.</summary>
     [JsonPropertyName("style")]     public string? Style { get; set; }
     /// <summary>A PGM material match; empty = obsidian, over half the corpus.</summary>
@@ -424,9 +546,18 @@ public sealed class DestroyablePlacement : IPlanMarker
 /// </summary>
 public sealed class CorePlacement : IPlanMarker
 {
+    /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
+    /// Minted by the editor where the author does not state one.</summary>
     [JsonPropertyName("id")]     public string Id { get; set; } = "";
+
+    /// <summary>The piece it stands on, by id, or empty to place it by absolute board position instead —
+    /// which is what lets a goal stand on ground that exists only as an authored sketch shape.</summary>
     [JsonPropertyName("piece")]    public string Piece { get; set; } = "";
+
+    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-cells: from the piece's minimum corner
+    /// where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]       public double[] At { get; set; } = [0, 0];
+
     /// <summary>Casing width/depth in blocks; null = 5, the dominant corpus casing.</summary>
     [JsonPropertyName("size")]     public int? Size { get; set; }
     /// <summary>Casing height in blocks; null = 5.</summary>
@@ -453,7 +584,12 @@ public sealed class CorePlacement : IPlanMarker
 /// interface — a wall on a non-interface pair is a validation error.</summary>
 public sealed class PlanWall
 {
+    /// <summary>One of the two pieces the wall stands between, by id — the one the author marked it
+    /// from.</summary>
     [JsonPropertyName("a")] public string A { get; set; } = "";
+
+    /// <summary>The piece on the other side of it, by id. The wall is stamped along the interval the two
+    /// share.</summary>
     [JsonPropertyName("b")] public string B { get; set; } = "";
 
     /// <summary>Which of the wall's two faces carries its defence chests, named by the piece that face looks

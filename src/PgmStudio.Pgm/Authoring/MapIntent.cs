@@ -27,6 +27,8 @@ public sealed record MapIntent
     /// <summary>Shared player cap for every generated team (symmetric map → one number).</summary>
     public int MaxPlayers { get; init; } = 12;
 
+    /// <summary>Where each team enters the map, one entry per team. A spawn names the region it stands in
+    /// and the way the player faces on arriving.</summary>
     public List<SpawnIntent> Spawns { get; init; } = new();
 
     /// <summary>The observer / <c>&lt;default&gt;</c> spawn (pre-game + spectators). Every PGM map needs one.</summary>

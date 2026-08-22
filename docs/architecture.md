@@ -94,9 +94,19 @@ sets — `MapStage` and the nine in `TerrainVocabulary` — because three partie
 C# enum, since the party writing one furthest down is `Minecraft` and it cannot see `Contracts`, so every one
 of them crossed as a bare `string` and an agent learned the four stages by being refused one. A `[WordSet]`
 naming the declaring class now ties the field to its set, and a schema processor reads the words off that
-class into the field's `enum`: **23 fields** publish theirs, and `WordSetSchemaTests` holds each to the words
-its class declares and every set to being published by something. The words are still stated once, where
-they were stated already; nothing is copied into the document.
+class into the field's `enum`: **26 fields** publish theirs — the ten sets plus the plan's own roles, zone
+kinds and box kinds — and `WordSetSchemaTests` holds each to the words its class declares and every set to
+being published by something. The words are still stated once, where they were stated already; nothing is
+copied into the document.
+
+**And a field says what it is, not only what type it is.** The schema publishes the docstrings the records
+carry, and a field with no `<param>` reaches a caller as a name and a type — with the type's own prose doing
+the fields' work, which reads as documented while telling an author nothing about the one field they have to
+fill. `PlanPiece` was the worked case: its blurb explained `rect`, `surface` and `mirrors` and said nothing
+about `role`, the one field a caller must fill and the one whose allowed words it could not guess. **189 of
+the 190 fields** a write route reads now carry one, and `SchemaCompletenessTests` names the exception — a
+polymorphic base's synthesised discriminator, which has no property to document. Over the whole document the
+figure is **466 of 1,283**, which is the answer side's to close.
 
 **The wire contract is generated once and kept by hand twice more, and only one of the two still matters.**
 The route attributes in `Api/Endpoints` are the generator's source. Beside them sit the route strings written

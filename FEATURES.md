@@ -707,6 +707,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **A posted field says what it is (`RP36`).** The schema publishes the docstrings the records carry, so a
+  field with no `<param>` reached a caller as a name and a type, with the type's own prose doing the fields'
+  work — which reads as documented while telling an author nothing about the one field they have to fill.
+  `PlanPiece` was the worked case: its blurb explained `rect`, `surface` and `mirrors` and said nothing about
+  `role`, the one field a caller must fill and the one whose allowed words it could not guess.
+
+  **189 of the 190 fields a write route reads** carry a description now, up from 105, and
+  `SchemaCompletenessTests` holds every posted shape to it and names the one exception — a polymorphic base's
+  synthesised discriminator, which has no property to document. The library save requests, the compose
+  descriptor, `PlanModel` with its pieces, zones, boxes, walls and five kinds of marker, and `SketchLayout`
+  are what moved; the plan's `role`, `kind` and box `kind` also publish their words, since the machinery
+  `RP37` built reaches a `Pgm` word set as readily as a `Vocabulary` one. Over the whole document the figure
+  is 466 of 1,283, up from 336 — the answer side is `RP48`.
 - **A field that takes one of a handful of words says which (`RP37`).** Ten closed sets live in
   `PgmStudio.Vocabulary` — `MapStage` and the nine in `TerrainVocabulary` — because three parties have to
   spell a `map.stage`, a `style.kind`, a theme bucket, a room part or a roof form identically, and all ten

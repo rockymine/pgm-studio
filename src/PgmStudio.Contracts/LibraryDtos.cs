@@ -12,6 +12,14 @@ public sealed record StyleDto(long Id, string Name, [property: WordSet(typeof(Ma
     string Params, string Preview);
 
 /// <summary>Create/update a style (POST /api/styles, PUT /api/styles/{id}).</summary>
+/// <param name="Name">What the library lists it under. It is the author's word, not a key — two styles may
+/// share one, and a theme binds a style by id.</param>
+/// <param name="Kind">Which material this is, from <see cref="MaterialKind"/>. It decides which fields
+/// <paramref name="Params"/> has to carry, and <c>GET /api/terrain/patterns</c> answers them per kind.</param>
+/// <param name="Params">The serialized <c>TerrainMaterial</c> the painter reads, as JSON text rather than an
+/// object: the material hierarchy is fourteen shapes deep and a wire type restating it would be a second
+/// copy free to disagree with the deserializer. A body the painter cannot read is refused as
+/// <c>HS1</c>.</param>
 public sealed record StyleSaveRequest(string Name, [property: WordSet(typeof(MaterialKind))] string Kind, string Params);
 
 /// <summary>One bucket binding of a theme (<see cref="ThemeBuckets"/>): the style that fills it, and the
@@ -35,6 +43,16 @@ public sealed record ThemeDetail(
 
 /// <summary>Create or replace a theme built from existing styles (POST /api/themes, PUT /api/themes/{id}): the
 /// knobs plus the bucket→style bindings.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="BedrockRelative">Whether <paramref name="BedrockValue"/> counts up from the world floor
+/// rather than naming an absolute Y.</param>
+/// <param name="BedrockValue">Where the bedrock plate sits — the depth the fill runs down to.</param>
+/// <param name="RimEdges">Which edges the rim caps, from <see cref="RimEdgeModes"/>: only where the ground
+/// borders void, wherever it falls away, or every plateau boundary.</param>
+/// <param name="WallOnTerrainFaces">Whether a face between two plateaus is painted with the wall bucket. Off,
+/// only a face against a structure is.</param>
+/// <param name="Buckets">One binding per bucket the theme fills. A bucket left out keeps the built-in
+/// material, and a binding naming style <c>0</c> carries only its depth and its toggle.</param>
 public sealed record ThemeSaveRequest(
     string Name,
     bool BedrockRelative, int BedrockValue,
@@ -48,6 +66,9 @@ public sealed record ThemeSaveRequest(
 /// declared nullable because that is what it is. A DTO that claims a field is required when the handler
 /// happily defaults it is a claim <see cref="Api.Endpoints.RequiredFields"/> now enforces, and the annotation
 /// is the only thing that says which fields those are.</para></summary>
+/// <param name="Name">What the imported theme is listed under. Absent means <c>Imported theme</c>.</param>
+/// <param name="ThemeJson">The painter's own theme JSON, as text — the form <c>GET /api/themes/{id}/json</c>
+/// answers, so a theme round-trips between studios through these two routes.</param>
 public sealed record ThemeImportRequest(string? Name, string ThemeJson);
 
 /// <summary>Both views of one material (POST /api/terrain/material-preview): <paramref name="Plan"/> is one
@@ -126,6 +147,23 @@ public sealed record RoofStyleDetail(
 /// <summary>Create or replace a roof style. <paramref name="RoofSlab"/> is the block a half-course rise steps
 /// on every odd course, or -1 for a roof laid in whole blocks — the roof's own, since a roof style owns
 /// everything above the eave, and the number the slab/pitch pairing is checked against.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Form">The roof's shape, from <see cref="RoofForms"/>. A <c>shed</c> falls toward the
+/// building's front, which is the wall its doorway is cut through.</param>
+/// <param name="Pitch">Courses of rise per block travelled inward. 1 is 45°; on a slab roof the same 1 is
+/// half as steep, because each course rises half a block.</param>
+/// <param name="Overhang">How far the roof reaches past the walls, in blocks. 0 ends it flush and leaves the
+/// wall to carry the weather; 1 is an eave.</param>
+/// <param name="RoofHole">Whether a flat roof carries a centred hole — the light a windowless room otherwise
+/// has none of. A gable has its own volume and never takes one.</param>
+/// <param name="RidgeCap">Whether the line the slopes meet on is laid in the <c>verge</c> course rather than
+/// the roof's own material. A flat lid has no ridge to cap.</param>
+/// <param name="Courses">The material stacks for the parts a roof owns — <c>roof</c>, <c>verge</c> and
+/// <c>gable</c>. A part with no courses keeps the built-in finish.</param>
+/// <param name="RoofSlab">The block a half-course rise steps on every odd course, or -1 for a roof laid in
+/// whole blocks. It is the number the slab/pitch pairing is checked against.</param>
+/// <param name="RoofSlabData">That slab's variant nibble — which wood, which stone. Which half of the cube it
+/// fills is the stamper's and is not stated here.</param>
 public sealed record RoofStyleSaveRequest(
     string Name, [property: WordSet(typeof(RoofForms))] string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
@@ -143,6 +181,15 @@ public sealed record StoreyStyleDetail(
     long Id, string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
     IReadOnlyList<RoomCourseDto> Courses);
 
+/// <summary>Create or replace a storey style.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Clear">The air a player stands in, in blocks. Never under three — a room has to be stood up
+/// in.</param>
+/// <param name="BorderWidth">How many blocks in from the walls the floor's border ring runs.</param>
+/// <param name="InlayInset">How far in from the walls the floor's centred plate starts.</param>
+/// <param name="Windows">The openings cut through this storey's wall, or <c>none</c> for a blank one.</param>
+/// <param name="Courses">The material stacks for the parts a storey owns — <c>wall</c>, <c>post</c> and the
+/// three floor zones. A part with no courses keeps the built-in finish.</param>
 public sealed record StoreyStyleSaveRequest(
     string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
     IReadOnlyList<RoomCourseDto> Courses);
@@ -158,6 +205,17 @@ public sealed record PorchStyleDetail(
     [property: WordSet(typeof(PorchEdges))] string Edge,
     [property: WordSet(typeof(RoofForms))] string Roof, int RailBlock);
 
+/// <summary>Create or replace a porch style.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Depth">How deep a strip of footprint the walls give up for it. The room keeps at least three
+/// blocks whatever is asked for.</param>
+/// <param name="Inset">How far the deck stops short of each end of the wall it stands on. 0 runs it the full
+/// width.</param>
+/// <param name="Edge">Which wall it stands on, from <see cref="PorchEdges"/>. <c>front</c> follows the
+/// building's own front — the wall its doorway is cut through — rather than naming a fixed side.</param>
+/// <param name="Roof">The canopy's form, from <see cref="RoofForms"/>.</param>
+/// <param name="RailBlock">The block the rail is built from, or 0 for a deck left open to step off
+/// anywhere.</param>
 public sealed record PorchStyleSaveRequest(
     string Name, int Depth, int Inset,
     [property: WordSet(typeof(PorchEdges))] string Edge,
@@ -186,7 +244,53 @@ public sealed record RoomStyleDetail(
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
     RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null);
 
-/// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}).</summary>
+/// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
+/// building: the parts it is finished in, the numbers that decide its proportions, and the library rows it
+/// binds for its roof, its storeys and its porch.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="FloorDepth">How many courses the floor plate runs down.</param>
+/// <param name="WallHeight">How many courses of wall stand between the floor and the eave, where the
+/// building is one storey. A stack of storeys spends this height instead.</param>
+/// <param name="RoofForm">The roof's shape, from <see cref="RoofForms"/>, where no
+/// <paramref name="RoofStyleId"/> is bound.</param>
+/// <param name="Pitch">Courses of rise per block travelled inward. 1 is 45°.</param>
+/// <param name="Overhang">How far the roof reaches past the walls, in blocks. 0 ends it flush.</param>
+/// <param name="RoofHole">Whether a flat roof carries a centred hole — the light a windowless room otherwise
+/// has none of. A gable never takes one.</param>
+/// <param name="RidgeCap">Whether the line the slopes meet on is laid in the <c>verge</c> course rather than
+/// the roof's own material.</param>
+/// <param name="BorderWidth">How many blocks in from the walls the floor's border ring runs.</param>
+/// <param name="InlayInset">How far in from the walls the floor's centred plate starts.</param>
+/// <param name="Storeys">How many floors are stacked inside. Each but the top carries a slab and a ladder,
+/// and 1 is the plain single-storey shell. Where <paramref name="StoreyStack"/> names rows, this is a count
+/// of them rather than a second answer.</param>
+/// <param name="StoreyClear">Blocks of air in each storey. 0 spends <paramref name="WallHeight"/> instead,
+/// and the stamper never goes below three — a room has to be stood up in.</param>
+/// <param name="Windows">The openings cut through the walls, or <c>none</c>.</param>
+/// <param name="Porch">The strip of footprint the walls give up, or absent for a building whose walls stand
+/// on the whole of it. A bound <paramref name="PorchStyleId"/> supersedes it.</param>
+/// <param name="Door">What fills the doorway, by door slug — a closed set, because only these can be broken
+/// by an attacker and so only these open a cage. <c>GET /api/room-styles/doors</c> answers it.</param>
+/// <param name="DoorHeight">How many courses tall the opening is cut. What it actually clears depends on
+/// <paramref name="DoorHead"/>, which takes the top course.</param>
+/// <param name="RoofStyleId">A roof library row to wear instead of the flat roof knobs, or absent to use
+/// them.</param>
+/// <param name="PorchStyleId">A porch library row to wear instead of <paramref name="Porch"/>, or
+/// absent.</param>
+/// <param name="StoreyStack">One entry per storey, ground first — which storey style fills it and the clear
+/// it takes here. Empty means the building is the single storey the flat knobs describe; the position in the
+/// list is the position in the building, so reordering the list is reordering the house.</param>
+/// <param name="Courses">The material stacks for the parts the building itself owns. A part with no courses
+/// keeps the built-in finish, the way an unbound theme bucket does.</param>
+/// <param name="Beams">The log ends that run out past the corners where two storeys meet, or absent for a
+/// building whose storeys meet without them.</param>
+/// <param name="RoofSlab">The block a half-course rise steps on every odd course, or -1 for a roof laid in
+/// whole blocks.</param>
+/// <param name="RoofSlabData">That slab's variant nibble — which wood, which stone.</param>
+/// <param name="GableWindows">The openings cut through the gable ends, where they differ from the wall's, or
+/// absent for a gable left blank.</param>
+/// <param name="DoorHead">The beam over the doorway, or absent to leave the opening a plain
+/// rectangle.</param>
 public sealed record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,

@@ -38,6 +38,9 @@ public sealed record PlanDetail(
 /// <summary>Save the plan open in the editor (POST /api/plans). <paramref name="SourceId"/> is the row the
 /// editor loaded, if any: an authored source is updated in place, a generated/imported source is forked into a
 /// new authored row. Null saves a fresh authored plan.</summary>
+/// <param name="PlanJson">The plan document itself, as text — the same shape <c>PUT …/plan</c> takes and
+/// <c>GET /api/plans/{id}</c> answers.</param>
+/// <param name="SourceId">The row the editor loaded, if any.</param>
 public sealed record PlanSaveRequest(
     string PlanJson,
     long? SourceId);
