@@ -333,6 +333,21 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
+- [ ] **TS15 — A board with no finish at all is the one silence the sketch stage keeps.** `SK3` names a shape
+  citing a theme the layout does not carry, `SK4` a shape drawing nothing, `SK7` a layout rasterizing to no
+  ground — but a layout carrying **no** theme registry, **no** relief and **no** props raises nothing, because
+  there is nothing to disagree with. Add `SK8` as a **complaint** on `POST /api/map/{slug}/sketch/finish`,
+  beside `SK6`/`SK7` in `Pgm/Sketch/SketchRules.cs`, naming which of the three the stored layout is missing.
+  A complaint rather than a refusal: a bare test board is legitimate, and finishing is the stage that declares
+  the drawing done, which is why the other two live there.
+
+  The gap is not the author's attention, it is the pipeline's. A weak model fixes every finding it is given
+  and stops where the findings stop; silence reads as approval.
+
+  *`maps/haiku-r5-hollow-crown` exported clean with `themes: null`, `mapTheme: null`, `relief: null`,
+  `roomStyles: null`, `dressing.props: []`. Every stage answered 200. The same author fixed `ST9`, `G8`,
+  `LN2`, `PL11` and `DC3` the moment each was raised. Haiku's four run-4 boards are the same shape.*
+
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
   are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
   — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
