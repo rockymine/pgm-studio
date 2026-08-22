@@ -54,93 +54,95 @@ public sealed class RoomStyleStore(PgmDb db)
             orderby r.Id descending
             select r.Name).Distinct().ToListAsync(ct);
 
-    public async Task<long> CreateAsync(
+    public Task<long> CreateAsync(
         RoomStyleRow room, IEnumerable<RoomStyleCourseRow> courses,
         IEnumerable<RoomStyleStoreyRow>? storeys = null, CancellationToken ct = default)
     {
         room.CreatedAt = DateTime.UtcNow;
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var id = await db.InsertWithInt64IdentityAsync(room, token: ct);
-        foreach (var course in courses)
+        return db.InOneWriteAsync(async () =>
         {
-            course.RoomStyleId = id;
-            await db.InsertAsync(course, token: ct);
-        }
-        await WriteStoreysAsync(id, storeys, ct);
-        await tx.CommitAsync(ct);
-        return id;
+            var id = await db.InsertWithInt64IdentityAsync(room, token: ct);
+            foreach (var course in courses)
+            {
+                course.RoomStyleId = id;
+                await db.InsertAsync(course, token: ct);
+            }
+            await WriteStoreysAsync(id, storeys, ct);
+            return id;
+        }, ct);
     }
 
     /// <summary>Replace a room style's knobs and its whole set of courses in one transaction, returning false
     /// when the id is unknown. The courses are rewritten rather than merged, for the reason a theme's bindings
     /// are: the stack itself is what the caller edited, so a diff would only be a slower way to the same rows.</summary>
-    public async Task<bool> UpdateAsync(
+    public Task<bool> UpdateAsync(
         long id, RoomStyleRow room, IEnumerable<RoomStyleCourseRow> courses,
-        IEnumerable<RoomStyleStoreyRow>? storeys = null, CancellationToken ct = default)
-    {
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var updated = await db.RoomStyles.Where(r => r.Id == id)
-            .Set(r => r.Name, room.Name)
-            .Set(r => r.FloorDepth, room.FloorDepth)
-            .Set(r => r.WallHeight, room.WallHeight)
-            .Set(r => r.RoofForm, room.RoofForm)
-            .Set(r => r.Pitch, room.Pitch)
-            .Set(r => r.Overhang, room.Overhang)
-            .Set(r => r.RoofHole, room.RoofHole)
-            .Set(r => r.RidgeCap, room.RidgeCap)
-            .Set(r => r.Storeys, room.Storeys)
-            .Set(r => r.StoreyClear, room.StoreyClear)
-            .Set(r => r.Door, room.Door)
-            .Set(r => r.DoorHeight, room.DoorHeight)
-            .Set(r => r.BorderWidth, room.BorderWidth)
-            .Set(r => r.InlayInset, room.InlayInset)
-            .Set(r => r.WindowForm, room.WindowForm)
-            .Set(r => r.WindowBlock, room.WindowBlock)
-            .Set(r => r.WindowData, room.WindowData)
-            .Set(r => r.WindowSill, room.WindowSill)
-            .Set(r => r.WindowWidth, room.WindowWidth)
-            .Set(r => r.WindowHeight, room.WindowHeight)
-            .Set(r => r.WindowSpacing, room.WindowSpacing)
-            .Set(r => r.PorchDepth, room.PorchDepth)
-            .Set(r => r.PorchInset, room.PorchInset)
-            .Set(r => r.PorchEdge, room.PorchEdge)
-            .Set(r => r.PorchRoof, room.PorchRoof)
-            .Set(r => r.PorchRailBlock, room.PorchRailBlock)
-            // The M0019 trim. A column added to the row and not to this list is a column the editor can save
-            // and the store silently drops — which is exactly how the seeder's first run came back stripped.
-            .Set(r => r.BeamBlock, room.BeamBlock)
-            .Set(r => r.BeamData, room.BeamData)
-            .Set(r => r.BeamReach, room.BeamReach)
-            .Set(r => r.RoofSlab, room.RoofSlab)
-            .Set(r => r.RoofSlabData, room.RoofSlabData)
-            .Set(r => r.GableWindowForm, room.GableWindowForm)
-            .Set(r => r.GableWindowBlock, room.GableWindowBlock)
-            .Set(r => r.GableWindowData, room.GableWindowData)
-            .Set(r => r.GableWindowSill, room.GableWindowSill)
-            .Set(r => r.GableWindowWidth, room.GableWindowWidth)
-            .Set(r => r.GableWindowHeight, room.GableWindowHeight)
-            .Set(r => r.DoorHeadForm, room.DoorHeadForm)
-            .Set(r => r.DoorHeadBlock, room.DoorHeadBlock)
-            .Set(r => r.DoorHeadFill, room.DoorHeadFill)
-            .Set(r => r.DoorHeadFillBlock, room.DoorHeadFillBlock)
-            .Set(r => r.DoorHeadFillData, room.DoorHeadFillData)
-            .Set(r => r.WindowHostBlock, room.WindowHostBlock)
-            .Set(r => r.WindowHostData, room.WindowHostData)
-            .Set(r => r.RoofStyleId, room.RoofStyleId)
-            .Set(r => r.PorchStyleId, room.PorchStyleId)
-            .UpdateAsync(ct);
-        if (updated == 0) return false;
-
-        await db.RoomStyleCourses.Where(c => c.RoomStyleId == id).DeleteAsync(ct);
-        foreach (var course in courses)
+        IEnumerable<RoomStyleStoreyRow>? storeys = null, CancellationToken ct = default) =>
+        db.InOneWriteAsync(async () =>
         {
-            course.RoomStyleId = id;
-            await db.InsertAsync(course, token: ct);
-        }
-        await WriteStoreysAsync(id, storeys, ct);
-        await tx.CommitAsync(ct);
-        return true;
-    }
+            var updated = await db.RoomStyles.Where(r => r.Id == id)
+                .Set(r => r.Name, room.Name)
+                .Set(r => r.FloorDepth, room.FloorDepth)
+                .Set(r => r.WallHeight, room.WallHeight)
+                .Set(r => r.RoofForm, room.RoofForm)
+                .Set(r => r.Pitch, room.Pitch)
+                .Set(r => r.Overhang, room.Overhang)
+                .Set(r => r.RoofHole, room.RoofHole)
+                .Set(r => r.RidgeCap, room.RidgeCap)
+                .Set(r => r.Storeys, room.Storeys)
+                .Set(r => r.StoreyClear, room.StoreyClear)
+                .Set(r => r.Door, room.Door)
+                .Set(r => r.DoorHeight, room.DoorHeight)
+                .Set(r => r.BorderWidth, room.BorderWidth)
+                .Set(r => r.InlayInset, room.InlayInset)
+                .Set(r => r.WindowForm, room.WindowForm)
+                .Set(r => r.WindowBlock, room.WindowBlock)
+                .Set(r => r.WindowData, room.WindowData)
+                .Set(r => r.WindowSill, room.WindowSill)
+                .Set(r => r.WindowWidth, room.WindowWidth)
+                .Set(r => r.WindowHeight, room.WindowHeight)
+                .Set(r => r.WindowSpacing, room.WindowSpacing)
+                .Set(r => r.PorchDepth, room.PorchDepth)
+                .Set(r => r.PorchInset, room.PorchInset)
+                .Set(r => r.PorchEdge, room.PorchEdge)
+                .Set(r => r.PorchRoof, room.PorchRoof)
+                .Set(r => r.PorchRailBlock, room.PorchRailBlock)
+                // The M0019 trim. A column added to the row and not to this list is a column the editor can save
+                // and the store silently drops — which is exactly how the seeder's first run came back stripped.
+                .Set(r => r.BeamBlock, room.BeamBlock)
+                .Set(r => r.BeamData, room.BeamData)
+                .Set(r => r.BeamReach, room.BeamReach)
+                .Set(r => r.RoofSlab, room.RoofSlab)
+                .Set(r => r.RoofSlabData, room.RoofSlabData)
+                .Set(r => r.GableWindowForm, room.GableWindowForm)
+                .Set(r => r.GableWindowBlock, room.GableWindowBlock)
+                .Set(r => r.GableWindowData, room.GableWindowData)
+                .Set(r => r.GableWindowSill, room.GableWindowSill)
+                .Set(r => r.GableWindowWidth, room.GableWindowWidth)
+                .Set(r => r.GableWindowHeight, room.GableWindowHeight)
+                .Set(r => r.DoorHeadForm, room.DoorHeadForm)
+                .Set(r => r.DoorHeadBlock, room.DoorHeadBlock)
+                .Set(r => r.DoorHeadFill, room.DoorHeadFill)
+                .Set(r => r.DoorHeadFillBlock, room.DoorHeadFillBlock)
+                .Set(r => r.DoorHeadFillData, room.DoorHeadFillData)
+                .Set(r => r.WindowHostBlock, room.WindowHostBlock)
+                .Set(r => r.WindowHostData, room.WindowHostData)
+                .Set(r => r.RoofStyleId, room.RoofStyleId)
+                .Set(r => r.PorchStyleId, room.PorchStyleId)
+                .UpdateAsync(ct);
+            // Nothing was written, so there is nothing for the boundary to hold — an unknown id commits
+            // an empty write rather than rolling one back.
+            if (updated == 0) return false;
+
+            await db.RoomStyleCourses.Where(c => c.RoomStyleId == id).DeleteAsync(ct);
+            foreach (var course in courses)
+            {
+                course.RoomStyleId = id;
+                await db.InsertAsync(course, token: ct);
+            }
+            await WriteStoreysAsync(id, storeys, ct);
+            return true;
+        }, ct);
 
     /// <summary>The house's stack, rewritten. The ordinal is assigned here rather than trusted from the
     /// caller: the stack is an <em>order</em>, and the order is the position in the list it arrived in — a

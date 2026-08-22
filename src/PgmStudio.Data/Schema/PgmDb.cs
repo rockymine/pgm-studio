@@ -69,6 +69,19 @@ public sealed class PgmDb : DataConnection
         await write();
         await tx.CommitAsync(ct);
     }
+
+    /// <inheritdoc cref="InOneWriteAsync(Func{Task}, CancellationToken)"/>
+    /// <remarks>For a write that answers something — the id a row was inserted under, or whether the row it
+    /// meant to replace was there at all. The answer is produced inside the boundary and handed back after
+    /// it closes, so a caller reads it without holding the transaction open to do so.</remarks>
+    public async Task<T> InOneWriteAsync<T>(Func<Task<T>> write, CancellationToken ct = default)
+    {
+        if (Transaction is not null) return await write();
+        await using var tx = await BeginTransactionAsync(ct);
+        var answered = await write();
+        await tx.CommitAsync(ct);
+        return answered;
+    }
 }
 
 /// <summary>Builds linq2db <see cref="DataOptions"/> for the MariaDB/MySqlConnector provider.</summary>

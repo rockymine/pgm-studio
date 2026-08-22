@@ -707,6 +707,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   is right — so a plan-stage map is already offered the rebuild that reads its plan — and `next` marks the
   ones the stage is waiting on. The record was always half an affordance answer, read to tell an origination
   from a rebuild before offering the action; it is the whole answer now.
+- **One verb owns a write boundary (`RP27`).** `PgmDb.InOneWriteAsync` is the studio's name for "this
+  replacement lands whole or not at all", and the three map-level writers asked it by that name while
+  **nine library-store writes** opened `BeginTransactionAsync` by hand and committed at the end. They were
+  correct — each is a leaf nothing calls into — but they were a second shape rather than a second guarantee,
+  and the shape matters: `BeginTransactionAsync` throws on a second transaction over one connection, so the
+  first caller to put one inside another would get a runtime fault rather than the joined write the verb
+  gives. There are none left.
+
+  Four of the nine answer something mid-body — the id a row was inserted under, or whether the row it meant
+  to replace was there — so the verb gained a `Func<Task<T>>` overload. An unknown id now commits an empty
+  write where it used to roll one back, which is the same outcome by a shorter path: nothing was written.
 - **The Edit tool's routes are written in one place (`C47`).** Three phases each declared the same
   `Post`/`Patch`/`Delete`/`Send` over the prefix `api/map/{Slug}/{path}` and took the tail from the call
   site, so **23 writes** reached routes that were a route in no single string — and `ClientRouteTests`, the

@@ -32,38 +32,38 @@ public sealed class HousePartStore(PgmDb db)
     public Task<List<RoofStyleCourseRow>> GetAllRoofCoursesAsync(CancellationToken ct = default)
         => db.RoofStyleCourses.OrderBy(c => c.Part).ThenBy(c => c.Ordinal).ToListAsync(ct);
 
-    public async Task<long> CreateRoofAsync(
+    public Task<long> CreateRoofAsync(
         RoofStyleRow roof, IEnumerable<RoofStyleCourseRow> courses, CancellationToken ct = default)
     {
         roof.CreatedAt = DateTime.UtcNow;
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var id = await db.InsertWithInt64IdentityAsync(roof, token: ct);
-        foreach (var course in courses) { course.RoofStyleId = id; await db.InsertAsync(course, token: ct); }
-        await tx.CommitAsync(ct);
-        return id;
+        return db.InOneWriteAsync(async () =>
+        {
+            var id = await db.InsertWithInt64IdentityAsync(roof, token: ct);
+            foreach (var course in courses) { course.RoofStyleId = id; await db.InsertAsync(course, token: ct); }
+            return id;
+        }, ct);
     }
 
-    public async Task<bool> UpdateRoofAsync(
-        long id, RoofStyleRow roof, IEnumerable<RoofStyleCourseRow> courses, CancellationToken ct = default)
-    {
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var updated = await db.RoofStyles.Where(r => r.Id == id)
-            .Set(r => r.Name, roof.Name)
-            .Set(r => r.Form, roof.Form)
-            .Set(r => r.RoofSlab, roof.RoofSlab)
-            .Set(r => r.RoofSlabData, roof.RoofSlabData)
-            .Set(r => r.Pitch, roof.Pitch)
-            .Set(r => r.Overhang, roof.Overhang)
-            .Set(r => r.RoofHole, roof.RoofHole)
-            .Set(r => r.RidgeCap, roof.RidgeCap)
-            .UpdateAsync(ct);
-        if (updated == 0) return false;
+    public Task<bool> UpdateRoofAsync(
+        long id, RoofStyleRow roof, IEnumerable<RoofStyleCourseRow> courses, CancellationToken ct = default) =>
+        db.InOneWriteAsync(async () =>
+        {
+            var updated = await db.RoofStyles.Where(r => r.Id == id)
+                .Set(r => r.Name, roof.Name)
+                .Set(r => r.Form, roof.Form)
+                .Set(r => r.RoofSlab, roof.RoofSlab)
+                .Set(r => r.RoofSlabData, roof.RoofSlabData)
+                .Set(r => r.Pitch, roof.Pitch)
+                .Set(r => r.Overhang, roof.Overhang)
+                .Set(r => r.RoofHole, roof.RoofHole)
+                .Set(r => r.RidgeCap, roof.RidgeCap)
+                .UpdateAsync(ct);
+            if (updated == 0) return false;
 
-        await db.RoofStyleCourses.Where(c => c.RoofStyleId == id).DeleteAsync(ct);
-        foreach (var course in courses) { course.RoofStyleId = id; await db.InsertAsync(course, token: ct); }
-        await tx.CommitAsync(ct);
-        return true;
-    }
+            await db.RoofStyleCourses.Where(c => c.RoofStyleId == id).DeleteAsync(ct);
+            foreach (var course in courses) { course.RoofStyleId = id; await db.InsertAsync(course, token: ct); }
+            return true;
+        }, ct);
 
     public Task<int> DeleteRoofAsync(long id, CancellationToken ct = default)
         => db.RoofStyles.Where(r => r.Id == id).DeleteAsync(ct);     // roof_style_course cascades (M0018)
@@ -88,43 +88,43 @@ public sealed class HousePartStore(PgmDb db)
     public Task<List<StoreyStyleCourseRow>> GetAllStoreyCoursesAsync(CancellationToken ct = default)
         => db.StoreyStyleCourses.OrderBy(c => c.Part).ThenBy(c => c.Ordinal).ToListAsync(ct);
 
-    public async Task<long> CreateStoreyAsync(
+    public Task<long> CreateStoreyAsync(
         StoreyStyleRow storey, IEnumerable<StoreyStyleCourseRow> courses, CancellationToken ct = default)
     {
         storey.CreatedAt = DateTime.UtcNow;
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var id = await db.InsertWithInt64IdentityAsync(storey, token: ct);
-        foreach (var course in courses) { course.StoreyStyleId = id; await db.InsertAsync(course, token: ct); }
-        await tx.CommitAsync(ct);
-        return id;
+        return db.InOneWriteAsync(async () =>
+        {
+            var id = await db.InsertWithInt64IdentityAsync(storey, token: ct);
+            foreach (var course in courses) { course.StoreyStyleId = id; await db.InsertAsync(course, token: ct); }
+            return id;
+        }, ct);
     }
 
-    public async Task<bool> UpdateStoreyAsync(
-        long id, StoreyStyleRow storey, IEnumerable<StoreyStyleCourseRow> courses, CancellationToken ct = default)
-    {
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var updated = await db.StoreyStyles.Where(r => r.Id == id)
-            .Set(r => r.Name, storey.Name)
-            .Set(r => r.Clear, storey.Clear)
-            .Set(r => r.BorderWidth, storey.BorderWidth)
-            .Set(r => r.InlayInset, storey.InlayInset)
-            .Set(r => r.WindowForm, storey.WindowForm)
-            .Set(r => r.WindowBlock, storey.WindowBlock)
-            .Set(r => r.WindowData, storey.WindowData)
-            .Set(r => r.WindowSill, storey.WindowSill)
-            .Set(r => r.WindowWidth, storey.WindowWidth)
-            .Set(r => r.WindowHeight, storey.WindowHeight)
-            .Set(r => r.WindowSpacing, storey.WindowSpacing)
-            .Set(r => r.WindowHostBlock, storey.WindowHostBlock)
-            .Set(r => r.WindowHostData, storey.WindowHostData)
-            .UpdateAsync(ct);
-        if (updated == 0) return false;
+    public Task<bool> UpdateStoreyAsync(
+        long id, StoreyStyleRow storey, IEnumerable<StoreyStyleCourseRow> courses, CancellationToken ct = default) =>
+        db.InOneWriteAsync(async () =>
+        {
+            var updated = await db.StoreyStyles.Where(r => r.Id == id)
+                .Set(r => r.Name, storey.Name)
+                .Set(r => r.Clear, storey.Clear)
+                .Set(r => r.BorderWidth, storey.BorderWidth)
+                .Set(r => r.InlayInset, storey.InlayInset)
+                .Set(r => r.WindowForm, storey.WindowForm)
+                .Set(r => r.WindowBlock, storey.WindowBlock)
+                .Set(r => r.WindowData, storey.WindowData)
+                .Set(r => r.WindowSill, storey.WindowSill)
+                .Set(r => r.WindowWidth, storey.WindowWidth)
+                .Set(r => r.WindowHeight, storey.WindowHeight)
+                .Set(r => r.WindowSpacing, storey.WindowSpacing)
+                .Set(r => r.WindowHostBlock, storey.WindowHostBlock)
+                .Set(r => r.WindowHostData, storey.WindowHostData)
+                .UpdateAsync(ct);
+            if (updated == 0) return false;
 
-        await db.StoreyStyleCourses.Where(c => c.StoreyStyleId == id).DeleteAsync(ct);
-        foreach (var course in courses) { course.StoreyStyleId = id; await db.InsertAsync(course, token: ct); }
-        await tx.CommitAsync(ct);
-        return true;
-    }
+            await db.StoreyStyleCourses.Where(c => c.StoreyStyleId == id).DeleteAsync(ct);
+            foreach (var course in courses) { course.StoreyStyleId = id; await db.InsertAsync(course, token: ct); }
+            return true;
+        }, ct);
 
     public Task<int> DeleteStoreyAsync(long id, CancellationToken ct = default)
         => db.StoreyStyles.Where(r => r.Id == id).DeleteAsync(ct);

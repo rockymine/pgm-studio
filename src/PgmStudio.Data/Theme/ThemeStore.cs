@@ -89,46 +89,48 @@ public sealed class ThemeStore(PgmDb db)
     }
 
     /// <summary>Create a theme with its bucket bindings in one transaction, returning the new theme id.</summary>
-    public async Task<long> CreateThemeAsync(ThemeRow theme, IEnumerable<ThemeBucketRow> buckets, CancellationToken ct = default)
+    public Task<long> CreateThemeAsync(ThemeRow theme, IEnumerable<ThemeBucketRow> buckets, CancellationToken ct = default)
     {
         theme.CreatedAt = DateTime.UtcNow;
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var id = await db.InsertWithInt64IdentityAsync(theme, token: ct);
-        foreach (var bucket in buckets)
+        return db.InOneWriteAsync(async () =>
         {
-            bucket.ThemeId = id;
-            await db.InsertAsync(bucket, token: ct);
-        }
-        await tx.CommitAsync(ct);
-        return id;
+            var id = await db.InsertWithInt64IdentityAsync(theme, token: ct);
+            foreach (var bucket in buckets)
+            {
+                bucket.ThemeId = id;
+                await db.InsertAsync(bucket, token: ct);
+            }
+            return id;
+        }, ct);
     }
 
     /// <summary>Replace a theme's knobs and its whole set of bucket bindings in one transaction, returning false
     /// when the theme id is unknown. The bindings are rewritten rather than merged: a bucket may be rebound to a
     /// different style, and the set itself is what the caller edited, so a diff would only be a slower way to
     /// arrive at the same rows.</summary>
-    public async Task<bool> UpdateThemeAsync(long id, ThemeRow theme, IEnumerable<ThemeBucketRow> buckets,
-        CancellationToken ct = default)
-    {
-        await using var tx = await db.BeginTransactionAsync(ct);
-        var updated = await db.Themes.Where(t => t.Id == id)
-            .Set(t => t.Name, theme.Name)
-            .Set(t => t.BedrockRelative, theme.BedrockRelative)
-            .Set(t => t.BedrockValue, theme.BedrockValue)
-            .Set(t => t.RimEdges, theme.RimEdges)
-            .Set(t => t.WallOnTerrainFaces, theme.WallOnTerrainFaces)
-            .UpdateAsync(ct);
-        if (updated == 0) return false;
-
-        await db.ThemeBuckets.Where(b => b.ThemeId == id).DeleteAsync(ct);
-        foreach (var bucket in buckets)
+    public Task<bool> UpdateThemeAsync(long id, ThemeRow theme, IEnumerable<ThemeBucketRow> buckets,
+        CancellationToken ct = default) =>
+        db.InOneWriteAsync(async () =>
         {
-            bucket.ThemeId = id;
-            await db.InsertAsync(bucket, token: ct);
-        }
-        await tx.CommitAsync(ct);
-        return true;
-    }
+            var updated = await db.Themes.Where(t => t.Id == id)
+                .Set(t => t.Name, theme.Name)
+                .Set(t => t.BedrockRelative, theme.BedrockRelative)
+                .Set(t => t.BedrockValue, theme.BedrockValue)
+                .Set(t => t.RimEdges, theme.RimEdges)
+                .Set(t => t.WallOnTerrainFaces, theme.WallOnTerrainFaces)
+                .UpdateAsync(ct);
+            // Nothing was written, so there is nothing for the boundary to hold — an unknown id commits an
+            // empty write rather than rolling one back.
+            if (updated == 0) return false;
+
+            await db.ThemeBuckets.Where(b => b.ThemeId == id).DeleteAsync(ct);
+            foreach (var bucket in buckets)
+            {
+                bucket.ThemeId = id;
+                await db.InsertAsync(bucket, token: ct);
+            }
+            return true;
+        }, ct);
 
     public Task<int> DeleteThemeAsync(long id, CancellationToken ct = default)
         => db.Themes.Where(t => t.Id == id).DeleteAsync(ct);   // theme_bucket cascades (M0011)

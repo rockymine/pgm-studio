@@ -356,12 +356,14 @@ more now that a second caller drives the same map.
 **A delete-then-write lands whole or not at all, and one verb says so.** The studio stores by replacing —
 `MapWriter.SaveDocAsync` drops a map's entities and rewrites them, `WorldFeatureWriter` drops six tables and
 fills five, `MapArtifactStore.SaveAsync` deletes a row and inserts one — so the window between the two halves
-is a state no author authored and no read can tell from a map that really has less in it. All three ask
+is a state no author authored and no read can tell from a map that really has less in it. Every one of them asks
 `PgmDb.InOneWriteAsync`, which owns the boundary. It joins rather than opens where one is already running,
 because a connection carries a single transaction and a finished sketch legitimately writes its segment rows
-and its three artifacts through two writers over one of them. The nine library-store writes still open theirs
-by hand (`RP27`); each is a leaf nothing calls into, so they are a second shape rather than a second
-guarantee.
+and its three artifacts through two writers over one of them — which is what a hand-rolled
+`BeginTransactionAsync` cannot do: it throws on the second, so the first caller to nest one would get a
+runtime fault instead of a joined write. There are none left. The nine library-store writes that opened
+theirs by hand went through the verb, four of them through a `Func<Task<T>>` overload for the writes that
+answer the id they inserted under.
 
 **Every document a caller can replace carries a revision.** A read answers it as an `ETag` and a write may
 state it back as an `If-Match`; one naming a revision the document is no longer at is refused as `RQ5`, and

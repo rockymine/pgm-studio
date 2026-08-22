@@ -24,28 +24,25 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class MapMetadata
 {
-    public static async Task ApplyAsync(PgmDb db, long mapId, Dict stated, CancellationToken ct)
-    {
-        await using var transaction = await db.BeginTransactionAsync(ct);
+    public static Task ApplyAsync(PgmDb db, long mapId, Dict stated, CancellationToken ct) =>
+        db.InOneWriteAsync(async () =>
+        {
+            var update = db.Maps.Where(map => map.Id == mapId).AsUpdatable();
+            if (stated.ContainsKey("name"))
+                update = update.Set(map => map.Name, stated["name"] as string ?? "");
+            if (stated.ContainsKey("version"))
+                update = update.Set(map => map.Version, NullIfEmpty(stated["version"] as string));
+            if (stated.ContainsKey("objective"))
+                update = update.Set(map => map.Objective, NullIfEmpty(stated["objective"] as string));
+            if (stated.ContainsKey("max_build_height"))
+                update = update.Set(map => map.MaxBuildHeight,
+                    stated["max_build_height"] is { } height ? Convert.ToDouble(height) : null);
+            update = update.Set(map => map.UpdatedAt, DateTime.UtcNow);
+            await update.UpdateAsync(ct);
 
-        var update = db.Maps.Where(map => map.Id == mapId).AsUpdatable();
-        if (stated.ContainsKey("name"))
-            update = update.Set(map => map.Name, stated["name"] as string ?? "");
-        if (stated.ContainsKey("version"))
-            update = update.Set(map => map.Version, NullIfEmpty(stated["version"] as string));
-        if (stated.ContainsKey("objective"))
-            update = update.Set(map => map.Objective, NullIfEmpty(stated["objective"] as string));
-        if (stated.ContainsKey("max_build_height"))
-            update = update.Set(map => map.MaxBuildHeight,
-                stated["max_build_height"] is { } height ? Convert.ToDouble(height) : null);
-        update = update.Set(map => map.UpdatedAt, DateTime.UtcNow);
-        await update.UpdateAsync(ct);
-
-        if (stated.TryGetValue("authors", out var raw) && raw is List<object?> authors)
-            await MapAuthors.ReplaceAsync(db, mapId, authors, ct);
-
-        await transaction.CommitAsync(ct);
-    }
+            if (stated.TryGetValue("authors", out var raw) && raw is List<object?> authors)
+                await MapAuthors.ReplaceAsync(db, mapId, authors, ct);
+        }, ct);
 
     private static string? NullIfEmpty(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 }
