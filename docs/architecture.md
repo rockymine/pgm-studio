@@ -141,6 +141,18 @@ than with the route because what went wrong is what decides it.
 one line each is now: the slug is read off the request, because a route that loads a map by anything other
 than its own `{slug}` is doing something else and should say so.
 
+**Four of the ten the board named are in `Api/Services` now, as operations rather than handlers.**
+`DocumentWrite` is the guarded replace behind `PUT …/plan`, `PUT …/sketch`, `PUT …/sketch/from-plan` and the
+intent write — one operation, because a plan and a layout are stored the same way and refuse the same two
+things, and what differs between them is what each document says about *itself*. `MapEdit` is the thirty-six
+edit routes' one path, moved off `Endpoints` and made HTTP-free with it. `IntentWrite` was already an
+operation and was simply misfiled.
+
+**The revision now crosses as a value.** An operation is handed the revision the caller stated and answers
+the one it landed at; that the first arrives in an `If-Match` and the second leaves in an `ETag` is
+`Revisions`' business and nothing below it knows. That is what let `Writes` go: its whole content was
+carrying an `HttpContext` down to where the store is.
+
 **The use cases are the thirteen handlers that read state and write it back**, and three of those also run a
 gate: `SketchFinish`, `SketchFromPlan`, `SketchPut`. Everything else is a read, or a thin pass-through to an
 editor in `Pgm/Editing`. So the problem is not volume; it is that a step of the pipeline has nowhere to live

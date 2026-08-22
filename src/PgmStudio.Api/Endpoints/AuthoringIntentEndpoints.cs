@@ -25,85 +25,6 @@ public sealed class IntentGetEndpoint(MapRepository repo, MapArtifactStore artif
     }
 }
 
-/// <summary>
-/// Storing an intent on a map: persist the <c>map_intent_json</c> artifact, then project it into the PGM
-/// document (<see cref="TeamsGenerator"/>) and save through the normal codec path. Idempotent — the
-/// generator clears its own prior output and the save path is entity-replace, so re-storing a corrected
-/// intent rewrites the spawn structure cleanly.
-/// <para>Both routes below go through here, so an author's edit and a rebuild from the plan cannot
-/// regenerate a map differently; they differ only in what reaches this point.</para>
-/// </summary>
-internal static class IntentWrite
-{
-    /// <summary>Store the intent and project it into the map document. The <c>If-Match</c> guards the
-    /// <b>intent</b>, which is the document the caller read and posted; the projection that follows rewrites
-    /// the map from it, so guarding both would refuse a write against a map the caller never claimed to have
-    /// read.</summary>
-    public static async Task<(int Status, object? Body)> StoreAndProjectAsync(
-        HttpContext http, MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-        MojangClient mojang, string slug, long mapId, string body, CancellationToken ct)
-    {
-        var intent = Stated(body) ?? new MapIntent();
-
-        var stored = await Writes.StoreAsync(http, artifacts, mapId, ArtifactKind.MapIntentJson,
-            JsonSerializer.SerializeToUtf8Bytes(intent, MapArtifactStore.Json), ct);
-        if (stored is null)
-            return (Revisions.StaleStatus, Revisions.Stale(http, "intent",
-                await artifacts.RevisionAsync(mapId, ArtifactKind.MapIntentJson, ct)));
-
-        // A stated name is looked up here (async, outside the pure generator) so an account gets its uuid.
-        var authors = await ResolveAuthorsAsync(mojang, intent, ct);
-        return await WriteSupport.RunEditAsync(http, repo, reader, writer, slug,
-            doc => { IntentGenerator.Apply(doc, intent); if (authors is not null) doc["authors"] = authors; return new Dict(); },
-            ct, guarded: false);
-    }
-
-    /// <summary>What a body states as an intent, or null where it states none. A body that will not read as
-    /// one is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
-    public static MapIntent? Stated(string json)
-    {
-        if (string.IsNullOrWhiteSpace(json)) return null;
-        try { return JsonSerializer.Deserialize<MapIntent>(json, MapArtifactStore.Json); }
-        catch (JsonException) { return null; }
-    }
-
-    // Turn each stated author/contributor into {uuid, name, role, contribution}. PGM takes a person as an
-    // account — a `uuid` it resolves to a player — or a pseudonym, the element's own text, and either alone
-    // is a whole author, so a name Mojang does not know is kept as a pseudonym rather than dropped: the
-    // intent already models one (`AuthorIntentJson` reads a bare string into `Name`) and the codec already
-    // writes one (`XmlWriter.WriteAuthors` emits `<author>Name</author>` when the uuid is empty).
-    //
-    // Null is what an intent naming nobody answers, and the caller leaves the map's own people alone for it.
-    // The intent owns the map's structure and not its credits: those are stated through PATCH …/metadata and
-    // live in the map's rows, so a projection that wrote an empty list here would clear an answer it was
-    // never given — which is what a compiled intent does, since it carries a `meta` naming the map and no
-    // people in it. Clearing the authors is the metadata route's, where a stated empty list means exactly
-    // that.
-    private static async Task<List<object?>?> ResolveAuthorsAsync(MojangClient mojang, MapIntent intent, CancellationToken ct)
-    {
-        if (intent.Meta is not { } m) return null;
-        var resolved = new List<object?>();
-        async Task Add(IEnumerable<AuthorIntent> people, string role)
-        {
-            foreach (var person in people.Where(p => p.Name.Trim().Length > 0))
-            {
-                var stated = person.Name.Trim();
-                var (uuid, name) = ("", stated);
-                try { (uuid, name) = await mojang.LookupAsync(stated, ct); }
-                catch { /* not an account — the stated name stands on its own as a pseudonym */ }
-                resolved.Add(new Dict
-                {
-                    ["uuid"] = uuid, ["name"] = name, ["role"] = role,
-                    ["contribution"] = person.Contribution,
-                });
-            }
-        }
-        await Add(m.Authors, "author");
-        await Add(m.Contributors, "contributor");
-        return resolved.Count > 0 ? resolved : null;
-    }
-}
-
 /// <summary>PUT /api/map/{slug}/intent — store the intent the author edited and regenerate the map from
 /// it. Replaces the stored intent wholesale, which is what makes a deletion in Configure stick.</summary>
 public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts, MojangClient mojang) : EndpointWithoutRequest
@@ -123,8 +44,9 @@ public sealed class IntentPutEndpoint(MapRepository repo, MapReader reader, MapW
         var body = await RawBody.ReadAsync(HttpContext, ct);
         Complaints.Unread(HttpContext, body, IntentWrite.Stated(body));
 
-        var (status, resp) = await IntentWrite.StoreAndProjectAsync(HttpContext, repo, reader, writer, artifacts, mojang, slug, map.Id, body, ct);
-        await Send.ResponseAsync(resp!, status, ct);
+        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug,
+            map.Id, body, Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -165,7 +87,8 @@ public sealed class IntentFromPlanEndpoint(MapRepository repo, MapReader reader,
         var stored = await artifacts.LoadAsync(map.Id, ArtifactKind.MapIntentJson, ct);
         var merged = IntentCarry.CarryAuthored(compiled, stored is null ? null : Encoding.UTF8.GetString(stored));
 
-        var (status, resp) = await IntentWrite.StoreAndProjectAsync(HttpContext, repo, reader, writer, artifacts, mojang, slug, map.Id, merged, ct);
-        await Send.ResponseAsync(resp!, status, ct);
+        var applied = await IntentWrite.StoreAndProjectAsync(repo, reader, writer, artifacts, mojang, slug,
+            map.Id, merged, Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }

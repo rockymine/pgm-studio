@@ -69,12 +69,13 @@ public static class MapFromDocuments
 
             // Then the intent, which stores it and projects the document from it — and only then the authors,
             // because that projection is what would overwrite them.
-            var (status, body) = await IntentWrite.StoreAndProjectAsync(
-                http, repo, reader, writer, artifacts, mojang, slug, mapId, request.Intent.GetRawText(), ct);
-            if (status != 200)
+            var applied = await IntentWrite.StoreAndProjectAsync(
+                repo, reader, writer, artifacts, mojang, slug, mapId, request.Intent.GetRawText(),
+                expected: null, ct);
+            if (applied.Refusal is { } refused)
             {
                 await repo.DeleteMapAsync(mapId, ct);
-                return new(new Refusal(status, "intent not stored", Findings(body)));
+                return new(refused);
             }
 
             if (request.Authors is { Count: > 0 } authors)

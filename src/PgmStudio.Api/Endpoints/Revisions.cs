@@ -46,28 +46,4 @@ internal static class Revisions
     /// <summary>Answer the revision the document is at, so a caller can hold it and guard its next write.</summary>
     public static void Answer(HttpContext http, long revision) =>
         http.Response.Headers[HeaderNames.ETag] = $"\"{revision}\"";
-
-    /// <summary>The status a stale write answers. <c>RQ5</c>'s own, for the reason above.</summary>
-    public const int StaleStatus = 409;
-
-    /// <summary>The refusal for a write against a revision the document no longer has: what was expected,
-    /// what is stored, and what to do about it — read it again and re-apply, because the studio has no way to
-    /// merge two whole-document writes and guessing at one would lose whichever half it guessed against.
-    /// <para>A value rather than a written response, so a route that answers its own body and one that hands
-    /// a body back for a caller to send can both use it — the same split <see cref="Refusals.Of"/> has.</para>
-    /// </summary>
-    public static Contracts.RefusalDto Stale(HttpContext http, string what, long? stored) =>
-        Refusals.Of("stale write",
-            [new Finding(RequestRules.Conflict,
-                stored is { } now
-                    ? $"this {what} has been replaced since it was read — the If-Match states "
-                      + $"{Expected(http)} and it is at {now}; read it again and re-apply the change"
-                    : $"this map holds no {what} to replace, so the If-Match matches nothing")]);
-
-    /// <summary>The same refusal, written to the response.</summary>
-    public static Task StaleAsync(HttpContext http, string what, long? stored, CancellationToken ct)
-    {
-        http.Response.StatusCode = StaleStatus;
-        return http.Response.WriteAsJsonAsync(Stale(http, what, stored), ct);
-    }
 }

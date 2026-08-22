@@ -41,35 +41,6 @@ internal static class WriteSupport
     /// <summary>The wire's own spelling — camelCase, and each property's own name where it states one.
     /// </summary>
     private static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web);
-
-    /// <summary>Load the map doc, apply an edit, and persist via MapWriter. Returns (status, body).
-    /// <para>Every edit route comes through here, so the revision guard does too: a request stating an
-    /// <c>If-Match</c> writes only if the map is still at it, and one that is not answers <c>RQ5</c> in the
-    /// body the caller was going to send anyway (<see cref="Revisions"/>).</para></summary>
-    /// <param name="guarded">Whether the request's <c>If-Match</c> names <b>this</b> document. True for an
-    /// edit route, whose caller read the map. False where the header names something else the same request
-    /// already guarded — an intent write states the intent's revision, and the projection that follows it
-    /// rewrites the map, whose revision is a different number: guarding it with the same header would refuse
-    /// every guarded intent write.</param>
-    public static async Task<(int status, object? body)> RunEditAsync(
-        HttpContext http, MapRepository repo, MapReader reader, MapWriter writer, string slug,
-        Func<Dict, Dict> edit, CancellationToken ct, bool guarded = true)
-    {
-        var map = await repo.GetBySlugAsync(slug, ct);
-        if (map is null)
-            return (404, Refusals.Of("no such map",
-                [new Finding(RequestRules.NoSuchSubject, $"no map is stored under '{slug}'")]));
-        var doc = await reader.ReadDocAsync(map, ct);
-        try
-        {
-            var result = edit(doc);
-            if (await Writes.StoreDocAsync(http, writer, map.Id, doc, guarded, ct) is null)
-                return (Revisions.StaleStatus,
-                        Revisions.Stale(http, "map", await writer.RevisionAsync(map.Id, ct)));
-            return (200, result);
-        }
-        catch (EditException ex) { return (ex.Status, Refusals.Of(ex.Error, [ex.Finding])); }
-    }
 }
 
 /// <summary>PATCH /api/map/{slug}/metadata — update name/version/objective/max_build_height
@@ -128,8 +99,8 @@ public sealed class TeamCreateEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(TeamCreateRequest req, CancellationToken ct)
     {
         var payload = WriteSupport.Stated(req);
-        var (status, body) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.AddTeam(doc, payload), ct);
-        await Send.ResponseAsync(body!, status, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.AddTeam(doc, payload), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -147,8 +118,8 @@ public sealed class TeamUpdateEndpoint(MapRepository repo, MapReader reader, Map
     {
         var teamId = Route<string>("teamId")!;
         var payload = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (status, body) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.UpdateTeam(doc, teamId, payload), ct);
-        await Send.ResponseAsync(body!, status, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.UpdateTeam(doc, teamId, payload), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -165,7 +136,7 @@ public sealed class TeamDeleteEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var teamId = Route<string>("teamId")!;
-        var (status, body) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.DeleteTeam(doc, teamId), ct);
-        await Send.ResponseAsync(body!, status, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => TeamEditor.DeleteTeam(doc, teamId), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }

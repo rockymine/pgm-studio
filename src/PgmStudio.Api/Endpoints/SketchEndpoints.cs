@@ -152,13 +152,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        using var ms = new MemoryStream();
-        await HttpContext.Request.Body.CopyToAsync(ms, ct);
-        var bytes = ms.ToArray();
-        try { using var _ = JsonDocument.Parse(bytes); }   // reject non-JSON; don't store garbage
-        catch (JsonException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
-
+        var bytes = await RawBody.BytesAsync(HttpContext, ct);
         var layoutJson = Encoding.UTF8.GetString(bytes);
         var findings = SketchRoomStyleGate.Check(layoutJson);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
@@ -171,12 +165,11 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         var document = SketchLayoutCheck.Check(layout);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
-        if (await Writes.StoreAsync(HttpContext, artifacts, map.Id, ArtifactKind.SketchLayoutJson, bytes, ct) is null)
-        {
-            await Revisions.StaleAsync(HttpContext, "sketch layout",
-                await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct), ct);
-            return;
-        }
+        var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
+            "sketch layout", bytes, Revisions.Expected(HttpContext), ct);
+        if (written.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
+
+        Revisions.Answer(HttpContext, written.Revision!.Value);
         await Send.OkAsync(new OkDto(), ct);
     }
 }
@@ -275,13 +268,11 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         var document = SketchLayoutCheck.Check(merged);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
-        if (await Writes.StoreAsync(HttpContext, artifacts, map.Id, ArtifactKind.SketchLayoutJson,
-                Encoding.UTF8.GetBytes(merged), ct) is null)
-        {
-            await Revisions.StaleAsync(HttpContext, "sketch layout",
-                await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct), ct);
-            return;
-        }
+        var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
+            "sketch layout", Encoding.UTF8.GetBytes(merged), Revisions.Expected(HttpContext), ct);
+        if (written.Refusal is { } stale) { await Refusals.WriteAsync(HttpContext, stale, ct); return; }
+
+        Revisions.Answer(HttpContext, written.Revision!.Value);
         await Send.OkAsync(new SketchFromPlanDto(true, orphans), ct);
     }
 }

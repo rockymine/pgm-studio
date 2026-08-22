@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Pgm.Editing;
@@ -20,8 +21,8 @@ public sealed class SpawnCreateEndpoint(MapRepository repo, MapReader reader, Ma
     public override async Task HandleAsync(SpawnCreateRequest req, CancellationToken ct)
     {
         var p = WriteSupport.Stated(req);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.AddSpawnLink(doc, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.AddSpawnLink(doc, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -38,8 +39,8 @@ public sealed class SpawnUpdateEndpoint(MapRepository repo, MapReader reader, Ma
     {
         var rid = Route<string>("regionId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.UpdateSpawnLink(doc, rid, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.UpdateSpawnLink(doc, rid, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -55,8 +56,8 @@ public sealed class SpawnDeleteEndpoint(MapRepository repo, MapReader reader, Ma
     public override async Task HandleAsync(CancellationToken ct)
     {
         var rid = Route<string>("regionId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.DeleteSpawnLink(doc, rid), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.DeleteSpawnLink(doc, rid), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -73,8 +74,8 @@ public sealed class ObserverSpawnSetEndpoint(MapRepository repo, MapReader reade
     public override async Task HandleAsync(ObserverSpawnRequest req, CancellationToken ct)
     {
         var p = WriteSupport.Stated(req);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.SetObserverSpawn(doc, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => SpawnEditor.SetObserverSpawn(doc, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -89,7 +90,7 @@ public sealed class ObserverSpawnDeleteEndpoint(MapRepository repo, MapReader re
     }
     public override async Task HandleAsync(CancellationToken ct)
     {
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, SpawnEditor.DeleteObserverSpawn, ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, SpawnEditor.DeleteObserverSpawn, Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }

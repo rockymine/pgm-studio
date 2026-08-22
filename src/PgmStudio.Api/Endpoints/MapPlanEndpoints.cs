@@ -3,6 +3,7 @@ using System.Text.Json;
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -169,24 +170,18 @@ public sealed class MapPlanPutEndpoint(MapRepository repo, MapArtifactStore arti
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        using var ms = new MemoryStream();
-        await HttpContext.Request.Body.CopyToAsync(ms, ct);
-        var bytes = ms.ToArray();
-        try { using var _ = JsonDocument.Parse(bytes); }   // reject non-JSON; don't store garbage
-        catch (JsonException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid JSON", fault.Message, ct); return; }
+        var bytes = await RawBody.BytesAsync(HttpContext, ct);
 
         // The blob is stored verbatim, so a field the plan reader has nowhere to keep is stored too and
         // silently ignored by everything downstream. Said here, where the author can still act on it.
         var planJson = Encoding.UTF8.GetString(bytes);
         Complaints.Unread(HttpContext, planJson, PlanModel.Stated(planJson));
 
-        if (await Writes.StoreAsync(HttpContext, artifacts, map.Id, ArtifactKind.PlanJson, bytes, ct) is null)
-        {
-            await Revisions.StaleAsync(HttpContext, "plan",
-                await artifacts.RevisionAsync(map.Id, ArtifactKind.PlanJson, ct), ct);
-            return;
-        }
+        var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.PlanJson, "plan",
+            bytes, Revisions.Expected(HttpContext), ct);
+        if (written.Refusal is { } refusal) { await Refusals.WriteAsync(HttpContext, refusal, ct); return; }
+
+        Revisions.Answer(HttpContext, written.Revision!.Value);
         await Send.OkAsync(new OkDto(), ct);
     }
 }

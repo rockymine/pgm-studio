@@ -1,4 +1,5 @@
 using FastEndpoints;
+using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Pgm.Editing;
@@ -19,8 +20,8 @@ public sealed class WoolCreateEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddWool(doc, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddWool(doc, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -37,8 +38,8 @@ public sealed class WoolUpdateEndpoint(MapRepository repo, MapReader reader, Map
     {
         var id = Route<string>("woolId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateWool(doc, id, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateWool(doc, id, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -54,8 +55,8 @@ public sealed class WoolDeleteEndpoint(MapRepository repo, MapReader reader, Map
     public override async Task HandleAsync(CancellationToken ct)
     {
         var id = Route<string>("woolId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteWool(doc, id), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteWool(doc, id), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -72,8 +73,8 @@ public sealed class MonumentCreateEndpoint(MapRepository repo, MapReader reader,
     {
         var wid = Route<string>("woolId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddMonument(doc, wid, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.AddMonument(doc, wid, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -90,8 +91,8 @@ public sealed class MonumentUpdateEndpoint(MapRepository repo, MapReader reader,
     {
         var wid = Route<string>("woolId")!; var mid = Route<string>("monId")!;
         var p = await WriteSupport.ReadPayloadAsync(HttpContext, ct);
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateMonument(doc, wid, mid, p), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.UpdateMonument(doc, wid, mid, p), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }
 
@@ -107,7 +108,7 @@ public sealed class MonumentDeleteEndpoint(MapRepository repo, MapReader reader,
     public override async Task HandleAsync(CancellationToken ct)
     {
         var wid = Route<string>("woolId")!; var mid = Route<string>("monId")!;
-        var (s, b) = await WriteSupport.RunEditAsync(HttpContext, repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteMonument(doc, wid, mid), ct);
-        await Send.ResponseAsync(b!, s, ct);
+        var applied = await MapEdit.RunAsync(repo, reader, writer, Route<string>("slug")!, doc => WoolEditor.DeleteMonument(doc, wid, mid), Revisions.Expected(HttpContext), ct);
+        await Send.ResponseAsync(applied.Body(HttpContext), applied.Status(), ct);
     }
 }

@@ -20,4 +20,14 @@ internal static class RawBody
         using var reader = new StreamReader(http.Request.Body);
         return await reader.ReadToEndAsync(ct);
     }
+
+    /// <summary>The bytes exactly as they arrived, for a route that stores the document rather than reading
+    /// it: what is kept is what was sent, so a field the reader has nowhere to put is still in the map's copy
+    /// and can be complained about instead of vanishing.</summary>
+    public static async Task<byte[]> BytesAsync(HttpContext http, CancellationToken ct)
+    {
+        using var buffer = new MemoryStream();
+        await http.Request.Body.CopyToAsync(buffer, ct);
+        return buffer.ToArray();
+    }
 }
