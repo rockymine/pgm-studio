@@ -16,7 +16,7 @@ namespace PgmStudio.Minecraft.Dressing;
 ///
 /// <para>The two kinds of geometry are the two ways a decision can be shaped. A <b>point</b> prop stands
 /// somewhere (<see cref="TreeProp"/>, <see cref="BoulderProp"/>); an <b>area</b> prop covers a stretch
-/// (<see cref="PathProp"/> along a line, <see cref="FloraProp"/> inside a ring). Within an area the placement
+/// (<see cref="StrokeProp"/> along a line, <see cref="FloraProp"/> inside a ring). Within an area the placement
 /// is still a noise field, because nobody wants to place nine hundred blades of grass — but the area itself
 /// was drawn.</para>
 ///
@@ -24,7 +24,7 @@ namespace PgmStudio.Minecraft.Dressing;
 /// one, which is the same contract the layout itself has had all along.</para>
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(PathProp), "path")]
+[JsonDerivedType(typeof(StrokeProp), "stroke")]
 [JsonDerivedType(typeof(WaterProp), "water")]
 [JsonDerivedType(typeof(TreeProp), "tree")]
 [JsonDerivedType(typeof(BoulderProp), "boulder")]
@@ -39,38 +39,55 @@ public abstract record PlacedProp
     /// different seeds differ; the same prop always re-exports identically.</summary>
     public uint Seed { get; init; }
 
-    /// <summary>The clear ground this kind of prop keeps between its resting cells and the nearest road
-    /// cell, in blocks — a rule of the kind rather than a knob, which is why it is a property of the type
-    /// and not a stored field. Zero for most props: a road is a finish, and cover, water and buildings may
-    /// run right up to one. A tree and a boulder state their own (the author's ruling), because a trunk
-    /// against the kerb reads as the road growing through the forest rather than the road passing it.</summary>
+    /// <summary>The clear ground this kind of prop keeps between its resting cells and the nearest cell a
+    /// <b>route</b> claims, in blocks — a rule of the kind rather than a knob, which is why it is a property
+    /// of the type and not a stored field. Zero for most props: a road is a finish, and cover, water and
+    /// buildings may run right up to one. A tree and a boulder state their own (the author's ruling), because
+    /// a trunk against the kerb reads as the road growing through the forest rather than the road passing it.
+    /// A stroke that is paint rather than a route claims nothing, so nothing stands off it.</summary>
     public virtual int RouteStandoff => 0;
 }
 
-/// <summary>A route across the ground: the line the author drew and how wide a strip of it is paved. A path
-/// replaces the surface it crosses rather than adding to it — it is a finish, not terrain — which is why it
-/// carries a material rather than a height, and why nothing grows on what it covers.</summary>
-public sealed record PathProp : PlacedProp
+/// <summary>
+/// A stroke of surface along a drawn line: the centerline, how far either side of it is covered, and what
+/// with. A stroke replaces the surface it crosses rather than adding to it — it is a finish, not terrain —
+/// which is why it carries a material rather than a height.
+///
+/// <para><b>What a stroke <em>is</em> is <see cref="Route"/>, and it is not the style.</b>
+/// <see cref="PathStyle"/> shapes the band — solid, worn, rough, stones, tapered — which is a brush, and a
+/// brush says nothing about whether players read the result as a way through. A gravel tongue over a crag and
+/// a road between two spawns can be the same brush at the same radius. Only a route claims its cells as one,
+/// and that claim is what a tree's and a boulder's standoff is measured to, so paint is the default and a
+/// route is declared: the standoff exists to stop a canopy closing over a road, and asking it of every
+/// painted patch leaves a board with nothing plantable on it.</para>
+/// </summary>
+public sealed record StrokeProp : PlacedProp
 {
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
-    /// <summary>Half the paved width, in blocks.</summary>
+    /// <summary>How far either side of the centerline is covered, in blocks — half the band.</summary>
     public double Radius { get; init; } = 3;
 
+    /// <summary>The brush: what shape the band takes along the line. Independent of <see cref="Route"/>, since
+    /// a road and a smear of dirt can be drawn with the same one.</summary>
     public PathStyle Style { get; init; } = PathStyle.Solid;
 
-    /// <summary>0–1; what a <see cref="PathStyle.Worn"/> path keeps. Every other style paves its whole band.</summary>
+    /// <summary>Whether players read this stroke as a way through. A route claims its cells, so a tree and a
+    /// boulder keep their stated distance from it; paint claims nothing and is planted over freely.</summary>
+    public bool Route { get; init; }
+
+    /// <summary>0–1; what a <see cref="PathStyle.Worn"/> stroke keeps. Every other style covers its whole band.</summary>
     public double Coverage { get; init; } = 0.7;
 
-    /// <summary>What the path is paved with — a full terrain material, so a road is a solid, a cobbled fabric,
-    /// a noise ramp or any pattern the painter offers. The style above shapes the <em>band</em>; this decides
-    /// what fills it, and the two are independent: a worn cobble and a solid cobble are both sayable.</summary>
+    /// <summary>What the stroke lays down — a full terrain material, so a road is a solid, a cobbled fabric, a
+    /// noise ramp or any pattern the painter offers. The style shapes the <em>band</em>; this decides what
+    /// fills it, and the two are independent: a worn cobble and a solid cobble are both sayable.</summary>
     public TerrainMaterial Pave { get; init; } = new SolidMaterial(Palette.Blocks.Gravel);
 }
 
 /// <summary>A channel of water: the line the author drew, and how wide and deep a bed is cut under it. Unlike a
-/// <see cref="PathProp"/>, which repaints the surface and adds no cell, water is the one prop that changes the
+/// <see cref="StrokeProp"/>, which repaints the surface and adds no cell, water is the one prop that changes the
 /// ground — it takes material <em>out</em> to a carved bed and fills that bed to a level water line, because
 /// water laid flat on a surface reads as blue paint rather than water. It only ever cuts existing terrain: the
 /// carve stops at the surface it crosses and never fills what was already air.</summary>
@@ -125,7 +142,7 @@ public sealed record WaterProp : PlacedProp
 /// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Grown"/> tree
 /// is the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. Each
 /// form reads only its own fields, so the ones it does not read are inert rather than wrong — the same way a
-/// <see cref="PathProp"/> spends <see cref="PathProp.Coverage"/> only when it is worn.</para>
+/// <see cref="StrokeProp"/> spends <see cref="StrokeProp.Coverage"/> only when it is worn.</para>
 /// </summary>
 public sealed record TreeProp : PlacedProp
 {

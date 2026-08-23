@@ -34,10 +34,15 @@ namespace PgmStudio.Export;
 /// Carried rather than re-derived: every gate that asks where the ground is has to ask the reading the world
 /// was actually built from, and a second <see cref="SketchRasterizer.RasterizeColumns"/> over the same layout
 /// is a second answer free to disagree with the first.</param>
+/// <param name="Dressing">What the dressing pass placed and what it declined, as the pass itself reported it.
+/// Carried rather than left inside the build because the claim a prop made — the cells a stroke's style,
+/// coverage and seed actually decided on — is reachable no other way, and a keep-out computed against a guess
+/// at it is a keep-out tuned to the wrong distances.</param>
 public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
     IReadOnlyList<Finding>? Declined = null,
-    IReadOnlyList<(int X, int Z, int YFloor, int YTop)>? Columns = null)
+    IReadOnlyList<(int X, int Z, int YFloor, int YTop)>? Columns = null,
+    DressingPlacement Dressing = default)
 {
     /// <summary>Every prop that did not land, and why. Never null — a caller spreading this into a list of
     /// warnings must not have to tell an absent list from an empty one.</summary>
@@ -342,7 +347,7 @@ public static class WorldBuilder
         List<Finding>? complaints = goalComplaints.Count > 0 || dressed.Declines.Count > 0
             ? [.. goalComplaints, .. dressed.Declines]
             : null;
-        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns);
+        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).

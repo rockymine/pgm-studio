@@ -212,6 +212,22 @@ public static class SectionRender
     /// <summary>What share of its brightness the furthest visible block keeps.</summary>
     private const double Recess = 0.45;
 
+    /// <summary>How far the world reaches on the axis a cut's <c>at</c> is taken on, in blocks, or null for a
+    /// world with no chunk. Chunk-aligned, since that is the granularity a world is stored at, and it is what
+    /// lets a caller be told the range instead of being handed a picture of nothing.</summary>
+    public static (int Min, int Max)? Span(IEnumerable<AnvilRegion.Chunk> chunks, SectionAxis axis)
+    {
+        int? min = null, max = null;
+        foreach (var chunk in chunks)
+        {
+            // The cut runs along one axis, so `at` names the other: a cut along x is taken at a z.
+            var index = axis == SectionAxis.AlongX ? chunk.ChunkZ : chunk.ChunkX;
+            min = min is { } low ? Math.Min(low, index) : index;
+            max = max is { } high ? Math.Max(high, index) : index;
+        }
+        return min is { } lowChunk && max is { } highChunk ? (lowChunk * 16, highChunk * 16 + 15) : null;
+    }
+
     /// <summary>Which chunk a cut coordinate falls in, on the fixed side of the line.</summary>
     private static (int Cx, int Cz) ChunkOf(SectionAxis axis, int cut, int fixedCoord) =>
         axis == SectionAxis.AlongX ? (FloorDiv16(cut), FloorDiv16(fixedCoord)) : (FloorDiv16(fixedCoord), FloorDiv16(cut));

@@ -84,9 +84,9 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
         [
-            new PathProp
+            new StrokeProp
             {
-                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
+                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
             new HouseProp
@@ -107,10 +107,39 @@ public sealed class DecoratorTests
         await Assert.That(drop.Message).Contains("tree 't' rests on (");
         // The road got there first and keeps the cell, so that is what the decline names — the record says
         // who holds the ground, not merely that something does.
-        await Assert.That(drop.Message).Contains("claimed by the path 'p'");
+        await Assert.That(drop.Message).Contains("claimed by the route 'p'");
         // The road survives up to the wall and the house's floor owns the ground inside it.
         await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
         await Assert.That(world.GetBlock(14, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
+    }
+
+    [Test]
+    public async Task Paint_is_planted_over_and_only_a_route_is_kept_clear_of()
+    {
+        // The standoff exists to stop a canopy closing over a road. A stroke that is a grass tongue over a
+        // crag is ground rather than a way through, and asking the same distance of it is what leaves a board
+        // with nothing plantable: the same geometry, the same brush, one word apart.
+        StrokeProp Band(bool route) => new()
+        {
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = route,
+            Pave = new SolidMaterial(Blocks.Gravel),
+        };
+
+        var (painted, paintedTop) = Plateau();
+        var overPaint = Decorator.Decorate(painted, Context(paintedTop,
+            [Band(route: false), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
+        await Assert.That(overPaint.Trees).IsEqualTo(1);
+        await Assert.That(overPaint.Declines).IsEmpty();
+
+        var (paved, pavedTop) = Plateau();
+        var overRoute = Decorator.Decorate(paved, Context(pavedTop,
+            [Band(route: true), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
+        await Assert.That(overRoute.Trees).IsEqualTo(0);
+        await Assert.That(overRoute.Declines.Single(d => d.SubjectIds.Contains("t")).Rule)
+            .IsEqualTo(DressingRules.RoadStandoff);
+
+        // Both lay the same ground: paint is not a weaker road, it is the same band without the claim.
+        await Assert.That(overPaint.PathCells).IsEqualTo(overRoute.PathCells);
     }
 
     [Test]
@@ -120,9 +149,9 @@ public sealed class DecoratorTests
         // road. The path here paves z 18–21 (radius 2 on the z=20 line), so a trunk at z=23 stands two blocks
         // off the pavement — inside a tree's three-block standoff — and one at z=25 keeps it. A rock's
         // standoff is the shorter two: one resting against the kerb is refused, one well clear seats.
-        PathProp Road() => new()
+        StrokeProp Road() => new()
         {
-            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
             Pave = new SolidMaterial(Blocks.Gravel),
         };
 
@@ -361,7 +390,7 @@ public sealed class DecoratorTests
         // The distinction the phase is built on: terrain is the draw phase's, a finish is dressing's. A path
         // that added a cell would lift itself into a kerb and would belong in the other phase.
         var (world, top) = Plateau();
-        var tally = Decorator.Decorate(world, Context(top, [new PathProp
+        var tally = Decorator.Decorate(world, Context(top, [new StrokeProp
         {
             Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
             Pave = new SolidMaterial(Blocks.Gravel),
@@ -381,7 +410,7 @@ public sealed class DecoratorTests
         int Paved(PathStyle style, double coverage = 0.7)
         {
             var (world, top) = Plateau();
-            return Decorator.Decorate(world, Context(top, [new PathProp
+            return Decorator.Decorate(world, Context(top, [new StrokeProp
             {
                 Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = style, Coverage = coverage, Seed = 5,
                 Pave = new SolidMaterial(Blocks.Gravel),
@@ -401,7 +430,7 @@ public sealed class DecoratorTests
         // The paving is a terrain material, resolved cell by cell — so a cobbled road is a cell pattern at a
         // small patch size rather than a mode of the stroke, and every material in it reaches the ground.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new PathProp
+        Decorator.Decorate(world, Context(top, [new StrokeProp
         {
             Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5,
             Pave = new CellMaterial(5, 3, 100, 0,
@@ -424,7 +453,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         world.SetBlock(20, 7, 20, Blocks.Wool, 14);
 
-        Decorator.Decorate(world, Context(top, [new PathProp
+        Decorator.Decorate(world, Context(top, [new StrokeProp
         {
             Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel),
         }]));
@@ -439,7 +468,7 @@ public sealed class DecoratorTests
         var (world, top) = Plateau();
         Decorator.Decorate(world, Context(top,
         [
-            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
+            new StrokeProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
         ]));
 
@@ -923,7 +952,7 @@ public sealed class DecoratorTests
     public async Task A_path_is_mirrored_as_a_whole_route_rather_than_cell_by_cell()
     {
         var (world, top) = Plateau(80, from: -40);
-        var tally = Decorator.Decorate(world, Context(top, [new PathProp
+        var tally = Decorator.Decorate(world, Context(top, [new StrokeProp
         {
             Id = "p", Points = [[6, 6], [20, 14], [30, 8]], Radius = 2, Seed = 5,
             Pave = new SolidMaterial(Blocks.Gravel),
@@ -995,7 +1024,7 @@ public sealed class DecoratorTests
     {
         PlacedProp[] props =
         [
-            new PathProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = PathStyle.Worn, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
+            new StrokeProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = PathStyle.Worn, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
             new TreeProp { Id = "t", X = 12, Z = 12, Seed = 5 },
             new BoulderProp { Id = "b", X = 28, Z = 28, Seed = 3 },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(), Seed = 7 },
@@ -1026,7 +1055,7 @@ public sealed class DecoratorTests
         {
             Props =
             [
-                new PathProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Rough, Seed = 5,
+                new StrokeProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Rough, Seed = 5,
                                Pave = new CellMaterial(5, 3, 100, 0, [new SolidMaterial(4), new SolidMaterial(13)]) },
                 new TreeProp { Id = "t", X = 5, Z = 6, Species = "birch", Height = 22, Stems = 2, Seed = 9 },
                 new BoulderProp { Id = "b", X = 7, Z = 8, Form = BoulderForm.Cairn, Size = 4, Seed = 11 },
@@ -1038,8 +1067,8 @@ public sealed class DecoratorTests
 
         await Assert.That(back.Props.Select(prop => prop.GetType().Name))
             .IsEquivalentTo(doc.Props.Select(prop => prop.GetType().Name));
-        await Assert.That(((PathProp)back.Props[0]).Style).IsEqualTo(PathStyle.Rough);
-        await Assert.That(((PathProp)back.Props[0]).Pave).IsEqualTo(((PathProp)doc.Props[0]).Pave);
+        await Assert.That(((StrokeProp)back.Props[0]).Style).IsEqualTo(PathStyle.Rough);
+        await Assert.That(((StrokeProp)back.Props[0]).Pave).IsEqualTo(((StrokeProp)doc.Props[0]).Pave);
         await Assert.That(((TreeProp)back.Props[1]).Species).IsEqualTo("birch");
         await Assert.That(((BoulderProp)back.Props[2]).Form).IsEqualTo(BoulderForm.Cairn);
         await Assert.That(((FloraProp)back.Props[3]).Spec.Coverage).IsEqualTo(0.9);
@@ -1105,7 +1134,7 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_cobbled_path_written_before_the_pave_material_keeps_its_tiling()
     {
-        var prop = (PathProp)DressingJson.DeserializeProp(
+        var prop = (StrokeProp)DressingJson.DeserializeProp(
             "{\"kind\":\"path\",\"id\":\"p\",\"seed\":5,\"style\":\"cobble\","
             + "\"blocks\":[{\"id\":4,\"data\":0},{\"id\":13,\"data\":0}]}")!;
 
@@ -1114,7 +1143,7 @@ public sealed class DecoratorTests
             [new SolidMaterial(4), new SolidMaterial(13)]));
 
         // A path of any other style spent only its first block, so that is the solid it becomes.
-        var plain = (PathProp)DressingJson.DeserializeProp(
+        var plain = (StrokeProp)DressingJson.DeserializeProp(
             "{\"kind\":\"path\",\"id\":\"p\",\"seed\":5,\"blocks\":[{\"id\":13,\"data\":0}]}")!;
         await Assert.That(plain.Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
     }

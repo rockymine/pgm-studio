@@ -39,13 +39,13 @@ public sealed class DressingProvenanceTests
     }
 
     [Test]
-    [Arguments("tree")] [Arguments("boulder")] [Arguments("path")] [Arguments("flora")]
+    [Arguments("tree")] [Arguments("boulder")] [Arguments("stroke")] [Arguments("flora")]
     public async Task Every_kind_of_prop_claims_the_columns_it_covered(string kind)
     {
         var placed = Dress([
             new TreeProp { Id = "t1", X = 6, Z = 6, Seed = 5 },
             new BoulderProp { Id = "b1", X = -8, Z = 8, Seed = 3 },
-            new PathProp { Id = "p1", Points = [[-10, -10], [10, -10]], Radius = 2, Seed = 5 },
+            new StrokeProp { Id = "p1", Points = [[-10, -10], [10, -10]], Radius = 2, Seed = 5 },
             new FloraProp { Id = "f1", Points = [[2, 2], [20, 2], [20, 20], [2, 20]], Spec = new FloraSpec(), Seed = 7 },
         ]);
 

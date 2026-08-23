@@ -238,7 +238,7 @@ internal static class PropOptionEndpoints
 }
 
 /// <summary>GET /api/terrain/path-styles — the five ways a stroke paves the ground it crosses, each drawn.</summary>
-public sealed class PathStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
+public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
     public override void Configure() { Get("/terrain/path-styles"); AllowAnonymous(); }
 
@@ -246,8 +246,8 @@ public sealed class PathStyleCardsEndpoint : EndpointWithoutRequest<List<PropOpt
     {
         var pave = PropOptionEndpoints.MaterialOf(
             Query<string>("pave", isRequired: false), new SolidMaterial(Blocks.Gravel));
-        var template = new PathProp { Radius = 3, Seed = 5, Pave = pave };
-        return Send.OkAsync([.. DressingPreview.PathStyleCards(template, TerrainTheme.Default)], ct);
+        var template = new StrokeProp { Radius = 3, Seed = 5, Pave = pave };
+        return Send.OkAsync([.. DressingPreview.StrokeStyleCards(template, TerrainTheme.Default)], ct);
     }
 }
 

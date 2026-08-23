@@ -574,6 +574,11 @@ public static class SketchRasterizer
         }
     }
 
+    /// <summary>The cells a ring covers, by the same point-in-ring test every shape is rasterized with — so a
+    /// caller asking about a ring it has not drawn yet is asking about the cells it would actually get.</summary>
+    public static IEnumerable<(int X, int Z)> CellsOfRing(IReadOnlyList<double[]> ring)
+        => RasterRing([.. ring]);
+
     private static IEnumerable<(int, int)> RasterRing(List<double[]> ring)
     {
         if (ring.Count < 3) yield break;

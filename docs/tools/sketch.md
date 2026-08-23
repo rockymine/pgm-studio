@@ -322,7 +322,7 @@ all six, and solves to a surface running 7 to 16:
     "marks": [
       { "id": "r1", "kind": "point", "at": [-30, -10], "h": 15, "r": 5 },
       { "id": "r2", "kind": "line",  "points": [[-36, 6], [-20, 10], [-6, 6]],
-        "h": [12, 14, 11], "width": 3 },
+        "h": [12, 14, 11], "r": 1.5 },
       { "id": "r3", "kind": "area",  "ring": [[-38, -18], [-24, -18], [-24, -6], [-38, -6]], "h": 7 },
       { "id": "r4", "kind": "scarp", "points": [[2, -16], [2, 16]],
         "high": 14, "low": 8, "face": 2, "band": 5 },
@@ -346,9 +346,9 @@ two points, an area or push under three ring vertices never reaches the solver.
 Two server-side reads support the phase. The **contour overlay** posts the live layout and gets back traced
 lines per island, at a stated interval, from the build's own solver, so what is drawn cannot differ from what
 will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
-three thresholds a player has (a jump, a placed block, building in earnest), places separated from ledges,
-faces qualified as cliffs, crossings measured in both directions because a drop is free the way it falls, and
-the symmetry error. It is asked for rather than pushed, since it is a second solve's worth of measurement.
+three thresholds a player has (a jump, a placed block, building in earnest), places separated from ledges and
+each piece named with its cell count, its middle and its box, faces qualified as cliffs, crossings measured in
+both directions because a drop is free the way it falls, and the symmetry error. It is asked for rather than pushed, since it is a second solve's worth of measurement.
 
 `docs/world-export/relief.md` is this phase written out in full: the relaxation between the marks and why it
 is that rather than a weighting, what each knob costs measured on a room and on a whole map, how steepness
@@ -430,7 +430,7 @@ the symmetry orbit, so one half of a map is dressed and both halves match. Each 
 of the same kind and knobs differ from each other while any one prop re-exports identically.
 
 `docs/world-export/decoration.md` is the pass this phase feeds, one section per tool and each carrying its
-`DR*` rules: how a flora field reads the paint under it, how a path's band is derived from its centreline, how
+`DR*` rules: how a flora field reads the paint under it, how a stroke's band is derived from its centreline, how
 a boulder is seated half-buried, how a tree is copied or grown, and how a channel is dug. Two of those reach
 further. A grown tree is scored against `tree-corpus.md`, the 75 hand-built trees that are the measured ground
 truth for what a tree looks like; and the building prop stamps `structures.md`'s house, which is why what it
@@ -440,22 +440,27 @@ Six things can be placed, in three placement geometries.
 
 | Tool | Kind | Placed by | Starts as |
 |---|---|---|---|
-| Path | `path` | tracing a line | gravel, radius 3, `solid`, coverage 0.7 |
+| Stroke | `stroke` | tracing a line | gravel, radius 3, `solid`, coverage 0.7, paint rather than a route |
 | Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | a `template` oak, height 12 |
 | Boulder | `boulder` | a click | a `round` mossy stone, size 2.5 |
 
-**Every one of them takes a style, and for the two that pave the ground the style and the material are
-separate questions.** A **path** replaces the surface it crosses rather than adding to it — it is a finish,
-not terrain, which is why it carries a material and no height, and why nothing grows on what it covers. Its
-`style` shapes the *band*: `solid` holds one width the whole way for a clean utility road, `worn` thins it by
+**Every one of them takes a style, and for the two that lay ground the style and the material are separate
+questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
+terrain, which is why it carries a material and no height. Its `style` shapes the *band*: `solid` holds one width the whole way for a clean utility road, `worn` thins it by
 a per-cell dice (that is what `coverage` spends), `rough` wanders the width by a noise field so the outline is
 organic rather than ruled, `stones` lays discs at intervals with gaps between them — stepping stones across a
 void — and `tapered` runs it fat in the middle and thin at the ends. What fills the band is `pave`, a **full
 terrain material**: a solid block, a layer stack, a Voronoi patchwork, a noise ramp, any pattern the painter
 offers. The two are independent, so a worn cobble and a solid cobble are both sayable.
+
+**`route` is the third question, and neither of the first two answers it.** A style is a brush; it says
+nothing about whether players read the result as a way through, and the same brush at the same radius draws a
+road between two spawns and a grass tongue over a crag. `route` is off unless stated: a route claims the cells
+it covers, so a tree keeps three blocks off it and a boulder two (`DR-ROAD`), while paint claims nothing and
+is planted over. Marking every stroke a route is how a board ends up with nowhere left to plant.
 
 **Water** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
 level water line, because water laid flat on a surface reads as blue paint. It only ever carves existing
@@ -480,7 +485,7 @@ form reads only its own fields, so the others are inert rather than wrong.
 **A boulder** takes a `form` — `round` (one lobe, half buried), `angular` (one heavily eroded lobe),
 `outcrop` (one wide flat lobe, a low shelf rather than a rock) or `cairn` (three shrinking lobes stacked) — a
 `size`, a `mossy` flag for whether moss creeps onto the sky-lit faces, and `rock`, a full terrain material
-like a path's paving. A rock's material resolves in the **boulder's own frame** rather than the map's, so a
+like a stroke's paving. A rock's material resolves in the **boulder's own frame** rather than the map's, so a
 mottled stone carries the same mottling to every image of its orbit instead of sampling whatever the world
 pattern says where each image happened to land.
 
@@ -586,8 +591,8 @@ each:
 
 ```json
 { "dressing": { "props": [
-  { "id": "d1", "kind": "path", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
-    "radius": 3, "style": "worn", "coverage": 0.7,
+  { "id": "d1", "kind": "stroke", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
+    "radius": 3, "style": "worn", "coverage": 0.7, "route": true,
     "pave": { "kind": "solid", "id": 13, "data": 0 } },
   { "id": "d2", "kind": "water", "seed": 2, "points": [[-30, -16], [-16, -12]],
     "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
@@ -607,7 +612,7 @@ each:
 ```
 
 The three geometries are visible in the shape of the entries: a marker carries `x`/`z`, a traced prop carries
-`points` — a line for a path or a channel, a closed ring for ground cover — and a building carries the two
+`points` — a line for a stroke or a channel, a closed ring for ground cover — and a building carries the two
 opposite corners of its rectangle. `pave`, `bank` and `rock` are full terrain materials, so any of the
 fourteen kinds in `library.md` may stand there; a building's `style` is a `HouseStyle` snapshot, and `{}`
 means the built-in shell.
@@ -737,7 +742,7 @@ Every endpoint is anonymous and rooted at `/api`.
 
 **Previews over a live layout.** All four take the working document as the body rather than reading the stored
 blob, so they track unsaved edits, and all four answer 400 rather than 500 on a layout they cannot process.
-All four run the document gate, so all four answer `SK3`/`SK4`/`SK5` under `warnings` beside whatever else they
+All six run the document gate, so all six answer `SK3`/`SK4`/`SK5` under `warnings` beside whatever else they
 carry — the board an author is looking at is the one place those complaints are worth reading.
 
 | Endpoint | Answers |
@@ -746,6 +751,22 @@ carry — the board an author is looking at is the one place those complaints ar
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. The claim is what a keep-out is measured against, and a stroke's is decided by its style, coverage and seed — none of which can be reasoned about from the document | 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `board too large` `SK2` · 404 |
+
+**A ring can be asked about before a shape is built on it.** `probe-footprint` measures against the
+**rasterised** footprint — the only coast that decides anything. A model of it rebuilt from the compiled
+shapes and their own polygons disagrees by a cell or two, because a ring faceted to sixty-four points is not
+the cells that ring covers, and a cell or two is the whole failure: a `raise` with no ground under it reads no
+terrain, falls back to the shape's own `floor` and stands a stub of cobble in open void, which nothing
+declines because a shape is terrain and terrain over void is a spur.
+
+The third answer is the one that needs saying. A cell is **land** where the footprint has it and **void**
+where it does not; a **hole** is a void cell the footprint *encloses* — a hub's two slots, a U-shaped wool
+room's notch. Those are made by **arrangement**, so no region marks one, and an add-shape dropped on one fills
+in the gap the layout was composed to have with nothing declined. `Cells.EnclosedVoid` is what names them,
+which is the same derivation `CT8` counts enclosed voids with, so the probe and the rule cannot disagree about
+what a hole is.
 
 **The column payload** is one flat integer array walked by its own counts:
 `cols = [x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]`, with `palette` a list of `#rrggbb`.

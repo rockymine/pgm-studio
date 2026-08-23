@@ -44,12 +44,14 @@
       }
       else if (kind == MarkKinds.Line)
       {
-        <Field Label="Width">
-          <LabelHint>(the band held either side)</LabelHint>
+        <Field Label="Radius">
+          <LabelHint>(blocks held either side of the line)</LabelHint>
           <ChildContent>
-            <NumberField Value="Num(MarkFields.Width, 3)" ValueChanged="SetWidth" Min="1" />
+            <NumberField Value="Num(MarkFields.Radius, 2)" ValueChanged="SetRadius" Min="0" />
           </ChildContent>
         </Field>
+        <p class="section-desc">The band the line writes is twice this — the same reading a point mark's
+          radius has, reaching from a line instead of from a point.</p>
         <div class="section-header section-header--ruled"><h2 class="section-title">Heights along it</h2></div>
         <p class="section-desc">One height holds the whole run. Add more and they interpolate between the
           vertices, which is what makes a drawn ridge fall as it goes rather than sit level.</p>

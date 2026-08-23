@@ -1202,6 +1202,57 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`Geom/Render/ObjectiveColors.cs`, `Export/CoverageRender.cs`, `Analysis/Playability/GroundCoverage.cs`,
   `Minecraft/Render/SectionRender.cs`, `Minecraft/Views/CellRaster.Pixels`, `Contracts/AnalysisDtos.cs`,
   `GroundCoverageTests.cs`)
+- **A stroke says whether it is a route, and the style does not (`WE21`).** `PathProp` claimed every cell it
+  laid as a route, so `DR-ROAD`'s standoff — three blocks for a tree, two for a boulder, reasoned about a
+  canopy closing over a road — was asked of every painted patch: twenty-one strokes over a 110 × 220 board
+  left **eleven** plantable cells on the whole map. The five styles are a **brush**, and a brush says nothing
+  about whether players read the result as a way through; a gravel tongue over a crag and a road between two
+  spawns are the same brush at the same radius. So the prop is `StrokeProp` (`"kind": "stroke"`) and carries
+  `route`, off by default: a route claims its cells and paint claims none. Not a waiver — a waiver is for a
+  gate that is right and an author deliberately off the norm, and this gate was being asked of the wrong
+  thing.
+  (`Minecraft/Dressing/PlacedProp.cs`, `Minecraft/Dressing/Decorator.PlaceStroke`,
+  `Minecraft/Dressing/DressingJson.cs`, `Client/Features/Sketch/SketchDressingInspector`,
+  `js/studio/dressing/dressing-doc.js`, `docs/world-export/decoration.md`, `DecoratorTests.cs`)
+
+- **The dressing pass answers without building (`WE20`).** A prop's resting cell, its resolved Y and its
+  decline were computed inside `Decorator` and reachable only by building and exporting a world, and
+  `PathStroke.Cells` — which decides every `DR-ROAD` distance from the style, the coverage and the seed — was
+  reachable from nowhere. `POST /map/{slug}/sketch/dressing` runs the same pass and stops before anything is
+  written: per prop the columns it covers, where it rests, the height it resolved to, and every decline as its
+  `DR-*` finding, with the claimed-cell total beside them. Two rebuild cycles on one board produced 13
+  declines tuned one way and 11 plantable cells tuned the other; neither number was a fact about the board.
+  (`Export/WorldBuilder.BuiltWorld.Dressing`, `Api/Endpoints/SketchEndpoints.cs`, `Contracts/AnalysisDtos.cs`,
+  `docs/world-export/decoration.md`, `docs/tools/sketch.md`)
+
+- **A ring can be asked whether it stands on land (`TS20`).** There was no way to ask, so an authoring run
+  rebuilt the land model outside the studio from the compiled shapes and their own polygons — and it disagreed
+  with the rasterised coast, which is the only one that decides anything. `POST /map/{slug}/sketch/probe-footprint`
+  answers **land · void · hole** against `SketchRasterizer`'s own footprint. The third is the one that needed
+  saying: a composed board's holes are made by *arrangement*, so no region marks one and a shape dropped on
+  one fills in the layout the composer was asked for with nothing declined. `Cells.EnclosedVoid` names them —
+  the same derivation `CT8` counts with, so a probe and a rule cannot disagree about what a hole is.
+  (`Pgm/Sketch/FootprintProbe.cs`, `Pgm/Sketch/SketchRasterizer.CellsOfRing`,
+  `Api/Endpoints/SketchEndpoints.cs`, `docs/tools/sketch.md`, `FootprintProbeTests.cs`)
+
+- **A relief readback names the pieces, not just the count (`WS10`).** `relief/read` reported *places 3,
+  largest 0.95* and left the missing five percent to be found by guessing a coordinate and taking a column
+  transect. Each tier now carries `parts`: per piece the cell count, the share, the centroid, the box, and
+  whether it is a place or a ledge, largest first, cut at sixteen — a place is at least one percent of the
+  island so the cap only bites on ledges, and the `ledges` count still counts them all. The flood already had
+  them. Riding with it, `render/section` refuses an `at` outside the world naming the axis and the range,
+  where it used to answer 200 and a blank picture; a coordinate outside the world is a fault, not a picture.
+  (`Analysis/Playability/ReliefReadback.cs`, `Contracts/ReliefDtos.cs`, `Api/Endpoints/SketchEndpoints.cs`,
+  `Minecraft/Render/SectionRender.Span`, `Client/Features/Sketch/SketchReliefReadback`,
+  `docs/world-export/relief.md`, `ReliefReadbackTests.cs`)
+
+- **A line mark's reach is a radius and is called one (`WE23`).** `LineMark.Pins` kept a cell where
+  `distance <= Width`, so the band was **twice** the number an author wrote — `"width": 7` held a fourteen-block
+  strip — while the same quantity on a stroke was `Radius` and a point mark's was `r`. The line mark now states
+  `r`, the one field for one quantity: how far a mark reaches from what it is drawn on.
+  (`Geom/Relief/Marks.cs`, `Pgm/Sketch/SketchRelief.cs`, `Client/Features/Sketch/SketchReliefInspector`,
+  `docs/world-export/relief.md`, `docs/tools/sketch.md`)
+
 - **The middle is an origin, and the coverage read derives it (`WS2`).** A demand set of spawns and goals
   walks only the journeys a defender makes; the route that decides a match crosses the middle, and no field
   of the map document names the middle. `GroundCoverage.Crossings` finds it instead: the cells both teams'

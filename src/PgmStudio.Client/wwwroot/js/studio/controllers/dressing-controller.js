@@ -32,7 +32,7 @@ import { toScreen } from "../geometry/transform.js";
 
 /** Tool name → the kind of prop it places. The canvas passes tool names through, so this is also the test for
  *  "is a dressing tool active at all". */
-export const DRESSING_TOOLS = { "dress:path": "path", "dress:water": "water", "dress:flora": "flora", "dress:house": "house", "dress:tree": "tree", "dress:boulder": "boulder" };
+export const DRESSING_TOOLS = { "dress:stroke": "stroke", "dress:water": "water", "dress:flora": "flora", "dress:house": "house", "dress:tree": "tree", "dress:boulder": "boulder" };
 
 // A dragged trace is one point per block of pointer travel — unreadable to edit and pointless to store, so it
 // is simplified to the points at real bends on release. Same simplifier as the lasso, one step tighter than
@@ -74,7 +74,7 @@ export class DressingController {
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
     this.#onTerrain = callbacks.onTerrain ?? (() => true);
-    for (const kind of ["path", "water", "flora", "house", "tree", "boulder"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
+    for (const kind of ["stroke", "water", "flora", "house", "tree", "boulder"]) this.#settings[kind] = defaultProp(kind, seedFor(kind));
   }
 
   setDoc(doc) { this.#doc = doc; this.#selectedId = null; this.refreshHandles(); }
@@ -316,7 +316,7 @@ export class DressingController {
     // splits at the two farthest points and walks both ways round, which is right for an outline and would
     // reorder a route. So the open-line props (a path, a water channel) keep their direction through the plain
     // open simplifier.
-    const openLine = kind === "path" || kind === "water";
+    const openLine = kind === "stroke" || kind === "water";
     const simplified = openLine
       ? douglasPeucker(points, TRACE_SIMPLIFY_TOLERANCE)
       : simplifyRing(points, TRACE_SIMPLIFY_TOLERANCE);

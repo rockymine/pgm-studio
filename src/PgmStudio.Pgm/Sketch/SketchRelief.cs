@@ -95,7 +95,8 @@ public sealed class ReliefMarkJson
     /// <summary>A point's position, as an <c>[x, z]</c> pair.</summary>
     [JsonPropertyName("at")]     public double[]? At { get; set; }
 
-    /// <summary>How far a point's height reaches, in blocks.</summary>
+    /// <summary>How far a point's or a line's height reaches from what it is drawn on, in blocks. A line's
+    /// band is twice it, since it reaches either side of the centerline.</summary>
     [JsonPropertyName("r")]      public double Radius { get; set; } = 2;
 
     /// <summary>A line's or scarp's course, as <c>[x, z]</c> pairs.</summary>
@@ -111,9 +112,6 @@ public sealed class ReliefMarkJson
     /// would write.</summary>
     [JsonPropertyName("h"), JsonConverter(typeof(ScalarOrArrayJsonConverter))]
     public double[]? Heights { get; set; }
-    /// <summary>How wide a line's stated height runs, in blocks.</summary>
-    [JsonPropertyName("width")]  public double Width { get; set; } = 1.5;
-
     /// <summary>How many cells in from the island's outline a rim states its height over.</summary>
     [JsonPropertyName("depth")]  public int Depth { get; set; } = 1;
 
@@ -137,7 +135,7 @@ public sealed class ReliefMarkJson
     public Mark? ToMark() => Kind switch
     {
         "point" when At is { Length: >= 2 } at => new PointMark(at[0], at[1], FirstHeight, Radius),
-        "line" when Points is { Length: >= 2 } => new LineMark(Points, Heights ?? [0], Width),
+        "line" when Points is { Length: >= 2 } => new LineMark(Points, Heights ?? [0], Radius),
         "area" when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight),
         "rim" => new RimMark(FirstHeight, Depth),
         "scarp" when Points is { Length: >= 2 } points => new ScarpMark(points, High, Low, Face, Band),

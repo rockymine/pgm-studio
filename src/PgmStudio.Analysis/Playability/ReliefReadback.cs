@@ -37,10 +37,27 @@ public static class ReliefReadback
     public const int CliffWidth = 10;
     public const int CliffDrop = 6;
 
+    /// <summary>How many pieces a tier names with coordinates. A place is at least
+    /// <see cref="PlaceShare"/> of the island, so there are at most a hundred of those; what the cap actually
+    /// bounds is the ledges, whose tail is slivers along a brink rather than ground anyone stands on.</summary>
+    public const int NamedParts = 16;
+
+    /// <summary>One piece of surface a player can move around within, with the coordinates that let it be
+    /// found: how many cells, what share of the island that is, where its middle sits and what box it spans.
+    /// <see cref="Place"/> separates a piece big enough to be somewhere from a ledge stranded off one.
+    ///
+    /// <para>The centroid is the mean of the piece's cells, which for a horseshoe lies outside it. That is
+    /// accepted rather than corrected: the box beside it is what bounds the search, and a piece that reads as
+    /// a ring is a fact about the piece worth seeing.</para></summary>
+    public sealed record Part(int Cells, double Share, int CentroidX, int CentroidZ,
+        int MinX, int MinZ, int MaxX, int MaxZ, bool Place);
+
     /// <summary>How a surface reads at one passability tier: what share of it a player can cross, how many
-    /// <b>places</b> that leaves, how much of the ground the largest holds, and how many <b>ledges</b> are
-    /// stranded off it.</summary>
-    public sealed record Tier(string Name, int MaxStep, double Share, int Places, double LargestPlace, int Ledges);
+    /// <b>places</b> that leaves, how much of the ground the largest holds, how many <b>ledges</b> are
+    /// stranded off it — and <see cref="Parts"/>, the pieces themselves, largest first, so a stranded one can
+    /// be walked to rather than guessed at.</summary>
+    public sealed record Tier(string Name, int MaxStep, double Share, int Places, double LargestPlace, int Ledges,
+        IReadOnlyList<Part> Parts);
 
     /// <summary>One face the terrain presents: which way it looks, how wide it runs, and how far it drops. A
     /// cliff is the qualifying subset, judged by the corpus rule rather than by the author's intent.</summary>
@@ -117,6 +134,20 @@ public static class ReliefReadback
         var places = components.Where(part => part.Count >= total * PlaceShare).ToList();
         var largest = components.Count == 0 ? 0 : components.Max(part => part.Count) / total;
 
+        // Every place is named, and the biggest ledges with them: a hundred-cell pad nobody can walk onto is
+        // under the place threshold on a large island and is exactly what a reader needs the coordinates of.
+        // The tail is slivers along a brink, which is why the list is cut and Ledges still counts them all.
+        var parts = components
+            .OrderByDescending(part => part.Count)
+            .Take(NamedParts)
+            .Select(part => new Part(
+                part.Count, part.Count / total,
+                (int)part.Average(cell => cell.X), (int)part.Average(cell => cell.Z),
+                part.Min(cell => cell.X), part.Min(cell => cell.Z),
+                part.Max(cell => cell.X), part.Max(cell => cell.Z),
+                part.Count >= total * PlaceShare))
+            .ToList();
+
         // The share a player can cross: the boundaries within reach, over all of them. That is what "how much
         // of this surface is open at this tier" means — not how many cells there are.
         var within = 0; var all = 0;
@@ -129,7 +160,7 @@ public static class ReliefReadback
             }
 
         return new Tier(name, maxStep, all == 0 ? 1 : within / (double)all,
-                        places.Count, largest, components.Count - places.Count);
+                        places.Count, largest, components.Count - places.Count, parts);
     }
 
     /// <summary>

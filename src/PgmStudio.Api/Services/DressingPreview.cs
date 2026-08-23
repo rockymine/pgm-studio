@@ -102,7 +102,7 @@ public static class DressingPreview
 
     /// <summary>The six path styles at card size, each drawn by paving the same stroke — a picker showing
     /// hand-drawn icons could promise a look the pass does not produce.</summary>
-    public static IReadOnlyList<PropOptionDto> PathStyleCards(PathProp template, TerrainTheme theme, int cell = 3)
+    public static IReadOnlyList<PropOptionDto> StrokeStyleCards(StrokeProp template, TerrainTheme theme, int cell = 3)
         => PlanCards(theme, cell, [.. Enum.GetValues<PathStyle>().Select(style => (
             Key: style.ToString().ToLowerInvariant(),
             Label: PathStyleLabels[style],
@@ -244,7 +244,7 @@ public static class DressingPreview
     {
         TreeProp tree => tree with { X = x, Z = z },
         BoulderProp boulder => boulder with { X = x, Z = z },
-        PathProp path => path with { Points = Recentre(path.Points, x, z) },
+        StrokeProp path => path with { Points = Recentre(path.Points, x, z) },
         WaterProp water => water with { Points = Recentre(water.Points, x, z) },
         FloraProp area => area with { Points = Recentre(area.Points, x, z) },
         HouseProp house => house with { Wings = RecentreWings(house.Wings, x, z) },

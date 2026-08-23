@@ -28,8 +28,8 @@ function drag(tools, tool, points) {
 
 // ── the document ──────────────────────────────────────────────────────────────
 test("a fresh prop of each kind starts at the same numbers the server does", () => {
-  assert.equal(defaultProp("path").radius, 3);
-  assert.equal(defaultProp("path").style, "solid");
+  assert.equal(defaultProp("stroke").radius, 3);
+  assert.equal(defaultProp("stroke").style, "solid");
   // Water is drawn like a path but cuts a bed and fills it: a plain canal is what the other forms vary on.
   assert.equal(defaultProp("water").form, "canal");
   assert.equal(defaultProp("water").depth, 2);
@@ -38,7 +38,7 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
   assert.equal(defaultProp("water").bank.kind, "voronoi");
   assert.equal(defaultProp("water").bank.bands.length, 3);
   // So are a path's paving and a boulder's rock, which is what lets either take a pattern.
-  assert.equal(defaultProp("path").pave.kind, "solid");
+  assert.equal(defaultProp("stroke").pave.kind, "solid");
   assert.equal(defaultProp("boulder").rock.kind, "solid");
   // A tree starts vanilla — the two forms are two trees, and the vanilla one is what a map is mostly made of.
   assert.equal(defaultProp("tree").form, "template");
@@ -51,13 +51,13 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
 
 test("markers are points and the rest are areas", () => {
   assert.ok(isMarker("tree") && isMarker({ kind: "boulder" }));
-  assert.ok(!isMarker("path") && !isMarker({ kind: "flora" }));
+  assert.ok(!isMarker("stroke") && !isMarker({ kind: "flora" }));
   assert.deepEqual(propAnchor({ kind: "tree", x: 4, z: 9 }), [4, 9]);
-  assert.deepEqual(propAnchor({ kind: "path", points: [[0, 0], [10, 20]] }), [5, 10]);
+  assert.deepEqual(propAnchor({ kind: "stroke", points: [[0, 0], [10, 20]] }), [5, 10]);
 });
 
 test("moving an area moves every point, so a drag keeps its shape", () => {
-  const moved = translateProp({ kind: "path", points: [[0, 0], [10, 4]] }, 3, -2);
+  const moved = translateProp({ kind: "stroke", points: [[0, 0], [10, 4]] }, 3, -2);
   assert.deepEqual(moved.points, [[3, -2], [13, 2]]);
   assert.deepEqual(translateProp({ kind: "tree", x: 1, z: 1 }, 2, 2), { kind: "tree", x: 3, z: 3 });
 });
@@ -104,9 +104,9 @@ test("a marker cannot be dropped into the void — it must land on terrain", () 
 test("a drag places one route, and releasing is what ends it", () => {
   // The bug this replaced: a click-by-click path had no way to stop. Here the pointer-up *is* the end.
   const { doc, tools } = controller();
-  drag(tools, "dress:path", [[0, 0], [4, 2], [9, 6], [14, 4], [20, 8]]);
+  drag(tools, "dress:stroke", [[0, 0], [4, 2], [9, 6], [14, 4], [20, 8]]);
   assert.equal(doc.props.length, 1);
-  assert.equal(doc.props[0].kind, "path");
+  assert.equal(doc.props[0].kind, "stroke");
   assert.ok(doc.props[0].points.length >= 2);
   assert.deepEqual(doc.props[0].points[0], [0, 0]);
   assert.deepEqual(doc.props[0].points.at(-1), [20, 8]);
@@ -125,7 +125,7 @@ test("a water channel is dragged as an open line, the same way a path is", () =>
 
 test("a route keeps its direction; an area is simplified as an outline", () => {
   const { doc, tools } = controller();
-  drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0], [30, 0]]);
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0], [30, 0]]);
   const route = doc.props[0].points;
   assert.deepEqual(route[0], [0, 0]);
   assert.deepEqual(route.at(-1), [30, 0]);
@@ -137,7 +137,7 @@ test("a route keeps its direction; an area is simplified as an outline", () => {
 
 test("a drag too short to be anything places nothing", () => {
   const { doc, tools } = controller();
-  tools.onMouseDown(5, 5, "dress:path");
+  tools.onMouseDown(5, 5, "dress:stroke");
   tools.onMouseUp();
   assert.equal(doc.props.length, 0);
 });
@@ -154,10 +154,10 @@ test("two props of the same kind are two different props", () => {
 test("editing the selection carries into the next one placed", () => {
   // The whole point of the tool having settings: widen one path and the next is already that wide.
   const { doc, tools } = controller();
-  drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0]]);
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0]]);
   tools.updateSelected({ radius: 6, style: "rough" });
 
-  drag(tools, "dress:path", [[0, 40], [10, 40], [20, 40]]);
+  drag(tools, "dress:stroke", [[0, 40], [10, 40], [20, 40]]);
   assert.equal(doc.props[1].radius, 6);
   assert.equal(doc.props[1].style, "rough");
 });
@@ -194,7 +194,7 @@ test("a placement ends its tool, so the next click picks the prop instead of dro
   const { tools } = controller({ onPlaced: () => placed++ });
   tools.onMouseDown(4, 4, "dress:tree");
   assert.equal(placed, 1);
-  drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0]]);
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0]]);
   assert.equal(placed, 2);
   tools.updateSelected({ radius: 5 });        // a knob edit is not a placement
   assert.equal(placed, 2);
@@ -202,7 +202,7 @@ test("a placement ends its tool, so the next click picks the prop instead of dro
 
 test("a route's points are draggable one at a time — the band follows the line", () => {
   const { doc, tools } = controller();
-  drag(tools, "dress:path", [[0, 0], [10, 0], [20, 0]]);
+  drag(tools, "dress:stroke", [[0, 0], [10, 0], [20, 0]]);
   const id = tools.selectedId;
   const before = doc.byId(id).points.length;
 

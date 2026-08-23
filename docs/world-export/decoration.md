@@ -3,7 +3,7 @@
 A third pass over the **realized world**, sibling to the structure stamping of `structures.md` and the
 terrain painting of `terrain-painting.md`. Where the painter dresses the terrain's *material* — grass over
 stone, quartz on the rim — this pass adds the terrain's *life*: tall grass and flowers scattered on the
-soil, a worn path dragged across it, boulders and trees seated on top. It is the second half of the
+soil, a worn stroke dragged across it, boulders and trees seated on top. It is the second half of the
 theming work parked as G34: G157 carved out the terrain slice ("no new geometry, only materials"); this is
 the **prop-stamps** slice, and it is the opposite by construction — it exists to add geometry.
 
@@ -18,7 +18,7 @@ map plays, and a decision about how a map plays belongs to the person making it 
 field. So every part of this stage is a thing put somewhere: a route is dragged, an area of cover is traced,
 a tree and a rock are clicked into place, and each carries its own knobs. The fields that remain are the ones
 *inside* a drawn area — which blade of grass, which cobble — where placing them one at a time would be data
-entry rather than authoring. The model was worked out against a live prototype whose every figure — the noise fields, the path variants,
+entry rather than authoring. The model was worked out against a live prototype whose every figure — the noise fields, the stroke variants,
 the boulder elevations, the grown tree, the forest scatter — was emitted by the real algorithm rather than
 hand-drawn; what it settled is stated here, and the C# is the authority for all of it. Rule ids here are `DR*` (dressing), local to this file the way
 `structures.md` owns `WX*` and `terrain-painting.md` owns `TP*` — `rules.md` is compose-scoped and frozen,
@@ -40,7 +40,7 @@ Read alongside:
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
 - `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
 - `docs/generator/ideas.md` — G34 (the umbrella), G32-C (structures & elevation, the sibling pass), G142
-  (the roughen pass, whose noise operators the path edge borrows).
+  (the roughen pass, whose noise operators the stroke edge borrows).
 - `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent
   stage. The fairness rule (G162) is answered here in §2; what remains is the guardrail budget,
   vertical-surface dressing, the arbitration contract, a biome theme, context-aware placement, and
@@ -59,7 +59,7 @@ after `TerrainPainter.Paint` in `WorldBuilder.Build`.
 
 Running after the painter is what makes the whole stage tractable. The painter has already decided, per
 cell, what the surface *is* — and the single fact the dressing pass needs is exactly that: soil accepts
-flora, quartz does not; grass can be replaced by a path, a monument's wool cannot. So the pass reads the
+flora, quartz does not; grass can be replaced by a stroke, a monument's wool cannot. So the pass reads the
 top block of each column and the ground the map keeps clear, and never has to re-derive either. The one
 elevation model it needs is the same `BuiltTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
 first air Y above each column) the painter and every stamper already read.
@@ -78,14 +78,14 @@ one stage rather than four:
 
 - **Noise.** The same deterministic `PatternNoise` (`Hash`/`Unit`/`Value`/`Fbm`) the terrain patterns are
   built from. A density field decides where flora goes; a low-frequency field gathers flowers into meadows
-  and trees into groves; a per-cell `Unit` is the dice a worn path rolls. Deterministic hash-from-cell,
+  and trees into groves; a per-cell `Unit` is the dice a worn stroke rolls. Deterministic hash-from-cell,
   **never RNG** — the discipline `terrain-painting.md` §5 already holds, so a map re-exports identically.
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
   **keep-out** `DressingScope.KeptClearAt` builds: spawns, wool rooms, stated structures, built columns and
   every door's approach. Nothing lands where it would break play or read wrong, and the mask answers *which*
   of those held a cell (`KeepOut`), because a decline that cannot name what stopped it is one nobody can act
   on. This is not the map contract's `protection`, which is a region rule about what a player may enter and
-  break; it reads a spawn's protection areas but what it answers is the other thing. A path's own cells join the mask as it is laid, so nothing grows through a road.
+  break; it reads a spawn's protection areas but what it answers is the other thing. A route's own cells join the mask as it is laid, so nothing grows through a road; a stroke that is paint claims nothing and is planted over.
   A destroyable and a core are **not** in that mask, and what they ask for instead is §3.1.
 - **Placement.** A **point** for the props that stand somewhere (a tree, a boulder), a **drawn outline** for
   the ones that cover a stretch (a route along a line, cover inside a ring), and a **dragged rectangle** for
@@ -200,30 +200,43 @@ own margin, a wool room, a stated structure, a stamped column — never turns a 
 drew that rectangle where it is and a room's margin is not a reason to lose it. The lane is the exception,
 and the reason is size: a building is the one prop big enough to close a door's approach entirely.
 
-## 4. Paths — drag a line, replace the finish (`DR-PA`)
+## 4. Strokes — drag a line, replace the finish (`DR-PA`)
 
-A path is drawn the way the lasso is: press, trace, release. Where the button comes up is the last point,
+A stroke is drawn the way the lasso is: press, trace, release. Where the button comes up is the last point,
 which is the whole interaction — there is no separate way to finish and so no way to get stuck mid-draw. The
 drag is one point per block of pointer travel, so it is simplified on release to the points at real bends
-(the *open* Douglas-Peucker, not the ring simplifier: a route has a direction and the ring version would
+(the *open* Douglas-Peucker, not the ring simplifier: a stroke has a direction and the ring version would
 reorder it).
 
-What is stored is that route and a half-width, and nothing else. Every cell within the radius of the nearest
-centerline segment takes path material, **replacing the surface finish beneath it** — a path adds no cell. A
-route is a finish laid over ground that already exists, so it can run over a slope without becoming a ramp,
-and a bridge across a void stays the draw phase's job. Its cells become bare ground as they are laid, so
-nothing grows through the road.
+What is stored is that line and a radius, and nothing else. Every cell within the radius of the nearest
+centerline segment takes the stroke's material, **replacing the surface finish beneath it** — a stroke adds
+no cell. It is a finish laid over ground that already exists, so it can run over a slope without becoming a
+ramp, and a bridge across a void stays the draw phase's job.
 
-**The band's claim holds against the scatter, never against a building.** Paths are laid first, and a road is
+**A stroke says whether it is a route, and the style does not say it.** The five styles below shape the
+*band* — that is a brush, and a brush says nothing about whether players read the result as a way through. A
+gravel tongue over a crag and a road between two spawns can be the same brush at the same radius. So the
+document carries one more word, `route`, and it is **off by default**: a route claims the cells it covers and
+paint claims none. Everything below about claims and standoffs is a route's; a painted forest floor is ground,
+and things stand on ground.
+
+Why the default falls that way is a measurement. `DR-ROAD`'s distances are reasoned about a road — a canopy
+closing over one stops it reading as a road through trees — and are meaningless for a smear of dirt; asked of
+every stroke, twenty-one of them over a 110 × 220 board left **eleven** plantable cells on the whole map. The
+gate was not wrong about roads. It was being asked of the wrong thing, which is why the answer is a word on
+the prop rather than a waiver on the gate: a waiver is for a gate that is right and an author deliberately off
+the norm, and it would have hidden this for every later board.
+
+**A route's claim holds against the scatter, never against a building.** Strokes are laid first, and a road is
 meant to run to a porch or a door — so a house drawn across the pavement stands, its floor takes the ground
-inside its walls, and the path simply ends where the wall does. What the claim was ever for is the props
+inside its walls, and the stroke simply ends where the wall does. What the claim was ever for is the props
 above the buildings: a trunk, a rock or tall cover in the middle of the route is still refused, because a
 route with a tree in it is not a route.
 
 **The road reaches further than its pavement: a standoff, stated per prop kind (`DR-ROAD`).** A trunk against
 the kerb reads as trees in the road rather than a road through trees, so a tree keeps **three blocks** of
-clear ground between its resting cells and the nearest paved cell, and a boulder — no canopy, but still a
-wall beside the route — keeps **two** (the author's numbers). The rule is the kind's, not the path's:
+clear ground between its resting cells and the nearest cell a route claims, and a boulder — no canopy, but
+still a wall beside the route — keeps **two** (the author's numbers). The rule is the kind's, not the stroke's:
 `PlacedProp.RouteStandoff` names each kind's distance, `GroundClaims.NearerThan` measures it (Chebyshev,
 strictly-nearer-than, so a trunk exactly three off stands), and the seat check refuses a breach with the
 offending cell and the rule id in the drop report, so `GET /api/rules?rule=DR-ROAD` answers what the census
@@ -237,20 +250,20 @@ distance field with one extra gate (`Geom.PathStroke`):
 - **Rough edge** — `R` perturbed by an `Fbm` sample, so the band's outline is organic, not ruled. The same
   operator family as the G142 roughen pass's edge displacement.
 - **Stepping stones** — discs sampled at intervals along the centerline's **arc length**, with gaps between:
-  the disconnected path, stones across a void.
+  the disconnected band, stones across a void.
 - **Tapered** — `R` varied along the arc (fat middle, thin ends).
 
-What a style decides is the **band**; what fills it is the path's **pave**, and the pave is a full
+What a style decides is the **band**; what fills it is the stroke's **pave**, and the pave is a full
 `TerrainMaterial` — a solid, a cell fabric, a noise ramp, any pattern the painter offers, edited by the same
 `MaterialEditor` a theme bucket is. The two are independent, so a worn cobble and a solid cobble are both
 sayable, which they were not while the tiling was a mode of the stroke. A cobbled road is now a `CellMaterial`
 at a three-block patch size — the same jittered grid the old style tiled by, said in the vocabulary every other
 finish already used.
 
-Being a *fill* rather than an *outline* is what makes all five possible. An earlier cut made a path a
+Being a *fill* rather than an *outline* is what makes all five possible. An earlier cut made a stroke a
 `SketchShape` whose closed ring was rasterized as terrain, and two of these could not be expressed that way
 at all — worn and stepping stones gate cells, not a boundary — so they had to be filed rather than built.
-Placing the path in the pass instead costs nothing and gets them back, because the pass was already writing
+Placing the stroke in the pass instead costs nothing and gets them back, because the pass was already writing
 cells one at a time.
 
 The **outline** still exists, in `Geom.PathBand`, and does a different job: it is what the canvas strokes to
@@ -269,7 +282,7 @@ outcrop. The finish is a material and a micro-mask: stone, andesite, mossy cobbl
 creeping onto the top-lit faces, itself a tiny `Unit` mask, so the finish carries its own micro-flora.
 
 A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, rock
-material, moss flag and seed. The rock is a full `TerrainMaterial` like the path's pave and the channel's bank,
+material, moss flag and seed. The rock is a full `TerrainMaterial` like the stroke's pave and the channel's bank,
 resolved in the boulder's **own frame** rather than the map's — offsets from its anchor, before it knows where
 on the map it goes. That is what keeps a mirrored pair one rock: resolving against map coordinates would give
 two teams the same shape in different colours, which is the thing the whole fan exists to prevent. Depth is
@@ -305,8 +318,8 @@ clusters shrink with it — a sapling is a few clusters on a thin stalk, not a s
 tips**, not from branch count — married to the Catmull-Rom flow a Minecraft builder draws by hand in
 Axiom's path tool. The stage renders it two ways: the **spine** (the centerlines and their thickness, each
 limb spline in its own colour) is the view the shape is designed against, and the voxelised blocks are the
-swept-disc fill of §4's path lifted one dimension (a capsule along a spline instead of a band along a
-stroke), so the tree and the path share one rasterization primitive.
+swept-disc fill of §4's stroke lifted one dimension (a capsule along a spline instead of a band along a
+line), so the tree and the stroke share one rasterization primitive.
 
 The crown is where a naive generator gives itself away — a spherical brush with holes punched in it reads as
 one blob, and you cannot tell which branch a patch of leaves belongs to. So the crown is placed the way a
@@ -398,7 +411,7 @@ reach, and falls back to the mass without one.
 
 ## 7. Water — channels (`DR-WA`)
 
-A channel begins exactly where the §4 path does — a dragged centerline and a radius, the same swept-disc
+A channel begins exactly where the §4 stroke does — a dragged centerline and a radius, the same swept-disc
 band (`Geom.WaterBed` reuses `PathBand.Centerline` and `Polyline`'s distance field). What makes water its own
 tool is that it **cannot drape on the surface** the way gravel can: laid on a slope it reads as blue paint.
 Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
@@ -412,7 +425,7 @@ is what keeps the water from floating — every column's surface is at or above 
 above the bed floor up to the line with stationary water and cuts any bank *above* the line back to air,
 leaving the channel open. The carve **only ever touches existing terrain**: it never rises past a column's old
 surface and skips any column the surface map does not carry, so a channel dug across a hollow keeps the hollow
-and one dug over a stamp leaves the stamp — the same exclusion a path respects. Like every prop, a channel is
+and one dug over a stamp leaves the stamp — the same exclusion a stroke respects. Like every prop, a channel is
 **fanned across the symmetry orbit**, so both teams get the same water from the same side.
 
 The water meets the land through a **beach**. The shore is its own pass — the band *outside* the water, out to
@@ -474,8 +487,8 @@ generated the way a flora field is: someone drew this rectangle here, and a spaw
 to lose it. A door's approach is the exception, because a building is the one prop big enough to close a lane
 entirely (§3.1); the decline is reported like every other, so nothing is dropped silently.
 Its cells do join the pass's running claim, which is a different mechanism entirely — the rule that keeps grass
-from growing through the walls, exactly as a path's cells claim the road. In the ordering that puts buildings
-after paths and before the props that scatter around them — and the path's own claim is the one a building
+from growing through the walls, exactly as a route's cells claim the road. In the ordering that puts buildings
+after strokes and before the props that scatter around them — and a route's own claim is the one a building
 does not check, because a road is meant to run to a porch (§4): a house collides with water or with another
 house, never with pavement.
 
@@ -552,7 +565,7 @@ in it.
 
 The sentence names **what** stopped the prop, not merely that something did: `KeepOut` says whether a cell is
 held for a spawn, a wool room, a stated structure, built ground or a door's approach, and `GroundClaims`
-carries the *owner* of every claim, so a collision reads `claimed by the path 'p'` rather than `already
+carries the *owner* of every claim, so a collision reads `claimed by the route 'p'` rather than `already
 claimed`. The first claimant keeps a cell, so that owner is the one that actually holds the ground.
 
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
@@ -572,9 +585,17 @@ answer there is.
 **One of the two is ordered, and the order is not obvious.** `DR-KEEP` reads the spawn doors' approaches
 and the goal rings, and those come off the map's **intent** — so `sketch/columns` asked before
 `PUT …/intent/from-plan` answers a shorter list than the same call asked after it. A driver that reads the
-declines at the end of the sketch stage sees every rule but that one. A path's per-cell skips stay unreported; a
-route crossing kept-clear ground one cell at a time is the ordinary shape of a path, not a decision an author
+declines at the end of the sketch stage sees every rule but that one. A stroke's per-cell skips stay unreported; a
+band crossing kept-clear ground one cell at a time is the ordinary shape of a stroke, not a decision an author
 needs restated.
+
+**The pass answers without building.** `POST /map/{slug}/sketch/dressing` runs it against a posted layout and
+stops before anything is written, answering per prop the columns it covers, where it rests, the height it
+resolved to, and every prop that did not land as the `DR-*` finding it draws. A keep-out is measured against
+what a prop *claims*, and a stroke's claim is decided by its style, its coverage and its seed — none of which
+can be reasoned about from the document, so tuning one without this is a guess corrected by drive, read the
+declines, move the prop, which lands on the wrong distances in both directions before it lands on the right
+ones.
 
 **Its footprint claims provenance the same way a room's does, only later.** `Decorate` reports a
 `PlacementClaim` for every building it raises and `WorldBuilder` records each as `WorldProvenance`'s
@@ -658,7 +679,7 @@ and lands in the same realize seam.
 | Concept | Reuses | Net-new | Rule family |
 |---|---|---|---|
 | Ground cover | `PatternNoise`; `SurfaceTop`; the `TerrainProfile` column read | the overlay pass, gated by a drawn outline — one `SetBlock` above the surface | `DR-FL` |
-| Paths | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `PathStroke`'s six gates; `PathBand` + its `geometry/path.js` twin for the drawn outline | `DR-PA` |
+| Strokes | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `PathStroke`'s six gates; `PathBand` + its `geometry/path.js` twin for the drawn outline | `DR-PA` |
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
 | Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
@@ -708,7 +729,7 @@ there:
 **`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
 `TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the keep-out mask and what
 each cell is held for, the symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
-the orbit fan. The props themselves (`PathProp`, `WaterProp`, `FloraProp`, `HouseProp`, `TreeProp`,
+the orbit fan. The props themselves (`StrokeProp`, `WaterProp`, `FloraProp`, `HouseProp`, `TreeProp`,
 `BoulderProp` under one `PlacedProp` discriminator) and the block palette live here beside
 `Blocks`/`BlockPalette`. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the
 room stampers already call it, and the pass reaches sideways to it rather than growing a second copy.

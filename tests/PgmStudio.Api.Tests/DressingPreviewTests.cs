@@ -158,7 +158,7 @@ public sealed class DressingPreviewTests
     public async Task The_section_crops_to_what_is_there_so_a_path_and_a_tree_read_at_the_same_scale()
     {
         // A fixed sky would draw a path as one grey line under forty courses of nothing.
-        var path = DressingPreview.Views(new PathProp
+        var path = DressingPreview.Views(new StrokeProp
         {
             Points = [[0, 20], [40, 20]], Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel),
         }, TerrainTheme.Default);
@@ -257,8 +257,8 @@ public sealed class DressingPreviewTests
     {
         // The cards are the real algorithm at card size, so a picker can never promise a look the export does
         // not produce — which is only true if every option actually draws something.
-        var styles = DressingPreview.PathStyleCards(
-            new PathProp { Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) }, TerrainTheme.Default);
+        var styles = DressingPreview.StrokeStyleCards(
+            new StrokeProp { Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) }, TerrainTheme.Default);
         var forms = DressingPreview.BoulderFormCards(new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default);
         var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
 

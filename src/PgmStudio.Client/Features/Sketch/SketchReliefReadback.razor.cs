@@ -21,7 +21,12 @@ public partial class SketchReliefReadback
 
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
-    private sealed record TierRow(string Name, double Share, int Places, double LargestPlace, int Ledges);
+    private sealed record TierRow(string Name, double Share, int Places, double LargestPlace, int Ledges,
+        IReadOnlyList<PartRow> Parts);
+
+    /// <summary>One piece of surface with the coordinates to find it at. A count says a board is broken; this
+    /// says where to look, which is what an author needs before they can fix it.</summary>
+    private sealed record PartRow(int Cells, double Share, int CentroidX, int CentroidZ, bool Place);
     private sealed record FaceRow(int Width, int Drop);
     private sealed record Crossing(int Rows, int OnFoot, int WithBlock, int Descended);
     private sealed record IslandRead(string Id, int Low, int High, int Relief, List<TierRow> Tiers,
@@ -76,8 +81,14 @@ public partial class SketchReliefReadback
             {
                 var tiers = new List<TierRow>();
                 foreach (var tier in Array(island, "tiers"))
+                {
+                    var parts = new List<PartRow>();
+                    foreach (var part in Array(tier, "parts"))
+                        parts.Add(new PartRow(Int(part, "cells"), Dbl(part, "share"),
+                            Int(part, "centroidX"), Int(part, "centroidZ"), Bool(part, "place")));
                     tiers.Add(new TierRow(Str(tier, "name"), Dbl(tier, "share"), Int(tier, "places"),
-                        Dbl(tier, "largestPlace"), Int(tier, "ledges")));
+                        Dbl(tier, "largestPlace"), Int(tier, "ledges"), parts));
+                }
 
                 var faces = new List<FaceRow>();
                 foreach (var face in Array(island, "faces")) faces.Add(new FaceRow(Int(face, "width"), Int(face, "drop")));
@@ -115,4 +126,7 @@ public partial class SketchReliefReadback
     private static double Dbl(JsonElement parent, string name)
         => parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Number
             ? value.GetDouble() : 0;
+
+    private static bool Bool(JsonElement parent, string name)
+        => parent.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
 }

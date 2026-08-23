@@ -170,10 +170,10 @@ public static class Decorator
             placed = placed with { WaterCells = placed.WaterCells + result.Count };
             propIndex++;
         }
-        foreach (var prop in context.Props.OfType<PathProp>())
+        foreach (var prop in context.Props.OfType<StrokeProp>())
         {
-            var result = PlacePath(world, context, prop, claims);
-            Cover(result, "path", prop.Id);
+            var result = PlaceStroke(world, context, prop, claims);
+            Cover(result, "stroke", prop.Id);
             placed = placed with { PathCells = placed.PathCells + result.Count };
             propIndex++;
         }
@@ -230,11 +230,15 @@ public static class Decorator
         public static Placed None => new(0, []);
     }
 
-    // ── paths (DR-PA) ───────────────────────────────────────────────────────────
-    /// <summary>Repaint the ground a stroke covers. A path adds no cell: it swaps the top block of each column
-    /// it crosses, which is why it can run over a slope without becoming a ramp and why a bridge is still the
-    /// draw phase's job. Its cells become bare ground, so nothing grows through the road.</summary>
-    private static Placed PlacePath(VoxelWorld world, DressingContext context, PathProp path, GroundClaims claims)
+    // ── strokes (DR-PA) ─────────────────────────────────────────────────────────
+    /// <summary>Repaint the ground a stroke covers. A stroke adds no cell: it swaps the top block of each
+    /// column it crosses, which is why it can run over a slope without becoming a ramp and why a bridge is
+    /// still the draw phase's job.
+    ///
+    /// <para>Only a <see cref="StrokeProp.Route"/> claims what it covers. A claim is what later props keep
+    /// clear of, and paint is ground rather than a thing standing on it — so a painted forest floor is
+    /// planted over and a road is not.</para></summary>
+    private static Placed PlaceStroke(VoxelWorld world, DressingContext context, StrokeProp path, GroundClaims claims)
     {
         if (path.Points.Count < 2) return Placed.None;
         var images = new List<List<(int X, int Z)>>();
@@ -257,7 +261,7 @@ public static class Decorator
             // so a cobbled road is a cell pattern at a small patch size rather than a mode of the stroke.
             var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0));
             world.SetBlock(x, top - 1, z, id, data);
-            claims.Claim(x, z, ClaimKind.Route, path.Id);
+            if (path.Route) claims.Claim(x, z, ClaimKind.Route, path.Id);
             cells.Add((x, z));
         }
         images.Add(cells);
@@ -447,7 +451,7 @@ public static class Decorator
     /// earlier building holds is refused rather than raised through whatever got there first: two authored
     /// rectangles that overlap are two buildings colliding, and a building is no more owed the ground under
     /// an earlier one than a tree is owed the ground under a building. The one claim it does not check is
-    /// <see cref="ClaimKind.Route"/> — paths are laid first and a road is meant to run to a porch, so a house
+    /// <see cref="ClaimKind.Route"/> — strokes are laid first and a road is meant to run to a porch, so a house
     /// over pavement stands and the road ends at its wall (the author's ruling).</para>
     ///
     /// <para>What it does need is ground, and that is physics rather than policy: it seats on the
@@ -1050,7 +1054,7 @@ public static class Decorator
         : held.Kind switch
         {
             ClaimKind.Water => $"claimed by the channel '{held.Owner}'",
-            ClaimKind.Route => $"claimed by the path '{held.Owner}'",
+            ClaimKind.Route => $"claimed by the route '{held.Owner}'",
             ClaimKind.Structure => $"claimed by the building '{held.Owner}'",
             _ => $"claimed by the prop '{held.Owner}'",
         };

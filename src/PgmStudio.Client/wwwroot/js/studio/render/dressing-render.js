@@ -58,7 +58,7 @@ export function paintDressing(painter, props, { selectedId = null, mirrorPoint =
     }
     // The line an author dragged, over the band it implies — a path and a water channel are edited as their
     // route, so the route has to stay visible inside its own band.
-    if ((prop.kind === "path" || prop.kind === "water") && (prop.points?.length ?? 0) >= 2) {
+    if ((prop.kind === "stroke" || prop.kind === "water") && (prop.points?.length ?? 0) >= 2) {
       const curve = pathCenterline(prop.points);
       const runs = [];
       for (let i = 1; i < curve.length; i++)
@@ -85,7 +85,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
     if (rect.length >= 3) painter.ring(rect, style);
     return;
   }
-  const ring = (kind === "path" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
+  const ring = (kind === "stroke" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
   if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
@@ -107,7 +107,7 @@ function footprints(prop, image, mirrorPoint) {
     const [ax, az] = mirror(...propAnchor(prop));
     return [disc(ax, az, propReach(prop))];
   }
-  if (prop.kind === "path" || prop.kind === "water") {
+  if (prop.kind === "stroke" || prop.kind === "water") {
     const ring = pathRing(prop);
     return [ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : []];
   }

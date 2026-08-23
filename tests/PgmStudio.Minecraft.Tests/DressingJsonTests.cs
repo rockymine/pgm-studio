@@ -31,7 +31,7 @@ public sealed class DressingJsonTests
         {
             Props =
             [
-                new PathProp { Id = "p", Seed = 1, Points = [[0, 0], [10, 10]], Pave = new SolidMaterial(Blocks.Gravel) },
+                new StrokeProp { Id = "p", Seed = 1, Points = [[0, 0], [10, 10]], Pave = new SolidMaterial(Blocks.Gravel) },
                 new WaterProp { Id = "w", Seed = 2, Points = [[0, 0], [10, 10]] },
                 new TreeProp { Id = "t", Seed = 3, X = 1, Z = 1 },
                 new BoulderProp { Id = "b", Seed = 4, X = 2, Z = 2 },
@@ -61,7 +61,7 @@ public sealed class DressingJsonTests
     {
         var doc = DressingJson.Deserialize(
             """{"props":[{"kind":"path","id":"p1","seed":1,"points":[[0,0],[1,1]],"pave":{"id":13,"data":0,"kind":"solid"}}]}""");
-        await Assert.That(((PathProp)doc.Props[0]).Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
+        await Assert.That(((StrokeProp)doc.Props[0]).Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
     }
 
     // ── the house upgrade (G177) ───────────────────────────────────────────────────────────────────────
@@ -174,7 +174,7 @@ public sealed class DressingJsonTests
         await Assert.That(ex.Subject).Contains("d7");
         await Assert.That(ex.Field).IsEqualTo("kind");
         await Assert.That(ex.Message).Contains("tren");
-        await Assert.That(ex.Message).Contains("path");   // one of the six known prop kinds
+        await Assert.That(ex.Message).Contains("stroke");   // one of the six known prop kinds
     }
 
     [Test]

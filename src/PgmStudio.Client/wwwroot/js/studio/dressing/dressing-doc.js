@@ -9,17 +9,17 @@
  */
 
 /** The things that can be placed, in the order their tools sit on the toolbar. */
-export const PROP_KINDS = ["path", "water", "flora", "house", "tree", "boulder"];
+export const PROP_KINDS = ["stroke", "water", "flora", "house", "tree", "boulder"];
 
 /** A fresh prop of each kind, before the author has touched a knob. The numbers mirror the C# record defaults,
  *  so a prop drawn on the canvas and one deserialized from an empty object are the same prop. */
 export function defaultProp(kind, seed) {
   const base = { kind, id: "", seed: seed ?? 0 };
   switch (kind) {
-    case "path":
-      // Gravel, three blocks to a side, clean-edged: a plain route, which is the one every other style is a
-      // variation on.
-      return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7,
+    case "stroke":
+      // Gravel, three blocks to a side, clean-edged, and paint rather than a route: the plainest band, which
+      // every other style is a variation on. Route is declared, because it is what other props stand off.
+      return { ...base, points: [], radius: 3, style: "solid", coverage: 0.7, route: false,
                pave: { kind: "solid", id: 13, data: 0 } };
     case "water":
       // A three-block-wide canal, cut two deep, meeting the land through a shore beach, over a bank of

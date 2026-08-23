@@ -50,9 +50,9 @@ public sealed class DressingRulesTests
 
         var tally = Decorator.Decorate(world, new DressingContext(top,
         [
-            new PathProp
+            new StrokeProp
             {
-                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5,
+                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
                 Pave = new Painting.SolidMaterial(Palette.Blocks.Gravel),
             },
             new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 },

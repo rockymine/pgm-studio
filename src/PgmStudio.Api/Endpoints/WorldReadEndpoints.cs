@@ -5,6 +5,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
@@ -199,14 +200,34 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
                 + "in its own material dimmed by how far back it stands.", Min: 0, Max: 16)));
     }
 
-    protected override string Empty => "nothing stands along that cut";
+    /// <summary>Set while drawing when <c>at</c> falls outside the world, so the refusal names the range a
+    /// cut can be taken at. A coordinate outside the world is a fault rather than a picture, and a blank
+    /// image is the slowest possible way to be told so.</summary>
+    private string? _offWorld;
 
-    protected override byte[]? Draw(BuiltRead read) => SectionRender.Png(
-        read.Built.World,
-        string.Equals(Query<string?>("axis", isRequired: false), "z", StringComparison.OrdinalIgnoreCase)
-            ? SectionAxis.AlongZ : SectionAxis.AlongX,
-        OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, OptionalInt("at") ?? 0,
-        Scale, OptionalInt("ymin"), OptionalInt("ymax"), depth: OptionalInt("depth") ?? 0);
+    protected override string Empty => _offWorld ?? "nothing stands along that cut";
+
+    protected override byte[]? Draw(BuiltRead read)
+    {
+        var axis = string.Equals(Query<string?>("axis", isRequired: false), "z", StringComparison.OrdinalIgnoreCase)
+            ? SectionAxis.AlongZ : SectionAxis.AlongX;
+        var at = OptionalInt("at") ?? 0;
+
+        // A cut along x is taken at a z and a cut along z at an x, which is the thing about this route
+        // easiest to have backwards — so the refusal names the axis as well as the range.
+        if (SectionRender.Span(AnvilRegion.FromWorld(read.Built.World), axis) is { } span
+            && (at < span.Min || at > span.Max))
+        {
+            var named = axis == SectionAxis.AlongX ? "z" : "x";
+            _offWorld = $"a cut along {(axis == SectionAxis.AlongX ? "x" : "z")} is taken at a {named}, and "
+                + $"at={at} is outside this world, which spans {named} {span.Min}..{span.Max}";
+            return null;
+        }
+
+        return SectionRender.Png(read.Built.World, axis,
+            OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, at,
+            Scale, OptionalInt("ymin"), OptionalInt("ymax"), depth: OptionalInt("depth") ?? 0);
+    }
 }
 
 /// <summary>GET /api/map/{slug}/render/heightmap — elevation as tone, with contour lines every

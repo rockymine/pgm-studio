@@ -90,7 +90,8 @@ public sealed record ReliefIslandReadDto(
 /// <summary>How a surface reads at one passability threshold: what share a player can cross, how many
 /// <b>places</b> that leaves, how much of the ground the largest holds, and how many <b>ledges</b> are
 /// stranded off it. Counting places and ledges together is what turns one connected map with twenty cliff-top
-/// ledges into a meaningless twenty-one pieces.</summary>
+/// ledges into a meaningless twenty-one pieces. <c>Parts</c> names the pieces themselves, largest first, so a
+/// stranded one can be walked to rather than guessed at.</summary>
 /// <param name="Name">The threshold this reads at — a jump, a placed block, building in earnest.</param>
 /// <param name="MaxStep">The height difference a player can cross at it, in blocks.</param>
 /// <param name="Share">How much of the island is crossable at it, 0–1.</param>
@@ -99,8 +100,28 @@ public sealed record ReliefIslandReadDto(
 /// <param name="Ledges">How many pieces are stranded off it — counted apart from
 /// <paramref name="Places"/>, since one connected map with twenty cliff-top ledges is not twenty-one
 /// places.</param>
+/// <param name="Parts">The pieces themselves, largest first, each with the coordinates to find it at. Cut at
+/// sixteen: a place is at least one percent of the island, so the cap only ever bites on ledges, and
+/// <paramref name="Ledges"/> still counts them all.</param>
 public sealed record ReliefTierDto(
-    string Name, int MaxStep, double Share, int Places, double LargestPlace, int Ledges);
+    string Name, int MaxStep, double Share, int Places, double LargestPlace, int Ledges,
+    IReadOnlyList<ReliefPartDto> Parts);
+
+/// <summary>One piece of surface a player can move around within, with the coordinates that let it be found.
+/// The counts above say a board is broken; this says where.</summary>
+/// <param name="Cells">How much ground the piece holds.</param>
+/// <param name="Share">That, over the island's ground, 0–1.</param>
+/// <param name="CentroidX">The mean of its cells, east–west. On a piece shaped like a ring this lies outside
+/// it, which is a fact about the piece rather than an error — the box below is what bounds a search.</param>
+/// <param name="CentroidZ">The same, north–south.</param>
+/// <param name="MinX">The box it spans, west edge.</param>
+/// <param name="MinZ">North edge.</param>
+/// <param name="MaxX">East edge.</param>
+/// <param name="MaxZ">South edge.</param>
+/// <param name="Place">Whether it is big enough to be somewhere rather than a ledge stranded off one.</param>
+public sealed record ReliefPartDto(
+    int Cells, double Share, int CentroidX, int CentroidZ,
+    int MinX, int MinZ, int MaxX, int MaxZ, bool Place);
 
 /// <summary>One face the terrain presents: which way it looks, how wide it runs, how far it drops, and whether
 /// that makes it a cliff. A landform is wider than it is tall; a narrow face at a big drop is a structure.</summary>
@@ -118,3 +139,28 @@ public sealed record ReliefFaceDto(string Facing, int Width, int Drop, bool Clif
 /// <param name="WithBlock">How many with a placed block.</param>
 /// <param name="Descended">How many are simply descended — free the way they fall.</param>
 public sealed record ReliefFordsDto(int Rows, int OnFoot, int WithBlock, int Descended);
+
+/// <summary>POST /api/map/{slug}/sketch/probe-footprint — what a ring stands on, against the layout's own
+/// rasterised footprint. The body is <c>{ "layout": …, "ring": [[x, z], …] }</c>; the ring need not be a shape
+/// the layout carries, which is the point — it is asked <em>before</em> a shape is built on it.
+///
+/// <para>The counts are exclusive: <paramref name="Land"/> + <paramref name="Void"/> + <paramref name="Hole"/>
+/// is every cell the ring covers.</para></summary>
+/// <param name="Cells">Cells the ring covers.</param>
+/// <param name="Land">Of those, cells the footprint has.</param>
+/// <param name="Void">Cells past the coast, outside the footprint altogether. A lift with no ground under it
+/// reads no terrain and falls back to the shape's own floor, which stands a stub in open void that nothing
+/// declines.</param>
+/// <param name="Hole">Cells the footprint encloses but does not fill — a hub's slots, a U-shaped room's notch.
+/// Those are made by arrangement, so no region marks one and a shape dropped on top fills in the gap the
+/// layout was composed to have.</param>
+/// <param name="VoidCells">Where the void cells are, up to twenty-four of them.</param>
+/// <param name="HoleCells">Where the hole cells are, up to twenty-four of them.</param>
+public sealed record FootprintProbeDto(
+    int Cells, int Land, int Void, int Hole,
+    IReadOnlyList<CellDto> VoidCells, IReadOnlyList<CellDto> HoleCells);
+
+/// <summary>One cell, so a finding can be checked at a coordinate rather than described.</summary>
+/// <param name="X">East–west.</param>
+/// <param name="Z">North–south.</param>
+public sealed record CellDto(int X, int Z);

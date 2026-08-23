@@ -287,3 +287,36 @@ public sealed record ResourceTypeSummaryDto(
 /// <param name="Resources">One entry per resource found.</param>
 /// <param name="HaveLayers">Whether the map has scanned world data. False for an xml-only map.</param>
 public sealed record ResourceSourcesResponseDto(IReadOnlyList<ResourceTypeSummaryDto> Resources, bool HaveLayers);
+
+/// <summary>POST /api/map/{slug}/sketch/dressing — what the dressing pass would place, run against the posted
+/// layout and stopped before anything is written. The same pass the export runs, so a prop's claim here is the
+/// claim it will make.
+///
+/// <para>A keep-out is computed against what a prop <em>claims</em>, and a stroke's claim is decided by its
+/// style, its coverage and its seed — none of which can be reasoned about from the document. Guessing it and
+/// correcting by drive-read-move is how a board ends up tuned to the wrong distances in both directions.</para></summary>
+/// <param name="Props">Every prop that landed something, one entry per orbit image.</param>
+/// <param name="Declines">Every prop that did not land, as the <c>DR-*</c> finding it draws.</param>
+/// <param name="ClaimedCells">How many columns the pass claimed in total — the mask a keep-out is measured
+/// against, as one number.</param>
+public sealed record DressingRunDto(
+    IReadOnlyList<DressingPropDto> Props,
+    IReadOnlyList<Vocabulary.Finding> Declines,
+    int ClaimedCells);
+
+/// <summary>One prop as the pass placed it.</summary>
+/// <param name="Kind">What it is: <c>stroke</c>, <c>water</c>, <c>tree</c>, <c>boulder</c>, <c>flora</c> or a
+/// stamped building's own kind.</param>
+/// <param name="Id">The id the author gave it.</param>
+/// <param name="Image">Which image of the symmetry orbit this is — 0 is the authored one.</param>
+/// <param name="Layer">Whether the pass placed it (<c>prop</c>) or built it (<c>structure</c>).</param>
+/// <param name="Cells">How many columns it covers.</param>
+/// <param name="X">Where it rests, east–west: the first column it claimed.</param>
+/// <param name="Z">The same, north–south.</param>
+/// <param name="Y">The top of that column in the world this pass just built — the height the prop resolved
+/// to, read off the world rather than re-derived from the document.</param>
+/// <param name="Covered">The columns it covers, up to a hundred of them, so a keep-out can be measured
+/// against the claim rather than against a guess at the band.</param>
+public sealed record DressingPropDto(
+    string Kind, string Id, int Image, string Layer, int Cells, int X, int Z, int Y,
+    IReadOnlyList<CellDto> Covered);

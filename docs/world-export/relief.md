@@ -59,15 +59,16 @@ Five kinds cover the vocabulary, and the first four differ only in the shape of 
 
 | Mark | Pins | Says |
 |---|---|---|
-| `point` | a disc of a given radius | a summit, a hollow, a spot height |
-| `line` | a band along a polyline, optionally with a height per vertex | a ridge, a valley floor, a shoulder falling as it runs |
+| `point` | a disc of a given radius (`r`) | a summit, a hollow, a spot height |
+| `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex | a ridge, a valley floor, a shoulder falling as it runs |
 | `area` | every cell inside a ring | a bench, a mesa top, a sunken floor — a genuinely flat surface |
 | `rim` | the footprint's own outer rings | where the land meets the void |
 | `scarp` | a band either side of a drawn line, at two heights, with the face between them left free | a break of slope — the mark that decides where players can go (§5) |
 
 A point mark with a radius of zero pins one cell and reads as a spike; from about two up it reads as a summit,
-which is why the radius exists at all. A line mark's per-vertex heights are interpolated along its arc, so one
-drawn stroke can be a ridge that descends. The rim is optional and it is what keeps a hill inside its shape:
+which is why the radius exists at all. A line mark states the same quantity under the same name — `r` reaches
+either side of the centerline, so the band it writes is **twice** it: `"r": 6` holds a twelve-block strip. Its
+per-vertex heights are interpolated along its arc, so one drawn stroke can be a ridge that descends. The rim is optional and it is what keeps a hill inside its shape:
 without one, marks alone decide the whole surface, so a shape carrying a single high mark rises to that height
 everywhere and simply runs off its own edge — which is usually what an island's interior wants, and never what
 a lake wants.
@@ -549,7 +550,7 @@ unit it is solved over (§11) and because a plan recompile replaces every shape 
   "grain": { "amplitude": 1.3, "scale": 17, "seed": 21 },
   "marks": [
     { "id": "r1", "kind": "point", "at": [-6, -6], "h": 19, "r": 26 },
-    { "id": "r2", "kind": "line",  "points": [[26, 34], [54, 26], [72, 38]], "h": [15, 14, 13], "width": 7 },
+    { "id": "r2", "kind": "line",  "points": [[26, 34], [54, 26], [72, 38]], "h": [15, 14, 13], "r": 3.5 },
     { "id": "r3", "kind": "area",  "ring": [[16, 44], [40, 40], [44, 58], [20, 62]], "h": 13 },
     { "id": "r4", "kind": "scarp", "points": [[79, -2], [83, 8], [86, 16]], "high": 15, "low": 6, "face": 2, "band": 5 },
     { "id": "r5", "kind": "rim",   "h": 4, "depth": 1 }
@@ -681,7 +682,17 @@ exactly when the paint preview is not.
 island, what the terrain charges at each of the three thresholds, the places that leaves and the ledges stranded
 off them, the faces with cliffs qualified, crossings counted both ways, and the symmetry error. It is fetched on
 a button rather than on every edit, and it is what makes a relief correctable by a generator or an agent rather
-than only by eye. One measure needed a rule the prose above does not state: a face is grouped by **which way it
+than only by eye.
+
+**A count says a board is broken; the pieces say where.** Beside the place and ledge counts each tier carries
+`parts`, one entry per piece of surface, largest first: how many cells it holds, what share of the island that
+is, where its middle sits, the box it spans, and whether it is a place or a ledge. The flood that produces the
+counts already has them, so this costs nothing, and without it a read of *places 3, largest 0.95* leaves the
+missing five percent to be found by guessing a coordinate and taking a column transect. The list is cut at
+sixteen; a place is at least one percent of the island so the cap only ever bites on ledges, whose tail is
+slivers along a brink, and the `ledges` count still counts them all. The centroid is the mean of a piece's
+cells, so a horseshoe answers with a point outside itself — a fact about the piece rather than an error, and
+the box beside it is what bounds a search. One measure needed a rule the prose above does not state: a face is grouped by **which way it
 looks** before its runs are joined, because a face is a thing that faces a direction — joined without regard to
 it, a small block's four sides become one run whose cell count passes the cliff width, which is the exact call
 EL6 exists to get right.

@@ -41,6 +41,23 @@
           </tbody>
         </table>
 
+        @* A count says the board is broken and nothing else. What an author needs before they can fix it is
+           where the piece is, so every piece but the one they are standing on is listed with its middle. *@
+        @{ var stranded = island.Tiers.FirstOrDefault(t => t.Name == "walk")?.Parts.Skip(1).ToList() ?? []; }
+        @if (stranded.Count > 0)
+        {
+          <p class="section-desc">Cut off on foot, largest first:</p>
+          <ul class="list-plain">
+            @foreach (var part in stranded)
+            {
+              <li @key="part">
+                <span class="list-tag">@(part.Place ? "place" : "ledge")</span>
+                @part.Cells cells (@Pct(part.Share)) around @part.CentroidX, @part.CentroidZ
+              </li>
+            }
+          </ul>
+        }
+
         @* A barrier is usually not a wall but a detour, and a drop is free the way it falls — so a crossing is
            counted in both directions or it cannot tell the two apart. *@
         <table class="readback-table">

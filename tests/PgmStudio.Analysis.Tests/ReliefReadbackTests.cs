@@ -112,6 +112,40 @@ public sealed class ReliefReadbackTests
     }
 
     [Test]
+    public async Task A_stranded_shelf_is_named_with_the_coordinates_it_can_be_walked_to_at()
+    {
+        // The 5 x 5 shelf in the far corner is what a count alone reports as "ledges 1" and nothing else —
+        // knowing something is stranded without knowing what it is is exactly the gap.
+        var read = ReliefReadback.Read(Field(60, 60, (x, z) => x >= 55 && z >= 55 ? 30 : 8));
+        var parts = TierOf(read, "walk").Parts;
+
+        await Assert.That(parts.Count).IsEqualTo(2);
+        await Assert.That(parts[0].Place).IsTrue().Because("largest first");
+        var shelf = parts[1];
+        await Assert.That(shelf.Place).IsFalse();
+        await Assert.That(shelf.Cells).IsEqualTo(25);
+        await Assert.That(shelf.MinX).IsEqualTo(55);
+        await Assert.That(shelf.MinZ).IsEqualTo(55);
+        await Assert.That(shelf.MaxX).IsEqualTo(59);
+        await Assert.That(shelf.MaxZ).IsEqualTo(59);
+        await Assert.That(shelf.CentroidX).IsEqualTo(57);
+        await Assert.That(shelf.CentroidZ).IsEqualTo(57);
+        await Assert.That(shelf.Share).IsLessThan(ReliefReadback.PlaceShare);
+    }
+
+    [Test]
+    public async Task The_named_parts_account_for_the_places_and_the_shares_sum_to_the_island()
+    {
+        var read = ReliefReadback.Read(Field(60, 60, (x, z) => x >= 55 && z >= 55 ? 30 : 8));
+        var tier = TierOf(read, "walk");
+
+        await Assert.That(tier.Parts.Count(part => part.Place)).IsEqualTo(tier.Places);
+        await Assert.That(tier.Parts.Sum(part => part.Cells)).IsEqualTo(read.Cells)
+            .Because("nothing is left out when the pieces fit under the cap");
+        await Assert.That(Math.Abs(tier.Parts.Sum(part => part.Share) - 1)).IsLessThan(0.001);
+    }
+
+    [Test]
     public async Task A_landform_qualifies_as_a_cliff_where_a_structure_does_not()
     {
         // The corpus rule discriminates on the result rather than on what the author called it: a wide face

@@ -52,7 +52,7 @@ public partial class SketchDressingList
         {
             "tree" => new Row(id, "trees", Species(prop), Cell(prop)),
             "boulder" => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
-            "path" => new Row(id, "spline", $"{Field(prop, "style", "solid")} path", Span(prop)),
+            "stroke" => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "route") ? "route" : "paint")}", Span(prop)),
             "water" => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             "flora" => new Row(id, "flower", "ground cover", Span(prop)),
             "house" => new Row(id, "house", "building", Footprint(prop)),
@@ -61,6 +61,9 @@ public partial class SketchDressingList
     }
 
     private static string Species(JsonElement prop) => Field(prop, "species", "oak");
+
+    private static bool Bool(JsonElement prop, string name)
+        => prop.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.True;
 
     private static string Field(JsonElement prop, string name, string fallback)
         => prop.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String

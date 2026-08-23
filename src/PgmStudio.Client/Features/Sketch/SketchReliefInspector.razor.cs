@@ -102,7 +102,6 @@ public partial class SketchReliefInspector
     }
 
     private Task SetRadius(double value) => Set(MarkFields.Radius, JsonValue.Create(Math.Max(0, value)));
-    private Task SetWidth(double value) => Set(MarkFields.Width, JsonValue.Create(Math.Max(1, value)));
     private Task SetHigh(double value) => Set(MarkFields.High, JsonValue.Create(value));
     private Task SetLow(double value) => Set(MarkFields.Low, JsonValue.Create(value));
     private Task SetFace(double value) => Set(MarkFields.Face, JsonValue.Create(Math.Max(1, value)));
@@ -307,10 +306,12 @@ public static class MarkFields
     /// <summary>The height a mark states — a number, or one per vertex on a line that falls.</summary>
     public const string Height = "h";
     public const string At = "at";
+
+    /// <summary>How far a point's or a line's height reaches from what it is drawn on. One field, because it
+    /// is one quantity: a line's band is twice it, the same way a point's circle is.</summary>
     public const string Radius = "r";
     public const string Points = "points";
     public const string Ring = "ring";
-    public const string Width = "width";
     public const string Depth = "depth";
     public const string High = "high";
     public const string Low = "low";

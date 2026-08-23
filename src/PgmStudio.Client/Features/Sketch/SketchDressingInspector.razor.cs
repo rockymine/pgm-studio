@@ -115,8 +115,8 @@ public partial class SketchDressingInspector
     {
         // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
         // with something the painter has no colour for.
-        if (blocks.Count == 0 && kind is PropKinds.Path or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
-        if (kind == PropKinds.Path && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(Spec(PropFields.Pave));
+        if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
+        if (kind == PropKinds.Stroke && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(Spec(PropFields.Pave));
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(Spec(PropFields.Rock));
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
@@ -289,7 +289,7 @@ public partial class SketchDressingInspector
     private static readonly IReadOnlyDictionary<string, (string Icon, string Title, string Blurb)> KindInfo =
         new Dictionary<string, (string, string, string)>
         {
-            [PropKinds.Path] = ("spline", "Path", "A route across the ground. It swaps the surface it crosses rather than building on it, and nothing grows on what it covers."),
+            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it a route and trees and boulders will keep clear of it."),
             [PropKinds.Water] = ("waves", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
@@ -317,7 +317,7 @@ public partial class SketchDressingInspector
 /// apart over a typo that would silently write a field nothing reads.</summary>
 public static class PropKinds
 {
-    public const string Path = "path";
+    public const string Stroke = "stroke";
     public const string Water = "water";
     public const string Flora = "flora";
     public const string Tree = "tree";
@@ -335,6 +335,10 @@ public static class PropFields
     /// named once here because it is one field name, whatever the prop it sits on means by it.</summary>
     public const string Style = "style";
     public const string Coverage = "coverage";
+
+    /// <summary>Whether a stroke is a way through rather than paint. It is what a tree's and a boulder's
+    /// standoff is measured to, and the style says nothing about it.</summary>
+    public const string Route = "route";
     /// <summary>What a path is paved with — a full terrain material, not a block list.</summary>
     public const string Pave = "pave";
     public const string Depth = "depth";
@@ -387,7 +391,7 @@ public static class SpecFields
 /// inspector and the controller all have to agree on them.</summary>
 public static class DressingTools
 {
-    public const string Path = "dress:path";
+    public const string Stroke = "dress:stroke";
     public const string Water = "dress:water";
     public const string Flora = "dress:flora";
     public const string House = "dress:house";
@@ -398,7 +402,7 @@ public static class DressingTools
     /// and does not explain it — a dock tooltip is a label, not a manual.</summary>
     public static readonly (string Tool, string Kind, string Icon, string Name)[] All =
     [
-        (Path, PropKinds.Path, "spline", "Path"),
+        (Stroke, PropKinds.Stroke, "spline", "Stroke"),
         (Water, PropKinds.Water, "waves", "Water"),
         (Flora, PropKinds.Flora, "flower", "Ground cover"),
         (House, PropKinds.House, "home", "Building"),

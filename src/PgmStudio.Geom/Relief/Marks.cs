@@ -35,9 +35,10 @@ public sealed record PointMark(double X, double Z, double Height, double Radius 
 }
 
 /// <summary>A ridgeline, a valley floor or any drawn height line: a polyline held at a height, varying along
-/// its length when more than one height is given. The width is the band around the centerline that is held,
-/// so one stroke is a knife edge or a broad shoulder.</summary>
-public sealed record LineMark(double[][] Points, double[] Heights, double Width = 1.5) : Mark
+/// its length when more than one height is given. <see cref="Radius"/> is how far either side of the
+/// centerline is held — the same quantity a <see cref="PointMark"/> states, reaching from a line instead of
+/// from a point — so one stroke is a knife edge or a broad shoulder and the band it writes is twice it.</summary>
+public sealed record LineMark(double[][] Points, double[] Heights, double Radius = 2) : Mark
 {
     public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
     {
@@ -45,7 +46,7 @@ public sealed record LineMark(double[][] Points, double[] Heights, double Width 
         foreach (var (x, z) in footprint.Land())
         {
             var (distance, along, _, _) = Polyline.Nearest(x + 0.5, z + 0.5, Points);
-            if (distance > Width) continue;
+            if (distance > Radius) continue;
             yield return ((x, z), HeightAt(along));
         }
     }

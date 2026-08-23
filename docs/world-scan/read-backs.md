@@ -153,6 +153,11 @@ answers whether a board somebody believes is symmetric actually is.
 The build is paid per request; nothing is cached. A large board is the same cost as an export, which is what
 it is.
 
+**`at` names the other axis, and one outside the world is refused.** A cut along x is taken at a z and a cut
+along z at an x, which is the easiest thing about this route to have backwards. An `at` outside the world's
+own span answers **422** naming the axis and the range rather than a blank picture, because a coordinate
+outside the world is a fault and a blank image is the slowest possible way to be told so.
+
 **`section` reads a plane or a slab, and `depth` picks which.** Without it the cut is one block thick, which
 is the right read for a `layered` material — the whole reason that material kind exists is to vary a colour
 down a riser — and the wrong one for looking at a map, since a cut through a house that misses its walls

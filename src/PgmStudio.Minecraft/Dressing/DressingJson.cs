@@ -259,7 +259,12 @@ public static class DressingJson
             prop.Remove("blockData");
         }
 
-        if (kind == "path" && prop["pave"] is null && prop["blocks"] is JsonArray blocks && blocks.Count > 0)
+        // A stored stroke was written under the name of the one reading of it, so the kind is carried forward
+        // to the name of the thing itself; a route is declared rather than assumed, which is what the standoff
+        // is measured to.
+        if (kind == "path") { prop["kind"] = "stroke"; kind = "stroke"; }
+
+        if (kind == "stroke" && prop["pave"] is null && prop["blocks"] is JsonArray blocks && blocks.Count > 0)
         {
             var cobbled = prop["style"] is JsonValue style && style.TryGetValue<string>(out var s)
                 && string.Equals(s, "cobble", StringComparison.OrdinalIgnoreCase);

@@ -327,8 +327,9 @@ as an isolated marker into `B99`.
 
   **Five agent-authored boards asked for it exactly zero times, which narrows it rather than weakening it.**
   Across `opus5-elderwold` … `opus5-undercroft` no gate refused something that was right to build. The one
-  case that looked like a waiver — a texture brush declining every tree it touched — is a gate asking
-  `DR-ROAD` of the wrong prop, and is `WE21`. So the entry belongs to **human authoring**, where its two
+  case that looked like a waiver — a texture brush declining every tree it touched — was a gate asking
+  `DR-ROAD` of the wrong prop, and a stroke now says whether it is a route (`WE21`). So the entry belongs to
+  **human authoring**, where its two
   named worlds live, and it is not a dependency of anything on the agent track. Filed here as a schedule
   note rather than a change of scope: a waiver reached for in place of a fix hides the fix, and the whole
   value of this entry is that it does not.

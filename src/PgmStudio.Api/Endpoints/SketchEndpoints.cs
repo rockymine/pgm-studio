@@ -327,6 +327,153 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
     }
 }
 
+/// <summary>POST /api/map/{slug}/sketch/dressing — what the dressing pass would place, run against the posted
+/// layout and stopped before anything is written. The body is the <em>live</em> layout, the same as the paint
+/// preview and the columns read take.
+///
+/// <para>A prop's placement is computed inside the pass and reachable only by building and exporting a world,
+/// so a keep-out has to be reasoned about instead: how wide is the band, where does the seed put the gaps,
+/// which cells does a worn stroke actually keep. Every one of those is a guess, and the correction loop for a
+/// guess is drive, read the declines, move the prop. This answers the claim itself — per prop the columns it
+/// covers, where it rests and the height it resolved to, and every decline as the <c>DR-*</c> finding it
+/// draws — off the same pass the export runs, so what it says is what will happen.</para>
+///
+/// <para>The cost is the build, roughly a second on a full board, which is why this is asked for rather than
+/// pushed. 422 on a layout that cannot be built or a dressing document that will not read, by the same names
+/// the export refuses them under.</para></summary>
+public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<DressingRunDto>
+{
+    /// <summary>How many of a prop's columns are named. A stroke over a long board covers thousands and a
+    /// keep-out is measured near its ends and its bends; a caller needing every cell can read the provenance
+    /// sidecar off a build.</summary>
+    private const int NamedCells = 100;
+
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/dressing"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 422));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
+
+        Findings document;
+        try { document = SketchLayoutCheck.Check(layoutJson); }
+        catch (JsonException fault)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+
+        BuiltWorld built;
+        try
+        {
+            built = WorldBuilder.Build(layoutJson,
+                await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
+        }
+        catch (DressingParseException fault)
+        { await Refusals.WriteAsync(HttpContext, 422, "dressing document invalid", [fault.Finding], ct); return; }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not build layout", fault.Message, ct); return; }
+
+        // The height each prop resolved to, read off the world this pass just built rather than re-derived
+        // from the document: a second derivation is free to disagree with the one that placed the blocks.
+        var tops = new Dictionary<(int X, int Z), int>();
+        foreach (var column in PgmStudio.Minecraft.Anvil.WorldColumns.Of(built.World))
+            if (column.Runs.Count > 0) tops[(column.X, column.Z)] = column.Runs.Max(run => run.YTop);
+
+        var props = built.Dressing.Placements.Select(claim =>
+        {
+            var seat = claim.Cells.Count > 0 ? claim.Cells[0] : (X: 0, Z: 0);
+            return new DressingPropDto(
+                claim.Owner.Kind, claim.Owner.Unit, claim.Owner.Image,
+                claim.Layer == PgmStudio.Minecraft.Anvil.ProvenanceLayer.Structure ? "structure" : "prop",
+                claim.Cells.Count, seat.X, seat.Z, tops.GetValueOrDefault(seat, 0),
+                [.. claim.Cells.Take(NamedCells).Select(cell => new CellDto(cell.X, cell.Z))]);
+        }).ToList();
+
+        await Send.OkAsync(new DressingRunDto(
+            props, built.Dressing.Declines, props.Sum(prop => prop.Cells)), ct);
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/probe-footprint — whether a ring stands on ground, asked of the
+/// <b>rasterised</b> footprint the build actually produces rather than of a model of the coast rebuilt outside
+/// the studio. The two disagree by a cell or two, and a cell or two is the whole failure: a lift with no
+/// ground under it reads no terrain, falls back to the shape's own floor and stands a stub of cobble in open
+/// void, which nothing declines because a shape is terrain and terrain over void is a spur.
+///
+/// <para>The ring is not a shape the layout carries — that is the point, since the question is asked before a
+/// shape is built on it. The answer separates <c>void</c> past the coast from a <c>hole</c> the footprint
+/// encloses: a hub's slots and a U-shaped room's notch are made by <b>arrangement</b>, so no region marks one
+/// and a shape dropped on top fills in the gap the layout was composed to have, silently.</para>
+///
+/// <para>Body: <c>{ "layout": {…}, "ring": [[x, z], …] }</c>, three points or more. 422 on a ring with fewer,
+/// on a layout that will not read, and on a board too large.</para></summary>
+public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointWithoutRequest<FootprintProbeDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/probe-footprint"); AllowAnonymous();
+        Description(b => b.Accepts<FootprintProbe.Request>("application/json").Refuses(404, 422));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var body = await RawBody.ReadAsync(HttpContext, ct);
+        string layoutJson;
+        List<double[]> ring;
+        try
+        {
+            using var document = JsonDocument.Parse(body);
+            var root = document.RootElement;
+            if (!root.TryGetProperty("layout", out var layout) || !root.TryGetProperty("ring", out var points)
+                || points.ValueKind != JsonValueKind.Array)
+            {
+                await Refusals.UnreadableAsync(HttpContext, "invalid probe",
+                    "the body carries a layout and a ring: { \"layout\": {…}, \"ring\": [[x, z], …] }", ct);
+                return;
+            }
+            layoutJson = layout.GetRawText();
+            ring = [.. points.EnumerateArray()
+                .Where(point => point.ValueKind == JsonValueKind.Array && point.GetArrayLength() >= 2)
+                .Select(point => new[] { point[0].GetDouble(), point[1].GetDouble() })];
+        }
+        catch (Exception fault) when (fault is JsonException or InvalidOperationException or FormatException)
+        { await Refusals.UnreadableAsync(HttpContext, "invalid probe", fault.Message, ct); return; }
+
+        // Three points is a triangle and the least a ring can be; two is a line, which covers no cell and
+        // would answer "nothing stands on it" about a question nobody asked.
+        if (ring.Count < 3)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "ring too short",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    $"a ring needs three points or more to cover any ground; this one carries {ring.Count}")], ct);
+            return;
+        }
+        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+                SketchLayoutCheck.Check(layoutJson), ct)) return;
+
+        FootprintProbe.Result probe;
+        try { probe = FootprintProbe.Of(layoutJson, ring); }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(HttpContext, "could not read layout", fault.Message, ct); return; }
+
+        await Send.OkAsync(new FootprintProbeDto(
+            probe.Cells, probe.Land, probe.Void, probe.Hole,
+            [.. probe.VoidCells.Select(cell => new CellDto(cell.X, cell.Z))],
+            [.. probe.HoleCells.Select(cell => new CellDto(cell.X, cell.Z))]), ct);
+    }
+}
+
 /// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for whatever relief the posted layout
 /// carries, one entry per relief-bearing island: its traced lines, its height range, and its bounds. The body
 /// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
@@ -445,7 +592,10 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
             return new ReliefIslandReadDto(
                 entry.Key, read.Cells, read.Low, read.High, read.Relief, read.Steps,
                 [.. read.Tiers.Select(t => new ReliefTierDto(
-                    t.Name, t.MaxStep, t.Share, t.Places, t.LargestPlace, t.Ledges))],
+                    t.Name, t.MaxStep, t.Share, t.Places, t.LargestPlace, t.Ledges,
+                    [.. t.Parts.Select(part => new ReliefPartDto(
+                        part.Cells, part.Share, part.CentroidX, part.CentroidZ,
+                        part.MinX, part.MinZ, part.MaxX, part.MaxZ, part.Place))]))],
                 // the whole list is long and the tail is all banks, so only the head is sent
                 [.. read.Faces.Take(12).Select(f => new ReliefFaceDto(f.Facing, f.Width, f.Drop, f.Cliff))],
                 read.Faces.Count, read.Cliffs,
