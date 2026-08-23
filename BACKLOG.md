@@ -967,11 +967,10 @@ place.
 - [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
   `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
   `GroundCoverage` walks goal pairs only. Two origins are missing and both are asked for (author): the
-  **mid band**, because the attacker's route that decides a game starts there rather than at a goal, and an
-  **arbitrary cell** — "the west edge of the mid stone to an enemy wool" — so a specific way can be asked
-  about rather than only the standard set. With `WS1`'s fields the second is one extra BFS against fields
-  already built, so this is a demand-set change, not an algorithm. Add the band's cells as an origin in the
-  pair walk, and expose `POST /map/{slug}/route` taking a cell and a target.
+  **mid band**, because the attacker's route that decides a game starts there rather than at a goal. The
+  arbitrary cell — "the west edge of the mid stone to an enemy wool" — answers now at
+  `GET /map/{slug}/walk?from=x,z&to=x,z`; what is left is the standard set the coverage read walks. This is a
+  demand-set change, not an algorithm: add the band's cells as an origin in the pair walk.
 
   *`match-flow.md` §4: "The route that decides a game is not the defender walking to their own objective — it
   is the attacker crossing from the mid band."*
@@ -1117,7 +1116,13 @@ place.
   `Traversability.Check` takes any column holding any solid block as walkable (`SegmentIndex.SurfaceColumns`),
   so a building is walkable ground and a route passes through a wall; `Minecraft.Render.TraversabilityRender`,
   behind `--traversability-map`, asks the better question — ground with **two clear blocks of headroom** — and
-  does see one. Two masks, one concept, different answers, and the blinder of the two is the one that can
+  does see one. `Analysis/WorldWalk` inherits the blind mask, and its heights make it worse: `StandingTops`
+  reads the **lowest** segment's top, so a cell under a house reads as the terrain beneath it. On
+  `elderwold-10` the byre stands at `x 26..34, z 34..41`; `GET …/walk?from=20,37&to=40,37` runs 9 cells
+  straight through it at **zero cost**, and `column?at=30,37` answers spruce planks at y19 and y28.
+
+  **Take this before the rest of `B246`.** It changes what is *passable* rather than what a step costs, so
+  every distance the studio reports moves for it — doing it after the callers migrate moves them all twice. Two masks, one concept, different answers, and the blinder of the two is the one that can
   refuse an export. Every traversability figure in `pgm-studio-mapgen/reports/` came from the render.
   Adopting the render's predicate costs nothing extra: the segment index the gate already loads holds the
   vertical structure, and `SurfaceColumns` is discarding it — the same index already answers air-at-a-point
