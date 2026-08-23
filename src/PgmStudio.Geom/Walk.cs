@@ -66,6 +66,17 @@ public enum WalkAim
     /// <summary>The way there that asks for the fewest placed blocks, reporting how far round it goes. What
     /// a kit budget is answered against.</summary>
     Reach,
+
+    /// <summary>The way a player would actually take: among the routes no more than <see cref="Walk.Detour"/>
+    /// blocks longer than the shortest, the one keeping furthest off an edge. What a traffic or a coverage
+    /// read wants, and what a picture of a journey should draw.
+    ///
+    /// <para>It is a separate question rather than a stronger tie-break because standoff costs distance. A
+    /// neck ten cells across is crossed at a clearance of 1 or, for 2.36 blocks more on a 120-block walk, at
+    /// its widest 5; ordered strictly after distance, no tie-break can ever pay that. Ordered before it,
+    /// nothing would stop a route wandering. The allowance is the bound, and it is the same number a corridor
+    /// is claimed with — one quantity, three consumers.</para></summary>
+    Comfort,
 }
 
 /// <summary>
@@ -77,9 +88,11 @@ public enum WalkAim
 /// and slows through water. Nothing in it is weighted: there are no preference coefficients to calibrate,
 /// only quantities, each in the unit its own rule is stated in.</para>
 ///
-/// <para>Where two routes tie on the answers above, the one keeping furthest from the void wins. That is
-/// not a fifth cost — it decides nothing a rule reads — it is what stops a route hugging a border because
-/// the border is the short way round a bend.</para>
+/// <para>Where two routes tie on the answers above, the one whose worst moment is furthest from the void
+/// wins. That is not a fifth cost — it decides nothing a rule reads — it is what stops a route hugging a
+/// border because the border is the short way round a bend. A tie-break can only buy standoff that is free,
+/// though, and standoff usually costs a little distance: <see cref="WalkAim.Comfort"/> is the aim that pays
+/// for it.</para>
 /// </summary>
 public static class Walk
 {
@@ -100,9 +113,29 @@ public static class Walk
     public const int WaterSlowdown = 2;
 
     /// <summary>How much room either side a route wants, in blocks, before it is treated as hugging an edge.
-    /// A lateral standoff, which is a different quantity from <c>GroundCoverage.CorridorAllowance</c>'s
-    /// length budget however alike the two numbers look.</summary>
+    /// A lateral standoff, which is a different quantity from <see cref="Detour"/>'s length budget however
+    /// alike the two numbers look.</summary>
     public const int ClearanceWanted = 10;
+
+    /// <summary>How far out of their way a player will go, in blocks: a journey may claim any cell on a walk
+    /// no more than this much longer than the shortest. Since visiting a cell <c>m</c> blocks off the direct
+    /// line and coming back costs about <c>2m</c>, ten blocks of allowance is a lane about ten blocks wide —
+    /// and a there-and-back down some spur is charged the same way, which is what keeps a corridor off ground
+    /// that leads nowhere.
+    ///
+    /// <para>An <b>allowance</b>, not a fraction of the distance. A 30% budget on a long walk is a hundred
+    /// blocks of slack and admits nearly everything: on the traced maps the share of ground no journey covers
+    /// runs 26.1% under the geodesics and <b>0% at both 15% and 30%</b>. A ratio that erases the measure is
+    /// not a wider reading of it.</para>
+    ///
+    /// <para><b>Ten is calibrated, not assumed.</b> It is the value that reproduces the author's own reading
+    /// of the one board known to carry dead ground — run 4's `wheal-hazel`, whose eighty-block neutral bar
+    /// crosses a twenty-block build zone. Against the author's marks: `works-lo-w` and `west-spur` dead
+    /// (100%, 100%), `works-yard` and `moor` about half (50%, 50%), the bar about two thirds (62%, and the
+    /// original review measured 60.2% at block resolution). Its rebuild `wheal-hazel-v2` reads <b>0%</b>. A
+    /// tolerance for going out of one's way is not the same quantity as the width of a lane a player spreads
+    /// across, and it is the smaller of the two.</para></summary>
+    public const int Detour = 10;
 
     private static readonly (int X, int Z)[] Neighbours =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
@@ -113,6 +146,8 @@ public static class Walk
         WalkAim aim = WalkAim.Travel)
     {
         if (!ground.Passable.Contains(from) || !ground.Passable.Contains(to)) return null;
+        if (aim == WalkAim.Comfort) return Comfortable(from, to, ground);
+
         var came = Solve(from, ground, aim, to);
         if (from != to && !came.ContainsKey(to)) return null;
 
@@ -122,12 +157,46 @@ public static class Walk
         return new WalkPath(cells, Measure(cells, ground));
     }
 
+    /// <summary>The least-exposed route inside the corridor: the ribbon of cells a walk within
+    /// <see cref="Detour"/> of the shortest can reach — the same set <c>Cells.Corridor</c> claims, measured
+    /// in this walk's own octile blocks — solved again with the standoff first. The two ends are always in
+    /// the ribbon, so a journey that only just connects still answers.</summary>
+    private static WalkPath? Comfortable((int X, int Z) from, (int X, int Z) to, WalkGround ground)
+    {
+        var outward = Field(from, ground);
+        if (!outward.TryGetValue(to, out var direct)) return null;
+        var homeward = Field(to, ground);
+
+        var budget = direct.Distance + Detour;
+        var ribbon = new HashSet<(int X, int Z)> { from, to };
+        foreach (var (cell, cost) in outward)
+            if (homeward.TryGetValue(cell, out var back) && cost.Distance + back.Distance <= budget)
+                ribbon.Add(cell);
+
+        var inside = ground with { Ground = Narrow(ground.Ground, ribbon), Bridgeable = Narrow(ground.Bridgeable, ribbon) };
+        var came = Solve(from, inside, WalkAim.Comfort, to);
+        if (from != to && !came.ContainsKey(to)) return null;
+
+        var cells = new List<(int X, int Z)> { to };
+        for (var cell = to; cell != from; cells.Add(cell)) cell = came[cell];
+        cells.Reverse();
+        return new WalkPath(cells, Measure(cells, ground));
+    }
+
+    private static HashSet<(int X, int Z)> Narrow(IReadOnlySet<(int X, int Z)> set, HashSet<(int X, int Z)> ribbon)
+        => [.. set.Where(ribbon.Contains)];
+
     /// <summary>What every reachable cell costs from <paramref name="from"/>, under <paramref name="aim"/>.
     /// The field a caller wants when it is asking about many targets at once — a kit against every wool, a
     /// coverage read against every waypoint — rather than about one journey.</summary>
     public static Dictionary<(int X, int Z), WalkCost> Field((int X, int Z) from, WalkGround ground,
         WalkAim aim = WalkAim.Travel)
     {
+        if (aim == WalkAim.Comfort)
+            throw new ArgumentOutOfRangeException(nameof(aim),
+                "a comfort route is bounded by how far the journey itself is, so it is answered between two "
+                + "cells rather than as a field — ask Between, or field Travel and draw the comfort route on it");
+
         var costs = new Dictionary<(int X, int Z), WalkCost>();
         if (!ground.Passable.Contains(from)) return costs;
 
@@ -179,9 +248,12 @@ public static class Walk
     /// <summary>Dijkstra over the eight-neighbourhood, ordered by <paramref name="aim"/>, returning each
     /// reached cell's predecessor. Stops early once <paramref name="target"/> is settled, if one is given.
     ///
-    /// <para>The ordering key is lexicographic rather than a weighted sum: the aim's own quantity first, the
-    /// other second, and the clearance shortfall last as a tie-break. That is what lets the walk answer both
-    /// questions without ever having to say how many blocks a block of walking is worth.</para></summary>
+    /// <para>The ordering key is lexicographic rather than a weighted sum: the aim's own quantity first and
+    /// the others after it, which is what lets the walk answer every question without ever having to say how
+    /// many blocks a block of walking is worth. The clearance term is the route's <b>worst</b> shortfall
+    /// rather than its total, so it measures how exposed a journey gets rather than how long it is — a sum
+    /// charges a longer route for its own length and would rank a safe detour below the edge it avoids.
+    /// </para></summary>
     private static Dictionary<(int X, int Z), (int X, int Z)> Solve((int X, int Z) from, WalkGround ground,
         WalkAim aim, (int X, int Z)? target)
     {
@@ -223,7 +295,7 @@ public static class Walk
                     && now - was > FreeRise)
                     blocks += now - was - FreeRise;
 
-                var candidate = (here.Distance + step, blocks, here.Deficit + Deficit(next));
+                var candidate = (here.Distance + step, blocks, Math.Max(here.Deficit, Deficit(next)));
                 if (best.TryGetValue(next, out var known) && Rank(known).CompareTo(Rank(candidate)) <= 0) continue;
                 best[next] = candidate;
                 came[next] = cell;
@@ -235,8 +307,11 @@ public static class Walk
         int Deficit((int X, int Z) cell)
             => comfort == 0 ? 0 : Math.Max(0, comfort - clearance.GetValueOrDefault(cell, 0));
 
-        (int, int, int) Rank((int Distance, int Blocks, int Deficit) cost) => aim == WalkAim.Travel
-            ? (cost.Distance, cost.Blocks, cost.Deficit)
-            : (cost.Blocks, cost.Distance, cost.Deficit);
+        (int, int, int) Rank((int Distance, int Blocks, int Deficit) cost) => aim switch
+        {
+            WalkAim.Reach => (cost.Blocks, cost.Distance, cost.Deficit),
+            WalkAim.Comfort => (cost.Deficit, cost.Distance, cost.Blocks),
+            _ => (cost.Distance, cost.Blocks, cost.Deficit),
+        };
     }
 }

@@ -26,7 +26,8 @@ The model is the author's and it is built: **one traversal, two fidelities, four
 nothing weighted** — reachable, distance in blocks, blocks *placed* (a rise of Δ costs Δ−1, void bridged one
 a cell), and drops (free to 3, counted beyond it, because a water bucket makes a fall free of damage and not
 of time). Eight-connected, because a player walks diagonally; water a speed rather than a weight, at about
-×2 and only at the built fidelity. It is written out in `docs/world-scan/read-backs.md` and its types are in
+×2 and only at the built fidelity; and a third aim, `Comfort`, buying standoff from an edge inside the
+ten-block allowance a corridor is already claimed with. It is written out in `docs/world-scan/read-backs.md` and its types are in
 `docs/generator/vocabulary.md`.
 
 **What remains is that most of the studio is not asking it yet.** Every distance outside `KitReach` still

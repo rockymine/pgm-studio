@@ -38,10 +38,6 @@ public sealed record DeadPlace(int Area, int CentroidX, int CentroidZ, IReadOnly
 /// </summary>
 public static class PlanFlow
 {
-    /// <summary>How far out of their way a player will go, in blocks — the same allowance the coverage read
-    /// uses, so the ground this account calls dead is the ground that render paints red.</summary>
-    public const int CorridorAllowance = 10;
-
     /// <summary>Under this, a split or a merge is a doorway rather than a place: everyone arrives at one
     /// point and the fight has no room. Stated in blocks across the narrower axis.</summary>
     public const int TightPassage = 8;
@@ -70,7 +66,7 @@ public static class PlanFlow
         var used = new HashSet<(int X, int Z)>();
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
-                used.UnionWith(Cells.Corridor(waypoints[i], waypoints[j], nav.Navigable, CorridorAllowance / cell));
+                used.UnionWith(Cells.Corridor(waypoints[i], waypoints[j], nav.Navigable, Walk.Detour / cell));
         foreach (var w in waypoints)
             for (var dz = -2; dz <= 2; dz++)
                 for (var dx = -2; dx <= 2; dx++)

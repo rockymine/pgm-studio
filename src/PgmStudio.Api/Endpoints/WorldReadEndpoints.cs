@@ -445,8 +445,17 @@ internal static class WalkReads
         return Cells.SnapToWalkable((x, z), ground.Passable, 24);
     }
 
-    public static WalkAim Aim(string? asked)
-        => string.Equals(asked, "reach", StringComparison.OrdinalIgnoreCase) ? WalkAim.Reach : WalkAim.Travel;
+    public static WalkAim Aim(string? asked) => asked?.ToLowerInvariant() switch
+    {
+        "reach" => WalkAim.Reach,
+        "comfort" => WalkAim.Comfort,
+        _ => WalkAim.Travel,
+    };
+
+    /// <summary>What a field may be shaded by. A comfort route is bounded by the journey's own length, so it
+    /// has no field of its own; the picture shades the travel cost and draws the comfort route over it, which
+    /// is the pairing that shows what the standoff bought.</summary>
+    public static WalkAim Fieldable(WalkAim aim) => aim == WalkAim.Comfort ? WalkAim.Travel : aim;
 }
 
 /// <summary>GET /api/map/{slug}/walk — what one journey over this board costs. The read that says whether a
@@ -464,8 +473,10 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
             new QueryWord("from", "Where the journey starts, as `x,z`. Snapped onto the nearest ground."),
             new QueryWord("to", "Where it ends, as `x,z`."),
             new QueryWord("aim", "Which route to take: `travel` is the shortest, `reach` the one asking for "
-                               + "the fewest placed blocks. They can differ, and the difference is the point.",
-                ["travel", "reach"])));
+                               + "the fewest placed blocks, `comfort` the least edge-hugging of the routes "
+                               + $"within {Walk.Detour} blocks of the shortest. They differ, and the "
+                               + "difference is the point.",
+                ["travel", "reach", "comfort"])));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -494,7 +505,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         }
 
         var path = Walk.Between(from.Value, to.Value, ground, aim);
-        var name = aim == WalkAim.Reach ? "reach" : "travel";
+        var name = aim switch { WalkAim.Reach => "reach", WalkAim.Comfort => "comfort", _ => "travel" };
         await Send.OkAsync(path is null
             ? new WalkReadDto(false, -1, -1, 0, 0, name, [])
             : new WalkReadDto(true, path.Cost.Distance, path.Cost.Blocks, path.Cost.Drops, path.Cost.WorstDrop,
@@ -518,7 +529,10 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
             new QueryWord("to", "Where the drawn route ends, as `x,z`. Absent draws the field alone."),
             new QueryWord("field", "Which answer to shade by. Absent shades the blocks a player must place.",
                 WalkRender.Fields),
-            new QueryWord("aim", "Which route the field prices.", ["travel", "reach"]),
+            new QueryWord("aim", "Which route to draw, and which cost the field prices. `comfort` has no "
+                               + "field of its own — the field shades the travel cost and the comfort route "
+                               + "is drawn on it, which is the pairing that shows what the standoff bought.",
+                ["travel", "reach", "comfort"]),
             new QueryWord("scale", "Pixels a block takes, 1 to 8.", Min: 1, Max: 8)));
     }
 
@@ -547,7 +561,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         }
 
         var to = WalkReads.Seat(Query<string?>("to", isRequired: false), ground);
-        var field = Walk.Field(from.Value, ground, aim);
+        var field = Walk.Field(from.Value, ground, WalkReads.Fieldable(aim));
         var route = to is { } target ? Walk.Between(from.Value, target, ground, aim) : null;
         var what = Query<string?>("field", isRequired: false) is { } asked
                    && WalkRender.Fields.Contains(asked) ? asked : "blocks";

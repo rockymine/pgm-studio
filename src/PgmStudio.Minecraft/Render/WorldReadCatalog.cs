@@ -81,8 +81,9 @@ public static class WorldReadCatalog
             "What crossing this board charges, drawn: every passable cell shaded by what reaching it from "
             + "`from` costs, with the route to `to` over the top. `field` picks which of the walk's answers "
             + "is shaded — `blocks` a player must place, `distance` walked, or `drops` taken — and `aim` "
-            + "picks whether the field prices the shortest way or the cheapest one. The read for why a route "
-            + "goes where it goes, which traversability cannot say because it answers only whether one exists.",
+            + "picks the route: the shortest way, the cheapest one, or the one keeping off an edge. The read "
+            + "for why a route goes where it goes, which traversability cannot say because it answers only "
+            + "whether one exists.",
             "It is one field from one start, so a cell shaded cheap is cheap FROM THERE. Two teams do not "
             + "share a picture, and a board that is fair reads differently from each spawn."),
 
@@ -91,7 +92,9 @@ public static class WorldReadCatalog
             + "it is in blocks, how many blocks a player must place to get there — the climb at a rise of "
             + "delta costing delta minus one, and one a cell for void bridged — and how many falls over the "
             + "free height it takes. Four answers in four units, none weighed against the others, so a "
-            + "caller reads the field its own rule is stated in.",
+            + "caller reads the field its own rule is stated in. `aim` picks which route is measured: the "
+            + "shortest (`travel`), the one placing fewest blocks (`reach`), or the least edge-hugging of "
+            + "the routes within ten blocks of the shortest (`comfort`).",
             "`from` and `to` are snapped to the nearest ground within 24 blocks, because a marker's stated "
             + "coordinates are a block in a room rather than a cell of terrain. A journey between two "
             + "markers deep inside walls is measured between the cells outside them."),

@@ -1182,7 +1182,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **The coverage read runs on corridors and keeps how busy each cell is (WS1).** `GroundCoverage` walked one
   shortest path per waypoint pair, dilated it six blocks and unioned the lot — so a hole's two ways could only
   ever have one of them counted, and a cell one journey clips read the same as a cell every journey runs down.
-  It now claims a **ribbon** per pair (every cell on a walk within `CorridorAllowance` of the shortest, an
+  It now claims a **ribbon** per pair (every cell on a walk within `Walk.Detour` of the shortest, an
   allowance in blocks rather than a fraction that admits a hundred blocks of slack on a long walk) and keeps
   the **per-cell count**, which is what says which way round a hole is preferred and which is the one players
   decline. `GET /map/{slug}/coverage` carries the traffic grid beside the classes with `journeys` and
@@ -1475,6 +1475,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   **`GET /map/{slug}/render/walk`** draws the field — every passable cell shaded by what reaching it costs
   from `from`, ground on one ramp, bridged void on a cooler one, water on a third, with the route over the
   top and `field` picking which of the answers is shaded.
+
+  **A third aim, because standoff costs distance.** Both aims above break a tie by preferring the route
+  whose worst moment is furthest from an edge, but a tie-break sits after the aim's own quantity and can
+  only buy standoff that is free — and it rarely is. On the flat test board the route out of spawn crosses a
+  ten-cell neck at a clearance of **1**; crossing it at its widest **5** costs **2 blocks on a 121-block
+  walk**, which no tie-break can ever pay. `Comfort` is that question asked separately: among the routes no
+  more than `Walk.Detour` (10 blocks) longer than the shortest — the same ribbon a corridor is claimed with,
+  measured in this walk's own octile blocks — the one whose worst exposure is least. It answers 123 blocks at
+  a worst clearance of 5, and `Travel` is untouched, so no separation rule or measured band moves. The
+  exposure term is the route's **worst** shortfall rather than its total, since a sum charges a longer route
+  for its own length and would rank a safe detour below the edge it avoids. The allowance itself moved down
+  to `Geom` on the way: `PlanFlow` and `GroundCoverage` each carried their own `CorridorAllowance = 10` for
+  what is one quantity — how far out of their way a player will go — and all three now read `Walk.Detour`.
 
   *Checked on four builds of one 12-player CTW board, each adding one mechanism to the last: flat pays 20
   blocks for a 20-block strait and nothing else; raising three room pads 6 blocks costs exactly 5 more and

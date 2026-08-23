@@ -928,7 +928,7 @@ rules stated in it, and the one endpoint whose cost is the reason a cheaper read
 place.
 
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
-  `GroundCoverage` now reads a ribbon at an absolute `CorridorAllowance` of 10 blocks, calibrated against
+  `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
   `wheal-hazel` and its rebuild (`FEATURES.md`). What is left is the one thing the author flagged and the
   calibration cannot settle: **10 blocks is right for a board of that size, and maps exist with thinner ways**.
   A lane genuinely 8 blocks wide pays the same allowance a 40-block one does, so a route treats the thin map

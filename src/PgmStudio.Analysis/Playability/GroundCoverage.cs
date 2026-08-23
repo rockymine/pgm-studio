@@ -25,25 +25,6 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class GroundCoverage
 {
-    /// <summary>How far out of their way a player will go, in blocks: a journey claims every cell on a walk
-    /// no more than this much longer than the shortest. Since visiting a cell <c>m</c> blocks off the direct
-    /// line and coming back costs about <c>2m</c>, ten blocks of allowance is a lane about ten blocks wide —
-    /// and a there-and-back down some spur is charged the same way, which is what keeps a corridor off ground
-    /// that leads nowhere.
-    ///
-    /// <para>An <b>allowance</b>, not a fraction of the distance. A 30% budget on a long walk is a hundred
-    /// blocks of slack and admits nearly everything: on the traced maps the share of ground no journey covers
-    /// runs 26.1% under the geodesics and <b>0% at both 15% and 30%</b>. A ratio that erases the measure is
-    /// not a wider reading of it.</para>
-    ///
-    /// <para><b>Ten is calibrated, not assumed.</b> It is the value that reproduces the author's own reading
-    /// of the one board known to carry dead ground — run 4's `wheal-hazel`, whose eighty-block neutral bar
-    /// crosses a twenty-block build zone. Against the author's marks: `works-lo-w` and `west-spur` dead
-    /// (100%, 100%), `works-yard` and `moor` about half (50%, 50%), the bar about two thirds (62%, and the
-    /// original review measured 60.2% at block resolution). Its rebuild `wheal-hazel-v2` reads <b>0%</b>. A
-    /// tolerance for going out of one's way is not the same quantity as the width of a lane a player spreads
-    /// across, and it is the smaller of the two.</para></summary>
-    public const int CorridorAllowance = 10;
 
     /// <summary>The ground a waypoint claims for itself — the ring a fight over it happens on, the same ten
     /// blocks the goal standoff keeps props out of.</summary>
@@ -119,7 +100,7 @@ public static class GroundCoverage
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
             {
-                var ribbon = Cells.Corridor(waypoints[i], waypoints[j], navigable, CorridorAllowance);
+                var ribbon = Cells.Corridor(waypoints[i], waypoints[j], navigable, Walk.Detour);
                 if (ribbon.Count == 0) continue;
                 journeys++;
                 foreach (var cell in ribbon) traffic[cell] = traffic.GetValueOrDefault(cell) + 1;

@@ -174,4 +174,51 @@ public sealed class WalkTests
         await Assert.That(field[(4, 0)].Blocks).IsEqualTo(3);
         await Assert.That(field[(4, 0)]).IsEqualTo(Walk.Between((0, 0), (4, 0), walkable, WalkAim.Reach)!.Cost);
     }
+
+    [Test]
+    public async Task Comfort_pays_for_the_wider_crossing_that_travel_will_not()
+    {
+        // Two rooms joined two ways: a three-wide passage straight between them, and a nine-wide one a
+        // little further down. Travel takes the near one; comfort pays for the room either side.
+        var ground = new HashSet<(int X, int Z)>();
+        foreach (var cell in Rect(0, 0, 8, 31)) ground.Add(cell);
+        foreach (var cell in Rect(20, 0, 8, 31)) ground.Add(cell);
+        foreach (var cell in Rect(8, 14, 12, 3)) ground.Add(cell);
+        foreach (var cell in Rect(8, 18, 12, 9)) ground.Add(cell);
+
+        var walkable = new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), Cells.BoundingBox(ground));
+        var clearance = Cells.Clearance(ground, Cells.BoundingBox(ground));
+
+        var travel = Walk.Between((4, 15), (23, 15), walkable)!;
+        var comfort = Walk.Between((4, 15), (23, 15), walkable, WalkAim.Comfort)!;
+
+        await Assert.That(comfort.Cells.Min(cell => clearance[cell]))
+            .IsGreaterThan(travel.Cells.Min(cell => clearance[cell]));
+        await Assert.That(comfort.Cost.Distance).IsGreaterThan(travel.Cost.Distance);
+        await Assert.That(comfort.Cost.Distance - travel.Cost.Distance).IsLessThanOrEqualTo(Walk.Detour);
+    }
+
+    [Test]
+    public async Task Comfort_never_strays_further_than_the_allowance()
+    {
+        // One room with a pillar in it: comfort goes round the far side of the pillar only while that stays
+        // inside the allowance, which is what stops a standoff route wandering.
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 41, 41));
+        foreach (var cell in Rect(18, 15, 5, 11)) ground.Remove(cell);
+        var walkable = new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 41, 41));
+
+        var travel = Walk.Between((0, 20), (40, 20), walkable)!;
+        var comfort = Walk.Between((0, 20), (40, 20), walkable, WalkAim.Comfort)!;
+        await Assert.That(comfort.Cost.Distance - travel.Cost.Distance).IsLessThanOrEqualTo(Walk.Detour);
+    }
+
+    [Test]
+    public async Task A_comfort_field_is_refused_rather_than_answered_as_travel()
+    {
+        var walkable = Flat(5, 5);
+        await Assert.That(() => Walk.Field((0, 0), walkable, WalkAim.Comfort))
+            .Throws<ArgumentOutOfRangeException>();
+    }
 }

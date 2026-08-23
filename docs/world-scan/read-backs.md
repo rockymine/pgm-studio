@@ -41,7 +41,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16) |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
-| `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach` |
+| `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort` |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` as above |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
 
@@ -76,9 +76,23 @@ no route**; it is slower, so it doubles the distance of the cells it covers.
 `aim` picks which of those the route minimises. `travel` takes the shortest way and reports what it costs to
 build; `reach` takes the way asking for the fewest placed blocks and reports how far round it goes. **They
 disagree on any board worth the question** — on a 60×140 test board with a relief ridge across it, travel
-walks 121 blocks placing 41, and reach walks 144 placing 24. Where two routes tie on all four answers the one
-keeping furthest off the void wins; that is a tie-break rather than a fifth cost, since with no weights it
-cannot be charged.
+walks 121 blocks placing 41, and reach walks 144 placing 24.
+
+**`comfort` is the third, and it exists because standoff costs distance.** Both aims above break a tie by
+preferring the route whose worst moment is furthest from an edge, but a tie-break sits after the aim's own
+quantity and can therefore only buy standoff that is free. Standoff is rarely free: on the flat test board
+the route out of spawn crosses a ten-cell neck at a clearance of **1**, and crossing it at its widest **5**
+costs **2 blocks on a 121-block walk** — a price no tie-break can ever pay. So `comfort` is a separate
+question: among the routes no more than `Walk.Detour` (**10 blocks**) longer than the shortest — the same
+ribbon a corridor is claimed with — the one whose worst exposure is least. On that board it answers 123
+blocks at a worst clearance of 5.
+
+The bound is what keeps it honest in both directions. Unbounded, a standoff route wanders; ordered after
+distance, it never moves. And the exposure term is the route's **worst** shortfall rather than its total,
+because a sum charges a longer route for its own length and would rank a safe detour below the edge it
+avoids. `comfort` has no field of its own — the bound is the journey's own length, so it is answered between
+two cells; `render/walk?aim=comfort` shades the travel field and draws the comfort route on it, which is the
+pairing that shows what the standoff bought.
 
 ## Three of them mislead, and each has cost a reader a conclusion
 

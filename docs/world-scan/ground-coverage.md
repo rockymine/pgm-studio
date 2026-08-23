@@ -13,7 +13,7 @@ pair** of waypoints, because defenders travel to defend, attackers rotate goal t
 between spawns; and every one of them aims at a place the map actually has, which is why no journey ever
 wanders off across ground nothing stands on.
 
-A journey claims a **corridor**, not a line. Every cell on a walk no more than `CorridorAllowance` (10
+A journey claims a **corridor**, not a line. Every cell on a walk no more than `Walk.Detour` (10
 blocks) longer than the shortest belongs to it — an allowance, not a fraction of the distance. Two things
 follow. A two-hundred-block detour is excluded by construction rather than by a ratio that happens to be
 tight enough, and so is a there-and-back down a spur, since visiting a cell and returning is charged twice
