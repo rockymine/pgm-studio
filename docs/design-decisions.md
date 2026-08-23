@@ -90,6 +90,29 @@ verdict, the coverage read and the kit budget cannot disagree about which journe
 - *Enforced:* `Analysis/Playability/NavPoints.cs` (reads all four kinds, each with its owner);
   `Traversability.Check`'s `gating` list is spawn/wool/destroyable/core.
 
+### The resolved intent is a build output and is not stored
+`WorldBuilder` returns a `MapIntent` with every goal box cast, spawns snapped to the structures it
+placed, monument locations filled in, `Build.MaxHeight` measured off the terrain, stamp seeds derived
+and a goal's `materials` corrected where its size made the authored one wrong. None of that is written
+back over the authored intent, and nothing caches it beside one.
+
+- *Looks wrong:* the build resolves all that and throws it away, so a read taken before the next build
+  cannot see a destroyable at all — the document skips a goal whose box is not cast, and that is what
+  left the early playability reads answering over a destroy map's spawns alone (`TC5`).
+- *Storing it buys the places nothing:* a goal's footprint is `ObjectiveFootprint.Centred(anchor, style)`
+  — anchor and style, no terrain. Only `baseY` reads the surface. On `elderwold-10` the authored anchor
+  is `(-20, 90)` and the cast region is `min="-21,25,89" max="-17,29,93"`: the X and Z were knowable all
+  along and the **Y** is the whole of what the build added. A navigation point has no Y, so it reads the
+  anchor and gets the same place.
+- *And it would have no reader:* every consumer of `ResolvedIntent` — `MapExportComposer.BuildAndCompose`,
+  `WorldReads.LoadAsync`, `SketchEndpoints` — is inside a call that has just built the world. A stored
+  copy would be a cache with nothing to serve and a staleness to manage.
+- *The cost of storing it is the level separation:* over the authored intent it replaces what the author
+  asked for with what the build did, so Configure would show a corrected material nobody typed and the
+  next compile would flip it back; in an artifact of its own it goes stale the moment the layout moves.
+- *Enforced:* `Api/Services/DeclaredGoals.cs` reads the authored anchor; `WorldBuilder` writes no intent
+  artifact.
+
 ### Protection regions gate traversability per team
 One navigability map cannot see the one way a small floating goal genuinely becomes unreachable: an
 `enter` rule barring the attacking team from the ground its approach crosses — a goal tucked behind an
