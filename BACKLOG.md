@@ -915,17 +915,31 @@ counted rather than eyeballed — and two are the material a species is supposed
 
 ### Distance, and the walk every measure is taken with
 
-Every distance the studio reports — a goal's walk to a spawn, a wool separation, the corridors the coverage
-read paints, the detour factor a relief budget would need — comes from one derivation:
-`Cells.ShortestPath`, an **unweighted 4-connected BFS** over a navigable set that is *does this column hold
-any block*. The Y is discarded before the walk sees it — `WorldColumns.Membership` and `SegmentIndex` each
-project their spans down to a set of columns — and props never leave the set at all. So a route climbs a
-20-block scarp at the cost of flat ground and walks through a house, and every rule stated in "the walk" is
-really stated in a flat Manhattan proxy for it.
+`Geom.Walk` is the traversal now — eight-connected and octile, charging a climb in the blocks a player places,
+counting a fall, slowing through water, narrowed per team where an `enter` rule bars one — and it runs over a
+set that reads a surface as somewhere a player can stand rather than as any column holding a block. `KitReach`
+and the two walk reads ask it.
 
-The entries below share that cause and want reading together — the walk itself, the sets it runs over, the
-rules stated in it, and the one endpoint whose cost is the reason a cheaper read was reached for in the first
-place.
+Most of the studio does not. A goal's walk to a spawn, a wool separation, the corridors the coverage read
+paints, the detour factor a relief budget would need: all of those still come from `Cells.PathLength`, an
+**unweighted 4-connected BFS** over the flat Manhattan proxy. The entries below share that cause and want
+reading together — the callers still on it, the bands they are compared against, and the demand set they are
+asked over.
+
+- [ ] **RP52 — The map document has six readers in one folder, and the duplicate is the worse one.**
+  `KitReach` line 154 says it outright: `// spawn / wool nav points (mirrors Traversability)`. Its
+  `WoolPoints`, `RegionCentre` and `SpawnRegion` repeat `Traversability.NavigationPoints` and its own
+  `RegionCentre` line for line — same `location` read, same `wool_room_region` fallback — except the copy
+  drops the **owner**, which is why `kit-reach` walks a team to its own wool and reports a meaningless 0
+  blocks where `Traversability` excludes it by design. Two readers, two demand sets, one document.
+
+  Beside them, `AsDict`/`AsList`/`Num`/`Truthy`/`Normalize` exist **19 times across six files** in
+  `Analysis/Playability` (`Buildability` 3, `EntryDenials` 3, `KitReach` 5, `ResourceSources` 2,
+  `Traversability` 3, `WoolSources` 3).
+
+  Lift the marker read to one unit beside `EntryDenials` — the points a map declares, each with its owner —
+  and have `KitReach` take it and drop its own; put the document helpers with it. Then settle the demand set
+  once: whether a team is asked about the goals it does not own, or all of them.
 
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
