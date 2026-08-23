@@ -31,6 +31,13 @@ public sealed class SegmentIndex
     public IEnumerable<(int x, int z, int y)> BaseColumns()
         => _byCol.Select(kv => (kv.Key.x, kv.Key.z, kv.Value.Min(s => s.ys)));
 
+    /// <summary>The first air above each column's <b>lowest</b> segment — the ground a player stands on.
+    /// Reading the lowest rather than the highest is the same ruling <see cref="BaseColumns"/> is written
+    /// under: a build floating over void reads at its own high Y, and standing on it is not walking the
+    /// terrain.</summary>
+    public IEnumerable<(int x, int z, int top)> StandingTops()
+        => _byCol.Select(kv => (kv.Key.x, kv.Key.z, kv.Value.MinBy(s => s.ys).ye + 1));
+
     public bool IsSolid(int x, int y, int z)
         => _byCol.TryGetValue((x, z), out var segs) && segs.Any(s => s.ys <= y && y <= s.ye);
 

@@ -1,3 +1,4 @@
+using PgmStudio.Analysis.Layer;
 using PgmStudio.Analysis.Playability;
 
 namespace PgmStudio.Analysis.Tests;
@@ -23,7 +24,7 @@ public sealed class KitReachTests
 
     // Two 3×3 walkable pads at z∈{0,1,2}: spawn x∈{0,1,2}, wool x∈{8,9,10}. The x∈{3..7} gap (5 cells)
     // has no walkable ground and no deny rule → bridgeable (cost 1 each). woodAmount = kit block budget.
-    private static (Dict data, HashSet<(int, int)> walkable) Scenario(int woodAmount)
+    private static (Dict data, SegmentIndex ground) Scenario(int woodAmount, int woolPadTop = 0)
     {
         var data = new Dict
         {
@@ -35,16 +36,22 @@ public sealed class KitReachTests
                 new Dict { ["id"] = "k", ["items"] = new List<object?> { new Dict { ["material"] = "wood", ["amount"] = woodAmount } } },
             },
         };
-        var walkable = new HashSet<(int, int)>();
-        for (var z = 0; z < 3; z++) { for (var x = 0; x < 3; x++) walkable.Add((x, z)); for (var x = 8; x < 11; x++) walkable.Add((x, z)); }
-        return (data, walkable);
+        // Each pad is one solid course, so a column's standing top is one above it. The wool pad may be
+        // raised, which is what gives the walk a climb to charge for.
+        var rows = new List<(int, int, int, int)>();
+        for (var z = 0; z < 3; z++)
+        {
+            for (var x = 0; x < 3; x++) rows.Add((x, z, 0, 0));
+            for (var x = 8; x < 11; x++) rows.Add((x, z, 0, woolPadTop));
+        }
+        return (data, new SegmentIndex(rows));
     }
 
     [Test]
     public async Task Bridge_cost_is_the_gap_width_and_fits_a_sufficient_kit()
     {
-        var (data, walkable) = Scenario(woodAmount: 10);
-        var res = KitReach.Check(data, walkable, y0Columns: null, bbox: (-2, -2, 13, 5));
+        var (data, ground) = Scenario(woodAmount: 10);
+        var res = KitReach.Check(data, ground);
 
         var wool = res.Teams.Single().Wools.Single();
         await Assert.That(res.Teams.Single().Budget).IsEqualTo(10);
@@ -57,8 +64,8 @@ public sealed class KitReachTests
     [Test]
     public async Task A_kit_short_of_the_gap_warns_but_stays_reachable()
     {
-        var (data, walkable) = Scenario(woodAmount: 3);
-        var res = KitReach.Check(data, walkable, y0Columns: null, bbox: (-2, -2, 13, 5));
+        var (data, ground) = Scenario(woodAmount: 3);
+        var res = KitReach.Check(data, ground);
 
         var wool = res.Teams.Single().Wools.Single();
         await Assert.That(res.Teams.Single().Budget).IsEqualTo(3);
@@ -66,5 +73,18 @@ public sealed class KitReachTests
         await Assert.That(wool.Reachable).IsTrue();
         await Assert.That(wool.WithinBudget).IsFalse();        // 3 < 5
         await Assert.That(res.Severity).IsEqualTo("warning");
+    }
+
+    [Test]
+    public async Task A_wool_up_a_scarp_costs_the_climb_as_well_as_the_gap()
+    {
+        // The same five-cell gap, with the wool's pad standing four blocks over the spawn's: five blocks to
+        // bridge, and three more to climb the four (a rise of Δ costs Δ−1).
+        var (data, ground) = Scenario(woodAmount: 10, woolPadTop: 4);
+        var wool = KitReach.Check(data, ground).Teams.Single().Wools.Single();
+
+        await Assert.That(wool.BlocksNeeded).IsEqualTo(8);
+        await Assert.That(wool.Reachable).IsTrue();
+        await Assert.That(wool.Blocks).IsGreaterThan(0);       // and it says how far round it went
     }
 }

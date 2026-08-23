@@ -8,6 +8,12 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Pgm.Sketch;
+using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Playability;
+using PgmStudio.Geom;
+using PgmStudio.Geom.Algorithms;
+using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -386,5 +392,169 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
         }
 
         await Send.StringAsync(written.ToString(), contentType: "text/plain; charset=utf-8", cancellation: ct);
+    }
+}
+
+/// <summary>What one walk over a built board answers, in the units each part is stated in.</summary>
+/// <param name="Reachable">Whether there is a way at all.</param>
+/// <param name="Distance">How far it is, in blocks — the octile measure a player actually walks.</param>
+/// <param name="Blocks">How many blocks the player must place: the climb, and the void bridged.</param>
+/// <param name="Drops">How many falls over the free height it takes.</param>
+/// <param name="WorstDrop">The deepest of them, in blocks.</param>
+/// <param name="Aim">Which question was asked — <c>travel</c> for the short way, <c>reach</c> for the cheap one.</param>
+/// <param name="Cells">The route itself, as <c>[x, z]</c> pairs.</param>
+public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int Drops, int WorstDrop,
+    string Aim, IReadOnlyList<int[]> Cells);
+
+/// <summary>How a walk read finds its ground and its two ends, shared by the numbers and the picture.</summary>
+internal static class WalkReads
+{
+    /// <summary>The built board as ground a walk runs over: the rasterised columns for what can be stood on
+    /// and how high it is, the intent's build zones for what a block can be laid across, and the dressing's
+    /// own water for what is swum. Nothing here is scanned — the world was built for this request.</summary>
+    public static WalkGround Ground(BuiltRead read, string layoutJson)
+    {
+        var areas = (read.Built.ResolvedIntent.Build?.Areas ?? [])
+            .Select(a => ((int)Math.Floor(a.MinX), (int)Math.Floor(a.MinZ),
+                          (int)Math.Ceiling(a.MaxX), (int)Math.Ceiling(a.MaxZ)));
+        return WorldWalk.OfBuilt(read.Built.Columns ?? [], areas, Water(layoutJson));
+    }
+
+    /// <summary>Where the board's water is, carved by the same bed the decorator lays it with. A dressing
+    /// that states none answers null, which is what a plan and an undressed board both are.</summary>
+    private static HashSet<(int X, int Z)>? Water(string layoutJson)
+    {
+        var dressing = SketchLayout.Parse(layoutJson)?.Dressing;
+        if (dressing is not { } element) return null;
+
+        var cells = new HashSet<(int X, int Z)>();
+        foreach (var prop in DressingJson.Deserialize(element.ToString()).Props.OfType<WaterProp>())
+            foreach (var cell in WaterBed.Cells(prop.Points, prop.Radius, prop.Depth, prop.Form, prop.Edge,
+                                                unchecked((uint)prop.Seed)))
+                cells.Add((cell.X, cell.Z));
+        return cells.Count == 0 ? null : cells;
+    }
+
+    /// <summary>A stated <c>x,z</c>, snapped onto ground a walk can start from. A marker's own coordinates
+    /// are a block in a room rather than a cell of terrain, so they land inside a wall as often as on it.</summary>
+    public static (int X, int Z)? Seat(string? asked, WalkGround ground)
+    {
+        var parts = (asked ?? "").Split(',');
+        if (parts.Length != 2 || !int.TryParse(parts[0], out var x) || !int.TryParse(parts[1], out var z))
+            return null;
+        return Cells.SnapToWalkable((x, z), ground.Passable, 24);
+    }
+
+    public static WalkAim Aim(string? asked)
+        => string.Equals(asked, "reach", StringComparison.OrdinalIgnoreCase) ? WalkAim.Reach : WalkAim.Travel;
+}
+
+/// <summary>GET /api/map/{slug}/walk — what one journey over this board costs. The read that says whether a
+/// place can be got to, how far it is, how many blocks a player must place to get there and what it falls
+/// down on the way; four answers in four units, none of them weighed against the others.</summary>
+internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<WalkReadDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/walk");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("walk"));
+        Description(b => b.Refuses(404, 422).Reads(
+            new QueryWord("from", "Where the journey starts, as `x,z`. Snapped onto the nearest ground."),
+            new QueryWord("to", "Where it ends, as `x,z`."),
+            new QueryWord("aim", "Which route to take: `travel` is the shortest, `reach` the one asking for "
+                               + "the fewest placed blocks. They can differ, and the difference is the point.",
+                ["travel", "reach"])));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null || layout is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no board to walk over")], ct);
+            return;
+        }
+
+        var ground = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var aim = WalkReads.Aim(Query<string?>("aim", isRequired: false));
+        var from = WalkReads.Seat(Query<string?>("from", isRequired: false), ground);
+        var to = WalkReads.Seat(Query<string?>("to", isRequired: false), ground);
+        if (from is null || to is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk between",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    "give `from` and `to` as `x,z`; both must lie within 24 blocks of ground this board has")], ct);
+            return;
+        }
+
+        var path = Walk.Between(from.Value, to.Value, ground, aim);
+        var name = aim == WalkAim.Reach ? "reach" : "travel";
+        await Send.OkAsync(path is null
+            ? new WalkReadDto(false, -1, -1, 0, 0, name, [])
+            : new WalkReadDto(true, path.Cost.Distance, path.Cost.Blocks, path.Cost.Drops, path.Cost.WorstDrop,
+                name, [.. path.Cells.Select(cell => new[] { cell.X, cell.Z })]), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/render/walk — the same walk, drawn. Every passable cell shaded by what
+/// reaching it costs from `from`, with the route to `to` over the top. `field` picks which of the walk's
+/// answers is shaded, because a picture ramps one number at a time.</summary>
+internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/render/walk");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("render/walk"));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            new QueryWord("from", "Where the field is measured from, as `x,z`."),
+            new QueryWord("to", "Where the drawn route ends, as `x,z`. Absent draws the field alone."),
+            new QueryWord("field", "Which answer to shade by. Absent shades the blocks a player must place.",
+                WalkRender.Fields),
+            new QueryWord("aim", "Which route the field prices.", ["travel", "reach"]),
+            new QueryWord("scale", "Pixels a block takes, 1 to 8.", Min: 1, Max: 8)));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null || layout is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to walk",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no board to walk over")], ct);
+            return;
+        }
+
+        var ground = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var aim = WalkReads.Aim(Query<string?>("aim", isRequired: false));
+        var from = WalkReads.Seat(Query<string?>("from", isRequired: false), ground);
+        if (from is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk from",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    "give `from` as `x,z`, within 24 blocks of ground this board has")], ct);
+            return;
+        }
+
+        var to = WalkReads.Seat(Query<string?>("to", isRequired: false), ground);
+        var field = Walk.Field(from.Value, ground, aim);
+        var route = to is { } target ? Walk.Between(from.Value, target, ground, aim) : null;
+        var what = Query<string?>("field", isRequired: false) is { } asked
+                   && WalkRender.Fields.Contains(asked) ? asked : "blocks";
+        var scale = Query<int?>("scale", isRequired: false) is { } size ? Math.Clamp(size, 1, 8) : 2;
+
+        var picture = WalkRender.Png(ground, field, what, from, to, route, scale);
+        HttpContext.Response.ContentType = "image/png";
+        await HttpContext.Response.Body.WriteAsync(picture.Pixels, ct);
     }
 }

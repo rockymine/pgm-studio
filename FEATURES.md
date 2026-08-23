@@ -1451,6 +1451,39 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **One walk, two fidelities, four answers — and two reads that show what a crossing costs (`B246`).**
+  `PgmStudio.Geom.Walk` is the traversal a distance is measured with: **eight-connected octile** (a diagonal
+  is 141 to a straight step's 100, and only where one of the two orthogonal cells it passes is passable, so a
+  route cannot corner-cut across void), answering `(reachable, distance, blocks, drops, worstDrop)` with each
+  number in its own unit and **none weighted** — there are no preference coefficients to calibrate, and
+  `WalkAim` picks whether the route minimises distance (`Travel`) or placed blocks (`Reach`). The two rules
+  the pieces never had: a **climb** of Δ costs **Δ−1** blocks placed, and a **drop** is free to 3 and counted
+  beyond it, because 4 is where fall damage starts and a water bucket makes the fall free without making it
+  free of time. Void inside a build zone stays one block a cell, water costs no block and doubles the
+  distance of the cells it covers, and `Cells.Clearance` off the void breaks a tie rather than being charged.
+
+  **`WalkGround` is the per-cell answer both fidelities fill in**, which is what lets one traversal serve a
+  plan and a world without either pretending to be the other: `PlanNav.Walkable()` from the plan's own piece
+  surfaces, `Analysis/WorldWalk.Ground` from a scan's segment columns and buildability verdict, and
+  `WorldWalk.OfBuilt` from the columns the rasterizer just emitted. A bridgeable cell takes the height of the
+  ground nearest it, so a crossing is level and the climb is charged where the player steps up onto the far
+  shore — the most common climb on a capture board, and one no bridge cost alone can see.
+
+  **`KitReach` is the extraction**: its private 0-1 BFS is gone and it asks the shared walk under `Reach`, so
+  `blocksNeeded` now counts the climb as well as the gap and reports beside it how far round the cheapest
+  crossing goes and what it falls down on the way. **`GET /map/{slug}/walk`** answers one journey as JSON and
+  **`GET /map/{slug}/render/walk`** draws the field — every passable cell shaded by what reaching it costs
+  from `from`, ground on one ramp, bridged void on a cooler one, water on a third, with the route over the
+  top and `field` picking which of the answers is shaded.
+
+  *Checked on four builds of one 12-player CTW board, each adding one mechanism to the last: flat pays 20
+  blocks for a 20-block strait and nothing else; raising three room pads 6 blocks costs exactly 5 more and
+  one drop of 6 coming back; a relief ridge is the first variant where the two aims disagree (travel 121
+  walked / 41 placed against reach 144 / 24); and a pond doubles the cells it covers, taking the own-wool
+  walk from 44 to 62 with the route visibly skirting the shore.*
+  (`Geom/Walk.cs`, `Analysis/Playability/WorldWalk.cs`, `Analysis/Playability/KitReach.cs`,
+  `Analysis/Layer/SegmentIndex.StandingTops`, `Pgm/Derive/PlanNav.Walkable`, `Export/WalkRender.cs`,
+  `Api/Endpoints/WorldReadEndpoints.cs`, `WalkTests.cs`, `KitReachTests.cs`)
 - **The world read-backs answer over HTTP (`WS6`), withdrawing `B245`.** Everything a caller does runs
   through the API and the API describes itself — except the one thing done *after* building, which is looking
   at what was built. Eight renderers in `Minecraft/Render/` reached a caller only through

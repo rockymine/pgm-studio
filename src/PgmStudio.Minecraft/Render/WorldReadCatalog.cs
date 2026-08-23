@@ -3,12 +3,14 @@ namespace PgmStudio.Minecraft.Render;
 /// <summary>One way of reading a built world back: what it draws, what it is the read for, and where it is
 /// known to mislead.</summary>
 /// <param name="Route">The HTTP route, relative to a map.</param>
-/// <param name="Flag">The <c>PgmStudio.RoundTrip</c> flag that takes the same reading off a region directory.</param>
+/// <param name="Flag">The <c>PgmStudio.RoundTrip</c> flag that takes the same reading off a region directory,
+/// or null for a read that answers only over HTTP because it needs the map's own documents rather than a
+/// world on disk.</param>
 /// <param name="Answers">What it draws and what question it is the answer to.</param>
 /// <param name="Misleads">Where it is known to be read wrongly, or null where it has no such trap. Naming it
 /// beside the read is the point: a caveat a reader meets after drawing a conclusion has already cost them
 /// the conclusion.</param>
-public sealed record WorldRead(string Route, string Flag, string Answers, string? Misleads = null);
+public sealed record WorldRead(string Route, string? Flag, string Answers, string? Misleads = null);
 
 /// <summary>
 /// What each world read answers, written once.
@@ -74,6 +76,25 @@ public static class WorldReadCatalog
             + "the read to reach for when a picture and a document disagree.",
             "A column through the middle of a house reads floor, air, roof. The walls are at the perimeter; "
             + "that is a correct building, not a broken one."),
+
+        new("render/walk", null,
+            "What crossing this board charges, drawn: every passable cell shaded by what reaching it from "
+            + "`from` costs, with the route to `to` over the top. `field` picks which of the walk's answers "
+            + "is shaded — `blocks` a player must place, `distance` walked, or `drops` taken — and `aim` "
+            + "picks whether the field prices the shortest way or the cheapest one. The read for why a route "
+            + "goes where it goes, which traversability cannot say because it answers only whether one exists.",
+            "It is one field from one start, so a cell shaded cheap is cheap FROM THERE. Two teams do not "
+            + "share a picture, and a board that is fair reads differently from each spawn."),
+
+        new("walk", null,
+            "The same journey as numbers rather than as a picture: whether the place can be reached, how far "
+            + "it is in blocks, how many blocks a player must place to get there — the climb at a rise of "
+            + "delta costing delta minus one, and one a cell for void bridged — and how many falls over the "
+            + "free height it takes. Four answers in four units, none weighed against the others, so a "
+            + "caller reads the field its own rule is stated in.",
+            "`from` and `to` are snapped to the nearest ground within 24 blocks, because a marker's stated "
+            + "coordinates are a block in a room rather than a cell of terrain. A journey between two "
+            + "markers deep inside walls is measured between the cells outside them."),
     ];
 
     /// <summary>What one read answers, and where it misleads — the sentence a route publishes as its own
@@ -93,7 +114,7 @@ public static class WorldReadCatalog
         written.AppendLine();
         foreach (var read in All)
         {
-            written.AppendLine($"  {read.Flag}");
+            written.AppendLine($"  {read.Flag ?? "(HTTP only — it reads the map's own build zones and dressing)"}");
             written.AppendLine($"      route: {read.Route}");
             foreach (var line in Wrapped(read.Answers)) written.AppendLine($"      {line}");
             if (read.Misleads is { } trap)

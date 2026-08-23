@@ -3,16 +3,23 @@ namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
 using PgmStudio.Geom;
+using PgmStudio.Analysis.Layer;
 
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
-/// Budget-aware reachability: can a freshly-spawned player bridge from their spawn to each wool with
-/// only the placeable blocks their spawn kit grants? Builds the same navigability grid as
-/// <see cref="Traversability"/> (walkable surface ∪ bridgeable buildable) but, instead of asking
-/// "is there a path", finds the <em>cheapest</em> path via a 0-1 BFS where a walkable cell costs 0 and
-/// a bridgeable cell costs 1 (one block you must place). That minimum = blocks needed to cross; compared
-/// against the kit's placeable-block count it yields a per-life crossing-feasibility signal.
+/// Budget-aware reachability: can a freshly-spawned player bridge from their spawn to each wool with only
+/// the placeable blocks their spawn kit grants?
+///
+/// <para>It asks <see cref="Walk"/> under <see cref="WalkAim.Reach"/> — the aim that minimises blocks placed
+/// rather than distance — over the board's own <see cref="WorldWalk.Ground"/>. That answer is the minimum
+/// blocks needed to cross, and comparing it against the kit's placeable-block count is the per-life
+/// crossing-feasibility signal. What it adds over the count is the rest of what the walk knows: how far round
+/// the cheapest crossing goes, and what it falls down on the way.</para>
+///
+/// <para>The blocks are no longer only bridged void: a rise steeper than a step is blocks a player places
+/// too, so a wool up a scarp now costs what climbing it costs. Water is not read here, because swimming is
+/// slower and neither a block nor a wall — it moves no verdict this endpoint gives.</para>
 /// </summary>
 public static class KitReach
 {
@@ -21,12 +28,16 @@ public static class KitReach
     /// <param name="Color">The wool to be captured.</param>
     /// <param name="X">Where it stands, east–west.</param>
     /// <param name="Z">Where it stands, north–south.</param>
-    /// <param name="BlocksNeeded">How many blocks the cheapest path asks the player to place.</param>
+    /// <param name="BlocksNeeded">How many blocks the cheapest path asks the player to place — bridging
+    /// void, and climbing anything steeper than a step.</param>
+    /// <param name="Blocks">How far round that cheapest crossing goes, in blocks walked.</param>
+    /// <param name="Drops">How many falls over the free height it takes on the way.</param>
     /// <param name="Reachable">Whether any path exists at all, at any cost.</param>
     /// <param name="WithinBudget">Whether the kit grants enough blocks to pay for it.</param>
     /// <param name="Severity">What the verdict is worth — the same word a finding carries.</param>
     /// <param name="Message">The verdict in a sentence, with the numbers in it.</param>
-    public sealed record WoolReach(string Color, int X, int Z, int BlocksNeeded, bool Reachable, bool WithinBudget, string Severity, string Message);
+    public sealed record WoolReach(string Color, int X, int Z, int BlocksNeeded, int Blocks, int Drops,
+        bool Reachable, bool WithinBudget, string Severity, string Message);
     /// <summary>What one team's spawn kit can reach.</summary>
     /// <param name="Team">The team, by id.</param>
     /// <param name="Kit">The kit it spawns with, by name.</param>
@@ -43,31 +54,12 @@ public static class KitReach
     /// <param name="Teams">One reading per team.</param>
     public sealed record Result(bool HaveLayers, string Severity, string Message, List<TeamReach> Teams);
 
-    private const int Unreachable = int.MaxValue;
-
-    public static Result Check(Dict data, HashSet<(int, int)>? walkableColumns, HashSet<(int, int)>? y0Columns,
-        (int, int, int, int)? bbox = null, int margin = 16)
+    public static Result Check(Dict data, SegmentIndex? segments, int margin = 16)
     {
-        var b = Buildability.Compute(data, y0Columns, bbox, margin);
-        int nx = b.Width, nz = b.Height, minX = b.MinX, minZ = b.MinZ, n = nx * nz;
-        var bounds = ((double)b.MinX, (double)b.MinZ, (double)b.MaxX, (double)b.MaxZ);
-        var haveLayers = walkableColumns is { Count: > 0 };
-
-        // place-cost per cell: 0 walkable ground · 1 bridgeable (buildable/restricted) · -1 impassable.
-        // Walkable = the cleaned-base footprint (floating masses pruned), NOT raw surface — a build floating
-        // over void must not pose as free standing-ground at its own high Y (the 2D grid is Y-agnostic).
-        var walkable = new bool[n];
-        if (walkableColumns is not null)
-            foreach (var (x, z) in walkableColumns)
-            {
-                int ix = x - minX, iz = z - minZ;
-                if (ix >= 0 && ix < nx && iz >= 0 && iz < nz) walkable[iz * nx + ix] = true;
-            }
-        var cost = new int[n];
-        for (var i = 0; i < n; i++)
-            cost[i] = walkable[i] ? 0 : (b.Verdict[i] == 0 || b.Verdict[i] == 3) ? 1 : -1;
-        var navigableCells = new HashSet<(int X, int Z)>();
-        for (var i = 0; i < n; i++) if (cost[i] >= 0) navigableCells.Add((i % nx, i / nx));
+        var ground = WorldWalk.Ground(data, segments, margin);
+        var bounds = ((double)ground.Bounds.X, (double)ground.Bounds.Z,
+                      (double)ground.Bounds.MaxX, (double)ground.Bounds.MaxZ);
+        var haveLayers = ground.Ground.Count > 0;
 
         var kitBudgets = KitBudgets(data);
         var regions = AsDict(data.GetValueOrDefault("regions"));
@@ -80,21 +72,30 @@ public static class KitReach
             var kitId = sp.GetValueOrDefault("kit") as string ?? "";
             var (budget, water) = kitBudgets.GetValueOrDefault(kitId, (0, false));
 
-            var start = RegionCell(SpawnRegion(sp, regions), regions, bounds, minX, minZ, nx, nz);
-            var dist = start is { } s ? BridgeCost(cost, nx, nz, s.ix, s.iz, navigableCells) : null;
+            var start = RegionCentre(SpawnRegion(sp, regions), regions, bounds) is { } seat
+                ? Cells.SnapToWalkable(seat, ground.Passable, SnapRadius)
+                : null;
+            var field = start is { } from
+                ? Walk.Field(from, ground, WalkAim.Reach)
+                : [];
 
             var wools = new List<WoolReach>();
             foreach (var (color, wx, wz) in WoolPoints(data, regions, bounds))
             {
-                var target = NearestNavigable(navigableCells, wx - minX, wz - minZ);
-                var need = (dist is not null && target is { } t) ? dist[t.iz * nx + t.ix] : Unreachable;
-                var reachable = need != Unreachable;
+                var target = Cells.SnapToWalkable((wx, wz), ground.Passable, SnapRadius);
+                var cost = target is { } to && field.TryGetValue(to, out var reached) ? reached : (WalkCost?)null;
+                var reachable = cost is not null;
+                var need = cost?.Blocks ?? -1;
                 var within = reachable && need <= budget;
-                var (sev, msg) = !reachable
-                    ? ("error", "no bridgeable path from spawn (blocked by void / no-build)")
-                    : within ? ("ok", $"{need} block(s) to bridge — kit gives {budget}")
-                             : ("warning", $"needs {need} blocks to bridge but kit gives only {budget}");
-                wools.Add(new WoolReach(color, wx, wz, reachable ? need : -1, reachable, within, sev, msg));
+                var (sev, msg) = (reachable, within) switch
+                {
+                    (false, _) => ("error", "no bridgeable path from spawn (blocked by void / no-build)"),
+                    (_, true) => ("ok", $"{need} block(s) to place over {cost!.Value.Distance} walked "
+                                      + $"— kit gives {budget}"),
+                    _ => ("warning", $"needs {need} blocks to place but kit gives only {budget}"),
+                };
+                wools.Add(new WoolReach(color, wx, wz, need, cost?.Distance ?? -1, cost?.Drops ?? 0,
+                    reachable, within, sev, msg));
             }
             teams.Add(new TeamReach(team, kitId, budget, water, wools));
         }
@@ -110,6 +111,10 @@ public static class KitReach
         };
         return new Result(haveLayers, worst, message, teams);
     }
+
+    /// <summary>How far a marker may sit off walkable ground and still be walked to. A wool's stated location
+    /// is a block in a room, not a cell of terrain, so it lands inside a wall as often as on a floor.</summary>
+    private const int SnapRadius = 16;
 
     // ── kit budget: count placeable blocks (and note a water bucket as a bridging aid) ──────────
     private static Dictionary<string, (int budget, bool water)> KitBudgets(Dict data)
@@ -152,12 +157,6 @@ public static class KitReach
         }
     }
 
-    private static (int ix, int iz)? RegionCell(Dict? region, Dict regions, (double, double, double, double) bounds, int minX, int minZ, int nx, int nz)
-    {
-        if (RegionCentre(region, regions, bounds) is not { } c) return null;
-        return NearestNavigableSeed(c.x - minX, c.z - minZ, nx, nz);
-    }
-
     private static (int x, int z)? RegionCentre(Dict? region, Dict registry, (double, double, double, double) bounds)
     {
         if (region is null) return null;
@@ -177,45 +176,6 @@ public static class KitReach
         return ((int)((mnx + mxx) / 2), (int)((mnz + mxz) / 2));
     }
 
-    private static (int ix, int iz)? NearestNavigableSeed(int ix, int iz, int nx, int nz)
-        => (ix >= 0 && ix < nx && iz >= 0 && iz < nz) ? (ix, iz) : null;
-
-    // ── 0-1 BFS: min blocks placed to reach every navigable cell from a start ───────────────────
-    private static int[] BridgeCost(int[] cost, int nx, int nz, int sx, int sz, IReadOnlySet<(int X, int Z)> navigableCells)
-    {
-        var dist = new int[nx * nz];
-        Array.Fill(dist, Unreachable);
-        var start = NearestNavigable(navigableCells, sx, sz);
-        if (start is not { } s) return dist;
-        var si = s.iz * nx + s.ix;
-        dist[si] = cost[si];                       // standing-cost of the start cell (0 if walkable)
-        var deque = new LinkedList<int>();
-        deque.AddFirst(si);
-        while (deque.First is { } node)
-        {
-            deque.RemoveFirst();
-            var i = node.Value;
-            int x = i % nx, z = i / nx;
-            foreach (var (dx, dz) in Neigh)
-            {
-                int ax = x + dx, az = z + dz;
-                if (ax < 0 || ax >= nx || az < 0 || az >= nz) continue;
-                var j = az * nx + ax;
-                if (cost[j] < 0) continue;          // impassable (void / no-build)
-                var nd = dist[i] + cost[j];
-                if (nd >= dist[j]) continue;
-                dist[j] = nd;
-                if (cost[j] == 0) deque.AddFirst(j); else deque.AddLast(j);
-            }
-        }
-        return dist;
-    }
-
-    private static readonly (int, int)[] Neigh = [(-1, 0), (1, 0), (0, -1), (0, 1)];
-
-    // snap a point to the nearest navigable (cost ≥ 0) cell within a small radius
-    private static (int ix, int iz)? NearestNavigable(IReadOnlySet<(int X, int Z)> navigableCells, int ix, int iz, int snap = 4) =>
-        Cells.SnapToWalkable((ix, iz), navigableCells, snap) is { } cell ? (cell.X, cell.Z) : null;
 
     private static string Normalize(string s) => s.Trim().ToLowerInvariant().Replace('_', ' ');
     private static bool Truthy(object? v) => v is true || (v is string s && s is "true" or "1");

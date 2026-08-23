@@ -88,6 +88,12 @@ public sealed class PlanNav
         Cell = cell;
     }
 
+    /// <summary>The ground a <see cref="Walk"/> runs over at the plan fidelity: pieces to stand on, build
+    /// zones to bridge, and each cell's stated surface. A plan has no relief, no boulder and no pond, so it
+    /// has no water and its heights are the ones an author typed — which is the whole of what this tier can
+    /// answer, and it can answer it before a world exists.</summary>
+    public WalkGround Walkable() => new(Ground, Bridge, SurfaceAt, Bounds, Cell);
+
     /// <param name="lanesNavigable">Whether a water lane counts as a crossing. Off by default: a lane opens
     /// partway through a match, so a route walked through one is not a route the opening is played on.</param>
     public static PlanNav Of(PlanModel plan, bool lanesNavigable = false)

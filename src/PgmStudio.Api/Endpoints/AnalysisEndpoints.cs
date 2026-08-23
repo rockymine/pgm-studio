@@ -128,10 +128,7 @@ public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, Featu
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        // Walkable ground = the cleaned-base footprint (floating masses pruned), so a build floating over
-        // void can't serve as a free shortcut up to the wool-room level in the Y-agnostic 2D grid.
-        var walkable = segs is null ? null : PgmStudio.Analysis.Footprint.IslandDetector.CleanedBaseFootprint(segs.BaseColumns());
-        var res = KitReach.Check(doc, walkable, segs?.Y0Columns());
+        var res = KitReach.Check(doc, segs);
         await Send.OkAsync(res, ct);
     }
 }

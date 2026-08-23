@@ -1,10 +1,10 @@
 # Reading a built world back
 
 Everything a caller does with the studio runs through the API, and the API describes itself — except the one
-thing done *after* building, which is looking at what was built. Eight renderers sit in
-`PgmStudio.Minecraft/Render/`, and until `WS6` they reached a caller only through `PgmStudio.RoundTrip`'s
-flags: a capability no schema named, so a brief had to carry a table of them and an agent had to know a .NET
-binary existed at all.
+thing done *after* building, which is looking at what was built. Nine renderers sit in
+`PgmStudio.Minecraft/Render/` and `PgmStudio.Export/`, and until `WS6` they reached a caller only through
+`PgmStudio.RoundTrip`'s flags: a capability no schema named, so a brief had to carry a table of them and an
+agent had to know a .NET binary existed at all.
 
 They answer over HTTP now, one route each, and what each one draws is written once — in
 `WorldReadCatalog` — and served twice: as the endpoint summary the schema publishes, and as
@@ -41,10 +41,44 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16) |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
+| `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach` |
+| `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` as above |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
 by a person or an agent rather than parsed, and it is the one read a caller with no image reader can act on.
+
+`walk` is the one read here that answers numbers, because what it says is a quantity a rule is stated in
+rather than a shape an eye judges. Both ends are given as `x,z` and snapped onto the nearest ground within 24
+blocks, since a marker's own coordinates are a block in a room rather than a cell of terrain.
+
+## What a walk costs, and in which unit
+
+The walk is `PgmStudio.Geom.Walk`, and it is the one traversal every distance is measured with. It is
+**eight-connected**, counting a diagonal as the 1.41 blocks a player crosses rather than as one step, and it
+answers four things at once, each in its own unit and **none of them weighed against the others**:
+
+| answer | unit | what it is for |
+|---|---|---|
+| `reachable` | yes / no | whether there is a way at all |
+| `distance` | **blocks** | how far it is, and so how long it takes |
+| `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
+| `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
+
+**A climb of Δ costs Δ−1 blocks.** One block up is a step; anything higher is ground the player first has to
+make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — every kit carries
+a water bucket, so a fall walls off no route, but stopping to place and drink one is time the distance does
+not show, which is why it is reported as a count of falls rather than as blocks. **Void inside a build zone
+costs one block a cell**, and a bridged cell is given the height of the ground nearest it, so a crossing is
+level and the climb is charged where the player steps up onto the far side. **Water costs no block and blocks
+no route**; it is slower, so it doubles the distance of the cells it covers.
+
+`aim` picks which of those the route minimises. `travel` takes the shortest way and reports what it costs to
+build; `reach` takes the way asking for the fewest placed blocks and reports how far round it goes. **They
+disagree on any board worth the question** — on a 60×140 test board with a relief ridge across it, travel
+walks 121 blocks placing 41, and reach walks 144 placing 24. Where two routes tie on all four answers the one
+keeping furthest off the void wins; that is a tie-break rather than a fifth cost, since with no weights it
+cannot be charged.
 
 ## Three of them mislead, and each has cost a reader a conclusion
 
@@ -76,6 +110,11 @@ what is actually at a coordinate. It is the read to reach for when a picture and
 are none of them in it. `section` and `column` are the two that keep it, which is why every shipped roof fault
 was visible in a section and invisible from above.
 
+`walk` and `render/walk` are the two that answer *at what price*, which is the half `traversability` cannot
+reach: that picture says whether a board joins up, and every distance under it was a flat step count. The
+picture is the one to take first — the field shades every cell at once, so a pad four blocks over its own
+approach reads as a colour step exactly on the room's footprint, and a pond reads as the blue it is.
+
 `heightmap` answers whether a relief solved into the shape it was drawn as, and shows a flat pad butted
 against a hill as the ruled edge it is. `surface` answers whether a board's paint is the palette it was
 authored from — a whole tone family taken where two members were meant reads as the noise it is. `mirror`
@@ -88,3 +127,10 @@ it is.
 
 There is no read that keeps Y over a *region*: `section` cuts one plane and `column` reads one cell, and the
 depth-projected mode that would sit between them is `B129`.
+
+The walk runs over **one cell per column**, so no fidelity of it can see under an overhang or through a
+tunnel (`TS21`), and it navigates any column holding a block rather than one with headroom to stand in — the
+predicate `render/traversability` already uses and the walk should adopt is `G188`. Beyond `KitReach` and
+these two reads, the studio's other distances are still the four-connected step count `Cells.PathLength`
+returns; moving them onto this walk re-bases every band they were calibrated against, which is `B246`'s open
+half.

@@ -22,94 +22,49 @@ restatement in the unit this walk returns).
 
 ## The walk: one model, two fidelities, answered in blocks
 
-Every distance the studio reports comes from `Cells.ShortestPath` — an unweighted **4-connected** BFS over
-"does this column hold any block". A route climbs a 20-block scarp at the cost of flat ground, walks through
-a house, hugs the void because the void is the short way round a bend, and cannot go diagonally.
+The model is the author's and it is built: **one traversal, two fidelities, four answers in four units,
+nothing weighted** — reachable, distance in blocks, blocks *placed* (a rise of Δ costs Δ−1, void bridged one
+a cell), and drops (free to 3, counted beyond it, because a water bucket makes a fall free of damage and not
+of time). Eight-connected, because a player walks diagonally; water a speed rather than a weight, at about
+×2 and only at the built fidelity. It is written out in `docs/world-scan/read-backs.md` and its types are in
+`docs/generator/vocabulary.md`.
 
-**The pieces are all written and none of them are joined.** `Pgm/Derive/PlanRouteCost` charges a step for
-clearance, bridging, a threatened seam and a climb; it cites `B246` in `StepOf`'s docstring and its
-`Build`/`Of`/`StepOf` are called from nothing but their own tests. `Analysis/Playability/KitReach` runs a 0-1
-BFS that answers **blocks placed** against a kit budget, and is the one piece with a real caller and a real
-map behind it. `Cells.Clearance` is the void standoff and says so in its own summary. `Cells.CheapestPath`
-already takes a **step** cost rather than a per-cell one, and says why. So this is a joining, two missing
-rules and one extraction — not a build.
+**What remains is that most of the studio is not asking it yet.** Every distance outside `KitReach` still
+comes from `Cells.PathLength` — an unweighted **four-connected** BFS over "does this column hold any block".
+A route climbs a 20-block scarp at the cost of flat ground, walks through a house, hugs the void because the
+void is the short way round a bend, and cannot go diagonally. Moving them re-bases every band they are
+compared against, which is why the entry below is a sweep rather than a substitution.
 
-**The model (author, this session).** One traversal, used at two fidelities, answering four things:
-
-| answer | unit | what it is for |
-|---|---|---|
-| reachable | yes / no | can a player get there at all |
-| **distance** | **blocks** | how long it takes |
-| **blocks** | **blocks placed** | climb (a rise of Δ costs Δ−1) + bridging void |
-| drops | **its own value, not blocks** | a fall is free — every kit has a water bucket — but it still hinders |
-
-**Nothing is weighted.** Weighing routes against each other is a judgement the studio does not have to make
-and cannot make well; what it has to do is say whether a place can be got to, how far it is and what it costs
-to build there. So there are no preference weights and `RouteCosts`' four of them go — the walk returns a
-record and each consumer reads the field it needs. `ClimbWeight`'s uncalibratability stops being a problem
-the moment the answer is a count of blocks rather than a score.
-
-**Two walks, because there are two questions.** *Reach* minimises **blocks placed** — `KitReach`'s walk,
-unchanged in kind, which is what decides whether a kit budget covers a crossing. *Travel* minimises
-**distance** over ground the player can use, and reports the blocks that route happens to cost. They can
-disagree, and the disagreement is informative. `GO1`, `WL7`, `B175`/`B179` and the coverage corridors want
-travel; `KitReach` wants reach.
-
-**Eight-connected, because a player walks diagonally.** `Cells` has no `N8` at all — every walk in it is
-4-connected, so a diagonal run of *n* reads as 2*n* rather than 1.41*n*. Two consequences: a diagonal step is
-worth **141 to a straight step's 100** and the walk wants integer octile arithmetic, divided back to blocks at
-the end; and a diagonal is only a step where at least one of the two orthogonal cells it passes is passable,
-or a route corner-cuts across void. **This re-bases every distance the studio reports**, which is the reason
-`B212`'s three uncalibrated thresholds want restating *after* it rather than before.
-
-**Water is a speed, not a weight.** You swim it, so it costs no blocks and blocks no route; it is slower, so
-it multiplies the distance of the cells it covers — the author's figure is about **×2**, and it exists only at
-the built fidelity, since a plan has no water.
+`Pgm/Derive/PlanRouteCost` is the one piece the walk did not absorb: it charges a step for clearance,
+bridging, a threatened seam and a climb, its `Build`/`Of`/`StepOf` are called from nothing but their own
+tests, and its four weights are the thing the model says there should be none of. It is a deletion once
+`PlanRoutes` reads the walk, not a second model to keep.
 
 **And `match-flow.md` §6.12 is right about something else.** It says a climb weight cannot be fitted to
 recorded play because half the standing samples sit on structure the players built, a median 14–17 blocks up.
 That is a fact about *what players do with a map* — the scaffolding at build height by minute thirty — and
 this model is about **what the ground offers**. The two are different levels of movement and §6.12 does not
-bear on this one; nothing else in it is disturbed.
+bear on this one.
 
-**The set comes before the cost, and it is `G188`'s.** The export gate navigates on any column holding any
-solid block; `TraversabilityRender` asks for ground with **two clear blocks of headroom**, which is the test
-that stops a route walking through a house. That is the right predicate and the gate should adopt it. A third
-disagreement is `TS21`'s: the set is one cell per column, so no walk of any fidelity can see under an
-overhang.
+- [~] **B246 — Move the remaining distances onto the walk, and re-measure the bands they are read
+  against.** The walk is built and `KitReach` reads it; what still answers `Cells.PathLength`'s four-connected
+  step count is every other distance the studio reports: `GoalDistances.Nearest` (`GO1`'s 3.0–4.0 ratio),
+  `PlanRoutes.Read` and its `Cells.Corridor` slack, `PlanFlow`'s defend/attack legs, `GroundCoverage`'s
+  corridors (`WS1`), and the four evaluator terms — `SpawnTerms`, `ObjectiveTerms`, `TriangleTerms`,
+  `SurfaceNav`.
 
-- [~] **B246 — One walk, two surfaces, four answers.** Move the rules into `Geom.Cells` beside
-  `ShortestPath` and `CheapestPath`, as a traversal returning `(reachable, distance, blocks, drops)` over an
-  8-connected octile grid, and give it two surface providers: the **plan** tier reading a piece's stated
-  surface (`PlanNav.SurfaceAt`, which `PlanRouteCost.StepOf` already uses) and the **built** tier reading
-  `WorldColumns.Of`'s spans — the one place `Membership` drops the height. `PlanRouteCost` becomes the
-  plan-tier reader of shared rules rather than a second model.
+  **The substitution is not the work; the re-measure is.** Octile shortens a diagonal run by up to 29%, so
+  every band those numbers are compared against is in the old unit the moment they move — `WL7`'s 46–143,
+  `GO1`'s ratio, `PlanRoutes.CorridorSlack`'s 0.30, the envelopes in `seed-envelopes.md`, and
+  `composer-fingerprints.json`, which is a **gate**. `rules.md` amendment 13 already says those bands must be
+  re-measured with the sweep committed; this is that sweep, and the re-measured bands are the author's call
+  before they land. Do the callers and the sweep in one commit, and amend `rules.md`'s preamble — it states
+  the walk is "4-connected, rectilinear" — in the same one.
 
-  **Two rules to add.** A **drop** is free to 3 and counted beyond it, because 4 is where fall damage starts —
-  today's docstring says "Coming down is free at any height", which is right about blocks and wrong about
-  reporting. A **climb** of Δ costs Δ−1 blocks placed, which is already what `StepOf` computes at
-  `FreeRise = 1`; what changes is that the count is the answer rather than a term in a score.
-
-  **One extraction.** `KitReach.BridgeCost` is the bridge half and it is the only part with a caller, a live
-  endpoint and a checked result. Lift the 0-1 BFS out of `KitReach` into the shared walk — `KitReach` then
-  reads the walk and keeps its kit comparison, and the plan tier gains a bridge cost it does not have.
-
-  **The clearance is `Cells.Clearance` and it is not a fifth cost.** With no weights it cannot be charged, so
-  it is the **tie-break**: among routes equal in the answers above, prefer the one that keeps furthest off the
-  void. `WS1` wants the same read for `GroundCoverage`'s corridor allowance — one number, two consumers.
-
-  Then the callers: `GoalDistances`, `WoolWoolDistance` (`WL7`), `GoalSpawnRatio` (`GO1`),
-  `GroundCoverage`'s corridors, `PlanRoutes.Read` and `KitReach`.
-
-  *Measured this session on the authored CTW board `hollowmarch-9`, which is what the bridge half should be
-  regression-tested against: `GET /map/hollowmarch-9/kit-reach` answers `haveLayers: true` and **22 blocks**
-  to bridge to each enemy wool against a 96-block kit, **0** to each of its own — over a strait `plan/inspect`
-  states as **20 blocks**. The number is right and the walk is 4-connected.*
-
-  *And the same board shows what the bridge half cannot see. Its wool-room pads are `hold` shapes climbing
-  16 → 17 → 18; an earlier build left one pad four blocks over its approach, 100 cells of room floor nobody
-  could walk onto. `kit-reach` reads 0 blocks either way and the **export gate passed**, because both walk the
-  same Y-agnostic membership. The bridge half has no climb and the climb half has no bridge.*
+  **And the set is still wrong under all of it (`G188`).** The export gate and every walk navigate any column
+  holding any solid block; `TraversabilityRender` asks for **two clear blocks of headroom**, which is the
+  predicate that stops a route walking through a house. That is a change to what is passable rather than to
+  what a step costs, so it moves every number again — take it first, or take it with this.
 
 - [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
   picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
