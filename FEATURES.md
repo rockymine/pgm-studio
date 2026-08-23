@@ -1453,6 +1453,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **A wool, a destroyable and a core are always navigation points (`TC5`).** The early playability reads
+  took the map document alone, and a sketch-authored map's goals are not in it: a destroyable's region is the
+  box the stamper built its blocks from, so one whose box is not cast yet is kept out rather than given a
+  guessed region. Right for the contract, and it left every read taken before a build answering over the
+  spawns. `NavPoints.Of` takes a second source beside the document — the goals the author has stated, read
+  off the intent by `DeclaredGoals` — and the document's own copy wins where both name a goal, since that one
+  has been placed. `WithGoalsOfRouteAsync` is the one door the reads come through, so none of them can be
+  wired without it.
+
+  *On `elderwold-10`, a two-cairn DTM: **2** navigation points became **4**, both cairns landing at the
+  anchors the plan states (`-20, 90` and `19, -91`) and in the spawns' own component. Its coverage read
+  traced **1** journey and now traces **6**; the board reads **30.4%** dead rather than **57%**, and its dead
+  patches fall in mirrored pairs — 3299 at `(-41, 28)` against 3299 at `(39, -30)` — the way a `rot_180`
+  board's should. The two largest were previously at the cairns, because nothing walked to them.*
+  (`NavPoints.Of`, `Api/Services/DeclaredGoals.cs`, `MapOfRoute.WithGoalsOfRouteAsync`, `Traversability.cs`,
+  `GroundCoverage.cs`, `KitReach.cs`, `PreflightEndpoint.cs`, `NavPointsTests.cs`)
+
 - **One reader for the places a match is played between (`RP52`).** `KitReach` said it in its own comment —
   `// spawn / wool nav points (mirrors Traversability)` — and the copy was the worse one: it dropped the
   **owner**, which is why `kit-reach` walked a team to its own wool and reported a meaningless 0 blocks where

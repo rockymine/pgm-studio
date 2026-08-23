@@ -31,10 +31,16 @@ public sealed record NavPoint(string Kind, string Name, string Owner, int X, int
 /// </summary>
 public static class NavPoints
 {
-    /// <summary>Every spawn, wool, destroyable and core the document declares, in that order.</summary>
+    /// <summary>Every spawn, wool, destroyable and core a match is played between, in that order.</summary>
     /// <param name="data">The map document.</param>
     /// <param name="bounds">The extent a region resolves its geometry within.</param>
-    public static List<NavPoint> Of(Dict data, (double, double, double, double) bounds)
+    /// <param name="declared">Goals stated somewhere the document cannot carry them. A destroyable's region is
+    /// the box the stamper built its blocks from, so a goal whose box is not cast yet is left out of the
+    /// document rather than given a guessed one — correct for the contract, and it would leave every read
+    /// before a build blind to that goal. A caller holding the authored intent passes its goals here; one the
+    /// document already carries wins, since that one has been placed.</param>
+    public static List<NavPoint> Of(Dict data, (double, double, double, double) bounds,
+        IReadOnlyList<NavPoint>? declared = null)
     {
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var points = new List<NavPoint>();
@@ -74,6 +80,11 @@ public static class NavPoints
                 points.Add(new NavPoint("core", owner, owner, at.x, at.z));
         }
 
+        if (declared is { Count: > 0 })
+        {
+            var carried = points.Select(point => (point.Kind, point.Name, point.Owner)).ToHashSet();
+            points.AddRange(declared.Where(goal => !carried.Contains((goal.Kind, goal.Name, goal.Owner))));
+        }
         return points;
     }
 

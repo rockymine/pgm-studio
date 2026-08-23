@@ -71,8 +71,11 @@ public static class GroundCoverage
 
     /// <summary>Read the coverage of a map: its document for the waypoints and rules, the built world's
     /// surface and Y=0 columns for the ground, and the dressing's prop cells for the decorated class.</summary>
+    /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>. Without them
+    /// a board whose goals are not placed yet traces spawn to spawn and calls everything else dead.</param>
     public static Result Read(Dict data, HashSet<(int, int)> surfaceColumns, HashSet<(int, int)>? y0Columns,
-        IReadOnlyList<(int X, int Z)> propCells, (int, int, int, int)? bbox = null, int margin = 16)
+        IReadOnlyList<(int X, int Z)> propCells, (int, int, int, int)? bbox = null, int margin = 16,
+        IReadOnlyList<NavPoint>? declared = null)
     {
         var ground = Traversability.Ground(data, surfaceColumns, y0Columns, bbox, margin);
         var (minX, minZ, nx, nz) = (ground.MinX, ground.MinZ, ground.Nx, ground.Nz);
@@ -83,7 +86,7 @@ public static class GroundCoverage
 
         // The waypoints, snapped onto the navigable set the way the traversability gate snaps its points.
         var waypoints = new List<(int X, int Z)>();
-        foreach (var point in NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz)))
+        foreach (var point in NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz), declared))
             if (Cells.SnapToWalkable((point.X, point.Z), navigable, 3) is { } seat) waypoints.Add(seat);
 
         // The traffic skeleton: a corridor between every pair of waypoints. All pairs rather than a curated

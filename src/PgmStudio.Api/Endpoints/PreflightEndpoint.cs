@@ -56,7 +56,8 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
         var segs = await feature.SegmentsAsync(map.Id, ct);
         var build = await BuildabilityCheckAsync(map.Id, doc, intent, segs?.Y0Columns(), ct);
 
-        var trav = Traversability.Check(doc, segs?.StandingColumns(), segs?.Y0Columns());
+        var trav = Traversability.Check(doc, segs?.StandingColumns(), segs?.Y0Columns(),
+            declared: DeclaredGoals.Of(intent));
         var travCheck = TraversabilityCheck(trav);
 
         foreach (var c in new[] { roundTrip, mirror, build, travCheck })

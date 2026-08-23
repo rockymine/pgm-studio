@@ -74,6 +74,12 @@ kind gates `Connected`/`Isolated`: an isolated destroyable refuses the export wi
 isolated wool does. It is the one reader every playability derivation takes its places from, so the
 verdict, the coverage read and the kit budget cannot disagree about which journeys a match requires.
 
+- *Where a goal comes from:* the document where it carries one, and the authored intent where it does not.
+  A destroyable's region is the box the stamper built its blocks from, so a goal whose box is not cast yet
+  is kept out of the document rather than given a guessed region — right for the contract, and it would
+  otherwise leave every read taken before a build blind to that goal. The document's copy wins where both
+  name it, since that one has been placed.
+
 - *History:* the gate was spawn/wool-only for one release, held open deliberately because whether a
   destroy goal *should* be required reachable the way a wool is was a gameplay question the corpus and
   the code could not answer. The author answered it (2026-08-16): an unreachable goal is a match nobody

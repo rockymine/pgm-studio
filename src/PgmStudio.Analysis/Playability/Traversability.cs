@@ -79,8 +79,11 @@ public static class Traversability
         return new NavigableGround(minX, minZ, nx, nz, navigable);
     }
 
+    /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>. Absent, the
+    /// verdict is over what the document states, which on a map whose goals are not placed yet is its spawns
+    /// and nothing else.</param>
     public static Result Check(Dict data, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns,
-        (int, int, int, int)? bbox = null, int margin = 16)
+        (int, int, int, int)? bbox = null, int margin = 16, IReadOnlyList<NavPoint>? declared = null)
     {
         var ground = Ground(data, surfaceColumns, y0Columns, bbox, margin);
         var (minX, minZ, nx, nz, navigable) = (ground.MinX, ground.MinZ, ground.Nx, ground.Nz, ground.Cells);
@@ -90,7 +93,7 @@ public static class Traversability
         var labels = LabelComponents(navigable, nx, nz);
         var navigableCells = new HashSet<(int X, int Z)>();
         for (var i = 0; i < n; i++) if (navigable[i]) navigableCells.Add((i % nx, i / nx));
-        var owned = NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz));
+        var owned = NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz), declared);
 
         var placed = new List<Landing>();
         foreach (var point in owned)

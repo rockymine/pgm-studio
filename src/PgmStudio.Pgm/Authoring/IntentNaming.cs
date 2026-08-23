@@ -2,11 +2,13 @@ using System.Text.RegularExpressions;
 
 namespace PgmStudio.Pgm.Authoring;
 
-/// <summary>Shared naming for the declarative generators: the stable id slug derived from a team id
+/// <summary>Shared naming for the ids a map document carries: the stable id slug derived from a team id
 /// (e.g. <c>red-team</c> → <c>red</c>), used for region/filter ids (<c>only-red</c>, <c>red-spawn</c>,
 /// <c>red-wool</c>), and the <c>&lt;team&gt;</c> id the document itself carries. Slug comes from the id,
-/// never the raw colour (which may be multi-word).</summary>
-internal static class IntentNaming
+/// never the raw colour (which may be multi-word). Public because a reader outside the generators has to match
+/// what they emit — an intent's own team name against the id the document ends up carrying — and re-deriving
+/// the rule beside them is two rules.</summary>
+public static class IntentNaming
 {
     public static string Slug(string teamId)
     {

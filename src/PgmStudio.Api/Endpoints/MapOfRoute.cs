@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Http;
+using PgmStudio.Analysis.Playability;
+using PgmStudio.Api.Services;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -40,5 +43,20 @@ internal static class MapOfRoute
     {
         if (await repo.OfRouteAsync(http, ct) is not { } map) return null;
         return (map, await reader.ReadDocAsync(map, ct));
+    }
+
+    /// <summary>The same map and document, plus the goals the author has stated — for the reads that ask
+    /// where a match is played between rather than what the document holds. A map whose goals are not placed
+    /// yet carries none of them in its document, and a read that took the document alone would answer over
+    /// its spawns and call the rest of the board dead.
+    /// <c>if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc,
+    /// { } goals)) return;</c>.</summary>
+    public static async Task<(MapRow Map, Dict Doc, List<NavPoint> Goals)?> WithGoalsOfRouteAsync(
+        this MapRepository repo, MapReader reader, MapArtifactStore artifacts, HttpContext http,
+        CancellationToken ct)
+    {
+        if (await repo.WithDocOfRouteAsync(reader, http, ct) is not ({ } map, { } doc)) return null;
+        var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
+        return (map, doc, DeclaredGoals.Of(intent));
     }
 }

@@ -54,16 +54,16 @@ public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, F
 }
 
 /// <summary>GET /api/map/{slug}/traversability — spawn↔wool connectivity.</summary>
-public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<TraversabilityDto>
+public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest<TraversabilityDto>
 {
     public override void Configure() { Get("/map/{slug}/traversability"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
+        if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var res = Traversability.Check(doc, segs?.StandingColumns(), segs?.Y0Columns());
+        var res = Traversability.Check(doc, segs?.StandingColumns(), segs?.Y0Columns(), declared: goals);
         await Send.OkAsync(new TraversabilityDto(
             res.Connected, res.ComponentCount, res.Severity, res.Message, res.HaveLayers,
             res.Points.Select(p => new NavPointDto(p.Point.Kind, p.Point.Name, p.Point.X, p.Point.Z, p.Component)).ToList(),
@@ -85,14 +85,15 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
+        if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
         var layoutBytes = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
         var decor = layoutBytes is null
             ? []
             : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));
-        var res = GroundCoverage.Read(doc, segs?.StandingColumns() ?? [], segs?.Y0Columns(), decor);
+        var res = GroundCoverage.Read(doc, segs?.StandingColumns() ?? [], segs?.Y0Columns(), decor,
+            declared: goals);
 
         // One picture, so the view name has nothing to select and is not read — this is the one PNG route
         // with no view to get wrong.
@@ -119,16 +120,16 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
 
 /// <summary>GET /api/map/{slug}/kit-reach — can a fresh spawn bridge to each wool with only the
 /// placeable blocks its spawn kit grants? (budget-aware traversability).</summary>
-public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<KitReach.Result>
+public sealed class KitReachEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts) : EndpointWithoutRequest<KitReach.Result>
 {
     public override void Configure() { Get("/map/{slug}/kit-reach"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
-        if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
+        if (await repo.WithGoalsOfRouteAsync(reader, artifacts, HttpContext, ct) is not ({ } map, { } doc, { } goals)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var res = KitReach.Check(doc, segs);
+        var res = KitReach.Check(doc, segs, declared: goals);
         await Send.OkAsync(res, ct);
     }
 }

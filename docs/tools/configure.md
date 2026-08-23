@@ -471,6 +471,15 @@ does.** Every one is cheap — none builds a world — and each corresponds to s
 the pre-flight reports, so an author or an agent can hear the answer while the map is still editable rather
 than at `GET /export` with a world already synthesised behind it.
 
+**They answer over the goals the author has stated, not only the ones the document carries.** A wool, a
+destroyable and a core each state where they stand from the moment they are authored, but a destroyable's
+region is the box the stamper built its blocks from, so one whose box is not cast yet is kept out of the
+document rather than given a guessed region. Reading the document alone therefore answered over a destroy
+map's spawns and nothing else — `elderwold-10`, a two-cairn DTM, reported **2** navigation points and a
+coverage read that traced one journey and called **57%** of the board dead. The reads take the intent's goals
+beside the document now: 4 points, 6 journeys, **30.4%** dead, and the dead patches fall in mirrored pairs the
+way a `rot_180` board's should.
+
 **Every one of them needs ground, and says whether it had any** rather than guessing. Four answer
 `haveLayers` — `traversability`, `kit-reach`, `wool-availability` and `monument-obstruction` — false on a map
 with no scanned world; `buildability` answers `hasY0` for the same question, and `coverage` answers

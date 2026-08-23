@@ -926,21 +926,6 @@ paints, the detour factor a relief budget would need: all of those still come fr
 reading together — the callers still on it, the bands they are compared against, and the demand set they are
 asked over.
 
-- [ ] **TC3 — The early playability reads are blind to a sketch-authored destroy map's goals.**
-  `GET /map/{slug}/traversability` and `/preflight` read the **stored** map document, and a sketch-authored
-  map's destroyables and cores are not in it: the goal's box is cast onto terrain that does not exist until
-  the world is built, so `DestroyableGenerator` has nothing to write. `MapExportComposer` projects the
-  resolved intent before it gates, so `EX1` itself is sound — what is lost is the whole point of asking
-  early, and `GroundCoverage` walks the wrong demand set with it.
-
-  Give the analysis endpoints the same projection the read-backs take (`WorldReads.LoadAsync` does
-  `IntentGenerator.Apply(doc, built.ResolvedIntent)`), or say in the answer which goals it could not see.
-
-  *Measured on `elderwold-10`, a two-cairn DTM: `GET …/traversability` answers **2 points**, both spawns,
-  and `GET /map/elderwold-10` has no `destroyables` key at all. Its coverage read therefore traced one
-  journey — spawn to spawn — and called **57% of the board dead**, with its two largest dead patches at
-  `(-22, 42)` and `(20, -45)`, which is where the cairns stand.*
-
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
   `wheal-hazel` and its rebuild (`FEATURES.md`). What is left is the one thing the author flagged and the

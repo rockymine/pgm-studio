@@ -61,7 +61,9 @@ public static class KitReach
     /// <param name="Teams">One reading per team.</param>
     public sealed record Result(bool HaveLayers, string Severity, string Message, List<TeamReach> Teams);
 
-    public static Result Check(Dict data, SegmentIndex? segments, int margin = 16)
+    /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>.</param>
+    public static Result Check(Dict data, SegmentIndex? segments, int margin = 16,
+        IReadOnlyList<NavPoint>? declared = null)
     {
         var shared = WorldWalk.Ground(data, segments, margin);
         var bounds = ((double)shared.Bounds.X, (double)shared.Bounds.Z,
@@ -70,7 +72,7 @@ public static class KitReach
 
         var kitBudgets = KitBudgets(data);
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
-        var wools = NavPoints.Of(data, bounds).Where(point => point.Kind == "wool").ToList();
+        var wools = NavPoints.Of(data, bounds, declared).Where(point => point.Kind == "wool").ToList();
 
         var teams = new List<TeamReach>();
         foreach (var sp in MapDoc.AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
