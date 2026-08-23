@@ -215,30 +215,11 @@ public static class Traversability
     private static IEnumerable<IsolatedPoint> TeamIsolations(
         Dict data, List<OwnedPoint> owned, bool[] navigable, int minX, int minZ, int nx, int nz)
     {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
-        var filters = AsDict(data.GetValueOrDefault("filters"));
-        var bounds = ((double)minX, (double)minZ, (double)(minX + nx), (double)(minZ + nz));
         var teams = owned.Where(p => p.Point.Kind == "spawn" && p.Owner.Length > 0)
             .Select(p => p.Owner).Distinct().ToList();
         if (teams.Count == 0) yield break;
 
-        // Each team's denied cells, unioned over every enter rule that resolves to barring it. A rule with no
-        // region or no readable geometry denies nothing — an entry denial has to be provable to subtract.
-        var denials = new Dictionary<string, bool[]>();
-        foreach (var rule in AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
-        {
-            if (rule.GetValueOrDefault("enter") is not string enter || enter.Length == 0) continue;
-            if (rule.GetValueOrDefault("region") is not { } regionRef) continue;
-            bool[]? mask = null;
-            foreach (var team in teams)
-            {
-                if (AllowsTeam(enter, filters, team)) continue;
-                mask ??= Buildability.RegionMask(regionRef, regions, bounds, minX, minZ, nx, nz);
-                if (mask is null) break;
-                if (!denials.TryGetValue(team, out var denied)) denials[team] = denied = new bool[nx * nz];
-                for (var i = 0; i < mask.Length; i++) denied[i] |= mask[i];
-            }
-        }
+        var denials = EntryDenials.Masks(data, teams, minX, minZ, nx, nz);
 
         foreach (var team in teams)
         {
@@ -272,33 +253,6 @@ public static class Traversability
         }
     }
 
-    /// <summary>Whether an <c>enter</c> filter lets <paramref name="team"/> in. Deliberately permissive: a
-    /// team filter answers by its team, the boolean wrappers compose, and anything unresolvable answers yes —
-    /// so a wiring this reader does not understand can only fail to subtract ground, never invent a barred
-    /// region that is not there.</summary>
-    private static bool AllowsTeam(string value, Dict filters, string team, HashSet<string>? seen = null)
-    {
-        seen ??= [];
-        if (value.Length == 0 || !seen.Add(value)) return true;
-        if (value is "always" or "allow") return true;
-        if (value == "never") return false;
-        if (filters.GetValueOrDefault(value) is not Dict filter) return true;
-
-        return (filter.GetValueOrDefault("type") as string) switch
-        {
-            "team" => filter.GetValueOrDefault("team") as string == team,
-            "not" => !AllowsTeam(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
-            "allow" => AllowsTeam(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
-            "deny" => !AllowsTeam(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
-            "any" => AsList(filter.GetValueOrDefault("children"))
-                .Any(child => AllowsTeam(child as string ?? "", filters, team, seen)),
-            "all" => AsList(filter.GetValueOrDefault("children"))
-                .All(child => AllowsTeam(child as string ?? "", filters, team, seen)),
-            "always" => true,
-            "never" => false,
-            _ => true,
-        };
-    }
 
     // A point that lies inside the region footprint. The area centroid is the natural centre and
     // equals the bounding-box midpoint for the convex rect/disc footprints; only when it falls

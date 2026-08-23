@@ -41,8 +41,8 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16) |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
-| `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort` |
-| `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` as above |
+| `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
+| `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` and `team` as above |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
@@ -93,6 +93,15 @@ costs **2 blocks on a 121-block walk** — a price no tie-break can ever pay. So
 question: among the routes no more than `Walk.Detour` (**10 blocks**) longer than the shortest — the same
 ribbon a corridor is claimed with — the one whose worst exposure is least. On that board it answers 123
 blocks at a worst clearance of 5.
+
+**`team` decides whose walk it is, and a board with protections has no single answer.** Ground an `enter`
+rule bars a team from is taken out of what that team may stand on and what it may bridge onto, so a route
+through an enemy protection is not offered. Naming no team walks the ground everybody shares, which is the
+right question about a board's shape and the wrong one about whether a player can get somewhere: widen a
+spawn's protection until it swallows the approach to its own wool and the shared walk still answers
+**reachable in 121 blocks**, while `?team=red-team` answers **unreachable** — which is what the export gate
+refuses under `EX1`. Both ends are snapped on the shared ground before the team's is walked, so a barred
+objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
 The bound is what keeps it honest in both directions. Unbounded, a standoff route wanders; ordered after
 distance, it never moves. And the exposure term is the route's **worst** shortfall rather than its total,

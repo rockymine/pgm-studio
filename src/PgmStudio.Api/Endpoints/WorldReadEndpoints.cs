@@ -38,7 +38,10 @@ namespace PgmStudio.Api.Endpoints;
 /// picture draws on top of the terrain — and going through the export would lose the world to the first gate
 /// that fired.</para>
 /// </summary>
-internal sealed record BuiltRead(BuiltWorld Built, MapXml? Map, string Name);
+/// <param name="Doc">The projected map document as read, which the walk needs for the <c>enter</c> rules a
+/// named team is barred by — the same projection <paramref name="Map"/> is deserialized from.</param>
+internal sealed record BuiltRead(BuiltWorld Built, MapXml? Map, string Name,
+    Dictionary<string, object?>? Doc = null);
 
 /// <summary>How a world read is loaded, once, for the endpoints below to draw from.</summary>
 internal static class WorldReads
@@ -60,10 +63,12 @@ internal static class WorldReads
         // in from the cubes it cast. Projected here rather than read off the stored document, which was
         // written before any of that was known.
         MapXml? projected = null;
+        Dictionary<string, object?>? asRead = null;
         try
         {
             var doc = await reader.ReadDocAsync(map, ct);
             IntentGenerator.Apply(doc, built.ResolvedIntent);
+            asRead = doc;
             projected = Deserializer.FromDict(doc);
         }
         catch (Exception fault) when (fault is InvalidOperationException or KeyNotFoundException
@@ -73,7 +78,7 @@ internal static class WorldReads
             // was asked for; the markers on top of it are the part that needs a readable document.
         }
 
-        return new BuiltRead(built, projected, map.Slug);
+        return new BuiltRead(built, projected, map.Slug, asRead);
     }
 }
 
@@ -426,6 +431,15 @@ internal static class WalkReads
         return WorldWalk.OfBuilt(spans, areas, Water(layoutJson));
     }
 
+    /// <summary>The team a walk is measured for, checked against the ones the map spawns so a misspelling
+    /// answers as itself rather than silently as everybody. Null where none was asked for.</summary>
+    public static string? Team(string? asked, BuiltRead read)
+        => asked is { Length: > 0 } && read.Doc is { } doc
+            && EntryDenials.Teams(doc).FirstOrDefault(
+                team => string.Equals(team, asked, StringComparison.OrdinalIgnoreCase)) is { } known
+            ? known
+            : null;
+
     /// <summary>Where the board's water is, carved by the same bed the decorator lays it with. A dressing
     /// that states none answers null, which is what a plan and an undressed board both are.</summary>
     private static HashSet<(int X, int Z)>? Water(string layoutJson)
@@ -441,8 +455,10 @@ internal static class WalkReads
         return cells.Count == 0 ? null : cells;
     }
 
-    /// <summary>A stated <c>x,z</c>, snapped onto ground a walk can start from. A marker's own coordinates
-    /// are a block in a room rather than a cell of terrain, so they land inside a wall as often as on it.</summary>
+    /// <summary>A stated <c>x,z</c>, snapped onto ground a walk can reach. A marker's own coordinates are a
+    /// block in a room rather than a cell of terrain, so they land inside a wall as often as on it. Snapped
+    /// on the <b>shared</b> ground: a barred cell must stay where it is and answer unreachable, rather than
+    /// slide until it finds one the team may stand on.</summary>
     public static (int X, int Z)? Seat(string? asked, WalkGround ground)
     {
         var parts = (asked ?? "").Split(',');
@@ -482,7 +498,10 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
                                + "the fewest placed blocks, `comfort` the least edge-hugging of the routes "
                                + $"within {Walk.Detour} blocks of the shortest. They differ, and the "
                                + "difference is the point.",
-                ["travel", "reach", "comfort"])));
+                ["travel", "reach", "comfort"]),
+            new QueryWord("team", "Whose walk this is. Ground an `enter` rule bars that team from is taken "
+                               + "out of it, so a route through an enemy protection is not offered. Absent "
+                               + "walks the ground every team shares.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -498,10 +517,12 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
             return;
         }
 
-        var ground = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var shared = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var team = WalkReads.Team(Query<string?>("team", isRequired: false), read);
+        var ground = WorldWalk.For(shared, read.Doc, team);
         var aim = WalkReads.Aim(Query<string?>("aim", isRequired: false));
-        var from = WalkReads.Seat(Query<string?>("from", isRequired: false), ground);
-        var to = WalkReads.Seat(Query<string?>("to", isRequired: false), ground);
+        var from = WalkReads.Seat(Query<string?>("from", isRequired: false), shared);
+        var to = WalkReads.Seat(Query<string?>("to", isRequired: false), shared);
         if (from is null || to is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk between",
@@ -539,7 +560,10 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
                                + "field of its own — the field shades the travel cost and the comfort route "
                                + "is drawn on it, which is the pairing that shows what the standoff bought.",
                 ["travel", "reach", "comfort"]),
-            new QueryWord("scale", "Pixels a block takes, 1 to 8.", Min: 1, Max: 8)));
+            new QueryWord("scale", "Pixels a block takes, 1 to 8.", Min: 1, Max: 8),
+            new QueryWord("team", "Whose walk this is. Ground an `enter` rule bars that team from is taken "
+                               + "out of it, so a route through an enemy protection is not offered. Absent "
+                               + "walks the ground every team shares.")));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -555,9 +579,11 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
             return;
         }
 
-        var ground = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var shared = WalkReads.Ground(read, System.Text.Encoding.UTF8.GetString(layout));
+        var team = WalkReads.Team(Query<string?>("team", isRequired: false), read);
+        var ground = WorldWalk.For(shared, read.Doc, team);
         var aim = WalkReads.Aim(Query<string?>("aim", isRequired: false));
-        var from = WalkReads.Seat(Query<string?>("from", isRequired: false), ground);
+        var from = WalkReads.Seat(Query<string?>("from", isRequired: false), shared);
         if (from is null)
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk from",
@@ -566,7 +592,7 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
             return;
         }
 
-        var to = WalkReads.Seat(Query<string?>("to", isRequired: false), ground);
+        var to = WalkReads.Seat(Query<string?>("to", isRequired: false), shared);
         var field = Walk.Field(from.Value, ground, WalkReads.Fieldable(aim));
         var route = to is { } target ? Walk.Between(from.Value, target, ground, aim) : null;
         var what = Query<string?>("field", isRequired: false) is { } asked

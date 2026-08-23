@@ -87,4 +87,50 @@ public sealed class KitReachTests
         await Assert.That(wool.Reachable).IsTrue();
         await Assert.That(wool.Blocks).IsGreaterThan(0);       // and it says how far round it went
     }
+
+    [Test]
+    public async Task A_wool_behind_an_enter_denial_is_unreachable_for_the_team_it_bars()
+    {
+        // The same board, with a rule barring red from the ground its own bridge would land on. The gap is
+        // still bridgeable and the wool still stands there; red is simply not allowed to arrive.
+        var (data, ground) = Scenario(woodAmount: 10);
+        data["regions"] = new Dict
+        {
+            ["spawn"] = Rect(0, 0, 3, 3),
+            ["keep"] = Rect(7, 0, 11, 3),
+        };
+        data["filters"] = new Dict { ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" } };
+        data["apply_rules"] = new List<object?>
+        {
+            new Dict { ["region"] = "keep", ["enter"] = "only-blue" },
+        };
+
+        var wool = KitReach.Check(data, ground).Teams.Single().Wools.Single();
+
+        await Assert.That(wool.Reachable).IsFalse();
+        await Assert.That(wool.Severity).IsEqualTo("error");
+    }
+
+    [Test]
+    public async Task A_rule_that_bars_nobody_leaves_the_crossing_as_it_was()
+    {
+        // The same wiring with a filter that admits red: an entry denial has to be provable to subtract, so
+        // this one takes no ground away and the gap costs what it always did.
+        var (data, ground) = Scenario(woodAmount: 10);
+        data["regions"] = new Dict
+        {
+            ["spawn"] = Rect(0, 0, 3, 3),
+            ["keep"] = Rect(7, 0, 11, 3),
+        };
+        data["filters"] = new Dict { ["only-red"] = new Dict { ["type"] = "team", ["team"] = "red" } };
+        data["apply_rules"] = new List<object?>
+        {
+            new Dict { ["region"] = "keep", ["enter"] = "only-red" },
+        };
+
+        var wool = KitReach.Check(data, ground).Teams.Single().Wools.Single();
+
+        await Assert.That(wool.Reachable).IsTrue();
+        await Assert.That(wool.BlocksNeeded).IsEqualTo(5);
+    }
 }

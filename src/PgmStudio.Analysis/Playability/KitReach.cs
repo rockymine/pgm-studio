@@ -17,9 +17,13 @@ using Dict = Dictionary<string, object?>;
 /// crossing-feasibility signal. What it adds over the count is the rest of what the walk knows: how far round
 /// the cheapest crossing goes, and what it falls down on the way.</para>
 ///
-/// <para>The blocks are no longer only bridged void: a rise steeper than a step is blocks a player places
-/// too, so a wool up a scarp now costs what climbing it costs. Water is not read here, because swimming is
-/// slower and neither a block nor a wall — it moves no verdict this endpoint gives.</para>
+/// <para>The blocks count both halves of what a player builds: a rise steeper than a step is blocks placed
+/// as much as a bridged gap is, so a wool up a scarp costs what climbing it costs. Water is not read here,
+/// because swimming is slower and neither a block nor a wall — it moves no verdict this endpoint gives.</para>
+///
+/// <para>Each team walks <b>its own</b> ground, with whatever an <c>enter</c> rule bars it from subtracted.
+/// A shared set answers that a wool behind an oversized protection is reachable for a kit that can never
+/// legally get there, which is the same board the export gate refuses under <c>EX1</c>.</para>
 /// </summary>
 public static class KitReach
 {
@@ -56,10 +60,10 @@ public static class KitReach
 
     public static Result Check(Dict data, SegmentIndex? segments, int margin = 16)
     {
-        var ground = WorldWalk.Ground(data, segments, margin);
-        var bounds = ((double)ground.Bounds.X, (double)ground.Bounds.Z,
-                      (double)ground.Bounds.MaxX, (double)ground.Bounds.MaxZ);
-        var haveLayers = ground.Ground.Count > 0;
+        var shared = WorldWalk.Ground(data, segments, margin);
+        var bounds = ((double)shared.Bounds.X, (double)shared.Bounds.Z,
+                      (double)shared.Bounds.MaxX, (double)shared.Bounds.MaxZ);
+        var haveLayers = shared.Ground.Count > 0;
 
         var kitBudgets = KitBudgets(data);
         var regions = AsDict(data.GetValueOrDefault("regions"));
@@ -72,6 +76,11 @@ public static class KitReach
             var kitId = sp.GetValueOrDefault("kit") as string ?? "";
             var (budget, water) = kitBudgets.GetValueOrDefault(kitId, (0, false));
 
+            // This team's own ground, not everyone's: a route through a region an enter rule bars it from is
+            // a route it cannot take, and pricing one is the whole reason the verdict and the export gate
+            // could disagree about the same board.
+            var ground = WorldWalk.For(shared, data, team.Length == 0 ? null : team);
+
             var start = RegionCentre(SpawnRegion(sp, regions), regions, bounds) is { } seat
                 ? Cells.SnapToWalkable(seat, ground.Passable, SnapRadius)
                 : null;
@@ -82,14 +91,19 @@ public static class KitReach
             var wools = new List<WoolReach>();
             foreach (var (color, wx, wz) in WoolPoints(data, regions, bounds))
             {
-                var target = Cells.SnapToWalkable((wx, wz), ground.Passable, SnapRadius);
+                // The wool is snapped onto the ground everyone shares and then looked up in this team's own
+                // field. Snapping on the team's ground instead would slide a barred wool sideways until it
+                // found a cell the team may stand on, and report the walk to that cell as the walk to the
+                // wool.
+                var target = Cells.SnapToWalkable((wx, wz), shared.Passable, SnapRadius);
                 var cost = target is { } to && field.TryGetValue(to, out var reached) ? reached : (WalkCost?)null;
                 var reachable = cost is not null;
                 var need = cost?.Blocks ?? -1;
                 var within = reachable && need <= budget;
                 var (sev, msg) = (reachable, within) switch
                 {
-                    (false, _) => ("error", "no bridgeable path from spawn (blocked by void / no-build)"),
+                    (false, _) => ("error", "no path from spawn — the ground between is void, no-build, or "
+                                          + "barred to this team by an enter rule"),
                     (_, true) => ("ok", $"{need} block(s) to place over {cost!.Value.Distance} walked "
                                       + $"— kit gives {budget}"),
                     _ => ("warning", $"needs {need} blocks to place but kit gives only {budget}"),

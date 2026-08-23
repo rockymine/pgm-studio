@@ -18,6 +18,12 @@ using Dict = Dictionary<string, object?>;
 /// other. <see cref="Ground"/> reads a <b>scanned</b> map: segment rows and a map document, which is what an
 /// imported world is. <see cref="OfBuilt"/> reads a world the studio just <b>built</b> from its own layout,
 /// where the columns are in hand and no scan exists.</para>
+///
+/// <para><b>Ground is per team where the map bars a team from any of it.</b> <see cref="For"/> subtracts the
+/// cells an <c>enter</c> rule denies a team (<see cref="EntryDenials"/>) from what it may stand on and what it
+/// may bridge onto, so a walk measured for that team cannot price a route through ground the player is thrown
+/// out of. The shared ground is the right question for a board's shape and the wrong one for a kit budget.
+/// </para>
 /// </summary>
 public static class WorldWalk
 {
@@ -57,6 +63,29 @@ public static class WorldWalk
         return new WalkGround(ground, bridgeable, surface,
             new CellRect(build.MinX, build.MinZ, build.Width, build.Height));
     }
+
+    /// <summary>One team's own ground: the same walk with every cell an <c>enter</c> rule bars it from taken
+    /// out. A barred cell is neither standable nor bridgeable — bridging onto it still puts the player there —
+    /// and a team nothing bars gets the ground it was given back unchanged.
+    ///
+    /// <para>Narrowing a ground already built rather than building a second one is what lets a caller with
+    /// several teams pay for the columns once. A marker is still snapped on the <b>shared</b> ground and
+    /// looked up here: snapping on this one slides a barred objective sideways until it finds a cell the team
+    /// may stand on, and reports the walk to that cell as the walk to the objective.</para></summary>
+    public static WalkGround For(WalkGround shared, Dict? data, string? team)
+    {
+        var over = shared.Bounds;
+        if (data is null || team is null || over.Width <= 0 || over.Height <= 0) return shared;
+        if (EntryDenials.Cells(data, team, over) is not { Count: > 0 } denied) return shared;
+
+        return new WalkGround(
+            Keep(shared.Ground, denied), Keep(shared.Bridgeable, denied),
+            shared.Surface, shared.Bounds, shared.BlocksPerCell, shared.Water);
+    }
+
+    private static HashSet<(int X, int Z)> Keep(
+        IReadOnlySet<(int X, int Z)> cells, HashSet<(int X, int Z)> denied)
+        => [.. cells.Where(cell => !denied.Contains(cell))];
 
     /// <summary>Where a player stands over a stack of spans: the first air above the lowest span carrying
     /// <see cref="Walk.Headroom"/> clear blocks, or null where the column offers nowhere to stand. The same

@@ -28,7 +28,10 @@ public sealed record WalkGround(
     int BlocksPerCell = 1,
     IReadOnlySet<(int X, int Z)>? Water = null)
 {
-    /// <summary>Every cell a route may enter — ground plus what can be bridged onto.</summary>
+    /// <summary>Every cell a route may enter — ground plus what can be bridged onto. Computed once at
+    /// construction, because the solve asks it per neighbour and a union rebuilt per call would dominate the
+    /// walk. It is therefore <b>copied verbatim by <c>with</c></b>: narrowing the ground for a team means
+    /// constructing a new <see cref="WalkGround"/>, never copying one and replacing its sets.</summary>
     public IReadOnlySet<(int X, int Z)> Passable { get; } = Union(Ground, Bridgeable);
 
     private static HashSet<(int X, int Z)> Union(

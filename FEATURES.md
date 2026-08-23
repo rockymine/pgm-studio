@@ -1453,6 +1453,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **The walk knows whose walk it is (`WS11`).** `Traversability` subtracted a team's `enter`-denied cells
+  and walked each barred team its own set; `WorldWalk` built one shared ground for everybody, so two reads of
+  one board answered opposite things. On a 12-player CTW board with blue's protection widened to swallow the
+  approach to its own wool room, `GET /xml` refused **409 `EX1` — wool blue (for red-team)** while `kit-reach`
+  answered **ok, reachable, 20 blocks** and `GET …/walk` **reachable, 121 blocks** for the same journey.
+
+  **The denial is one reader now.** `EntryDenials` holds it — the teams a map spawns, each team's barred cells
+  over a grid, and the `enter`-filter reader that resolves them — and `Traversability` reads it instead of its
+  own private copy. A denial still has to be *provable* to count: a rule with no region, geometry that will
+  not resolve, or a filter the reader cannot follow denies nobody, so an exotic wiring can only fail to
+  subtract ground, never invent a barred region.
+
+  **`WorldWalk.For(shared, data, team)` narrows a ground already built** rather than building a second one,
+  which is what lets `KitReach` pay for the columns once across every team. A barred cell leaves both what a
+  team may stand on and what it may bridge onto — bridging onto it still puts the player there. `GET
+  /map/{slug}/walk` and `render/walk` take `team` for the same reason.
+
+  **Both ends snap on the shared ground and are looked up in the team's.** Snapping on the team's slides a
+  barred objective sideways until it finds a cell that team may stand on, and reports the walk to *that* cell
+  as the walk to the objective — which is why the first cut of this still answered reachable. All four reads
+  now agree on the refused board: gate 409, traversability warning, kit-reach unreachable, `walk?team=red-team`
+  unreachable, and the team-less walk still 121 blocks because that is a true statement about the board's
+  shape.
+  (`Analysis/Playability/EntryDenials.cs`, `WorldWalk.For`, `KitReach.cs`, `Traversability.cs`,
+  `Api/Endpoints/WorldReadEndpoints.cs`, `KitReachTests.cs`)
+
 - **A route no longer walks through a house (`G188`).** Every mask in the studio took *any column holding
   any solid block* as walkable, so a building was ground and a wall was not there: on `elderwold-10` the byre
   stands at `x 26..34, z 34..41` and a walk across it ran nine cells through the building at **zero cost**,
