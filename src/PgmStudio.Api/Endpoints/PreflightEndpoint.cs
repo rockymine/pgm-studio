@@ -69,7 +69,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 
         var travDto = new TraversabilityDto(
             trav.Connected, trav.ComponentCount, trav.Severity, trav.Message, trav.HaveLayers,
-            trav.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component)).ToList(),
+            trav.Points.Select(p => new NavPointDto(p.Point.Kind, p.Point.Name, p.Point.X, p.Point.Z, p.Component)).ToList(),
             trav.Isolated.Select(i => new IsolatedPointDto(i.Kind, i.Name, i.For)).ToList());
 
         await Send.OkAsync(new PreflightDto(

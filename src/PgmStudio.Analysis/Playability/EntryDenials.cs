@@ -23,9 +23,9 @@ public static class EntryDenials
     public static List<string> Teams(Dict data)
     {
         var teams = new List<string>();
-        foreach (var spawn in AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
+        foreach (var spawn in MapDoc.AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
         {
-            if (Truthy(spawn.GetValueOrDefault("observer"))) continue;
+            if (MapDoc.Truthy(spawn.GetValueOrDefault("observer"))) continue;
             if (spawn.GetValueOrDefault("team") is not string team || team.Length == 0) continue;
             if (!teams.Contains(team)) teams.Add(team);
         }
@@ -41,11 +41,11 @@ public static class EntryDenials
         var denials = new Dictionary<string, bool[]>();
         if (teams.Count == 0) return denials;
 
-        var regions = AsDict(data.GetValueOrDefault("regions"));
-        var filters = AsDict(data.GetValueOrDefault("filters"));
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
+        var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
         var bounds = ((double)minX, (double)minZ, (double)(minX + nx), (double)(minZ + nz));
 
-        foreach (var rule in AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
+        foreach (var rule in MapDoc.AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>())
         {
             if (rule.GetValueOrDefault("enter") is not string enter || enter.Length == 0) continue;
             if (rule.GetValueOrDefault("region") is not { } regionRef) continue;
@@ -93,20 +93,13 @@ public static class EntryDenials
             "not" => !Allows(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
             "allow" => Allows(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
             "deny" => !Allows(filter.GetValueOrDefault("child") as string ?? "", filters, team, seen),
-            "any" => AsList(filter.GetValueOrDefault("children"))
+            "any" => MapDoc.AsList(filter.GetValueOrDefault("children"))
                 .Any(child => Allows(child as string ?? "", filters, team, seen)),
-            "all" => AsList(filter.GetValueOrDefault("children"))
+            "all" => MapDoc.AsList(filter.GetValueOrDefault("children"))
                 .All(child => Allows(child as string ?? "", filters, team, seen)),
             "always" => true,
             "never" => false,
             _ => true,
         };
     }
-
-    private static Dict AsDict(object? value) => value as Dict ?? [];
-
-    private static List<object?> AsList(object? value) => value as List<object?> ?? [];
-
-    private static bool Truthy(object? value) => value is bool flag ? flag
-        : value is string text && bool.TryParse(text, out var parsed) && parsed;
 }

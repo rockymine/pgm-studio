@@ -30,6 +30,9 @@ public static class KitReach
     /// <summary>What one wool costs this team to reach: the cheapest crossing, and whether the kit pays
     /// for it.</summary>
     /// <param name="Color">The wool to be captured.</param>
+    /// <param name="Owner">The team that defends it, or empty where the document names none. A team's own
+    /// wool is reported like any other and never held against it: the room's own rule bars its defender by
+    /// design, which is the same ruling the traversability verdict is written under.</param>
     /// <param name="X">Where it stands, east–west.</param>
     /// <param name="Z">Where it stands, north–south.</param>
     /// <param name="BlocksNeeded">How many blocks the cheapest path asks the player to place — bridging
@@ -40,8 +43,8 @@ public static class KitReach
     /// <param name="WithinBudget">Whether the kit grants enough blocks to pay for it.</param>
     /// <param name="Severity">What the verdict is worth — the same word a finding carries.</param>
     /// <param name="Message">The verdict in a sentence, with the numbers in it.</param>
-    public sealed record WoolReach(string Color, int X, int Z, int BlocksNeeded, int Blocks, int Drops,
-        bool Reachable, bool WithinBudget, string Severity, string Message);
+    public sealed record WoolReach(string Color, string Owner, int X, int Z, int BlocksNeeded, int Blocks,
+        int Drops, bool Reachable, bool WithinBudget, string Severity, string Message);
     /// <summary>What one team's spawn kit can reach.</summary>
     /// <param name="Team">The team, by id.</param>
     /// <param name="Kit">The kit it spawns with, by name.</param>
@@ -66,12 +69,13 @@ public static class KitReach
         var haveLayers = shared.Ground.Count > 0;
 
         var kitBudgets = KitBudgets(data);
-        var regions = AsDict(data.GetValueOrDefault("regions"));
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
+        var wools = NavPoints.Of(data, bounds).Where(point => point.Kind == "wool").ToList();
 
         var teams = new List<TeamReach>();
-        foreach (var sp in AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
+        foreach (var sp in MapDoc.AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
         {
-            if (Truthy(sp.GetValueOrDefault("observer"))) continue;
+            if (MapDoc.Truthy(sp.GetValueOrDefault("observer"))) continue;
             var team = sp.GetValueOrDefault("team") as string ?? "";
             var kitId = sp.GetValueOrDefault("kit") as string ?? "";
             var (budget, water) = kitBudgets.GetValueOrDefault(kitId, (0, false));
@@ -81,16 +85,17 @@ public static class KitReach
             // could disagree about the same board.
             var ground = WorldWalk.For(shared, data, team.Length == 0 ? null : team);
 
-            var start = RegionCentre(SpawnRegion(sp, regions), regions, bounds) is { } seat
+            var start = NavPoints.Centre(NavPoints.Region(sp.GetValueOrDefault("region"), regions), regions, bounds) is { } seat
                 ? Cells.SnapToWalkable(seat, ground.Passable, SnapRadius)
                 : null;
             var field = start is { } from
                 ? Walk.Field(from, ground, WalkAim.Reach)
                 : [];
 
-            var wools = new List<WoolReach>();
-            foreach (var (color, wx, wz) in WoolPoints(data, regions, bounds))
+            var perWool = new List<WoolReach>();
+            foreach (var wool in wools)
             {
+                var (color, wx, wz) = (wool.Name, wool.X, wool.Z);
                 // The wool is snapped onto the ground everyone shares and then looked up in this team's own
                 // field. Snapping on the team's ground instead would slide a barred wool sideways until it
                 // found a cell the team may stand on, and report the walk to that cell as the walk to the
@@ -108,13 +113,16 @@ public static class KitReach
                                       + $"— kit gives {budget}"),
                     _ => ("warning", $"needs {need} blocks to place but kit gives only {budget}"),
                 };
-                wools.Add(new WoolReach(color, wx, wz, need, cost?.Distance ?? -1, cost?.Drops ?? 0,
-                    reachable, within, sev, msg));
+                perWool.Add(new WoolReach(color, wool.Owner, wx, wz, need, cost?.Distance ?? -1,
+                    cost?.Drops ?? 0, reachable, within, sev, msg));
             }
-            teams.Add(new TeamReach(team, kitId, budget, water, wools));
+            teams.Add(new TeamReach(team, kitId, budget, water, perWool));
         }
 
-        var allWools = teams.SelectMany(t => t.Wools).ToList();
+        // A team is judged on the wools it must capture. Its own is reported and never counted against it:
+        // the room's own rule bars its defender by design, and the traversability verdict is written under
+        // the same ruling.
+        var allWools = teams.SelectMany(t => t.Wools.Where(w => w.Owner != t.Team)).ToList();
         var worst = allWools.Any(w => !w.Reachable) ? "error"
             : allWools.Any(w => !w.WithinBudget) ? "warning" : "ok";
         var message = worst switch
@@ -134,15 +142,15 @@ public static class KitReach
     private static Dictionary<string, (int budget, bool water)> KitBudgets(Dict data)
     {
         var map = new Dictionary<string, (int, bool)>();
-        foreach (var kit in AsList(data.GetValueOrDefault("kits")).OfType<Dict>())
+        foreach (var kit in MapDoc.AsList(data.GetValueOrDefault("kits")).OfType<Dict>())
         {
             var id = kit.GetValueOrDefault("id") as string ?? "";
             var blocks = 0;
             var water = false;
-            foreach (var item in AsList(kit.GetValueOrDefault("items")).OfType<Dict>())
+            foreach (var item in MapDoc.AsList(kit.GetValueOrDefault("items")).OfType<Dict>())
             {
-                var mat = Normalize(item.GetValueOrDefault("material") as string ?? "");
-                var amount = Num(item.GetValueOrDefault("amount")) is { } a ? (int)a : 1;
+                var mat = MapDoc.Normalize(item.GetValueOrDefault("material") as string ?? "");
+                var amount = MapDoc.Num(item.GetValueOrDefault("amount")) is { } a ? (int)a : 1;
                 if (KitBlocks.IsPlaceable(mat)) blocks += amount;
                 else if (mat is "water bucket" or "water") water = true;
             }
@@ -151,49 +159,4 @@ public static class KitReach
         return map;
     }
 
-    // ── spawn / wool nav points (mirrors Traversability) ───────────────────────────────────────
-    private static Dict? SpawnRegion(Dict sp, Dict regions)
-    {
-        var r = sp.GetValueOrDefault("region");
-        return r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
-    }
-
-    private static IEnumerable<(string color, int x, int z)> WoolPoints(Dict data, Dict regions, (double, double, double, double) bounds)
-    {
-        foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
-        {
-            var color = w.GetValueOrDefault("color") as string ?? "";
-            var loc = AsDict(w.GetValueOrDefault("location"));
-            if (Num(loc.GetValueOrDefault("x")) is { } lx && Num(loc.GetValueOrDefault("z")) is { } lz)
-                yield return (color, (int)lx, (int)lz);
-            else if (RegionCentre(regions.GetValueOrDefault(w.GetValueOrDefault("wool_room_region") as string ?? "") as Dict, regions, bounds) is { } c)
-                yield return (color, c.x, c.z);
-        }
-    }
-
-    private static (int x, int z)? RegionCentre(Dict? region, Dict registry, (double, double, double, double) bounds)
-    {
-        if (region is null) return null;
-        if (RegionGeometry2d.ToGeometry(region, bounds, registry) is { IsEmpty: false } geom)
-        {
-            var centroid = geom.Centroid;
-            var p = geom.Contains(centroid) ? centroid : geom.InteriorPoint;
-            return ((int)p.X, (int)p.Y);
-        }
-        var bb = AsDict(region.GetValueOrDefault("bounds_2d"));
-        if (bb.Count == 0) return null;
-        var mn = AsDict(bb.GetValueOrDefault("min"));
-        var mx = AsDict(bb.GetValueOrDefault("max"));
-        if (Num(mn.GetValueOrDefault("x")) is not { } mnx || Num(mn.GetValueOrDefault("z")) is not { } mnz
-            || Num(mx.GetValueOrDefault("x")) is not { } mxx || Num(mx.GetValueOrDefault("z")) is not { } mxz)
-            return null;
-        return ((int)((mnx + mxx) / 2), (int)((mnz + mxz) / 2));
-    }
-
-
-    private static string Normalize(string s) => s.Trim().ToLowerInvariant().Replace('_', ' ');
-    private static bool Truthy(object? v) => v is true || (v is string s && s is "true" or "1");
-    private static Dict AsDict(object? o) => o as Dict ?? new Dict();
-    private static List<object?> AsList(object? o) => o as List<object?> ?? [];
-    private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }

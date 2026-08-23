@@ -61,7 +61,7 @@ public static class Buildability
         if (t is "not" or "deny" or "allow") return ClassifyFilter(f.GetValueOrDefault("child") as string ?? "", filters, next);
         if (t is "any" or "all" or "one")
         {
-            var kinds = AsList(f.GetValueOrDefault("children")).Select(c => ClassifyFilter(c as string ?? "", filters, next)).ToList();
+            var kinds = MapDoc.AsList(f.GetValueOrDefault("children")).Select(c => ClassifyFilter(c as string ?? "", filters, next)).ToList();
             if (kinds.Contains("void")) return "void";
             if (kinds.Contains("never")) return "never";
         }
@@ -72,14 +72,14 @@ public static class Buildability
     {
         var xs = new List<double>();
         var zs = new List<double>();
-        foreach (var r in AsDict(data.GetValueOrDefault("regions")).Values.OfType<Dict>())
+        foreach (var r in MapDoc.AsDict(data.GetValueOrDefault("regions")).Values.OfType<Dict>())
         {
-            if (AsDict(r.GetValueOrDefault("bounds_2d")) is { Count: > 0 } b)
+            if (MapDoc.AsDict(r.GetValueOrDefault("bounds_2d")) is { Count: > 0 } b)
             {
-                var mn = AsDict(b.GetValueOrDefault("min"));
-                var mx = AsDict(b.GetValueOrDefault("max"));
-                if (Num(mn.GetValueOrDefault("x")) is { } a && Num(mn.GetValueOrDefault("z")) is { } c
-                    && Num(mx.GetValueOrDefault("x")) is { } d && Num(mx.GetValueOrDefault("z")) is { } e)
+                var mn = MapDoc.AsDict(b.GetValueOrDefault("min"));
+                var mx = MapDoc.AsDict(b.GetValueOrDefault("max"));
+                if (MapDoc.Num(mn.GetValueOrDefault("x")) is { } a && MapDoc.Num(mn.GetValueOrDefault("z")) is { } c
+                    && MapDoc.Num(mx.GetValueOrDefault("x")) is { } d && MapDoc.Num(mx.GetValueOrDefault("z")) is { } e)
                 { xs.Add(a); xs.Add(d); zs.Add(c); zs.Add(e); }
             }
         }
@@ -90,9 +90,9 @@ public static class Buildability
     public static Result Compute(Dict data, HashSet<(int, int)>? y0Columns,
         (int minX, int minZ, int maxX, int maxZ)? bbox = null, int margin = 16)
     {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
-        var filters = AsDict(data.GetValueOrDefault("filters"));
-        var rules = AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>().ToList();
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
+        var filters = MapDoc.AsDict(data.GetValueOrDefault("filters"));
+        var rules = MapDoc.AsList(data.GetValueOrDefault("apply_rules")).OfType<Dict>().ToList();
 
         var (minX, minZ, maxX, maxZ) = bbox ?? RegionBbox(data, margin);
         int nx = maxX - minX, nz = maxZ - minZ;
@@ -181,7 +181,4 @@ public static class Buildability
         return mask;
     }
 
-    private static Dict AsDict(object? o) => o as Dict ?? new Dict();
-    private static List<object?> AsList(object? o) => o as List<object?> ?? [];
-    private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }

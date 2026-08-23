@@ -27,12 +27,12 @@ public static class ResourceSources
 
     public static List<(Geometry geom, string renewFilter)> RenewableRegions(Dict data, (double, double, double, double)? mapBbox = null)
     {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         (double, double, double, double) bbox;
         if (mapBbox is { } mb) bbox = mb;
         else { var b = Buildability.RegionBbox(data, 8); bbox = (b.minX, b.minZ, b.maxX, b.maxZ); }
         var outp = new List<(Geometry, string)>();
-        foreach (var rn in AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
+        foreach (var rn in MapDoc.AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
             if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg
                 && RegionGeometry2d.ToGeometry(reg, bbox, regions) is { IsEmpty: false } g)
                 outp.Add((g, rn.GetValueOrDefault("renew_filter") as string ?? ""));
@@ -64,6 +64,4 @@ public static class ResourceSources
             .OrderBy(e => e.Type, StringComparer.Ordinal).ToList();
     }
 
-    private static Dict AsDict(object? o) => o as Dict ?? new Dict();
-    private static List<object?> AsList(object? o) => o as List<object?> ?? [];
 }

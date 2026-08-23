@@ -53,8 +53,8 @@ public sealed class TraversabilityTests
 
         await Assert.That(res.Points.Count).IsEqualTo(1);
         var p = res.Points[0];
-        var inRoomA = p.X is >= 0 and < 4 && p.Z is >= 0 and < 4;
-        var inRoomB = p.X is >= 100 and < 104 && p.Z is >= 0 and < 4;
+        var inRoomA = p.Point.X is >= 0 and < 4 && p.Point.Z is >= 0 and < 4;
+        var inRoomB = p.Point.X is >= 100 and < 104 && p.Point.Z is >= 0 and < 4;
         await Assert.That(inRoomA || inRoomB).IsTrue();   // inside a real room, not the (52,2) gap
         await Assert.That(p.Component).IsGreaterThan(0);    // landed on a navigable component
     }
@@ -81,7 +81,7 @@ public sealed class TraversabilityTests
 
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated.Count).IsEqualTo(0);
-        var wool = res.Points.Single(p => p.Kind == "wool");
+        var wool = res.Points.Single(p => p.Point.Kind == "wool");
         await Assert.That(wool.Component).IsGreaterThan(0);   // in-grid, on the connected component
     }
 
@@ -103,8 +103,8 @@ public sealed class TraversabilityTests
         var res = Traversability.Check(data, surface, null, bbox: (0, 10, 30, 40));
 
         await Assert.That(res.Points.Count).IsEqualTo(1);
-        await Assert.That(res.Points[0].X).IsEqualTo(15);
-        await Assert.That(res.Points[0].Z).IsEqualTo(25);
+        await Assert.That(res.Points[0].Point.X).IsEqualTo(15);
+        await Assert.That(res.Points[0].Point.Z).IsEqualTo(25);
     }
 
     [Test]
@@ -315,7 +315,7 @@ public sealed class TraversabilityTests
 
         await Assert.That(res.Connected).IsFalse();
         await Assert.That(res.Isolated.Select(i => i.Kind)).Contains("destroyable");
-        var destroyable = res.Points.Single(p => p.Kind == "destroyable");
+        var destroyable = res.Points.Single(p => p.Point.Kind == "destroyable");
         await Assert.That(destroyable.Component).IsEqualTo(0);   // off the navigable grid — and gating
     }
 }

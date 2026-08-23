@@ -1453,6 +1453,28 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **One reader for the places a match is played between (`RP52`).** `KitReach` said it in its own comment —
+  `// spawn / wool nav points (mirrors Traversability)` — and the copy was the worse one: it dropped the
+  **owner**, which is why `kit-reach` walked a team to its own wool and reported a meaningless 0 blocks where
+  the traversability verdict excludes it by design. `NavPoints.Of` is the one reader now, answering every
+  spawn, wool, destroyable and core with the team that owns it; `Traversability`, `GroundCoverage` and
+  `KitReach` all take it, so the verdict, the coverage corridors and the kit budget cannot disagree about
+  which journeys a match requires.
+
+  **The component was never a property of a point.** `NavPoint` carried one and `OwnedPoint` wrapped it to
+  add the owner back; now the point is what the document states — kind, name, owner, x, z — and
+  `Traversability.Landing` is the annotation the verdict computes over it. The wire is unchanged.
+
+  **A team's own wool is reported and never held against it**, the ruling the traversability verdict already
+  ran under: a wool room's rule bars its defender by design. `WoolReach` carries `Owner`, and the severity is
+  taken over the wools a team must capture. On a 12-player CTW board each team's own wool now reads
+  `reachable: false` where it read `0 blocks` — the honest answer for a room its own team may not enter.
+
+  Beside it, `MapDoc` holds the five document helpers that existed **19 times across six files** in
+  `Analysis/Playability`, `Truthy` reconciled to the wider of the two readings it had.
+  (`Analysis/Playability/NavPoints.cs`, `Analysis/MapDoc.cs`, `Traversability.cs`, `KitReach.cs`,
+  `GroundCoverage.cs`, `KitReachTests.cs`)
+
 - **The walk knows whose walk it is (`WS11`).** `Traversability` subtracted a team's `enter`-denied cells
   and walked each barred team its own set; `WorldWalk` built one shared ground for everybody, so two reads of
   one board answered opposite things. On a 12-player CTW board with blue's protection widened to swallow the

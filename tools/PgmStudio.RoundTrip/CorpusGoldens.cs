@@ -137,7 +137,7 @@ public static class CorpusGoldens
 
     private static string DescribeTraversability(Traversability.Result r)
     {
-        var detail = r.Points.Select(p => $"{p.Kind}\t{p.Name}\t{p.X},{p.Z}\tc{p.Component}")
+        var detail = r.Points.Select(p => $"{p.Point.Kind}\t{p.Point.Name}\t{p.Point.X},{p.Point.Z}\tc{p.Component}")
             .Concat(r.Isolated.Select(p => p.For is { } team
                 ? $"isolated\t{p.Kind}\t{p.Name}\tfor:{team}"
                 : $"isolated\t{p.Kind}\t{p.Name}"))

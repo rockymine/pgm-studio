@@ -54,7 +54,7 @@ public static class WoolSources
 
     public static List<AvailabilityEntry> CheckAvailability(Dict data, List<Source> sources, (double, double, double, double)? mapBbox = null)
     {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var bbox = mapBbox ?? MapBbox(regions);
         var renewable = RenewableGeoms(data, mapBbox);
         var physical = sources.Where(s => s.Type != "pgm_spawner").ToList();
@@ -62,7 +62,7 @@ public static class WoolSources
         var dyeColors = IndirectDyeColors(data);
         var outp = new List<AvailabilityEntry>();
 
-        foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
+        foreach (var w in MapDoc.AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
         {
             var color = BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
             var roomId = w.GetValueOrDefault("wool_room_region") as string;
@@ -97,7 +97,7 @@ public static class WoolSources
 
     public static List<Suggestion> SuggestWools(Dict data, List<Source> sources, (double, double, double, double)? mapBbox = null)
     {
-        var declared = AsList(data.GetValueOrDefault("wools")).OfType<Dict>()
+        var declared = MapDoc.AsList(data.GetValueOrDefault("wools")).OfType<Dict>()
             .Select(w => BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "")).ToHashSet();
         var renewable = RenewableGeoms(data, mapBbox);
         return SummarizeSources(sources, null, renewable)
@@ -108,13 +108,13 @@ public static class WoolSources
     public static List<MonumentCheck> CheckMonumentObstruction(Dict data, SegmentIndex? segments)
     {
         var outp = new List<MonumentCheck>();
-        foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
+        foreach (var w in MapDoc.AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
         {
             var color = BlockColors.Normalize(w.GetValueOrDefault("color") as string ?? "");
-            foreach (var m in AsList(w.GetValueOrDefault("monuments")).OfType<Dict>())
+            foreach (var m in MapDoc.AsList(w.GetValueOrDefault("monuments")).OfType<Dict>())
             {
-                var loc = AsDict(m.GetValueOrDefault("location"));
-                if (Num(loc.GetValueOrDefault("x")) is not { } lx || Num(loc.GetValueOrDefault("y")) is not { } ly || Num(loc.GetValueOrDefault("z")) is not { } lz)
+                var loc = MapDoc.AsDict(m.GetValueOrDefault("location"));
+                if (MapDoc.Num(loc.GetValueOrDefault("x")) is not { } lx || MapDoc.Num(loc.GetValueOrDefault("y")) is not { } ly || MapDoc.Num(loc.GetValueOrDefault("z")) is not { } lz)
                     continue;
                 int x = (int)lx, y = (int)ly, z = (int)lz;
                 var obstructed = segments is not null && segments.IsSolid(x, y, z);
@@ -130,10 +130,10 @@ public static class WoolSources
 
     public static List<Source> PgmSpawnerSources(Dict data, (double, double, double, double)? mapBbox = null)
     {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var bbox = mapBbox ?? MapBbox(regions);
         var outp = new List<Source>();
-        foreach (var sp in AsList(data.GetValueOrDefault("spawners")).OfType<Dict>())
+        foreach (var sp in MapDoc.AsList(data.GetValueOrDefault("spawners")).OfType<Dict>())
         {
             var geoms = new List<Geometry>();
             foreach (var key in new[] { "spawn_region", "player_region" })
@@ -142,12 +142,12 @@ public static class WoolSources
             Geometry? geom = geoms.Count == 0 ? null : geoms.Aggregate((a, b) => a.Union(b));
             int cx = geom is null ? 0 : (int)Math.Round(geom.Centroid.X, MidpointRounding.ToEven);
             int cz = geom is null ? 0 : (int)Math.Round(geom.Centroid.Y, MidpointRounding.ToEven);
-            foreach (var item in AsList(sp.GetValueOrDefault("items")).OfType<Dict>())
+            foreach (var item in MapDoc.AsList(sp.GetValueOrDefault("items")).OfType<Dict>())
             {
                 if (!((item.GetValueOrDefault("material") as string ?? "").ToLowerInvariant().Contains("wool"))) continue;
-                if (Num(item.GetValueOrDefault("damage")) is not { } dmg) continue;
+                if (MapDoc.Num(item.GetValueOrDefault("damage")) is not { } dmg) continue;
                 if (!BlockColors.BlockDamageToColor.TryGetValue((int)dmg, out var color)) continue;
-                var count = Num(item.GetValueOrDefault("amount")) is { } a and not 0 ? (int)a : 1;
+                var count = MapDoc.Num(item.GetValueOrDefault("amount")) is { } a and not 0 ? (int)a : 1;
                 outp.Add(new Source("pgm_spawner", color, cx, 0, cz, count, geom));
             }
         }
@@ -157,13 +157,13 @@ public static class WoolSources
     public static HashSet<string> IndirectDyeColors(Dict data)
     {
         var outp = new HashSet<string>();
-        foreach (var sp in AsList(data.GetValueOrDefault("spawners")).OfType<Dict>())
-            foreach (var item in AsList(sp.GetValueOrDefault("items")).OfType<Dict>())
+        foreach (var sp in MapDoc.AsList(data.GetValueOrDefault("spawners")).OfType<Dict>())
+            foreach (var item in MapDoc.AsList(sp.GetValueOrDefault("items")).OfType<Dict>())
             {
                 var mat = (item.GetValueOrDefault("material") as string ?? "").ToLowerInvariant();
                 if (mat.Contains("wool")) continue;
                 if (!mat.Contains("ink") && !mat.Contains("dye")) continue;
-                var color = Num(item.GetValueOrDefault("damage")) is { } d ? BlockColors.DyeDamageToColor.GetValueOrDefault((int)d) : "black";
+                var color = MapDoc.Num(item.GetValueOrDefault("damage")) is { } d ? BlockColors.DyeDamageToColor.GetValueOrDefault((int)d) : "black";
                 if (!string.IsNullOrEmpty(color)) outp.Add(color!);
             }
         return outp;
@@ -175,11 +175,11 @@ public static class WoolSources
         var xs = new List<double>(); var zs = new List<double>();
         foreach (var r in regions.Values.OfType<Dict>())
         {
-            var b = AsDict(r.GetValueOrDefault("bounds_2d"));
+            var b = MapDoc.AsDict(r.GetValueOrDefault("bounds_2d"));
             if (b.Count == 0) continue;
-            var mn = AsDict(b.GetValueOrDefault("min")); var mx = AsDict(b.GetValueOrDefault("max"));
-            if (Num(mn.GetValueOrDefault("x")) is { } a && Num(mn.GetValueOrDefault("z")) is { } c
-                && Num(mx.GetValueOrDefault("x")) is { } d && Num(mx.GetValueOrDefault("z")) is { } e)
+            var mn = MapDoc.AsDict(b.GetValueOrDefault("min")); var mx = MapDoc.AsDict(b.GetValueOrDefault("max"));
+            if (MapDoc.Num(mn.GetValueOrDefault("x")) is { } a && MapDoc.Num(mn.GetValueOrDefault("z")) is { } c
+                && MapDoc.Num(mx.GetValueOrDefault("x")) is { } d && MapDoc.Num(mx.GetValueOrDefault("z")) is { } e)
             { xs.Add(a); xs.Add(d); zs.Add(c); zs.Add(e); }
         }
         if (xs.Count == 0) return (-256, -256, 256, 256);
@@ -188,10 +188,10 @@ public static class WoolSources
 
     internal static List<Geometry> RenewableGeoms(Dict data, (double, double, double, double)? mapBbox = null)
     {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
+        var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         var bbox = mapBbox ?? MapBbox(regions);
         var geoms = new List<Geometry>();
-        foreach (var rn in AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
+        foreach (var rn in MapDoc.AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
             if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg
                 && RegionGeometry2d.ToGeometry(reg, bbox, regions) is { IsEmpty: false } g) geoms.Add(g);
         return geoms;
@@ -211,7 +211,4 @@ public static class WoolSources
         return false;
     }
 
-    private static Dict AsDict(object? o) => o as Dict ?? new Dict();
-    private static List<object?> AsList(object? o) => o as List<object?> ?? [];
-    private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }

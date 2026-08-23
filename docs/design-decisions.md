@@ -65,13 +65,14 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
 - *Looks wrong:* "gate checks the doc, then `Apply` mutates it" reads as a classic
   check-then-mutate race — but the mutated fields are not the fields the gate certified, and
   sub-block movement is far inside the resolver's slack.
-- *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints`, `LabelAt`),
+- *Enforced:* `Analysis/Playability/NavPoints.cs`, `Traversability.cs` (`LabelAt`),
   `Minecraft/Stamping/PositionSnap.cs`.
 
 ### A destroyable/core gates traversability the way a wool does
-`Traversability.NavigationPoints` reads destroyable and core region centres alongside spawns and
-wools, and every goal kind gates `Connected`/`Isolated`: an isolated destroyable refuses the export
-with the same `EX1` an isolated wool does.
+`NavPoints.Of` reads destroyable and core region centres alongside spawns and wools, and every goal
+kind gates `Connected`/`Isolated`: an isolated destroyable refuses the export with the same `EX1` an
+isolated wool does. It is the one reader every playability derivation takes its places from, so the
+verdict, the coverage read and the kit budget cannot disagree about which journeys a match requires.
 
 - *History:* the gate was spawn/wool-only for one release, held open deliberately because whether a
   destroy goal *should* be required reachable the way a wool is was a gameplay question the corpus and
@@ -80,8 +81,8 @@ with the same `EX1` an isolated wool does.
 - *What is judged:* not the goal's own column — a destroyable and a core float a few blocks above the
   terrain by design — but the nearest navigable ground around its centre (the snap radius in `LabelAt`),
   which is the approach ground an attacker actually needs.
-- *Enforced:* `Analysis/Playability/Traversability.cs` (`NavigationPoints` reads all four kinds;
-  `Check`'s `gating` list is spawn/wool/destroyable/core).
+- *Enforced:* `Analysis/Playability/NavPoints.cs` (reads all four kinds, each with its owner);
+  `Traversability.Check`'s `gating` list is spawn/wool/destroyable/core.
 
 ### Protection regions gate traversability per team
 One navigability map cannot see the one way a small floating goal genuinely becomes unreachable: an

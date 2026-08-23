@@ -29,13 +29,15 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class Traversability
 {
-    public sealed record NavPoint(string Kind, string Name, int X, int Z, int Component);
+    /// <summary>A navigation point and the component it landed in — the annotation this verdict computes
+    /// over a point the document states, rather than anything the point itself carries.</summary>
+    public sealed record Landing(NavPoint Point, int Component);
     /// <summary>A gating point the verdict could not connect. <see cref="For"/> names the team whose own
     /// navigable set cut it off, where the cause is a per-team entry denial — null where the whole map's
     /// navigability already fails to reach it, whoever walks.</summary>
     public sealed record IsolatedPoint(string Kind, string Name, string? For = null);
     public sealed record Result(bool Connected, int ComponentCount, string Severity, string Message,
-        bool HaveLayers, List<NavPoint> Points, List<IsolatedPoint> Isolated);
+        bool HaveLayers, List<Landing> Points, List<IsolatedPoint> Isolated);
 
     /// <summary>The grid every playability read shares: its box, and which cells a player can cross —
     /// buildable or bridgeable by the map's rules, or standing terrain. One derivation, so the traversability
@@ -88,14 +90,14 @@ public static class Traversability
         var labels = LabelComponents(navigable, nx, nz);
         var navigableCells = new HashSet<(int X, int Z)>();
         for (var i = 0; i < n; i++) if (navigable[i]) navigableCells.Add((i % nx, i / nx));
-        var owned = NavigationPoints(data, (minX, minZ, minX + nx, minZ + nz));
+        var owned = NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz));
 
-        var placed = new List<NavPoint>();
-        foreach (var (p, _) in owned)
+        var placed = new List<Landing>();
+        foreach (var point in owned)
         {
-            int ix = p.X - minX, iz = p.Z - minZ;
-            var comp = (ix >= 0 && ix < nx && iz >= 0 && iz < nz) ? LabelAt(labels, navigableCells, nx, ix, iz) : 0;
-            placed.Add(p with { Component = comp });
+            int ix = point.X - minX, iz = point.Z - minZ;
+            var comp = ix >= 0 && ix < nx && iz >= 0 && iz < nz ? LabelAt(labels, navigableCells, nx, ix, iz) : 0;
+            placed.Add(new Landing(point, comp));
         }
 
         // Every goal gates the export refusal, destroyables and cores included (the author's ruling). The
@@ -103,7 +105,7 @@ public static class Traversability
         // column but the ground around it — the snap below reads the nearest navigable cell — and a goal
         // whose approach ground is cut off from the spawns is a match nobody can finish, exactly as an
         // unreachable wool is.
-        var gating = placed.Where(p => p.Kind is "spawn" or "wool" or "destroyable" or "core").ToList();
+        var gating = placed.Where(p => p.Point.Kind is "spawn" or "wool" or "destroyable" or "core").ToList();
         var comps = gating.Where(p => p.Component > 0).Select(p => p.Component).ToList();
         var distinct = comps.ToHashSet();
         // most-common component; ties broken by first appearance in `comps` (matches Counter.most_common)
@@ -118,7 +120,7 @@ public static class Traversability
         // including the degenerate case where every gating point is off-grid, so `main` itself stays 0 and a
         // check against `!= main` alone would call zero points isolated despite none of them being reachable.
         var isolated = gating.Where(p => p.Component == 0 || p.Component != main)
-            .Select(p => new IsolatedPoint(p.Kind, p.Name)).ToList();
+            .Select(p => new IsolatedPoint(p.Point.Kind, p.Point.Name)).ToList();
         var connected = distinct.Count <= 1 && !gating.Any(p => p.Component == 0);
 
         // The per-team half: where an enter rule bars a team somewhere, that team walks its own map. Only run
@@ -159,64 +161,15 @@ public static class Traversability
         return (minX, minZ, maxX, maxZ);
     }
 
-    /// <summary>A navigation point with the team it belongs to — a spawn's own team, a goal's defending
-    /// owner. The owner is what the per-team pass asks (an attacker contests every goal it does not own);
-    /// the public <see cref="NavPoint"/> stays team-less because the whole-map verdict is.</summary>
-    internal sealed record OwnedPoint(NavPoint Point, string Owner);
-
-    // ── navigation points: spawn region centres, wool locations, destroyable/core region centres ─────────
-    internal static List<OwnedPoint> NavigationPoints(Dict data, (double, double, double, double) bounds)
-    {
-        var regions = AsDict(data.GetValueOrDefault("regions"));
-        var pts = new List<OwnedPoint>();
-        foreach (var sp in AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
-        {
-            var r = sp.GetValueOrDefault("region");
-            var region = r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
-            var team = sp.GetValueOrDefault("team") as string ?? "";
-            if (RegionCentre(region, regions, bounds) is { } c)
-                pts.Add(new OwnedPoint(new NavPoint("spawn", team, c.x, c.z, 0), team));
-        }
-        foreach (var w in AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
-        {
-            var color = w.GetValueOrDefault("color") as string ?? "";
-            var owner = w.GetValueOrDefault("team") as string ?? "";
-            var loc = AsDict(w.GetValueOrDefault("location"));
-            if (Num(loc.GetValueOrDefault("x")) is { } lx && Num(loc.GetValueOrDefault("z")) is { } lz)
-                pts.Add(new OwnedPoint(new NavPoint("wool", color, (int)lx, (int)lz, 0), owner));
-            else if (RegionCentre(regions.GetValueOrDefault(w.GetValueOrDefault("wool_room_region") as string ?? "") as Dict, regions, bounds) is { } c)
-                pts.Add(new OwnedPoint(new NavPoint("wool", color, c.x, c.z, 0), owner));
-        }
-        foreach (var d in AsList(data.GetValueOrDefault("destroyables")).OfType<Dict>())
-        {
-            if (d.GetValueOrDefault("show") is false) continue;   // not an objective — see Destroyable.IsObjective
-            var r = d.GetValueOrDefault("region");
-            var region = r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
-            var owner = d.GetValueOrDefault("owner") as string ?? "";
-            if (RegionCentre(region, regions, bounds) is { } c)
-                pts.Add(new OwnedPoint(
-                    new NavPoint("destroyable", d.GetValueOrDefault("name") as string ?? owner, c.x, c.z, 0), owner));
-        }
-        foreach (var core in AsList(data.GetValueOrDefault("cores")).OfType<Dict>())
-        {
-            var r = core.GetValueOrDefault("region");
-            var region = r is string s ? regions.GetValueOrDefault(s) as Dict : r as Dict;
-            var owner = core.GetValueOrDefault("owner") as string ?? "";
-            if (RegionCentre(region, regions, bounds) is { } c)
-                pts.Add(new OwnedPoint(new NavPoint("core", owner, c.x, c.z, 0), owner));
-        }
-        return pts;
-    }
-
     /// <summary>Every goal a team is barred from reaching by an <c>enter</c> denial, across all teams. Each
     /// team whose entry an apply rule denies somewhere walks the navigable set minus its denied cells, from
     /// its own spawns to every goal it does not own — the defender is never required to reach its own wool,
     /// which its room's own rule bars by design.</summary>
     private static IEnumerable<IsolatedPoint> TeamIsolations(
-        Dict data, List<OwnedPoint> owned, bool[] navigable, int minX, int minZ, int nx, int nz)
+        Dict data, List<NavPoint> owned, bool[] navigable, int minX, int minZ, int nx, int nz)
     {
-        var teams = owned.Where(p => p.Point.Kind == "spawn" && p.Owner.Length > 0)
-            .Select(p => p.Owner).Distinct().ToList();
+        var teams = owned.Where(point => point.Kind == "spawn" && point.Owner.Length > 0)
+            .Select(point => point.Owner).Distinct().ToList();
         if (teams.Count == 0) yield break;
 
         var denials = EntryDenials.Masks(data, teams, minX, minZ, nx, nz);
@@ -238,14 +191,14 @@ public static class Traversability
             }
 
             var spawnComponents = owned
-                .Where(p => p.Point.Kind == "spawn" && p.Owner == team)
-                .Select(p => ComponentOf(p.Point))
+                .Where(point => point.Kind == "spawn" && point.Owner == team)
+                .Select(ComponentOf)
                 .Where(component => component > 0)
                 .ToHashSet();
 
-            foreach (var (point, ownerTeam) in owned)
+            foreach (var point in owned)
             {
-                if (point.Kind == "spawn" || ownerTeam == team) continue;
+                if (point.Kind == "spawn" || point.Owner == team) continue;
                 var component = ComponentOf(point);
                 if (component == 0 || !spawnComponents.Contains(component))
                     yield return new IsolatedPoint(point.Kind, point.Name, For: team);
@@ -254,31 +207,15 @@ public static class Traversability
     }
 
 
-    // A point that lies inside the region footprint. The area centroid is the natural centre and
-    // equals the bounding-box midpoint for the convex rect/disc footprints; only when it falls
-    // outside a non-convex or disjoint shape (union/complement/half — where the box midpoint can
-    // land in an uncovered gap) do we use a guaranteed-interior representative point. Falls back to
-    // the AABB midpoint when no footprint geometry resolves.
-    private static (int x, int z)? RegionCentre(Dict? region, Dict registry, (double, double, double, double) bounds)
-    {
-        if (region is null) return null;
-        if (RegionGeometry2d.ToGeometry(region, bounds, registry) is { IsEmpty: false } geom)
-        {
-            var centroid = geom.Centroid;
-            var p = geom.Contains(centroid) ? centroid : geom.InteriorPoint;
-            return ((int)p.X, (int)p.Y);
-        }
-        return BoundsMidpoint(region);
-    }
 
     private static (int x, int z)? BoundsMidpoint(Dict region)
     {
-        var b = AsDict(region.GetValueOrDefault("bounds_2d"));
+        var b = MapDoc.AsDict(region.GetValueOrDefault("bounds_2d"));
         if (b.Count == 0) return null;
-        var mn = AsDict(b.GetValueOrDefault("min"));
-        var mx = AsDict(b.GetValueOrDefault("max"));
-        if (Num(mn.GetValueOrDefault("x")) is not { } mnx || Num(mn.GetValueOrDefault("z")) is not { } mnz
-            || Num(mx.GetValueOrDefault("x")) is not { } mxx || Num(mx.GetValueOrDefault("z")) is not { } mxz)
+        var mn = MapDoc.AsDict(b.GetValueOrDefault("min"));
+        var mx = MapDoc.AsDict(b.GetValueOrDefault("max"));
+        if (MapDoc.Num(mn.GetValueOrDefault("x")) is not { } mnx || MapDoc.Num(mn.GetValueOrDefault("z")) is not { } mnz
+            || MapDoc.Num(mx.GetValueOrDefault("x")) is not { } mxx || MapDoc.Num(mx.GetValueOrDefault("z")) is not { } mxz)
             return null;
         return ((int)((mnx + mxx) / 2), (int)((mnz + mxz) / 2));
     }
@@ -304,7 +241,4 @@ public static class Traversability
     private static int LabelAt(int[] labels, IReadOnlySet<(int X, int Z)> navigableCells, int nx, int ix, int iz, int snap = 3) =>
         Cells.SnapToWalkable((ix, iz), navigableCells, snap) is { } cell ? labels[cell.Z * nx + cell.X] : 0;
 
-    private static Dict AsDict(object? o) => o as Dict ?? new Dict();
-    private static List<object?> AsList(object? o) => o as List<object?> ?? [];
-    private static double? Num(object? v) => v switch { double d => d, long l => l, int i => i, float f => f, _ => null };
 }

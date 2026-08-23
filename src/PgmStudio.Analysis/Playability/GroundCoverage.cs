@@ -83,7 +83,7 @@ public static class GroundCoverage
 
         // The waypoints, snapped onto the navigable set the way the traversability gate snaps its points.
         var waypoints = new List<(int X, int Z)>();
-        foreach (var (point, _) in Traversability.NavigationPoints(data, (minX, minZ, minX + nx, minZ + nz)))
+        foreach (var point in NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz)))
             if (Cells.SnapToWalkable((point.X, point.Z), navigable, 3) is { } seat) waypoints.Add(seat);
 
         // The traffic skeleton: a corridor between every pair of waypoints. All pairs rather than a curated

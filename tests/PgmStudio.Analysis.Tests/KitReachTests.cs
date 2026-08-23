@@ -133,4 +133,38 @@ public sealed class KitReachTests
         await Assert.That(wool.Reachable).IsTrue();
         await Assert.That(wool.BlocksNeeded).IsEqualTo(5);
     }
+
+    [Test]
+    public async Task A_team_barred_from_its_own_wool_is_reported_and_not_blamed()
+    {
+        // A wool room's own rule bars its defender by design, which is the ruling the traversability verdict
+        // is written under. The row still says what it found; the verdict is over the wools a team must
+        // capture, and its own is not one of them.
+        var (data, ground) = Scenario(woodAmount: 10);
+        data["wools"] = new List<object?>
+        {
+            new Dict
+            {
+                ["color"] = "green", ["team"] = "red",
+                ["location"] = new Dict { ["x"] = 9.0, ["y"] = 0.0, ["z"] = 1.0 },
+            },
+        };
+        data["regions"] = new Dict
+        {
+            ["spawn"] = Rect(0, 0, 3, 3),
+            ["keep"] = Rect(7, 0, 11, 3),
+        };
+        data["filters"] = new Dict { ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" } };
+        data["apply_rules"] = new List<object?>
+        {
+            new Dict { ["region"] = "keep", ["enter"] = "only-blue" },
+        };
+
+        var res = KitReach.Check(data, ground);
+        var wool = res.Teams.Single().Wools.Single();
+
+        await Assert.That(wool.Owner).IsEqualTo("red");
+        await Assert.That(wool.Reachable).IsFalse();
+        await Assert.That(res.Severity).IsEqualTo("ok");
+    }
 }

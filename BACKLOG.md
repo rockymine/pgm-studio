@@ -926,20 +926,20 @@ paints, the detour factor a relief budget would need: all of those still come fr
 reading together — the callers still on it, the bands they are compared against, and the demand set they are
 asked over.
 
-- [ ] **RP52 — The map document has six readers in one folder, and the duplicate is the worse one.**
-  `KitReach` line 154 says it outright: `// spawn / wool nav points (mirrors Traversability)`. Its
-  `WoolPoints`, `RegionCentre` and `SpawnRegion` repeat `Traversability.NavigationPoints` and its own
-  `RegionCentre` line for line — same `location` read, same `wool_room_region` fallback — except the copy
-  drops the **owner**, which is why `kit-reach` walks a team to its own wool and reports a meaningless 0
-  blocks where `Traversability` excludes it by design. Two readers, two demand sets, one document.
+- [ ] **TC3 — The early playability reads are blind to a sketch-authored destroy map's goals.**
+  `GET /map/{slug}/traversability` and `/preflight` read the **stored** map document, and a sketch-authored
+  map's destroyables and cores are not in it: the goal's box is cast onto terrain that does not exist until
+  the world is built, so `DestroyableGenerator` has nothing to write. `MapExportComposer` projects the
+  resolved intent before it gates, so `EX1` itself is sound — what is lost is the whole point of asking
+  early, and `GroundCoverage` walks the wrong demand set with it.
 
-  Beside them, `AsDict`/`AsList`/`Num`/`Truthy`/`Normalize` exist **19 times across six files** in
-  `Analysis/Playability` (`Buildability` 3, `EntryDenials` 3, `KitReach` 5, `ResourceSources` 2,
-  `Traversability` 3, `WoolSources` 3).
+  Give the analysis endpoints the same projection the read-backs take (`WorldReads.LoadAsync` does
+  `IntentGenerator.Apply(doc, built.ResolvedIntent)`), or say in the answer which goals it could not see.
 
-  Lift the marker read to one unit beside `EntryDenials` — the points a map declares, each with its owner —
-  and have `KitReach` take it and drop its own; put the document helpers with it. Then settle the demand set
-  once: whether a team is asked about the goals it does not own, or all of them.
+  *Measured on `elderwold-10`, a two-cairn DTM: `GET …/traversability` answers **2 points**, both spawns,
+  and `GET /map/elderwold-10` has no `destroyables` key at all. Its coverage read therefore traced one
+  journey — spawn to spawn — and called **57% of the board dead**, with its two largest dead patches at
+  `(-22, 42)` and `(20, -45)`, which is where the cairns stand.*
 
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
