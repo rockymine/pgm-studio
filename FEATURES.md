@@ -1392,12 +1392,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   carry five blocks of passable ground along its whole run, one step past each corner included — the rule
   that stops a house corking a land leg with void on both flanks, while a coast house against the map's own
   edge still stands. A road or channel beside the wall counts as passage; an earlier building does not.
-- **Protection regions gate traversability per team (`B230`).** Where an `enter` rule provably denies a team
+- **Protection regions gate traversability per team (`B230`, closing `G188`).** Where an `enter` rule provably denies a team
   entry somewhere, that team walks its own navigable set — the shared one minus its denied cells — from its
   spawns to every goal it does not own, so a goal tucked behind an oversized spawn protection refuses with
   the barred team named (`IsolatedPoint.For`, carried through the DTO, the preflight line, the `EX1`
   subjects and the goldens). A defender barred from its own wool room is by design and never required
-  there; an unresolvable filter denies nobody, so exotic wiring can only under-refuse.
+  there; an unresolvable filter denies nobody, so exotic wiring can only under-refuse. End to end: widening
+  a spawn's protection to swallow the approach to its own wool room refuses `GET /xml` with **409 `EX1`**
+  and the subject `wool blue (for red-team)`.
 - **The finish previews answer PNG (`B231`).** `?format=png&view=…` on `material-preview`, `theme-preview`
   and `prop-preview` returns one named view as raw `image/png` — the form an agent saves and looks at —
   encoded by the studio's own `PngWriter` off the same `CellRaster` the SVG comes from, so the two

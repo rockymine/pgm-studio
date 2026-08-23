@@ -964,6 +964,18 @@ place.
   sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
   this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
 
+- [ ] **WS11 — The walk is team-blind, so two reads of one board disagree.** `Traversability.Check`
+  subtracts a team's `enter`-denied cells and walks each team its own set (`B230`); `WorldWalk` builds one
+  shared `WalkGround` for everybody, so `KitReach` and `GET /map/{slug}/walk` route a player straight through
+  ground an apply rule bars them from. Give `WalkGround` a per-team variant — the denied mask
+  `Traversability.TeamIsolations` already computes, removed from `Ground`/`Bridgeable` — and have `KitReach`
+  ask for its own team's, since it already iterates spawns by team.
+
+  *Measured: on a 12-player CTW board with blue's protection widened to `{-24,-84,14,-46}`, swallowing the
+  approach to its own wool room at `x -10..0, z -70..-60`, `GET /xml` refuses **409 EX1** with subject
+  `wool blue (for red-team)` while `kit-reach` answers **ok, reachable, 20 blocks** for red→blue's wool and
+  `GET …/walk` answers **reachable, 121 blocks** for the same journey.*
+
 - [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
   `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
   `GroundCoverage` walks goal pairs only. Two origins are missing and both are asked for (author): the
@@ -1105,15 +1117,6 @@ place.
   is an enumeration over piece adjacency. While the two graphs disagree about what "adjacent" means for an
   overlap, the count depends on which one was asked, and nothing at the call site would say so. Whichever
   rule is picked, the route reader must name the graph it read.
-
-- [~] **G188 — Port protection-aware reachability, so a spawn's own protection reads as the wall it is.**
-  `Traversability.Check` tests connectivity and nothing else, so it passes maps
-  `scripts/generator/validate_play.py` would fail: a route through a team's spawn protection is a route it
-  cannot take. Port the Python validator's protection handling to `Analysis/Playability` and feed it into
-  the `NVAL` / preflight gate.
-
-  **Not urgent on its own**: `B172` keeps houses out of the one place it bit hardest, and the mask now sees
-  a building, so what is left is the protection rule itself.
 
 - [ ] **G187 — Plan-tier flow: the cut, the ways round a hole, and the terms over them.** Every route
   measure in the repo runs on a built world; `ContactGraph.CorridorMin` is a contact-width threshold and not
