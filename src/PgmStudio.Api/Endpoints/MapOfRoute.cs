@@ -57,6 +57,6 @@ internal static class MapOfRoute
     {
         if (await repo.WithDocOfRouteAsync(reader, http, ct) is not ({ } map, { } doc)) return null;
         var intent = await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct);
-        return (map, doc, DeclaredGoals.Of(intent));
+        return (map, doc, DeclaredGoals.Of(doc, intent));
     }
 }

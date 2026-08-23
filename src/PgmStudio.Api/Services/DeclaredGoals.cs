@@ -13,17 +13,21 @@ namespace PgmStudio.Api.Services;
 /// is where those places are, and this is the one reading of it, so the playability reads and the export gate
 /// answer over the same set.</para>
 /// </summary>
-internal static class DeclaredGoals
+public static class DeclaredGoals
 {
     /// <summary>Every wool, destroyable and core the intent states, named and owned the way the document
-    /// would name and own them. Spawns are not here: a spawn is in the document from the start.</summary>
-    public static List<NavPoint> Of(MapIntent? intent)
+    /// would name and own them — through the generators' own naming, so a goal the document also carries is
+    /// recognised as the same goal rather than counted twice. Spawns are not here: a spawn is in the document
+    /// from the start.</summary>
+    /// <param name="doc">The map document, read only for the naming a wool's colour falls back to.</param>
+    /// <param name="intent">What the author stated, or null on a map that has none.</param>
+    public static List<NavPoint> Of(Dictionary<string, object?> doc, MapIntent? intent)
     {
         var goals = new List<NavPoint>();
         if (intent is null) return goals;
 
         foreach (var wool in intent.Wools ?? [])
-            goals.Add(new NavPoint("wool", Colour(wool), IntentNaming.TeamId(wool.Owner),
+            goals.Add(new NavPoint("wool", WoolGenerator.ColorSlug(doc, wool), IntentNaming.TeamId(wool.Owner),
                 (int)wool.Spawn.X, (int)wool.Spawn.Z));
 
         foreach (var destroyable in intent.Destroyables ?? [])
@@ -37,8 +41,4 @@ internal static class DeclaredGoals
         return goals;
     }
 
-    /// <summary>A wool's colour as the document spells it — the owner team's own colour where the author
-    /// stated none, which is the rule the wool slice writes under.</summary>
-    private static string Colour(WoolIntent wool)
-        => wool.Color.Length > 0 ? wool.Color : IntentNaming.Slug(wool.Owner);
 }

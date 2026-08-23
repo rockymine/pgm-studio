@@ -293,7 +293,10 @@ public static class WoolGenerator
     }
 
     // Wool colour slug (underscore form, matching WoolEditor's ValidColors); defaults to the owner team's colour.
-    private static string ColorSlug(Dict doc, WoolIntent w)
+    /// <summary>The colour a wool is named by in the document: the one the author stated, or the defending
+    /// team's own where they stated none, slugged. Public because a reader outside the generators has to
+    /// match the name they emit, and a second rule for it names the same wool two different things.</summary>
+    public static string ColorSlug(Dict doc, WoolIntent w)
     {
         var color = w.Color.Length > 0 ? w.Color : TeamColor(doc, w.Owner);
         return color.Trim().ToLowerInvariant().Replace(' ', '_');

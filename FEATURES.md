@@ -1462,6 +1462,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   has been placed. `WithGoalsOfRouteAsync` is the one door the reads come through, so none of them can be
   wired without it.
 
+  **The naming is the generators' own.** A goal is matched to the document's copy by kind, name and owner, so
+  a name derived beside them rather than through them counts one wool twice: `WoolGenerator.ColorSlug` is the
+  rule — the colour the author stated, or the defending team's own, slugged — and `DeclaredGoals` calls it
+  rather than restating it.
+
   *On `elderwold-10`, a two-cairn DTM: **2** navigation points became **4**, both cairns landing at the
   anchors the plan states (`-20, 90` and `19, -91`) and in the spawns' own component. Its coverage read
   traced **1** journey and now traces **6**; the board reads **30.4%** dead rather than **57%**, and its dead
