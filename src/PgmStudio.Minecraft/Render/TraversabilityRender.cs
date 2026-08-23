@@ -267,6 +267,15 @@ public static class TraversabilityRender
     /// standing on it and nothing overhanging it a player's head would clip. Ground itself is the same "not
     /// decoration, not liquid, not air" read <see cref="HeightProfileRender"/> uses, so the two stage images
     /// agree about where the ground is even though they answer different questions about it.</summary>
+    /// <summary>Whether the <see cref="Walk.Headroom"/> blocks from <paramref name="from"/> up are all
+    /// air — the room a player needs to stand where the block below them is.</summary>
+    private static bool Clear(ushort[] ids, int col, int from)
+    {
+        for (var y = from; y < from + Walk.Headroom; y++)
+            if (ids[(y << 8) | col] != 0) return false;
+        return true;
+    }
+
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), bool> ground)
     {
         var ids = new ushort[256 * 256];
@@ -281,17 +290,24 @@ public static class TraversabilityRender
             for (var lx = 0; lx < 16; lx++)
             {
                 var col = (lz << 4) | lx;
-                for (var y = 255; y >= 0; y--)
+                var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
+                var solid = false;
+
+                // Bottom up, so the surface is the one a player walking in at terrain level meets: a wooded
+                // cell reads on its terrain rather than on its canopy, and a walled one on the wall rather
+                // than on the floor the wall stands beside. A column with ground but nowhere to stand is
+                // recorded as not navigable rather than dropped, because it is not void.
+                for (var y = 0; y + Walk.Headroom < Walk.WorldHeight; y++)
                 {
                     var id = ids[(y << 8) | col];
                     if (id == 0 || BlockRoles.IsLiquid(id) || BlockRoles.StandsOnGround(id)) continue;
-                    var cell = (chunk.ChunkX * 16 + lx, chunk.ChunkZ * 16 + lz);
-                    var clear = y + 2 < 256
-                        && ids[((y + 1) << 8) | col] == 0
-                        && ids[((y + 2) << 8) | col] == 0;
-                    ground[cell] = clear;
+                    solid = true;
+                    if (!Clear(ids, col, y + 1)) continue;
+                    ground[cell] = true;
+                    solid = false;
                     break;
                 }
+                if (solid) ground[cell] = false;
             }
     }
 }

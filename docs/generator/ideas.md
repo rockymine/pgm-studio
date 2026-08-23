@@ -366,7 +366,7 @@ shape is worth having written down when the loop is ready for it. Both need the 
 first — the schema, the use cases and the affordances the `TODO.md` programme is building — because an agent
 asked to add to a board has to be able to learn what a board can hold.
 
-- **G188 — a plan the author starts and an agent continues.** The author draws pieces in the plan tool and
+- **G191 — a plan the author starts and an agent continues.** The author draws pieces in the plan tool and
   asks for the rest in words — *put the second wool at the end of the east spur, and give it an approach the
   wall can guard*. The agent posts a patched `PlanModel` and the canvas shows what changed. The whole of it
   rests on the plan being small, semantic and answerable with rule ids, which it already is: `evaluate`,

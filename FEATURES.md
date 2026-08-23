@@ -1451,6 +1451,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   keeps its default. Both found by `pgm-studio-mapgen`'s driver taking the render of every authored house —
   eight refusals across four styles that preview at 200 with their keys left where the author wrote them.
   (`TerrainThemeJson.cs`, `HouseStyleJson.cs`, `TerrainThemeJsonTests.cs`, `RoomStyleJsonTests.cs`)
+- **A route no longer walks through a house (`G188`).** Every mask in the studio took *any column holding
+  any solid block* as walkable, so a building was ground and a wall was not there: on `elderwold-10` the byre
+  stands at `x 26..34, z 34..41` and a walk across it ran nine cells through the building at **zero cost**,
+  while `column?at=30,37` answered spruce planks at y19 and y28. Standing somewhere now means the **lowest
+  surface in the column carrying `Walk.Headroom` clear blocks above it** — where a player walking in at
+  terrain level ends up. Both halves of that rule are load-bearing: the highest surface of a wooded cell is
+  its canopy, so reading the top sends every route round every tree; the lowest surface of a walled cell is
+  the floor the wall stands beside, so reading it without the headroom test is what let a route cross a wall.
+  A column with no such surface anywhere is not walkable at all.
+
+  **One predicate, and the three copies of it now agree.** `SegmentIndex.StandingTops` answers where, and
+  `StandingColumns` whether — the read `Traversability` (so the `EX1` export gate), `GroundCoverage`,
+  pre-flight and the corpus goldens all take. `TraversabilityRender` scans bottom-up for the same surface
+  instead of top-down for the highest. `WorldWalk` intersects the cleaned base footprint with it, and reads
+  the built fidelity's spans under the same rule. `WorldColumns.Membership`'s `Surface` says in its own
+  summary that it is not a walkable set and no playability read takes it.
+
+  **And the walk over a built board reads the world, not the rasterizer.** `Built.Columns` is the terrain a
+  build stood on — one span per cell, with no house, tree or structure in it — so a walk over it crossed a
+  building however good the predicate was. `WalkReads.Ground` takes `WorldColumns.Of(world)`'s runs instead.
+  The byre now costs **15 placed blocks and two nine-block falls** to cross under `travel`, and `reach` walks
+  three blocks further round it for **nothing**; every spawn-to-cairn line on the board is unchanged, because
+  that terrain was already clear.
+  (`Geom/Walk.Headroom`, `Analysis/Layer/SegmentIndex.cs`, `Analysis/Playability/WorldWalk.cs`,
+  `Minecraft/Render/TraversabilityRender.cs`, `Api/Endpoints/WorldReadEndpoints.cs`, `SegmentIndexTests.cs`)
+
 - **One walk, two fidelities, four answers — and two reads that show what a crossing costs (`B246`).**
   `PgmStudio.Geom.Walk` is the traversal a distance is measured with: **eight-connected octile** (a diagonal
   is 141 to a straight step's 100, and only where one of the two orthogonal cells it passes is passable, so a

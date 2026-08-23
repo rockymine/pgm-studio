@@ -62,10 +62,6 @@ bear on this one.
   before they land. Do the callers and the sweep in one commit, and amend `rules.md`'s preamble — it states
   the walk is "4-connected, rectilinear" — in the same one.
 
-  **And the set is still wrong under all of it (`G188`).** The export gate and every walk navigate any column
-  holding any solid block; `TraversabilityRender` asks for **two clear blocks of headroom**, which is the
-  predicate that stops a route walking through a house. That is a change to what is passable rather than to
-  what a step costs, so it moves every number again — take it first, or take it with this.
 
 - [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
   picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a

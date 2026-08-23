@@ -52,12 +52,14 @@ public static class WorldColumns
         }
     }
 
-    /// <summary>The two column sets a playability read runs over: <c>Surface</c> is every column holding a
-    /// solid block, <c>Y0</c> every column holding one at Y=0 — the layer PGM's void filter reads. Both are
-    /// projections of the runs above, so the height is discarded here and only here; a read that needs it
-    /// takes <see cref="Of"/> instead. The same pair a region scan answers from disk
-    /// (<c>SegmentIndex.SurfaceColumns</c>/<c>Y0Columns</c>), for the headless driver that has the world in
-    /// hand and no scan to load.</summary>
+    /// <summary>Two membership sets over a world held in memory: <c>Surface</c> is every column holding a
+    /// solid block, <c>Y0</c> every column holding one at Y=0 — the layer PGM's void filter reads, and the
+    /// twin of <c>SegmentIndex.Y0Columns</c>. Both are projections of the runs above, so the height is
+    /// discarded here and only here; a read that needs it takes <see cref="Of"/> instead.
+    ///
+    /// <para><c>Surface</c> is not a walkable set and no playability read takes it: standing somewhere asks
+    /// for <see cref="PgmStudio.Geom.Walk.Headroom"/> clear blocks over a surface, which a column's mere
+    /// membership cannot answer. <c>SegmentIndex.StandingTops</c> is the read that does.</para></summary>
     public static (HashSet<(int X, int Z)> Surface, HashSet<(int X, int Z)> Y0) Membership(VoxelWorld world)
     {
         var surface = new HashSet<(int X, int Z)>();

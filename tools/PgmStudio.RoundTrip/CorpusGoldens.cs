@@ -102,7 +102,7 @@ public static class CorpusGoldens
             {
                 var index = new SegmentIndex(await FeatureData.ReadSegments(segments));
                 var y0 = index.Y0Columns();
-                var surface = index.SurfaceColumns();
+                var surface = index.StandingColumns();
                 build = DescribeBuildability(Buildability.Compute(doc, y0));
                 trav = DescribeTraversability(Traversability.Check(doc, surface, y0));
             }

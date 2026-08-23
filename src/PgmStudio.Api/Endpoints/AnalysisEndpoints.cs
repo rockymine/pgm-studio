@@ -63,7 +63,7 @@ public sealed class TraversabilityEndpoint(MapRepository repo, MapReader reader,
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
         var segs = await feature.SegmentsAsync(map.Id, ct);
-        var res = Traversability.Check(doc, segs?.SurfaceColumns(), segs?.Y0Columns());
+        var res = Traversability.Check(doc, segs?.StandingColumns(), segs?.Y0Columns());
         await Send.OkAsync(new TraversabilityDto(
             res.Connected, res.ComponentCount, res.Severity, res.Message, res.HaveLayers,
             res.Points.Select(p => new NavPointDto(p.Kind, p.Name, p.X, p.Z, p.Component)).ToList(),
@@ -92,7 +92,7 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
         var decor = layoutBytes is null
             ? []
             : DressingScope.DecorCells(System.Text.Encoding.UTF8.GetString(layoutBytes));
-        var res = GroundCoverage.Read(doc, segs?.SurfaceColumns() ?? [], segs?.Y0Columns(), decor);
+        var res = GroundCoverage.Read(doc, segs?.StandingColumns() ?? [], segs?.Y0Columns(), decor);
 
         // One picture, so the view name has nothing to select and is not read — this is the one PNG route
         // with no view to get wrong.

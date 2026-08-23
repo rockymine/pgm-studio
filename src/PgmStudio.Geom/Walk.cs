@@ -109,6 +109,17 @@ public static class Walk
     /// <summary>How far a player falls for nothing. Four is where fall damage starts.</summary>
     public const int FreeDrop = 3;
 
+    /// <summary>How many clear blocks a surface needs over it before a player can stand there. A surface
+    /// without them is a floor under something — a house's ground course, a ledge under an overhang — and
+    /// the ground a walk runs over is the <b>lowest</b> surface in a column that has them, which is where a
+    /// player walking in at terrain level ends up. Reading the highest instead puts a wooded cell on its own
+    /// canopy; reading the lowest without this puts a walled cell on the floor inside the wall.</summary>
+    public const int Headroom = 2;
+
+    /// <summary>Where the world stops, in blocks. A walk needs it to know whether a head fits: a column
+    /// solid to the top offers a surface with nothing above it, and that is not somewhere to stand.</summary>
+    public const int WorldHeight = 256;
+
     /// <summary>What swimming multiplies a distance by. You cross water freely and slowly.</summary>
     public const int WaterSlowdown = 2;
 

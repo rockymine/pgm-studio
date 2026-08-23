@@ -65,6 +65,13 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
 
+**Where a player stands in a column is the lowest surface in it carrying two clear blocks above.** That is
+what makes a building a building: the terrain under a wall has no headroom, so the wall's own top is the
+surface, and crossing it costs the climb. Reading the highest surface instead would put a wooded cell on its
+canopy and send every route round every tree; reading the lowest without the headroom test puts a walled cell
+on the floor the wall stands beside, which is how a route comes to walk through a house for nothing. A column
+offering no such surface anywhere is not walkable at all.
+
 **A climb of Δ costs Δ−1 blocks.** One block up is a step; anything higher is ground the player first has to
 make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — every kit carries
 a water bucket, so a fall walls off no route, but stopping to place and drink one is time the distance does
@@ -149,8 +156,6 @@ There is no read that keeps Y over a *region*: `section` cuts one plane and `col
 depth-projected mode that would sit between them is `B129`.
 
 The walk runs over **one cell per column**, so no fidelity of it can see under an overhang or through a
-tunnel (`TS21`), and it navigates any column holding a block rather than one with headroom to stand in — the
-predicate `render/traversability` already uses and the walk should adopt is `G188`. Beyond `KitReach` and
-these two reads, the studio's other distances are still the four-connected step count `Cells.PathLength`
-returns; moving them onto this walk re-bases every band they were calibrated against, which is `B246`'s open
-half.
+tunnel (`TS21`). Beyond `KitReach` and these two reads, the studio's other distances are still the
+four-connected step count `Cells.PathLength` returns; moving them onto this walk re-bases every band they
+were calibrated against, which is `B246`'s open half.

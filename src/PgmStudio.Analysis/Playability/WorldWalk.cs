@@ -31,11 +31,19 @@ public static class WorldWalk
     {
         var build = Buildability.Compute(data, segments?.Y0Columns(), null, margin);
 
-        // The cleaned base footprint, not the raw surface: a build floating over void must not pose as free
-        // standing-ground at its own high Y, because the grid a walk runs over is one cell per column.
+        var surface = new Dictionary<(int X, int Z), int>();
+        if (segments is not null)
+            foreach (var (x, z, top) in segments.StandingTops())
+                surface[(x, z)] = top;
+
+        // Two filters, and each rules out something the other cannot see. The cleaned base footprint drops a
+        // build floating over void, which must not pose as free standing-ground at its own high Y because the
+        // grid a walk runs over is one cell per column. The standing surfaces drop a column with nowhere in it
+        // to stand.
         var ground = segments is null
             ? []
-            : new HashSet<(int X, int Z)>(IslandDetector.CleanedBaseFootprint(segments.BaseColumns()));
+            : new HashSet<(int X, int Z)>(
+                IslandDetector.CleanedBaseFootprint(segments.BaseColumns()).Where(surface.ContainsKey));
 
         var bridgeable = new HashSet<(int X, int Z)>();
         for (var i = 0; i < build.Verdict.Length; i++)
@@ -45,14 +53,25 @@ public static class WorldWalk
             if (!ground.Contains(cell)) bridgeable.Add(cell);
         }
 
-        var surface = new Dictionary<(int X, int Z), int>();
-        if (segments is not null)
-            foreach (var (x, z, top) in segments.StandingTops())
-                surface[(x, z)] = top;
-
         Level(bridgeable, surface);
         return new WalkGround(ground, bridgeable, surface,
             new CellRect(build.MinX, build.MinZ, build.Width, build.Height));
+    }
+
+    /// <summary>Where a player stands over a stack of spans: the first air above the lowest span carrying
+    /// <see cref="Walk.Headroom"/> clear blocks, or null where the column offers nowhere to stand. The same
+    /// rule <c>SegmentIndex.StandingTops</c> reads off a scan, so a board the studio built and the same board
+    /// scanned back answer alike.</summary>
+    private static int? Standing(List<(int Floor, int Top)> stack)
+    {
+        foreach (var (_, top) in stack.OrderBy(span => span.Top))
+        {
+            var stand = top + 1;
+            if (stand + Walk.Headroom > Walk.WorldHeight) continue;
+            if (stack.Any(span => span.Floor <= stand + Walk.Headroom - 1 && stand <= span.Top)) continue;
+            return stand;
+        }
+        return null;
     }
 
     /// <summary>Give every bridgeable cell the height of the ground nearest it, spreading outward from the
@@ -78,8 +97,9 @@ public static class WorldWalk
 
     /// <summary>The ground a walk runs over on a world the studio built for itself, from the rasterised
     /// columns rather than from a scan.</summary>
-    /// <param name="columns">Every solid span, as the rasterizer emits them. A cell's standing surface is the
-    /// <b>highest</b> top over it, which is the same rule the painter and every stamper read.</param>
+    /// <param name="columns">Every solid span, as the rasterizer emits them. A cell's standing surface is
+    /// read from them under the same rule a scan is: the lowest span whose top carries
+    /// <see cref="Walk.Headroom"/> clear blocks over it.</param>
     /// <param name="buildAreas">The intent's build zones, as <c>(minX, minZ, maxX, maxZ)</c> inclusive — void
     /// inside one is a route the moment a player may place a block in it.</param>
     /// <param name="water">Cells a player swims, or null on a board with none.</param>
@@ -88,9 +108,16 @@ public static class WorldWalk
         IEnumerable<(int MinX, int MinZ, int MaxX, int MaxZ)> buildAreas,
         IReadOnlySet<(int X, int Z)>? water = null)
     {
+        var spans = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
+        foreach (var (x, z, floor, top) in columns)
+        {
+            if (!spans.TryGetValue((x, z), out var stack)) { stack = []; spans[(x, z)] = stack; }
+            stack.Add((floor, top));
+        }
+
         var surface = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top) in columns)
-            if (!surface.TryGetValue((x, z), out var known) || top > known) surface[(x, z)] = top;
+        foreach (var (cell, stack) in spans)
+            if (Standing(stack) is { } top) surface[cell] = top;
         var ground = new HashSet<(int X, int Z)>(surface.Keys);
 
         var bridgeable = new HashSet<(int X, int Z)>();

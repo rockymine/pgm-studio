@@ -409,15 +409,21 @@ public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int D
 /// <summary>How a walk read finds its ground and its two ends, shared by the numbers and the picture.</summary>
 internal static class WalkReads
 {
-    /// <summary>The built board as ground a walk runs over: the rasterised columns for what can be stood on
-    /// and how high it is, the intent's build zones for what a block can be laid across, and the dressing's
-    /// own water for what is swum. Nothing here is scanned — the world was built for this request.</summary>
+    /// <summary>The built board as ground a walk runs over: the world's own solid runs for what can be
+    /// stood on and how high it is, the intent's build zones for what a block can be laid across, and the
+    /// dressing's own water for what is swum. Nothing here is scanned — the world was built for this request.
+    ///
+    /// <para>The runs come off the <b>world</b> rather than off <c>Built.Columns</c>, which is the
+    /// rasterizer's read of the terrain a build stood on — one span per cell, with no house, tree or
+    /// structure in it. A walk over that set crosses a building as though it were not there.</para></summary>
     public static WalkGround Ground(BuiltRead read, string layoutJson)
     {
         var areas = (read.Built.ResolvedIntent.Build?.Areas ?? [])
             .Select(a => ((int)Math.Floor(a.MinX), (int)Math.Floor(a.MinZ),
                           (int)Math.Ceiling(a.MaxX), (int)Math.Ceiling(a.MaxZ)));
-        return WorldWalk.OfBuilt(read.Built.Columns ?? [], areas, Water(layoutJson));
+        var spans = PgmStudio.Minecraft.Anvil.WorldColumns.Of(read.Built.World)
+            .SelectMany(column => column.Runs.Select(run => (column.X, column.Z, run.YBottom, run.YTop)));
+        return WorldWalk.OfBuilt(spans, areas, Water(layoutJson));
     }
 
     /// <summary>Where the board's water is, carved by the same bed the decorator lays it with. A dressing

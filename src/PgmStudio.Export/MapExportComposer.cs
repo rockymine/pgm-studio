@@ -74,7 +74,7 @@ public static class MapExportComposer
             // world scanned into the store. A map that ships its own world has no authored ground to be held
             // to, so it is exempt.
             if (isIntent
-                && RefuseUntraversable(doc, segments?.SurfaceColumns(), segments?.Y0Columns()) is { } cutOff)
+                && RefuseUntraversable(doc, segments?.StandingColumns(), segments?.Y0Columns()) is { } cutOff)
                 return cutOff;
 
             // EX2 — asked of an intent-authored map that is not sketch-originated, where there is a document
