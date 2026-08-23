@@ -115,6 +115,12 @@ reach: that picture says whether a board joins up, and every distance under it w
 picture is the one to take first — the field shades every cell at once, so a pad four blocks over its own
 approach reads as a colour step exactly on the room's footprint, and a pond reads as the blue it is.
 
+Its key is two-dimensional, because the picture is: **reading across a ramp is how dear a cell is, reading
+down the three ramps is what a player is standing on to be there** — ground for nothing, void at a block a
+cell, water at twice the walk. One number line serves all three, since the value axis is the same for every
+footing. A flat list of swatches cannot say that, and a reader given one reads the hue as a class and the
+class as a hue.
+
 `heightmap` answers whether a relief solved into the shape it was drawn as, and shows a flat pad butted
 against a hill as the ruled edge it is. `surface` answers whether a board's paint is the palette it was
 authored from — a whole tone family taken where two members were meant reads as the noise it is. `mirror`

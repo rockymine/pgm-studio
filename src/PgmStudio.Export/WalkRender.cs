@@ -21,6 +21,10 @@ public static class WalkRender
     public static readonly string[] Fields = ["blocks", "distance", "drops"];
 
     private const int Cell = 3;
+    private const int StripHeight = 9;
+    private const int Margin = 6;
+    private const string Paper = "#14161c";
+    private const string Ink = "#edeff2";
     private const string Void = "#14161a";
     private const string Unreached = "#3a4149";
     private const string Bridgeable = "#233043";
@@ -62,20 +66,57 @@ public static class WalkRender
             if (hex is not null) Paint(canvas, width, hex, column * step, row * step, step, step);
         }
 
-        var keyed = Legend.AppendBelow(canvas, width, height,
+        var withKey = Key(canvas, width, height, what, highest, out var keyed_height);
+        var keyed = Legend.AppendBelow(withKey, width, keyed_height,
         [
-            new Legend.Entry($"0 {what}", Rgb(Ramp(0, highest, Footing.Ground))),
-            new Legend.Entry($"{Math.Max(1, highest / 2)} {what}", Rgb(Ramp(highest / 2, highest, Footing.Ground))),
-            new Legend.Entry($"{highest} {what}", Rgb(Ramp(highest, highest, Footing.Ground))),
-            new Legend.Entry("over void, a block placed", Rgb(Ramp(highest / 2, highest, Footing.Bridged))),
-            new Legend.Entry("swum, at twice the distance", Rgb(Ramp(highest / 2, highest, Footing.Water))),
-            new Legend.Entry("never reached", Rgb(Unreached)),
             new Legend.Entry("the route", Rgb(RouteRgb)),
             new Legend.Entry("from", Rgb(StartRgb)),
             new Legend.Entry("to", Rgb(TargetRgb)),
+            new Legend.Entry("never reached", Rgb(Unreached)),
+            new Legend.Entry("nothing to stand on", Rgb(Void)),
         ], out var tall,
-            $"SCALE: 1 BLOCK = {step} PX - {bounds.Width} X {bounds.Height} BLOCKS - FIELD: {what.ToUpperInvariant()}");
+            $"SCALE: 1 BLOCK = {step} PX - {bounds.Width} X {bounds.Height} BLOCKS");
         return new Result(PngWriter.Encode(width, tall, keyed), field.Count, unreachable, highest);
+    }
+
+    /// <summary>The ramp key: three gradient strips, one per footing, under one shared number line. The
+    /// picture varies in two ways at once — how dear a cell is, and what a player is standing on to be there —
+    /// and a list of swatches can only name one of them, so a reader given one reads the hue as a class and
+    /// the class as a hue. Reading across a strip is the price; reading down is the footing.</summary>
+    private static byte[] Key(byte[] pixels, int width, int height, string what, int highest, out int keyed)
+    {
+        var heading = $"HOW DEAR A CELL IS TO REACH - {what.ToUpperInvariant()}";
+        var widest = Footings.Select(entry => entry.Name).Append(heading).Max(name => name.Length);
+        var scale = Raster.TextWidth(new string('M', widest), 2) + Margin * 2 <= width ? 2 : 1;
+        var text = PixelFont.GlyphSize * scale;
+        var band = Margin * 2 + text + 6 + Footings.Length * (text + 2 + StripHeight + 7) + text;
+        keyed = height + band;
+
+        var canvas = new byte[width * keyed * 3];
+        Array.Copy(pixels, canvas, pixels.Length);
+        Raster.FillRect(canvas, width, keyed, 0, height, width, band, Rgb(Paper));
+
+        var ramp = Math.Max(16, width - Margin * 2);
+        var y = height + Margin;
+        Raster.DrawText(canvas, width, keyed, Margin, y, heading, Rgb(Ink), scale);
+        y += text + 6;
+
+        foreach (var (footing, name) in Footings)
+        {
+            Raster.DrawText(canvas, width, keyed, Margin, y, name, Rgb(Ink), scale);
+            y += text + 2;
+            for (var column = 0; column < ramp; column++)
+                Paint(canvas, width, Ramp(column, ramp - 1, footing), Margin + column, y, 1, StripHeight);
+            y += StripHeight + 7;
+        }
+
+        // One number line under all three strips, because the value axis is the same for every footing —
+        // what differs down the key is what a player is standing on, not what a shade is worth.
+        Raster.DrawText(canvas, width, keyed, Margin, y - 4, "0", Rgb(Ink), scale);
+        var most = highest.ToString();
+        Raster.DrawText(canvas, width, keyed, Margin + ramp - Raster.TextWidth(most, scale), y - 4, most,
+            Rgb(Ink), scale);
+        return canvas;
     }
 
     /// <summary>One flat rectangle of colour into a raw RGB canvas.</summary>
@@ -104,6 +145,15 @@ public static class WalkRender
     /// <summary>What a player is standing on, which is what decides the cell's hue. The value decides how
     /// far along that hue it is drawn.</summary>
     private enum Footing { Ground, Bridged, Water }
+
+    /// <summary>What each strip of the key stands for, in the order a player meets them: ground costs
+    /// nothing to stand on, void costs a block a cell, water costs twice the walk.</summary>
+    private static readonly (Footing Footing, string Name)[] Footings =
+    [
+        (Footing.Ground, "ON GROUND - FREE TO STAND ON"),
+        (Footing.Bridged, "OVER VOID - A BLOCK PLACED EACH CELL"),
+        (Footing.Water, "IN WATER - TWICE THE DISTANCE AND NO BLOCK"),
+    ];
 
     /// <summary>Which of the three a cell is. Water is read before ground, because a swum cell is ground
     /// whose cost the walk doubles and drawing it as plain ground hides the reason the field slows.</summary>

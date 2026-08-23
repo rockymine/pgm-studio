@@ -99,9 +99,9 @@ public static class Walk
     /// <summary>What swimming multiplies a distance by. You cross water freely and slowly.</summary>
     public const int WaterSlowdown = 2;
 
-    /// <summary>How much room either side a route wants, in blocks, before it is treated as hugging an
-    /// edge. The same number <c>GroundCoverage.CorridorAllowance</c> widens a corridor by, and deliberately:
-    /// one quantity read by two consumers.</summary>
+    /// <summary>How much room either side a route wants, in blocks, before it is treated as hugging an edge.
+    /// A lateral standoff, which is a different quantity from <c>GroundCoverage.CorridorAllowance</c>'s
+    /// length budget however alike the two numbers look.</summary>
     public const int ClearanceWanted = 10;
 
     private static readonly (int X, int Z)[] Neighbours =
