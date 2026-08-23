@@ -13,56 +13,103 @@ finishing, ten entries. They are here together because five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) put the same question to both: *what can an author ask the studio
 before it is too late to act on the answer.*
 
-## The walk: one cost model, at the plan tier, called by nothing
+**The first group carries a model rather than a list**, and the model is the author's, stated this session.
+It is written into the heading because eight entries in `BACKLOG.md` read one field of what it returns and
+two of them say so outright — `S47`'s detour factor "cannot be measured until `B246` lands" and `B169`'s dead
+share "wants `B246` and `B247` first". The rest: `WS1` (the same clearance read), `WS2` and `WS3` (the same
+traversal from more origins), `B175` and `B179` (goal walks), and `B212` (three straight-line numbers wanting
+restatement in the unit this walk returns).
 
-`Cells.ShortestPath` is an unweighted 4-connected BFS over "does this column hold any block", and every
-distance the studio reports comes from it — so a route climbs a 20-block scarp at the cost of flat ground
-and walks through a house.
+## The walk: one model, two fidelities, answered in blocks
 
-**The replacement is already written.** `Pgm/Derive/PlanRouteCost` charges a step for clearance, for
-bridging, for a threatened seam and for a climb; it cites `B246` by name in `StepOf`'s docstring; it has
-its own test class. **`Build`, `Of` and `StepOf` are called from nothing but those tests** — the only
-production reader of the file is `PlanFlow`, and what it takes is `BaseId`, a name helper. `PlanRoutes.Read`,
-ten files away, walks `Cells.ShortestPath`. So this group is not a build: it is a wiring, one missing rule
-and a second surface.
+Every distance the studio reports comes from `Cells.ShortestPath` — an unweighted **4-connected** BFS over
+"does this column hold any block". A route climbs a 20-block scarp at the cost of flat ground, walks through
+a house, hugs the void because the void is the short way round a bend, and cannot go diagonally.
 
-Behind it, in `BACKLOG.md`, sit the entries that say so themselves: `S47`'s detour factor "cannot be
-measured until `B246` lands", `B169`'s dead share "reads low" because the walk crosses void, `WS1` wants
-the corridor allowance scaled by the same clearance the cost charges for, and `B175`/`B179`/`B212` want
-three straight-line numbers restated in the unit this walk returns.
+**The pieces are all written and none of them are joined.** `Pgm/Derive/PlanRouteCost` charges a step for
+clearance, bridging, a threatened seam and a climb; it cites `B246` in `StepOf`'s docstring and its
+`Build`/`Of`/`StepOf` are called from nothing but their own tests. `Analysis/Playability/KitReach` runs a 0-1
+BFS that answers **blocks placed** against a kit budget, and is the one piece with a real caller and a real
+map behind it. `Cells.Clearance` is the void standoff and says so in its own summary. `Cells.CheapestPath`
+already takes a **step** cost rather than a per-cell one, and says why. So this is a joining, two missing
+rules and one extraction — not a build.
 
-- [~] **B246 — Give the walk its drop rule, a world-tier surface, and its five callers.** Four costs, and
-  three are decided (author): **distance** is the step; a **climb** of Δ costs **Δ−1** blocks — the blocks
-  a player places under themselves, so Δ2 costs 1 and Δ3 costs 2, which is exactly what `StepOf` already
-  does at `FreeRise = 1`; a **drop** is free to 3 and charged beyond it, because 4 is where fall damage
-  starts — which is the one rule the code contradicts (`PlanRouteCost`: "Coming down is free at any
-  height"); and a **bridge** across void is `KitReach.BridgeCost`, a 0-1 BFS already returning blocks-placed
-  against a kit budget.
+**The model (author, this session).** One traversal, used at two fidelities, answering four things:
 
-  **The void standoff is the fifth and it must not be implemented twice.** `Cells.Clearance` is the
-  4-connected depth into the navigable region, and its docstring already states the rule — "charging for
-  missing clearance is what pulls a route onto the middle of the ground it is crossing". `PlanRouteCost`
-  charges `EdgeWeight × max(0, comfort − clearance)`; `WS1` proposes scaling `GroundCoverage`'s corridor
-  allowance by the same read. One number, two consumers.
+| answer | unit | what it is for |
+|---|---|---|
+| reachable | yes / no | can a player get there at all |
+| **distance** | **blocks** | how long it takes |
+| **blocks** | **blocks placed** | climb (a rise of Δ costs Δ−1) + bridging void |
+| drops | **its own value, not blocks** | a fall is free — every kit has a water bucket — but it still hinders |
 
-  **The blocking decision is the return type**, and it is the author's. Distance is blocks travelled,
-  climb and bridge are blocks *placed*, a drop is damage taken. `RouteCosts` today collapses all of them
-  into one weighted scalar with an uncalibrated `ClimbWeight: 2` that `match-flow.md` §6.12 says cannot be
-  calibrated from recorded play. If instead climb and bridge are both reported **in blocks placed**, the
-  walk answers a number `KitReach` can already compare against a kit — and the weights are left doing only
-  what they are good for, which is ranking two routes.
+**Nothing is weighted.** Weighing routes against each other is a judgement the studio does not have to make
+and cannot make well; what it has to do is say whether a place can be got to, how far it is and what it costs
+to build there. So there are no preference weights and `RouteCosts`' four of them go — the walk returns a
+record and each consumer reads the field it needs. `ClimbWeight`'s uncalibratability stops being a problem
+the moment the answer is a count of blocks rather than a score.
 
-  **Then the wiring.** `PlanRouteCost` is the plan-tier reader of the shared rules; the world tier needs
-  the same rules over `WorldColumns.Of`'s spans — the one place `Membership` drops the height. Move the
-  rules into `Geom.Cells` beside `ShortestPath` and `CheapestPath` (which already takes a step cost and
-  says why: "the price of a scarp is paid crossing it and not standing beside it"), give each tier its own
-  surface provider, and make the five callers ask it: `GoalDistances`, `WoolWoolDistance` (`WL7`),
-  `GoalSpawnRatio` (`GO1`), `GroundCoverage`'s corridors, and `PlanRoutes.Read`.
+**Two walks, because there are two questions.** *Reach* minimises **blocks placed** — `KitReach`'s walk,
+unchanged in kind, which is what decides whether a kit budget covers a crossing. *Travel* minimises
+**distance** over ground the player can use, and reports the blocks that route happens to cost. They can
+disagree, and the disagreement is informative. `GO1`, `WL7`, `B175`/`B179` and the coverage corridors want
+travel; `KitReach` wants reach.
 
-  *The set is a separate question and it is `G188`'s: the gate navigates on any solid block while
-  `TraversabilityRender` asks for two blocks of headroom, and a cost model over the wrong set is precise
-  about the wrong board. A third disagreement is `TS21`'s — the set is one cell per column, so no walk can
-  see under an overhang.*
+**Eight-connected, because a player walks diagonally.** `Cells` has no `N8` at all — every walk in it is
+4-connected, so a diagonal run of *n* reads as 2*n* rather than 1.41*n*. Two consequences: a diagonal step is
+worth **141 to a straight step's 100** and the walk wants integer octile arithmetic, divided back to blocks at
+the end; and a diagonal is only a step where at least one of the two orthogonal cells it passes is passable,
+or a route corner-cuts across void. **This re-bases every distance the studio reports**, which is the reason
+`B212`'s three uncalibrated thresholds want restating *after* it rather than before.
+
+**Water is a speed, not a weight.** You swim it, so it costs no blocks and blocks no route; it is slower, so
+it multiplies the distance of the cells it covers — the author's figure is about **×2**, and it exists only at
+the built fidelity, since a plan has no water.
+
+**And `match-flow.md` §6.12 is right about something else.** It says a climb weight cannot be fitted to
+recorded play because half the standing samples sit on structure the players built, a median 14–17 blocks up.
+That is a fact about *what players do with a map* — the scaffolding at build height by minute thirty — and
+this model is about **what the ground offers**. The two are different levels of movement and §6.12 does not
+bear on this one; nothing else in it is disturbed.
+
+**The set comes before the cost, and it is `G188`'s.** The export gate navigates on any column holding any
+solid block; `TraversabilityRender` asks for ground with **two clear blocks of headroom**, which is the test
+that stops a route walking through a house. That is the right predicate and the gate should adopt it. A third
+disagreement is `TS21`'s: the set is one cell per column, so no walk of any fidelity can see under an
+overhang.
+
+- [~] **B246 — One walk, two surfaces, four answers.** Move the rules into `Geom.Cells` beside
+  `ShortestPath` and `CheapestPath`, as a traversal returning `(reachable, distance, blocks, drops)` over an
+  8-connected octile grid, and give it two surface providers: the **plan** tier reading a piece's stated
+  surface (`PlanNav.SurfaceAt`, which `PlanRouteCost.StepOf` already uses) and the **built** tier reading
+  `WorldColumns.Of`'s spans — the one place `Membership` drops the height. `PlanRouteCost` becomes the
+  plan-tier reader of shared rules rather than a second model.
+
+  **Two rules to add.** A **drop** is free to 3 and counted beyond it, because 4 is where fall damage starts —
+  today's docstring says "Coming down is free at any height", which is right about blocks and wrong about
+  reporting. A **climb** of Δ costs Δ−1 blocks placed, which is already what `StepOf` computes at
+  `FreeRise = 1`; what changes is that the count is the answer rather than a term in a score.
+
+  **One extraction.** `KitReach.BridgeCost` is the bridge half and it is the only part with a caller, a live
+  endpoint and a checked result. Lift the 0-1 BFS out of `KitReach` into the shared walk — `KitReach` then
+  reads the walk and keeps its kit comparison, and the plan tier gains a bridge cost it does not have.
+
+  **The clearance is `Cells.Clearance` and it is not a fifth cost.** With no weights it cannot be charged, so
+  it is the **tie-break**: among routes equal in the answers above, prefer the one that keeps furthest off the
+  void. `WS1` wants the same read for `GroundCoverage`'s corridor allowance — one number, two consumers.
+
+  Then the callers: `GoalDistances`, `WoolWoolDistance` (`WL7`), `GoalSpawnRatio` (`GO1`),
+  `GroundCoverage`'s corridors, `PlanRoutes.Read` and `KitReach`.
+
+  *Measured this session on the authored CTW board `hollowmarch-9`, which is what the bridge half should be
+  regression-tested against: `GET /map/hollowmarch-9/kit-reach` answers `haveLayers: true` and **22 blocks**
+  to bridge to each enemy wool against a 96-block kit, **0** to each of its own — over a strait `plan/inspect`
+  states as **20 blocks**. The number is right and the walk is 4-connected.*
+
+  *And the same board shows what the bridge half cannot see. Its wool-room pads are `hold` shapes climbing
+  16 → 17 → 18; an earlier build left one pad four blocks over its approach, 100 cells of room floor nobody
+  could walk onto. `kit-reach` reads 0 blocks either way and the **export gate passed**, because both walk the
+  same Y-agnostic membership. The bridge half has no climb and the climb half has no bridge.*
 
 - [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
   picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
