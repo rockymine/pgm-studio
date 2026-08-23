@@ -3,10 +3,10 @@ using PgmStudio.Geom;
 namespace PgmStudio.Geom.Tests;
 
 /// <summary>
-/// The walk's three derived reads: the distance field, the corridor ribbon and the ways round a hole. Every
-/// case is a shape whose answer is known by construction, because the thing being tested is whether a
-/// measurement distinguishes two boards a reachability check cannot — a ring and a ring with one arm cut are
-/// both "connected", and only these three say which is which.
+/// The topology reads over a cell set: the ways round a hole, the ray a cut is made with, and the cheapest
+/// walk under a per-cell or per-step cost. Every case is a shape whose answer is known by construction,
+/// because the thing being tested is whether a measurement distinguishes two boards a reachability check
+/// cannot — a ring and a ring with one arm cut are both "connected", and only these say which is which.
 /// </summary>
 public sealed class CellsRouteTests
 {
@@ -50,86 +50,6 @@ public sealed class CellsRouteTests
                     if (!filled.Contains((x, z))) empty.Add((x, z));
             return empty;
         }
-    }
-
-    [Test]
-    public async Task DistanceField_agrees_with_the_walk_on_every_cell_it_reaches()
-    {
-        var ring = Ring();
-        var field = Cells.DistanceField([(0, 3)], ring);
-
-        await Assert.That(field.Count).IsEqualTo(ring.Count).Because("a ring is one component");
-        foreach (var (cell, steps) in field)
-            await Assert.That(Cells.PathLength((0, 3), cell, ring)).IsEqualTo(steps);
-    }
-
-    [Test]
-    public async Task DistanceField_omits_what_the_targets_cannot_reach()
-    {
-        var split = Grid(
-            "### ###",
-            "### ###");
-        var field = Cells.DistanceField([(0, 0)], split);
-
-        await Assert.That(field.ContainsKey((2, 1))).IsTrue();
-        await Assert.That(field.ContainsKey((4, 0))).IsFalse().Because("the far block is a separate component");
-    }
-
-    [Test]
-    public async Task DistanceField_takes_the_nearest_of_several_targets()
-    {
-        var slab = Grid("#########");
-        var field = Cells.DistanceField([(0, 0), (8, 0)], slab);
-
-        await Assert.That(field[(1, 0)]).IsEqualTo(1);
-        await Assert.That(field[(7, 0)]).IsEqualTo(1).Because("the east target is the nearer one there");
-        await Assert.That(field[(4, 0)]).IsEqualTo(4);
-    }
-
-    [Test]
-    public async Task Corridor_carries_both_arms_where_one_geodesic_commits_to_one()
-    {
-        var ring = Ring();
-        var north = ring.Where(c => c.Z <= 1).ToHashSet();
-        var south = ring.Where(c => c.Z >= 5).ToHashSet();
-
-        var ribbon = Cells.Corridor((0, 3), (8, 3), ring);
-        await Assert.That(ribbon.Overlaps(north)).IsTrue();
-        await Assert.That(ribbon.Overlaps(south)).IsTrue();
-
-        // This is the behaviour the ribbon replaces: a dilated single path can only ever carry one side, so
-        // the other reads unused however many players walk it.
-        var geodesic = Cells.ShortestPath((0, 3), (8, 3), ring)!.ToHashSet();
-        var arms = (geodesic.Overlaps(north) ? 1 : 0) + (geodesic.Overlaps(south) ? 1 : 0);
-        await Assert.That(arms).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task Corridor_stops_at_the_slack_budget()
-    {
-        // The north way is 12 cells and the south way 16 — 1.33x, just past a 30% budget.
-        var unequal = Grid(
-            "#########",
-            "#########",
-            "###   ###",
-            "###   ###",
-            "#       #",
-            "#       #",
-            "#       #",
-            "#########");
-        await Assert.That(Cells.PathLength((0, 3), (8, 3), unequal)).IsEqualTo(12);
-
-        await Assert.That(Cells.Corridor((0, 3), (8, 3), unequal, slack: 0.30).Contains((4, 7))).IsFalse();
-        await Assert.That(Cells.Corridor((0, 3), (8, 3), unequal, slack: 3.0).Contains((4, 7))).IsTrue();
-    }
-
-    [Test]
-    public async Task Corridor_is_empty_when_the_ends_do_not_connect()
-    {
-        var split = Grid(
-            "### ###",
-            "### ###");
-        await Assert.That(Cells.Corridor((0, 0), (6, 0), split)).IsEmpty();
     }
 
     [Test]

@@ -4,14 +4,20 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
 /// <summary>Shared surface-traversal helpers for the distance terms: the walkable cell surface (terrain + build),
-/// snapping a marker onto it, and drawing a rectilinear route as evidence. Distances between markers are the
-/// 4-connected shortest path over this surface (<see cref="Cells.PathLength"/>) — how far a player actually
-/// travels, not a straight line.</summary>
+/// snapping a marker onto it, and drawing a route as evidence. Distances between markers are
+/// <see cref="Walk"/>'s — how far a player actually travels, in blocks, not a straight line and not a count of
+/// cells. A plan states no heights until its relief is solved, so this ground charges no climb: what it
+/// measures is the shape of the board, which is what a layout term is scoring.</summary>
 internal static class SurfaceNav
 {
     /// <summary>The cells a player can stand on or build across: the team's own (k=0) terrain ∪ build zones,
     /// rasterized straight from the plan. Distances here are intra-team (spawn ↔ its wools), so the un-fanned
     /// surface is both the correct one and cheaper — no board derivation, keeping the gate free of it.</summary>
+    /// <summary>The walkable surface as ground a walk runs over, answering in blocks at the plan's own cell
+    /// size.</summary>
+    public static WalkGround Ground(EvalContext ctx)
+        => WalkGround.Over(Walkable(ctx), ctx.Plan.Globals.Cell);
+
     public static HashSet<(int, int)> Walkable(EvalContext ctx)
     {
         var walkable = new HashSet<(int, int)>();
@@ -55,11 +61,12 @@ internal static class SurfaceNav
         Cells.SnapToWalkable(cell, walkable, radius: 2);
 
     /// <summary>Evidence for a distance violation between two markers: the two endpoints, a labelled measure, and
-    /// the rectilinear route itself (collinear runs merged into segments — the path the number came from).</summary>
+    /// the walked route itself (collinear runs merged into segments — the path the number came from).</summary>
     public static IReadOnlyList<Evidence> RouteEvidence(
-        IReadOnlySet<(int, int)> walkable, (int, int) a, (int, int) b, string label)
+        WalkGround ground, (int, int) a, (int, int) b, string label)
     {
-        if (Cells.ShortestPath(a, b, walkable) is not { } path) return [];
+        if (Walk.Between(a, b, ground) is not { } walked) return [];
+        var path = walked.Cells.Select(cell => (cell.X, cell.Z)).ToList();
         var evidence = new List<Evidence>
         {
             Ev.Marker(EvidenceTags.Offender, a.Item1 + 0.5, a.Item2 + 0.5),

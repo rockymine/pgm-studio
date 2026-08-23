@@ -214,6 +214,84 @@ public sealed class WalkTests
         await Assert.That(comfort.Cost.Distance - travel.Cost.Distance).IsLessThanOrEqualTo(Walk.Detour);
     }
 
+    /// <summary>A ring: two arms of equal length round a hole three cells wide.</summary>
+    private static WalkGround Ring()
+    {
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 9, 7));
+        foreach (var cell in Rect(3, 2, 3, 3)) ground.Remove(cell);
+        return new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 9, 7));
+    }
+
+    [Test]
+    public async Task A_field_reaches_only_what_the_origin_connects_to()
+    {
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 3, 2));
+        foreach (var cell in Rect(4, 0, 3, 2)) ground.Add(cell);
+        var walkable = new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 7, 2));
+
+        var field = Walk.Field((0, 0), walkable);
+        await Assert.That(field.ContainsKey((2, 1))).IsTrue();
+        await Assert.That(field.ContainsKey((4, 0))).IsFalse().Because("the far block is a separate component");
+    }
+
+    [Test]
+    public async Task A_walk_routes_round_a_wall_rather_than_through_it()
+    {
+        // A U of ground with a wall down the middle: the two arm tops are two cells apart in a straight line
+        // and a long way apart on foot, which is the difference a straight-line measure cannot see.
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 5, 5));
+        for (var z = 1; z <= 4; z++) ground.Remove((2, z));
+        var walkable = new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 5, 5));
+
+        var walked = Walk.Between((1, 4), (3, 4), walkable)!;
+        await Assert.That(walked.Cost.Distance).IsGreaterThan(2);
+        await Assert.That(walked.Cells.Any(cell => cell.Z == 0)).IsTrue().Because("the base is the only way round");
+    }
+
+    [Test]
+    public async Task A_corridor_carries_both_arms_where_one_route_commits_to_one()
+    {
+        var ring = Ring();
+        var north = ring.Ground.Where(cell => cell.Z <= 1).ToHashSet();
+        var south = ring.Ground.Where(cell => cell.Z >= 5).ToHashSet();
+
+        var ribbon = Walk.Corridor((0, 3), (8, 3), ring, 0.30);
+        await Assert.That(ribbon.Overlaps(north)).IsTrue();
+        await Assert.That(ribbon.Overlaps(south)).IsTrue();
+
+        // A single route can only ever carry one side, so the other reads unused however many players walk it.
+        var route = Walk.Between((0, 3), (8, 3), ring)!.Cells.ToHashSet();
+        var arms = (route.Overlaps(north) ? 1 : 0) + (route.Overlaps(south) ? 1 : 0);
+        await Assert.That(arms).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_corridor_stops_at_the_slack_budget()
+    {
+        // The north way round is the short one; the south bay is a long way further.
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 9, 8));
+        foreach (var cell in Rect(3, 2, 3, 2)) ground.Remove(cell);
+        foreach (var cell in Rect(1, 4, 7, 3)) ground.Remove(cell);
+        var walkable = new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 9, 8));
+
+        await Assert.That(Walk.Corridor((0, 3), (8, 3), walkable, 0.30).Contains((4, 7))).IsFalse();
+        await Assert.That(Walk.Corridor((0, 3), (8, 3), walkable, 3.0).Contains((4, 7))).IsTrue();
+    }
+
+    [Test]
+    public async Task A_corridor_is_empty_when_the_ends_do_not_connect()
+    {
+        var ground = new HashSet<(int X, int Z)>(Rect(0, 0, 3, 2));
+        foreach (var cell in Rect(4, 0, 3, 2)) ground.Add(cell);
+        var walkable = new WalkGround(ground, new HashSet<(int X, int Z)>(),
+            ground.ToDictionary(cell => cell, _ => 10), new CellRect(0, 0, 7, 2));
+        await Assert.That(Walk.Corridor((0, 0), (6, 0), walkable, 0.30)).IsEmpty();
+    }
+
     [Test]
     public async Task A_comfort_field_is_refused_rather_than_answered_as_travel()
     {

@@ -1,7 +1,7 @@
 {
   "fill-ratio": [
     0.200721,
-    0.496241
+    0.541667
   ],
   "enclosed-void-count": [
     0,
@@ -29,7 +29,7 @@
   ],
   "frontline-count": [
     1,
-    7
+    8
   ],
   "frontline-width": [
     1,
@@ -41,38 +41,38 @@
   ],
   "lane-width": [
     10,
-    20
+    30
   ],
   "wool-wool-distance": [
     50,
-    265
+    216
   ],
   "spawn-wool-distance": [
-    30,
-    195
+    27,
+    170
   ],
   "spawn-wool-spread": [
     0,
-    85
+    73
   ],
   "wool-front-distance": [
-    24,
-    165
+    19,
+    144
   ],
   "wool-front-balance": [
     0,
-    140
+    110
   ],
   "spawn-wool-ratio": [
     1,
-    1.23077
+    1.232143
   ],
   "wool-front-ratio": [
     1,
-    1.529412
+    1.473685
   ],
   "wool-front-remoteness": [
-    25,
-    145
+    22,
+    118
   ]
 }

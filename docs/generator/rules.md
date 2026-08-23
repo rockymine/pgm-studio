@@ -14,9 +14,10 @@ protocol. Tags:
 - **[guess]** — still mine.
 
 Rules are numbered for correction by id. Distances in blocks unless marked *cells*, and a distance
-between two things on a board is **the walk between them over the walkable surface** — 4-connected,
-rectilinear, routing around voids — never the straight line through the air (amendment 13). "Front" =
-toward the map centre / the enemy; "back" = toward the map edge.
+between two things on a board is **the walk between them over the walkable surface** — eight-connected,
+a diagonal costing what a player walks rather than two steps, a climb charged the blocks it takes to place
+and a fall counted but not charged, routing around voids — never the straight line through the air
+(amendments 13 and 20). "Front" = toward the map centre / the enemy; "back" = toward the map edge.
 
 ## Definitions
 
@@ -137,7 +138,11 @@ toward the map centre / the enemy; "back" = toward the map edge.
   provisional and the lint should not fire on room-vs-base height.
 - **WL6 [expert]** 1–3 wools per team, each on a **distinct** lane.
 - **WL7 [corpus]** Separation between a team's wools, measured over 8 multi-wool pairs:
-  **46–143** blocks (46.1 / 58.3 / 64 / 70 / 75 / 85.6 / 95.5 / 143). Working minimum ≈**45**.
+  **46–143** blocks (46.1 / 58.3 / 64 / 70 / 75 / 85.6 / 95.5 / 143). Working minimum ≈**45**. That
+  sweep was taken with a cardinal walk; the same routes cost up to a quarter less under the octile walk
+  the preamble states, so the band reads high by that much and the sweep behind it is not in the repository
+  to re-run (`B212`). The evaluator does not read these numbers — `wool-wool-distance`'s band is learned
+  from the teaching seeds and is already in the octile unit.
 - **WL8 [expert, new]** Wool approach routes: the default is a **single chokepoint route**;
   real maps sometimes add **alternative routes** to the wool (and then a build zone may touch the
   wool room — see BZ5). **[seed-needed]** The `wool-ringed-hole` sanction is a **naming contract**
@@ -743,6 +748,23 @@ both corrected.)
     source in both directions. `BZ1` and `PC-S` left the file, both having said only that they were
     superseded, and `EL6` lost the account of its retirement as a lint and keeps the cliff qualification
     `ReliefReadback` applies.
+
+20. **The walk is octile, and it is one walk (2026-08-23).** Author's call, settling `B246`. Amendment 13
+    settled that a distance is a walk and left the walk itself to each caller, and fourteen of them had
+    answered with a cardinal step count over whichever cell set was nearest to hand. The metric is
+    `PgmStudio.Geom.Walk`: eight-connected octile — a straight step one block, a diagonal 1.41 — a climb of
+    Δ charged the Δ−1 blocks a player places, a fall of three or less free, water at double, and three aims
+    (travel, reach, comfort) a caller names rather than infers. Every distance band moved with it, because a
+    diagonal is no longer paid for twice: the eight distance envelopes shrank by 0–26% over the 31 teaching
+    maps, none by more than the 29.3% a pure-diagonal route can, and `seed-envelopes.md` carries the
+    re-measured bands. No rule text changes and no rule's meaning changes — the bands are re-measured, not
+    re-decided. The composer is untouched: its 72 fingerprint boards are byte-identical, because the metric
+    is read after a board is composed and not inside the search. One band cannot be re-measured here and is
+    marked instead: `WL7`'s stated 46–143 came off an eight-pair corpus sweep in the old unit, which
+    amendment 13 called unaffected because it was already a traversal — true of the line-versus-walk
+    question it was settling and not of this one. The evaluator reads the learned `wool-wool-distance`
+    band rather than those numbers, so nothing judges a board by them; the mark is `B212`'s, which already
+    holds three straight-line thresholds under the author's ruling that they be marked rather than re-swept.
 
 ## Correction protocol
 

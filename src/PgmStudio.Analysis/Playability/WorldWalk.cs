@@ -78,14 +78,8 @@ public static class WorldWalk
         if (data is null || team is null || over.Width <= 0 || over.Height <= 0) return shared;
         if (EntryDenials.Cells(data, team, over) is not { Count: > 0 } denied) return shared;
 
-        return new WalkGround(
-            Keep(shared.Ground, denied), Keep(shared.Bridgeable, denied),
-            shared.Surface, shared.Bounds, shared.BlocksPerCell, shared.Water);
+        return shared.Narrowed(new HashSet<(int X, int Z)>(shared.Passable.Where(cell => !denied.Contains(cell))));
     }
-
-    private static HashSet<(int X, int Z)> Keep(
-        IReadOnlySet<(int X, int Z)> cells, HashSet<(int X, int Z)> denied)
-        => [.. cells.Where(cell => !denied.Contains(cell))];
 
     /// <summary>Where a player stands over a stack of spans: the first air above the lowest span carrying
     /// <see cref="Walk.Headroom"/> clear blocks, or null where the column offers nowhere to stand. The same

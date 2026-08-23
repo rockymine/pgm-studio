@@ -269,8 +269,8 @@ finding those reports carry (a house past `HouseProp.MaxFootprint` dropped in si
 by `HousePropRules.PastCap` and is not filed. The section is grouped by **the concept an entry spends**
 rather than by which pass found it, so a heading is one object and a pass over it is one job.
 
-**What the fifth run added is on `TODO.md` rather than here**, because it is the current focus: `B129` and
-`B246` moved up, and seven ids were opened beside them — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10`.
+**What the fifth run added is on `TODO.md` rather than here**, because it is the current focus: `B129`
+moved up, and seven ids were opened beside it — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10`.
 Four entries in this file gained a measured case from the same runs and moved nowhere: `B103`, `B144`,
 `B96` and `S56`.
 
@@ -1026,8 +1026,8 @@ asked over.
   **`GroundCoverage` answers this directly once it is honest.** *Dead* is already exactly "ground with no
   route through it, no objective near it and nothing on it", named per patch with an area, a centroid and a
   walk to the nearest used ground — which is the measure this entry asks for, phrased as the picture rather
-  than as a width. It wants `B246` and `B247` first: today's walk is flat and crosses void, so the corridors
-  it draws claim ground a player could not reach and the dead share reads low.
+  than as a width. The walk it draws corridors with now prices a climb and a crossing and knows which
+  ground is granted, so what remains is the picture itself rather than the measure under it.
 
   *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
@@ -1035,11 +1035,12 @@ asked over.
 
 - [ ] **B212 — Mark the three straight-line thresholds as uncalibrated at their citation sites, and let the
   author replace each with a walk.** The unit is settled — a distance is the **walk over the walkable
-  surface, never the straight line** (`rules.md` amendment 13) — and no code moves for it: `WL7`, `WL9`/`WL10`
-  and `G127` are already in that unit, and `GoalDistances` and `GroundCoverage` have since been built on top
-  of it. What is not settled is three numbers that read as if they were measured: `B175`'s **35 blocks**,
-  `B179`'s **95–110**, and `B188`'s 164-map table. All three were read straight-line off `map.xml` region
-  centroids, and the sweep behind the table is not in the repository to re-run.
+  surface, never the straight line** (`rules.md` amendments 13 and 20) — and no code moves for it: `WL9`/`WL10`
+  and `G127` learn their bands from the teaching seeds, and `GoalDistances` and `GroundCoverage` are built on
+  the walk. What is not settled is four numbers that read as if they were measured: `B175`'s **35 blocks**,
+  `B179`'s **95–110**, `B188`'s 164-map table, and `WL7`'s **46–143** eight-pair band. The first three were
+  read straight-line off `map.xml` region centroids; `WL7`'s was a cardinal walk, so it is high by up to a
+  quarter under the octile unit. No sweep behind any of them is in the repository to re-run.
 
   **No corpus sweep** (author, 2026-08-15): a re-derivation buys precision this project does not need and
   costs a harness and its upkeep. Simple hard rules instead, stated in the settled unit and tagged `[expert]`
@@ -1047,10 +1048,25 @@ asked over.
   citation site that the number is straight-line and unreproducible, and retire it as the author states its
   replacement.
 
-  *`seed-stats.md:385` already carries the mark; `B175` and `B179` do not. Note for whoever states the
+  *`seed-stats.md:385` and `WL7` already carry the mark; `B175` and `B179` do not. Note for whoever states the
   replacements that the surface under them moved after this was filed: `Cells.SnapToWalkable` now walks the
   **square** (Chebyshev) ring rather than the diamond, so a marker only a diagonal cell reaches now snaps
   where it used to read unreachable — walks that were null are numbers now.*
+
+- [ ] **RP54 — Retire the weighted-cost route family, or give it the caller it was built for.**
+  `Cells.CheapestPath`, `CostField` and both `CostCorridor` overloads price a route by an arbitrary per-cell
+  or per-step function, and `PlanRouteCost.Of` is the function they were written for. Nothing in `src/`
+  calls any of them: `PlanFlow` reads only `PlanRouteCost.BaseId`, and every route and corridor the studio
+  draws now solves over a `WalkGround`, which prices a climb, a crossing and water itself. What keeps them
+  alive is `CellsRouteTests` and `PlanRouteCostTests`, which is code held up by its own tests.
+
+  Two ways out and the author picks: delete both (≈120 lines in `Geom/Cells.cs`, `PlanRouteCost.Of` and the
+  two test classes' cost halves), or name the read that wants a cost the walk cannot express — a route
+  charged by what it is exposed to rather than by what it costs to cross, which `WalkAim.Comfort` answers
+  for one quantity only.
+
+  *`grep -rn "CheapestPath\|CostField\|CostCorridor" src/` answers `src/PgmStudio.Geom/Cells.cs` and
+  nothing else.*
 
 - [ ] **B99 — `TraversabilityRender` must look through decoration for headroom as it already does for
   ground.** `Scan` walks down for the first block that is not air, not liquid and not
@@ -1087,8 +1103,8 @@ asked over.
   ground). What is still missing is the shape of a rule: a median is not a target, and a map at the 25th
   percentile for walkable share is not thereby worse than one at the 75th. That needs labelled examples of a
   *bad* map rather than more measurement — and the **detour factor between key places**, which is the
-  material most likely to separate them, cannot be measured until `B246` lands: today's walk is flat, so the
-  factor reads ≈1 on any solid board however steep it is.
+  material most likely to separate them, is measurable now that the walk prices a climb — a detour factor
+  reads ≈1 only on ground that is genuinely flat.
 
   *Filed under `S` and living here because the measure is what blocks it; the id does not move with the heading.*
 

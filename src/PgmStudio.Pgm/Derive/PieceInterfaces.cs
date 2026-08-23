@@ -32,7 +32,7 @@ public static class PieceInterfaces
     }
 
     /// <summary>Two landmasses a build region bridges, with the walk across the strait between them in
-    /// blocks (4-connected over the empty cells, the same unit every other distance uses) and a few piece
+    /// blocks (a cardinal step count over the empty cells the crossing spans) and a few piece
     /// ids naming each side so a finding can point at the board. <see cref="Direct"/> marks a crossing some
     /// shared region carries with no third landmass in it — the strait one bridge spans, as opposed to a
     /// chain hopping stepping stones, whose per-hop distances are the gap links' to judge.</summary>

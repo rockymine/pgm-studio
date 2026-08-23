@@ -41,6 +41,25 @@ public sealed record WalkGround(
         all.UnionWith(bridgeable);
         return all;
     }
+
+    /// <summary>The same ground restricted to <paramref name="keep"/> — what a caller wants when some cells
+    /// are out of bounds for this walk in particular: a team an <c>enter</c> rule bars, or a way deliberately
+    /// cut to ask whether another one exists. Constructed rather than copied, because
+    /// <see cref="Passable"/> is captured once and <c>with</c> would carry the wider set through.</summary>
+    public WalkGround Narrowed(IReadOnlySet<(int X, int Z)> keep) => new(
+        new HashSet<(int X, int Z)>(Ground.Where(keep.Contains)),
+        new HashSet<(int X, int Z)>(Bridgeable.Where(keep.Contains)),
+        Surface, Bounds, BlocksPerCell, Water);
+
+    /// <summary>Ground that is just a set of cells: everything in it is stood on for nothing, nothing is
+    /// bridged, and no cell states a height. What a plan is before its relief is solved — a climb it does not
+    /// yet know about cannot be charged, and pretending otherwise would price a slope the author has not
+    /// drawn.</summary>
+    /// <param name="cells">Every cell a player may stand on.</param>
+    /// <param name="blocksPerCell">How many blocks one cell is across, so the distance answers in blocks.</param>
+    public static WalkGround Over(IReadOnlySet<(int X, int Z)> cells, int blocksPerCell = 1)
+        => new(cells, new HashSet<(int X, int Z)>(), new Dictionary<(int X, int Z), int>(),
+            cells.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(cells), blocksPerCell);
 }
 
 /// <summary>What one journey costs. Four answers, each in its own unit, and none of them a score:
@@ -172,9 +191,8 @@ public static class Walk
     }
 
     /// <summary>The least-exposed route inside the corridor: the ribbon of cells a walk within
-    /// <see cref="Detour"/> of the shortest can reach — the same set <c>Cells.Corridor</c> claims, measured
-    /// in this walk's own octile blocks — solved again with the standoff first. The two ends are always in
-    /// the ribbon, so a journey that only just connects still answers.</summary>
+    /// <see cref="Detour"/> of the shortest can reach — solved again with the standoff first. The two ends
+    /// are always in the ribbon, so a journey that only just connects still answers.</summary>
     private static WalkPath? Comfortable((int X, int Z) from, (int X, int Z) to, WalkGround ground)
     {
         var outward = Field(from, ground);
@@ -224,6 +242,42 @@ public static class Walk
             costs[cell] = Measure(cells, ground);
         }
         return costs;
+    }
+
+    /// <summary>Every cell a player could stand on while walking a route no more than <paramref name="slack"/>
+    /// blocks longer than the shortest — the <b>ribbon</b>, not one geodesic fattened. A cell is in it when
+    /// <c>d(from,cell) + d(cell,to) &lt;= d(from,to) + slack</c>, both halves measured by this walk, so the
+    /// corridor and the route it surrounds are stated in one unit.
+    ///
+    /// <para>The difference from a dilated path is not cosmetic. One geodesic must commit to one side of a
+    /// hole, so the other side reads unused however many players take it; the ribbon carries both sides, which
+    /// is the whole point of a board that offers a way round. Empty where the two ends do not connect.</para>
+    /// </summary>
+    public static HashSet<(int X, int Z)> Corridor((int X, int Z) from, (int X, int Z) to, WalkGround ground,
+        int slack)
+    {
+        var ribbon = new HashSet<(int X, int Z)>();
+        var outward = Field(from, ground);
+        if (!outward.TryGetValue(to, out var direct)) return ribbon;
+        var homeward = Field(to, ground);
+
+        var budget = direct.Distance + Math.Max(0, slack);
+        foreach (var (cell, near) in outward)
+            if (homeward.TryGetValue(cell, out var far) && near.Distance + far.Distance <= budget)
+                ribbon.Add(cell);
+        return ribbon;
+    }
+
+    /// <summary>The same ribbon with the slack stated as a share of the journey rather than in blocks — what
+    /// a reader wants when the question is how far out of their way a player goes <em>relative to</em> a walk,
+    /// rather than the absolute tolerance a corridor is claimed with.</summary>
+    public static HashSet<(int X, int Z)> Corridor((int X, int Z) from, (int X, int Z) to, WalkGround ground,
+        double slack)
+    {
+        var outward = Field(from, ground);
+        return outward.TryGetValue(to, out var direct)
+            ? Corridor(from, to, ground, (int)Math.Round(direct.Distance * Math.Max(0, slack)))
+            : [];
     }
 
     /// <summary>What a journey along <paramref name="cells"/> costs. The one place the four answers are

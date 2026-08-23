@@ -63,10 +63,11 @@ public static class PlanFlow
         // The ground the match uses, on the coverage read's own rule: every waypoint pair claims a corridor.
         var waypoints = nav.Waypoints().Select(w => nav.Snap(w.Cell)).Where(c => c is not null)
             .Select(c => c!.Value).Distinct().ToList();
+        var ground = nav.Walkable();
         var used = new HashSet<(int X, int Z)>();
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
-                used.UnionWith(Cells.Corridor(waypoints[i], waypoints[j], nav.Navigable, Walk.Detour / cell));
+                used.UnionWith(Walk.Corridor(waypoints[i], waypoints[j], ground, Walk.Detour));
         foreach (var w in waypoints)
             for (var dz = -2; dz <= 2; dz++)
                 for (var dx = -2; dx <= 2; dx++)
@@ -104,29 +105,30 @@ public static class PlanFlow
         var defender = nav.Waypoints().FirstOrDefault(w => w.Kind == "spawn" && w.K == 1);
         if (attacker is null || defender is null) return legs;
         if (nav.Snap(attacker.Cell) is not { } from || nav.Snap(defender.Cell) is not { } den) return legs;
+        var ground = nav.Walkable();
 
         foreach (var goal in nav.Waypoints().Where(w => w.Kind == "wool" && w.K == 1))
         {
             if (nav.Snap(goal.Cell) is not { } to) continue;
             var read = PlanRoutes.Read(nav, from, to);
             if (read.Shortest is not { } attack) continue;
-            var defend = Cells.PathLength(den, to, nav.Navigable) ?? 0;
+            var defend = Walk.Between(den, to, ground)?.Cost.Distance ?? 0;
 
             var split = read.Fork?.Split;
             var fuse = read.Fork?.Fuse;
             var viaMerge = fuse is { } f
-                ? (Cells.PathLength(den, f, nav.Navigable) ?? 0) + (Cells.PathLength(f, to, nav.Navigable) ?? 0)
+                ? (Walk.Between(den, f, ground)?.Cost.Distance ?? 0) + (Walk.Between(f, to, ground)?.Cost.Distance ?? 0)
                 : 0;
             var detour = fuse is null ? 0 : Math.Max(0, viaMerge - defend);
 
             legs.Add(new FlowLeg(
                 $"{goal.Kind} at ({goal.X * cell}, {goal.Z * cell})",
-                attack * cell, defend * cell, read.Options.Count,
+                attack, defend, read.Options.Count,
                 split, fuse,
                 split is { } s ? Width(nav, s) * cell : 0,
                 fuse is { } g ? Width(nav, g) * cell : 0,
-                fuse is { } h ? (Cells.PathLength(h, to, nav.Navigable) ?? 0) * cell : 0,
-                fuse is not null && detour == 0, detour * cell));
+                fuse is { } h ? Walk.Between(h, to, ground)?.Cost.Distance ?? 0 : 0,
+                fuse is not null && detour == 0, detour));
         }
         return legs;
     }

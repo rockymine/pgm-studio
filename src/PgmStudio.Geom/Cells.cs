@@ -5,6 +5,10 @@ namespace PgmStudio.Geom;
 /// connected components, enclosed-void detection, reflex-corner counting, fold detection, bounding box, min run
 /// width) that the shape classifier, the lane read, and the board deriver all read cell topology through.
 /// Pure integer-grid geometry over <c>(x, z)</c> cells; references nothing above <c>Geom</c>.
+///
+/// <para>Topology, not travel. How far a player walks and what route they take is <see cref="Walk"/>'s, which
+/// prices a diagonal, a climb and water; what is asked here is whether cells connect and what shape they
+/// make.</para>
 /// </summary>
 public static class Cells
 {
@@ -40,144 +44,6 @@ public static class Cells
         return comp;
     }
 
-    /// <summary>The shortest 4-connected path from <paramref name="from"/> to <paramref name="to"/> through
-    /// <paramref name="within"/> — cardinal steps only, so the path is rectilinear (no diagonal shortcut) and
-    /// routes around any cell not in the set, hugging its border. Returns the cell sequence including both ends,
-    /// or null when either end is outside the set or <paramref name="to"/> is unreachable. BFS, so the first
-    /// path reaching the target is a shortest one.</summary>
-    public static List<(int, int)>? ShortestPath((int, int) from, (int, int) to, IReadOnlySet<(int, int)> within)
-    {
-        if (!within.Contains(from) || !within.Contains(to)) return null;
-        if (from == to) return [from];
-
-        var prev = new Dictionary<(int, int), (int, int)> { [from] = from };
-        var q = new Queue<(int, int)>();
-        q.Enqueue(from);
-        while (q.Count > 0)
-        {
-            var c = q.Dequeue();
-            foreach (var n in N4(c))
-            {
-                if (!within.Contains(n) || !prev.TryAdd(n, c)) continue;
-                if (n == to)
-                {
-                    var path = new List<(int, int)>();
-                    for (var p = to; ; p = prev[p]) { path.Add(p); if (p == from) break; }
-                    path.Reverse();
-                    return path;
-                }
-                q.Enqueue(n);
-            }
-        }
-        return null;
-    }
-
-    /// <summary>The step count of the shortest 4-connected path (cells − 1), or null when unreachable. This is
-    /// the rectilinear traversal distance in cells — Manhattan in open space, longer where it detours a gap.</summary>
-    public static int? PathLength((int, int) from, (int, int) to, IReadOnlySet<(int, int)> within) =>
-        ShortestPath(from, to, within) is { } path ? path.Count - 1 : null;
-
-    /// <summary>The step count of the shortest 4-connected path from <paramref name="from"/> to the
-    /// <b>nearest</b> cell of <paramref name="targets"/>, through <paramref name="within"/> — the same
-    /// traversal <see cref="ShortestPath"/> walks (cardinal steps only, hugging any obstacle's border), but
-    /// stopping at whichever target a single BFS reaches first. Returns null when <paramref name="from"/> is
-    /// outside the set or no target is reachable. Agrees with <see cref="PathLength"/> when <paramref
-    /// name="targets"/> holds a single cell.</summary>
-    public static int? PathLengthToAny((int X, int Z) from, IReadOnlySet<(int X, int Z)> targets, IReadOnlySet<(int X, int Z)> within)
-    {
-        if (!within.Contains(from)) return null;
-        if (targets.Contains(from)) return 0;
-
-        var seen = new HashSet<(int X, int Z)> { from };
-        var q = new Queue<((int X, int Z) Cell, int Steps)>();
-        q.Enqueue((from, 0));
-        while (q.Count > 0)
-        {
-            var (cell, steps) = q.Dequeue();
-            foreach (var n in N4(cell))
-            {
-                if (!within.Contains(n) || !seen.Add(n)) continue;
-                if (targets.Contains(n)) return steps + 1;
-                q.Enqueue((n, steps + 1));
-            }
-        }
-        return null;
-    }
-
-    /// <summary>The 4-connected step count from every reachable cell of <paramref name="within"/> to the
-    /// <b>nearest</b> of <paramref name="targets"/> — one multi-source BFS, so the whole field costs what a
-    /// single walk costs. Cells the targets cannot reach are absent from the result.
-    ///
-    /// <para>A field is the reusable half of a walk. Asking "how far is A from B" k times over one board is k
-    /// searches; asking it as two fields is two, and every further origin is one more — which is what makes a
-    /// corridor (<see cref="Corridor"/>), a per-pair attribution and an arbitrary-origin route affordable at
-    /// once rather than one traversal at a time.</para></summary>
-    public static Dictionary<(int X, int Z), int> DistanceField(
-        IEnumerable<(int X, int Z)> targets, IReadOnlySet<(int X, int Z)> within)
-    {
-        var field = new Dictionary<(int X, int Z), int>();
-        var queue = new Queue<(int X, int Z)>();
-        foreach (var target in targets)
-            if (within.Contains(target) && field.TryAdd(target, 0)) queue.Enqueue(target);
-
-        while (queue.Count > 0)
-        {
-            var cell = queue.Dequeue();
-            var next = field[cell] + 1;
-            foreach (var neighbour in N4(cell))
-            {
-                if (!within.Contains(neighbour) || !field.TryAdd(neighbour, next)) continue;
-                queue.Enqueue(neighbour);
-            }
-        }
-        return field;
-    }
-
-    /// <summary>Every cell a player could stand on while walking a route no more than
-    /// <paramref name="slack"/> longer than the shortest — the <b>ribbon</b>, not one geodesic fattened.
-    /// Computed as the two distance fields' sum: a cell is in the corridor when
-    /// <c>d(from,cell) + d(cell,to) &lt;= (1 + slack) * d(from,to)</c>. Empty when the two ends do not connect.
-    ///
-    /// <para>The difference from a dilated path is not cosmetic. One geodesic must commit to one side of a
-    /// hole, so the other side reads unused however many players take it; the ribbon carries both sides, which
-    /// is the whole point of a board that offers a way round.</para></summary>
-    public static HashSet<(int X, int Z)> Corridor(
-        (int X, int Z) from, (int X, int Z) to, IReadOnlySet<(int X, int Z)> within, double slack = 0.30)
-    {
-        var ribbon = new HashSet<(int X, int Z)>();
-        var fromField = DistanceField([from], within);
-        if (!fromField.TryGetValue(to, out var shortest)) return ribbon;
-        var toField = DistanceField([to], within);
-
-        var budget = shortest * (1.0 + slack);
-        foreach (var (cell, near) in fromField)
-            if (toField.TryGetValue(cell, out var far) && near + far <= budget) ribbon.Add(cell);
-        return ribbon;
-    }
-
-    /// <summary>The corridor under an <b>absolute</b> allowance — every cell on a route no more than
-    /// <paramref name="allowance"/> steps longer than the shortest. The fractional form scales with the
-    /// journey and so admits more of a board the further apart its ends are; a board is walked in blocks and
-    /// a player's willingness to go out of their way does not grow with the map. Twenty blocks of allowance
-    /// is a lane about twenty blocks wide, because a cell <c>m</c> off the direct line costs about
-    /// <c>2m</c> to visit.
-    ///
-    /// <para>This is the form a coverage read wants: a two-hundred-block detour across ground nobody goes to
-    /// is excluded by construction rather than by a ratio that happens to be tight enough.</para></summary>
-    public static HashSet<(int X, int Z)> Corridor((int X, int Z) from, (int X, int Z) to,
-        IReadOnlySet<(int X, int Z)> within, int allowance)
-    {
-        var ribbon = new HashSet<(int X, int Z)>();
-        var fromField = DistanceField([from], within);
-        if (!fromField.TryGetValue(to, out var shortest)) return ribbon;
-        var toField = DistanceField([to], within);
-
-        var budget = shortest + Math.Max(0, allowance);
-        foreach (var (cell, near) in fromField)
-            if (toField.TryGetValue(cell, out var far) && near + far <= budget) ribbon.Add(cell);
-        return ribbon;
-    }
-
     /// <summary>Whether a route from <paramref name="from"/> to <paramref name="to"/> may pass on
     /// <b>either</b> side of <paramref name="hole"/>, or must commit to one — the topological test, not a cut
     /// count. A ray is cast from the hole to the set's boundary on one side and the ends are asked whether they
@@ -206,7 +72,7 @@ public static class Cells
             cut.Remove(to);
             var open = new HashSet<(int X, int Z)>(within);
             open.ExceptWith(cut);
-            if (PathLength(from, to, open) is not null) ways++;
+            if (Flood([from], open).Contains(to)) ways++;
         }
         return ways;
     }
@@ -320,7 +186,7 @@ public static class Cells
     }
 
     /// <summary>The cheapest-walk cost from every reachable cell to the nearest of <paramref name="targets"/>
-    /// — <see cref="DistanceField"/> under a cost, and the half of a weighted corridor that is reused.</summary>
+    /// — one Dijkstra outward, and the half of a weighted corridor that is reused.</summary>
     public static Dictionary<(int X, int Z), int> CostField(IEnumerable<(int X, int Z)> targets,
         IReadOnlySet<(int X, int Z)> within, Func<(int X, int Z), int> cost) =>
         CostField(targets, within, (_, next) => cost(next));
@@ -353,7 +219,7 @@ public static class Cells
     }
 
     /// <summary>The corridor under a cost — every cell whose cheapest through-route costs no more than
-    /// <paramref name="slack"/> over the cheapest, the weighted twin of <see cref="Corridor"/>. Slack is a
+    /// <paramref name="slack"/> over the cheapest — a ribbon rather than one geodesic. Slack is a
     /// fraction of the <em>cost</em>, so on a board where one way round is safe and the other is under fire
     /// the ribbon carries the safe one and not both.</summary>
     public static HashSet<(int X, int Z)> CostCorridor((int X, int Z) from, (int X, int Z) to,

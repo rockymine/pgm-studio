@@ -15,10 +15,9 @@ before it is too late to act on the answer.*
 
 **The first group carries a model rather than a list**, and the model is the author's, stated this session.
 It is written into the heading because eight entries in `BACKLOG.md` read one field of what it returns and
-two of them say so outright — `S47`'s detour factor "cannot be measured until `B246` lands" and `B169`'s dead
-share "wants `B246` and `B247` first". The rest: `WS1` (the same clearance read), `WS2` and `WS3` (the same
-traversal from more origins), `B175` and `B179` (goal walks), and `B212` (three straight-line numbers wanting
-restatement in the unit this walk returns).
+two of them said so outright — `S47`'s detour factor and `B169`'s dead share both waited on it. The rest:
+`WS1` (the same clearance read), `WS2` and `WS3` (the same traversal from more origins), `B175` and `B179`
+(goal walks), and `B212` (three straight-line numbers wanting restatement in the unit this walk returns).
 
 ## The walk: one model, two fidelities, answered in blocks
 
@@ -46,22 +45,6 @@ recorded play because half the standing samples sit on structure the players bui
 That is a fact about *what players do with a map* — the scaffolding at build height by minute thirty — and
 this model is about **what the ground offers**. The two are different levels of movement and §6.12 does not
 bear on this one.
-
-- [~] **B246 — Move the remaining distances onto the walk, and re-measure the bands they are read
-  against.** The walk is built and `KitReach` reads it; what still answers `Cells.PathLength`'s four-connected
-  step count is every other distance the studio reports: `GoalDistances.Nearest` (`GO1`'s 3.0–4.0 ratio),
-  `PlanRoutes.Read` and its `Cells.Corridor` slack, `PlanFlow`'s defend/attack legs, `GroundCoverage`'s
-  corridors (`WS1`), and the four evaluator terms — `SpawnTerms`, `ObjectiveTerms`, `TriangleTerms`,
-  `SurfaceNav`.
-
-  **The substitution is not the work; the re-measure is.** Octile shortens a diagonal run by up to 29%, so
-  every band those numbers are compared against is in the old unit the moment they move — `WL7`'s 46–143,
-  `GO1`'s ratio, `PlanRoutes.CorridorSlack`'s 0.30, the envelopes in `seed-envelopes.md`, and
-  `composer-fingerprints.json`, which is a **gate**. `rules.md` amendment 13 already says those bands must be
-  re-measured with the sweep committed; this is that sweep, and the re-measured bands are the author's call
-  before they land. Do the callers and the sweep in one commit, and amend `rules.md`'s preamble — it states
-  the walk is "4-connected, rectilinear" — in the same one.
-
 
 - [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
   picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
@@ -167,7 +150,7 @@ The first four entries below are that asymmetry, in the order they were met.
   paves the deck, the covered ground is unpainted (`B144`'s cause, one tier up) and nothing can be dressed
   underneath.
 
-  The second half is real work and wants `B246`'s walk to build on: **no read can say whether a player can
+  The second half is real work and builds on the walk: **no read can say whether a player can
   get under an overhang**, because `WorldColumns.Membership` projects a column to one cell and
   `relief/read` walks a height field. A layered board's correctness is exactly the question its reads
   cannot ask.

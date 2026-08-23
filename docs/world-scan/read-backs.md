@@ -165,6 +165,6 @@ There is no read that keeps Y over a *region*: `section` cuts one plane and `col
 depth-projected mode that would sit between them is `B129`.
 
 The walk runs over **one cell per column**, so no fidelity of it can see under an overhang or through a
-tunnel (`TS21`). Beyond `KitReach` and these two reads, the studio's other distances are still the
-four-connected step count `Cells.PathLength` returns; moving them onto this walk re-bases every band they
-were calibrated against, which is `B246`'s open half.
+tunnel (`TS21`). Every distance the studio reports is this walk: the evaluator's spawn, wool and frontline
+terms, the plan tier's route and coverage reads and the destroy-goal ratio all solve over a `WalkGround`,
+and the bands they are judged against were measured in its unit.

@@ -5,7 +5,7 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Derive;
 
 /// <summary>
-/// The walk from each destroy goal to the two spawns that contest it, in blocks — the rectilinear traversal
+/// The walk from each destroy goal to the two spawns that contest it, in blocks — the traversal
 /// over the fanned closure (pieces ∪ build zones) that every distance rule is stated in, never the straight
 /// line. A destroy goal is defended by the team it belongs to and attacked from the other spawn, so the pair
 /// of walks and their ratio are what the board's shape actually charges each side.
@@ -57,7 +57,7 @@ public static class GoalDistances
         }
         if (spawnCells[0].Count == 0) return [];
 
-        var cell = (double)plan.Globals.Cell;
+        var ground = WalkGround.Over(walkable, plan.Globals.Cell);
         var walks = new List<GoalWalk>(goals.Count);
         foreach (var (id, kind, pieceId, at) in goals)
         {
@@ -69,18 +69,24 @@ public static class GoalDistances
                 walks.Add(new GoalWalk(id, kind, null, null, null));
                 continue;
             }
-            var own = Nearest(goalCell, spawnCells[0], walkable) * cell;
-            var enemy = spawnCells[1].Count > 0 ? Nearest(goalCell, spawnCells[1], walkable) * cell : null;
+            // One field out of the goal answers both sides, rather than a walk apiece.
+            var reach = Walk.Field(goalCell, ground);
+            var own = Nearest(reach, spawnCells[0]);
+            var enemy = spawnCells[1].Count > 0 ? Nearest(reach, spawnCells[1]) : null;
             var ratio = own is > 0 && enemy is { } far ? far / own : null;
             walks.Add(new GoalWalk(id, kind, own, enemy, ratio));
         }
         return walks;
     }
 
-    private static double? Nearest((int, int) from, List<(int, int)> targets, IReadOnlySet<(int, int)> within)
+    /// <summary>The nearest of a set, in blocks, out of a field already walked — null where none is reached.</summary>
+    private static double? Nearest(Dictionary<(int X, int Z), WalkCost> reach, List<(int, int)> targets)
     {
-        if (targets.Count == 0) return null;
-        return Cells.PathLengthToAny(from, targets.ToHashSet(), within) is { } steps ? steps : null;
+        double? best = null;
+        foreach (var target in targets)
+            if (reach.TryGetValue(target, out var cost) && cost.Distance < (best ?? double.MaxValue))
+                best = cost.Distance;
+        return best;
     }
 
     // A cell under the second orbit image: carry its centre through the point fan and floor back to a cell,

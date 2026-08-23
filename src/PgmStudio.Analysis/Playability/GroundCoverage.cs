@@ -99,16 +99,17 @@ public static class GroundCoverage
         // valuable thing a shape does. The ribbon carries both, and carries them in proportion.
         var routeCells = new HashSet<(int X, int Z)>();
         var traffic = new Dictionary<(int X, int Z), int>();
+        var walked = WalkGround.Over(navigable);
         var journeys = 0;
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
             {
-                var ribbon = Cells.Corridor(waypoints[i], waypoints[j], navigable, Walk.Detour);
+                var ribbon = Walk.Corridor(waypoints[i], waypoints[j], walked, Walk.Detour);
                 if (ribbon.Count == 0) continue;
                 journeys++;
                 foreach (var cell in ribbon) traffic[cell] = traffic.GetValueOrDefault(cell) + 1;
-                if (Cells.ShortestPath(waypoints[i], waypoints[j], navigable) is { } path)
-                    foreach (var cell in path) routeCells.Add(cell);
+                if (Walk.Between(waypoints[i], waypoints[j], walked) is { } path)
+                    foreach (var cell in path.Cells) routeCells.Add(cell);
             }
 
         // The ground the match uses: every cell some journey's corridor covers, plus each waypoint's own ring.
@@ -192,8 +193,8 @@ public static class GroundCoverage
         }
     }
 
-    /// <summary>Per-cell 4-connected distance over the ground to the nearest reached cell — one multi-source
-    /// BFS, so a patch's remoteness is the walk a player would actually make to it, not a line.</summary>
+    /// <summary>Per-cell cardinal step count over the ground to the nearest reached cell — one multi-source
+    /// BFS, so a patch's remoteness is measured round what stands between, not as a line across it.</summary>
     private static int[] DistanceToReached(byte[] cells, int nx, int nz)
     {
         var distances = new int[cells.Length];

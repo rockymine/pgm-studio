@@ -3,7 +3,7 @@ using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Evaluate.Terms;
 
 /// <summary>WL9: a team's wools sit <b>comparably far from the spawn</b>. The metric is the spread (max −
-/// min) of the per-wool spawn→wool surface-traversal distances, in blocks — the same rectilinear measure as
+/// min) of the per-wool spawn→wool walk distances, in blocks — the same measure as
 /// <see cref="SpawnWoolDistance"/>. A large spread means one wool is trivially defended (spawn on its
 /// doorstep) while another is left to fend for itself. Applies only with two or more reachable wools.</summary>
 public sealed class SpawnWoolSpread : SoftTerm
@@ -130,26 +130,26 @@ public sealed class WoolFrontRemoteness : SoftTerm
         ctx.Plan.Placements.Wools.Select(w => w.Piece).ToList();
 }
 
-/// <summary>The shared per-wool distance reads of the spawn–wool–frontline triangle, all by rectilinear
-/// surface traversal (the walkable set: pieces + zones) in blocks, index-aligned with
+/// <summary>The shared per-wool distance reads of the spawn–wool–frontline triangle, all by <see cref="Walk"/>
+/// over the walkable set (pieces + zones) in blocks, index-aligned with
 /// <c>Plan.Placements.Wools</c> (<c>null</c> where a wool is unreachable or the target is absent).</summary>
 internal static class Triangle
 {
     /// <summary>Per wool: the traversal distance from the nearest spawn, in blocks.</summary>
     public static List<double?> SpawnDistances(EvalContext ctx)
     {
-        var walkable = SurfaceNav.Walkable(ctx);
-        var cell = ctx.Plan.Globals.Cell;
+        var ground = SurfaceNav.Ground(ctx);
         var spawns = ctx.Plan.Placements.Spawns
-            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, walkable))
+            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Ground))
             .Where(c => c is not null).Select(c => c!.Value).ToList();
         return ctx.Plan.Placements.Wools.Select(w =>
         {
-            if (spawns.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, walkable) is not { } wc) return (double?)null;
+            if (spawns.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Ground) is not { } wc)
+                return (double?)null;
             double? best = null;
-            foreach (var s in spawns)
-                if (Cells.PathLength(s, wc, walkable) is { } steps && steps * (double)cell < (best ?? double.MaxValue))
-                    best = steps * cell;
+            foreach (var seat in spawns)
+                if (Walk.Between(seat, wc, ground) is { } walked && walked.Cost.Distance < (best ?? double.MaxValue))
+                    best = walked.Cost.Distance;
             return best;
         }).ToList();
     }
@@ -160,13 +160,19 @@ internal static class Triangle
     /// cannot reach it.</summary>
     public static List<double?> FrontDistances(EvalContext ctx)
     {
-        var walkable = SurfaceNav.Walkable(ctx);
-        var cell = ctx.Plan.Globals.Cell;
+        var ground = SurfaceNav.Ground(ctx);
         var band = ctx.Board.BuildKindOf.Where(kv => kv.Value == "front-front").Select(kv => kv.Key).ToHashSet();
         return ctx.Plan.Placements.Wools.Select(w =>
         {
-            if (band.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, walkable) is not { } wc) return (double?)null;
-            return Cells.PathLengthToAny(wc, band, walkable) is { } steps ? steps * (double)cell : null;
+            if (band.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Ground) is not { } wc)
+                return (double?)null;
+            // One field out of the wool prices every band cell at once, rather than a walk apiece.
+            var reach = Walk.Field(wc, ground);
+            double? best = null;
+            foreach (var seat in band)
+                if (reach.TryGetValue(seat, out var cost) && cost.Distance < (best ?? double.MaxValue))
+                    best = cost.Distance;
+            return best;
         }).ToList();
     }
 }

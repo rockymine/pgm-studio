@@ -1587,14 +1587,31 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   to `Geom` on the way: `PlanFlow` and `GroundCoverage` each carried their own `CorridorAllowance = 10` for
   what is one quantity — how far out of their way a player will go — and all three now read `Walk.Detour`.
 
+  **Every distance in the studio is this walk, and the bands were re-measured against it.** The fourteen
+  remaining callers — `SpawnTerms`, `ObjectiveTerms`, `TriangleTerms` and `SurfaceNav` in the evaluator,
+  `GoalDistances`, `PlanFlow`, `PlanRoutes` and `GroundCoverage` in the derivers — asked `Cells` for a
+  cardinal step count and multiplied by the cell size; each now solves over a `WalkGround` and reads the
+  answer in blocks, with a `Walk.Field` where a term priced many targets one walk at a time. `Cells` keeps
+  topology and gives up travel: `ShortestPath`, `PathLength`, `PathLengthToAny`, `DistanceField` and both
+  `Corridor` overloads are gone, `WaysRound` asks `Flood` whether the ends still connect, and the ribbon
+  invariants moved onto `Walk.Corridor`. The re-measure is what the change costs: all 31 teaching maps
+  moved and every one moved **down**, the eight distance envelopes by 0–26% and none by more than the
+  29.3% a purely diagonal route can shrink, which is the check that the metric moved and nothing else did.
+  The composer did not move — its 72 fingerprint boards are byte-identical and `ComposerVersion` is
+  therefore unbumped, because the evaluator reads a board after the search rather than inside it.
+
   *Checked on four builds of one 12-player CTW board, each adding one mechanism to the last: flat pays 20
   blocks for a 20-block strait and nothing else; raising three room pads 6 blocks costs exactly 5 more and
   one drop of 6 coming back; a relief ridge is the first variant where the two aims disagree (travel 121
   walked / 41 placed against reach 144 / 24); and a pond doubles the cells it covers, taking the own-wool
   walk from 44 to 62 with the route visibly skirting the shore.*
-  (`Geom/Walk.cs`, `Analysis/Playability/WorldWalk.cs`, `Analysis/Playability/KitReach.cs`,
-  `Analysis/Layer/SegmentIndex.StandingTops`, `Pgm/Derive/PlanNav.Walkable`, `Export/WalkRender.cs`,
-  `Api/Endpoints/WorldReadEndpoints.cs`, `WalkTests.cs`, `KitReachTests.cs`)
+  (`Geom/Walk.cs`, `Geom/Cells.cs`, `Analysis/Playability/WorldWalk.cs`, `Analysis/Playability/KitReach.cs`,
+  `Analysis/Playability/GroundCoverage.cs`, `Analysis/Layer/SegmentIndex.StandingTops`,
+  `Pgm/Derive/PlanNav.Walkable`, `Pgm/Derive/{GoalDistances,PlanFlow,PlanRoutes}.cs`,
+  `Pgm/Evaluate/Terms/{SpawnTerms,ObjectiveTerms,TriangleTerms,SurfaceNav}.cs`,
+  `Pgm/Evaluate/seed-envelopes.json`, `docs/generator/{rules,vocabulary,seed-envelopes}.md`,
+  `Export/WalkRender.cs`, `Api/Endpoints/WorldReadEndpoints.cs`, `WalkTests.cs`, `CellsRouteTests.cs`,
+  `KitReachTests.cs`)
 - **The world read-backs answer over HTTP (`WS6`), withdrawing `B245`.** Everything a caller does runs
   through the API and the API describes itself — except the one thing done *after* building, which is looking
   at what was built. Eight renderers in `Minecraft/Render/` reached a caller only through

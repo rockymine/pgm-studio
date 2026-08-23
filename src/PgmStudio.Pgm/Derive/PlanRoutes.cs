@@ -71,13 +71,14 @@ public static class PlanRoutes
         double slack = CorridorSlack)
     {
         var within = nav.Navigable;
-        var direct = Cells.ShortestPath(from, to, within);
+        var ground = nav.Walkable();
+        var direct = Walk.Between(from, to, ground);
         if (direct is null)
             return new RouteRead(from, to, null, [], new HashSet<(int X, int Z)>(), 0,
                 ReadHoles(nav, new HashSet<(int X, int Z)>(), from, to, within), null);
 
-        var shortest = direct.Count - 1;
-        var corridor = Cells.Corridor(from, to, within, slack);
+        var shortest = direct.Cost.Distance;
+        var corridor = Walk.Corridor(from, to, ground, slack);
         var share = within.Count == 0 ? 0 : (double)corridor.Count / within.Count;
 
         var options = new List<RouteOption> { Option("direct", direct, nav) };
@@ -91,21 +92,21 @@ public static class PlanRoutes
             foreach (var (forward, side) in Sides(horizontal))
             {
                 var open = Without(within, Cells.RayCut(cells, nav.Bounds, horizontal, forward), from, to);
-                if (Cells.ShortestPath(from, to, open) is not { } path) continue;
+                if (Walk.Between(from, to, ground.Narrowed(open)) is not { } path) continue;
                 var option = Option($"hole {hole.Index}: {side}", path, nav);
                 if (seen.Add(Signature(option))) options.Add(option);
             }
         }
 
         options.Sort((a, b) => a.Length.CompareTo(b.Length));
-        return new RouteRead(from, to, shortest, options, corridor, share, holes, Fork(options, within));
+        return new RouteRead(from, to, shortest, options, corridor, share, holes, Fork(options, ground));
     }
 
     /// <summary>Where the options part company and where they meet again. The split is the end of the run
     /// every option walks identically out of the origin; the fuse is the start of the run they all walk
     /// identically into the target. Null when there is only one way, which is the common case — over 490
     /// recorded approach bundles the flow reading found 63% single-corridor end to end.</summary>
-    private static RouteFork? Fork(List<RouteOption> options, IReadOnlySet<(int X, int Z)> within)
+    private static RouteFork? Fork(List<RouteOption> options, WalkGround ground)
     {
         if (options.Count < 2) return null;
 
@@ -119,7 +120,7 @@ public static class PlanRoutes
 
         var split = shortestPath[prefix - 1];
         var fuse = shortestPath[^suffix];
-        var between = Cells.PathLength(split, fuse, within) ?? 0;
+        var between = Walk.Between(split, fuse, ground)?.Cost.Distance ?? 0;
         return new RouteFork(split, fuse, between);
 
         static int Common(IReadOnlyList<(int X, int Z)> a, IReadOnlyList<(int X, int Z)> b, bool fromEnd)
@@ -185,15 +186,16 @@ public static class PlanRoutes
         return open;
     }
 
-    private static RouteOption Option(string label, List<(int, int)> path, PlanNav nav)
+    private static RouteOption Option(string label, WalkPath walked, PlanNav nav)
     {
+        var path = walked.Cells.Select(cell => (cell.X, cell.Z)).ToList();
         var pieces = new List<string>();
         foreach (var cell in path)
         {
             var name = nav.PieceAt.TryGetValue(cell, out var piece) ? piece : "«gap»";
             if (pieces.Count == 0 || pieces[^1] != name) pieces.Add(name);
         }
-        return new RouteOption(label, path.Count - 1, [.. path.Select(c => (c.Item1, c.Item2))], pieces);
+        return new RouteOption(label, walked.Cost.Distance, path, pieces);
     }
 
     // Two walks a cell apart are one way described twice; two walks over different pieces are two ways.
