@@ -109,6 +109,10 @@ what is gathered here is the parked and dormant slices of the same surface.
   compose on top as they do for any other shape, so a sunk tilted path is a cutting and a raised one an
   embankment.
 
+  *the workaround, built: `opus5-undercroft`'s two causeways are `line` **relief marks** with heights
+  `16/28/16` and a width, because a path could not be the ramp they are. That puts a road in the terrain
+  document, where it cannot be moved without re-solving the island.*
+
 - [ ] **S34 — Reuse a sketch paint's column classification across the edits of one drag.** `TerrainProfile`
   construction is what a paint now costs — ~60 ms of the ~164 ms a 40k-cell board takes (S33, `FEATURES.md`),
   and roughly 35 ms of that is its two `GridComponents.Label` passes: one flood fill for plateaus, a second for
@@ -259,11 +263,16 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
 
 ## Mapgen authoring tasks
 
-**The six below came out of the mapgen authoring runs** — `pgm-studio-mapgen/reports/`, Grok run 1 and the
-three Opus 5 authoring records. Each was reproduced against the tree rather than taken from the report; one
+**These came out of the mapgen authoring runs** — `pgm-studio-mapgen/reports/`, Grok run 1 and the five
+Opus 5 authoring records. Each was reproduced against the tree rather than taken from the report; one
 finding those reports carry (a house past `HouseProp.MaxFootprint` dropped in silence) is **already fixed**
-by `HousePropRules.PastCap` and is not filed. Below them the section is grouped by **the concept an entry
-spends** rather than by which pass found it, so a heading is one object and a pass over it is one job.
+by `HousePropRules.PastCap` and is not filed. The section is grouped by **the concept an entry spends**
+rather than by which pass found it, so a heading is one object and a pass over it is one job.
+
+**What the fifth run added is on `TODO.md` rather than here**, because it is the current focus: `B129` and
+`B246` moved up, and seven ids were opened beside them — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10`.
+Four entries in this file gained a measured case from the same runs and moved nowhere: `B103`, `B144`,
+`B96` and `S56`.
 
 **The `B141`–`B188` audit pool no longer has a heading of its own**, because every entry in it turned out to
 be about a house, a distance, a tree, a destroy stamp, the plan model, a gate or the paint — and it now sits
@@ -275,25 +284,6 @@ in `pgm-studio-mapgen/AUTHORING-BRIEF.md` § *What the studio checks for you, an
 says what a concentric house floor would have; and four folded into a neighbour — `B176` into `B162`, `B97`
 into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, and a walled wool room reading
 as an isolated marker into `B99`.
-
-- [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
-  picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
-  `layered` material and useless for looking at a map: a cut through solid ground is a solid slab, because a
-  solid slab is genuinely what sits on that plane. The projection it wants already exists on the other side of
-  the house — `Analysis/Layer/SideView.Build` reduces a map's vertical solid segments to a depth map per
-  viewing direction (`nz`/`pz`/`nx`/`px`), and `sideview-canvas.js` paints it. Add it as a **mode of the
-  existing renderer**, not a second one: the two answer different questions and both are worth having.
-
-  Two things to settle. `SideView` reads `layer_segments` rows, which exist only for a **scanned** map, while
-  `SectionRender` reads a region directory or a `VoxelWorld` — so the projection wants doing over voxels and
-  the shared thing is the algorithm, not the input. And a depth map answers *how far* rather than *what*, so
-  the mode should carry both: **distance as value, material or category as hue**, which is what makes a
-  building behind the cut read as a building rather than a lighter smudge. The existing side view is greyscale
-  and never got the colour half.
-
-  *a cut through Ashen Quarry's town at z=60 is two courses of stone brick over forty-seven of andesite over
-  bedrock — accurate, and it shows none of the buildings a few blocks either side, no room interiors, and
-  nothing of the town's silhouette.*
 
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
   `TopDownRender.ReadColumns` takes `LayerExtractors.Surface` with no exclusions and derives the frame from
@@ -307,6 +297,9 @@ as an isolated marker into `B99`.
   (x −72..71) against the height profile's **140 × 190** (x −70..69), and the four extra columns are **108
   cells of redstone wire (id 55) at y1**, running z −12..11 at each end. The top-down reports its surface span
   as y 1..53 where the height profile reports y 9..53.*
+
+  *and again on `opus5-undercroft`, whose only structures are two spawn rooms: the frame reaches to the
+  redstone lines at y1 under the markers, so the board's own margin paints as void on a board 80 wide.*
 
 ### What a gate says, and what it fails to say
 
@@ -331,6 +324,14 @@ as an isolated marker into `B99`.
   **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
   the briefs hand an agent, not in `PgmStudio.RoundTrip`'s `--help` (`WS6`). The authoring briefs already tell an agent
   that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
+
+  **Five agent-authored boards asked for it exactly zero times, which narrows it rather than weakening it.**
+  Across `opus5-elderwold` … `opus5-undercroft` no gate refused something that was right to build. The one
+  case that looked like a waiver — a texture brush declining every tree it touched — is a gate asking
+  `DR-ROAD` of the wrong prop, and is `WE21`. So the entry belongs to **human authoring**, where its two
+  named worlds live, and it is not a dependency of anything on the agent track. Filed here as a schedule
+  note rather than a change of scope: a waiver reached for in place of a fix hides the fix, and the whole
+  value of this entry is that it does not.
 
 Three gates, three ways of being wrong about their own verdict: one that misreports its cause, one that cannot
 see half the board, and one that refuses what the rule document recommends. They are the last of the
@@ -396,6 +397,15 @@ author. Beside them, one where the *reader* disagrees with a document that is ri
 
   *`opus5-run2` §5 #2 · re-probed on `marlstone-steps` against the committed region files: `(0, 58)` is
   sandstone at y21 where `(0, 70)` — the same shelf at the same height — is quartz.*
+
+  **A stacked layer is the same cause with the tiers stacked rather than nested**, and it is worth settling
+  here rather than in `TS21`: `ShapeScopeOwners` walks every layer and gives a cell to the smallest-area
+  themed shape covering it, so a slab on an upper layer owns the ground **beneath** it as well. Whatever
+  rule settles the overlap has to say whether "most specific" means smallest area or highest column.
+
+  *`opus5-undercroft`: the hall floor at y14 is painted in the terrace's `flag` theme — stone brick from y0
+  to y14 — because the terrace's footprint 10 blocks above it is the smaller shape. It happens to read as a
+  paved undercroft, which is luck.*
 
 - [ ] **B145 — Paint a spawn or wool shape's interior with its theme.** The shape is simply unthemed — not the
   known bedrock case, and conflating them is why it keeps being dismissed:
@@ -859,6 +869,10 @@ counted rather than eyeballed — and two are the material a species is supposed
   README a band in those terms; the two numbers disagreeing is itself informative, since a high count at a low
   share is a few enormous trees and a low count at a high share is scrub.
 
+  *the author's side of the same gap: `opus5-elderwold` was briefed "as dense as you can make it without
+  throwing any warnings", and with no measure of how wooded a board reads the density was tuned by looking
+  at renders and counting declines.*
+
 - [ ] **B154 — `species: "dark_oak"` must build a dark oak tree.** The species selects the right template and
   the wrong material. Filed as measured rather than diagnosed — `docs/world-export/tree-corpus.md` was not read
   and it may be intended. Cheap to settle.
@@ -912,25 +926,6 @@ really stated in a flat Manhattan proxy for it.
 The entries below share that cause and want reading together — the walk itself, the sets it runs over, the
 rules stated in it, and the one endpoint whose cost is the reason a cheaper read was reached for in the first
 place.
-
-- [~] **B246 — Charge the walk for a climb, so a detour exists.** The height is in hand: `WorldColumns`
-  carries every column's runs with `YTop`/`YBottom`, and `Membership` is the one place it is dropped. What
-  remains is the cost. `KitReach.BridgeCost` is a 0-1 BFS over a deque — 0 where a cell is walkable, 1 where a
-  block must be placed, `< 0` impassable — and it is the right algorithm with the wrong cost. Read the cost
-  off the height delta instead: **Δ≤1 free, Δ≥2 costs the block a player places to climb it**, void impassable
-  unless bridgeable. That gives a walk that prefers ground you can run up, still finds the steep way, and
-  returns a number that says how much building the route cost.
-
-  **Move it into `Geom.Cells` beside `ShortestPath`**, because five callers want it at once: `GoalDistances`,
-  `WoolWoolDistance` (`WL7`), `GoalSpawnRatio` (`GO1`), `GroundCoverage`'s corridors, and `S47`'s detour
-  factor. The 4-connected rule can go with it for the coverage read — the corridor is widened by
-  `CorridorMargin` anyway and players optimise their own routes, so an 8-connected walk there is closer to the
-  truth than the axis-aligned staircase the picture shows (the author's call). A separation rule that reports
-  a walk should keep whichever connectivity its number was stated in.
-
-  *Both producers of the walk's set can already answer the height without a new read: `WorldColumns.Of` for a
-  world held in memory, `SegmentIndex`'s own spans for one scanned off region files. What they lack is one
-  shape to answer it in — the sets are the only thing they agree on today.*
 
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `CorridorAllowance` of 10 blocks, calibrated against
