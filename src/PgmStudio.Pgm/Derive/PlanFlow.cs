@@ -87,7 +87,7 @@ public static class PlanFlow
                 (int)patch.Average(c => (double)c.Item1) * cell,
                 (int)patch.Average(c => (double)c.Item2) * cell,
                 // named by how much of the patch each piece is, so the first one read is the one to act on
-                [.. patch.Select(c => PlanRouteCost.BaseId(nav.PieceAt.GetValueOrDefault(c, "—")))
+                [.. patch.Select(c => PlanNav.BaseId(nav.PieceAt.GetValueOrDefault(c, "—")))
                     .Where(n => n != "—")
                     .GroupBy(n => n).OrderByDescending(g => g.Count()).ThenBy(g => g.Key, StringComparer.Ordinal)
                     .Select(g => $"{g.Key} ({g.Count() * cell * cell})")]));

@@ -35,7 +35,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | Route | Also | Answers |
 |---|---|---|
 | `render/topdown` | `--topdown --layer …` | the board from above, one question per image. `layer` = `ground` · `structure` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy |
-| `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn |
+| `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project |
 | `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
@@ -110,23 +110,15 @@ avoids. `comfort` has no field of its own — the bound is the journey's own len
 two cells; `render/walk?aim=comfort` shades the travel field and draws the comfort route on it, which is the
 pairing that shows what the standoff bought.
 
-## Three of them mislead, and each has cost a reader a conclusion
+## One of them misleads, and it has cost a reader a conclusion
 
 A caveat met *after* a conclusion has already cost the conclusion, so each rides in its own route's summary
 rather than in a document somebody may not have open.
-
-**`traversability` reads an approach wall's cobweb course as impassable** (`B99`). Every board carrying one
-reports its wool room isolated, and the export gate — which navigates the columns rather than this picture —
-passes it. A wall is meant to be crossed over the top, cutting the web with the shears the kit carries.
 
 **`structures` cannot see a town this studio built** (`B149`). It finds roofs by material, and its terrain
 list swallows stone, cobble, sandstone, stone brick, quartz and stained clay — so a cottage roofed in any of
 them reads as ground. On a studio-built world take `render/topdown?layer=structure`, which reads the
 provenance sidecar and draws what the build recorded itself placing.
-
-**`section` samples one plane** (`B129`). Anything a few blocks either side of the cut is not in the picture,
-so a cut through a house that misses its walls reads as floor, air, roof — a correct reading of that plane
-rather than a broken building.
 
 And one that is not a fault: **`surface`'s magenta is not a material.** It is the honest answer for a block no
 tone family claims, and the legend says how many there were.
@@ -161,8 +153,19 @@ answers whether a board somebody believes is symmetric actually is.
 The build is paid per request; nothing is cached. A large board is the same cost as an export, which is what
 it is.
 
-There is no read that keeps Y over a *region*: `section` cuts one plane and `column` reads one cell, and the
-depth-projected mode that would sit between them is `B129`.
+**`section` reads a plane or a slab, and `depth` picks which.** Without it the cut is one block thick, which
+is the right read for a `layered` material — the whole reason that material kind exists is to vary a colour
+down a riser — and the wrong one for looking at a map, since a cut through a house that misses its walls
+reads as floor, air, roof. With it each column takes the nearest block up to that many behind the plane, so
+the walls are in the picture. **Hue stays the material and the depth is carried in the value**: what stands on
+the cut reads exactly as the slice draws it and what is behind reads as the same material further away, which
+is what makes a building behind the cut read as a building rather than as a lighter smudge. The far end keeps
+45% of its brightness rather than fading out, because a ramp reaching the background makes "deep" and "nothing
+there" the same pixel. Sixteen blocks is the cap — a chunk, and deeper than any room this studio builds.
+
+`column` is still the only read that keeps Y over a single cell, and `sideview` the only one that reduces a
+whole map to a depth map per direction; it reads `layer_segments` rows and so answers only for a scanned map,
+which is why the two coexist rather than one replacing the other.
 
 The walk runs over **one cell per column**, so no fidelity of it can see under an overhang or through a
 tunnel (`TS21`). Every distance the studio reports is this walk: the evaluator's spawn, wool and frontline

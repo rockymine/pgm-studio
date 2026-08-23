@@ -690,16 +690,16 @@ sub-surface position as actively dug, with completeness peaking at 0.83 ten to n
 room. Ground is removed as well as added. A scarp the plan states is not the scarp a player at minute thirty
 meets, in either direction.
 
-So a climb cost can be *written* — `PlanRouteCost` charges the rise into a cell, free to a block and paid per
-block above it — and it cannot be **priced** from this data: any weight fitted to recorded movement is
-fitted to a surface the players themselves authored. The measurement bears that out. On the one traced plan
-carrying heights, the climb term moves the rank correlation against recorded traffic from 0.321 to 0.316 at
-weight 2 and 0.313 at 6, and scoring against ground-only samples makes every board **worse** by 0.06 to 0.22
-— because the sky network follows the ground corridors (§5), so removing it removes the most route-shaped
-half of the traffic.
+So a climb cost can be *written* — a rise into a cell, free to a block and charged above it — and it cannot
+be **priced** from this data: any weight fitted to recorded movement is fitted to a surface the players
+themselves authored. The measurement bears that out. On the one traced plan carrying heights, a climb term
+moves the rank correlation against recorded traffic from 0.321 to 0.316 at weight 2 and 0.313 at 6, and
+scoring against ground-only samples makes every board **worse** by 0.06 to 0.22 — because the sky network
+follows the ground corridors (§5), so removing it removes the most route-shaped half of the traffic.
 
-The term stays, unvalidated and marked so, because the rule it encodes is the author's and not the corpus's.
-What would settle it is a board played without building, which this mode does not have.
+That is why the studio charges a climb in the **blocks a player places** to make it — a quantity read off the
+ground rather than a coefficient fitted to play — and carries no weight to calibrate. What would settle the
+weighted question is a board played without building, which this mode does not have.
 
 ## 7. What a plan answers today
 

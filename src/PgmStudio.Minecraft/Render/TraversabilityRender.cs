@@ -267,12 +267,19 @@ public static class TraversabilityRender
     /// standing on it and nothing overhanging it a player's head would clip. Ground itself is the same "not
     /// decoration, not liquid, not air" read <see cref="HeightProfileRender"/> uses, so the two stage images
     /// agree about where the ground is even though they answer different questions about it.</summary>
-    /// <summary>Whether the <see cref="Walk.Headroom"/> blocks from <paramref name="from"/> up are all
-    /// air — the room a player needs to stand where the block below them is.</summary>
+    /// <summary>Whether the <see cref="Walk.Headroom"/> blocks from <paramref name="from"/> up leave a player
+    /// room to stand — air, or something their body passes through. A flower, a torch and a carpet are
+    /// stepped past when the ground is found and must be stepped past here too, or a column reads as ground a
+    /// player cannot stand on for the sake of the daisy on it; a fence is decoration as well and does stop
+    /// them, which is why <see cref="BlockRoles.StoodThrough"/> and not
+    /// <see cref="BlockRoles.StandsOnGround"/> is the predicate.</summary>
     private static bool Clear(ushort[] ids, int col, int from)
     {
         for (var y = from; y < from + Walk.Headroom; y++)
-            if (ids[(y << 8) | col] != 0) return false;
+        {
+            var id = ids[(y << 8) | col];
+            if (id != 0 && !BlockRoles.StoodThrough(id)) return false;
+        }
         return true;
     }
 

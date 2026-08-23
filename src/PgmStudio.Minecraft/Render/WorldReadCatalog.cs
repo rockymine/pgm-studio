@@ -34,11 +34,12 @@ public static class WorldReadCatalog
 
         new("render/section", "--section",
             "A vertical cut with a Y scale: `axis` which way it runs, `from`/`to` its extent, `at` the other "
-            + "coordinate. One of only two reads that keep Y, and the one that shows a layer stack, a roof "
-            + "idiom and a riser's courses.",
-            "It samples ONE plane, so anything a few blocks either side of the cut is not in the picture "
-            + "(`B129`). A cut through a house that misses its walls reads as floor, air, roof — a correct "
-            + "reading of that plane rather than a broken building."),
+            + "coordinate, `depth` how far behind it to project. One of only two reads that keep Y, and the "
+            + "one that shows a layer stack, a roof idiom and a riser's courses.",
+            "Without `depth` it samples ONE plane, so a cut through a house that misses its walls reads as "
+            + "floor, air, roof — a correct reading of that plane rather than a broken building. With it, "
+            + "each column takes the nearest block up to that many behind the cut, in its own material "
+            + "dimmed by how far back it stands."),
 
         new("render/heightmap", "--heightmap",
             "Elevation as tone, with contour lines every `contour` blocks. The read for whether a relief "
@@ -55,9 +56,9 @@ public static class WorldReadCatalog
         new("render/traversability", "--traversability-map",
             "The navigable components, with the spawns and goals drawn on them. The read for whether a board "
             + "hangs together as one place a player can walk.",
-            "An approach wall's cobweb course reads as impassable (`B99`), so every board carrying one "
-            + "reports its wool room isolated — and the export gate, which navigates the columns rather than "
-            + "this picture, passes it. A wall is meant to be crossed over the top."),
+            "Headroom is what a player's body passes through, not air: a flower, a torch, a carpet and an "
+            + "approach wall's cobweb course leave a column navigable, while a fence, a wall and a chest stop "
+            + "it. A door and a ladder read as blocking, since a block id does not say whether one is open."),
 
         new("render/structures", "--structures",
             "The building census by block material, for a world the studio did NOT build — a scanned map, or "

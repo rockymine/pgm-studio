@@ -11,9 +11,10 @@ using Dict = Dictionary<string, object?>;
 /// the match, and every oversized board so far has passed the distance reads while carrying whole regions no
 /// player will ever enter.
 ///
-/// <para>The model is traffic. Players move between the map's waypoints — spawns and goals — along shortest
-/// walks over the navigable ground, so those walks, widened the way a path's band claims more than its own
-/// centerline, are the ground the match actually uses. Around each waypoint a fight needs room, so each
+/// <para>The model is traffic. Players move between the map's waypoints — the spawns and goals, plus one seat
+/// on each way across the middle, since the route that decides a match starts there rather than at a place a
+/// team defends — along shortest walks over the navigable ground, so those walks, widened the way a path's
+/// band claims more than its own centerline, are the ground the match actually uses. Around each waypoint a fight needs room, so each
 /// claims its own ring. Everything else the terrain offers is then one of two things: <b>decorated</b> —
 /// within reach of a prop someone placed, scenery a player at least looks at — or <b>dead</b>: ground with no
 /// route through it, no objective near it and nothing on it. A destroy board may decorate its dead ground; a
@@ -38,22 +39,34 @@ public static class GroundCoverage
     /// totals but not named.</summary>
     public const int PatchFloor = 25;
 
+    /// <summary>How close two teams' walks have to agree for a cell to count as ground they arrive at
+    /// together. One octile diagonal, so a meeting line stays connected across a diagonal run.</summary>
+    public const int MeetingSlack = 2;
+
+    /// <summary>A meeting stretch smaller than this is the line clipping a corner, not a way across.</summary>
+    public const int CrossingFloor = 8;
+
     /// <summary>Cell classes, indexed by the codes in <see cref="Result.Cells"/>.</summary>
-    public static readonly string[] Classes = ["void", "reached", "decorated", "dead", "route", "waypoint"];
+    public static readonly string[] Classes = ["void", "reached", "decorated", "dead", "route"];
 
     /// <summary>Legend colours for the classes, shared by the stage image and any overlay.</summary>
     public static readonly Dictionary<string, string> ClassColors = new()
     {
         ["void"] = "#14161a", ["reached"] = "#2e7d32", ["decorated"] = "#f9a825",
-        ["dead"] = "#c62828", ["route"] = "#a5d6a7", ["waypoint"] = "#ffffff",
+        ["dead"] = "#c62828", ["route"] = "#a5d6a7",
     };
 
-    public const byte Void = 0, Reached = 1, Decorated = 2, Dead = 3, Route = 4, Waypoint = 5;
+    public const byte Void = 0, Reached = 1, Decorated = 2, Dead = 3, Route = 4;
 
     /// <summary>One contiguous stretch of dead ground: how big, where its centre sits, and how far its
     /// nearest cell stands from ground the match uses — the numbers that say whether it wants a prop, a
     /// point of interest, or deleting.</summary>
     public sealed record Patch(int Area, int CentroidX, int CentroidZ, int NearestReachedBlocks);
+
+    /// <summary>A waypoint the journeys were walked between, at the cell it was snapped to. <see cref="Kind"/>
+    /// is a <c>NavPoint.Kind</c> or <c>crossing</c> for a derived middle seat, so a picture can colour a
+    /// spawn apart from a core instead of drawing every origin the same.</summary>
+    public sealed record Marker(string Kind, int X, int Z);
 
     /// <summary>The read: the class of every ground cell (<see cref="Cells"/>, codes above, row-major over
     /// the grid), the shares, and the dead patches worth naming, largest first.
@@ -67,7 +80,7 @@ public static class GroundCoverage
         int MinX, int MinZ, int Width, int Height, byte[] Cells,
         int GroundCells, int ReachedCells, int DecoratedCells, int DeadCells,
         double DeadShare, IReadOnlyList<Patch> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes,
-        int[] Traffic, int Journeys);
+        int[] Traffic, int Journeys, IReadOnlyList<Marker> Markers);
 
     /// <summary>Read the coverage of a map: its document for the waypoints and rules, the built world's
     /// surface and Y=0 columns for the ground, and the dressing's prop cells for the decorated class.</summary>
@@ -85,14 +98,20 @@ public static class GroundCoverage
         int At(int x, int z) => (z - minZ) * nx + (x - minX);
 
         // The waypoints, snapped onto the navigable set the way the traversability gate snaps its points.
-        var waypoints = new List<(int X, int Z)>();
-        foreach (var point in NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz), declared))
-            if (Cells.SnapToWalkable((point.X, point.Z), navigable, 3) is { } seat) waypoints.Add(seat);
+        var points = NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz), declared);
+        var markers = new List<Marker>();
+        foreach (var point in points)
+            if (Cells.SnapToWalkable((point.X, point.Z), navigable, 3) is { } seat)
+                markers.Add(new Marker(point.Kind, seat.X, seat.Z));
+        foreach (var seat in Crossings(points, navigable))
+            markers.Add(new Marker("crossing", seat.X, seat.Z));
+        var waypoints = markers.Select(marker => (marker.X, marker.Z)).ToList();
 
         // The traffic skeleton: a corridor between every pair of waypoints. All pairs rather than a curated
         // set, because defenders travel to defend, attackers rotate goal to goal, and mid fights happen
         // between spawns — every pair is a journey someone makes, and every one aims at a place the map
-        // actually has rather than at open ground.
+        // actually has rather than at open ground. The crossings are in that set too, so an attacker's
+        // approach from the middle is walked and not only the defender's walk to their own objective.
         //
         // A corridor and not a fattened line. One shortest path must commit to one side of a hole, so the
         // other side reads unused however many players take it — and going round a hole is the single most
@@ -166,12 +185,12 @@ public static class GroundCoverage
         }
         patches.Sort((a, b) => b.Area.CompareTo(a.Area));
 
-        // The overlay's two annotation classes, painted last so they read over the fill.
-        foreach (var (x, z) in routeCells) cells[At(x, z)] = Route;
-        foreach (var (x, z) in waypoints)
-            for (var dz = -1; dz <= 1; dz++)
-            for (var dx = -1; dx <= 1; dx++)
-                if (InGrid(x + dx, z + dz)) cells[At(x + dx, z + dz)] = Waypoint;
+        // The route, painted last so it reads over the fill, and only where the read already found ground: a
+        // route runs over the navigable set, which carries bridgeable void the classification does not, and
+        // an annotation may not add a cell to the picture. A waypoint is not a class — it is a place, and
+        // Markers names each one with the kind a class code cannot carry.
+        foreach (var (x, z) in routeCells)
+            if (InGrid(x, z) && cells[At(x, z)] != Void) cells[At(x, z)] = Route;
 
         var trafficGrid = new int[nx * nz];
         foreach (var (cell, count) in traffic)
@@ -180,7 +199,7 @@ public static class GroundCoverage
         return new Result(minX, minZ, nx, nz, cells,
             groundCells, reached, decorated, dead,
             groundCells == 0 ? 0 : (double)dead / groundCells,
-            patches, unnamed, routeCells.Count > 0, trafficGrid, journeys);
+            patches, unnamed, routeCells.Count > 0, trafficGrid, journeys, markers);
 
         static HashSet<(int X, int Z)> Dilated(IReadOnlyCollection<(int X, int Z)> seeds, int radius)
         {
@@ -191,6 +210,72 @@ public static class GroundCoverage
                     grown.Add((x + dx, z + dz));
             return grown;
         }
+    }
+
+    /// <summary>Where the two teams meet, as one seat per crossing — the origins an attacker's route starts
+    /// from rather than ends at.
+    ///
+    /// <para>A goal-to-goal demand set only ever walks between places a team defends, and the route that
+    /// decides a match is the one crossing the middle. At this tier no document field names the middle, so it
+    /// is derived: the cells a walk reaches from both teams' spawns at the <b>same</b> cost, within
+    /// <see cref="MeetingSlack"/> blocks, are the line the two sides arrive at together. That line breaks into
+    /// one stretch per way across, and each stretch answers with its <b>widest</b> cell, which is the crossing
+    /// players use rather than the corner where the line clips a wall.</para>
+    ///
+    /// <para>Empty unless exactly two teams hold spawns: with one team there is no middle, and with four the
+    /// pairwise middles are six lines that no longer describe one crossing each.</para></summary>
+    private static List<(int X, int Z)> Crossings(IReadOnlyList<NavPoint> points,
+        HashSet<(int X, int Z)> navigable)
+    {
+        var seats = new List<(int X, int Z)>();
+        var byTeam = points.Where(point => point.Kind == "spawn" && point.Owner.Length > 0)
+            .GroupBy(point => point.Owner)
+            .ToDictionary(group => group.Key, group => group.Select(point => point.Cell).ToList());
+        if (byTeam.Count != 2) return seats;
+
+        var walked = WalkGround.Over(navigable);
+        var sides = byTeam.Values.Select(team => Reach(team, walked, navigable)).ToList();
+        var meeting = new HashSet<(int X, int Z)>();
+        foreach (var (cell, near) in sides[0])
+            if (sides[1].TryGetValue(cell, out var far) && Math.Abs(near - far) <= MeetingSlack)
+                meeting.Add(cell);
+        if (meeting.Count == 0) return seats;
+
+        var clearance = Cells.Clearance(navigable, Cells.BoundingBox([.. navigable]));
+        foreach (var stretch in Stretches(meeting))
+            seats.Add(stretch.OrderByDescending(cell => clearance.GetValueOrDefault(cell, 0))
+                .ThenBy(cell => cell.Z).ThenBy(cell => cell.X).First());
+        return seats;
+    }
+
+    /// <summary>The cheapest walk to each cell from any of <paramref name="from"/>, in blocks.</summary>
+    private static Dictionary<(int X, int Z), double> Reach(IEnumerable<(int X, int Z)> from,
+        WalkGround walked, HashSet<(int X, int Z)> navigable)
+    {
+        var best = new Dictionary<(int X, int Z), double>();
+        foreach (var origin in from)
+        {
+            if (Cells.SnapToWalkable(origin, navigable, 3) is not { } seat) continue;
+            foreach (var (cell, cost) in Walk.Field(seat, walked))
+                if (cost.Distance < best.GetValueOrDefault(cell, double.MaxValue)) best[cell] = cost.Distance;
+        }
+        return best;
+    }
+
+    /// <summary>The connected stretches of a cell set, largest first, keeping only those wide enough to be a
+    /// way across rather than a cell the meeting line clips in passing.</summary>
+    private static List<HashSet<(int X, int Z)>> Stretches(HashSet<(int X, int Z)> cells)
+    {
+        var stretches = new List<HashSet<(int X, int Z)>>();
+        var seen = new HashSet<(int X, int Z)>();
+        foreach (var cell in cells)
+        {
+            if (!seen.Add(cell)) continue;
+            var stretch = Cells.Flood([cell], cells);
+            seen.UnionWith(stretch);
+            if (stretch.Count >= CrossingFloor) stretches.Add(stretch);
+        }
+        return [.. stretches.OrderByDescending(stretch => stretch.Count)];
     }
 
     /// <summary>Per-cell cardinal step count over the ground to the nearest reached cell — one multi-source

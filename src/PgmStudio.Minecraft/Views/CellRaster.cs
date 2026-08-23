@@ -24,6 +24,11 @@ public sealed record CellRaster(int Columns, int Rows, int Cell, Func<int, int, 
     /// <summary>The same picture rasterized: each cell becomes a <see cref="Cell"/>-pixel square, encoded by
     /// the studio's own <see cref="PngWriter"/> — no imaging library, exactly as the world renders write.</summary>
     public byte[] Png(string background = Background)
+        => PngWriter.Encode(Columns * Cell, Rows * Cell, Pixels(background));
+
+    /// <summary>The same picture as raw RGB rows, for a caller that has more to draw onto it — a legend
+    /// strip, a marker, a scale bar — before it becomes a file.</summary>
+    public byte[] Pixels(string background = Background)
     {
         int width = Columns * Cell, height = Rows * Cell;
         var rgb = new byte[width * height * 3];
@@ -42,7 +47,7 @@ public sealed record CellRaster(int Columns, int Rows, int Cell, Func<int, int, 
                 }
             }
         }
-        return PngWriter.Encode(width, height, rgb);
+        return rgb;
     }
 
     private static (byte R, byte G, byte B) Rgb(string hex)

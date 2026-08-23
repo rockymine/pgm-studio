@@ -141,8 +141,8 @@ and a fall counted but not charged, routing around voids — never the straight 
   **46–143** blocks (46.1 / 58.3 / 64 / 70 / 75 / 85.6 / 95.5 / 143). Working minimum ≈**45**. That
   sweep was taken with a cardinal walk; the same routes cost up to a quarter less under the octile walk
   the preamble states, so the band reads high by that much and the sweep behind it is not in the repository
-  to re-run (`B212`). The evaluator does not read these numbers — `wool-wool-distance`'s band is learned
-  from the teaching seeds and is already in the octile unit.
+  to re-run (amendment 21). The evaluator does not read these numbers — `wool-wool-distance`'s band is
+  learned from the teaching seeds and is already in the octile unit.
 - **WL8 [expert, new]** Wool approach routes: the default is a **single chokepoint route**;
   real maps sometimes add **alternative routes** to the wool (and then a build zone may touch the
   wool room — see BZ5). **[seed-needed]** The `wool-ringed-hole` sanction is a **naming contract**
@@ -516,6 +516,18 @@ the stat corpus.
   `goal-spawn-ratio` against the authored band, worst goal counted; a goal with **no** route is not
   this rule's business but the traversability gate's, which refuses the export outright.
 
+- **GO2 [expert]** **A team's own destroy goals stand 35–65 blocks apart, by walk.** Two goals a team
+  defends from one position are one goal with two names, and two so far apart that no position covers both
+  make the defence a shuttle rather than a stand. The measure is the walk between them over the fanned
+  closure, in the octile unit the preamble states — the destroy-side counterpart of `WL7`, which separates a
+  team's wools. Applies with two or more goals owned by one team.
+
+- **GO3 [expert]** **Opposing destroy goals stand 85–150 blocks apart, by walk.** This is what the contest
+  spans: under the band the two objectives are close enough that a rush reaches one before the other team has
+  formed, and over it the attacker crosses a board's width into a set defence and the match settles into a
+  stalemate. The measure is `GO2`'s walk read across the axis rather than within a team, so one traversal
+  answers both. Applies where both teams carry a destroy goal.
+
 ## PC — Pieces are anonymous
 
 A narrow seam is legal connecting geometry per *Definitions*, so there is no per-seam width lint: corridor
@@ -763,8 +775,18 @@ both corrected.)
     marked instead: `WL7`'s stated 46–143 came off an eight-pair corpus sweep in the old unit, which
     amendment 13 called unaffected because it was already a traversal — true of the line-versus-walk
     question it was settling and not of this one. The evaluator reads the learned `wool-wool-distance`
-    band rather than those numbers, so nothing judges a board by them; the mark is `B212`'s, which already
-    holds three straight-line thresholds under the author's ruling that they be marked rather than re-swept.
+    band rather than those numbers, so nothing judges a board by them; amendment 21 carries the mark, under
+    the standing ruling that such a number is marked or replaced rather than re-swept.
+
+21. **`GO2` and `GO3` added; `B175` and `B179`'s straight-line numbers retired (2026-08-23).** Author's call,
+    closing `B212`. Two numbers had read as measured and were not: a 35-block minimum between a team's own
+    destroy goals and a 95–110 target to the nearest enemy goal, both read straight-line off `map.xml` region
+    centroids in the unit amendment 13 retired. They are replaced rather than re-derived, per the standing
+    ruling that a corpus re-sweep buys precision this project does not need: **35–65** blocks between a team's
+    own goals (`GO2`) and **85–150** between opposing ones (`GO3`), stated as walks in the octile unit and
+    tagged `[expert]` — the author's numbers, held until a played board moves them. The two that cannot be
+    replaced this way stay marked at their citation sites: `B188`'s 164-map table (`seed-stats.md`) and
+    `WL7`'s eight-pair band.
 
 ## Correction protocol
 

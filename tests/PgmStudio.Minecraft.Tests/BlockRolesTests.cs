@@ -116,6 +116,28 @@ public sealed class BlockRolesTests
     }
 
     [Test]
+    public async Task A_flower_is_stood_through_and_a_fence_is_not()
+    {
+        // Both stand on the ground and only one is in the way, which is why the headroom read cannot use
+        // StandsOnGround.
+        foreach (var id in new[] { 37, 38, 31, 6, 106, 50, 171, 78, 66, 63, 70, 30 })
+            await Assert.That(BlockRoles.StoodThrough(id)).IsTrue().Because($"block {id}");
+        foreach (var id in new[] { 85, 139, 101, 54, 145, 118, 81, 64, 65, 96, 107, 23, 52 })
+        {
+            await Assert.That(BlockRoles.StandsOnGround(id)).IsTrue().Because($"block {id} is decoration");
+            await Assert.That(BlockRoles.StoodThrough(id)).IsFalse().Because($"block {id} stops a player");
+        }
+    }
+
+    [Test]
+    public async Task Nothing_a_tone_family_names_is_stood_through()
+    {
+        foreach (var family in TerrainPalette.Families)
+            foreach (var block in family.Blocks)
+                await Assert.That(BlockRoles.StoodThrough(block.Id)).IsFalse();
+    }
+
+    [Test]
     public async Task No_block_a_tone_family_names_stands_on_the_ground()
     {
         // Ground is what a family names; a thing standing on ground is what the other roles name. An id in both

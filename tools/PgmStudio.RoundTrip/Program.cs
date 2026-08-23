@@ -225,11 +225,13 @@ if (columnIdx >= 0 && columnIdx + 3 < args.Length)
 }
 
 // --section <regionDir> <outPng> --x <lo> <hi> --z <fixed> | --z <lo> <hi> --x <fixed> [--scale N] [--ymin Y]
-// [--ymax Y] [--ticks N]: a vertical slice through the world along one axis-aligned line, drawn as an image —
+// [--ymax Y] [--ticks N] [--depth N]: a vertical slice through the world along one axis-aligned line, drawn as an image —
 // the picture half of the section read-back. A riser, a ramp's step heights, a building's storeys and a
 // goal's clearance over the ground are none of them visible in a plan view; this is the one renderer that
 // keeps Y. One of --x/--z takes two values (the range the cut runs along), the other takes one (where the
-// line sits on the fixed axis).
+// line sits on the fixed axis). --depth projects that many blocks behind the plane, each column taking the
+// nearest block there in its own material dimmed by how far back it stands, so a cut that misses a house's
+// walls still shows them.
 var sectionIdx = Array.IndexOf(args, "--section");
 if (sectionIdx >= 0 && sectionIdx + 2 < args.Length)
 {
@@ -263,12 +265,14 @@ if (sectionIdx >= 0 && sectionIdx + 2 < args.Length)
     var yMinAt = Array.IndexOf(args, "--ymin");
     var yMaxAt = Array.IndexOf(args, "--ymax");
     var ticksAt = Array.IndexOf(args, "--ticks");
+    var depthAt = Array.IndexOf(args, "--depth");
     return SectionRender.Run(
         args[sectionIdx + 1], args[sectionIdx + 2], sectionAxis, sectionRangeMin, sectionRangeMax, sectionFixed,
         sectionScaleAt >= 0 && sectionScaleAt + 1 < args.Length && int.TryParse(args[sectionScaleAt + 1], out var sectionScale) ? Math.Max(1, sectionScale) : 4,
         yMinAt >= 0 && yMinAt + 1 < args.Length && int.TryParse(args[yMinAt + 1], out var sectionYMin) ? sectionYMin : null,
         yMaxAt >= 0 && yMaxAt + 1 < args.Length && int.TryParse(args[yMaxAt + 1], out var sectionYMax) ? sectionYMax : null,
-        ticksAt >= 0 && ticksAt + 1 < args.Length && int.TryParse(args[ticksAt + 1], out var sectionTicks) ? Math.Max(1, sectionTicks) : 8);
+        ticksAt >= 0 && ticksAt + 1 < args.Length && int.TryParse(args[ticksAt + 1], out var sectionTicks) ? Math.Max(1, sectionTicks) : 8,
+        depthAt >= 0 && depthAt + 1 < args.Length && int.TryParse(args[depthAt + 1], out var sectionDepth) ? Math.Max(0, sectionDepth) : 0);
 }
 
 // --traversability-map <regionDir> <outPng> [--map <mapXmlPath>] [--scale N]: spawn/wool/monument/core

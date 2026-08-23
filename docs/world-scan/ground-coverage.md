@@ -13,6 +13,17 @@ pair** of waypoints, because defenders travel to defend, attackers rotate goal t
 between spawns; and every one of them aims at a place the map actually has, which is why no journey ever
 wanders off across ground nothing stands on.
 
+**The middle is a waypoint too, and it is derived rather than declared.** A demand set made only of places a
+team defends walks the defender's journey and never the attacker's, and the route that decides a match is the
+one crossing the middle. No field of the map document names the middle, so the read finds it: the cells a walk
+reaches from both teams' spawns at the same cost, within `MeetingSlack` (2 blocks), are the line the two sides
+arrive at together. That line breaks into one stretch per way across — a board with a north bridge and a south
+bridge has two — and each stretch of at least `CrossingFloor` (8) cells contributes its **widest** cell, which
+is the crossing players use rather than the corner where the line clips a wall. Those seats join the waypoint
+set and are walked against everything else in it, so a way across that no objective happens to stand near is
+still traffic. The derivation applies only where exactly **two** teams hold spawns: with one there is no
+middle, and with four the six pairwise middles no longer describe one crossing each.
+
 A journey claims a **corridor**, not a line. Every cell on a walk no more than `Walk.Detour` (10
 blocks) longer than the shortest belongs to it — an allowance, not a fraction of the distance. Two things
 follow. A two-hundred-block detour is excluded by construction rather than by a ratio that happens to be
@@ -63,13 +74,25 @@ band cannot make, because it only measures along one line.
 | Surface | Answers |
 |---|---|
 | `GET /api/map/{slug}/coverage` | the classes as digit rows over the grid (legend included), the shares, and the named dead patches; `?format=png` the same grid as a picture |
-| `GET /api/map/{slug}/coverage?format=png` | corridors and rings green, decorated fringe yellow, dead ground red, routes and waypoints marked |
+| `GET /api/map/{slug}/coverage?format=png` | corridors and rings green, decorated fringe yellow, dead ground red, the routes over them, each waypoint as a cross in its kind's colour, and a key naming every one of them |
 
-The classes come off `Analysis/Playability/GroundCoverage.Read`, the corridors off `Geom.Cells.Corridor` over
+The classes come off `Analysis/Playability/GroundCoverage.Read`, the corridors off `Walk.Corridor` over
 `Traversability.Ground`'s navigable set, and the picture off the measure's own grid through
 `Export/CoverageRender` — one derivation for the numbers, the JSON and the image. The endpoint carries the
 traffic grid beside the classes, one base-36 digit per cell, with `journeys` and `busiest` so a caller can
 scale it without walking the grid.
+
+**A waypoint is a place, not a class.** The class grid says what ground *is* — reached, decorated, dead, or a
+route over it — and which place a cell is is a different question, so the read answers it separately: `markers`
+carries every waypoint with the kind it is and its canonical colour, the JSON and the picture reading the same
+list. The picture draws each as a cross rather than a blob, since a three-cell block vanishes in a board-sized
+image scaled to fit a page and a reader cannot check a claim about a place they cannot find. The route is
+painted only over cells the read already classed as ground: a route walks the navigable set, which carries
+bridgeable void the classification does not, and an annotation may not add a cell to the picture.
+
+`Geom.Render.ObjectiveColors` holds one colour per kind, so a spawn is the same green wherever it is drawn.
+A destroyable and a core are drawn apart — one is a monument the attacker breaks and the other a container
+the attacker leaks, and a picture giving them one colour cannot say which of the two a board is short of.
 
 ## Limits
 

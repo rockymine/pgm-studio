@@ -269,8 +269,8 @@ finding those reports carry (a house past `HouseProp.MaxFootprint` dropped in si
 by `HousePropRules.PastCap` and is not filed. The section is grouped by **the concept an entry spends**
 rather than by which pass found it, so a heading is one object and a pass over it is one job.
 
-**What the fifth run added is on `TODO.md` rather than here**, because it is the current focus: `B129`
-moved up, and seven ids were opened beside it — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10`.
+**What the fifth run added is on `TODO.md` rather than here**, because it was the current focus: seven ids
+were opened by it — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10`.
 Four entries in this file gained a measured case from the same runs and moved nowhere: `B103`, `B144`,
 `B96` and `S56`.
 
@@ -963,38 +963,12 @@ asked over.
   sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
   this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
 
-- [ ] **WS2 — Routes are wanted from the middle and from any cell, not only between goals.**
-  `Traversability.NavigationPoints` returns `spawn`/`wool`/`destroyable`/`core` and nothing else, so
-  `GroundCoverage` walks goal pairs only. Two origins are missing and both are asked for (author): the
-  **mid band**, because the attacker's route that decides a game starts there rather than at a goal. The
-  arbitrary cell — "the west edge of the mid stone to an enemy wool" — answers now at
-  `GET /map/{slug}/walk?from=x,z&to=x,z`; what is left is the standard set the coverage read walks. This is a
-  demand-set change, not an algorithm: add the band's cells as an origin in the pair walk.
-
-  *`match-flow.md` §4: "The route that decides a game is not the defender walking to their own objective — it
-  is the attacker crossing from the mid band."*
-
-- [ ] **B248 — The coverage image needs the vocabulary the read already has.** `CoverageRender.Png` is eight
-  lines: it paints a class colour per cell and nothing else — no legend and no scale bar, which every other
-  stage image carries through `Legend.AppendBelow`. Three things it should say and does not:
-
-  **A waypoint's kind.** `Traversability.NavigationPoints` returns `NavPoint.Kind` as exactly
-  `spawn`/`wool`/`destroyable`/`core`, and `GroundCoverage.Read` discards it — every waypoint is the same
-  white 3×3. Give each kind its canonical colour, shared with the other overlays, and draw the marker large
-  enough to find in a scaled-down picture.
-
-  **The route.** It is a one-cell line in a pale green, painted **last and unconditionally**, so it also
-  overwrites cells that are not ground (`B247`). Too faint to read at stage scale and not trustworthy where it
-  is readable: either drop it and let the corridor's own green carry the traffic, or draw it as a marked
-  polyline that never covers a cell the read classed void.
-
 - [ ] **B175 — Add a goal↔goal walk to `GoalDistances`, and a rule over it for a team's own goals.**
   `GoalDistances` already walks the fanned closure to each spawn in the settled unit; the goal↔goal walk is the
-  same traversal with a different target, and `Geom.Cells` carries the multi-target walk and the ring snap.
-  The band lives on the term as `SoftTerm.AuthoredBand`, the way `GO1` does. **The number is the open part**:
-  the author's minimum is 35 blocks, read straight-line off a shipped `map.xml`, and its unit is retired
-  (`B212`) — so it wants restating as a walk before anything enforces it. It is the destroy-side counterpart
-  of `WL7`, which already separates a team's wools.
+  same traversal with a different target, and `GoalDistances` already walks a `Walk.Field` out of each goal,
+  so a second read of the same field answers it. The band lives on the term as `SoftTerm.AuthoredBand`, the
+  way `GO1` does, and the number is stated: **`GO2`, 35–65 blocks by walk**. It is the destroy-side
+  counterpart of `WL7`, which already separates a team's wools.
 
   *author, 2026-08-14 · Haiku DTM Tower seats a destroyable and a core on one piece, `red-monument-region`
   ending at `x −9` and `red-core-region` starting at `x −1` — eight blocks of clear ground, both sky markers
@@ -1005,9 +979,8 @@ asked over.
   first is `B175`'s walk read across the axis instead of within a team — one traversal serves both, and
   `GoalDistances` already fans the closure so a route may cross the boundary. The second is `GroundCoverage`
   (`B241`), which already classes every ground cell reached, decorated or dead: "how much of this board is the
-  contest using" is measurable there rather than inferable from a bounding box. As with `B175` the numbers are
-  the open part — the author's target of 95–110 blocks to the nearest enemy goal is straight-line and wants
-  restating as a walk.
+  contest using" is measurable there rather than inferable from a bounding box. The number is stated:
+  **`GO3`, 85–150 blocks by walk** between opposing goals.
 
   *author, 2026-08-14 · on a 240 × 190 board every Ashfall Scar objective sits on `x = 0`, the objective set
   spans `z −37 … 38`, and opposing monuments stand 19 blocks apart with no obstacle between them. The author's
@@ -1032,64 +1005,6 @@ asked over.
   *author, 2026-08-14 · Weirgate's `yard` spans `x −40…40` against a spawn piece of `x −10…10`; Mirefast's
   `steading` is 92 wide for a 20-block spawn. The corpus does not support a spawn-isolation rule: `dtcm` puts a
   spawn a median 7.5 blocks from the board edge and the generated ones sit 5–15 out.*
-
-- [ ] **B212 — Mark the three straight-line thresholds as uncalibrated at their citation sites, and let the
-  author replace each with a walk.** The unit is settled — a distance is the **walk over the walkable
-  surface, never the straight line** (`rules.md` amendments 13 and 20) — and no code moves for it: `WL9`/`WL10`
-  and `G127` learn their bands from the teaching seeds, and `GoalDistances` and `GroundCoverage` are built on
-  the walk. What is not settled is four numbers that read as if they were measured: `B175`'s **35 blocks**,
-  `B179`'s **95–110**, `B188`'s 164-map table, and `WL7`'s **46–143** eight-pair band. The first three were
-  read straight-line off `map.xml` region centroids; `WL7`'s was a cardinal walk, so it is high by up to a
-  quarter under the octile unit. No sweep behind any of them is in the repository to re-run.
-
-  **No corpus sweep** (author, 2026-08-15): a re-derivation buys precision this project does not need and
-  costs a harness and its upkeep. Simple hard rules instead, stated in the settled unit and tagged `[expert]`
-  in `rules.md`, the way `WL7` already carries a working minimum of ≈45. So the work is small: say at each
-  citation site that the number is straight-line and unreproducible, and retire it as the author states its
-  replacement.
-
-  *`seed-stats.md:385` and `WL7` already carry the mark; `B175` and `B179` do not. Note for whoever states the
-  replacements that the surface under them moved after this was filed: `Cells.SnapToWalkable` now walks the
-  **square** (Chebyshev) ring rather than the diamond, so a marker only a diagonal cell reaches now snaps
-  where it used to read unreachable — walks that were null are numbers now.*
-
-- [ ] **RP54 — Retire the weighted-cost route family, or give it the caller it was built for.**
-  `Cells.CheapestPath`, `CostField` and both `CostCorridor` overloads price a route by an arbitrary per-cell
-  or per-step function, and `PlanRouteCost.Of` is the function they were written for. Nothing in `src/`
-  calls any of them: `PlanFlow` reads only `PlanRouteCost.BaseId`, and every route and corridor the studio
-  draws now solves over a `WalkGround`, which prices a climb, a crossing and water itself. What keeps them
-  alive is `CellsRouteTests` and `PlanRouteCostTests`, which is code held up by its own tests.
-
-  Two ways out and the author picks: delete both (≈120 lines in `Geom/Cells.cs`, `PlanRouteCost.Of` and the
-  two test classes' cost halves), or name the read that wants a cost the walk cannot express — a route
-  charged by what it is exposed to rather than by what it costs to cross, which `WalkAim.Comfort` answers
-  for one quantity only.
-
-  *`grep -rn "CheapestPath\|CostField\|CostCorridor" src/` answers `src/PgmStudio.Geom/Cells.cs` and
-  nothing else.*
-
-- [ ] **B99 — `TraversabilityRender` must look through decoration for headroom as it already does for
-  ground.** `Scan` walks down for the first block that is not air, not liquid and not
-  `BlockRoles.StandsOnGround` — then tests headroom with `ids[y+1] == 0 && ids[y+2] == 0`, strict air. The
-  same block is therefore *not ground* and *in the way*, and any column carrying decoration reads as not
-  navigable. Use the one predicate on both sides.
-
-  **This is the renderer only.** The gate (`Analysis.Playability.Traversability`) navigates on
-  `WorldColumns.Membership`, which is any solid block with no headroom test, so it never saw this — which is
-  why a board reads isolated in `traversability.png` and passes preflight.
-
-  *measured on a 60 × 20 plateau: plain, **1200 navigable, 1 component**. Cut by an ST4 approach wall (3
-  courses of bedrock + its cobweb cap), **1160 navigable, 2 components** — the board splits. The same wall
-  with the cobweb course removed, **1200 navigable, 1 component**: it is the web, not the bedrock, and the web
-  is `Placed` decoration the ground search steps past. With tall grass on a third of the columns, **800
-  navigable, 26 components** on flat ground. The wall is meant to be crossed — its own stamper says an
-  attacker bridges to the top and cuts the web with the shears every kit carries.*
-
-  *And over a real run rather than a fixture: across `pgm-studio-mapgen`'s twelve run-4 boards, **every
-  board carrying an approach wall reads isolated** except the one whose wool lane has a second land seam —
-  `hollowbank` 2 markers of 2, `sonnet-compass` 12 of 12, `sonnet-reedcut` 2 of 2, `wheal-hazel` 0 of 2. All
-  five passed the export gate. The cost is a reviewer filing a defect that is not there; one run's author
-  nearly redesigned a correct board around it.*
 
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two

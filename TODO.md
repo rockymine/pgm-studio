@@ -16,8 +16,8 @@ before it is too late to act on the answer.*
 **The first group carries a model rather than a list**, and the model is the author's, stated this session.
 It is written into the heading because eight entries in `BACKLOG.md` read one field of what it returns and
 two of them said so outright — `S47`'s detour factor and `B169`'s dead share both waited on it. The rest:
-`WS1` (the same clearance read), `WS2` and `WS3` (the same traversal from more origins), `B175` and `B179`
-(goal walks), and `B212` (three straight-line numbers wanting restatement in the unit this walk returns).
+`WS1` (the same clearance read), `WS3` (the same traversal from more origins), and `B175` and `B179`
+(goal walks, whose bands are now `GO2` and `GO3`).
 
 ## The walk: one model, two fidelities, answered in blocks
 
@@ -29,59 +29,14 @@ of time). Eight-connected, because a player walks diagonally; water a speed rath
 ten-block allowance a corridor is already claimed with. It is written out in `docs/world-scan/read-backs.md` and its types are in
 `docs/generator/vocabulary.md`.
 
-**What remains is that most of the studio is not asking it yet.** Every distance outside `KitReach` still
-comes from `Cells.PathLength` — an unweighted **four-connected** BFS over "does this column hold any block".
-A route climbs a 20-block scarp at the cost of flat ground, walks through a house, hugs the void because the
-void is the short way round a bend, and cannot go diagonally. Moving them re-bases every band they are
-compared against, which is why the entry below is a sweep rather than a substitution.
-
-`Pgm/Derive/PlanRouteCost` is the one piece the walk did not absorb: it charges a step for clearance,
-bridging, a threatened seam and a climb, its `Build`/`Of`/`StepOf` are called from nothing but their own
-tests, and its four weights are the thing the model says there should be none of. It is a deletion once
-`PlanRoutes` reads the walk, not a second model to keep.
+**Every distance in the studio now asks it**, and the weighted step cost that stood beside it is gone: one
+traversal, two fidelities, three aims, nothing to calibrate.
 
 **And `match-flow.md` §6.12 is right about something else.** It says a climb weight cannot be fitted to
 recorded play because half the standing samples sit on structure the players built, a median 14–17 blocks up.
 That is a fact about *what players do with a map* — the scaffolding at build height by minute thirty — and
 this model is about **what the ground offers**. The two are different levels of movement and §6.12 does not
 bear on this one.
-
-- [ ] **B129 — Give the section renderer a depth-projected mode, so what stands behind the cut is in the
-  picture.** `SectionRender` samples a **single one-block-thick slice**, which is right for checking a
-  `layered` material and useless for looking at a map: a cut through solid ground is a solid slab, because
-  a solid slab is genuinely what sits on that plane. The projection it wants already exists on the other
-  side of the house — `Analysis/Layer/SideView.Build` reduces a map's vertical solid segments to a depth
-  map per viewing direction (`nz`/`pz`/`nx`/`px`), and `sideview-canvas.js` paints it. Add it as a **mode
-  of the existing renderer**, not a second one: the two answer different questions and both are worth
-  having.
-
-  Two things to settle. `SideView` reads `layer_segments` rows, which exist only for a **scanned** map,
-  while `SectionRender` reads a region directory or a `VoxelWorld` — so the projection wants doing over
-  voxels and the shared thing is the algorithm, not the input. And a depth map answers *how far* rather
-  than *what*, so the mode should carry both: **distance as value, material or category as hue**, which is
-  what makes a building behind the cut read as a building rather than a lighter smudge. The existing side
-  view is greyscale and never got the colour half.
-
-  **A stacked layer raises it from a nicety.** `render/section` is the only read in the studio that shows
-  one at all — every other projects a column to one height — so on a layered board a cut that misses the
-  gap reports solid ground, which is the same fault this entry already describes for a house.
-
-  *a cut through Ashen Quarry's town at z=60 is two courses of stone brick over forty-seven of andesite
-  over bedrock — accurate, and it shows none of the buildings a few blocks either side, no room interiors,
-  and nothing of the town's silhouette. And on `opus5-undercroft`, `axis=x&at=47` is the only picture of a
-  nine-block hall under a terrace; every other read draws that column as a plateau at y28.*
-
-## What an author cannot ask, and the scripts that fill the gap
-
-Five authored boards produced two kinds of scratch script. The ones that **computed the author's own
-geometry** — faceting a ring, solving a plane through three stated vertices, folding a ring onto its
-`rot_180` image — are right where they are and stay uncommitted. The ones that **re-implemented a studio
-rule outside the studio**, to predict a verdict that could only be had by building, caused every serious
-defect those runs shipped: a land model that disagreed with the rasterised coast by two cells, and a
-keep-out model written twice in opposite directions. Both existed because a gate can say a placement was
-*refused* and nothing can say where a placement would *land*.
-
-The first four entries below are that asymmetry, in the order they were met.
 
 - [ ] **WE21 — A path prop says whether it is a route or paint.** `Decorator.PlacePath` claims every cell
   it lays as `ClaimKind.Route`, and `DR-ROAD` then keeps a tree three blocks off any claimed cell

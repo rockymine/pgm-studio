@@ -160,6 +160,14 @@ public sealed class PlanNav
     public (int X, int Z)? Snap((int X, int Z) cell, int radius = 4) =>
         Cells.SnapToWalkable(cell, Navigable, radius);
 
+    /// <summary>A fanned piece name back to the id the plan states (<c>piece-7#1</c> → <c>piece-7</c>) — what
+    /// a cell of <see cref="PieceAt"/> is called in the document, as opposed to which orbit image it is.</summary>
+    public static string BaseId(string name)
+    {
+        var hash = name.IndexOf('#');
+        return hash < 0 ? name : name[..hash];
+    }
+
     /// <summary>The named POIs, one entry per distinct marker id and orbit image, in a stable order — the
     /// demand set a coverage read walks over, before any arbitrary origin is added to it.</summary>
     public IEnumerable<PlanPoi> Waypoints() =>

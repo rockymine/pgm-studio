@@ -173,10 +173,11 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
 
 /// <summary>GET /api/map/{slug}/render/section — a vertical cut with a Y scale, and one of only two reads
 /// that keep Y at all. <c>axis</c> is <c>x</c> or <c>z</c> (which way the cut runs), <c>from</c>/<c>to</c> its
-/// extent along that axis and <c>at</c> the other coordinate it is taken at. It samples <b>one plane</b>, so
-/// anything a few blocks either side is not in the picture — a cut through a house that misses its walls
-/// reads as floor, air, roof, and that is a correct reading of that plane rather than a broken
-/// building.</summary>
+/// extent along that axis and <c>at</c> the other coordinate it is taken at. Without <c>depth</c> it samples
+/// <b>one plane</b>, so anything a few blocks either side is not in the picture — a cut through a house that
+/// misses its walls reads as floor, air, roof, which is a correct reading of that plane rather than a broken
+/// building. With <c>depth</c> it projects that many blocks behind the cut, each column taking the nearest
+/// block there, drawn in its own material dimmed by how far back it stands.</summary>
 internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)
 {
@@ -192,7 +193,10 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
             new QueryWord("at", "The other coordinate the plane is taken at. Absent is 0."),
             new QueryWord("ymin", "The lowest course drawn. Absent draws from the lowest block in the cut."),
             new QueryWord("ymax", "The highest. Absent draws to the highest block in the cut."),
-            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16),
+            new QueryWord("depth", "How many blocks behind the plane to project, 0 to 16. Absent samples the "
+                + "one-block slice; above 0 each column takes the nearest block at or behind the cut, drawn "
+                + "in its own material dimmed by how far back it stands.", Min: 0, Max: 16)));
     }
 
     protected override string Empty => "nothing stands along that cut";
@@ -202,7 +206,7 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
         string.Equals(Query<string?>("axis", isRequired: false), "z", StringComparison.OrdinalIgnoreCase)
             ? SectionAxis.AlongZ : SectionAxis.AlongX,
         OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, OptionalInt("at") ?? 0,
-        Scale, OptionalInt("ymin"), OptionalInt("ymax"));
+        Scale, OptionalInt("ymin"), OptionalInt("ymax"), depth: OptionalInt("depth") ?? 0);
 }
 
 /// <summary>GET /api/map/{slug}/render/heightmap — elevation as tone, with contour lines every
@@ -251,9 +255,9 @@ internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, 
 }
 
 /// <summary>GET /api/map/{slug}/render/traversability — the navigable components, with the spawns and goals
-/// drawn on them. <b>An approach wall's cobweb course reads as impassable</b> (`B99`), so every board
-/// carrying one reports its wool room isolated and the export gate — which navigates on the columns rather
-/// than on this picture — passes it. A wall is meant to be crossed over the top.</summary>
+/// drawn on them. Headroom is what a player's body passes through rather than air, so a flower, a torch, a
+/// carpet and an approach wall's cobweb course leave a column navigable while a fence, a wall and a chest
+/// stop it.</summary>
 internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : WorldRenderEndpoint(repo, reader, artifacts)
 {

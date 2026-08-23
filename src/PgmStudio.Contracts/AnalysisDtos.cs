@@ -129,12 +129,23 @@ public sealed record CoveragePatchDto(int Area, int CentroidX, int CentroidZ, in
 /// of.</param>
 /// <param name="Busiest">The highest traffic count on the board, so a caller scales without walking the
 /// grid.</param>
+/// <param name="Markers">The waypoints the journeys were walked between, each with the kind it is — a class
+/// code names what ground is, and which place a cell is is a different question.</param>
 public sealed record CoverageDto(
     Bounds2dDto Bbox, int Width, int Height,
     IReadOnlyList<string> Classes, IReadOnlyDictionary<string, string> Colors, IReadOnlyList<string> Rows,
     int GroundCells, int ReachedCells, int DecoratedCells, int DeadCells, double DeadShare,
     IReadOnlyList<CoveragePatchDto> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes,
-    IReadOnlyList<string> Traffic, int Journeys, int Busiest);
+    IReadOnlyList<string> Traffic, int Journeys, int Busiest,
+    IReadOnlyList<CoverageMarkerDto> Markers);
+
+/// <summary>One waypoint a coverage journey started or ended at, at the cell it snapped to.</summary>
+/// <param name="Kind">What it is: <c>spawn</c>, <c>wool</c>, <c>destroyable</c>, <c>core</c>, or
+/// <c>crossing</c> for a derived seat on a way across the middle.</param>
+/// <param name="X">Where it stands, east–west.</param>
+/// <param name="Z">Where it stands, north–south.</param>
+/// <param name="Color">Its canonical swatch, the same one every picture draws that kind in.</param>
+public sealed record CoverageMarkerDto(string Kind, int X, int Z, string Color);
 
 /// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
 /// <param name="Key">What the check is, for a caller branching on it.</param>

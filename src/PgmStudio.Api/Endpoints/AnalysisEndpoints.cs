@@ -1,6 +1,7 @@
 using PgmStudio.Export;
 using FastEndpoints;
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Geom.Render;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
@@ -114,7 +115,9 @@ public sealed class CoverageEndpoint(MapRepository repo, MapReader reader, Featu
             res.GroundCells, res.ReachedCells, res.DecoratedCells, res.DeadCells, res.DeadShare,
             res.DeadPatches.Select(p => new CoveragePatchDto(p.Area, p.CentroidX, p.CentroidZ, p.NearestReachedBlocks)).ToList(),
             res.UnnamedDeadPatches, res.HaveRoutes,
-            traffic, res.Journeys, res.Traffic.Length == 0 ? 0 : res.Traffic.Max()), ct);
+            traffic, res.Journeys, res.Traffic.Length == 0 ? 0 : res.Traffic.Max(),
+            res.Markers.Select(marker => new CoverageMarkerDto(
+                marker.Kind, marker.X, marker.Z, ObjectiveColors.Css(marker.Kind))).ToList()), ct);
     }
 }
 

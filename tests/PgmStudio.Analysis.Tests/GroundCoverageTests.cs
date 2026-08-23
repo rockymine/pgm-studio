@@ -120,6 +120,68 @@ public sealed class GroundCoverageTests
         await Assert.That(res.DeadCells).IsEqualTo(0).Because("a ring is all lane");
     }
 
+    // Two team blocks joined by two ways across. Every waypoint sits in the north, so a goal-to-goal demand
+    // set walks the north crossing only and the south one carries nothing.
+    private static Dict TwoSidedBoard => new()
+    {
+        ["regions"] = new Dict { ["red-spawn"] = Rect(0, 1, 4, 5), ["blue-spawn"] = Rect(56, 1, 60, 5) },
+        ["spawns"] = new List<object?>
+        {
+            new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+            new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+        },
+    };
+
+    private static HashSet<(int, int)> TwoSidedGround()
+    {
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x <= 20; x++) for (var z = 0; z <= 40; z++) surface.Add((x, z));      // west block
+        for (var x = 40; x <= 60; x++) for (var z = 0; z <= 40; z++) surface.Add((x, z));     // east block
+        for (var x = 21; x < 40; x++) for (var z = 0; z <= 6; z++) surface.Add((x, z));       // north crossing
+        for (var x = 21; x < 40; x++) for (var z = 34; z <= 40; z++) surface.Add((x, z));     // south crossing
+        return surface;
+    }
+
+    [Test]
+    public async Task A_way_across_the_middle_is_walked_even_where_no_objective_stands_near_it()
+    {
+        var res = GroundCoverage.Read(TwoSidedBoard, TwoSidedGround(), null, [], bbox: (-8, -8, 68, 48));
+        int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
+
+        // Both spawns are in the north, so every spawn-to-spawn journey takes the north crossing. The south
+        // one is a way across all the same, and the read finds it because the middle is an origin.
+        await Assert.That(res.Traffic[At(30, 3)]).IsGreaterThan(0).Because("the north crossing");
+        await Assert.That(res.Traffic[At(30, 37)]).IsGreaterThan(0).Because("the south crossing");
+        await Assert.That(res.Cells[At(30, 37)]).IsNotEqualTo(GroundCoverage.Dead);
+    }
+
+    [Test]
+    public async Task Every_waypoint_is_named_with_the_kind_of_place_it_is()
+    {
+        var res = GroundCoverage.Read(TwoSidedBoard, TwoSidedGround(), null, [], bbox: (-8, -8, 68, 48));
+
+        await Assert.That(res.Markers.Count(marker => marker.Kind == "spawn")).IsEqualTo(2);
+        await Assert.That(res.Markers.Any(marker => marker.Kind == "crossing")).IsTrue();
+        // Every marker sits where a journey could start, which is what makes the picture checkable in-game.
+        foreach (var marker in res.Markers)
+        {
+            var code = res.Cells[(marker.Z - res.MinZ) * res.Width + (marker.X - res.MinX)];
+            await Assert.That(code).IsNotEqualTo(GroundCoverage.Void).Because($"{marker.Kind} at {marker.X},{marker.Z}");
+        }
+    }
+
+    [Test]
+    public async Task The_route_never_claims_a_cell_the_read_called_void()
+    {
+        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+
+        var ground = Ground();
+        for (var i = 0; i < res.Cells.Length; i++)
+            if (res.Cells[i] == GroundCoverage.Route)
+                await Assert.That(ground.Contains((res.MinX + i % res.Width, res.MinZ + i / res.Width)))
+                    .IsTrue().Because("an annotation may not add a cell to the picture");
+    }
+
     [Test]
     public async Task Traffic_counts_the_journeys_rather_than_answering_whether_any()
     {

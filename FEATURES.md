@@ -1189,31 +1189,51 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `busiest`. Ten blocks is calibrated, not assumed: it reproduces the author's own reading of `wheal-hazel`
   — `works-lo-w` and `west-spur` dead, `works-yard` and `moor` about half, the bar about two thirds — and
   reads its rebuild `wheal-hazel-v2` at **0%**.
+- **The coverage image says what its colours mean (`B248`).** `CoverageRender` painted a class colour per
+  cell and stopped: no key and no scale bar, which every other stage image carries, and a waypoint drawn as
+  the same white three-cell block whatever kind of place it was. It now appends a `Legend` strip naming every
+  class and every waypoint kind present, with the blocks-per-pixel line beside it, and draws each waypoint as
+  a cross in its kind's colour — `Geom.Render.ObjectiveColors`, one palette shared by every picture that
+  draws a goal, with a destroyable and a core apart rather than sharing one orange. A waypoint stopped being
+  a cell class and became `Result.Markers`, which the JSON carries too, so a caller reads which place a cell
+  is instead of that some place is there. The route no longer paints over a cell the read classed void.
+  Beside it, `render/section` gained the key it never had — four colours the render itself invents, air apart
+  from unwritten chunk — so all nine world pictures now carry a legend and a scale line.
+  (`Geom/Render/ObjectiveColors.cs`, `Export/CoverageRender.cs`, `Analysis/Playability/GroundCoverage.cs`,
+  `Minecraft/Render/SectionRender.cs`, `Minecraft/Views/CellRaster.Pixels`, `Contracts/AnalysisDtos.cs`,
+  `GroundCoverageTests.cs`)
+- **The middle is an origin, and the coverage read derives it (`WS2`).** A demand set of spawns and goals
+  walks only the journeys a defender makes; the route that decides a match crosses the middle, and no field
+  of the map document names the middle. `GroundCoverage.Crossings` finds it instead: the cells both teams'
+  walks reach at the same cost within two blocks are the line the two sides arrive at together, it breaks
+  into one stretch per way across, and each stretch of eight cells or more contributes its widest cell — the
+  crossing players use rather than the corner where the line clips a wall. Those seats are walked against
+  every other waypoint, so a second bridge that no objective stands near stops reading as dead ground. Only
+  where exactly two teams hold spawns: with one there is no middle, and with four the six pairwise middles
+  describe nothing.
+  (`Analysis/Playability/GroundCoverage.cs`, `docs/world-scan/ground-coverage.md`, `GroundCoverageTests.cs`)
 - **A plan is walkable ground, and a journey across it can be read before anything is built (WS1, WS2).**
   Every gate that ran before a build answered over pieces — `ContactGraph` classifies whether two rectangles
   touch, `FannedGraph` whether one reaches another — and neither could say how far apart two places are, how
   wide the way between them is, or whether there is more than one. `PlanNav` fans the plan to a navigable cell
   set (ground · bridged zone · water lane · enclosed holes · markers) off the same `PlanBoardScene` the two
   picture renderers read, and `PlanRoutes` answers one journey over it: the walk, the corridor, the distinct
-  ways, and the `RouteFork` that names where a choice opens and closes again. The substrate is five new
-  `Geom.Cells` primitives — `DistanceField`, `Corridor` (the ribbon, a set rather than one path fattened, so
-  both sides of a hole are carried), `Clearance`, `CheapestPath`/`CostField`/`CostCorridor` (the weighted twins),
-  and `WaysRound`/`RayCut` (the topological two-ways test `match-flow.md` §2 specifies, which is *not* a
-  min-cut component count).
+  ways, and the `RouteFork` that names where a choice opens and closes again. The distance and the ribbon are
+  `Walk`'s; what `Geom.Cells` contributes is `Clearance` and `WaysRound`/`RayCut` — the topological two-ways
+  test `match-flow.md` §2 specifies, which is *not* a min-cut component count.
 - **The walk can read the ground's height, and charge the climb (WS4, part).** `PlanNav.SurfaceAt` carries
-  each cell's height — a piece's own `surface` where it states one, the plan's global where it does not — and
-  `PlanRouteCost.StepOf` charges the rise into a cell: free to one block, paid per block above it, free coming
-  down, which is `B246`'s rule read at the plan tier. It needed the weighted reads generalised from a per-cell
-  cost to a **step** cost, since the price of a scarp is paid crossing it and not standing beside it; the
-  per-cell forms remain as wrappers. Demonstrated on the `townside` height trace: a heavy climb weight drops
-  the steepest step from five blocks to one and routes by the staircase instead of the scarp. **The weight
-  itself is uncalibrated and cannot be calibrated from this corpus** — see `docs/gameplay/match-flow.md` §6.12.
-- **A step can cost more than a step (WS1).** `PlanRouteCost` charges the edge — a walk that only minimises
-  length hugs every border it passes, and on these boards a border is void — plus bridged ground and the reach
-  of a held wall over it. Widths are stated in blocks and divided by the plan's cell, so one set of numbers
-  reads at any trace scale. Calibrated against 12.9 M recorded position samples on six traced maps: the edge
-  term is the main win, the threat term fires only where the ribbon is wide enough to hold the alternative,
-  and a walkable build zone must not be charged.
+  each cell's height — a piece's own `surface` where it states one, the plan's global where it does not — so
+  the plan tier hands `Walk` a real surface and the climb is charged there, in the blocks a player places,
+  rather than as a weight that would have to be fitted. Why a weight cannot be fitted from this corpus at
+  all is `docs/gameplay/match-flow.md` §6.12.
+- **The weighted step cost is retired (`RP54`).** `PlanRouteCost` charged a step for clearance, bridging, a
+  threatened seam and a climb, each under its own weight, and `Cells` carried the Dijkstra family that spent
+  them — `CheapestPath`, `CostField`, `CostCorridor`. `Walk` prices a climb, a crossing and water in their
+  own units with nothing weighted, and `WalkAim.Comfort` answers the exposure question the edge term was
+  reaching for, so the whole family went and `PlanNav.BaseId` is what survived of it. The corpus finding it
+  was calibrated against — 12.9 M recorded position samples over six traced maps, where the edge term is the
+  main win and the threat term fires only where the ribbon can hold the alternative — is kept in
+  `docs/gameplay/match-flow.md`, since nothing in the repository can re-derive it.
 - **A plan renders as a grid of characters (WS1).** `PlanBoardAscii` draws the same fanned board the PNG and
   SVG do, one character per cell, with an overlay channel for a route or a corridor and a `Compare` that lays
   two cell sets on the same rows. A plan is a list of rectangles and most of what goes wrong with one is a
@@ -1612,6 +1632,31 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Pgm/Evaluate/seed-envelopes.json`, `docs/generator/{rules,vocabulary,seed-envelopes}.md`,
   `Export/WalkRender.cs`, `Api/Endpoints/WorldReadEndpoints.cs`, `WalkTests.cs`, `CellsRouteTests.cs`,
   `KitReachTests.cs`)
+- **`section` projects what stands behind the cut (`B129`).** A one-block slice is the right read for a
+  `layered` material and the wrong one for looking at a map: a cut through a house that misses its walls
+  reads as floor, air, roof. `depth` makes the same renderer take, per column, the nearest block up to that
+  many behind the plane — a mode of the existing read rather than a second renderer, since the two answer
+  different questions and both are worth having. **Hue stays the material and the depth is the value**: what
+  stands on the cut is pixel-identical to the slice and what is behind is the same material dimmed, keeping
+  45% of its brightness at the far end so "deep" and "nothing there" never become the same pixel. Sixteen
+  blocks is the cap — a chunk, and deeper than any room this studio builds. Category hue was the alternative
+  and was declined: this renderer exists to say which block sits at which height, and a mode that swapped the
+  material out would answer a different question than the mode it is a mode of. `SideView` is untouched — it
+  reduces a whole map to a depth map per direction off `layer_segments` rows, so it answers only for a
+  scanned map and the two coexist.
+  (`Minecraft/Render/SectionRender.cs`, `Minecraft/Render/WorldReadCatalog.cs`,
+  `Api/Endpoints/WorldReadEndpoints.cs`, `tools/PgmStudio.RoundTrip/Program.cs`, `SectionRenderTests.cs`)
+- **Headroom is what a body passes through, not air (`B99`).** `TraversabilityRender` found ground by
+  stepping past everything that stands on it and then tested headroom against strict air, so a column with a
+  daisy on it reported as ground a player cannot stand on, and every board carrying a cobweb course over an
+  approach wall reported its wool room isolated while the export gate passed it. The two sides ask different
+  questions and `BlockRoles.StoodThrough` is the second one: everything that grows except a cactus, plus the
+  placed blocks that lie flat or hang on a face — a rail, a torch, a carpet, a snow layer, a sign, a pressure
+  plate, and a cobweb, which is a crossing the kit's shears open rather than a seal. A fence, a wall, iron
+  bars, a chest, an anvil and a cauldron are decoration too and all stop a player, so none is in it; a door,
+  a ladder, a trapdoor and a fence gate read as blocking, since a block id does not carry the open state.
+  (`Minecraft/Palette/BlockRoles.cs`, `Minecraft/Render/TraversabilityRender.cs`,
+  `Minecraft/Render/WorldReadCatalog.cs`, `Api/Endpoints/WorldReadEndpoints.cs`, `BlockRolesTests.cs`)
 - **The world read-backs answer over HTTP (`WS6`), withdrawing `B245`.** Everything a caller does runs
   through the API and the API describes itself — except the one thing done *after* building, which is looking
   at what was built. Eight renderers in `Minecraft/Render/` reached a caller only through
@@ -1624,9 +1669,8 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   **What each read answers is written once.** `WorldReadCatalog` holds the sentences and both surfaces serve
   them: each route publishes its own as the summary the schema carries, and `PgmStudio.RoundTrip --help`
   prints the same text beside the flags — which is why `B245`, asking for it in `--help` alone, is withdrawn
-  rather than done. The three caveats ride with them: `traversability` reads an approach wall's cobweb as
-  impassable (`B99`), `structures` cannot see a town this studio built (`B149`), `section` samples one plane
-  (`B129`).
+  rather than done. The one caveat that rides with them: `structures` cannot see a town this studio built
+  (`B149`).
 
   **The world is built for the request and no gate runs**, deliberately: a board that fails one is exactly
   the board somebody needs to look at. The map document is projected from the resolved intent rather than

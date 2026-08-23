@@ -120,6 +120,39 @@ public static class BlockRoles
         176, 177,                   // banner, wall banner
     ];
 
+    /// <summary>The placed blocks a player's body passes through: what lies flat on the ground or hangs on a
+    /// face, as opposed to what stands up out of it. A fence, a wall, iron bars, a chest, an anvil and a
+    /// cauldron are all decoration and all stop a player, so none is here.</summary>
+    private static readonly HashSet<int> Underfoot =
+    [
+        27, 28, 66, 157,            // rails: powered, detector, plain, activator
+        30,                         // cobweb
+        50, 75, 76,                 // torch, redstone torch unlit and lit
+        55,                         // redstone wire
+        63, 68,                     // sign, wall sign
+        69,                         // lever
+        70, 72, 147, 148,           // pressure plates: stone, wood, gold, iron
+        77, 143,                    // buttons: stone, wood
+        78,                         // snow layer
+        131, 132,                   // tripwire hook, tripwire
+        140,                        // flower pot
+        171,                        // carpet
+        176, 177,                   // banner, wall banner
+    ];
+
+    /// <summary>Whether a player can stand where this block is — the <b>headroom</b> question, which is
+    /// neither <see cref="StandsOnGround"/> nor air. A pass looking for ground steps past everything that
+    /// stands on it; a pass asking whether there is room to stand may not, because a fence and a flower both
+    /// stand on the ground and only one of them is in the way. What is stood through: everything that grows
+    /// except a cactus, which has a hitbox and hurts, plus the placed blocks that lie flat or hang on a face.
+    /// A cobweb is in it because a web course on top of an approach wall is a crossing a player makes with the
+    /// shears the kit carries, not a seal.
+    ///
+    /// <para>A door, a ladder, a trapdoor and a fence gate are read as blocking, since whether a player fits
+    /// depends on the open/closed state and a block id does not carry it.</para></summary>
+    public static bool StoodThrough(int blockId) =>
+        (Growing.Contains(blockId) && blockId != 81) || Underfoot.Contains(blockId);
+
     /// <summary>The materials that do not fill their cube: the three families that are thinner than their
     /// block, composed rather than relisted (<see cref="BlockFamilies"/>). Only the single slabs are in it —
     /// a double slab is a whole block and keeps its own id, which is why <see cref="BlockFamilies.DoubleSlabs"/>
