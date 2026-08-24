@@ -24,10 +24,11 @@ is for. *(Settled by the author; this is the law `TS22`'s layer id names and `TS
 **A depression or a river in the upper layer does not bleed into the layer beneath it.** That is the default;
 letting it cut through is the toggle, not the other way round. *(Settled by the author.)*
 
-The mineshaft **builds today with plain adds**: four wall shapes clamped around a low gallery floor, a ramp
-climbing out of its east end, and a deck on a second layer with a mouth cut where the ramp arrives. 6,400
-cells, 12,656 segments, 6,256 of them stacked. A `subtract`-and-`override` variant builds the identical
-geometry and is not needed.
+The mineshaft **builds today with plain adds**: four wall shapes clamped around a low gallery floor, an adit
+climbing out of its east end, and a deck on a second layer with a mouth cut where it breaks the surface. It is
+committed as `pgm-studio-mapgen`'s `maps/opus5-mineshaft` (`specs/`, `reports/opus5-mineshaft-layers.md`), so
+every entry below is measured against one file. 6,400 cells, 6,928 solid masses, 528 columns carrying two. A
+`subtract`-and-`override` variant builds the identical geometry and is not needed.
 
 What fails is everything downstream of the geometry, and three of the entries below share one cause: **a
 column segment does not carry the layer that produced it.** `SketchRasterizer` iterates layers and drops the
@@ -81,7 +82,8 @@ it** — the rest are unblocked and can be taken in any order.
   the healthy case and must stay silent: the rock mass meeting the deck underside is how a roof is built.
   Needs no layer id — the segments alone answer it.
 
-  *On the mineshaft: 0 overlapping, 11,600 flush, 528 separated with a thinnest gap of 14.*
+  *On the mineshaft: nothing overlaps, 528 columns hold two masses with gaps of 4 to 16, and every other
+  column fuses its two layers into one — which is the deck sitting on the rock and must stay silent.*
 
 - [ ] **TS21 — One cell per column is why a stacked board reads wrong.** `WorldColumns.Membership` projects a
   column to one cell and the walk stands a player on the **lowest** surface carrying headroom, so a stacked
@@ -94,9 +96,11 @@ it** — the rest are unblocked and can be taken in any order.
   columns, so it needs no layer id.
 
   *`opus5-undercroft` at `(0, 48)`: the walk stands at **15**, the hall floor, while the terrain top is
-  **28** — every distance that board reports is measured through a nine-block undercroft. On the mineshaft the
-  same rule sends a player down the mine and up the ramp and reports **no surface route across the middle of
-  the board at all**, though 6,400 of 6,400 columns read as passable.*
+  **28** — every distance that board reports is measured through a nine-block undercroft. On the mineshaft,
+  `walk?from=0,30&to=0,-30` answers **reachable, distance 60, drops 1, worstDrop 22** on a route running dead
+  straight over the gallery: the standing surface flips from deck to mine floor at the gallery edge and a
+  twenty-two block fall is scored as a drop on one continuous surface. Preflight calls the same chain
+  connected.*
 
 - [ ] **WE22 — A slab over void should not lay bedrock at the bottom of the world.**
   `TerrainBuilder.Build` writes a bedrock course at y0 under **every** footprint cell (`world.SetBlock(x, 0,
@@ -114,10 +118,9 @@ it** — the rest are unblocked and can be taken in any order.
   wins, ties to the first claimer — while `themeAt(x, z)` has no Y to tell two layers apart with. Make
   `SurfaceTop` one entry per segment and key the owner map on `(layer, cell)`. Wants `TS22`.
 
-  *The mineshaft's meadow deck is painted **andesite where a wall stands under it and gravel where the gallery
-  runs** — a map of the layer below, cell for cell, because every mine-level shape is smaller than the deck
-  that roofs the whole board. Its gallery floor at `y 1..3` and the walls facing into it are raw stone. The
-  meadow theme lands on no block anywhere.*
+  *The mineshaft's meadow deck paints one grey over the gallery (372 columns, all of them) and another
+  everywhere else (5,414) — a map of the layer below, cell for cell, because every mine-level shape is smaller
+  than the deck that roofs the whole board. The meadow theme lands on no block anywhere.*
 
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
@@ -131,8 +134,10 @@ it** — the rest are unblocked and can be taken in any order.
   the acceptance test for `TS22` and `TS23`: without a per-layer read, whether a theme landed on the right
   storey can only be inferred from segment counts.
 
-  *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone; the gallery
-  at `[0,4)` is reachable only through `ymax`, and only because that deck happens to be flat at `y 20`.*
+  *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone, and the
+  gallery is reachable only through `ymax` — `maps/opus5-mineshaft/renders/topdown-mine.png` is that cut at 19
+  and **still draws both spawn cubes**, which stand on the meadow at 26, because provenance keys a claim
+  `(X, Z)` with no Y and the structure layer is drawn whole whatever the cut says.*
 
 ## What the front door still cannot say
 
