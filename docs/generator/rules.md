@@ -617,11 +617,14 @@ disagree with the one that runs.
   region diagonally beside it. The rule is scale-free — every length follows the zone and the board's
   cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`, whose
   markers are what a plan of that shape exports.
-- **ST6 [author]** *Destroyable platform*: a **5×5, one-block-thick bedrock plate**, seated **one
-  course beneath the ground's own surface block** under each destroyable — never thicker, which
-  would read as a wall grown out of the floor rather than a plate under it. It stops the goal being
-  undermined from below and the ground under it being mined out from under it (`StructureStamper.
-  StampPlatform`, called from the destroyable stamp in `WorldBuilder`).
+- **ST6 [author]** *Destroyable platform*: a **5×5, one-block-thick bedrock plate**, seated
+  `StructureStamper.PlatformDepth` (**3**) courses beneath the ground's own surface block under each
+  destroyable and each core — never thicker, which would read as a wall grown out of the floor rather
+  than a plate under it. It stops the goal being undermined from below and the ground under it being
+  mined out from under it. Its **defence chest stands on the ground** at the footprint's centre column,
+  beside the monument, not in the space the plate opens under the terrain: the plate is what goes into
+  the ground, and a chest three courses down under whole terrain is a supply nobody can see or reach
+  (`StructureStamper.StampPlatform`, called from the destroyable and core stamps in `WorldBuilder`).
 - **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
   a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
   `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap
@@ -807,6 +810,15 @@ both corrected.)
     corrected is seated on the ground outside its own doors, so the plan number can no longer leave a room
     in a pit. A Δ≥2 face between two ordinary pieces stays unlinted, being a design element as often as a
     fault.
+
+23. **`ST6` amended: the plate's depth is stated, and its chest stands on the ground (2026-08-24).**
+    Author's call. Two corrections in one rule. The depth was written as one course and has been three
+    (`PlatformDepth`) since the rule was added, so the text is brought to the code rather than the other
+    way round — three is what opens a space under the goal at all. And the chest that space was opened
+    for is moved out of it onto the terrain: on `opus5-elderwold` the plate at `(-20, 90)` sits at y17,
+    the chest sat at y18 with air at y19 and whole grass at y20 over it, walled in on all four sides —
+    a supply a defender could neither see nor guess at. It now stands at the centre column's own surface
+    beside the monument. The plate is unchanged; only what stands on it moved.
 
 ## Correction protocol
 

@@ -26,4 +26,9 @@ public readonly record struct Rect(double MinX, double MinZ, double MaxX, double
     /// <see cref="CellRect.Contains"/>, which is half-open: a block on the far edge of a protection region is
     /// inside it, where a cell at <c>MaxX</c> is the first one past the rect.</summary>
     public bool Covers(double x, double z) => x >= MinX && x <= MaxX && z >= MinZ && z <= MaxZ;
+
+    /// <summary>Whether the two footprints share any ground. Inclusive on both edges for the same reason
+    /// <see cref="Covers"/> is: two rects meeting exactly on an edge share that block.</summary>
+    public bool Overlaps(Rect other) =>
+        MinX <= other.MaxX && other.MinX <= MaxX && MinZ <= other.MaxZ && other.MinZ <= MaxZ;
 }

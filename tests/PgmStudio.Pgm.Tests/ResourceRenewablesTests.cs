@@ -4,8 +4,10 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>Resource-block renewables (<see cref="ResourceRenewables"/>): only ore that sits inside a team
-/// spawn earns a renewable — the spawns region is reused with relaxed protection (only that ore breakable,
-/// only the world replaces it). Ore scanned elsewhere is left as-is (ambiguous intent).</summary>
+/// spawn earns a renewable — the spawns region is reused, and the ore it reports is what
+/// <see cref="SpawnOreProtection"/> states the spawns' block protection over (only that ore breakable, only
+/// the world replaces it). Ore scanned elsewhere is left as-is (ambiguous intent). The two calls are made
+/// together here because the composer makes them together.</summary>
 public sealed class ResourceRenewablesTests
 {
     private static Region Rect(string id, int minX, int minZ, int maxX, int maxZ) => new()
@@ -31,7 +33,7 @@ public sealed class ResourceRenewablesTests
     public async Task Ore_outside_spawns_gets_no_renewable()
     {
         var m = WithSpawns();
-        ResourceRenewables.Apply(m, [("iron_block", 100, 8, 100), ("iron_block", 101, 8, 100)]);
+        SpawnOreProtection.State(m, ResourceRenewables.Apply(m, [("iron_block", 100, 8, 100), ("iron_block", 101, 8, 100)]));
         await Assert.That(m.Renewables.Count).IsEqualTo(0);
         await Assert.That(m.Filters.ContainsKey("only-iron")).IsFalse();
         await Assert.That(m.ApplyRules.Count(r => r.BlockFilter == "never")).IsEqualTo(2);   // spawn protection intact
@@ -42,7 +44,7 @@ public sealed class ResourceRenewablesTests
     public async Task No_spawns_means_no_renewables()
     {
         var m = new MapXml();
-        ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 1, 8, 0)]);
+        SpawnOreProtection.State(m, ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 1, 8, 0)]));
         await Assert.That(m.Renewables.Count).IsEqualTo(0);
     }
 
@@ -51,7 +53,7 @@ public sealed class ResourceRenewablesTests
     public async Task Iron_in_spawns_reuses_spawns_and_relaxes_protection()
     {
         var m = WithSpawns();
-        ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 30, 8, 0)]);
+        SpawnOreProtection.State(m, ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 30, 8, 0)]));
 
         await Assert.That(m.Regions["spawns"].Children).IsEquivalentTo(new[] { "red-spawn", "blue-spawn" });
         await Assert.That(m.ApplyRules.Any(r => r.BlockFilter == "never")).IsFalse();
@@ -68,7 +70,7 @@ public sealed class ResourceRenewablesTests
     public async Task Iron_partly_in_spawn_renews_only_the_spawn_part()
     {
         var m = WithSpawns();
-        ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 100, 8, 100)]);   // one in red-spawn, one out
+        SpawnOreProtection.State(m, ResourceRenewables.Apply(m, [("iron_block", 0, 8, 0), ("iron_block", 100, 8, 100)]));   // one in red-spawn, one out
 
         await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("spawns");
         await Assert.That(m.Regions.ContainsKey("iron-renewable")).IsFalse();   // no cluster region for the loose block
@@ -81,12 +83,12 @@ public sealed class ResourceRenewablesTests
     public async Task Only_in_spawn_resources_get_a_renewable_each()
     {
         var m = WithSpawns();
-        ResourceRenewables.Apply(m,
+        SpawnOreProtection.State(m, ResourceRenewables.Apply(m,
         [
             ("iron_block", 0, 8, 0), ("iron_block", 30, 8, 0),         // both in spawns
             ("gold_block", 100, 8, 100),                               // middle → ignored
             ("diamond_block", -100, 8, -100),                          // middle → ignored
-        ]);
+        ]));
 
         await Assert.That(m.Renewables.Count).IsEqualTo(1);
         await Assert.That(m.Renewables.Single().RenewFilter).IsEqualTo("only-iron");
@@ -100,5 +102,34 @@ public sealed class ResourceRenewablesTests
         m.Name = "T"; m.Version = "1.0.0";
         var reparsed = PgmStudio.Pgm.Serializer.ToDict(PgmStudio.Pgm.MapParser.ParseXmlString(PgmStudio.Pgm.XmlWriter.ToXml(m)));
         await Assert.That(((List<object?>)reparsed["renewables"]!).Count).IsEqualTo(1);
+    }
+
+    // ── a plan-stamped cube standing in a spawn is ore in a spawn too ──
+    [Test]
+    public async Task An_iron_cube_stamped_inside_a_spawn_relaxes_the_protection()
+    {
+        // The plan path stamps its own cube and anchors the renewable on the cube's own region rather than
+        // on the spawns union — but a cube standing inside a spawn is still behind the blanket deny, and a
+        // renewable regrowing a block nobody may break is scenery.
+        var m = WithSpawns();
+        SpawnOreProtection.State(m, StructureRenewables.Apply(m, [(-7, -7, -4, -4)]));   // inside red-spawn
+
+        await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("iron-cube-0");
+        await Assert.That(m.ApplyRules.Any(r => r.BlockFilter == "never")).IsFalse();
+        var stated = m.ApplyRules.Single(r => r.RegionId == "spawns");
+        await Assert.That(stated.BlockBreakFilter).IsEqualTo("only-iron");
+        await Assert.That(stated.BlockPlaceFilter).IsEqualTo("only-iron-cause-world");
+        await Assert.That(stated.Message).IsEqualTo("You may not edit spawn!");
+    }
+
+    // ── a cube outside every spawn is nobody's to protect, so the deny stands ──
+    [Test]
+    public async Task An_iron_cube_clear_of_the_spawns_leaves_the_protection_alone()
+    {
+        var m = WithSpawns();
+        SpawnOreProtection.State(m, StructureRenewables.Apply(m, [(100, 100, 103, 103)]));
+
+        await Assert.That(m.Renewables.Single().RegionId).IsEqualTo("iron-cube-0");   // still renews
+        await Assert.That(m.ApplyRules.Count(r => r.BlockFilter == "never")).IsEqualTo(2);   // nothing relaxed
     }
 }

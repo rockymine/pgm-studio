@@ -22,8 +22,13 @@ public static class MapXmlComposer
         {
             CtwStandards.Apply(mx, surfaceBlockIds);
             WaterLaneGenerator.EnsureInclude(mx);
-            ResourceRenewables.Apply(mx, resources);
-            if (renewableCubes is { Count: > 0 }) StructureRenewables.Apply(mx, renewableCubes);
+            // Both renewable passes find ore living in a spawn and neither can see the other's, so the
+            // spawns' block protection is stated once over the union — see SpawnOreProtection.
+            var spawnOre = new List<SpawnOreProtection.Ore>(ResourceRenewables.Apply(mx, resources));
+            if (renewableCubes is { Count: > 0 })
+                foreach (var ore in StructureRenewables.Apply(mx, renewableCubes))
+                    if (!spawnOre.Contains(ore)) spawnOre.Add(ore);
+            SpawnOreProtection.State(mx, spawnOre);
 
             // The not-build-area "no-void" rule must decide last (PGM stops at the first applicator).
             var voidRules = mx.ApplyRules.Where(r => r.RegionId == "not-build-area").ToList();

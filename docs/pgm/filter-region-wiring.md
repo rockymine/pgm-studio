@@ -41,10 +41,19 @@ and **confirmed by the author** — never auto-applied or silently mutated. Each
 | # | Template | Trigger (signal) | Emitted wiring | Recipe |
 |---|---|---|---|---|
 | 1 | **Build / void enforcement** | positive build region(s) in the Build Regions step (+ `layer_y0.parquet`) | group buildable regions → apply `block_place=deny(void)` (or `never`) to the **complement** | Cluster 2.4 |
-| 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>` **and** `block=never` (anti-grief; `never` is built-in — no new filter); optionally `use=only-<team>` | Cluster 1.1 |
+| 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>`; on the shared `spawns` union, `block=never` (anti-grief; `never` is built-in — no new filter), **restated as `block-break=only-<ore>` + `block-place=only-<ore>-cause-world` where ore lives in a spawn** (below); optionally `use=only-<team>` | Cluster 1.1 |
 | 3 | **Wool-room defense** | a wool-room region with a derived owner (§6 owner) | apply `enter=not-<owner>` (defender excluded) | Cluster 1.2 |
 | 4 | **Wool-room build/break** | a wool-room region | apply `block=<team>-woolrooms-filter` (team check + material whitelist) | Cluster 2.2 |
 | 5 | **Wool-room chest lockout** | a wool-room region with a derived owner | apply `use=deny(all(only-<owner>,chest-filter))` — the defenders cannot open the attackers' supply chest in their own room | Cluster 1.2 |
+
+**Template 2's blanket deny is wrong the moment a spawn holds ore.** `block=never` protects a spawn holding
+nothing but its own floor, and locks the CTW economy where it holds iron: the ore cannot be mined, so the
+`<renewable>` that would regrow it never fires and the resource is scenery a player is told they may not edit.
+So the rule is restated as the pair `docs/pgm/template.xml` uses — `block-break` admits only the ore,
+`block-place` admits only that ore placed by the `world`, which is the renewable putting it back — and
+everything else in the spawn stays untouchable either way. Ore reaches a spawn two ways, scanned out of an
+imported world or stamped there by the plan as an iron cube, and neither pass can see the other's, so both
+name what they found and `SpawnOreProtection` states the rule once over the union.
 
 Template 5 exists because template 3 does not cover it. Denying *entry* is not denying *use*: a
 defender standing at the room's edge is outside the region but within reach of a chest inside it, and

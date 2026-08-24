@@ -4395,6 +4395,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **Iron in a spawn can be mined again, whichever pass put it there (WE26).** A spawn is protected by a
+  blanket `block=never`, which is right for a spawn holding nothing but its own floor and locks the CTW
+  economy the moment it holds iron: the ore cannot be broken, so the `<renewable>` regrowing it never fires
+  and the resource is scenery a player is told they may not edit. `docs/pgm/template.xml` states the rule as
+  a pair instead — `block-break=only-iron`, `block-place=only-iron-cause-world` — and the studio already knew
+  it: `ResourceRenewables` restated the rule for ore **scanned out of an imported world**, and
+  `StructureRenewables`, the path a plan-authored map takes, did not. So every map the plan stamps its iron
+  cubes onto shipped a renewable over a block nobody could break. `SpawnOreProtection` is the one owner of
+  that rule now; both passes report the ore they found in a spawn and the composer states it once over the
+  union, so a map with both kinds cannot have one pass silently overwrite the other. On `opus5-hollowbank`
+  the recomposed `map.xml` carries
+  `<apply block-place="only-iron-cause-world" block-break="only-iron" region="spawns" …/>` where it carried
+  `block="never"`.
+- **A goal's defence chest stands on the ground, not in its plate (WE27, ST6 amended).** The buried bedrock
+  plate is `PlatformDepth` (3) courses down, and the chest was set into the space that depth opens — under
+  the terrain, with whole ground over it and bedrock on every side. On `opus5-elderwold` the chest at
+  `(-20, 18, 90)` had air at y19, grass at y20 and **no open side at all**: a supply that could not be seen,
+  reached or guessed at. The plate is what goes into the ground; the chest now stands at the footprint's
+  centre column's own surface beside the monument, `(-20, 21, 90)` on a rebuild, with the course over it
+  carved for the lid. `ST6` gains both corrections — the depth it states was one course and has been three
+  since the rule was written.
 - **A push may not tilt a floor, and a room's plinth is level (WE25).** The relief's two post-solve passes
   disagreed about a pinned cell: the grain stepped over one ("grain never overrides a statement") and the
   push added its lift to every cell of the field. A spawn or wool room is pinned flat by its `hold`

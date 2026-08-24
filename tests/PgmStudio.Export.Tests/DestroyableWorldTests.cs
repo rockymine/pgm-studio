@@ -154,10 +154,10 @@ public sealed class DestroyableWorldTests
     }
 
     [Test]
-    public async Task Each_destroyable_stands_on_a_buried_5x5_bedrock_platform_with_a_chest_over_it()
+    public async Task Each_destroyable_stands_on_a_buried_5x5_bedrock_platform_with_a_chest_beside_it()
     {
         // MG23/B88: a one-block-thick 5×5 plate, seated three courses beneath the ground under the goal, so
-        // the goal cannot be undermined from below — and a defence chest in the space that depth opens.
+        // the goal cannot be undermined from below — and a defence chest standing on the ground over it.
         var (world, resolved) = Build(Json);
         await Assert.That(resolved.Destroyables!.Count).IsEqualTo(2);
 
@@ -172,10 +172,11 @@ public sealed class DestroyableWorldTests
                 if (world.GetBlock(x, 8, z).Id == Blocks.Bedrock) count++;
             await Assert.That(count).IsEqualTo(25);
 
-            // The chest stands on the plate, the course over it is carved so the lid opens, and the ground's
-            // own surface course above that is left whole — one block to break, and the supply is under it.
-            await Assert.That(world.GetBlock(anchorX, 9, anchorZ).Id).IsEqualTo(Blocks.Chest);
-            await Assert.That(world.GetBlock(anchorX, 10, anchorZ).Id).IsEqualTo(Blocks.Air);
+            // The chest stands on the ground beside the monument, with the course over it carved so the lid
+            // opens — walked up to rather than dug for. The space the plate's depth opened stays terrain.
+            await Assert.That(world.GetBlock(anchorX, 12, anchorZ).Id).IsEqualTo(Blocks.Chest);
+            await Assert.That(world.GetBlock(anchorX, 13, anchorZ).Id).IsEqualTo(Blocks.Air);
+            await Assert.That(world.GetBlock(anchorX, 9, anchorZ).Id).IsNotEqualTo(Blocks.Chest);
             await Assert.That(world.GetBlock(anchorX, 11, anchorZ).Id).IsNotEqualTo(Blocks.Bedrock);
             await Assert.That(world.GetBlock(anchorX, 11, anchorZ).Id).IsNotEqualTo(Blocks.Air);
         }

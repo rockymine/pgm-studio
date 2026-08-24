@@ -11,8 +11,8 @@ namespace PgmStudio.Minecraft.Stamping;
 ///
 /// <para>It sits at <b>two</b> places, and both are ground a team holds. A bedrock approach wall (ST4) takes one
 /// or two set into a single face: the wall is a team's line, and a chest at it turns a bare slab into a place a
-/// defence is built. A goal's buried bedrock plate takes one in the space the plate opens under the terrain,
-/// which is a cache under the monument a team is defending.</para>
+/// defence is built. A goal takes one on the ground beside the monument a team is defending — on the terrain,
+/// not in the bedrock plate buried under it, which is three courses down and out of sight.</para>
 ///
 /// <para><see cref="Embed"/> is what both go through, and the niche is the same at either: the chest replaces one
 /// block and the block over it is carved to air so the lid opens, since a solid block directly above a chest
@@ -96,7 +96,7 @@ public static class DefenseChest
     }
 
     /// <summary>A chest's facing data: the direction its front points. A chest with no approach to front — the
-    /// one under a goal's plate, reached by digging straight down — takes the default.</summary>
+    /// one beside a goal, which the monument over it is reached from every side of — takes the default.</summary>
     public static int Facing(int dirX, int dirZ) => dirX == -1 ? 4 : dirX == 1 ? 5 : dirZ == -1 ? 2 : 3;
 
     /// <summary>The 27-slot loadout, assigned to slots in order: dark-oak and spruce planks and crafting tables

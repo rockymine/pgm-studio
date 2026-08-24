@@ -61,6 +61,29 @@ public sealed class StructureStamperTests
     }
 
     [Test]
+    public async Task The_goal_plate_is_buried_and_its_chest_stands_on_the_ground()
+    {
+        // Two different depths in one stamp. The plate goes into the terrain, far enough down that a shaft
+        // meets rock before daylight; the chest is a supply a defender walks up to, so it stands on the
+        // ground beside the monument rather than in the space under it, where whole terrain would cover it.
+        var w = new VoxelWorld();
+        var surf = FlatSurface(0, 0, 20, 20, top: 21);       // first air Y 21, so the ground's top block is 20
+        for (var x = 8; x <= 12; x++)
+        for (var z = 8; z <= 12; z++)
+        for (var y = 0; y <= 20; y++)
+            w.SetBlock(x, y, z, Blocks.Stone);               // ordinary terrain for the plate to be cut into
+
+        StructureStamper.StampPlatform(w, surf, minX: 8, minZ: 8, maxX: 12, maxZ: 12);
+
+        await Assert.That(w.GetBlock(8, 21 - 1 - StructureStamper.PlatformDepth, 8).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(w.GetBlock(10, 21, 10).Id).IsEqualTo(Blocks.Chest);   // standing on the ground
+        await Assert.That(w.GetBlock(10, 22, 10).Id).IsEqualTo(Blocks.Air);     // the lid can open
+        // and the ground the chest stands on is whole, rather than a hole where the chest used to sit
+        await Assert.That(w.GetBlock(10, 20, 10).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(w.GetBlock(10, 21 - StructureStamper.PlatformDepth, 10).Id).IsEqualTo(Blocks.Stone);
+    }
+
+    [Test]
     public async Task Redstone_line_lays_wire_between_torch_ends_on_the_surface()
     {
         var w = new VoxelWorld();
@@ -145,20 +168,21 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(3, 16, 0).Id).IsEqualTo(Blocks.Air);
     }
 
-    /// <summary>The space the depth opens is what the chest is for: it stands on the plate at the footprint's
-    /// centre, the course over it is carved so the lid can open, and the ground's own surface course above
-    /// that is left whole — so a defender breaks one block and drops onto the supply.</summary>
+    /// <summary>The chest stands on the ground at the footprint's centre, beside the monument, with the
+    /// course over it carved so the lid can open. The space the plate's depth opens is not where it goes:
+    /// three courses down under whole terrain is a supply nobody can see or reach.</summary>
     [Test]
-    public async Task Platform_sets_a_defence_chest_into_the_space_it_opens()
+    public async Task Platform_stands_its_defence_chest_on_the_ground()
     {
         var w = new VoxelWorld();
-        var surf = FlatSurface(-10, -10, 10, 10, top: 20);
+        var surf = FlatSurface(-10, -10, 10, 10, top: 20);   // first air Y 20
         StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
 
-        await Assert.That(w.GetBlock(0, 17, 0).Id).IsEqualTo(Blocks.Chest);
-        await Assert.That(w.GetBlock(0, 18, 0).Id).IsEqualTo(Blocks.Air);      // the lid's own air
-        await Assert.That(w.GetBlock(1, 17, 0).Id).IsEqualTo(Blocks.Air);      // one chest, not a row
-        // The plate itself is still whole under it: the chest stands on the bedrock, not in it.
+        await Assert.That(w.GetBlock(0, 20, 0).Id).IsEqualTo(Blocks.Chest);    // on the ground's own surface
+        await Assert.That(w.GetBlock(0, 21, 0).Id).IsEqualTo(Blocks.Air);      // the lid's own air
+        await Assert.That(w.GetBlock(1, 20, 0).Id).IsEqualTo(Blocks.Air);      // one chest, not a row
+        // Nothing is left in the space under the terrain, and the plate is whole.
+        await Assert.That(w.GetBlock(0, 17, 0).Id).IsEqualTo(Blocks.Air);
         await Assert.That(w.GetBlock(0, 16, 0).Id).IsEqualTo(Blocks.Bedrock);
     }
 

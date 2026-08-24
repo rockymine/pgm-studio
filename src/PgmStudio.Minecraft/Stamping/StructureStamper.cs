@@ -139,11 +139,12 @@ public static class StructureStamper
     /// the symmetry orbit the same way every other structure here does. No-ops where the terrain is too
     /// shallow to bury the plate under.
     ///
-    /// <para><b>The chest is a cache under the monument</b>, reached by digging straight down rather than
-    /// through a face, which is why it takes <see cref="DefenseChest.Embed"/> directly instead of the wall's
-    /// own placement: it stands on the plate at the centre of the footprint, the course over it is carved to
-    /// air so the lid opens, and the surface course above that is left whole — so a defender breaks one
-    /// block of ground and drops onto the supply.</para></summary>
+    /// <para><b>The chest stands on the ground under the monument</b>, not on the plate. The plate is what
+    /// goes into the terrain; the supply is what a defender walks up to, and one set into the plate is three
+    /// courses down with whole ground over it — a cache nobody can see, reach, or guess at. So it takes
+    /// <see cref="DefenseChest.Embed"/> directly at the centre column's own surface, with the course over it
+    /// carved for the lid. It has no approach to front, the monument standing over it being reached from
+    /// every side, so its facing is the default.</para></summary>
     public static void StampPlatform(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
@@ -155,9 +156,12 @@ public static class StructureStamper
         for (var z = minZ; z <= maxZ; z++)
             world.SetBlock(x, plateY, z, Blocks.Bedrock);
 
-        // The centre of the plate, which is the goal's own anchor column on every footprint this is called
-        // with. Facing is the default: there is no approach to front, since the way in is from above.
-        DefenseChest.Embed(world, (minX + maxX) / 2, plateY + 1, (minZ + maxZ) / 2, DefenseChest.Facing(0, 1));
+        // The centre of the footprint, which is the goal's own anchor column on every footprint this is
+        // called with. The chest rests on that column's own surface rather than on the level the plate was
+        // cut at, so it stands on the ground beside the monument however the terrain runs under the plate.
+        var (chestX, chestZ) = ((minX + maxX) / 2, (minZ + maxZ) / 2);
+        DefenseChest.Embed(world, chestX, surfaceTop.GetValueOrDefault((chestX, chestZ), groundTop), chestZ,
+                           DefenseChest.Facing(0, 1));
     }
 
     /// <summary>Raise a solid bedrock wall over a seam footprint from y=0 up to <paramref name="topY"/>

@@ -563,7 +563,9 @@ blocks hanging off the land cannot be broken and the objective can never be comp
 the very edge of an island is fine; the 4×4 cube centred on the same block is not.
 
 *Inside a spawn.* Spawn protection emits `block="never"` over the shared `spawns` union — not "enemies may not
-break" but **nobody** may, the attacking team included. A goal there is a map that cannot be won, and nothing
+break" but **nobody** may, the attacking team included. Where the spawn holds ore the rule is restated as
+break-the-ore / place-it-only-from-the-world (`SpawnOreProtection`), which admits the ore and nothing else,
+so a goal there is no more breakable than before. A goal there is a map that cannot be won, and nothing
 downstream reports it: PGM loads the map and the round simply never ends. The wool path avoids this by
 construction (`WoolGenerator` folds each monument block out of the union so capturing a wool does not trip the
 rule); a destroyable or a core has no such fold and is refused instead, because a goal inside a spawn is a
