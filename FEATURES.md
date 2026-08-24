@@ -5686,6 +5686,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **A marker names the storey it stands on (TS26).** A `NavPoint` carried `x, z` and nothing else, so every
+  spawn, wool and goal resolved to its cell's lowest place — on a board with a deck over a gallery, a spawn on
+  the deck was read as standing on the gallery floor twenty blocks under it, and the kit budget was priced
+  along a route the team never takes. The document already states the height and it is read now:
+  `NavPoints.Height` takes the underside of whichever shape the region is — a cuboid's `min.y`, a cylinder's
+  `base.y`, a sphere's or a half's `origin.y`, a block's `position.y` — and a wool's own `location.y` comes
+  straight off it. `NavPoint.Y` carries it, `NavPoint.Seat(ground)` resolves it against a board with
+  `Nearest(cell, y)`, and a region stating no height still means the cell's lowest place. `kit-reach` walks
+  from the spawn box's floor to the wool's own `y`; `/map/{slug}/walk` and `render/walk` already took `x,z,y`.
 - **The walk stands a player in a place, not on a cell (TS21).** `WalkGround` was keyed `(X, Z)` — one node
   per column, its height carried alongside in a `Surface` map — so a column with two standable surfaces had to
   pick one, and every read after it described a board that was not there: a deck twenty blocks over a yard was

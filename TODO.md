@@ -106,19 +106,28 @@ document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the
 
   **Standable ground under open sky that no route reaches** is the warning — `EX5`, a **complaint and never
   a refusal**, because two flying islands stacked may be what was drawn. Roofed ground stays silent: that is
-  the room. `EX1` owns the other half already — it refuses an isolated *spawn or objective* by name — and
-  needs no amendment beyond `TS26`, which is what tells it which storey a marker is on.
+  the room. It asks whether a player can get there, so it waits on `RP55`: the connectivity read is a second
+  navigability derivation of its own and cannot see a storey yet. `EX1` owns the other half already — it
+  refuses an isolated *spawn or objective* by name — and needs no amendment beyond that.
 
   *`opus5-mineshaft`: the walls run `[0,25]` flush into the deck, the gallery keeps `[0,3]` · `[20,25]`
   sixteen blocks below, and the adit is the one connection between them.*
 
-- [ ] **TS26 — A marker names the storey it stands on.** A `NavPoint` carries `x, z` and no `y`, so every
-  spawn, wool and monument resolves to its cell's **lowest** place. On `opus5-mineshaft` both spawns stand on
-  the deck at 26 and are read as standing on the mine floor at 4, which is the one thing `TS21`'s places
-  cannot fix from the outside. `NavPoints.Of` already reads a `<block>` or a region centre that has a Y;
-  carry it and resolve with `WalkGround.Nearest(cell, y)` where `Stand(cell)` is called today —
-  `GroundCoverage`, `KitReach`, `WalkReads.Seat` (which takes `x,z,y` already), `GoalDistances`. The plan
-  tier states one storey per cell and is unaffected.
+- [ ] **RP55 — Connectivity is a second navigability derivation, and it cannot see a storey.**
+  `Traversability.Ground` builds its own `bool[]` per cell out of `surfaceColumns` ∪ buildable, labels
+  4-connected components over it, and masks a team's `enter` denials into a second grid; `GroundCoverage`
+  reads the same grid. Neither touches `WalkGround`, so `EX1` and the coverage read still project a column to
+  one cell — a deck and the gallery under it are one component whatever the walk says, and a per-team denial
+  is masked twice, once here and once in `WorldWalk.For`.
+
+  Run both over the walk instead: components are a flood over `Passable` under the step rule the solver
+  already applies, a team's set is `Narrowed`, and the two navigability answers become one. It lands in
+  `Traversability.Ground`/`LabelComponents` and `GroundCoverage.Read`, and it is what `TS24`'s `EX5` half
+  waits on.
+
+  *`opus5-mineshaft`: the deck at 26 roofs the gallery at 4 with sixteen blocks of air between, and the adit
+  is the one way between them. The walk answers spawn to spawn `d=60 blocks=0` along the deck; `EX1` calls
+  the deck and the gallery one component and would pass a board whose adit was closed.*
 
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a

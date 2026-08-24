@@ -84,7 +84,9 @@ the rule never refuses a step.
 
 **A cell with no storey stated means its lowest place**, which is where a player walking in at terrain level
 ends up. `from` and `to` take `x,z,y` to say otherwise, and the storey nearest the stated `y` is the one
-walked from.
+walked from. A marker the document places says its own: a spawn box states its floor, a wool its `y`, a goal
+region its underside, and `NavPoint.Seat` resolves that against a board so the readers cannot disagree about
+which storey a spawn is on.
 
 **A climb of Δ costs Δ−1 blocks.** One block up is a step; anything higher is ground the player first has to
 make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — every kit carries

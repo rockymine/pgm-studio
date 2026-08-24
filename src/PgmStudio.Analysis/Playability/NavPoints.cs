@@ -1,6 +1,7 @@
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
+using PgmStudio.Geom;
 
 using Dict = Dictionary<string, object?>;
 
@@ -12,9 +13,17 @@ using Dict = Dictionary<string, object?>;
 /// <param name="Owner">The team it belongs to, or empty where the document names none.</param>
 /// <param name="X">Where it stands, east–west.</param>
 /// <param name="Z">Where it stands, north–south.</param>
-public sealed record NavPoint(string Kind, string Name, string Owner, int X, int Z)
+/// <param name="Y">Which storey of that cell it is on, where the document states one — the floor of a spawn's
+/// box, a wool's own location, a goal region's underside. Null where the region carries no height, and then
+/// the cell's lowest place is what is meant.</param>
+public sealed record NavPoint(string Kind, string Name, string Owner, int X, int Z, int? Y = null)
 {
     public (int X, int Z) Cell => (X, Z);
+
+    /// <summary>Which place of <paramref name="ground"/> this point stands on: the storey nearest its stated
+    /// height, or the cell's lowest where it states none. Null where the cell holds no place at all.</summary>
+    public WalkPlace? Seat(WalkGround ground)
+        => Y is { } height ? ground.Nearest(Cell, height) : ground.Stand(Cell);
 }
 
 /// <summary>
@@ -48,8 +57,9 @@ public static class NavPoints
         foreach (var spawn in MapDoc.AsList(data.GetValueOrDefault("spawns")).OfType<Dict>())
         {
             var team = spawn.GetValueOrDefault("team") as string ?? "";
-            if (Centre(Region(spawn.GetValueOrDefault("region"), regions), regions, bounds) is { } seat)
-                points.Add(new NavPoint("spawn", team, team, seat.x, seat.z));
+            var box = Region(spawn.GetValueOrDefault("region"), regions);
+            if (Centre(box, regions, bounds) is { } seat)
+                points.Add(new NavPoint("spawn", team, team, seat.x, seat.z, Height(box)));
         }
 
         foreach (var wool in MapDoc.AsList(data.GetValueOrDefault("wools")).OfType<Dict>())
@@ -57,9 +67,10 @@ public static class NavPoints
             var color = wool.GetValueOrDefault("color") as string ?? "";
             var owner = wool.GetValueOrDefault("team") as string ?? "";
             if (Stated(wool.GetValueOrDefault("location")) is { } at)
-                points.Add(new NavPoint("wool", color, owner, at.x, at.z));
-            else if (Centre(Region(wool.GetValueOrDefault("wool_room_region"), regions), regions, bounds) is { } room)
-                points.Add(new NavPoint("wool", color, owner, room.x, room.z));
+                points.Add(new NavPoint("wool", color, owner, at.x, at.z, at.y));
+            else if (Region(wool.GetValueOrDefault("wool_room_region"), regions) is { } room
+                     && Centre(room, regions, bounds) is { } inside)
+                points.Add(new NavPoint("wool", color, owner, inside.x, inside.z, Height(room)));
         }
 
         foreach (var destroyable in MapDoc.AsList(data.GetValueOrDefault("destroyables")).OfType<Dict>())
@@ -69,15 +80,17 @@ public static class NavPoints
             if (destroyable.GetValueOrDefault("show") is false) continue;
             var owner = destroyable.GetValueOrDefault("owner") as string ?? "";
             var name = destroyable.GetValueOrDefault("name") as string ?? owner;
-            if (Centre(Region(destroyable.GetValueOrDefault("region"), regions), regions, bounds) is { } at)
-                points.Add(new NavPoint("destroyable", name, owner, at.x, at.z));
+            var box = Region(destroyable.GetValueOrDefault("region"), regions);
+            if (Centre(box, regions, bounds) is { } at)
+                points.Add(new NavPoint("destroyable", name, owner, at.x, at.z, Height(box)));
         }
 
         foreach (var core in MapDoc.AsList(data.GetValueOrDefault("cores")).OfType<Dict>())
         {
             var owner = core.GetValueOrDefault("owner") as string ?? "";
-            if (Centre(Region(core.GetValueOrDefault("region"), regions), regions, bounds) is { } at)
-                points.Add(new NavPoint("core", owner, owner, at.x, at.z));
+            var box = Region(core.GetValueOrDefault("region"), regions);
+            if (Centre(box, regions, bounds) is { } at)
+                points.Add(new NavPoint("core", owner, owner, at.x, at.z, Height(box)));
         }
 
         if (declared is { Count: > 0 })
@@ -117,11 +130,29 @@ public static class NavPoints
         return ((int)((minX + maxX) / 2), (int)((minZ + maxZ) / 2));
     }
 
-    private static (int x, int z)? Stated(object? location)
+    /// <summary>How high a region sits, as the storey a player stands on to reach it: the underside of the
+    /// shape, which for a spawn box is its floor and for a goal is the ground its blocks were stamped from.
+    /// A region stating no height — a rectangle, a circle — answers null, and the cell's lowest place is what
+    /// its point means.</summary>
+    public static int? Height(Dict? region)
+    {
+        if (region is null) return null;
+        var at = (region.GetValueOrDefault("type") as string) switch
+        {
+            "cuboid" => MapDoc.AsDict(region.GetValueOrDefault("min")),
+            "cylinder" => MapDoc.AsDict(region.GetValueOrDefault("base")),
+            "sphere" or "half" or "mirror" => MapDoc.AsDict(region.GetValueOrDefault("origin")),
+            "block" or "point" => MapDoc.AsDict(region.GetValueOrDefault("position")),
+            _ => [],
+        };
+        return MapDoc.Num(at.GetValueOrDefault("y")) is { } y ? (int)y : null;
+    }
+
+    private static (int x, int z, int? y)? Stated(object? location)
     {
         var at = MapDoc.AsDict(location);
         return MapDoc.Num(at.GetValueOrDefault("x")) is { } x && MapDoc.Num(at.GetValueOrDefault("z")) is { } z
-            ? ((int)x, (int)z)
+            ? ((int)x, (int)z, MapDoc.Num(at.GetValueOrDefault("y")) is { } y ? (int)y : null)
             : null;
     }
 }

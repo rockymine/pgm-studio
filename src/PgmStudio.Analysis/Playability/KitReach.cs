@@ -87,12 +87,17 @@ public static class KitReach
             // could disagree about the same board.
             var ground = WorldWalk.For(shared, data, team.Length == 0 ? null : team);
 
-            var start = NavPoints.Centre(NavPoints.Region(sp.GetValueOrDefault("region"), regions), regions, bounds) is { } seat
+            // The spawn's own storey, not its cell's lowest: a spawn on a deck over a gallery walks the deck,
+            // and pricing its kit from the gallery floor is a budget for a route the team never takes.
+            var box = NavPoints.Region(sp.GetValueOrDefault("region"), regions);
+            var start = NavPoints.Centre(box, regions, bounds) is { } seat
                 ? Cells.SnapToWalkable(seat, ground.Footprint, SnapRadius)
                 : null;
-            var field = start is { } cell && ground.Stand(cell) is { } from
-                ? Walk.Field(from, ground, WalkAim.Reach)
-                : [];
+            var storey = NavPoints.Height(box);
+            var from = start is { } cell
+                ? storey is { } height ? ground.Nearest(cell, height) : ground.Stand(cell)
+                : null;
+            var field = from is { } origin ? Walk.Field(origin, ground, WalkAim.Reach) : [];
 
             var perWool = new List<WoolReach>();
             foreach (var wool in wools)
@@ -103,7 +108,9 @@ public static class KitReach
                 // found a cell the team may stand on, and report the walk to that cell as the walk to the
                 // wool.
                 var target = Cells.SnapToWalkable((wx, wz), shared.Footprint, SnapRadius);
-                var cost = target is { } at && shared.Stand(at) is { } to && field.TryGetValue(to, out var reached)
+                var cost = target is { } at
+                    && (wool.Y is { } woolY ? shared.Nearest(at, woolY) : shared.Stand(at)) is { } to
+                    && field.TryGetValue(to, out var reached)
                     ? reached : (WalkCost?)null;
                 var reachable = cost is not null;
                 var need = cost?.Blocks ?? -1;

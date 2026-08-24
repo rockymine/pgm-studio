@@ -1,4 +1,5 @@
 using PgmStudio.Analysis.Playability;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Analysis.Tests;
 
@@ -22,6 +23,71 @@ public sealed class NavPointsTests
         ["max"] = Xz(maxX, maxZ),
         ["bounds_2d"] = new Dict { ["min"] = Xz(minX, minZ), ["max"] = Xz(maxX, maxZ) },
     };
+
+    private static Dict Cuboid(double minX, double minY, double minZ, double maxX, double maxY, double maxZ)
+        => new()
+        {
+            ["type"] = "cuboid",
+            ["min"] = new Dict { ["x"] = minX, ["y"] = minY, ["z"] = minZ },
+            ["max"] = new Dict { ["x"] = maxX, ["y"] = maxY, ["z"] = maxZ },
+            ["bounds_2d"] = new Dict { ["min"] = Xz(minX, minZ), ["max"] = Xz(maxX, maxZ) },
+        };
+
+    /// <summary>Which storey a point is on. A spawn box on a deck states its floor, and a point that carries
+    /// it is the difference between walking the deck and walking the gallery twenty blocks under it.</summary>
+    [Test]
+    public async Task A_point_carries_the_storey_its_region_states()
+    {
+        var data = new Dict
+        {
+            ["regions"] = new Dict
+            {
+                ["deck-spawn"] = Cuboid(-10, 26, -10, 0, 30, 0),
+                ["yard-spawn"] = Rect(4, 4, 8, 8),
+                ["cairn"] = Cuboid(20, 12, 20, 24, 16, 24),
+            },
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "red-team", ["region"] = "deck-spawn" },
+                new Dict { ["team"] = "blue-team", ["region"] = "yard-spawn" },
+            },
+            ["wools"] = new List<object?>
+            {
+                new Dict { ["color"] = "green", ["team"] = "blue-team",
+                           ["location"] = new Dict { ["x"] = 8.0, ["y"] = 41.0, ["z"] = 9.0 } },
+                new Dict { ["color"] = "pink", ["team"] = "blue-team", ["location"] = Xz(2, 3) },
+            },
+            ["destroyables"] = new List<object?> { new Dict { ["owner"] = "red-team", ["region"] = "cairn" } },
+        };
+
+        var points = NavPoints.Of(data, Bounds);
+        int? Storey(string kind, string name)
+            => points.Single(point => point.Kind == kind && point.Name == name).Y;
+
+        await Assert.That(Storey("spawn", "red-team")).IsEqualTo(26);
+        await Assert.That(Storey("wool", "green")).IsEqualTo(41);
+        await Assert.That(Storey("destroyable", "red-team")).IsEqualTo(12);
+
+        // A region that states no height names no storey, and its cell's lowest place is what it means.
+        await Assert.That(Storey("spawn", "blue-team")).IsNull();
+        await Assert.That(Storey("wool", "pink")).IsNull();
+    }
+
+    /// <summary>The point resolves itself against a board rather than every caller re-deciding: a stated
+    /// height picks the storey nearest it, and no stated height takes the one a player walks in at.</summary>
+    [Test]
+    public async Task A_point_seats_itself_on_the_storey_it_names()
+    {
+        var ground = new WalkGround(
+            new HashSet<WalkPlace> { new(4, 4, 6), new(4, 4, 26) },
+            new HashSet<WalkPlace>(), new CellRect(0, 0, 9, 9));
+
+        await Assert.That(new NavPoint("spawn", "red-team", "red-team", 4, 4, 24).Seat(ground))
+            .IsEqualTo(new WalkPlace(4, 4, 26));
+        await Assert.That(new NavPoint("spawn", "blue-team", "blue-team", 4, 4).Seat(ground))
+            .IsEqualTo(new WalkPlace(4, 4, 6));
+        await Assert.That(new NavPoint("spawn", "grey", "grey", 8, 8, 9).Seat(ground)).IsNull();
+    }
 
     [Test]
     public async Task Every_kind_the_document_states_is_a_point_with_its_owner()
