@@ -65,14 +65,16 @@ gate's point→component resolver (`LabelAt`) already searches a radius-3 neighb
 - *Looks wrong:* "gate checks the doc, then `Apply` mutates it" reads as a classic
   check-then-mutate race — but the mutated fields are not the fields the gate certified, and
   sub-block movement is far inside the resolver's slack.
-- *Enforced:* `Analysis/Playability/NavPoints.cs`, `Traversability.cs` (`LabelAt`),
+- *Enforced:* `Analysis/Playability/NavPoints.cs`, `Traversability.cs` (`ComponentOf`),
   `Minecraft/Stamping/PositionSnap.cs`.
 
 ### A destroyable/core gates traversability the way a wool does
 `NavPoints.Of` reads destroyable and core region centres alongside spawns and wools, and every goal
 kind gates `Connected`/`Isolated`: an isolated destroyable refuses the export with the same `EX1` an
 isolated wool does. It is the one reader every playability derivation takes its places from, so the
-verdict, the coverage read and the kit budget cannot disagree about which journeys a match requires.
+verdict, the coverage read and the kit budget cannot disagree about which journeys a match requires —
+and they take the **ground** from one reader too, `WorldWalk.Ground`, so they cannot disagree about
+where those journeys can go either.
 
 - *Where a goal comes from:* the document where it carries one, and the authored intent where it does not.
   A destroyable's region is the box the stamper built its blocks from, so a goal whose box is not cast yet

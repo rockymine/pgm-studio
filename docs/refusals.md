@@ -133,7 +133,7 @@ they are one family:
 |---|---|---|
 | `WX6` | can a door be cut into this room at all — is anything abutting it? | one piece of the plan |
 | `PL9` | can a capturing team's spawn reach this wool at all? | the whole plan |
-| `EX1` | is the ground the rasterizer built connected? | the built world |
+| `EX1` | is the ground the rasterizer built connected? | the built world, as places a walk runs over |
 | `DR-PASS` | does this building leave five blocks to get past it? | one prop on that ground |
 | *coverage* | is the ground that **can** be reached ground any journey actually uses? | the built world, as a measurement rather than a gate |
 

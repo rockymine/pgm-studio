@@ -73,9 +73,7 @@ public static class MapExportComposer
             // EX1 — an intent-authored map must be traversable before it can export (§9), judged over the
             // world scanned into the store. A map that ships its own world has no authored ground to be held
             // to, so it is exempt.
-            if (isIntent
-                && RefuseUntraversable(doc, segments?.StandingColumns(), segments?.Y0Columns()) is { } cutOff)
-                return cutOff;
+            if (isIntent && RefuseUntraversable(doc, segments) is { } cutOff) return cutOff;
 
             // EX2 — asked of an intent-authored map that is not sketch-originated, where there is a document
             // to read and no resolved intent to compare it against. A corpus map is exempt for the reason the
@@ -145,7 +143,7 @@ public static class MapExportComposer
         // EX1 — the map must be walkable from its spawns to everything a match needs (§9), over the ground
         // above and the document the projection has just written. It reads the spawns, wools and goals the
         // slices emit, so it cannot be asked before them.
-        if (RefuseUntraversable(doc, Surface(columns), AtY0(columns)) is { } cutOff) return cutOff;
+        if (RefuseUntraversable(doc, Rasterized(columns)) is { } cutOff) return cutOff;
 
         // EX2/EX3 — last, because it reads the document the slices have just written and compares it against
         // the intent they were written from. Every gate above it quantifies over a collection and so passes a
@@ -284,13 +282,12 @@ public static class MapExportComposer
 
     // ── EX1 — can the map be walked? ──────────────────────────────────────────────────────────────────────
 
-    /// <summary>The traversability judgement, in the one shape both legs answer it in: the columns a player
-    /// can stand on and the columns that reach <c>y=0</c>, against the spawns, wools and goals the document
-    /// declares. Null when everything a match needs can reach everything else.</summary>
-    private static ExportComposition? RefuseUntraversable(
-        Dict doc, HashSet<(int, int)>? surfaceColumns, HashSet<(int, int)>? y0Columns)
+    /// <summary>The traversability judgement, in the one shape both legs answer it in: the board's solid
+    /// spans, against the spawns, wools and goals the document declares. Null when everything a match needs
+    /// can reach everything else.</summary>
+    private static ExportComposition? RefuseUntraversable(Dict doc, SegmentIndex? segments)
     {
-        var walk = Traversability.Check(doc, surfaceColumns, y0Columns);
+        var walk = Traversability.Check(doc, segments);
         if (walk.Connected) return null;
 
         return Refuse("not traversable",
@@ -304,14 +301,10 @@ public static class MapExportComposer
 
     /// <summary>Every column the board draws — a walkable surface, the same reading a scanned map's
     /// <c>layer_segment</c> rows give.</summary>
-    private static HashSet<(int, int)> Surface(IReadOnlyList<ColumnSegment> columns)
-        => [.. columns.Select(column => (column.X, column.Z))];
-
-    /// <summary>The columns whose span reaches the world floor, which is what tells ground apart from a
-    /// bridge or a platform standing over void.</summary>
-    private static HashSet<(int, int)> AtY0(IReadOnlyList<ColumnSegment> columns)
-        => [.. columns.Where(column => column.YFloor <= 0 && 0 <= column.YTop)
-                      .Select(column => (column.X, column.Z))];
+    /// <summary>The rasterizer's own spans as the walk reads a scan: a cell standing on two layers answers
+    /// twice here, so the gate sees the storeys the sketch drew rather than their shadow.</summary>
+    private static SegmentIndex Rasterized(IReadOnlyList<ColumnSegment> columns)
+        => new(columns.Select(column => (column.X, column.Z, column.YFloor, column.YTop)));
 
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
 
@@ -335,7 +328,7 @@ public static class MapExportComposer
     public static Findings CheckGoalPlacement(
         IReadOnlyList<ColumnSegment> columns, MapIntent goals)
     {
-        var groundColumns = Surface(columns);
+        var groundColumns = columns.Select(column => (column.X, column.Z)).ToHashSet();
         bool IsLand(int x, int z) => groundColumns.Contains((x, z));
         var findings = ObjectivePlacement.Check(PlacedGoals(goals), IsLand, KeepOuts(goals)).ToList();
 

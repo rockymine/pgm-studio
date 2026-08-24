@@ -1,3 +1,4 @@
+using PgmStudio.Analysis.Layer;
 using PgmStudio.Analysis.Playability;
 
 namespace PgmStudio.Analysis.Tests;
@@ -11,6 +12,11 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class GroundCoverageTests
 {
+    /// <summary>A board of flat ground, read the way a scan is: every cell a one-block slab at the world
+    /// floor, so it is both somewhere to stand and ground that reaches y=0.</summary>
+    private static SegmentIndex Flat(IEnumerable<(int, int)> cells)
+        => new(cells.Select(cell => (cell.Item1, cell.Item2, 0, 0)));
+
     private static Dict Xz(double x, double z) => new() { ["x"] = x, ["z"] = z };
 
     private static Dict Rect(double minx, double minz, double maxx, double maxz) => new()
@@ -42,7 +48,7 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task The_strip_the_match_walks_is_reached_and_the_plateau_off_it_is_dead()
     {
-        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+        var res = GroundCoverage.Read(Board, Flat(Ground()), [], bbox: (-10, -10, 70, 50));
 
         await Assert.That(res.HaveRoutes).IsTrue();
         await Assert.That(res.ReachedCells + res.DecoratedCells + res.DeadCells).IsEqualTo(res.GroundCells);
@@ -59,8 +65,8 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task A_prop_on_the_plateau_turns_its_surroundings_decorated_but_not_reached()
     {
-        var bare = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
-        var dressed = GroundCoverage.Read(Board, Ground(), null, [(30, 30)], bbox: (-10, -10, 70, 50));
+        var bare = GroundCoverage.Read(Board, Flat(Ground()), [], bbox: (-10, -10, 70, 50));
+        var dressed = GroundCoverage.Read(Board, Flat(Ground()), [(30, 30)], bbox: (-10, -10, 70, 50));
 
         await Assert.That(dressed.DecoratedCells).IsGreaterThan(0);
         await Assert.That(dressed.DeadCells).IsLessThan(bare.DeadCells);
@@ -75,7 +81,7 @@ public sealed class GroundCoverageTests
         var surface = new HashSet<(int, int)>();
         for (var x = 0; x <= 60; x++) for (var z = 0; z <= 6; z++) surface.Add((x, z));
 
-        var res = GroundCoverage.Read(Board, surface, null, [], bbox: (-10, -10, 70, 20));
+        var res = GroundCoverage.Read(Board, Flat(surface), [], bbox: (-10, -10, 70, 20));
 
         await Assert.That(res.DeadCells).IsEqualTo(0);
         await Assert.That(res.DeadPatches).IsEmpty();
@@ -102,7 +108,7 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task Both_ways_round_a_hole_are_walked_where_one_path_would_pick_a_side()
     {
-        var res = GroundCoverage.Read(RingBoard, RingGround(), null, [], bbox: (-8, -8, 48, 30));
+        var res = GroundCoverage.Read(RingBoard, Flat(RingGround()), [], bbox: (-8, -8, 48, 30));
         int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
 
         // The two arms are the two ways round. A dilated single geodesic has to commit to one of them, and
@@ -145,7 +151,7 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task A_way_across_the_middle_is_walked_even_where_no_objective_stands_near_it()
     {
-        var res = GroundCoverage.Read(TwoSidedBoard, TwoSidedGround(), null, [], bbox: (-8, -8, 68, 48));
+        var res = GroundCoverage.Read(TwoSidedBoard, Flat(TwoSidedGround()), [], bbox: (-8, -8, 68, 48));
         int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
 
         // Both spawns are in the north, so every spawn-to-spawn journey takes the north crossing. The south
@@ -158,7 +164,7 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task Every_waypoint_is_named_with_the_kind_of_place_it_is()
     {
-        var res = GroundCoverage.Read(TwoSidedBoard, TwoSidedGround(), null, [], bbox: (-8, -8, 68, 48));
+        var res = GroundCoverage.Read(TwoSidedBoard, Flat(TwoSidedGround()), [], bbox: (-8, -8, 68, 48));
 
         await Assert.That(res.Markers.Count(marker => marker.Kind == "spawn")).IsEqualTo(2);
         await Assert.That(res.Markers.Any(marker => marker.Kind == "crossing")).IsTrue();
@@ -173,7 +179,7 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task The_route_never_claims_a_cell_the_read_called_void()
     {
-        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+        var res = GroundCoverage.Read(Board, Flat(Ground()), [], bbox: (-10, -10, 70, 50));
 
         var ground = Ground();
         for (var i = 0; i < res.Cells.Length; i++)
@@ -185,7 +191,7 @@ public sealed class GroundCoverageTests
     [Test]
     public async Task Traffic_counts_the_journeys_rather_than_answering_whether_any()
     {
-        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+        var res = GroundCoverage.Read(Board, Flat(Ground()), [], bbox: (-10, -10, 70, 50));
         int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
 
         await Assert.That(res.Journeys).IsGreaterThan(0);
@@ -201,7 +207,7 @@ public sealed class GroundCoverageTests
     {
         // The plateau is walkable and hangs off the middle of the strip: reaching it and coming back costs
         // far more than the twenty blocks a player will spend, so no journey claims it.
-        var res = GroundCoverage.Read(Board, Ground(), null, [], bbox: (-10, -10, 70, 50));
+        var res = GroundCoverage.Read(Board, Flat(Ground()), [], bbox: (-10, -10, 70, 50));
         int At(int x, int z) => (z - res.MinZ) * res.Width + (x - res.MinX);
 
         await Assert.That(res.Cells[At(30, 30)]).IsEqualTo(GroundCoverage.Dead);

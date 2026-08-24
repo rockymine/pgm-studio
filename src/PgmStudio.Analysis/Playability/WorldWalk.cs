@@ -33,9 +33,14 @@ public static class WorldWalk
     /// <param name="segments">The scanned columns. Absent, nothing is walkable, and a caller should say that
     /// rather than report a board with no ground.</param>
     /// <param name="margin">How far past the declared regions the grid reaches.</param>
-    public static WalkGround Ground(Dict data, SegmentIndex? segments, int margin = 16)
+    /// <param name="bbox">The grid to size to, as <c>(minX, minZ, maxX, maxZ)</c>. Absent, it is the declared
+    /// regions unioned with the terrain's own extent, so an objective standing on ground past every region
+    /// stays inside the box the clearance read is taken in.</param>
+    public static WalkGround Ground(Dict data, SegmentIndex? segments, int margin = 16,
+        (int MinX, int MinZ, int MaxX, int MaxZ)? bbox = null)
     {
-        var build = Buildability.Compute(data, segments?.Y0Columns(), null, margin);
+        var grid = bbox ?? TerrainBox(data, segments, margin);
+        var build = Buildability.Compute(data, segments?.Y0Columns(), grid, margin);
 
         var places = new HashSet<WalkPlace>();
         var clear = new Dictionary<WalkPlace, int>();
@@ -58,9 +63,13 @@ public static class WorldWalk
                 IslandDetector.CleanedBaseFootprint(segments.BaseColumns()).Where(floor.ContainsKey));
         var ground = new HashSet<WalkPlace>(places.Where(place => standable.Contains(place.Cell)));
 
+        // A cell is bridgeable only where the map GRANTS building: some apply rule's region covers it and
+        // does not deny it. Reading an ungoverned cell as buildable makes every cell outside every rule
+        // crossable, and a board then walks over void nobody can bridge.
         var open = new HashSet<(int X, int Z)>();
         for (var i = 0; i < build.Verdict.Length; i++)
         {
+            if (!build.Governed[i]) continue;
             if (build.Verdict[i] is not (0 or 3)) continue;      // buildable, or restricted-but-placeable
             var cell = (build.MinX + i % build.Width, build.MinZ + i / build.Width);
             if (!standable.Contains(cell)) open.Add(cell);
@@ -72,6 +81,27 @@ public static class WorldWalk
 
         return new WalkGround(ground, bridgeable, new CellRect(build.MinX, build.MinZ, build.Width, build.Height),
             1, null, clear);
+    }
+
+    /// <summary>The box a walk is sized to: every declared region, unioned with the terrain's own extent.
+    /// A board's objectives can stand on ground past the last region, and a grid drawn round the regions
+    /// alone would put them outside it.</summary>
+    private static (int MinX, int MinZ, int MaxX, int MaxZ) TerrainBox(
+        Dict data, SegmentIndex? segments, int margin)
+    {
+        var (minX, minZ, maxX, maxZ) = Buildability.RegionBbox(data, margin);
+        if (segments is null) return (minX, minZ, maxX, maxZ);
+
+        foreach (var columns in (ReadOnlySpan<HashSet<(int, int)>>)
+                 [segments.StandingColumns(), segments.Y0Columns()])
+        {
+            if (columns.Count == 0) continue;
+            minX = Math.Min(minX, columns.Min(cell => cell.Item1) - margin);
+            minZ = Math.Min(minZ, columns.Min(cell => cell.Item2) - margin);
+            maxX = Math.Max(maxX, columns.Max(cell => cell.Item1) + margin);
+            maxZ = Math.Max(maxZ, columns.Max(cell => cell.Item2) + margin);
+        }
+        return (minX, minZ, maxX, maxZ);
     }
 
     /// <summary>One team's own ground: the same walk with every cell an <c>enter</c> rule bars it from taken

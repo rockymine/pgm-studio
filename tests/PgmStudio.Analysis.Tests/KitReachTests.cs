@@ -22,13 +22,19 @@ public sealed class KitReachTests
         ["bounds_2d"] = new Dict { ["min"] = Xz(minx, minz), ["max"] = Xz(maxx, maxz) },
     };
 
-    // Two 3×3 walkable pads at z∈{0,1,2}: spawn x∈{0,1,2}, wool x∈{8,9,10}. The x∈{3..7} gap (5 cells)
-    // has no walkable ground and no deny rule → bridgeable (cost 1 each). woodAmount = kit block budget.
+    // Two 3×3 walkable pads at z∈{0,1,2}: spawn x∈{0,1,2}, wool x∈{8,9,10}. The x∈{3..7} gap (5 cells) has
+    // no walkable ground, and a build zone over the whole board grants placing there → bridgeable (cost 1
+    // each). The grant is what makes it a crossing: ground no rule names is void nobody may bridge.
+    // woodAmount = kit block budget.
     private static (Dict data, SegmentIndex ground) Scenario(int woodAmount, int woolPadTop = 0)
     {
         var data = new Dict
         {
-            ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 3, 3) },
+            ["regions"] = new Dict { ["spawn"] = Rect(0, 0, 3, 3), ["field"] = Rect(-2, -2, 13, 6) },
+            ["apply_rules"] = new List<object?>
+            {
+                new Dict { ["region"] = "field", ["block_place"] = "always" },
+            },
             ["spawns"] = new List<object?> { new Dict { ["team"] = "red", ["kit"] = "k", ["region"] = "spawn" } },
             ["wools"] = new List<object?> { new Dict { ["color"] = "green", ["location"] = new Dict { ["x"] = 9.0, ["y"] = 0.0, ["z"] = 1.0 } } },
             ["kits"] = new List<object?>
@@ -97,11 +103,13 @@ public sealed class KitReachTests
         data["regions"] = new Dict
         {
             ["spawn"] = Rect(0, 0, 3, 3),
+            ["field"] = Rect(-2, -2, 13, 6),
             ["keep"] = Rect(7, 0, 11, 3),
         };
         data["filters"] = new Dict { ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" } };
         data["apply_rules"] = new List<object?>
         {
+            new Dict { ["region"] = "field", ["block_place"] = "always" },
             new Dict { ["region"] = "keep", ["enter"] = "only-blue" },
         };
 
@@ -120,11 +128,13 @@ public sealed class KitReachTests
         data["regions"] = new Dict
         {
             ["spawn"] = Rect(0, 0, 3, 3),
+            ["field"] = Rect(-2, -2, 13, 6),
             ["keep"] = Rect(7, 0, 11, 3),
         };
         data["filters"] = new Dict { ["only-red"] = new Dict { ["type"] = "team", ["team"] = "red" } };
         data["apply_rules"] = new List<object?>
         {
+            new Dict { ["region"] = "field", ["block_place"] = "always" },
             new Dict { ["region"] = "keep", ["enter"] = "only-red" },
         };
 
@@ -152,11 +162,13 @@ public sealed class KitReachTests
         data["regions"] = new Dict
         {
             ["spawn"] = Rect(0, 0, 3, 3),
+            ["field"] = Rect(-2, -2, 13, 6),
             ["keep"] = Rect(7, 0, 11, 3),
         };
         data["filters"] = new Dict { ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" } };
         data["apply_rules"] = new List<object?>
         {
+            new Dict { ["region"] = "field", ["block_place"] = "always" },
             new Dict { ["region"] = "keep", ["enter"] = "only-blue" },
         };
 

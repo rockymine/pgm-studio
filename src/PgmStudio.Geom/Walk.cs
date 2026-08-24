@@ -61,6 +61,14 @@ public sealed record WalkGround(
     /// stacked over it.</summary>
     public int ClearAbove(WalkPlace place) => Clear?.GetValueOrDefault(place, int.MaxValue) ?? int.MaxValue;
 
+    /// <summary>Whether one place is a step from another. A player builds up through open air and falls down
+    /// through it, so the span between two places has to fit under the clearance of the lower one: a gallery
+    /// roofed sixteen blocks up is not a step from a deck twenty-six blocks over it, and the same gallery
+    /// where the roof is cut away is. On a board with nothing stacked over it every place has open sky, so
+    /// this never refuses a step.</summary>
+    public bool Steps(WalkPlace from, WalkPlace to)
+        => Math.Abs(from.Y - to.Y) <= ClearAbove(from.Y <= to.Y ? from : to);
+
     private static HashSet<WalkPlace> Union(IReadOnlySet<WalkPlace> ground, IReadOnlySet<WalkPlace> bridgeable)
     {
         var all = new HashSet<WalkPlace>(ground);
@@ -207,8 +215,52 @@ public static class Walk
     /// across, and it is the smaller of the two.</para></summary>
     public const int Detour = 10;
 
-    private static readonly (int X, int Z)[] Neighbours =
+    private static readonly (int X, int Z)[] Sides =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
+
+    /// <summary>Every place one step from <paramref name="place"/>, and whether that step is diagonal. The
+    /// one definition of an edge in this walk: eight-connected, a diagonal refused where it would cut a
+    /// corner across nothing, and a storey refused where the span between the two places does not fit under
+    /// the lower one's clearance.</summary>
+    private static IEnumerable<(WalkPlace Next, bool Diagonal)> Steps(WalkPlace place, WalkGround ground)
+    {
+        foreach (var (dx, dz) in Sides)
+        {
+            var side = (X: place.X + dx, Z: place.Z + dz);
+            if (!ground.Stacks.TryGetValue(side, out var stack)) continue;
+            // A diagonal squeezes between two cells; where both of those are void the route would be
+            // cutting a corner across nothing, which is not a step a player takes.
+            if (dx != 0 && dz != 0
+                && !ground.Footprint.Contains((place.X + dx, place.Z))
+                && !ground.Footprint.Contains((place.X, place.Z + dz))) continue;
+
+            foreach (var next in stack)
+                if (ground.Steps(place, next)) yield return (next, dx != 0 && dz != 0);
+        }
+    }
+
+    /// <summary>Which places can reach each other, as a place → component id map with ids from 1. Two places
+    /// share an id exactly when a route runs between them, so a deck and the gallery under it are one
+    /// component only where something joins them.
+    ///
+    /// <para>The flood is over the same edges <see cref="Between"/> solves across, which is what stops a
+    /// connectivity verdict and a distance disagreeing about whether there is a way.</para></summary>
+    public static Dictionary<WalkPlace, int> Components(WalkGround ground)
+    {
+        var labels = new Dictionary<WalkPlace, int>();
+        var id = 0;
+        var frontier = new Queue<WalkPlace>();
+        foreach (var start in ground.Passable)
+        {
+            if (labels.ContainsKey(start)) continue;
+            labels[start] = ++id;
+            frontier.Enqueue(start);
+            while (frontier.Count > 0)
+                foreach (var (next, _) in Steps(frontier.Dequeue(), ground))
+                    if (labels.TryAdd(next, id)) frontier.Enqueue(next);
+        }
+        return labels;
+    }
 
     /// <summary>The cheapest journey from one cell to another under <paramref name="aim"/>, or null when
     /// there is none.</summary>
@@ -382,47 +434,23 @@ public static class Walk
             if (target is { } goal && place == goal) break;
             var here = best[place];
 
-            foreach (var (dx, dz) in Neighbours)
+            foreach (var (next, diagonal) in Steps(place, ground))
             {
-                var side = (X: place.X + dx, Z: place.Z + dz);
-                if (!ground.Stacks.TryGetValue(side, out var stack)) continue;
-                // A diagonal squeezes between two cells; where both of those are void the route would be
-                // cutting a corner across nothing, which is not a step a player takes.
-                if (dx != 0 && dz != 0
-                    && !ground.Footprint.Contains((place.X + dx, place.Z))
-                    && !ground.Footprint.Contains((place.X, place.Z + dz))) continue;
+                if (settled.Contains(next)) continue;
+                var step = diagonal ? Diagonal : Straight;
+                if (ground.Water?.Contains(next.Cell) == true) step *= WaterSlowdown;
 
-                foreach (var next in stack)
-                {
-                    if (settled.Contains(next)) continue;
-                    if (!Steps(place, next)) continue;
+                var blocks = here.Blocks + StandingBlocks(next, ground);
+                if (next.Y - place.Y > FreeRise) blocks += next.Y - place.Y - FreeRise;
 
-                    var step = dx != 0 && dz != 0 ? Diagonal : Straight;
-                    if (ground.Water?.Contains(side) == true) step *= WaterSlowdown;
-
-                    var blocks = here.Blocks + StandingBlocks(next, ground);
-                    if (next.Y - place.Y > FreeRise) blocks += next.Y - place.Y - FreeRise;
-
-                    var candidate = (here.Distance + step, blocks, Math.Max(here.Deficit, Deficit(next)));
-                    if (best.TryGetValue(next, out var known) && Rank(known).CompareTo(Rank(candidate)) <= 0) continue;
-                    best[next] = candidate;
-                    came[next] = place;
-                    queue.Enqueue(next, Rank(candidate));
-                }
+                var candidate = (here.Distance + step, blocks, Math.Max(here.Deficit, Deficit(next)));
+                if (best.TryGetValue(next, out var known) && Rank(known).CompareTo(Rank(candidate)) <= 0) continue;
+                best[next] = candidate;
+                came[next] = place;
+                queue.Enqueue(next, Rank(candidate));
             }
         }
         return came;
-
-        // Whether one place is a step from another. A player builds up through open air and falls down
-        // through it, so the span between two places has to fit under the clearance of the lower one: a
-        // gallery roofed sixteen blocks up is not a step from a deck twenty-six blocks over it, and the same
-        // gallery where the roof is cut away is. On a board with nothing stacked over it every place has open
-        // sky, so this never refuses a step and the answer is the one a flat board always had.
-        bool Steps(WalkPlace a, WalkPlace b)
-        {
-            var span = Math.Abs(a.Y - b.Y);
-            return span <= ground.ClearAbove(a.Y <= b.Y ? a : b);
-        }
 
         int Deficit(WalkPlace place)
             => comfort == 0 ? 0 : Math.Max(0, comfort - clearance.GetValueOrDefault(place.Cell, 0));

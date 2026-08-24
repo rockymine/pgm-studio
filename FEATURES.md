@@ -5686,6 +5686,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **One navigability derivation, and it is the walk's (RP55).** `Traversability` built its own `bool[]` of
+  navigable cells out of the scan's standing columns and the buildable verdict, labelled 4-connected
+  components over it, and masked each team's `enter` denials into a second grid; `GroundCoverage` read the
+  same grid. Neither touched `WalkGround`, so the connectivity verdict and a measured distance were two
+  readings of one board free to disagree — and both projected a column to one cell, which made a deck and the
+  gallery under it one component whatever the walk said. Both now run over `WorldWalk.Ground`:
+  `Walk.Components` floods the same edges `Walk.Between` solves across, and a team's own ground is
+  `WorldWalk.For`, the narrowing a distance for that team already used. `Walk.Steps` is the one definition of
+  an edge — eight-connected, no corner cut across void, no step whose span exceeds the lower place's
+  clearance — and the solver and the flood both walk it. `Traversability.Check` and `GroundCoverage.Read` take
+  a `SegmentIndex`; the export's sketch leg hands them the rasterizer's own `ColumnSegment` spans, so `EX1`
+  sees the storeys the sketch drew. Measured before and after over six committed maps: every `EX1` verdict,
+  component count and isolated-point list is identical, and what moved is the coverage — a stacked board's
+  journeys reach both storeys, so `opus5-mineshaft` reads **52.9% dead → 45.3%** (3,015 reached cells →
+  3,501) and `opus5-undercroft` **15.7% → 13.1%**, while `ashfall-scar`, which has nothing stacked, reads
+  77.8% either way.
+- **Ground nobody named is not a grant, on the walk too (RP55).** `WorldWalk.Ground` read a cell bridgeable
+  from the buildability verdict alone, without the `Governed` test that says some apply rule's region actually
+  covers it — the reading `B247` removed from the traversability grid and left standing here. So `/walk`,
+  `render/walk` and `kit-reach` crossed void no rule mentions, and a kit budget was priced over a bridge no
+  player may build. They ask `Governed` now, which is what merging the two derivations settled.
 - **A marker names the storey it stands on (TS26).** A `NavPoint` carried `x, z` and nothing else, so every
   spawn, wool and goal resolved to its cell's lowest place — on a board with a deck over a gallery, a spawn on
   the deck was read as standing on the gallery floor twenty blocks under it, and the kit budget was priced

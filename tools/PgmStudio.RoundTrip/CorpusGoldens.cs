@@ -101,10 +101,8 @@ public static class CorpusGoldens
             if (segments is not null && File.Exists(segments))
             {
                 var index = new SegmentIndex(await FeatureData.ReadSegments(segments));
-                var y0 = index.Y0Columns();
-                var surface = index.StandingColumns();
-                build = DescribeBuildability(Buildability.Compute(doc, y0));
-                trav = DescribeTraversability(Traversability.Check(doc, surface, y0));
+                build = DescribeBuildability(Buildability.Compute(doc, index.Y0Columns()));
+                trav = DescribeTraversability(Traversability.Check(doc, index));
             }
             if (dir is not null && Directory.Exists(dir)) wool = await DescribeWool(doc, dir);
 

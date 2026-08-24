@@ -1,3 +1,4 @@
+using PgmStudio.Analysis.Layer;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 
@@ -58,6 +59,9 @@ public static class GroundCoverage
 
     public const byte Void = 0, Reached = 1, Decorated = 2, Dead = 3, Route = 4;
 
+    /// <summary>How far a marker's cell may be off the ground and still be read as standing on it.</summary>
+    private const int SnapRadius = 3;
+
     /// <summary>One contiguous stretch of dead ground: how big, where its centre sits, and how far its
     /// nearest cell stands from ground the match uses — the numbers that say whether it wants a prop, a
     /// point of interest, or deleting.</summary>
@@ -82,29 +86,42 @@ public static class GroundCoverage
         double DeadShare, IReadOnlyList<Patch> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes,
         int[] Traffic, int Journeys, IReadOnlyList<Marker> Markers);
 
-    /// <summary>Read the coverage of a map: its document for the waypoints and rules, the built world's
-    /// surface and Y=0 columns for the ground, and the dressing's prop cells for the decorated class.</summary>
+    /// <summary>Read the coverage of a map: its document for the waypoints and rules, the scanned columns
+    /// for the ground a walk runs on, and the dressing's prop cells for the decorated class.
+    ///
+    /// <para>The picture is one pixel a cell, so a stacked column is drawn once however many storeys it
+    /// carries — but the journeys under it are walked storey by storey, which is what decides whether the
+    /// ground is used at all.</para></summary>
     /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>. Without them
     /// a board whose goals are not placed yet traces spawn to spawn and calls everything else dead.</param>
-    public static Result Read(Dict data, HashSet<(int, int)> surfaceColumns, HashSet<(int, int)>? y0Columns,
+    public static Result Read(Dict data, SegmentIndex? segments,
         IReadOnlyList<(int X, int Z)> propCells, (int, int, int, int)? bbox = null, int margin = 16,
         IReadOnlyList<NavPoint>? declared = null)
     {
-        var ground = Traversability.Ground(data, surfaceColumns, y0Columns, bbox, margin);
-        var (minX, minZ, nx, nz) = (ground.MinX, ground.MinZ, ground.Nx, ground.Nz);
-        var navigable = ground.Set();
+        var walked = WorldWalk.Ground(data, segments, margin, bbox);
+        var box = walked.Bounds;
+        var (minX, minZ, nx, nz) = (box.X, box.Z, box.Width, box.Height);
+        var standing = walked.Ground.Select(place => place.Cell).ToHashSet();
 
         bool InGrid(int x, int z) => x >= minX && x < minX + nx && z >= minZ && z < minZ + nz;
         int At(int x, int z) => (z - minZ) * nx + (x - minX);
 
-        // The waypoints, snapped onto the navigable set the way the traversability gate snaps its points.
+        // The waypoints, seated on the storey each names the way the traversability gate seats its points.
         var points = NavPoints.Of(data, (minX, minZ, minX + nx, minZ + nz), declared);
+        var origins = new List<WalkPlace>();
         var markers = new List<Marker>();
         foreach (var point in points)
-            if (Cells.SnapToWalkable((point.X, point.Z), navigable, 3) is { } seat)
-                markers.Add(new Marker(point.Kind, seat.X, seat.Z));
-        foreach (var seat in Crossings(points, navigable))
+        {
+            if (Cells.SnapToWalkable(point.Cell, walked.Footprint, SnapRadius) is not { } cell) continue;
+            if ((point with { X = cell.X, Z = cell.Z }).Seat(walked) is not { } seat) continue;
+            markers.Add(new Marker(point.Kind, seat.X, seat.Z));
+            origins.Add(seat);
+        }
+        foreach (var seat in Crossings(points, walked))
+        {
             markers.Add(new Marker("crossing", seat.X, seat.Z));
+            origins.Add(seat);
+        }
         var waypoints = markers.Select(marker => (marker.X, marker.Z)).ToList();
 
         // The traffic skeleton: a corridor between every pair of waypoints. All pairs rather than a curated
@@ -118,17 +135,18 @@ public static class GroundCoverage
         // valuable thing a shape does. The ribbon carries both, and carries them in proportion.
         var routeCells = new HashSet<(int X, int Z)>();
         var traffic = new Dictionary<(int X, int Z), int>();
-        var walked = WalkGround.Over(navigable);
         var journeys = 0;
-        for (var i = 0; i < waypoints.Count; i++)
-            for (var j = i + 1; j < waypoints.Count; j++)
+        for (var i = 0; i < origins.Count; i++)
+            for (var j = i + 1; j < origins.Count; j++)
             {
-                if (walked.Stand(waypoints[i]) is not { } from || walked.Stand(waypoints[j]) is not { } to) continue;
-                var ribbon = Walk.Corridor(from, to, walked, Walk.Detour);
+                var ribbon = Walk.Corridor(origins[i], origins[j], walked, Walk.Detour);
                 if (ribbon.Count == 0) continue;
                 journeys++;
-                foreach (var place in ribbon) traffic[place.Cell] = traffic.GetValueOrDefault(place.Cell) + 1;
-                if (Walk.Between(from, to, walked) is { } path)
+                // A ribbon carries places; two storeys of one column both covered is one cell covered once,
+                // because the picture has one pixel for them and a journey does not use the cell twice.
+                foreach (var cell in ribbon.Select(place => place.Cell).Distinct())
+                    traffic[cell] = traffic.GetValueOrDefault(cell) + 1;
+                if (Walk.Between(origins[i], origins[j], walked) is { } path)
                     foreach (var cell in path.Cells) routeCells.Add(cell);
             }
 
@@ -142,7 +160,7 @@ public static class GroundCoverage
         // Classify every ground cell. Ground is standing terrain only — a bridgeable gap is crossable, but
         // it is not ground that can be dead.
         var cells = new byte[nx * nz];
-        foreach (var (x, z) in surfaceColumns)
+        foreach (var (x, z) in standing)
         {
             if (!InGrid(x, z)) continue;
             cells[At(x, z)] = used.Contains((x, z)) ? Reached : Dead;
@@ -225,42 +243,40 @@ public static class GroundCoverage
     ///
     /// <para>Empty unless exactly two teams hold spawns: with one team there is no middle, and with four the
     /// pairwise middles are six lines that no longer describe one crossing each.</para></summary>
-    private static List<(int X, int Z)> Crossings(IReadOnlyList<NavPoint> points,
-        HashSet<(int X, int Z)> navigable)
+    private static List<WalkPlace> Crossings(IReadOnlyList<NavPoint> points, WalkGround walked)
     {
-        var seats = new List<(int X, int Z)>();
+        var seats = new List<WalkPlace>();
         var byTeam = points.Where(point => point.Kind == "spawn" && point.Owner.Length > 0)
-            .GroupBy(point => point.Owner)
-            .ToDictionary(group => group.Key, group => group.Select(point => point.Cell).ToList());
+            .GroupBy(point => point.Owner).ToList();
         if (byTeam.Count != 2) return seats;
 
-        var walked = WalkGround.Over(navigable);
-        var sides = byTeam.Values.Select(team => Reach(team, walked, navigable)).ToList();
-        var meeting = new HashSet<(int X, int Z)>();
-        foreach (var (cell, near) in sides[0])
-            if (sides[1].TryGetValue(cell, out var far) && Math.Abs(near - far) <= MeetingSlack)
-                meeting.Add(cell);
+        var sides = byTeam.Select(team => Reach(team, walked)).ToList();
+        var meeting = new Dictionary<(int X, int Z), WalkPlace>();
+        foreach (var (place, near) in sides[0])
+            if (sides[1].TryGetValue(place, out var far) && Math.Abs(near - far) <= MeetingSlack)
+                // One seat a cell: the storey the two sides meet lowest on is the one they meet on.
+                if (!meeting.TryGetValue(place.Cell, out var known) || place.Y < known.Y)
+                    meeting[place.Cell] = place;
         if (meeting.Count == 0) return seats;
 
-        var clearance = Cells.Clearance(navigable, Cells.BoundingBox([.. navigable]));
-        foreach (var stretch in Stretches(meeting))
-            seats.Add(stretch.OrderByDescending(cell => clearance.GetValueOrDefault(cell, 0))
-                .ThenBy(cell => cell.Z).ThenBy(cell => cell.X).First());
+        var footprint = meeting.Keys.ToHashSet();
+        var clearance = Cells.Clearance(walked.Footprint, walked.Bounds);
+        foreach (var stretch in Stretches(footprint))
+            seats.Add(meeting[stretch.OrderByDescending(cell => clearance.GetValueOrDefault(cell, 0))
+                .ThenBy(cell => cell.Z).ThenBy(cell => cell.X).First()]);
         return seats;
     }
 
-    /// <summary>The cheapest walk to each cell from any of <paramref name="from"/>, in blocks.</summary>
-    private static Dictionary<(int X, int Z), double> Reach(IEnumerable<(int X, int Z)> from,
-        WalkGround walked, HashSet<(int X, int Z)> navigable)
+    /// <summary>The cheapest walk to each place from any of <paramref name="from"/>, in blocks.</summary>
+    private static Dictionary<WalkPlace, double> Reach(IEnumerable<NavPoint> from, WalkGround walked)
     {
-        var best = new Dictionary<(int X, int Z), double>();
-        foreach (var origin in from)
+        var best = new Dictionary<WalkPlace, double>();
+        foreach (var point in from)
         {
-            if (Cells.SnapToWalkable(origin, navigable, 3) is not { } seat) continue;
-            if (walked.Stand(seat) is not { } start) continue;
+            if (Cells.SnapToWalkable(point.Cell, walked.Footprint, SnapRadius) is not { } cell) continue;
+            if ((point with { X = cell.X, Z = cell.Z }).Seat(walked) is not { } start) continue;
             foreach (var (place, cost) in Walk.Field(start, walked))
-                if (cost.Distance < best.GetValueOrDefault(place.Cell, double.MaxValue))
-                    best[place.Cell] = cost.Distance;
+                if (cost.Distance < best.GetValueOrDefault(place, double.MaxValue)) best[place] = cost.Distance;
         }
         return best;
     }
