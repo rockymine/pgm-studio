@@ -385,6 +385,7 @@ public static class SketchRasterizer
             // the annotation itself, so it never draws terrain of its own; this only lets it pin or hole
             // the terrain that was already there.
             var groundSoFar = new HashSet<(int X, int Z)>(owned);
+            var seated = new List<(SketchShape Shape, List<(int X, int Z)> Covered)>();
             foreach (var shape in shapes)
             {
                 if (shape.Role is null || shape.ReliefScope is not ("hold" or "exclude")) continue;
@@ -394,7 +395,11 @@ public static class SketchRasterizer
                 if (shape.ReliefScope == "exclude") { excluded.UnionWith(covered); continue; }
                 owned.AddRange(covered);
                 var ring = RingOf(shape);
-                if (ring.Count >= 3) held.Add(new AreaMark([.. ring], StatedTop(shape, ring)));
+                if (ring.Count < 3) continue;
+                // A room whose height the author has corrected states it; one that has not is still carrying
+                // the plan's flat number and is seated on the terrain below, once there is terrain to read.
+                if (shape.HeightAuthored == true) held.Add(new AreaMark([.. ring], StatedTop(shape, ring)));
+                else seated.Add((shape, covered));
             }
 
             var ground = owned.Distinct().Where(cell => !excluded.Contains(cell)).ToList();
@@ -406,7 +411,28 @@ public static class SketchRasterizer
             if (held.Count > 0) spec = spec with { Marks = [.. spec.Marks, .. held] };
 
             var footprint = Footprint.Over(ground, margin: 0);
-            solved[islandId] = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(islandId, footprint));
+            var field = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(islandId, footprint));
+
+            // A room that has not been corrected takes its height from the surface just solved under it, and
+            // the island is solved again holding it there. A plan-space piece states its height before any
+            // terrain exists, so the number it carries is about a flat board; leaving it alone puts a spawn
+            // door against a wall the relief built around it, and a player walks out into rock.
+            if (seated.Count > 0)
+            {
+                foreach (var (shape, covered) in seated)
+                {
+                    var ring = RingOf(shape);
+                    var under = covered.Where(cell => footprint.Inside(cell.X, cell.Z))
+                                       .Select(cell => field.At(cell.X, cell.Z)).ToList();
+                    if (under.Count == 0) { held.Add(new AreaMark([.. ring], StatedTop(shape, ring))); continue; }
+                    under.Sort();
+                    held.Add(new AreaMark([.. ring], under[under.Count / 2]));
+                }
+                spec = stated.ToSpec(mirrorMode, cx, cz) with { Marks = [.. stated.ToSpec(mirrorMode, cx, cz).Marks, .. held] };
+                field = ReliefSolver.Solve(footprint, spec, field.Continuous);
+            }
+
+            solved[islandId] = field;
         }
         return solved;
     }

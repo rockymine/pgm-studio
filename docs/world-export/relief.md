@@ -414,7 +414,7 @@ participation is a property of the **shape**, and there are three answers:
 | | The shape | Does its height reach the land around it? |
 |---|---|---|
 | **inherit** | is part of the island; the relief flows through it | there is no separate height — one continuous surface (the default) |
-| **hold** | keeps its own height and pins it | **yes** — the surrounding surface is solved knowing where it must arrive, and moves when that height changes |
+| **hold** | keeps one flat height and pins it | **yes** — the surrounding surface is solved knowing where it must arrive, and moves when that height changes. A structural room whose height nobody has corrected takes the ground's height rather than the plan's (below) |
 | **exclude** | is taken out of the solve, leaving a hole | **no** — the land is whatever that outline would have produced at any height the shape is finally stamped at |
 
 Two properties of that table are easy to read backwards, and both would mislead whoever builds against it.
@@ -452,10 +452,27 @@ listed in its island's own `shapeIds` — that list is read elsewhere as the isl
 annotation is not terrain. It binds instead by overlapping the ground the island's own shapes already claimed,
 so `hold`/`exclude` apply to it exactly as they would an ordinary member shape. Its stated `floor`/`base_height`
 starts out as the plan's flat `surface`, because that is the only height a plan-space piece can state before any
-terrain exists — and once the relief solved around it is visible, that number can be wrong: a piece pinned to a
-flat plan height can leave a depression next to it unable to reach the floor it was drawn for.
+terrain exists — and once the relief solved around it is visible, that number is very often wrong.
+
+**So an uncorrected room is seated on the terrain rather than held at the plan's number.** The island is solved
+once without the room's pin, the room takes the **median** of the surface that solve left under its own
+footprint, and the island is solved again holding it there (warm-started from the first, so the second costs a
+few sweeps rather than a solve). The room stays exactly as flat as it was — a room is a room — and the height it
+is flat *at* becomes the ground's rather than the plan's. Doing anything else puts a spawn door against a wall
+the relief built around it: on `opus5-undercroft` the plan declared every piece at `surface: 14`, a `back-rise`
+point mark two blocks in front of the door raised the island to 19, and the pad stayed at 14 — a **five-block
+vertical face across the whole door**, walked into by every player leaving spawn, with the objective they are
+defending behind it. Nothing complained, and nothing could: `SP8` reads plan-piece surfaces, all of which were
+14, so the seam it measures was flat.
+
+The seating is the *preferred* correction of the two available. The other is re-authoring the relief so it
+arrives at the plan's number, which is a larger edit that gives up the terrain the author drew to satisfy a
+number stated before that terrain existed.
+
 `height_authored: true` marks a shape whose `floor`/`base_height` the author corrected in the sketch rather than
-the compiler; a recompile carries those fields forward matched by the shape's `intentRef`
+the compiler, and **it is what turns the seating off**: a height stated against real ground is a statement, and
+a room the author deliberately sank or raised keeps the height they gave it. A recompile carries those fields
+forward matched by the shape's `intentRef` a recompile carries those fields forward matched by the shape's `intentRef`
 (`SketchLayout.CarryStructuralHeight`) instead of overwriting them with the plan's own number, since the
 compiler regenerates the shape's id and rect every time but a spawn or wool room keeps the same team/
 owner:colour identity across a recompile. This is narrower than a relief's own carry: a relief is carried

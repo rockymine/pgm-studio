@@ -736,14 +736,21 @@ and what a `subtract` takes away.
   a number the author states; `PieceInterfaces.Frontages` already serves `FrontlineBlocks` raw on
   `POST /plan/inspect`, so the rule is one comparison once the number exists.
 
-- [ ] **B244 — Lint a piece interface whose relief leaves a straight face dropping two or more blocks.**
-  `SP8` already refuses a **spawn** egress stepping Δ≥2 ahead of its door. The same read wants generalising to
-  every interface: take each land seam's height delta from `PieceInterfaces.Seams`, keep the Δ≥2 ones, and
-  ask whether the **relief** smooths across it. Where it does, the step is a slope and nothing is wrong;
-  where it does not, the two pieces meet at a straight cliff face and a player walks up to a wall — which is
-  what an excluded piece meeting relief produces and what an agent reading a plan cannot see. List those
-  interfaces, and lint the ones the relief does not carry, so the finding says the terrain drops N blocks at a
-  straight edge rather than falling away.
+- [ ] **B244 — Give a wool room the egress read a spawn already has.** `SP8` measures the seam ahead of a
+  **spawn** door and complains at Δ≥2; nothing asks the same of a wool room, whose defenders leave and arrive
+  through a door in exactly the same way. Same read, same rule shape: `PieceInterfaces.Seams`, the seams a
+  room's entrance faces, Δ≥2 against the neighbouring piece's surface.
+
+  **Scope is what is left of this entry, and it is smaller than it was.** The relief half is closed by
+  construction — a structural room the author has not corrected is now seated on the surface the relief makes
+  under it, so a plan number stated before any terrain existed can no longer leave a room in a pit. And a Δ≥2
+  face between two ordinary pieces is often a design element rather than a fault (author): a cliff between two
+  landmasses is what relief is for. What is not a design element is a **room** whose door faces one, because a
+  player leaves through it every life.
+
+  *`opus5-undercroft` is why the relief half is closed rather than linted: every plan piece declared
+  `surface: 14`, so `SP8` measured a flat board and was right to say nothing, while a `back-rise` mark two
+  blocks in front of the door raised the island to 19 and left a five-block wall across the whole door face.*
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous

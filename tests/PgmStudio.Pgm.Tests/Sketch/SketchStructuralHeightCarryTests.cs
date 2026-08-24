@@ -151,7 +151,7 @@ public sealed class SketchStructuralHeightCarryTests
           { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
             "intentRef": "red", "color": "red",
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
-            "base_height": HEIGHT, "relief_scope": "hold" }
+            "base_height": HEIGHT, "relief_scope": "hold", "height_authored": true }
         ],
         "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
       },
@@ -175,5 +175,29 @@ public sealed class SketchStructuralHeightCarryTests
         // The correction is not merely local — the surrounding surface is re-solved knowing the new arrival
         // height, the same "a held shape moves the ground around it" property SketchReliefScopeTests measures.
         await Assert.That(TopAt(beforeCorrection, 5, 30)).IsNotEqualTo(TopAt(afterCorrection, 5, 30));
+    }
+
+    [Test]
+    public async Task An_uncorrected_room_is_seated_on_the_terrain_rather_than_on_the_plans_number()
+    {
+        // The flag is what separates the two. A height the author has stated against real ground is theirs;
+        // one carried over from a plan was stated before any terrain existed, and holding a room there is
+        // what leaves a spawn door facing a wall the relief built around it.
+        var uncorrected = HeldOverRelief.Replace("HEIGHT", "9").Replace(""", "height_authored": true""", "");
+
+        int TopAt(string layoutJson, int x, int z) =>
+            SketchRasterizer.RasterizeColumns(layoutJson).Single(c => c.X == x && c.Z == z).YTop;
+
+        var room = TopAt(uncorrected, 30, 30);
+        await Assert.That(room).IsNotEqualTo(9).Because("the plan's flat number is not a statement about terrain");
+
+        // It is still a room: flat across its whole floor, and level with the ground it opens onto.
+        var floor = new List<int>();
+        for (var x = 23; x < 38; x++)
+            for (var z = 23; z < 38; z++)
+                floor.Add(TopAt(uncorrected, x, z));
+        await Assert.That(floor.Distinct().Count()).IsEqualTo(1).Because("a held room is flat");
+        await Assert.That(Math.Abs(TopAt(uncorrected, 30, 20) - room)).IsLessThanOrEqualTo(1)
+            .Because("a player walks out of the door rather than into it");
     }
 }

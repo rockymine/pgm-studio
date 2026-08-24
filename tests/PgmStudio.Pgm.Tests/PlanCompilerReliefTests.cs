@@ -65,7 +65,7 @@ public sealed class PlanCompilerReliefTests
     }
 
     [Test]
-    public async Task The_spawn_rooms_own_floor_stays_flat_at_its_surface_under_a_crossing_relief()
+    public async Task The_spawn_rooms_floor_stays_flat_and_seats_on_the_terrain_the_relief_makes()
     {
         var (layout, _) = Compile();
         var withRelief = WithRelief(layout);
@@ -79,8 +79,25 @@ public sealed class PlanCompilerReliefTests
             for (var z = 21; z < 40; z++)
                 if (tops.TryGetValue((x, z), out var top)) inRoom.Add(top);
 
+        // The hold still holds: one height across the whole floor, because a room is a room.
         await Assert.That(inRoom).IsNotEmpty();
-        await Assert.That(inRoom.Distinct().Single()).IsEqualTo(8);   // the room's own stated surface, unmoved
+        var floor = inRoom.Distinct().Single();
+
+        // What it holds at is the ground, not the plan's 8. A plan-space piece states its surface before any
+        // terrain exists, and this relief climbs from 6 to 26 across the board — so a room pinned to the
+        // number it arrived with is a room the terrain has since built a wall around.
+        await Assert.That(floor).IsNotEqualTo(8);
+
+        // Level enough to walk out of, all the way round: what the rule is actually about.
+        var outside = new List<int>();
+        for (var x = 79; x < 102; x++)
+            foreach (var z in (int[])[19, 41])
+                if (tops.TryGetValue((x, z), out var top)) outside.Add(top);
+        for (var z = 19; z < 42; z++)
+            foreach (var x in (int[])[79, 101])
+                if (tops.TryGetValue((x, z), out var top)) outside.Add(top);
+        await Assert.That(outside).IsNotEmpty();
+        await Assert.That(outside.Max(top => Math.Abs(top - floor))).IsLessThanOrEqualTo(1);
     }
 
     [Test]
