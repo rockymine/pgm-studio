@@ -34,7 +34,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 
 | Route | Also | Answers |
 |---|---|---|
-| `render/topdown` | `--topdown --layer …` | the board from above, one question per image. `layer` = `ground` · `structure` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy |
+| `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy |
 | `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project |
 | `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names |
@@ -117,7 +117,7 @@ rather than in a document somebody may not have open.
 
 **`structures` cannot see a town this studio built** (`B149`). It finds roofs by material, and its terrain
 list swallows stone, cobble, sandstone, stone brick, quartz and stained clay — so a cottage roofed in any of
-them reads as ground. On a studio-built world take `render/topdown?layer=structure`, which reads the
+them reads as ground. On a studio-built world take `render/topdown?subject=structure`, which reads the
 provenance sidecar and draws what the build recorded itself placing.
 
 And one that is not a fault: **`surface`'s magenta is not a material.** It is the honest answer for a block no

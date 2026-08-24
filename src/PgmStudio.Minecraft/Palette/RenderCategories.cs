@@ -91,7 +91,7 @@ public static class RenderCategories
     ///
     /// <para>This is the <b>estimate</b>: the only reading available for a world the studio scanned rather than
     /// built, and the reason it is wrong for a built world is the finding the record exists for — stone brick is stone brick
-    /// whether it is a cottage wall or a plaza the painter finished. <see cref="Of(int, ProvenanceLayer?)"/> is
+    /// whether it is a cottage wall or a plaza the painter finished. <see cref="Of(int, ProvenancePass?)"/> is
     /// the answer a built world can give instead.</para></summary>
     public static RenderCategory Of(int blockId) =>
         blockId == 0 ? RenderCategory.Void
@@ -103,28 +103,28 @@ public static class RenderCategories
     /// <summary>What a column reads as when a build recorded which pass claimed it. Void and liquid stay
     /// material questions, since neither is ever what a pass claimed a column *for*. Everything else defers to
     /// the record, because two of the three material tests below can lie about a built thing.
-    /// <para>A <see cref="ProvenanceLayer.Structure"/> claim wins over the foliage test as well as the built
+    /// <para>A <see cref="ProvenancePass.Structure"/> claim wins over the foliage test as well as the built
     /// test, and the reason is <see cref="BlockFamilies.IsLog"/>'s own: a log is the half of a tree that is also
     /// furniture, standing at the corner of a house as a post, so a building whose posts are spruce reads as a
     /// grove to a material test. A column a stamper or a dressing-placed building claimed is that building
     /// whatever block sits on top of it.</para>
-    /// <para>A <see cref="ProvenanceLayer.Ground"/> claim still answers the foliage test first, because a tree
+    /// <para>A <see cref="ProvenancePass.Ground"/> claim still answers the foliage test first, because a tree
     /// carries no claim of its own — it stands on ground the rasterizer claimed, so the block is the only
     /// thing that can say a canopy is there. Ground then reads as ground even over a block
     /// <see cref="BlockRoles.IsBuilt"/> would call built, which is the case a plaza painted in a built-looking
     /// material needs. <paramref name="provenance"/> null falls back to the material estimate entirely: a
     /// scanned world, or a column the build never claimed.</para></summary>
-    public static RenderCategory Of(int blockId, ProvenanceLayer? provenance) =>
+    public static RenderCategory Of(int blockId, ProvenancePass? provenance) =>
         blockId == 0 ? RenderCategory.Void
         : BlockRoles.IsLiquid(blockId) ? RenderCategory.Water
         : provenance switch
         {
-            ProvenanceLayer.Structure => RenderCategory.Structure,
+            ProvenancePass.Structure => RenderCategory.Structure,
             // A prop and the ground both answer the material test, and answer it correctly: a tree's leaves
             // read as foliage, a road's cobble and a boulder's stone read as ground. The layer is what says a
             // pass put them there, which is a provenance question rather than a colour one — so the two share
             // a branch on purpose, and a picture that wanted to draw props apart would key on the claim's kind.
-            ProvenanceLayer.Prop or ProvenanceLayer.Ground =>
+            ProvenancePass.Prop or ProvenancePass.Ground =>
                 Grown(blockId) ? RenderCategory.Foliage : RenderCategory.Ground,
             _ => Grown(blockId) ? RenderCategory.Foliage
                 : BlockRoles.IsBuilt(blockId) ? RenderCategory.Structure

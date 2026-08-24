@@ -564,7 +564,7 @@ separation on the wheel rather than for resemblance to the game's own colours: s
 and andesite are all some shade of grey in the game and would paint one indistinguishable field, so the
 category scheme reads them as one thing (ground) and gives foliage a violet no terrain wears and a built
 surface an orange no material shares with it. `--material` switches back to the old per-block `BlockPalette`
-reading for the caller checking a theme's actual paint rather than the map's shape. `--layer
+reading for the caller checking a theme's actual paint rather than the map's shape. `--subject
 ground|structure|foliage|objectives` isolates one question per image instead of drawing the combined view: a
 category other than the one asked for reads as a flat context tone, and `objectives` carries no terrain
 reading at all — only the `map.xml` overlay, on a uniformly dim backdrop — because "where do the goals sit" is
@@ -575,7 +575,7 @@ carries a legend baked into the image — swatch, name, one row per colour actua
 stating blocks-per-pixel, via `PgmStudio.Geom.Render.Legend`, so a reader never has to bring an outside key to
 the picture (`B98`, `B95`).
 
-**`--layer foliage` can read as a point and a radius instead of a mass, when it is given the points to plot.**
+**`--subject foliage` can read as a point and a radius instead of a mass, when it is given the points to plot.**
 The category reading paints every leaf and log cell a build wrote, so a wood reads as one irregular violet
 shape whose internal structure means nothing — two crowns that touch fuse into one blob, and the tree count is
 not recoverable from it. A tree is authored as one prop at one coordinate, and `DressingScope.TreeFootprints`
@@ -587,7 +587,7 @@ trunk mark on top, so a cluster of overlapping crowns still shows one dot per tr
 isolated foliage layer alone — the combined view keeps painting the mass, since a player's cover is the leaves
 and not the centres — and it reads the **dressing document** rather than `WorldProvenance`: the record now carries a tree claim, but
 it answers which columns a prop covered, not where a crown's centre stands or how far it reaches, which is what
-a point-and-radius drawing needs. `PgmStudio.RoundTrip --topdown --layer foliage` takes it as an optional
+a point-and-radius drawing needs. `PgmStudio.RoundTrip --topdown --subject foliage` takes it as an optional
 `--dressing <layout.json>`, and a scanned world — which carries
 neither a dressing document nor a `WorldProvenance` sidecar — falls back to the mass reading it always had,
 stated on the console rather than silently swapped (`docs/world-export/decoration.md` §6.1).

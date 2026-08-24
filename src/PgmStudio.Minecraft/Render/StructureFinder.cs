@@ -38,7 +38,7 @@ namespace PgmStudio.Minecraft.Render;
 /// <para><b>A recorded <see cref="WorldProvenance"/> closes that residual gap, and is preferred
 /// whenever one is given.</b> A built map knows which columns a stamp claimed at the moment it claimed them,
 /// so "built" stops being read off the block on top and becomes a lookup: a column is a candidate only when
-/// the build itself recorded it as <see cref="ProvenanceLayer.Structure"/>, whatever it is made of and
+/// the build itself recorded it as <see cref="ProvenancePass.Structure"/>, whatever it is made of and
 /// however level it sits against the paving beside it. A stamped building's extent is then recorded rather
 /// than flooded for, so a roof flush with its own plaza cannot fuse with it — the plaza was never a
 /// candidate at all — and the step test (which can still fragment one tall roof into two components by
@@ -175,7 +175,7 @@ public static class StructureFinder
 
         var builtCells = provenance is null
             ? new HashSet<(int X, int Z)>(topId.Where(entry => BlockRoles.IsBuilt(entry.Value)).Select(entry => entry.Key))
-            : new HashSet<(int X, int Z)>(topId.Keys.Where(cell => provenance.LayerAt(cell.X, cell.Z) == ProvenanceLayer.Structure));
+            : new HashSet<(int X, int Z)>(topId.Keys.Where(cell => provenance.PassAt(cell.X, cell.Z) == ProvenancePass.Structure));
         var structures = new List<Structure>();
         var claimed = new Dictionary<(int X, int Z), int>();
 

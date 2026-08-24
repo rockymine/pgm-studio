@@ -1038,8 +1038,8 @@ public sealed class DecoratorTests
         // The counts, then the claims by value — the report holds lists now, and a record comparison over
         // those is reference equality, which would pass for two runs that agreed about nothing.
         await Assert.That(one with { Claimed = null }).IsEqualTo(two with { Claimed = null });
-        await Assert.That(one.Placements.Select(claim => (claim.Owner, claim.Layer, claim.Cells.Count)))
-            .IsEquivalentTo(two.Placements.Select(claim => (claim.Owner, claim.Layer, claim.Cells.Count)));
+        await Assert.That(one.Placements.Select(claim => (claim.Owner, claim.Pass, claim.Cells.Count)))
+            .IsEquivalentTo(two.Placements.Select(claim => (claim.Owner, claim.Pass, claim.Cells.Count)));
         await Assert.That(one.Placements.SelectMany(claim => claim.Cells))
             .IsEquivalentTo(two.Placements.SelectMany(claim => claim.Cells));
         await Assert.That(Placed(first.World, first.SurfaceTop.Keys, 1, 40))

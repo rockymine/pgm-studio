@@ -16,21 +16,21 @@ namespace PgmStudio.Minecraft.Anvil;
 /// flora prop that was never authored, and two trees of one orbit cannot be told from two trees that happen
 /// to stand alike.</para>
 /// </summary>
-public enum ProvenanceLayer { Ground, Structure, Prop }
+public enum ProvenancePass { Ground, Structure, Prop }
 
 /// <summary>
-/// Which pass claimed each column of a world the studio built, and — for a <see cref="ProvenanceLayer.Structure"/>
+/// Which pass claimed each column of a world the studio built, and — for a <see cref="ProvenancePass.Structure"/>
 /// claim — which stamped thing did the claiming, recorded beside the voxels because a block carries no
 /// provenance byte of its own (<c>docs/world-export/decoration.md</c>).
 ///
 /// <para><b>Composited in placement order.</b> The rasterizer claims every column it lays as <see
-/// cref="ProvenanceLayer.Ground"/> first; every stamp that follows — a room floor, a wool cage, a spawn cube,
+/// cref="ProvenancePass.Ground"/> first; every stamp that follows — a room floor, a wool cage, a spawn cube,
 /// a wall, an iron cube, a redstone line, a destroyable, a core, a dressing-placed building — claims its own
-/// footprint as <see cref="ProvenanceLayer.Structure"/> over it. A later claim always overwrites an earlier
+/// footprint as <see cref="ProvenancePass.Structure"/> over it. A later claim always overwrites an earlier
 /// one, so the final answer at a column is whichever pass claimed it last, exactly the reading
 /// <c>docs/tools/mapgen-review.md</c> asks for: a stone-brick plaza the painter finishes
-/// stays <see cref="ProvenanceLayer.Ground"/> because nothing after the rasterizer claims it, and a
-/// stone-brick cottage on that same plaza is <see cref="ProvenanceLayer.Structure"/> because the house
+/// stays <see cref="ProvenancePass.Ground"/> because nothing after the rasterizer claims it, and a
+/// stone-brick cottage on that same plaza is <see cref="ProvenancePass.Structure"/> because the house
 /// stamp claims its footprint afterwards — two different things because two different passes put them
 /// there, whatever they are made of.</para>
 ///
@@ -38,9 +38,9 @@ public enum ProvenanceLayer { Ground, Structure, Prop }
 /// terrace, a shared wall — are two different claims even where their columns are neighbours, because the
 /// pass that stamps each one already knows which thing it is stamping: a dressing prop carries its own
 /// <c>Id</c>, a wool cage belongs to a room, a spawn to a team, a destroyable to its marker. Recording that
-/// alongside the layer is what lets a reader (<see cref="Render.StructureFinder"/>) tell two abutting
+/// alongside the pass is what lets a reader (<see cref="Render.StructureFinder"/>) tell two abutting
 /// buildings apart by grouping on the owner rather than by flooding across every contiguous claimed column,
-/// which cannot distinguish them at all. A null owner is every <see cref="ProvenanceLayer.Ground"/> claim —
+/// which cannot distinguish them at all. A null owner is every <see cref="ProvenancePass.Ground"/> claim —
 /// the terrain is not a "thing" a render would ever need to tell apart from the terrain beside it — and is
 /// also what an unidentified claim degrades to: cells sharing it are read as one claim, so a pass with
 /// something to distinguish always gives it a real <see cref="StampId"/>.</para>
@@ -55,42 +55,42 @@ public enum ProvenanceLayer { Ground, Structure, Prop }
 /// </summary>
 public sealed class WorldProvenance
 {
-    private readonly Dictionary<(int X, int Z), (ProvenanceLayer Layer, StampId? Owner)> _claims = [];
+    private readonly Dictionary<(int X, int Z), (ProvenancePass Pass, StampId? Owner)> _claims = [];
 
     /// <summary>Claim one column. A later call for the same column overwrites an earlier one — the whole of
     /// how "placement order" is expressed. <paramref name="owner"/> null is a claim nothing identified: the
     /// terrain, which is not a "thing" a reader tells apart from the terrain beside it, and the degraded
     /// reading for a stamp that had no id to give.</summary>
-    public void Claim(int x, int z, ProvenanceLayer layer, StampId? owner = null) => _claims[(x, z)] = (layer, owner);
+    public void Claim(int x, int z, ProvenancePass pass, StampId? owner = null) => _claims[(x, z)] = (pass, owner);
 
     /// <summary>Claim every column in a set, cheaper to call at a stamp site than looping by hand.</summary>
-    public void Claim(IEnumerable<(int X, int Z)> cells, ProvenanceLayer layer, StampId? owner = null)
+    public void Claim(IEnumerable<(int X, int Z)> cells, ProvenancePass pass, StampId? owner = null)
     {
-        foreach (var cell in cells) _claims[cell] = (layer, owner);
+        foreach (var cell in cells) _claims[cell] = (pass, owner);
     }
 
     /// <summary>Claim every column in an inclusive rectangle — the shape almost every stamp's footprint
     /// already is.</summary>
-    public void ClaimRect(int minX, int minZ, int maxX, int maxZ, ProvenanceLayer layer, StampId? owner = null)
+    public void ClaimRect(int minX, int minZ, int maxX, int maxZ, ProvenancePass pass, StampId? owner = null)
     {
         for (var z = minZ; z <= maxZ; z++)
         for (var x = minX; x <= maxX; x++)
-            _claims[(x, z)] = (layer, owner);
+            _claims[(x, z)] = (pass, owner);
     }
 
-    /// <summary>The layer that claimed a column last, or null when nothing ever claimed it — a hole in the
+    /// <summary>The pass that claimed a column last, or null when nothing ever claimed it — a hole in the
     /// rasterized ground, or (for a scanned world) provenance that was never recorded at all.</summary>
-    public ProvenanceLayer? LayerAt(int x, int z) => _claims.TryGetValue((x, z), out var claim) ? claim.Layer : null;
+    public ProvenancePass? PassAt(int x, int z) => _claims.TryGetValue((x, z), out var claim) ? claim.Pass : null;
 
     /// <summary>The stamp that claimed a column last, or null both when nothing ever claimed it and when what
     /// claimed it had no id — the terrain always, and a stamp that identified nothing. Ask
-    /// <see cref="LayerAt"/> to tell the two apart.</summary>
+    /// <see cref="PassAt"/> to tell the two apart.</summary>
     public StampId? OwnerAt(int x, int z) => _claims.TryGetValue((x, z), out var claim) ? claim.Owner : null;
 
     public int Count => _claims.Count;
 
-    /// <summary>Every claimed column, its layer and its owner, in no particular order — what a caller
+    /// <summary>Every claimed column, its pass and its owner, in no particular order — what a caller
     /// persisting the record (<see cref="WorldProvenanceFile"/>) or testing it walks.</summary>
-    public IEnumerable<((int X, int Z) Cell, ProvenanceLayer Layer, StampId? Owner)> Claims =>
-        _claims.Select(entry => (entry.Key, entry.Value.Layer, entry.Value.Owner));
+    public IEnumerable<((int X, int Z) Cell, ProvenancePass Pass, StampId? Owner)> Claims =>
+        _claims.Select(entry => (entry.Key, entry.Value.Pass, entry.Value.Owner));
 }

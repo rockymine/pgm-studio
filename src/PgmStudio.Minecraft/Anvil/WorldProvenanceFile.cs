@@ -15,8 +15,8 @@ namespace PgmStudio.Minecraft.Anvil;
 /// <para>Encoded as one run per contiguous stretch of a Z row rather than one entry per column: a stamped
 /// footprint and the terrain around it are each one run far more often than not, so a board of tens of
 /// thousands of columns costs a few hundred rows' worth of runs rather than a dictionary entry per cell. A
-/// run now breaks on an owner change as well as a layer change — two buildings that stand wall to wall are
-/// two runs even though both are <see cref="ProvenanceLayer.Structure"/> — and the owner itself is written
+/// run now breaks on an owner change as well as a pass change — two buildings that stand wall to wall are
+/// two runs even though both are <see cref="ProvenancePass.Structure"/> — and the owner itself is written
 /// once into a small id table rather than once per run: every distinct owner string in the record gets one
 /// slot, and a run carries a slot number rather than the string, so an identity per column costs an int per
 /// run rather than a string per cell.</para>
@@ -26,11 +26,11 @@ public static class WorldProvenanceFile
     private const string FileName = "provenance.json";
 
     // OwnerId 0 is reserved for a claim with no id and never appears in the table — every such claim shares
-    // that reading without needing a slot, since it is one value rather than one per pass. `layer` likewise
+    // that reading without needing a slot, since it is one value rather than one per pass. `pass` likewise
     // defaults away: Ground is the commonest claim on any board by a wide margin, so writing it only where it
     // is something else keeps the file to the runs that say something.
     private sealed record Run(int Z, int MinX, int MaxX,
-        [property: JsonPropertyName("layer"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Layer,
+        [property: JsonPropertyName("pass"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int Pass,
         [property: JsonPropertyName("owner"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int OwnerId);
 
     /// <summary>One entry of the id table: a stamp's three fields, written once however many runs carry it.
@@ -79,12 +79,12 @@ public static class WorldProvenanceFile
             var owner = run.OwnerId > 0 && run.OwnerId <= owners.Count
                 ? new StampId(owners[run.OwnerId - 1].Kind, owners[run.OwnerId - 1].Unit, owners[run.OwnerId - 1].Image)
                 : (StampId?)null;
-            provenance.ClaimRect(run.MinX, run.Z, run.MaxX, run.Z, (ProvenanceLayer)run.Layer, owner);
+            provenance.ClaimRect(run.MinX, run.Z, run.MaxX, run.Z, (ProvenancePass)run.Pass, owner);
         }
         return provenance;
     }
 
-    /// <summary>Every claimed column, grouped into maximal same-layer, same-owner runs along X within each Z
+    /// <summary>Every claimed column, grouped into maximal same-pass, same-owner runs along X within each Z
     /// row, with every distinct stamp collapsed to one id-table slot.</summary>
     private static Sidecar Encode(WorldProvenance provenance)
     {
@@ -103,21 +103,21 @@ public static class WorldProvenanceFile
         {
             var sorted = row.OrderBy(claim => claim.Cell.X).ToList();
             var runStartX = sorted[0].Cell.X;
-            var runLayer = sorted[0].Layer;
+            var runPass = sorted[0].Pass;
             var runOwner = sorted[0].Owner;
             var previousX = runStartX;
 
             for (var i = 1; i < sorted.Count; i++)
             {
-                var (cell, layer, owner) = sorted[i];
-                if (cell.X == previousX + 1 && layer == runLayer && owner == runOwner) { previousX = cell.X; continue; }
-                runs.Add(new Run(row.Key, runStartX, previousX, (int)runLayer, OwnerId(runOwner)));
+                var (cell, pass, owner) = sorted[i];
+                if (cell.X == previousX + 1 && pass == runPass && owner == runOwner) { previousX = cell.X; continue; }
+                runs.Add(new Run(row.Key, runStartX, previousX, (int)runPass, OwnerId(runOwner)));
                 runStartX = cell.X;
-                runLayer = layer;
+                runPass = pass;
                 runOwner = owner;
                 previousX = cell.X;
             }
-            runs.Add(new Run(row.Key, runStartX, previousX, (int)runLayer, OwnerId(runOwner)));
+            runs.Add(new Run(row.Key, runStartX, previousX, (int)runPass, OwnerId(runOwner)));
         }
 
         var owners = new OwnerEntry[ownerIds.Count];

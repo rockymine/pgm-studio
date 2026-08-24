@@ -8,7 +8,7 @@ public readonly record struct SurfaceCell(int X, int Z, int BlockId, int BlockDa
 
 /// <summary>Reads the raw <c>layer.parquet</c> artifact (stored as a blob in <c>map_artifact</c>)
 /// into surface cells. Mirrors the columns the pipeline writes (world_x/world_z/block_id/block_data).</summary>
-public static class SurfaceLayer
+public static class SurfaceScan
 {
     public static async Task<List<SurfaceCell>> ReadAsync(byte[] parquet)
     {

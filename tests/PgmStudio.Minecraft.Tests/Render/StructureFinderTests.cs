@@ -126,8 +126,8 @@ public sealed class StructureFinderTests
         var provenance = new WorldProvenance();
         for (var x = 0; x < 6; x++)
             for (var z = 0; z < 6; z++)
-                provenance.Claim(x, z, ProvenanceLayer.Ground);
-        provenance.ClaimRect(2, 2, 3, 3, ProvenanceLayer.Structure);
+                provenance.Claim(x, z, ProvenancePass.Ground);
+        provenance.ClaimRect(2, 2, 3, 3, ProvenancePass.Structure);
 
         var result = StructureFinder.Render(AnvilRegion.FromWorld(FlushPlazaWithRoom()), minimumArea: 1, provenance: provenance);
 
@@ -159,7 +159,7 @@ public sealed class StructureFinderTests
         // identity still cannot tell two buildings that genuinely touch apart, so the 18-cell footprint of
         // two real 3x3 buildings reads as one finding — the case that must fail before the owner is trusted.
         var provenance = new WorldProvenance();
-        provenance.ClaimRect(0, 0, 5, 2, ProvenanceLayer.Structure);   // no owner: both share WorldProvenance.NoOwner
+        provenance.ClaimRect(0, 0, 5, 2, ProvenancePass.Structure);   // no owner: both share WorldProvenance.NoOwner
 
         var result = StructureFinder.Render(AnvilRegion.FromWorld(TwoAdjacentBuildings()), minimumArea: 1, provenance: provenance);
 
@@ -174,8 +174,8 @@ public sealed class StructureFinderTests
         // The exact same 18 built columns as above, split into two claims that carry different owners —
         // the only thing that changed is the identity recorded alongside the layer.
         var provenance = new WorldProvenance();
-        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, new StampId("house", "a", 0));
-        provenance.ClaimRect(3, 0, 5, 2, ProvenanceLayer.Structure, new StampId("house", "b", 0));   // touches at x=2/x=3
+        provenance.ClaimRect(0, 0, 2, 2, ProvenancePass.Structure, new StampId("house", "a", 0));
+        provenance.ClaimRect(3, 0, 5, 2, ProvenancePass.Structure, new StampId("house", "b", 0));   // touches at x=2/x=3
 
         var result = StructureFinder.Render(AnvilRegion.FromWorld(TwoAdjacentBuildings()), minimumArea: 1, provenance: provenance);
 

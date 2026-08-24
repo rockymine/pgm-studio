@@ -82,7 +82,7 @@ public sealed class RenderCategoriesTests
     public async Task A_structure_claim_reads_as_structure_whatever_the_material_is()
     {
         // Stone (1) reads Ground by material alone (see the table above) — the recorded claim overrides it.
-        await Assert.That(RenderCategories.Of(1, ProvenanceLayer.Structure)).IsEqualTo(RenderCategory.Structure);
+        await Assert.That(RenderCategories.Of(1, ProvenancePass.Structure)).IsEqualTo(RenderCategory.Structure);
     }
 
     [Test]
@@ -92,7 +92,7 @@ public sealed class RenderCategoriesTests
         // failing case the provenance overload exists to fix: a plaza painted in it is still ground once the
         // build says so.
         await Assert.That(RenderCategories.Of(98, null)).IsEqualTo(RenderCategory.Structure);
-        await Assert.That(RenderCategories.Of(98, ProvenanceLayer.Ground)).IsEqualTo(RenderCategory.Ground);
+        await Assert.That(RenderCategories.Of(98, ProvenancePass.Ground)).IsEqualTo(RenderCategory.Ground);
     }
 
     [Test]
@@ -111,7 +111,7 @@ public sealed class RenderCategoriesTests
     {
         // Neither is ever what a pass claimed a column for, so both stay material questions whatever a caller
         // hands in beside them.
-        await Assert.That(RenderCategories.Of(blockId, ProvenanceLayer.Structure)).IsEqualTo(expected);
+        await Assert.That(RenderCategories.Of(blockId, ProvenancePass.Structure)).IsEqualTo(expected);
     }
 
     [Test]
@@ -121,7 +121,7 @@ public sealed class RenderCategoriesTests
         // as a post. Reading the material first turned every log-posted building into a grove — the village
         // rows on a board with eleven houses a side read as foliage along their outlines. A claim is the only
         // thing that can tell a post from a trunk, so it wins.
-        await Assert.That(RenderCategories.Of(Blocks.Log, ProvenanceLayer.Structure)).IsEqualTo(RenderCategory.Structure);
+        await Assert.That(RenderCategories.Of(Blocks.Log, ProvenancePass.Structure)).IsEqualTo(RenderCategory.Structure);
     }
 
     [Test]
@@ -130,7 +130,7 @@ public sealed class RenderCategoriesTests
         // The mirror of the case above, and why a Ground claim cannot use the same rule: a tree carries no
         // claim of its own — it stands on ground the rasterizer claimed — so the block is the only thing left
         // that can say a trunk is there.
-        await Assert.That(RenderCategories.Of(Blocks.Log, ProvenanceLayer.Ground)).IsEqualTo(RenderCategory.Foliage);
+        await Assert.That(RenderCategories.Of(Blocks.Log, ProvenancePass.Ground)).IsEqualTo(RenderCategory.Foliage);
     }
 
     [Test]

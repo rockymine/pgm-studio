@@ -851,7 +851,7 @@ looked at **in section** before it stands on a map, and an agent that can only o
 foliage, objectives, traversability, structures, mirror** — are CLI flags on `tools/PgmStudio.RoundTrip`
 (`--topdown`, `--heightmap`, `--contour`, `--surface`, `--structures`, `--traversability-map`, `--mirror`)
 over a built world, which is what `GET /map/{slug}/export` hands back;
-`--topdown` also takes `--layer ground|structure|foliage|objectives`
+`--topdown` also takes `--subject ground|structure|foliage|objectives`
 to isolate one of those questions instead of drawing the combined view. So an agent wanting to *see* a sketch
 has two honest options: render the data it already gets from the three reads above, or build the world and
 take the stage set.

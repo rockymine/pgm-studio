@@ -151,7 +151,7 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/topdown"));
         Description(b => b.Png().Refuses(404, 422).Reads(
-            new QueryWord("layer", "What to draw. Absent draws them all together.",
+            new QueryWord("subject", "What to draw. Absent draws them all together.",
                 ["ground", "structure", "foliage", "objectives", "combined"]),
             new QueryWord("material",
                 "Present colours by the real block palette instead of by category. The category reading is "
@@ -167,8 +167,8 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
         read.Built.World, read.Map, Scale, OptionalInt("ymax"), read.Name,
         Query<string?>("material", isRequired: false) is not null
             ? TopDownColorMode.Material : TopDownColorMode.Category,
-        Enum.TryParse<TopDownLayer>(Query<string?>("layer", isRequired: false), ignoreCase: true, out var layer)
-            ? layer : TopDownLayer.Combined,
+        Enum.TryParse<TopDownSubject>(Query<string?>("subject", isRequired: false), ignoreCase: true, out var subject)
+            ? subject : TopDownSubject.Combined,
         read.Built.Provenance);
 }
 

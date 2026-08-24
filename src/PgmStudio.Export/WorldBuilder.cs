@@ -110,7 +110,7 @@ public static class WorldBuilder
         // a plaza the painter finishes in a built-looking material is never reclaimed after this line, so it
         // stays Ground however it is painted.
         var provenance = new WorldProvenance();
-        provenance.Claim(terrain.SurfaceTop.Keys, ProvenanceLayer.Ground);
+        provenance.Claim(terrain.SurfaceTop.Keys, ProvenancePass.Ground);
 
         var teams = intent.Teams ?? [];
         var wools = intent.Wools ?? [];
@@ -137,7 +137,7 @@ public static class WorldBuilder
         // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
         // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
         foreach (var claim in StampRoomFloors(world, terrain.SurfaceTop, intent.Structures))
-            provenance.Claim(claim.Cells, claim.Layer, claim.Owner);
+            provenance.Claim(claim.Cells, claim.Pass, claim.Owner);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -158,12 +158,12 @@ public static class WorldBuilder
             // provenance rect claims a row and a column of ground the room never touched, on the +x/+z side
             // of every image alike, which no rotation maps onto its partner.
             provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
-                             ProvenanceLayer.Structure, w.Stamp);
+                             ProvenancePass.Structure, w.Stamp);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
             GoalMarkerStamper.Stamp(world, (frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
                 markerFloor, BlockColors.BlockDamage(slug), GoalMarkerShape.Cube);
-            provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenanceLayer.Structure, w.Stamp);
+            provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenancePass.Structure, w.Stamp);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
@@ -188,7 +188,7 @@ public static class WorldBuilder
                 CapturedWools = [.. captured.Select(x => ColorSlug(x.w, teams))], Shell = spawnStyle,
             }).Monuments;
             provenance.Claim(StructureStamper.FoundationCells(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ),
-                             ProvenanceLayer.Structure, s.Stamp);
+                             ProvenancePass.Structure, s.Stamp);
 
             for (var k = 0; k < placed.Count && k < captured.Count; k++)
                 monLoc[(captured[k].i, s.Team)] = new Pt(placed[k].X, placed[k].Y, placed[k].Z);
@@ -202,7 +202,7 @@ public static class WorldBuilder
                 {
                     StructureStamper.StampIronCubeAt(world, terrain.SurfaceTop, iron.MinX, iron.MinZ, iron.Size);
                     provenance.ClaimRect(iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1,
-                        ProvenanceLayer.Structure,
+                        ProvenancePass.Structure,
                         // The spawn's own unit, qualified by which of its cubes this is: one room's iron is
                         // one thing per marker, and both images of it share the unit the room's stamp names.
                         new StampId("ironcube", $"{s.Stamp.Unit}:{ironIndex++}", s.Stamp.Image));
@@ -305,7 +305,7 @@ public static class WorldBuilder
         // fails its turn, and a claim rebuilt from the author's intent cannot see any of that. Every
         // prop, not only the buildings — each carries the layer that says which pass it was.
         foreach (var claim in dressed.Placements)
-            provenance.Claim(claim.Cells, claim.Layer, claim.Owner);
+            provenance.Claim(claim.Cells, claim.Pass, claim.Owner);
 
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
@@ -366,7 +366,7 @@ public static class WorldBuilder
             var f = floors[i];
             int minX = (int)f.Area.MinX, minZ = (int)f.Area.MinZ, maxX = (int)f.Area.MaxX, maxZ = (int)f.Area.MaxZ;
             StructureStamper.StampFoundation(world, surface, minX, minZ, maxX, maxZ);
-            claims.Add(new PlacementClaim(f.Stamp, ProvenanceLayer.Structure,
+            claims.Add(new PlacementClaim(f.Stamp, ProvenancePass.Structure,
                 [.. StructureStamper.FoundationCells(minX, minZ, maxX, maxZ)]));
         }
         return claims;
@@ -402,12 +402,12 @@ public static class WorldBuilder
             var w = s.Walls[i];
             provenance.Claim(
                 StructureStamper.WallCells(w.MinX, w.MinZ, w.MaxX, w.MaxZ),
-                ProvenanceLayer.Structure, w.Stamp);
+                ProvenancePass.Structure, w.Stamp);
         }
         for (var i = 0; i < s.IronCubes.Count; i++)
         {
             var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(s.IronCubes[i].X, s.IronCubes[i].Z);
-            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenanceLayer.Structure, s.IronCubes[i].Stamp);
+            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenancePass.Structure, s.IronCubes[i].Stamp);
         }
         for (var i = 0; i < s.RedstoneLines.Count; i++)
         {
@@ -417,7 +417,7 @@ public static class WorldBuilder
             var line = s.RedstoneLines[i];
             provenance.Claim(
                 StructureStamper.RedstoneLineCells(line.X1, line.Z1, line.X2, line.Z2),
-                ProvenanceLayer.Structure, s.RedstoneLines[i].Stamp);
+                ProvenancePass.Structure, s.RedstoneLines[i].Stamp);
         }
     }
 
@@ -460,7 +460,7 @@ public static class WorldBuilder
                     Severity.Complaint, Subjects: [owner.Unit]));
 
             ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(materials));
-            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
+            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
             OverCeiling(complaints, "destroyable", GoalName(b.Name, b.Owner), owner, box, maxBuildHeight);
 
             // A buried bedrock plate under the goal, one course beneath the ground's own surface, so the
@@ -468,11 +468,11 @@ public static class WorldBuilder
             var (platformMinX, platformMinZ, platformMaxX, platformMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
             StructureStamper.StampPlatform(world, surface, platformMinX, platformMinZ, platformMaxX, platformMaxZ);
-            provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenanceLayer.Structure, owner);
+            provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross);
-            provenance.Claim(ax, az, ProvenanceLayer.Structure, owner);
+            provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new DestroyableIntent
             {
@@ -500,7 +500,7 @@ public static class WorldBuilder
             var (ax, az) = ObjectiveFootprint.AnchorCell(c.Anchor.X, c.Anchor.Z);
             var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
-            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenanceLayer.Structure, owner);
+            provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
             OverCeiling(complaints, "core", GoalName(c.Name, c.Owner), owner, box, maxBuildHeight);
 
             // The same buried plate and defence chest a destroyable stands over: a core is a goal a team
@@ -508,11 +508,11 @@ public static class WorldBuilder
             var (plateMinX, plateMinZ, plateMaxX, plateMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
             StructureStamper.StampPlatform(world, surface, plateMinX, plateMinZ, plateMaxX, plateMaxZ);
-            provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenanceLayer.Structure, owner);
+            provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
             GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross);
-            provenance.Claim(ax, az, ProvenanceLayer.Structure, owner);
+            provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new CoreIntent
             {

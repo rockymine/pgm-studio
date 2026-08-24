@@ -391,7 +391,7 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
             var seat = claim.Cells.Count > 0 ? claim.Cells[0] : (X: 0, Z: 0);
             return new DressingPropDto(
                 claim.Owner.Kind, claim.Owner.Unit, claim.Owner.Image,
-                claim.Layer == PgmStudio.Minecraft.Anvil.ProvenanceLayer.Structure ? "structure" : "prop",
+                claim.Pass == PgmStudio.Minecraft.Anvil.ProvenancePass.Structure ? "structure" : "prop",
                 claim.Cells.Count, seat.X, seat.Z, tops.GetValueOrDefault(seat, 0),
                 [.. claim.Cells.Take(NamedCells).Select(cell => new CellDto(cell.X, cell.Z))]);
         }).ToList();

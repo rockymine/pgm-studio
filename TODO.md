@@ -94,28 +94,16 @@ document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the
 `docs/world-export/terrain-painting.md`. The ids stay — both are already cited in commits — and each entry
 fixes the document it actually moves, alongside `docs/tools/sketch.md`.
 
-- [ ] **WS13 — Free the word `layer` for the thing that is one.** Seven senses, one true: `SketchLayer` is
-  the slab and does **not** move. The rest borrowed it:
+- [ ] **WS13 — Free the word `layer` in the scan family and on the route.** The three type renames landed
+  (`FEATURES.md`); `SketchLayer` stays, being the one use where the word is true. What is left is what `Q8`
+  decides: the **scan-segment family**, whose own word — *segment* — is already right, so only its borrowed
+  prefix is in question (`LayerSegments`, `layer_segment`, `LayerExtractors`, `LayersEndpoints.cs`,
+  `LayerParquet`, `scan_layer`, `PgmStudio.Analysis.Layer`), which `P7` also spends; and
+  **`GET /map/{slug}/layers`**, whose response says which *authoring artifacts* a map holds while `layers[]`
+  in the sketch document means slabs — the collision itself. Both cost a migration and nothing else.
 
-  - `TopDownLayer` is a render *subject* (`ground` · `structure` · `foliage` · `objectives`) → `TopDownSubject`,
-    with the query word to match;
-  - `ProvenanceLayer` is which build *pass* claimed a column → `ProvenancePass` (`WorldProvenance`'s claim
-    becomes `(Pass, Owner)`);
-  - `SurfaceLayer` reads a scan artifact → `SurfaceScan` (the `layer.parquet` blob keeps its name);
-  - **`MapLayers` / `MapState.Layers` / `GET /map/{slug}/layers`** is which *authoring artifact* a map holds
-    (plan · sketch · world · intent) — a public route that reads exactly like "this map's sketch layers";
-  - the **scan-segment family** — `LayerSegments`, `layer_segment`, `LayerExtractors`, `LayersEndpoints.cs`,
-    `LayerParquet`, `scan_layer`, `PgmStudio.Analysis.Layer` — which `P7` also spends;
-  - the **canvas z-stack** — `render/layer-stack.js`, `data-layer` — in the same folder as the layer chips;
-  - and `LayeredMaterial`'s own `layers[]`, inside the theme JSON of the same document.
-
-  **The three type renames are settled** and are what this entry is. `Q8` says whether the route and the
-  table follow — there is no compatibility to keep, so the cost is the migration and nothing else. Fixes
-  `docs/world-scan/read-backs.md`'s endpoint table and `docs/world-export/decoration.md` in the same commit.
-  **Early**, because `TS22` stamps the word across sixteen sites and `WS12` adds another.
-
-  *Each borrowed docstring already uses the right word in its own prose: "one question per image", "which
-  pass claimed a column, last", "one surface-scan cell".*
+  *Also carrying it and deliberately untouched: the canvas z-stack (`render/layer-stack.js`, `data-layer`),
+  which is the graphics term and reads as one; and `LayeredMaterial`'s own `layers[]` inside the theme JSON.*
 
 - [ ] **TS22 — A column segment carries its layer, and so does the claim.** `SketchRasterizer.RasterizeColumns`
   answers `(X, Z, YFloor, YTop)`; make it `(X, Z, YFloor, YTop, Layer)` — eight call sites in `src/`, twenty

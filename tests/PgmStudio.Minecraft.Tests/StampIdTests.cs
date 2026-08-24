@@ -37,7 +37,7 @@ public sealed class StampIdTests
     {
         var provenance = new WorldProvenance();
         var stamp = new StampId("spawn", "s1", 1);
-        provenance.ClaimRect(0, 0, 2, 2, ProvenanceLayer.Structure, stamp);
+        provenance.ClaimRect(0, 0, 2, 2, ProvenancePass.Structure, stamp);
 
         await Assert.That(provenance.OwnerAt(1, 1)).IsEqualTo(stamp);
         await Assert.That(provenance.OwnerAt(1, 1)!.Value.Image).IsEqualTo(1);
@@ -48,11 +48,11 @@ public sealed class StampIdTests
     {
         // A null owner and an unclaimed column are different answers, and the layer is what tells them apart.
         var provenance = new WorldProvenance();
-        provenance.Claim(0, 0, ProvenanceLayer.Ground);
+        provenance.Claim(0, 0, ProvenancePass.Ground);
 
         await Assert.That(provenance.OwnerAt(0, 0)).IsNull();
-        await Assert.That(provenance.LayerAt(0, 0)).IsEqualTo(ProvenanceLayer.Ground);
-        await Assert.That(provenance.LayerAt(9, 9)).IsNull();          // never claimed at all
+        await Assert.That(provenance.PassAt(0, 0)).IsEqualTo(ProvenancePass.Ground);
+        await Assert.That(provenance.PassAt(9, 9)).IsNull();          // never claimed at all
     }
 
     [Test]
@@ -61,11 +61,11 @@ public sealed class StampIdTests
         // The distinction the Prop layer exists for: a reader asking for buildings must not be handed a tree,
         // however the tree's blocks happen to read.
         var provenance = new WorldProvenance();
-        provenance.Claim(0, 0, ProvenanceLayer.Prop, new StampId("tree", "t1", 0));
-        provenance.Claim(1, 0, ProvenanceLayer.Structure, new StampId("house", "h1", 0));
+        provenance.Claim(0, 0, ProvenancePass.Prop, new StampId("tree", "t1", 0));
+        provenance.Claim(1, 0, ProvenancePass.Structure, new StampId("house", "h1", 0));
 
-        await Assert.That(provenance.LayerAt(0, 0)).IsEqualTo(ProvenanceLayer.Prop);
-        await Assert.That(provenance.LayerAt(1, 0)).IsEqualTo(ProvenanceLayer.Structure);
+        await Assert.That(provenance.PassAt(0, 0)).IsEqualTo(ProvenancePass.Prop);
+        await Assert.That(provenance.PassAt(1, 0)).IsEqualTo(ProvenancePass.Structure);
     }
 
     [Test]
@@ -75,9 +75,9 @@ public sealed class StampIdTests
         try
         {
             var written = new WorldProvenance();
-            written.Claim(0, 0, ProvenanceLayer.Prop, new StampId("tree", "t1", 0));
-            written.Claim(1, 0, ProvenanceLayer.Prop, new StampId("tree", "t1", 1));
-            written.Claim(2, 0, ProvenanceLayer.Structure, new StampId("house", "h1", 0));
+            written.Claim(0, 0, ProvenancePass.Prop, new StampId("tree", "t1", 0));
+            written.Claim(1, 0, ProvenancePass.Prop, new StampId("tree", "t1", 1));
+            written.Claim(2, 0, ProvenancePass.Structure, new StampId("house", "h1", 0));
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
@@ -86,8 +86,8 @@ public sealed class StampIdTests
             // reader that comes to it off disk rather than in memory.
             await Assert.That(read.OwnerAt(0, 0)).IsEqualTo(new StampId("tree", "t1", 0));
             await Assert.That(read.OwnerAt(1, 0)).IsEqualTo(new StampId("tree", "t1", 1));
-            await Assert.That(read.LayerAt(1, 0)).IsEqualTo(ProvenanceLayer.Prop);
-            await Assert.That(read.LayerAt(2, 0)).IsEqualTo(ProvenanceLayer.Structure);
+            await Assert.That(read.PassAt(1, 0)).IsEqualTo(ProvenancePass.Prop);
+            await Assert.That(read.PassAt(2, 0)).IsEqualTo(ProvenancePass.Structure);
             await Assert.That(read.OwnerAt(0, 0)!.Value.Identity).IsEqualTo(read.OwnerAt(1, 0)!.Value.Identity);
         }
         finally { Directory.Delete(dir, recursive: true); }

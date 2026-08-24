@@ -53,7 +53,7 @@ public sealed class DressingProvenanceTests
 
         await Assert.That(claims).IsNotEmpty();
         await Assert.That(claims.Sum(claim => claim.Cells.Count)).IsGreaterThan(0);
-        await Assert.That(claims.Select(claim => claim.Layer).Distinct()).IsEquivalentTo(new[] { ProvenanceLayer.Prop });
+        await Assert.That(claims.Select(claim => claim.Pass).Distinct()).IsEquivalentTo(new[] { ProvenancePass.Prop });
     }
 
     [Test]
@@ -82,10 +82,10 @@ public sealed class DressingProvenanceTests
             new TreeProp { Id = "t1", X = -10, Z = -10, Seed = 5 },
         ]);
 
-        await Assert.That(placed.Placements.Single(c => c.Owner.Kind == "house").Layer)
-                    .IsEqualTo(ProvenanceLayer.Structure);
-        await Assert.That(placed.Placements.Single(c => c.Owner.Kind == "tree").Layer)
-                    .IsEqualTo(ProvenanceLayer.Prop);
+        await Assert.That(placed.Placements.Single(c => c.Owner.Kind == "house").Pass)
+                    .IsEqualTo(ProvenancePass.Structure);
+        await Assert.That(placed.Placements.Single(c => c.Owner.Kind == "tree").Pass)
+                    .IsEqualTo(ProvenancePass.Prop);
         await Assert.That(placed.Structures.Select(c => c.Owner.Kind)).IsEquivalentTo(new[] { "house" });
     }
 
@@ -128,9 +128,9 @@ public sealed class DressingProvenanceTests
     {
         // The layer is a provenance answer, not a colour one: a tree's leaves stay foliage and a road's
         // gravel stays ground, so recording them changes no picture.
-        await Assert.That(RenderCategories.Of(Blocks.Leaves, ProvenanceLayer.Prop))
+        await Assert.That(RenderCategories.Of(Blocks.Leaves, ProvenancePass.Prop))
                     .IsEqualTo(RenderCategory.Foliage);
-        await Assert.That(RenderCategories.Of(Blocks.Gravel, ProvenanceLayer.Prop))
+        await Assert.That(RenderCategories.Of(Blocks.Gravel, ProvenancePass.Prop))
                     .IsEqualTo(RenderCategory.Ground);
     }
 }

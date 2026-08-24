@@ -25,17 +25,17 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(-2, -2, 2, 2, ProvenanceLayer.Ground);
-            written.ClaimRect(0, 0, 1, 1, ProvenanceLayer.Structure);   // overwrites the middle of the rect above
+            written.ClaimRect(-2, -2, 2, 2, ProvenancePass.Ground);
+            written.ClaimRect(0, 0, 1, 1, ProvenancePass.Structure);   // overwrites the middle of the rect above
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir);
             await Assert.That(read).IsNotNull();
-            await Assert.That(read!.LayerAt(-2, -2)).IsEqualTo(ProvenanceLayer.Ground);
-            await Assert.That(read.LayerAt(0, 0)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(1, 1)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(2, 2)).IsEqualTo(ProvenanceLayer.Ground);
-            await Assert.That(read.LayerAt(9, 9)).IsNull();
+            await Assert.That(read!.PassAt(-2, -2)).IsEqualTo(ProvenancePass.Ground);
+            await Assert.That(read.PassAt(0, 0)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(1, 1)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(2, 2)).IsEqualTo(ProvenancePass.Ground);
+            await Assert.That(read.PassAt(9, 9)).IsNull();
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
@@ -49,18 +49,18 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 10, 0, ProvenanceLayer.Ground);
-            written.ClaimRect(0, 0, 1, 0, ProvenanceLayer.Structure);
-            written.ClaimRect(7, 0, 8, 0, ProvenanceLayer.Structure);
+            written.ClaimRect(0, 0, 10, 0, ProvenancePass.Ground);
+            written.ClaimRect(0, 0, 1, 0, ProvenancePass.Structure);
+            written.ClaimRect(7, 0, 8, 0, ProvenancePass.Structure);
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
-            await Assert.That(read.LayerAt(0, 0)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(1, 0)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(4, 0)).IsEqualTo(ProvenanceLayer.Ground);
-            await Assert.That(read.LayerAt(7, 0)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(8, 0)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(10, 0)).IsEqualTo(ProvenanceLayer.Ground);
+            await Assert.That(read.PassAt(0, 0)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(1, 0)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(4, 0)).IsEqualTo(ProvenancePass.Ground);
+            await Assert.That(read.PassAt(7, 0)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(8, 0)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(10, 0)).IsEqualTo(ProvenancePass.Ground);
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
@@ -84,7 +84,7 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 3, 0, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
+            written.ClaimRect(0, 0, 3, 0, ProvenancePass.Structure, new StampId("house", "d-h1", 0));
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
@@ -103,15 +103,15 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 4, 0, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
-            written.ClaimRect(5, 0, 9, 0, ProvenanceLayer.Structure, new StampId("house", "d-h2", 0));
+            written.ClaimRect(0, 0, 4, 0, ProvenancePass.Structure, new StampId("house", "d-h1", 0));
+            written.ClaimRect(5, 0, 9, 0, ProvenancePass.Structure, new StampId("house", "d-h2", 0));
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
             await Assert.That(read.OwnerAt(4, 0)).IsEqualTo(new StampId("house", "d-h1", 0));
             await Assert.That(read.OwnerAt(5, 0)).IsEqualTo(new StampId("house", "d-h2", 0));
-            await Assert.That(read.LayerAt(4, 0)).IsEqualTo(ProvenanceLayer.Structure);
-            await Assert.That(read.LayerAt(5, 0)).IsEqualTo(ProvenanceLayer.Structure);
+            await Assert.That(read.PassAt(4, 0)).IsEqualTo(ProvenancePass.Structure);
+            await Assert.That(read.PassAt(5, 0)).IsEqualTo(ProvenancePass.Structure);
         }
         finally { Directory.Delete(dir, recursive: true); }
     }
@@ -123,7 +123,7 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.Claim(0, 0, ProvenanceLayer.Ground);
+            written.Claim(0, 0, ProvenancePass.Ground);
             WorldProvenanceFile.Write(written, dir);
 
             var read = WorldProvenanceFile.TryRead(dir)!;
@@ -187,8 +187,8 @@ public sealed class WorldProvenanceFileTests
         try
         {
             var written = new WorldProvenance();
-            written.ClaimRect(0, 0, 2, 0, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));
-            written.ClaimRect(0, 5, 2, 5, ProvenanceLayer.Structure, new StampId("house", "d-h1", 0));   // same owner, a distant row
+            written.ClaimRect(0, 0, 2, 0, ProvenancePass.Structure, new StampId("house", "d-h1", 0));
+            written.ClaimRect(0, 5, 2, 5, ProvenancePass.Structure, new StampId("house", "d-h1", 0));   // same owner, a distant row
             WorldProvenanceFile.Write(written, dir);
 
             var json = File.ReadAllText(Path.Combine(dir, "provenance.json"));

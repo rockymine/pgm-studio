@@ -21,7 +21,7 @@ public enum TopDownColorMode { Category, Material }
 /// terrain is uniformly the context tone, and only the <c>map.xml</c> overlay (goals, spawns, apply-rule
 /// boxes) is drawn on top, because the question it answers is purely "where do the declared goals sit",
 /// which the finished map's own colours only get in the way of.</summary>
-public enum TopDownLayer { Combined, Ground, Structure, Foliage, Objectives }
+public enum TopDownSubject { Combined, Ground, Structure, Foliage, Objectives }
 
 /// <summary>
 /// A world's surface as a top-down PNG: one pixel block per column. The default reading is a diagram, not a
@@ -43,7 +43,7 @@ public enum TopDownLayer { Combined, Ground, Structure, Foliage, Objectives }
 ///
 /// <para><b>A layer is worth seeing alone.</b> The finished map draws every category and the declared goals
 /// at once, which is a search rather than a look when the question at hand is just "where is the foliage" or
-/// "where do the goals sit" — <see cref="TopDownLayer"/> isolates one question per image, each still keyed by
+/// "where do the goals sit" — <see cref="TopDownSubject"/> isolates one question per image, each still keyed by
 /// its own legend (<see cref="Legend"/>) baked onto the PNG a caller actually gets, so the picture never needs
 /// a caption to be read correctly.</para>
 ///
@@ -64,7 +64,7 @@ public static class TopDownRender
     /// <summary>Depth in blocks at which water stops getting darker.</summary>
     private const int FullDepth = 12;
 
-    /// <summary>A column whose category is not the one <see cref="TopDownLayer"/> asked for — present, but
+    /// <summary>A column whose category is not the one <see cref="TopDownSubject"/> asked for — present, but
     /// deliberately not the void colour, so "nothing recorded here" and "something recorded, just not this
     /// layer's question" stay two different findings. The isolated foliage layer's <b>point</b> mode reuses it
     /// as the backdrop every tree circle is drawn over, for the same reason: it is terrain, just not the thing
@@ -97,13 +97,13 @@ public static class TopDownRender
     /// reading every layer already had. A caller that <em>does</em> hold the document (a studio export in
     /// memory) passes it through the <c>VoxelWorld</c> overload instead.</para></summary>
     public static int Run(string regionDir, string outPng, MapXml? map, int scale, int? yMax,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownSubject subject = TopDownSubject.Combined,
         IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"no region dir: {regionDir}"); return 1; }
         var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(AnvilRegion.ReadChunks).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine($"no chunks in {regionDir}"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, WorldProvenanceFile.TryRead(regionDir),
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, subject, WorldProvenanceFile.TryRead(regionDir),
             Path.GetFileName(Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(regionDir)) ?? regionDir),
             treePoints) is null ? 1 : 0;
     }
@@ -120,25 +120,25 @@ public static class TopDownRender
     /// legend and the scale bar included, since those are what make it readable. Null where the world holds
     /// no non-air column.</summary>
     public static byte[]? Png(VoxelWorld world, MapXml? map, int scale, int? yMax, string name,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownSubject subject = TopDownSubject.Combined,
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
-        => Emit([.. AnvilRegion.FromWorld(world)], null, map, scale, yMax, colorMode, layer, provenance, name,
+        => Emit([.. AnvilRegion.FromWorld(world)], null, map, scale, yMax, colorMode, subject, provenance, name,
             treePoints);
 
     public static int Run(VoxelWorld world, string outPng, MapXml? map, int scale, int? yMax, string name,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownSubject subject = TopDownSubject.Combined,
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var chunks = AnvilRegion.FromWorld(world).ToList();
         if (chunks.Count == 0) { Console.Error.WriteLine("world has no chunks"); return 1; }
-        return Emit(chunks, outPng, map, scale, yMax, colorMode, layer, provenance, name, treePoints) is null ? 1 : 0;
+        return Emit(chunks, outPng, map, scale, yMax, colorMode, subject, provenance, name, treePoints) is null ? 1 : 0;
     }
 
     private static byte[]? Emit(List<AnvilRegion.Chunk> chunks, string? outPng, MapXml? map, int scale, int? yMax,
-        TopDownColorMode colorMode, TopDownLayer layer, WorldProvenance? provenance, string name,
+        TopDownColorMode colorMode, TopDownSubject subject, WorldProvenance? provenance, string name,
         IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
-        var result = Render(chunks, map, yMax, colorMode, layer, provenance, treePoints);
+        var result = Render(chunks, map, yMax, colorMode, subject, provenance, treePoints);
         if (result is null) { if (outPng is not null) Console.Error.WriteLine("no non-air columns"); return null; }
 
         // Whether the Ground/Structure split is a recorded fact or a material guess is the one thing a legend
@@ -150,18 +150,18 @@ public static class TopDownRender
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale,
-            LegendEntries(colorMode, layer, result.TreePointCount > 0), out var legendHeight,
+            LegendEntries(colorMode, subject, result.TreePointCount > 0), out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS"
                        + (provenanceState is null ? "" : $"  -  {provenanceState}"));
         var png = PngWriter.Encode(result.BlocksWide * scale, legendHeight, withLegend);
         if (outPng is null) return png;
         File.WriteAllBytes(outPng, png);
 
-        Console.WriteLine($"topdown {name} ({layer}/{colorMode}{(provenanceState is null ? "" : $", {provenanceState}")}): " +
+        Console.WriteLine($"topdown {name} ({subject}/{colorMode}{(provenanceState is null ? "" : $", {provenanceState}")}): " +
             $"{result.ColumnCount} columns over {result.BlocksWide}x{result.BlocksHigh} blocks, " +
             $"surface y {result.LowestY}..{result.HighestY}");
         if (result.OverlayCount > 0) Console.WriteLine($"  overlay: {result.OverlayCount} box(es)");
-        if (layer == TopDownLayer.Foliage)
+        if (subject == TopDownSubject.Foliage)
             Console.WriteLine(result.TreePointCount > 0
                 ? $"  {result.TreePointCount} tree(s), drawn as point + measured crown radius"
                 : $"  no dressing document given — drawn as the leaf/log mass (no tree points to plot)");
@@ -171,12 +171,12 @@ public static class TopDownRender
 
     /// <summary>The legend a caller's picture actually carries — one entry per colour <see cref="Paint"/> can
     /// place under the given mode/layer, so a swatch on the image always has a name beside it.</summary>
-    private static List<Legend.Entry> LegendEntries(TopDownColorMode colorMode, TopDownLayer layer, bool treePoints = false)
+    private static List<Legend.Entry> LegendEntries(TopDownColorMode colorMode, TopDownSubject subject, bool treePoints = false)
     {
         if (colorMode == TopDownColorMode.Material)
             return [new Legend.Entry("REAL MATERIAL COLOUR", ContextRgb), new Legend.Entry("VOID", RenderCategories.VoidRgb)];
 
-        if (layer == TopDownLayer.Combined)
+        if (subject == TopDownSubject.Combined)
             return
             [
                 new Legend.Entry("GROUND", RenderCategories.GroundRgb),
@@ -186,7 +186,7 @@ public static class TopDownRender
                 new Legend.Entry("VOID", RenderCategories.VoidRgb),
             ];
 
-        if (layer == TopDownLayer.Objectives)
+        if (subject == TopDownSubject.Objectives)
             return
             [
                 new Legend.Entry("TERRAIN (CONTEXT)", ContextRgb),
@@ -194,10 +194,10 @@ public static class TopDownRender
                 new Legend.Entry("VOID", RenderCategories.VoidRgb),
             ];
 
-        // The isolated foliage layer's point mode is a different picture from the other two isolated layers —
+        // The isolated foliage subject's point mode is a different picture from the other two isolated subjects —
         // a tree's crown circle and its trunk dot rather than a highlighted material — so it carries its own
         // pair of swatches instead of the one-category-plus-context shape the rest share.
-        if (layer == TopDownLayer.Foliage && treePoints)
+        if (subject == TopDownSubject.Foliage && treePoints)
             return
             [
                 new Legend.Entry("TREE CROWN (MEASURED RADIUS)", RenderCategories.HighlightOf(RenderCategory.Foliage)),
@@ -206,11 +206,11 @@ public static class TopDownRender
                 new Legend.Entry("VOID", RenderCategories.VoidRgb),
             ];
 
-        var wanted = layer switch
+        var wanted = subject switch
         {
-            TopDownLayer.Ground => RenderCategory.Ground,
-            TopDownLayer.Structure => RenderCategory.Structure,
-            TopDownLayer.Foliage => RenderCategory.Foliage,
+            TopDownSubject.Ground => RenderCategory.Ground,
+            TopDownSubject.Structure => RenderCategory.Structure,
+            TopDownSubject.Foliage => RenderCategory.Foliage,
             _ => RenderCategory.Ground,
         };
         return
@@ -229,9 +229,9 @@ public static class TopDownRender
     /// to plotting each tree's own anchor and measured crown radius (docs/world-export/decoration.md §6) — a
     /// mode, not a second renderer: every other layer, and the combined view, are unaffected by it, because the
     /// mass is still the honest reading of what cover a player actually has. Ignored on every layer but
-    /// <see cref="TopDownLayer.Foliage"/>.</para></summary>
+    /// <see cref="TopDownSubject.Foliage"/>.</para></summary>
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, MapXml? map, int? yMax,
-        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownLayer layer = TopDownLayer.Combined,
+        TopDownColorMode colorMode = TopDownColorMode.Category, TopDownSubject subject = TopDownSubject.Combined,
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var columns = ReadColumns(chunks.ToList(), yMax, provenance);
@@ -244,8 +244,8 @@ public static class TopDownRender
         var heights = columns.Values.Select(column => column.SurfaceY).ToList();
         int lowest = heights.Min(), highest = heights.Max();
 
-        var pointMode = layer == TopDownLayer.Foliage && treePoints is { Count: > 0 };
-        var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest, colorMode, layer, pointMode);
+        var pointMode = subject == TopDownSubject.Foliage && treePoints is { Count: > 0 };
+        var pixels = Paint(columns, minX, minZ, blocksWide, blocksHigh, lowest, highest, colorMode, subject, pointMode);
         if (pointMode) DrawTreePoints(pixels, blocksWide, blocksHigh, minX, minZ, treePoints!);
 
         var overlays = map is null ? [] : Overlays(map);
@@ -301,7 +301,7 @@ public static class TopDownRender
         var byCell = new Dictionary<(int X, int Z), Column>(surface.Count);
         foreach (var block in surface)
             byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY,
-                RenderCategories.Of(block.BlockId, provenance?.LayerAt(block.WorldX, block.WorldZ)),
+                RenderCategories.Of(block.BlockId, provenance?.PassAt(block.WorldX, block.WorldZ)),
                 block.BlockId, block.BlockData, 0);
 
         // Only the water columns need the second, deeper read, so the bed lookup is built for those alone.
@@ -346,7 +346,7 @@ public static class TopDownRender
     /// replaces — painting it underneath the circles would just be the old picture with dots added to it.</summary>
     private static byte[] Paint(Dictionary<(int X, int Z), Column> columns, int minX, int minZ,
                                 int blocksWide, int blocksHigh, int lowest, int highest,
-                                TopDownColorMode colorMode, TopDownLayer layer, bool pointMode = false)
+                                TopDownColorMode colorMode, TopDownSubject subject, bool pointMode = false)
     {
         var pixels = new byte[blocksWide * blocksHigh * 3];
         var span = Math.Max(1, highest - lowest);
@@ -371,13 +371,13 @@ public static class TopDownRender
                 }
                 keep *= 0.88 + 0.24 * ((column.SurfaceY - lowest) / (double)span);
 
-                var baseColor = pointMode ? ContextRgb : BaseColor(column, colorMode, layer);
+                var baseColor = pointMode ? ContextRgb : BaseColor(column, colorMode, subject);
                 Raster.Set(pixels, blocksWide, col, row, Raster.Scale(baseColor, keep));
             }
         return pixels;
     }
 
-    private static int BaseColor(Column column, TopDownColorMode colorMode, TopDownLayer layer)
+    private static int BaseColor(Column column, TopDownColorMode colorMode, TopDownSubject subject)
     {
         if (colorMode == TopDownColorMode.Material) return BlockPalette.PackedRgb(column.BlockId, column.BlockData);
 
@@ -385,13 +385,13 @@ public static class TopDownRender
             ? Raster.Scale(RenderCategories.WaterRgb, 1 - (1 - DeepWaterKeep) * Math.Min(1.0, column.WaterDepth / (double)FullDepth))
             : RenderCategories.ColourOf(column.Category);
 
-        return layer switch
+        return subject switch
         {
-            TopDownLayer.Combined => categoryRgb,
-            TopDownLayer.Objectives => ContextRgb,
-            TopDownLayer.Ground => column.Category == RenderCategory.Ground ? RenderCategories.HighlightOf(RenderCategory.Ground) : ContextRgb,
-            TopDownLayer.Structure => column.Category == RenderCategory.Structure ? RenderCategories.HighlightOf(RenderCategory.Structure) : ContextRgb,
-            TopDownLayer.Foliage => column.Category == RenderCategory.Foliage ? RenderCategories.HighlightOf(RenderCategory.Foliage) : ContextRgb,
+            TopDownSubject.Combined => categoryRgb,
+            TopDownSubject.Objectives => ContextRgb,
+            TopDownSubject.Ground => column.Category == RenderCategory.Ground ? RenderCategories.HighlightOf(RenderCategory.Ground) : ContextRgb,
+            TopDownSubject.Structure => column.Category == RenderCategory.Structure ? RenderCategories.HighlightOf(RenderCategory.Structure) : ContextRgb,
+            TopDownSubject.Foliage => column.Category == RenderCategory.Foliage ? RenderCategories.HighlightOf(RenderCategory.Foliage) : ContextRgb,
             _ => categoryRgb,
         };
     }

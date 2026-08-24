@@ -301,8 +301,8 @@ public sealed class WorldBuilderTests
         var built = WorldBuilder.Build(Layout, SampleIntent());
 
         // The default 10×10 shell centred on the (snapped) red wool spawn (-10, 10) — well inside its frame.
-        await Assert.That(built.Provenance.LayerAt(-10, 10)).IsEqualTo(ProvenanceLayer.Structure);
-        await Assert.That(built.Provenance.LayerAt(20, 0)).IsEqualTo(ProvenanceLayer.Structure);   // blue's spawn cube
+        await Assert.That(built.Provenance.PassAt(-10, 10)).IsEqualTo(ProvenancePass.Structure);
+        await Assert.That(built.Provenance.PassAt(20, 0)).IsEqualTo(ProvenancePass.Structure);   // blue's spawn cube
     }
 
     [Test]
@@ -346,10 +346,10 @@ public sealed class WorldBuilderTests
         await Assert.That(RenderCategories.Of(blockId)).IsEqualTo(RenderCategory.Structure);
 
         // The recorded provenance disagrees, correctly: nothing stamped this column, so it is Ground.
-        await Assert.That(built.Provenance.LayerAt(-20, 20)).IsEqualTo(ProvenanceLayer.Ground);
+        await Assert.That(built.Provenance.PassAt(-20, 20)).IsEqualTo(ProvenancePass.Ground);
 
         // Well away from the spawn cube it stamped, which IS Structure.
-        await Assert.That(built.Provenance.LayerAt(30, -30)).IsEqualTo(ProvenanceLayer.Structure);
+        await Assert.That(built.Provenance.PassAt(30, -30)).IsEqualTo(ProvenancePass.Structure);
     }
 
     // ── provenance owner ──────────────────────────────────────────────────────────────────────
@@ -378,8 +378,8 @@ public sealed class WorldBuilderTests
         var woolOwner = built.Provenance.OwnerAt(-10, 10);   // red wool room
         var spawnOwner = built.Provenance.OwnerAt(20, 0);    // blue's spawn cube
 
-        await Assert.That(built.Provenance.LayerAt(-10, 10)).IsEqualTo(ProvenanceLayer.Structure);
-        await Assert.That(built.Provenance.LayerAt(20, 0)).IsEqualTo(ProvenanceLayer.Structure);
+        await Assert.That(built.Provenance.PassAt(-10, 10)).IsEqualTo(ProvenancePass.Structure);
+        await Assert.That(built.Provenance.PassAt(20, 0)).IsEqualTo(ProvenancePass.Structure);
         await Assert.That(woolOwner).IsNotEqualTo(spawnOwner);
     }
 
@@ -389,7 +389,7 @@ public sealed class WorldBuilderTests
         var built = WorldBuilder.Build(Layout, SampleIntent());
         // Terrain far from every stamp: still plain rasterized ground, so its owner is the shared "nothing
         // identified" reading rather than a per-column identity nobody assigned it.
-        await Assert.That(built.Provenance.LayerAt(0, -30)).IsEqualTo(ProvenanceLayer.Ground);
+        await Assert.That(built.Provenance.PassAt(0, -30)).IsEqualTo(ProvenancePass.Ground);
         await Assert.That(built.Provenance.OwnerAt(0, -30)).IsNull();
     }
 

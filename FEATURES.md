@@ -5648,6 +5648,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The word `layer` names a slab and nothing else (WS13).** Seven things carried it and one was a layer.
+  The three types that borrowed it are renamed: `TopDownLayer` is a render *subject* — one question per image
+  — so it is `TopDownSubject`, and the query word and the round-trip flag follow (`render/topdown?subject=`,
+  `--subject`); `ProvenanceLayer` is which build *pass* claimed a column, so it is `ProvenancePass`, with
+  `WorldProvenance.PassAt`, a `(Pass, Owner)` claim and a `pass` key in the sidecar — 13,756 keys in 41
+  committed `provenance.json` files move with it, because that key is omitted when it is `Ground` and a
+  rename without them would have read every structure run as terrain; and `SurfaceLayer` reads a surface-scan
+  cell, so it is `SurfaceScan` (the `layer.parquet` blob keeps its name). `SketchLayer` does not move — it is
+  the one use where the word is literally true.
 - **A layout is composed of layers, and the ground is one of them (TS28).** The document kept its ground
   shapes under `layout` and anything stacked over them under `layers`, so the ground layer was the one layer
   that was not in the stack — and seven readers disagreed about a document carrying both: three read one *or*

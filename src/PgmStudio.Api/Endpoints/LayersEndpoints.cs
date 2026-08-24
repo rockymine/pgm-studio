@@ -151,7 +151,7 @@ public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore arti
         var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.LayerParquet, ct);
         if (layer is null) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
 
-        var cells = await SurfaceLayer.ReadAsync(layer);
+        var cells = await SurfaceScan.ReadAsync(layer);
         if (cells.Count == 0) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
         await Send.OkAsync(LayerData.Pixels(cells), ct);
     }

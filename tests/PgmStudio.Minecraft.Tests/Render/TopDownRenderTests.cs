@@ -77,9 +77,9 @@ public sealed class TopDownRenderTests
         world.SetBlock(0, 5, 0, Blocks.Stone);
 
         var category = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Category, TopDownLayer.Combined)!;
+            TopDownColorMode.Category, TopDownSubject.Combined)!;
         var material = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Material, TopDownLayer.Combined)!;
+            TopDownColorMode.Material, TopDownSubject.Combined)!;
 
         await Assert.That(PixelAt(category.Pixels, 1, 0, 0)).IsNotEqualTo(PixelAt(material.Pixels, 1, 0, 0));
     }
@@ -94,7 +94,7 @@ public sealed class TopDownRenderTests
         world.SetBlock(1, 5, 0, 1, 5);   // andesite
 
         var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Material, TopDownLayer.Combined)!;
+            TopDownColorMode.Material, TopDownSubject.Combined)!;
 
         await Assert.That(PixelAt(result.Pixels, result.BlocksWide, 0, 0))
             .IsNotEqualTo(PixelAt(result.Pixels, result.BlocksWide, 1, 0));
@@ -124,7 +124,7 @@ public sealed class TopDownRenderTests
         world.SetBlock(2, 5, 0, 5);                // planks — a built surface
 
         var foliageOnly = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Category, TopDownLayer.Foliage)!;
+            TopDownColorMode.Category, TopDownSubject.Foliage)!;
 
         var groundPixel = PixelAt(foliageOnly.Pixels, foliageOnly.BlocksWide, 0, 0);
         var foliagePixel = PixelAt(foliageOnly.Pixels, foliageOnly.BlocksWide, 1, 0);
@@ -147,7 +147,7 @@ public sealed class TopDownRenderTests
         world.SetBlock(1, 5, 0, Blocks.Leaves);
 
         var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Category, TopDownLayer.Foliage, treePoints: null)!;
+            TopDownColorMode.Category, TopDownSubject.Foliage, treePoints: null)!;
 
         await Assert.That(result.TreePointCount).IsEqualTo(0);
         // The leaf column still separates from its bare-ground neighbour, exactly as it always has — nothing
@@ -173,7 +173,7 @@ public sealed class TopDownRenderTests
 
         var points = new List<(int X, int Z, double Radius)> { (5, 5, 2) };
         var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Category, TopDownLayer.Foliage, treePoints: points)!;
+            TopDownColorMode.Category, TopDownSubject.Foliage, treePoints: points)!;
 
         await Assert.That(result.TreePointCount).IsEqualTo(1);
 
@@ -200,7 +200,7 @@ public sealed class TopDownRenderTests
 
         var points = new List<(int X, int Z, double Radius)> { (3, 1, 3), (6, 1, 3) };   // overlapping circles
         var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
-            TopDownColorMode.Category, TopDownLayer.Foliage, treePoints: points)!;
+            TopDownColorMode.Category, TopDownSubject.Foliage, treePoints: points)!;
 
         var firstTrunk = PixelAt(result.Pixels, result.BlocksWide, 3, 1);
         var secondTrunk = PixelAt(result.Pixels, result.BlocksWide, 6, 1);

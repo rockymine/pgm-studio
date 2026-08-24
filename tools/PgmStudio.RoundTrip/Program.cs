@@ -137,14 +137,14 @@ var cbrIdx = Array.IndexOf(args, "--clean-base-render");
 if (cbrIdx >= 0 && cbrIdx + 2 < args.Length)
     return RunCleanBaseRender(args[cbrIdx + 1], args[cbrIdx + 2]);
 
-// --topdown <regionDir> <outPng> [--map <map.xml>] [--scale N] [--ymax Y] [--layer ground|structure|foliage|objectives]
+// --topdown <regionDir> <outPng> [--map <map.xml>] [--scale N] [--ymax Y] [--subject ground|structure|foliage|objectives]
 // [--material] [--dressing <layout.json>]: the world's surface as a top-down PNG. The default reading sorts
 // every column into RenderCategory and false-colours it for legibility (foliage/structure/ground/water/void,
 // each a legend entry baked onto the image); --material switches back to the old per-block BlockPalette
-// colouring, for checking a theme's actual paint rather than the map's shape. --layer isolates one category
+// colouring, for checking a theme's actual paint rather than the map's shape. --subject isolates one category
 // (or the map.xml overlay alone, for "objectives") instead of drawing the combined view. --map overlays what
 // the XML declares (objectives, spawns, apply-rule boxes) so the geometry can be read against the terrain.
-// --dressing switches --layer foliage from the leaf/log mass to each tree's own point and measured crown
+// --dressing switches --subject foliage from the leaf/log mass to each tree's own point and measured crown
 // radius (docs/world-export/decoration.md §6) — it names the SketchLayout document the region was built from,
 // which a bare region directory carries no other way to reach; a scanned or undocumented world has none, so
 // the layer falls back to the mass reading it always had.
@@ -154,18 +154,18 @@ if (topIdx >= 0 && topIdx + 2 < args.Length)
     var mapIdx = Array.IndexOf(args, "--map");
     var scaleIdx = Array.IndexOf(args, "--scale");
     var yMaxIdx = Array.IndexOf(args, "--ymax");
-    var layerIdx = Array.IndexOf(args, "--layer");
+    var subjectIdx = Array.IndexOf(args, "--subject");
     var dressingIdx = Array.IndexOf(args, "--dressing");
     var overlayMap = mapIdx >= 0 && mapIdx + 1 < args.Length ? MapParser.Parse(args[mapIdx + 1]) : null;
-    var layer = layerIdx >= 0 && layerIdx + 1 < args.Length ? args[layerIdx + 1].ToLowerInvariant() switch
+    var layer = subjectIdx >= 0 && subjectIdx + 1 < args.Length ? args[subjectIdx + 1].ToLowerInvariant() switch
     {
-        "ground" => TopDownLayer.Ground,
-        "structure" => TopDownLayer.Structure,
-        "foliage" => TopDownLayer.Foliage,
-        "objectives" => TopDownLayer.Objectives,
-        "combined" => TopDownLayer.Combined,
+        "ground" => TopDownSubject.Ground,
+        "structure" => TopDownSubject.Structure,
+        "foliage" => TopDownSubject.Foliage,
+        "objectives" => TopDownSubject.Objectives,
+        "combined" => TopDownSubject.Combined,
         var other => throw new ArgumentException($"no top-down layer '{other}' — have: ground, structure, foliage, objectives, combined"),
-    } : TopDownLayer.Combined;
+    } : TopDownSubject.Combined;
     var treePoints = dressingIdx >= 0 && dressingIdx + 1 < args.Length
         ? PgmStudio.Export.DressingScope.TreeFootprints(File.ReadAllText(args[dressingIdx + 1]))
         : null;
@@ -372,7 +372,7 @@ if (floraIdx >= 0 && floraIdx + 2 < args.Length)
 // --buildings <regionDir> <outPng> --roof <id[:data],...> [--scale N] [--min-area N]: buildings found from
 // their roofs, kept only where a solid run reaches the terrain — a roofed structure hanging in the air is
 // not a building, whatever it is covered with. A region carrying a recorded WorldProvenance sidecar declines
-// this guess entirely rather than run it: --structures and --topdown --layer structure already read that
+// this guess entirely rather than run it: --structures and --topdown --subject structure already read that
 // region's exact census, and a roof-material heuristic tuned for a corpus house has no reason to be trusted
 // over it on a world the studio built.
 var buildIdx = Array.IndexOf(args, "--buildings");

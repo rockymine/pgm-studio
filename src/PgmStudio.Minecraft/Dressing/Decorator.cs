@@ -102,7 +102,7 @@ public readonly record struct DressingPlacement(
     /// <summary>Just the buildings — what a caller asking about <em>built</em> things wants, now that the
     /// report carries the trees and the roads beside them.</summary>
     public IEnumerable<PlacementClaim> Structures =>
-        Placements.Where(claim => claim.Layer == ProvenanceLayer.Structure);
+        Placements.Where(claim => claim.Pass == ProvenancePass.Structure);
 }
 
 /// <summary>
@@ -158,7 +158,7 @@ public static class Decorator
             for (var image = 0; image < result.Images.Count; image++)
                 if (result.Images[image].Count > 0)
                     structures.Add(new PlacementClaim(new StampId(kind, IdOf(id, propIndex), image),
-                                                      ProvenanceLayer.Prop, result.Images[image]));
+                                                      ProvenancePass.Prop, result.Images[image]));
         }
         static string IdOf(string id, int index) =>
             string.IsNullOrEmpty(id) ? index.ToString(CultureInfo.InvariantCulture) : id;
@@ -577,7 +577,7 @@ public static class Decorator
             // stamped extent rather than the wall rectangle — a roof's overhang and verge reach past the walls
             // and are as much the building as they are — and they come from HouseStamper's own function, so
             // the claim and the stamp read one derivation instead of two that agree today.
-            raised.Add(new PlacementClaim(new StampId("house", house.Id, k), ProvenanceLayer.Structure,
+            raised.Add(new PlacementClaim(new StampId("house", house.Id, k), ProvenancePass.Structure,
                                           ClaimedCells(image, house.Style)));
         }
         return raised;

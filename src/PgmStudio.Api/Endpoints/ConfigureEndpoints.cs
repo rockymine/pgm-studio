@@ -112,9 +112,9 @@ internal static class ConfigureLayers
         var scanLayer = cfg["scan_layer"]?.GetValue<string>() ?? "surface";
 
         if (layerType == scanLayer && await artifacts.LoadAsync(mapId, ArtifactKind.LayerParquet, ct) is { } canon)
-            return await SurfaceLayer.ReadAsync(canon);
+            return await SurfaceScan.ReadAsync(canon);
 
         return await artifacts.LoadAsync(mapId, $"layer_{layerType}_parquet", ct) is { } cached
-            ? await SurfaceLayer.ReadAsync(cached) : null;
+            ? await SurfaceScan.ReadAsync(cached) : null;
     }
 }
