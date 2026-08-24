@@ -116,10 +116,15 @@ public static class WorldWalk
     {
         var over = shared.Bounds;
         if (data is null || team is null || over.Width <= 0 || over.Height <= 0) return shared;
-        if (EntryDenials.Cells(data, team, over) is not { Count: > 0 } denied) return shared;
-
-        return shared.Narrowed(new HashSet<(int X, int Z)>(shared.Footprint.Where(cell => !denied.Contains(cell))));
+        return EntryDenials.Cells(data, team, over) is { Count: > 0 } denied ? Without(shared, denied) : shared;
     }
+
+    /// <summary>The same walk with a set of cells taken out of it, whichever question put them there — the
+    /// ground a team is barred from, or that ground less the one patch a caller is asking whether a player can
+    /// walk up to. A cell goes whole: an <c>enter</c> rule keeps a team out of ground, not out of one storey
+    /// of it.</summary>
+    public static WalkGround Without(WalkGround shared, IReadOnlySet<(int X, int Z)> cut)
+        => shared.Narrowed(new HashSet<(int X, int Z)>(shared.Footprint.Where(cell => !cut.Contains(cell))));
 
     /// <summary>Give every bridgeable cell the height of the ground nearest it, spreading outward from the
     /// shores. A player bridging builds out level from where they left, so a crossing costs nothing until it

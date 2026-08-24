@@ -6,11 +6,14 @@ using PgmStudio.Geom;
 using Dict = Dictionary<string, object?>;
 
 /// <summary>One place a match starts or ends a journey at, as the map document states it: a spawn, a wool, a
-/// destroyable or a core. <see cref="Owner"/> is the team it belongs to, which is what tells a journey a team
-/// must make from one it never makes — a defender is not asked to reach its own wool.</summary>
+/// destroyable or a core. <see cref="Owner"/> is the team that defends it, which is what tells the journey a
+/// team must make to a goal from the one it makes to its own — an attacker has to stand on the goal, and a
+/// defender only has to reach the border of the ground its own goal's protection bars it from.</summary>
 /// <param name="Kind">What it is: <c>spawn</c>, <c>wool</c>, <c>destroyable</c> or <c>core</c>.</param>
 /// <param name="Name">What names it — a team for a spawn, a colour for a wool, the goal's own name.</param>
-/// <param name="Owner">The team it belongs to, or empty where the document names none.</param>
+/// <param name="Owner">The team that defends it — a spawn's own team, a destroyable's or core's stated owner,
+/// and for a wool the team its room belongs to — <c>wool.team</c>, which the document carries because the
+/// codec infers it from the teams the monuments do not name. Empty where the document names none.</param>
 /// <param name="X">Where it stands, east–west.</param>
 /// <param name="Z">Where it stands, north–south.</param>
 /// <param name="Y">Which storey of that cell it is on, where the document states one — the floor of a spawn's

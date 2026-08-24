@@ -31,8 +31,8 @@ public static class KitReach
     /// for it.</summary>
     /// <param name="Color">The wool to be captured.</param>
     /// <param name="Owner">The team that defends it, or empty where the document names none. A team's own
-    /// wool is reported like any other and never held against it: the room's own rule bars its defender by
-    /// design, which is the same ruling the traversability verdict is written under.</param>
+    /// wool is reported like any other and never held against it: this budget is what capturing a wool costs,
+    /// and a defender has no capture to pay for.</param>
     /// <param name="X">Where it stands, east–west.</param>
     /// <param name="Z">Where it stands, north–south.</param>
     /// <param name="BlocksNeeded">How many blocks the cheapest path asks the player to place — bridging
@@ -130,8 +130,7 @@ public static class KitReach
         }
 
         // A team is judged on the wools it must capture. Its own is reported and never counted against it:
-        // the room's own rule bars its defender by design, and the traversability verdict is written under
-        // the same ruling.
+        // the budget is what a capture costs, and a defender makes none.
         var allWools = teams.SelectMany(t => t.Wools.Where(w => w.Owner != t.Team)).ToList();
         var worst = allWools.Any(w => !w.Reachable) ? "error"
             : allWools.Any(w => !w.WithinBudget) ? "warning" : "ok";

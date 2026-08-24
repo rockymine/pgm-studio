@@ -1065,21 +1065,6 @@ asked over.
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **RP56 — A wool's team is read off a key the document does not carry, so every defender is reported
-  unable to reach its own wool.** `NavPoints.Of` takes a wool's `Owner` from `wool["team"]`
-  (`src/PgmStudio.Analysis/Playability/NavPoints.cs:58`), and a serialized wool is
-  `{id, color, location, wool_room_region, monuments[]}` — the team is on the monuments. So every wool carries
-  `Owner = ""`, `TeamIsolations`'s `point.Owner == team` skip never fires, and each team is required to reach
-  every wool including the one its own room's `enter` rule bars it from — the case that method's docstring
-  says is by design and never required. It is a complaint and not a refusal, so the gate stays open and the
-  message is simply wrong. Decide what a wool's `Owner` is — the defender, as it is for a core, or the teams
-  that must contest it — and read it off `monuments[].team`.
-
-  *`Traversability.Check` on `pgm-studio-mapgen`'s `maps/opus5-mineshaft` and `maps/opus5-undermarket`
-  answers `connected: false`, "2 objective(s) sit behind ground an enter rule bars the attacking team from",
-  naming `wool:red` for `red-team` and `wool:blue` for `blue-team` — both defenders. Any map carrying the
-  studio's own `You may not enter your own wool room` rule reads the same.*
-
 - [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
   grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective
   point(s) are not reachable from the rest*, naming `spawn red-team`, `wool red` and `wool blue`. It is the

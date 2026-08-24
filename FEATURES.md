@@ -1502,10 +1502,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   entry somewhere, that team walks its own navigable set — the shared one minus its denied cells — from its
   spawns to every goal it does not own, so a goal tucked behind an oversized spawn protection refuses with
   the barred team named (`IsolatedPoint.For`, carried through the DTO, the preflight line, the `EX1`
-  subjects and the goldens). A defender barred from its own wool room is by design and never required
-  there; an unresolvable filter denies nobody, so exotic wiring can only under-refuse. End to end: widening
-  a spawn's protection to swallow the approach to its own wool room refuses `GET /xml` with **409 `EX1`**
-  and the subject `wool blue (for red-team)`.
+  subjects and the goldens). An unresolvable filter denies nobody, so exotic wiring can only under-refuse.
+  End to end: widening a spawn's protection to swallow the approach to its own wool room refuses `GET /xml`
+  with **409 `EX1`** and the subject `wool blue (for red-team)`.
+- **A wool's defending team, and the border that team is asked for (`RP56`).** `map.xml` states a wool's
+  *capturing* team, one `<wool>` element per monument, so the team whose room it stands in survives the read
+  only by being inferred: `WoolEditor.DefendingTeam` answers the team the monuments leave over, and the codec
+  writes it onto the document's grouped wool the way the editor already did. That is the key
+  `NavPoint.Owner` reads, so a wool now knows who defends it wherever the document came from.
+  **A goal asks two journeys.** A team that must take it has to stand on it; a team that defends it only has
+  to reach the **border** of the barred patch it stands in — `Traversability.Approaches` walks the team's own
+  ground plus that one 4-connected patch of its denied cells, so a second protection on the way is still a
+  wall. A defender walled off from its own wool room refuses exactly as an attacker cut off from the wool
+  does. On `sunspit` — four wools, two teams, the studio's own `You may not enter your own wool room` wiring —
+  the verdict went from **four objectives isolated**, one per defender, to `connected: true`.
 - **The finish previews answer PNG (`B231`).** `?format=png&view=…` on `material-preview`, `theme-preview`
   and `prop-preview` returns one named view as raw `image/png` — the form an agent saves and looks at —
   encoded by the studio's own `PngWriter` off the same `CellRaster` the SVG comes from, so the two

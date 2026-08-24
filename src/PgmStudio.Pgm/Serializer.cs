@@ -1,4 +1,5 @@
 using PgmStudio.Domain;
+using PgmStudio.Pgm.Editing;
 
 namespace PgmStudio.Pgm;
 
@@ -33,7 +34,7 @@ public static class Serializer
         ["teams"] = m.Teams.Select(EncodeTeam).ToList<object?>(),
         ["spawns"] = m.Spawns.Select(EncodeSpawn).ToList<object?>(),
         ["observer_spawn"] = m.ObserverSpawn is null ? null : EncodeSpawn(m.ObserverSpawn),
-        ["wools"] = EncodeWoolsGrouped(m.Wools),
+        ["wools"] = EncodeWoolsGrouped(m.Wools, m.Teams),
         ["spawners"] = m.Spawners.Select(EncodeSpawner).ToList<object?>(),
         ["renewables"] = m.Renewables.Select(EncodeRenewable).ToList<object?>(),
         ["block_drop_rules"] = m.BlockDropRules.Select(EncodeBlockDropRule).ToList<object?>(),
@@ -174,7 +175,12 @@ public static class Serializer
 
     private static string WoolSlug(string value) => value.Trim().ToLowerInvariant().Replace(" ", "_");
 
-    private static List<object?> EncodeWoolsGrouped(List<Wool> wools)
+    /// <summary>The wools as the document's grouped shape: one entry per colour, its capturing teams under
+    /// <c>monuments</c> and the team that defends it under <c>team</c>. The defender is
+    /// <see cref="WoolEditor.DefendingTeam"/>'s answer rather than anything the XML states — a
+    /// <c>&lt;wool team&gt;</c> is a capturing team, one element per monument, so the room's own team survives
+    /// the read only by being inferred here. Every reader of a wool's owner is a reader of this key.</summary>
+    private static List<object?> EncodeWoolsGrouped(List<Wool> wools, List<Team> teams)
     {
         var order = new List<string>();
         var byColor = new Dictionary<string, Dict>();
@@ -187,6 +193,7 @@ public static class Serializer
                 {
                     ["id"] = cslug,
                     ["color"] = w.Color,
+                    ["team"] = null,
                     ["location"] = new Dict { ["x"] = w.Location.X, ["y"] = w.Location.Y, ["z"] = w.Location.Z },
                     ["wool_room_region"] = w.WoolRoomRegion,
                     ["monuments"] = new List<object?>(),
@@ -202,6 +209,12 @@ public static class Serializer
                 ["monument_region"] = w.MonumentRegionId,
             });
         }
+
+        var teamIds = teams.Select(t => t.Id).Where(id => id.Length > 0).ToList();
+        foreach (var group in byColor.Values)
+            group["team"] = WoolEditor.DefendingTeam(
+                teamIds, ((List<object?>)group["monuments"]!).OfType<Dict>().Select(m => m["team"] as string));
+
         return order.Select(c => (object?)byColor[c]).ToList();
     }
 

@@ -250,9 +250,9 @@ public sealed class TraversabilityTests
     public async Task A_teams_own_protections_are_never_its_own_fault()
     {
         // The two denials every properly wired map carries: a wool room barring its defender (enter=not-owner)
-        // and a spawn protection admitting only its own team. Neither is a fault — the defender is never
-        // required to reach its own wool, and a team is not barred by its own protection — so the verdict
-        // holds connected with both rules live.
+        // and a spawn protection admitting only its own team. Neither is a fault — the defender walks up to
+        // its own room's border rather than onto the wool, and a team is not barred by its own protection —
+        // so the verdict holds connected with both rules live.
         var regions = new Dict
         {
             ["red-spawn"] = Rect(0, 0, 4, 4),
@@ -290,6 +290,55 @@ public sealed class TraversabilityTests
 
         await Assert.That(res.Connected).IsTrue();
         await Assert.That(res.Isolated).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_defender_that_cannot_reach_its_own_wool_rooms_border_refuses()
+    {
+        // What a defender is asked for is the border, and it is a real question: blue's wool room sits past a
+        // strip of red's protection, so blue can walk no further than x=20 while the room starts at x=30. The
+        // whole-map chain holds — the surface is continuous and red may cross the strip — and only blue's own
+        // walk shows the wool room it is supposed to defend standing behind ground it may not enter.
+        var regions = new Dict
+        {
+            ["red-spawn"] = Rect(0, 0, 4, 4),
+            ["blue-spawn"] = Rect(8, 0, 12, 4),
+            ["red-prot"] = Rect(21, 0, 28, 4),
+            ["wool-room"] = Rect(30, 0, 36, 4),
+        };
+        var data = new Dict
+        {
+            ["regions"] = regions,
+            ["filters"] = new Dict
+            {
+                ["only-red"] = new Dict { ["type"] = "team", ["team"] = "red" },
+                ["only-blue"] = new Dict { ["type"] = "team", ["team"] = "blue" },
+                ["not-blue"] = new Dict { ["type"] = "not", ["child"] = "only-blue" },
+            },
+            ["spawns"] = new List<object?>
+            {
+                new Dict { ["team"] = "red", ["region"] = "red-spawn" },
+                new Dict { ["team"] = "blue", ["region"] = "blue-spawn" },
+            },
+            ["wools"] = new List<object?>
+            {
+                new Dict { ["color"] = "blue", ["team"] = "blue", ["location"] = Xz(33, 2) },
+            },
+            ["apply_rules"] = new List<object?>
+            {
+                new Dict { ["region"] = "red-prot", ["enter"] = "only-red" },
+                new Dict { ["region"] = "wool-room", ["enter"] = "not-blue" },
+            },
+        };
+        var surface = new HashSet<(int, int)>();
+        for (var x = 0; x < 37; x++) for (var z = 0; z < 4; z++) surface.Add((x, z));
+
+        var res = Traversability.Check(data, Flat(surface), bbox: (-5, -5, 42, 15));
+
+        await Assert.That(res.Connected).IsFalse();
+        var wool = res.Isolated.Single();
+        await Assert.That(wool.Kind).IsEqualTo("wool");
+        await Assert.That(wool.For).IsEqualTo("blue");
     }
 
     [Test]

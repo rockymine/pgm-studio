@@ -78,6 +78,46 @@ public sealed class CodecTests
     }
 
     [Test]
+    public async Task A_wools_defending_team_is_the_one_no_monument_names()
+    {
+        // `map.xml` states a wool's capturing team and nothing else, one <wool> per monument, so the team
+        // whose room it stands in survives the read only by being inferred: the team left over once the
+        // monuments have named theirs. Every reader of a wool's owner — the traversability verdict, the kit
+        // budget, the export gate — reads this key.
+        const string ctw = """
+            <?xml version="1.0"?>
+            <map proto="1.4.0">
+              <name>Two Rooms</name>
+              <teams>
+                <team id="red-team" color="red" max="8">Red</team>
+                <team id="blue-team" color="blue" max="8">Blue</team>
+              </teams>
+              <wools team="blue-team">
+                <wool color="red" location="10,20,30"><monument><block>1,2,3</block></monument></wool>
+              </wools>
+              <wools team="red-team">
+                <wool color="blue" location="-10,20,-30"><monument><block>4,5,6</block></monument></wool>
+              </wools>
+            </map>
+            """;
+
+        var groups = ((List<object?>)Serializer.ToDict(MapParser.ParseXmlString(ctw))["wools"]!)
+            .Cast<Dict>().ToDictionary(group => (string)group["color"]!, group => group["team"]);
+
+        await Assert.That(groups["red"]).IsEqualTo("red-team");     // blue-team captures it, red defends it
+        await Assert.That(groups["blue"]).IsEqualTo("blue-team");
+    }
+
+    [Test]
+    public async Task A_wool_every_team_captures_names_no_defender()
+    {
+        // Both teams hold a monument for the sample's one colour, so no team is left over and the wool has no
+        // single defender — stated as null rather than guessed at.
+        var group = (Dict)((List<object?>)Serializer.ToDict(Parse())["wools"]!)[0]!;
+        await Assert.That(group["team"]).IsNull();
+    }
+
+    [Test]
     public async Task Builtin_filters_are_always_present()
     {
         var m = Parse();

@@ -116,7 +116,9 @@ through an enemy protection is not offered. Naming no team walks the ground ever
 right question about a board's shape and the wrong one about whether a player can get somewhere: widen a
 spawn's protection until it swallows the approach to its own wool and the shared walk still answers
 **reachable in 121 blocks**, while `?team=red-team` answers **unreachable** — which is what the export gate
-refuses under `EX1`. Both ends are snapped on the shared ground before the team's is walked, so a barred
+refuses under `EX1` where the goal is one that team must take. A goal the team *defends* is asked a weaker
+question there, since its own wool room bars it by design: the walk only has to reach the barred ground's
+border. Both ends are snapped on the shared ground before the team's is walked, so a barred
 objective answers unreachable rather than sliding sideways to the nearest cell the team may stand on.
 
 The bound is what keeps it honest in both directions. Unbounded, a standoff route wanders; ordered after

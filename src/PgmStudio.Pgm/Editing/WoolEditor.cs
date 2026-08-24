@@ -139,17 +139,28 @@ public static class WoolEditor
         return order.Select(c => (object?)byColor[c]).ToList();
     }
 
+    /// <summary>The team a wool is defended by: the one team no monument of it names. A monument is a
+    /// capturing team's own drop point, so the teams named on them are the teams that must take the wool and
+    /// the team left over is the one whose room it stands in — the fact <c>map.xml</c> states nowhere, since
+    /// its <c>&lt;wool team&gt;</c> is a capturing team. Null where the wool leaves more than one team over,
+    /// which is a wool with no single defender.</summary>
+    public static string? DefendingTeam(IEnumerable<string> teamIds, IEnumerable<string?> monumentTeams)
+    {
+        var capturing = monumentTeams.ToHashSet();
+        var defenders = teamIds.Where(team => !capturing.Contains(team)).ToList();
+        return defenders.Count == 1 ? defenders[0] : null;
+    }
+
     private static void InferWoolTeams(Dict data)
     {
         var teamIds = (data.GetValueOrDefault("teams") as List<object?> ?? []).OfType<Dict>()
-            .Select(t => t.GetValueOrDefault("id") as string).Where(x => !string.IsNullOrEmpty(x)).ToHashSet();
+            .Select(t => t.GetValueOrDefault("id")).OfType<string>().Where(id => id.Length > 0).ToList();
         if (teamIds.Count == 0) return;
         foreach (var wool in Wools(data).OfType<Dict>())
         {
             if (wool.GetValueOrDefault("team") is not null) continue;
-            var monumentTeams = Monuments(wool).Select(m => m.GetValueOrDefault("team") as string).ToHashSet();
-            var missing = teamIds.Where(t => !monumentTeams.Contains(t)).ToList();
-            if (missing.Count == 1) wool["team"] = missing[0];
+            if (DefendingTeam(teamIds, Monuments(wool).Select(m => m.GetValueOrDefault("team") as string))
+                is { } defender) wool["team"] = defender;
         }
     }
 

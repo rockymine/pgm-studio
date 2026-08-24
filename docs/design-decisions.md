@@ -115,23 +115,34 @@ back over the authored intent, and nothing caches it beside one.
 - *Enforced:* `Api/Services/DeclaredGoals.cs` reads the authored anchor; `WorldBuilder` writes no intent
   artifact.
 
-### Protection regions gate traversability per team
+### Protection regions gate traversability per team, and a defender is asked for the border
 One navigability map cannot see the one way a small floating goal genuinely becomes unreachable: an
 `enter` rule barring the attacking team from the ground its approach crosses — a goal tucked behind an
 oversized spawn protection (the author's ruling; the same conversation that settled goal gating). So
 where a map's apply rules provably deny a team entry somewhere, `Traversability.Check` walks that team's
-own navigable set — the shared one minus its denied cells — from its spawns to every goal it does not
-own, and an unreached goal refuses with the team named (`IsolatedPoint.For`).
+own navigable set — the shared one minus its denied cells — from its spawns to every goal, and an
+unreached goal refuses with the team named (`IsolatedPoint.For`).
 
-- *Two denials every properly wired map carries are not faults:* a wool room barring its own defender
-  (`enter=not-<owner>`) — the defender is never required to reach its own wool — and a spawn protection
-  admitting only its own team, which cannot cut off the team it admits.
+**A goal asks two different journeys of two different teams** (the author's ruling). A team that must take
+the goal has to stand on it, which is the walk above. A team that *defends* it never stands on it — its
+wool room's `enter=not-<owner>` rule is what makes defending it mean anything — so what its own goal asks
+of it is the **border**: the ground it may stand on has to reach the barred patch the goal stands in.
+`Traversability.Approaches` walks it over its own ground plus that one patch, taken as the goal's
+4-connected area of the team's denied cells, so a second protection on the way is a wall and not a way
+round. A defender walled off from its own wool room refuses exactly as an attacker cut off from the wool
+does, and the wiring every CTW map carries passes.
+
+- *Which team defends a wool is not in `map.xml`:* `<wool team>` names a capturing team, one element per
+  monument, so the document's `wool.team` is the team the monuments leave over (`WoolEditor.DefendingTeam`,
+  written by the codec and by the editor alike). A wool every team captures has no defender and is stated
+  as null.
+- *A spawn protection admitting only its own team is not a fault:* it cannot cut off the team it admits.
 - *The filter reader is deliberately permissive:* a team filter answers by its team, the boolean wrappers
   compose, and anything unresolvable answers "allowed" — an exotic wiring can only under-refuse, never
   invent a barred region that is not there.
-- *Enforced:* `Traversability.TeamIsolations` + `AllowsTeam`; the entry-denial rasterization is
-  `Buildability.RegionMask`, the same one the block rules read, so two rule readers cannot disagree about
-  which cells a region covers.
+- *Enforced:* `Traversability.TeamIsolations` + `Approaches` + `EntryDenials.Allows`; the entry-denial
+  rasterization is `Buildability.RegionMask`, the same one the block rules read, so two rule readers cannot
+  disagree about which cells a region covers.
 
 ### A water lane is not a route; an open build zone over void is
 Before the lane timer fills it, a water lane is a void a player falls into — the water arrives
