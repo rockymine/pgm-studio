@@ -759,16 +759,6 @@ and what a `subtract` takes away.
   *author, 2026-08-14 · Haiku CTW Rush's iron at `(−10, −65)`, five blocks behind the spawn point and inside
   the map's `red-spawn` rectangle `(−20,−70)`–`(20,−40)`.*
 
-- [ ] **B185 — Derive a wall's chest face from the wool room's declared entry.** Where a wall stands on a wool
-  room, its chest face is rotated the same way the room's door faces, so a defender arriving at the door meets
-  it (author). Today the face comes from an authored piece id defaulting to the wall's own `c.A`
-  (`ContactGraph.WallChestPiece`) and is never consulted against the room's `entries`, so it can come out
-  backwards without anything noticing. Derive it, and complain when an authored one contradicts it.
-
-  *author, 2026-08-14 · every board with a wall swept, faces computed against each room's declared entry.
-  Three of four are right; `tallow-weirgate`'s wall `x −51…−49` opens its chest at `x −51`, inside the room
-  `x −70…−50` it seals.*
-
 - [ ] **B213 — Keep a wall's seam intact, or make the wall follow the shape.** A wall's rect is fixed at
   compile from the interface its two plan pieces share, and nothing afterwards holds that seam: resize or
   re-bow either shape in the sketch tool and the wall stays where it was, spanning less than the lane it was

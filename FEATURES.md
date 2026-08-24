@@ -4395,6 +4395,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A wall's chest face is derived, and opens away from the wool (B185, ST4 amended).** The face was a plan
+  mark — `PlanWall.Side`, `"a"` or `"b"`, defaulting to the wall's own `a` — checked against nothing, so it
+  came out backwards without a complaint. The vocabulary was not even what authors write:
+  `opus5-hollowbank`'s plan states `"side": "wool-approach"`, a piece id, which matched neither branch and
+  fell through to `a` — the author had chosen a side and had not. It is now the **approach** side, the piece
+  further from the wool over the walk graph, which is the same side the wall already takes its height from:
+  a wall is where a defence is built, both teams reach that line across the ground the attack arrives over,
+  so the supply is met on the way to the wool rather than hidden behind the bedrock.
+  `ContactGraph.WallChestPiece` answers it off `ApproachSide`, which moved onto the graph beside the wool-hop
+  distances it reads. `PlanWall.Side` is **deleted** rather than kept as an override — nothing in the editor
+  or the seeds ever set it, and a field that silently does nothing is the fault being closed. On
+  `opus5-hollowbank` the wall at `(25,64)–(35,66)` moves its chest from z 65 facing +z to z 64 facing −z,
+  which is the way its wool room's own door at z 75 faces.
 - **Iron in a spawn can be mined again, whichever pass put it there (WE26).** A spawn is protected by a
   blanket `block=never`, which is right for a spawn holding nothing but its own floor and locks the CTW
   economy the moment it holds iron: the ore cannot be broken, so the `<renewable>` regrowing it never fires

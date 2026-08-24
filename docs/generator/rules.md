@@ -592,12 +592,13 @@ disagree with the one that runs.
   carved to air so the lid opens — a niche, not a box in front of the wall. Only that one face is
   opened, and the column **behind** each chest is left as bedrock, so a full vertical bedrock wall
   still stands: breaking the chest meets bedrock, not a way through. **Which face opens is
-  authored**, because it is the same thing as which side of the line the supply is for: the plan's
-  wall mark carries a `side` naming one of the seam's two pieces (`PlanWall.Side`, defaulting to
-  its `a`), and the compiler resolves it to a face per orbit image — a reflection swaps which face
-  has the smaller coordinate, so only the piece it looks out at survives the fan. In the plan editor
-  the wall tool cycles a seam through *no wall → chests facing a → chests facing b → no wall*, and
-  the open face is drawn as an amber bar just off the seam. One chest on a lane ≤ 10 wide, two on a
+  derived**: the **approach** side, the one further from the wool, which is the same side the wall
+  already takes its height from. A wall is a place a defence is *built* — a few courses of bedrock
+  and a barricade raised on it out of what the chest holds — and both teams reach that line across
+  the ground the attack arrives over, so the supply opens away from the wool and is met on the way
+  to it rather than hidden behind the bedrock. `ContactGraph.WallChestPiece` answers it and the
+  compiler resolves it to a face per orbit image, a reflection swapping which face has the smaller
+  coordinate. One chest on a lane ≤ 10 wide, two on a
   wider one, evenly spaced along it. A full 27-slot half-stack loadout each: dark-oak + spruce
   planks and crafting tables to build with, end stone + a redstone block to reinforce, and two
   Efficiency II iron pickaxes.
@@ -819,6 +820,19 @@ both corrected.)
     the chest sat at y18 with air at y19 and whole grass at y20 over it, walled in on all four sides —
     a supply a defender could neither see nor guess at. It now stands at the centre column's own surface
     beside the monument. The plate is unchanged; only what stands on it moved.
+
+24. **`ST4`: the wall's chest face is derived, not authored (2026-08-24).** Author's call, closing
+    `B185`. The face was a plan mark — `PlanWall.Side`, `"a"` or `"b"`, defaulting to the wall's own `a` —
+    and it was never checked against anything, so it came out backwards without a complaint. Worse, the
+    vocabulary was not what authors wrote: `opus5-hollowbank`'s plan states `"side": "wool-approach"`, a
+    piece id rather than `"a"`/`"b"`, so the field matched neither branch and fell through to `a`. The author
+    had chosen a side and had not. It is now the **approach** side — the piece further from the wool over the
+    walk graph, the same side `topY` is measured from — because a wall is where a defence is built and both
+    teams reach that line from the side the attack crosses. `PlanWall.Side` is deleted rather than kept as an
+    override: nothing in the editor or the seeds ever set it, and a field that silently does nothing is the
+    fault this closes. On `opus5-hollowbank` the wall at `(25,64)–(35,66)` moves its chest from z 65 facing
+    +z, behind the bedrock from the lane, to z 64 facing −z, which is the way its wool room's own door at
+    z 75 faces.
 
 ## Correction protocol
 

@@ -470,19 +470,19 @@ public static class PlanCompiler
 
         // ST4 approach walls — a bedrock barrier over each marked wool-lane interface, on the attack side.
         var wallSeen = new HashSet<(int, int, int, int)>();
-        var dist = WoolWalkDistances(plan, d);
         var wallInterfaces = d.WallInterfaces.ToList();
         for (var wallIndex = 0; wallIndex < wallInterfaces.Count; wallIndex++)
         {
             var c = wallInterfaces[wallIndex];
-            var (approach, _) = ApproachSide(d, dist, c);
+            var (approach, _) = d.ApproachSide(c);
             var pieceA = d.Piece(c.A)!.Value;
             var pieceB = d.Piece(c.B)!.Value;
             var (minX, minZ, maxX, maxZ) = WallFootprint(pieceA, pieceB);
             var topY = approach.Surface + BedrockCourses - 1;
-            // The chest face is authored as a piece id, so it survives the orbit: a reflection swaps which of
-            // the wall's two faces has the smaller coordinate, and only the piece it looks out at is invariant.
-            var chestRect = (d.WallChestPiece(c) == c.B ? pieceB : pieceA).Rect;
+            // The chest opens on the approach — the same side the wall takes its height from, and the side
+            // both teams reach the line across. Carried as a piece rather than a face so it survives the
+            // orbit: a reflection swaps which of the two faces has the smaller coordinate.
+            var chestRect = approach.Rect;
             for (var k = 0; k < d.Order; k++)
             {
                 var r = d.FanRect(new BlockRect(minX, minZ, maxX, maxZ), k);
@@ -550,41 +550,6 @@ public static class PlanCompiler
         if (x1 == x2)   // vertical seam
             return (x1 - 1, Math.Min(z1, z2), x1 + 1, Math.Max(z1, z2));
         return (Math.Min(x1, x2), z1 - 1, Math.Max(x1, x2), z1 + 1);   // horizontal seam
-    }
-
-    // The attack side of a wall pair: the piece with the larger walk-graph distance to the nearest same-unit
-    // wool marker (attackers approach from farther out); a tie breaks to the lower-surface side.
-    private static (DerivedPiece Approach, DerivedPiece Defence) ApproachSide(
-        ContactGraph d, IReadOnlyDictionary<string, int> dist, Contact c)
-    {
-        var a = d.Piece(c.A)!.Value;
-        var b = d.Piece(c.B)!.Value;
-        int da = dist.GetValueOrDefault(a.Id, int.MaxValue);
-        int db = dist.GetValueOrDefault(b.Id, int.MaxValue);
-        if (da != db) return da > db ? (a, b) : (b, a);
-        return a.Surface <= b.Surface ? (a, b) : (b, a);   // tie → lower surface is the approach
-    }
-
-    // Hop distance from each piece to the nearest wool-marker piece over the walk graph (land interfaces +
-    // gap links). Unreached pieces are absent (treated as infinite by callers).
-    private static Dictionary<string, int> WoolWalkDistances(PlanModel plan, ContactGraph d)
-    {
-        var adj = d.Pieces.ToDictionary(p => p.Id, _ => new List<string>());
-        void Link(string x, string y) { if (adj.ContainsKey(x) && adj.ContainsKey(y)) { adj[x].Add(y); adj[y].Add(x); } }
-        foreach (var c in d.LandInterfaces) Link(c.A, c.B);
-        foreach (var g in d.GapLinks) Link(g.A, g.B);
-
-        var dist = new Dictionary<string, int>();
-        var q = new Queue<string>();
-        foreach (var wp in plan.Placements.Wools.Select(w => w.Piece).Distinct())
-            if (adj.ContainsKey(wp) && dist.TryAdd(wp, 0)) q.Enqueue(wp);
-        while (q.Count > 0)
-        {
-            var cur = q.Dequeue();
-            foreach (var nb in adj[cur])
-                if (dist.TryAdd(nb, dist[cur] + 1)) q.Enqueue(nb);
-        }
-        return dist;
     }
 
     // Fan a set of cell rects to every orbit image, de-duplicating exact repeats (self-symmetric rects).

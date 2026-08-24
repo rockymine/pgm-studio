@@ -76,7 +76,7 @@ compile ever answers anything else.
     "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5],
                         "size": 5, "height": 5, "shell": 1, "float": 6, "leak": 5 } ]
   },
-  "walls":  [ { "a": "approach", "b": "bridgehead", "side": "a" } ],
+  "walls":  [ { "a": "approach", "b": "bridgehead" } ],
   "boxes":  [ { "id": "wool-box", "kind": "wool", "rect": [-4, 3, 4, 10] } ]
 }
 ```
@@ -221,10 +221,10 @@ carves the rest, and what happens where two surfaces meet follows from them rath
 
 `walls` marks a pair whose interface carries a pre-built approach
 wall: a bedrock barrier two blocks thick and three courses tall across the full interface width, stamped on
-the attack side, which slows a wool raid and gives the defence a prepared line. `side` names which of the
-wall's two faces carries its defence chests, as the piece id that face looks out at — the wall is two blocks
-thick so exactly one face can be opened, and a piece id is the only reference that survives being reflected.
-Absent means `a`. A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
+the attack side, which slows a wool raid and gives the defence a prepared line. Which of its two faces carries
+the defence chests is **not authored**: the wall is two blocks thick so exactly one face can be opened, and it
+is the **approach** face — the side further from the wool, which is the side both teams reach the line across
+and the same side the wall takes its height from. A wall on a pair that shares no land interface is an error (`PL11`), and so is a wall on
 the wool room's own interface (`PL13`) — the wall and the room would stamp through each other, so the device
 belongs an approach out, around 15 blocks from the room.
 
@@ -309,8 +309,8 @@ not order 2 disarms them.
 Drawing a piece, zone or box is a click-drag over cells, always at least 1×1; the id is minted from the role
 (`piece`, `spawn`, `wool`, `buffer`, `zone`, `lane`, `<kind>-box`) and the tool reverts to select. A marker is
 placed by clicking a piece — a click over empty grid does nothing — and also reverts to select. The wall tool
-stays armed, and each click cycles the nearest land interface within one cell through three states: no wall, a
-wall with its chests facing the seam's first piece, a wall with its chests facing the second, and back to none.
+stays armed, and each click toggles the nearest land interface within one cell between no wall and a wall —
+which face its chests open on is derived from the seam, not chosen here.
 
 Selection is two-level, like the Sketch tool's islands. A single click picks the marker under the cursor first
 (markers paint on top and have a small hit radius), then the smallest containing box, then the piece, then the

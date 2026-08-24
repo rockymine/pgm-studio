@@ -378,20 +378,61 @@ public sealed class ContactGraph
             // across a narrow step is legal.
             bool woolRoom = IsLandInterface(c.Kind)
                 && (byId[c.A].Role == PlanRoles.WoolRoom) != (byId[c.B].Role == PlanRoles.WoolRoom);
-            var mark = IsLandInterface(c.Kind) ? WallMark(walls, c.A, c.B) : null;
+            var walled = IsLandInterface(c.Kind)
+                && walls.Any(w => (w.A == c.A && w.B == c.B) || (w.A == c.B && w.B == c.A));
             list.Add(new InterfaceSegment(
-                c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, mark is not null, mark?.ChestPiece));
+                c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, walled, null));
         }
         return list;
     }
 
-    /// <summary>The piece an approach wall's chest face looks out at (ST4): the one its plan mark names, else
-    /// the mark's own <c>a</c>. A contact's A/B ordering is derived, not the author's, so the mark is matched
-    /// on the unordered pair — the compiler and the overlay must not disagree about which face opens.</summary>
-    public string WallChestPiece(Contact c) => WallMark(Plan.Walls, c.A, c.B)?.ChestPiece ?? c.A;
+    /// <summary>The piece an approach wall's chest face looks out at (ST4): its <b>approach</b> side, the one
+    /// further from the wool. A wall is a place a defence is built — a few courses of bedrock and a barricade
+    /// raised on it out of what the chest holds — and both teams reach that line from the same side, the side
+    /// the attack arrives across. So the supply opens away from the wool, and the face is derived rather than
+    /// authored: it is the same side the wall already takes its height from.</summary>
+    public string WallChestPiece(Contact c) => ApproachSide(c).Approach.Id;
 
-    private static PlanWall? WallMark(IReadOnlyList<PlanWall> walls, string a, string b) =>
-        walls.FirstOrDefault(w => (w.A == a && w.B == b) || (w.A == b && w.B == a));
+    /// <summary>Which side of a pair the attack arrives across, and which side defends it: the piece with the
+    /// larger walk-graph distance to the nearest wool marker approaches, and a tie breaks to the lower
+    /// surface. A board with no wool at all ties everywhere, so the low ground is the approach — which is the
+    /// reading a destroy map wants anyway.</summary>
+    public (DerivedPiece Approach, DerivedPiece Defence) ApproachSide(Contact c)
+    {
+        var a = Piece(c.A)!.Value;
+        var b = Piece(c.B)!.Value;
+        var toWool = WoolHops;
+        int da = toWool.GetValueOrDefault(a.Id, int.MaxValue);
+        int db = toWool.GetValueOrDefault(b.Id, int.MaxValue);
+        if (da != db) return da > db ? (a, b) : (b, a);
+        return a.Surface <= b.Surface ? (a, b) : (b, a);
+    }
+
+    /// <summary>Hop distance from each piece to the nearest wool-marker piece over the walk graph (land
+    /// interfaces plus gap links). Unreached pieces are absent, which callers read as infinite. Solved once
+    /// and kept, because every wall on a board asks it.</summary>
+    private Dictionary<string, int>? _woolHops;
+    private Dictionary<string, int> WoolHops => _woolHops ??= SolveWoolHops();
+
+    private Dictionary<string, int> SolveWoolHops()
+    {
+        var adj = Pieces.ToDictionary(p => p.Id, _ => new List<string>());
+        void Link(string x, string y) { if (adj.ContainsKey(x) && adj.ContainsKey(y)) { adj[x].Add(y); adj[y].Add(x); } }
+        foreach (var c in LandInterfaces) Link(c.A, c.B);
+        foreach (var g in GapLinks) Link(g.A, g.B);
+
+        var dist = new Dictionary<string, int>();
+        var queue = new Queue<string>();
+        foreach (var w in Plan.Placements.Wools)
+            if (adj.ContainsKey(w.Piece) && dist.TryAdd(w.Piece, 0)) queue.Enqueue(w.Piece);
+        while (queue.Count > 0)
+        {
+            var at = queue.Dequeue();
+            foreach (var next in adj[at])
+                if (dist.TryAdd(next, dist[at] + 1)) queue.Enqueue(next);
+        }
+        return dist;
+    }
 
     /// <summary>The shared-border segment of two edge/corner-touching rects: a vertical or horizontal line for a
     /// land/narrow contact, or the single touch point (a degenerate segment) for a corner.</summary>

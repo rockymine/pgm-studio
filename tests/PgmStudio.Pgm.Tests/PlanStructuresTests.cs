@@ -96,27 +96,17 @@ public sealed class PlanStructuresTests
     }
 
     [Test]
-    public async Task The_authored_chest_side_names_a_piece_and_the_orbit_follows_it()
+    public async Task The_chest_opens_on_the_approach_and_the_orbit_follows_the_piece()
     {
-        // side "a" = 'mid', which lies on the high-z side of the seam at z=10, so the team-0 wall opens its
-        // max face. Its rot_180 image sits at negative z with 'mid' now on the LOW side, so that wall must
-        // open its min face — the same piece, the other face. Reading a face off the footprint's coordinates
-        // instead would open both walls toward opposite teams.
+        // The face is derived, not authored: 'far' is two hops from the wool where 'mid' is one, so 'far'
+        // approaches and the chest opens toward it — away from the wool, the side both teams reach the line
+        // across. 'far' lies below the seam at z=10, so the team-0 wall opens its min face. Its rot_180 image
+        // sits at negative z with 'far' now ABOVE it, so that wall opens its max face — the same piece, the
+        // other face. Reading a face off the footprint's coordinates instead would open the two walls toward
+        // opposite teams.
         var s = Structures();
         await Assert.That(s.Walls.Count).IsEqualTo(2);
-        await Assert.That(s.Walls.Single(w => w.MinZ == 9).ChestOnMinFace).IsFalse();
-        await Assert.That(s.Walls.Single(w => w.MinZ == -11).ChestOnMinFace).IsTrue();
-    }
-
-    [Test]
-    public async Task Naming_the_other_side_opens_the_other_face_of_every_orbit_image()
-    {
-        var flipped = PlanModel.Parse(Json.Replace(
-            """{ "a": "mid", "b": "far" }""",
-            """{ "a": "mid", "b": "far", "side": "b" }"""))!;
-        var (_, intent) = PlanCompiler.Compile(flipped);
-        var walls = intent.Structures!.Walls;
-        await Assert.That(walls.Single(w => w.MinZ == 9).ChestOnMinFace).IsTrue();
-        await Assert.That(walls.Single(w => w.MinZ == -11).ChestOnMinFace).IsFalse();
+        await Assert.That(s.Walls.Single(w => w.MinZ == 9).ChestOnMinFace).IsTrue();
+        await Assert.That(s.Walls.Single(w => w.MinZ == -11).ChestOnMinFace).IsFalse();
     }
 }
