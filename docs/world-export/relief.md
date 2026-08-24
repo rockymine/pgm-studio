@@ -455,15 +455,31 @@ starts out as the plan's flat `surface`, because that is the only height a plan-
 terrain exists — and once the relief solved around it is visible, that number is very often wrong.
 
 **So an uncorrected room is seated on the terrain rather than held at the plan's number.** The island is solved
-once without the room's pin, the room takes the **median** of the surface that solve left under its own
-footprint, and the island is solved again holding it there (warm-started from the first, so the second costs a
-few sweeps rather than a solve). The room stays exactly as flat as it was — a room is a room — and the height it
-is flat *at* becomes the ground's rather than the plan's. Doing anything else puts a spawn door against a wall
+once **without the room's pin** — so what that solve leaves under the room is the relief's own answer and the
+plan's number plays no part in it — the room takes a height from it, and the island is solved again holding it
+there (warm-started from the first, so the second costs a few sweeps rather than a solve). The room stays
+exactly as flat as it was — a spawn or wool room is a level rectangle and can never slope — and the height it is
+flat *at* becomes the ground's rather than the plan's. Doing anything else puts a spawn door against a wall
 the relief built around it: on `opus5-undercroft` the plan declared every piece at `surface: 14`, a `back-rise`
 point mark two blocks in front of the door raised the island to 19, and the pad stayed at 14 — a **five-block
 vertical face across the whole door**, walked into by every player leaving spawn, with the objective they are
 defending behind it. Nothing complained, and nothing could: `SP8` reads plan-piece surfaces, all of which were
 14, so the seam it measures was flat.
+
+**The height is read at the door, not across the room.** A room cannot slope and the ground can, so on an
+approach that runs downhill there is no single height that suits every side. Seating on the middle of the
+footprint splits the difference and leaves a step at the door *and* at the back; seating on the ground
+immediately outside the room's doors leaves the way in and out flush and puts the whole of the difference
+behind the room, which is the side nobody walks. Where the ground around a room is level — the common case, and
+`opus5-undercroft`'s — the two answers are the same. The measure is the **median** of those door cells rather
+than a mean or an extreme: a door spans several cells and one of them may sit on a wrinkle of the grain, which
+a mean would carry into the floor and a min or max would take as the answer.
+
+Which sides those are is carried on the shape as `doors`, written by the plan compiler for the authored orbit
+image only: a spawn's from the facing its placement states, a wool room's from every entry
+`WoolEntrySegments` reports — a wool room is entered by the **attacker**, since the owning team is kept out of
+its own wool, so the ground that has to be level with it is the ground the attack arrives across. A room
+stating no door falls back to the median under its own footprint.
 
 The seating is the *preferred* correction of the two available. The other is re-authoring the relief so it
 arrives at the plan's number, which is a larger edit that gives up the terrain the author drew to satisfy a
@@ -600,6 +616,13 @@ first is not:
 
 ```json
 "relief_scope": "hold" | "exclude"
+```
+
+A structural room carries one more, written by the plan compiler rather than by an author, naming which sides
+its doors stand on so the seating above knows which ground the room has to be level with:
+
+```json
+"doors": ["-z"]
 ```
 
 `base_height` and `anchor_heights` keep their meaning; a relief supersedes them on the island that carries one.

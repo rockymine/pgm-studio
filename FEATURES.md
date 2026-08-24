@@ -1235,21 +1235,27 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`Pgm/Sketch/FootprintProbe.cs`, `Pgm/Sketch/SketchRasterizer.CellsOfRing`,
   `Api/Endpoints/SketchEndpoints.cs`, `docs/tools/sketch.md`, `FootprintProbeTests.cs`)
 
-- **A room is seated on the terrain, not on the number it arrived with.** A spawn or wool room the plan
-  compiler projects into a layout is a held shape carrying the plan's `surface` — the only height a plan-space
-  piece can state before any terrain exists. The relief then moves the ground around it and the pin does not
-  follow, so the room ends in a pit or on a plinth of its own. It is now **seated**: the island solves once
-  without the room's pin, the room takes the median of the surface under its own footprint, and the island
+- **A room is seated on the terrain at its door, not on the number it arrived with.** A spawn or wool room the
+  plan compiler projects into a layout is a held shape carrying the plan's `surface` — the only height a
+  plan-space piece can state before any terrain exists. The relief then moves the ground around it and the pin
+  does not follow, so the room ends in a pit or on a plinth of its own. It is now **seated**: the island solves
+  once *without* the room's pin, so what that solve leaves is the relief's own answer with the plan's number
+  playing no part; the room takes the median of the ground immediately outside its **doors**; and the island
   solves again holding it there (warm-started, so a few sweeps rather than a solve). The room stays exactly as
-  flat as before; what changes is the height it is flat at. `height_authored: true` turns it off — a height
-  stated against real ground is the author's statement and wins.
+  flat as before — a room is a level rectangle and can never slope — and what changes is the height it is flat
+  at. The door rather than the whole footprint because the ground *can* slope where the room cannot: seating
+  on the middle splits the difference and steps at the door as well as the back, where seating on the door
+  leaves the way in and out flush and puts the difference behind the room, the side nobody walks. `doors` is
+  written by the compiler for the authored image — a spawn's from its facing, a wool room's from every entry
+  segment, since a wool room is entered by the **attacker** and the owning team is kept out of its own wool.
+  `height_authored: true` turns the seating off — a height stated against real ground is the author's and wins.
   *On `opus5-undercroft` every plan piece declared `surface: 14`, a `back-rise` point mark two blocks in front
   of the door raised the island to 19, and the pad stayed at 14: a **five-block vertical face across the whole
   door**, with the objective behind it. Nothing complained and nothing could — `SP8` reads plan-piece surfaces,
   all of them 14, so the seam it measures was flat. Seated, the pad and the ground ahead are both 19 and the
   resolved spawn point moves with them.*
-  (`Pgm/Sketch/SketchRasterizer.SolveRelief`, `docs/world-export/relief.md`, `PlanCompilerReliefTests.cs`,
-  `SketchStructuralHeightCarryTests.cs`)
+  (`Pgm/Sketch/SketchRasterizer.SeatOf`, `Pgm/Plan/PlanCompiler.WoolDoorEdges`, `Domain/RoomEdges.OfFacing`,
+  `docs/world-export/relief.md`, `PlanCompilerReliefTests.cs`, `SketchStructuralHeightCarryTests.cs`)
 
 - **A relief readback names the pieces, not just the count (`WS10`).** `relief/read` reported *places 3,
   largest 0.95* and left the missing five percent to be found by guessing a coordinate and taking a column

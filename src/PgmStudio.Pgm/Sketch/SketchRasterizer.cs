@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Relief;
@@ -333,6 +334,46 @@ public static class SketchRasterizer
 
     private static readonly (int X, int Z)[] Neighbours4 = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
+    /// <summary>The height a room should be level at, read off a surface solved without its pin: the median of
+    /// the ground **immediately outside its doors**, or of the ground under the room where it states none.
+    /// Null where neither is on the island, which leaves the stated height as the only answer there is.
+    ///
+    /// <para>The door and not the whole footprint, because a room is a level rectangle that can never slope
+    /// while the ground it sits in can. A room whose approach runs downhill across it has no single height
+    /// that suits every side: seating on the middle of the footprint splits the difference and leaves a step
+    /// at the door as well as at the back, where seating on the door leaves the way in and out flush and puts
+    /// the whole of the difference behind the room, which is the side nobody walks.</para>
+    ///
+    /// <para>The median rather than the mean or an extreme: a door spans several cells and one of them may sit
+    /// on a boulder-sized wrinkle in the grain, which a mean would carry into the room's floor and a min or max
+    /// would take as the answer.</para></summary>
+    private static int? SeatOf(SketchShape shape, List<(int X, int Z)> covered, HeightField field,
+                               Footprint footprint)
+    {
+        var doors = (shape.Doors ?? []).Select(RoomEdges.OfWord).Where(edge => edge is not null)
+                                       .Select(edge => edge!.Value).Distinct().ToList();
+        var inside = new HashSet<(int X, int Z)>(covered);
+
+        var outside = new List<int>();
+        foreach (var edge in doors)
+        {
+            var (stepX, stepZ) = edge.Outward();
+            foreach (var (x, z) in covered)
+            {
+                var (ax, az) = (x + stepX, z + stepZ);
+                if (inside.Contains((ax, az)) || !footprint.Inside(ax, az)) continue;
+                outside.Add(field.At(ax, az));
+            }
+        }
+        if (outside.Count > 0) { outside.Sort(); return outside[outside.Count / 2]; }
+
+        var under = covered.Where(cell => footprint.Inside(cell.X, cell.Z))
+                           .Select(cell => field.At(cell.X, cell.Z)).ToList();
+        if (under.Count == 0) return null;
+        under.Sort();
+        return under[under.Count / 2];
+    }
+
     /// <summary>Each relief-bearing island's solved surface, over the cells that island actually contributes
     /// to the standing footprint. An island with no relief is absent, which is the common case and costs
     /// nothing.</summary>
@@ -413,22 +454,21 @@ public static class SketchRasterizer
             var footprint = Footprint.Over(ground, margin: 0);
             var field = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(islandId, footprint));
 
-            // A room that has not been corrected takes its height from the surface just solved under it, and
-            // the island is solved again holding it there. A plan-space piece states its height before any
-            // terrain exists, so the number it carries is about a flat board; leaving it alone puts a spawn
-            // door against a wall the relief built around it, and a player walks out into rock.
+            // A room that has not been corrected takes its height from the surface just solved for it, and the
+            // island is solved again holding it there. A plan-space piece states its height before any terrain
+            // exists, so the number it carries is about a flat board; leaving it alone puts a spawn door
+            // against a wall the relief built around it, and a player walks out into rock.
             if (seated.Count > 0)
             {
                 foreach (var (shape, covered) in seated)
                 {
                     var ring = RingOf(shape);
-                    var under = covered.Where(cell => footprint.Inside(cell.X, cell.Z))
-                                       .Select(cell => field.At(cell.X, cell.Z)).ToList();
-                    if (under.Count == 0) { held.Add(new AreaMark([.. ring], StatedTop(shape, ring))); continue; }
-                    under.Sort();
-                    held.Add(new AreaMark([.. ring], under[under.Count / 2]));
+                    held.Add(SeatOf(shape, covered, field, footprint) is { } seat
+                        ? new AreaMark([.. ring], seat)
+                        : new AreaMark([.. ring], StatedTop(shape, ring)));
                 }
-                spec = stated.ToSpec(mirrorMode, cx, cz) with { Marks = [.. stated.ToSpec(mirrorMode, cx, cz).Marks, .. held] };
+                var reseated = stated.ToSpec(mirrorMode, cx, cz);
+                spec = reseated with { Marks = [.. reseated.Marks, .. held] };
                 field = ReliefSolver.Solve(footprint, spec, field.Continuous);
             }
 

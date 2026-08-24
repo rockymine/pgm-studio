@@ -323,7 +323,7 @@ public static class PlanValidator
         }
         foreach (var s in plan.Placements.Spawns)
         {
-            var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out var findings);
+            var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, RoomEdges.OfFacing(s.Facing), out var findings);
             foreach (var finding in findings) yield return finding;
             if (room is null) continue;
 
@@ -371,13 +371,6 @@ public static class PlanValidator
     }
 
     // The spawn door's wall from the marker facing (front = −z, the board reading the editor renders).
-    private static RoomEdge DoorEdge(string facing) => facing switch
-    {
-        "back" => RoomEdge.PosZ,
-        "left" => RoomEdge.NegX,
-        "right" => RoomEdge.PosX,
-        _ => RoomEdge.NegZ,
-    };
 
     private static void CheckInside(
         ContactGraph d, string kind, string pieceId, double[] at, List<Finding> findings, bool allowAbsolute = false)
@@ -591,7 +584,7 @@ public static class PlanValidator
             if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { Frame.Pad.Shifted: true })
                 yield return Lint(RoomFrameRules.PadClearance, $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
         foreach (var s in plan.Placements.Spawns)
-            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _) is { Frame.Pad.Shifted: true })
+            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, RoomEdges.OfFacing(s.Facing), out _) is { Frame.Pad.Shifted: true })
                 yield return Lint(RoomFrameRules.PadClearance, $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
     }
 
@@ -602,7 +595,7 @@ public static class PlanValidator
     {
         foreach (var s in plan.Placements.Spawns)
         {
-            var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _);
+            var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, RoomEdges.OfFacing(s.Facing), out _);
             if (room is null) continue;
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
                 yield return Lint(RoomFrameRules.IronFit,
@@ -850,7 +843,7 @@ public static class PlanValidator
     private static IEnumerable<(string Kind, string Piece, BlockRect Frame)> ObjectiveRooms(PlanModel plan, ContactGraph d)
     {
         foreach (var s in plan.Placements.Spawns)
-            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, DoorEdge(s.Facing), out _) is { } room)
+            if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, RoomEdges.OfFacing(s.Facing), out _) is { } room)
                 yield return ("spawn", s.Piece, Frame(room));
         foreach (var w in plan.Placements.Wools)
             if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, null, out _) is { } room)

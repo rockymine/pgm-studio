@@ -469,6 +469,13 @@ public sealed class SketchShape
     /// compiler.</summary>
     [JsonPropertyName("height_authored")] public bool? HeightAuthored { get; set; }
 
+    /// <summary>Which sides of a structural room its doors stand on (<c>-z</c>, <c>+z</c>, <c>-x</c>,
+    /// <c>+x</c>) — one for a spawn, one or more for a wool room, whose entries are every land seam and
+    /// frontline edge the room presents. A room is a level rectangle and can never slope, so this says nothing
+    /// about the room; it says which ground the room has to be level <em>with</em>, which is the ground a
+    /// player crosses on the way in or out.</summary>
+    [JsonPropertyName("doors")] public string[]? Doors { get; set; }
+
     // Terrain-paint theme override (docs/world-export/terrain-painting.md TP10): the id (into SketchLayout.Themes) of the theme this
     // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island
     // and full-map assignment are UI conveniences that write this per member shape / the map default.

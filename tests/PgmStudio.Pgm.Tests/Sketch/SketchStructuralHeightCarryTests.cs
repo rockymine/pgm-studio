@@ -177,6 +177,55 @@ public sealed class SketchStructuralHeightCarryTests
         await Assert.That(TopAt(beforeCorrection, 5, 30)).IsNotEqualTo(TopAt(afterCorrection, 5, 30));
     }
 
+    // A spawn room on ground that climbs along the axis its door faces: low at -z (ahead of the door, where
+    // players leave) and high at +z (behind it). A room is a level rectangle and cannot slope, so the two
+    // candidate seatings genuinely disagree — the middle of the footprint sits mid-slope, the door sits on
+    // the ground players actually cross.
+    private const string RoomOnASlope = """
+    {
+      "layout": {
+        "shapes": [
+          { "id": "land", "type": "rectangle", "operation": "add",
+            "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
+          { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
+            "intentRef": "red", "color": "red",
+            "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
+            "base_height": 9, "relief_scope": "hold"DOORS }
+        ],
+        "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
+      },
+      "relief": { "i1": { "base": 10, "marks": [
+          { "kind": "line", "points": [[0, 2], [60, 2]], "h": 6, "r": 3 },
+          { "kind": "line", "points": [[0, 58], [60, 58]], "h": 30, "r": 3 } ] } }
+    }
+    """;
+
+    [Test]
+    public async Task A_room_is_seated_level_with_the_ground_outside_its_door()
+    {
+        var atTheDoor = RoomOnASlope.Replace("DOORS", ""","doors": ["-z"]""");
+        var underTheRoom = RoomOnASlope.Replace("DOORS", "");
+
+        int TopAt(string layoutJson, int x, int z) =>
+            SketchRasterizer.RasterizeColumns(layoutJson).Single(c => c.X == x && c.Z == z).YTop;
+
+        var seated = TopAt(atTheDoor, 30, 30);
+
+        // Flush with the ground a player crosses leaving the door: no wall, no drop.
+        await Assert.That(Math.Abs(TopAt(atTheDoor, 30, 21) - seated)).IsLessThanOrEqualTo(1);
+
+        // Still a level rectangle — the seating moves the room, it never tilts it.
+        var floor = new List<int>();
+        for (var x = 23; x < 38; x++)
+            for (var z = 23; z < 38; z++)
+                floor.Add(TopAt(atTheDoor, x, z));
+        await Assert.That(floor.Distinct().Count()).IsEqualTo(1);
+
+        // And the door is what decided it: seating on the middle of the footprint answers higher on ground
+        // that climbs away behind the room, which is a step at the door and the thing being avoided.
+        await Assert.That(seated).IsLessThan(TopAt(underTheRoom, 30, 30));
+    }
+
     [Test]
     public async Task An_uncorrected_room_is_seated_on_the_terrain_rather_than_on_the_plans_number()
     {

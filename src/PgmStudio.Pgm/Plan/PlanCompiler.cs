@@ -54,7 +54,7 @@ public static class PlanCompiler
     // field, reflected, so it is pinned by construction (§8).
     private static void AppendStructuralShape(
         SketchLayout layout, string id, string role, string intentRef, string color, BlockRect rect,
-        int surface, int orbitIndex)
+        int surface, int orbitIndex, IEnumerable<RoomEdge>? doors = null)
     {
         var shapes = layout.Layout?.Shapes;
         if (shapes is null) return;
@@ -72,8 +72,28 @@ public static class PlanCompiler
         {
             shape.BaseHeight = surface;
             shape.ReliefScope = "hold";
+            // Only the authored image states a door: the mirror images take their ground from the same
+            // relief read through the same transform, so a side named in plan space would be the wrong one.
+            if (doors is not null)
+                shape.Doors = [.. doors.Distinct().Select(RoomEdges.Word)];
         }
         shapes.Add(shape);
+    }
+
+    /// <summary>Which sides of a wool room its entries stand on. A room's entries are the land seams and
+    /// frontline edges <see cref="WoolEntrySegments"/> reports, each a degenerate rect on one of the room's
+    /// four boundary lines, so the side is which line it lies on.</summary>
+    private static List<RoomEdge> WoolDoorEdges(ContactGraph d, string pieceId, BlockRect room)
+    {
+        var edges = new List<RoomEdge>();
+        foreach (var seg in WoolEntrySegments(d, pieceId))
+        {
+            if (seg.MinX == seg.MaxX && seg.MinX == room.MinX) edges.Add(RoomEdge.NegX);
+            else if (seg.MinX == seg.MaxX && seg.MinX == room.MaxX) edges.Add(RoomEdge.PosX);
+            else if (seg.MinZ == seg.MaxZ && seg.MinZ == room.MinZ) edges.Add(RoomEdge.NegZ);
+            else if (seg.MinZ == seg.MaxZ && seg.MinZ == room.MaxZ) edges.Add(RoomEdge.PosZ);
+        }
+        return edges;
     }
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
@@ -230,7 +250,7 @@ public static class PlanCompiler
                 });
                 if (piece.Value.Role == PlanRoles.Spawn)
                     AppendStructuralShape(layout, $"spawn-{teams[k].Id}", "spawn", teams[k].Id, teams[k].Color,
-                        prot, piece.Value.Surface, k);
+                        prot, piece.Value.Surface, k, [RoomEdges.OfFacing(s.Facing)]);
             }
 
         // wools: team-outer, placement-inner (matches the intent's grouping); auto colour with a global dye cursor
@@ -272,7 +292,8 @@ public static class PlanCompiler
                 });
                 if (isRoomPiece)
                     AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", "woolRoom",
-                        $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k);
+                        $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k,
+                        WoolDoorEdges(d, w.Piece, piece.Value.Rect));
             }
 
         // destroyables: team-outer like wools — a destroyable is a goal one team defends, so an orbit image

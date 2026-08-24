@@ -736,10 +736,11 @@ and what a `subtract` takes away.
   a number the author states; `PieceInterfaces.Frontages` already serves `FrontlineBlocks` raw on
   `POST /plan/inspect`, so the rule is one comparison once the number exists.
 
-- [ ] **B244 — Give a wool room the egress read a spawn already has.** `SP8` measures the seam ahead of a
-  **spawn** door and complains at Δ≥2; nothing asks the same of a wool room, whose defenders leave and arrive
-  through a door in exactly the same way. Same read, same rule shape: `PieceInterfaces.Seams`, the seams a
-  room's entrance faces, Δ≥2 against the neighbouring piece's surface.
+- [ ] **B244 — Give a wool room the approach read a spawn's egress already has.** `SP8` measures the seam
+  ahead of a **spawn** door and complains at Δ≥2; nothing asks the same of a wool room. The owning team is kept
+  out of its own wool, so the player who crosses that seam is the **attacker** — arriving into a wall, or
+  dropping a long way onto the room floor, at the moment the map is decided. Same read, same rule shape:
+  `PieceInterfaces.Seams`, the seams a room's entries face, Δ≥2 against the neighbouring piece's surface.
 
   **Scope is what is left of this entry, and it is smaller than it was.** The relief half is closed by
   construction — a structural room the author has not corrected is now seated on the surface the relief makes

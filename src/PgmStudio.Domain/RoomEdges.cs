@@ -16,6 +16,36 @@ public enum RoomEdge { NegZ, PosZ, NegX, PosX }
 /// </summary>
 public static class RoomEdges
 {
+    /// <summary>The edge a spawn's door stands on, from the facing word a plan states it with. The words are
+    /// relative to the piece's own front, which is <c>−z</c>: <c>front</c> (or anything unrecognised),
+    /// <c>back</c>, <c>left</c>, <c>right</c>.</summary>
+    public static RoomEdge OfFacing(string? facing) => facing switch
+    {
+        "back" => RoomEdge.PosZ,
+        "left" => RoomEdge.NegX,
+        "right" => RoomEdge.PosX,
+        _ => RoomEdge.NegZ,
+    };
+
+    /// <summary>The edge's own name, for a document that has to carry which side a door is on.</summary>
+    public static string Word(this RoomEdge edge) => edge switch
+    {
+        RoomEdge.NegZ => "-z",
+        RoomEdge.PosZ => "+z",
+        RoomEdge.NegX => "-x",
+        _ => "+x",
+    };
+
+    /// <summary>An edge back from <see cref="Word"/>, or null where the word names none.</summary>
+    public static RoomEdge? OfWord(string? word) => word switch
+    {
+        "-z" => RoomEdge.NegZ,
+        "+z" => RoomEdge.PosZ,
+        "-x" => RoomEdge.NegX,
+        "+x" => RoomEdge.PosX,
+        _ => null,
+    };
+
     /// <summary>Whether a <b>wall</b> on this edge runs east–west, so its along axis is x and the line it
     /// stands on is a z. That is the axis of the wall, not of the edge: a wall facing ±z runs along x, which
     /// is the opposite of what the edge's own name reads as, and is the whole reason this is asked in one
