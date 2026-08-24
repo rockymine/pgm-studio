@@ -91,11 +91,20 @@ public static class TerrainPreview
         var teamAt = TeamTerritory.DamageAt(surface.Keys, intent);
         var profile = new TerrainProfile(terrain.World, surface);
 
+        // A top-down preview shows what a board looks like from above, so each cell resolves its theme on the
+        // layer whose surface is the one being seen — the highest that reaches this cell's top.
+        var topLayer = new Dictionary<(int X, int Z), string>(surface.Count);
+        foreach (var (layer, tops) in terrain.SurfaceByLayer)
+            foreach (var (cell, top) in tops)
+                if (surface.TryGetValue(cell, out var whole) && top == whole) topLayer[cell] = layer;
+
         var cells = new List<SurfaceCell>(surface.Count);
         foreach (var (cell, top) in surface)
         {
             if (profile.TryGetColumn(cell, out var column)
-                && TerrainPainter.TopBlock(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), teamAt(cell.X, cell.Z)) is { } painted)
+                && TerrainPainter.TopBlock(cell.X, cell.Z, column,
+                       themeAt(topLayer.GetValueOrDefault(cell, ""), cell.X, cell.Z),
+                       teamAt(cell.X, cell.Z)) is { } painted)
             {
                 cells.Add(new SurfaceCell(cell.X, cell.Z, painted.Id, painted.Data));
                 continue;

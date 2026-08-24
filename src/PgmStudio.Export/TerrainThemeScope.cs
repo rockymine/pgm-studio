@@ -18,7 +18,7 @@ public static class TerrainThemeScope
     /// <summary>The per-cell theme resolver for <see cref="TerrainPainter"/>. Returns a constant map-default
     /// resolver when nothing is themed (a plain sketch), so the common path allocates nothing per cell and
     /// paints exactly the built-in default as before.</summary>
-    public static Func<int, int, TerrainTheme> ThemeAt(string layoutJson)
+    public static Func<string, int, int, TerrainTheme> ThemeAt(string layoutJson)
     {
         var layout = SketchLayout.Parse(layoutJson);
 
@@ -29,7 +29,7 @@ public static class TerrainThemeScope
         var mapDefault = layout?.MapTheme is { } mt && themes.TryGetValue(mt, out var mapTheme)
             ? mapTheme : TerrainTheme.Default;
 
-        if (themes.Count == 0) return (_, _) => mapDefault;
+        if (themes.Count == 0) return (_, _, _) => mapDefault;
 
         // shapeId → its resolved theme, over every shape in every layer that carries a known theme id.
         var shapeTheme = new Dictionary<string, TerrainTheme>();
@@ -37,10 +37,10 @@ public static class TerrainThemeScope
             foreach (var s in shapes)
                 if (s.Theme is { } tid && themes.TryGetValue(tid, out var theme)) shapeTheme[s.Id] = theme;
 
-        if (shapeTheme.Count == 0) return (_, _) => mapDefault;
+        if (shapeTheme.Count == 0) return (_, _, _) => mapDefault;
 
         var cellToShape = SketchRasterizer.ShapeThemeOwners(layoutJson);
-        return (x, z) => cellToShape.TryGetValue((x, z), out var shapeId)
+        return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var shapeId)
             && shapeTheme.TryGetValue(shapeId, out var theme) ? theme : mapDefault;
     }
 

@@ -4385,6 +4385,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **Every storey is painted in its own theme (TS23).** `TerrainBuilder` collapsed a cell to its maximum top
+  and the painter walked down from that one height, so nothing under the highest slab was ever visited; and
+  `ShapeThemeOwners` answered `(x, z) → shapeId` over every layer at once, smallest area winning, while
+  `themeAt(x, z)` had no Y to tell two layers apart. So an upper slab wore the paint of whatever lay *beneath*
+  it and the layer that roofed a board landed on nothing. `BuiltTerrain` now carries `SurfaceByLayer` beside
+  `SurfaceTop`, the painter runs one pass per storey against its own surface, and the scope answers
+  `(layer, x, z)` over an owner map keyed `(layer, cell)`. Within a layer nothing changes — smallest area
+  still wins a contested cell; across layers there is no contest, because each surface shows its own. The
+  stone-only invariant keeps the passes off each other's courses. Measured on `opus5-mineshaft`: its meadow
+  deck is **5,916 grass blocks** where it had none, over andesite walls and a gravel gallery floor.
 - **A slab over void plates nothing under itself (WE22).** `TerrainBuilder` wrote a bedrock course at y0
   under **every** footprint cell, so a bridge across a strait dropped its own plate into the abyss and an
   overhanging deck did the same over whatever it hung past — `opus5-undercroft` had two 20×20 plates under

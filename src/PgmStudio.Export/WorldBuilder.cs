@@ -273,10 +273,13 @@ public static class WorldBuilder
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
-        // untouched. The theme is resolved per cell through TerrainThemeScope (a shape override, else the map
-        // default — docs/world-export/terrain-painting.md TP10); team ownership is read through TeamTerritory — the canonical
-        // islands_json decomposition plus the stored/pre-filled IslandTeams — so the tint agrees with configure.
-        TerrainPainter.Paint(world, terrain.SurfaceTop, TerrainThemeScope.ThemeAt(layoutJson), TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
+        // untouched. One pass per layer, each storey against its own surface, so a gallery floor takes its own
+        // finish rather than whatever roofs it. The theme is resolved per layer and cell through
+        // TerrainThemeScope (a shape override, else the map default — docs/world-export/terrain-painting.md
+        // TP10); team ownership is read through TeamTerritory — the canonical islands_json decomposition plus
+        // the stored/pre-filled IslandTeams — so the tint agrees with configure.
+        TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
+                             TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders half-buried in
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one

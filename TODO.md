@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Nine entries, all about a stack of layers.** What is left of the group five authored maps
+**Eight entries, all about a stack of layers.** What is left of the group five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a board whose ground
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
@@ -86,10 +86,9 @@ seven places stated what a document's layers were, in three different readings. 
 document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
 `FEATURES.md`). What is left below is what the layer id is *for*.
 
-**Two entries owe a document their prefix does not name.** `TS21`'s standing rule is written in
-`docs/world-scan/read-backs.md` § *Where a player stands in a column*, and `TS23`'s painter in
-`docs/world-export/terrain-painting.md`. The ids stay — both are already cited in commits — and each entry
-fixes the document it actually moves, alongside `docs/tools/sketch.md`.
+**One entry owes a document its prefix does not name.** `TS21`'s standing rule is written in
+`docs/world-scan/read-backs.md` § *Where a player stands in a column*. The id stays — it is already cited in
+commits — and the entry fixes the document it actually moves, alongside `docs/tools/sketch.md`.
 
 - [ ] **WS13 — Free the word `layer` in the scan family and on the route.** The three type renames landed
   (`FEATURES.md`); `SketchLayer` stays, being the one use where the word is true. What is left is what `Q8`
@@ -167,24 +166,6 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   *`opus5-undercroft`: "I stated a tree for the hall floor and got it on the roof, which was the point of
   stating it." The same grid put its destroyable on the terrace by itself.*
 
-- [ ] **TS23 — Paint every exposed surface, with its own layer's theme.** Two independent blockers, both
-  readable from a signature. `TerrainBuilder` collapses a cell to its **maximum** top and `TerrainPainter`
-  walks down from that one height, so nothing under the highest slab is visited. And `ShapeThemeOwners`
-  answers `(x, z) → shapeId` over every layer at once while `themeAt(x, z)` has no Y to tell two layers
-  apart. Key the owner map on `(layer, cell)` — a cell stops having one owner, so each layer paints its own.
-
-  **`SurfaceTop` is two questions under one name, and only one is this.** Fifteen files read it; twelve are
-  stampers and dressing wanting *one* answer per column — where the thing placed here stands. Only the painter
-  wants one per segment, so it takes its own set rather than `BuiltTerrain.SurfaceTop` changing meaning under
-  callers with no basis to pick one; those callers gain a layer word instead, which is `WE24`. `B144` is the
-  same overlap nested rather than stacked, and smallest-area still arbitrates there — two shapes on **one**
-  layer do contest a cell.
-
-  *`opus5-mineshaft` states `meadow` (Grass Block, `0x79C05A`) as its map default over the whole deck, with
-  `deepstone` on the walls and `minefloor` on the gallery under it. Its committed `renders/surface.png` holds
-  **zero green pixels in 136,960**: every mine-level shape is smaller than the deck, so the deck wears the
-  layer below and the meadow theme lands on no block anywhere.*
-
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
   layer index per run and the toggle is client-side filtering in `sketch-canvas`'s column mesh. The claim has to be keyed on
@@ -195,8 +176,7 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   other. Add a layer word to the four reads that project a column to one cell — `topdown`, `heightmap`,
   `surface`, `structures`. `traversability` and `walk` project too and are **not** here: they want `TS21`
   rather than a layer word. Wants the provenance claim keyed on the segment (`C48`'s half) and `WS13` to have
-  freed the word first. It is also the acceptance test for `TS23`: without a per-layer read, whether a theme landed on the right
-  storey can only be inferred from segment counts.
+  freed the word first.
 
   *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone and the
   gallery is reachable only through `ymax` — and only because that deck happens to be flat. The committed

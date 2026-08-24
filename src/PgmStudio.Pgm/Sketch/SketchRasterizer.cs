@@ -95,12 +95,13 @@ public static class SketchRasterizer
         return fields;
     }
 
-    /// <summary>Maps every cell a <em>themed</em> shape covers to that shape's id — the scope
-    /// <c>TerrainThemeScope</c> resolves a cell's paint through.</summary>
-    public static Dictionary<(int X, int Z), string> ShapeThemeOwners(string layoutJson)
+    /// <summary>Maps every cell a <em>themed</em> shape covers, on the layer that covers it, to that shape's
+    /// id — the scope <c>TerrainThemeScope</c> resolves a cell's paint through.</summary>
+    public static Dictionary<(string Layer, int X, int Z), string> ShapeThemeOwners(string layoutJson)
         => ShapeScopeOwners(layoutJson, shape => shape.Theme);
 
-    /// <summary>Maps every cell a scoped shape covers to that shape's id — the primary footprint plus each
+    /// <summary>Maps every cell a scoped shape covers, keyed by the layer it covers it on, to that shape's
+    /// id — the primary footprint plus each
     /// mirroring island's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
     /// (the most specific scope). <paramref name="scopeOf"/> says which annotation makes a shape a scope, so
     /// paint and planting resolve through one traversal rather than two that could disagree about which shape
@@ -109,20 +110,22 @@ public static class SketchRasterizer
     /// answers for are considered; subtracts and role-tagged (structural) shapes are skipped — they place no
     /// terrain of their own. Void cells that no surface stands on are harmless: a consumer only reads owners
     /// where a column is solid.</summary>
-    public static Dictionary<(int X, int Z), string> ShapeScopeOwners(string layoutJson, Func<SketchShape, string?> scopeOf)
+    public static Dictionary<(string Layer, int X, int Z), string> ShapeScopeOwners(
+        string layoutJson, Func<SketchShape, string?> scopeOf)
     {
         var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
         var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
 
-        var owner = new Dictionary<(int, int), string>();
-        var areaOf = new Dictionary<(int, int), long>();
+        var owner = new Dictionary<(string, int, int), string>();
+        var areaOf = new Dictionary<(string, int, int), long>();
+        var layerId = "";
 
         void Claim(SketchShape s)
         {
             if (scopeOf(s) is null || s.Operation == "subtract" || s.Role is not null) return;
-            var cells = RasterShape(s).Select(c => (c.X, c.Z)).ToList();
+            var cells = RasterShape(s).Select(c => (layerId, c.X, c.Z)).ToList();
             long area = cells.Count;
             foreach (var cell in cells)
                 if (!owner.ContainsKey(cell) || area < areaOf[cell]) { owner[cell] = s.Id; areaOf[cell] = area; }
@@ -130,6 +133,9 @@ public static class SketchRasterizer
 
         foreach (var layer in ResolveLayers(state))
         {
+            // A cell contested on one layer goes to the smallest-area shape covering it; a cell covered on
+            // two layers is not contested at all, because each storey shows its own surface.
+            layerId = layer.Id!;
             var shapes = layer.Shapes;
             foreach (var s in shapes) Claim(s);                             // primary footprint
 

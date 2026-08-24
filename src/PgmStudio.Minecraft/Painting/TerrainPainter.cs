@@ -23,6 +23,21 @@ public static class TerrainPainter
         Func<int, int, int>? teamDamageAt = null)
         => Paint(world, surfaceTop, (_, _) => theme, teamDamageAt);
 
+    /// <summary>Paint a board one layer at a time, each storey against its own surface and its own theme.
+    /// A cell on two layers is painted twice — once per surface it carries — which is what puts turf on a
+    /// gallery floor and a meadow on the deck roofing it. The stone-only invariant keeps the passes from
+    /// treading on each other: a course a lower layer has already finished is no longer stone.
+    ///
+    /// <para>Layers paint in the order the document draws them, so where two genuinely meet flush the lower
+    /// one's finish is what stands.</para></summary>
+    public static void Paint(VoxelWorld world,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> surfaceByLayer,
+        Func<string, int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null)
+    {
+        foreach (var (layer, tops) in surfaceByLayer)
+            Paint(world, tops, (x, z) => themeAt(layer, x, z), teamDamageAt);
+    }
+
     /// <summary>Paint the footprint with a <b>per-cell</b> theme (TP10): <paramref name="themeAt"/> resolves the
     /// theme governing each cell — a piece override, its collection, or the map default. Each column resolves
     /// its bands and materials against its own theme; the profile is theme-agnostic, so per-cell theming needs

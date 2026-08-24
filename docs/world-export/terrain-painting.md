@@ -220,6 +220,15 @@ The eventual theme file (a JSON extension) is exactly this record serialized: a 
 — any of which may be a team tint or a pattern that embeds one — plus the depth knobs, resolved per scope
 (TP10).
 
+**A scope is a layer and a cell, not a cell.** The board is painted one layer at a time, each storey against
+its own surface, so a cell standing on two layers is painted twice — once per surface it carries. That is
+what puts a gallery floor's turf under a deck's meadow rather than giving the deck the paint of what lies
+beneath it, and it is why `TerrainThemeScope.ThemeAt` answers `(layer, x, z)` and
+`SketchRasterizer.ShapeThemeOwners` keys `(layer, cell)`. Within one layer nothing changes: the smallest-area
+shape still wins a contested cell. Across layers there is no contest at all — each surface shows its own.
+The passes cannot tread on each other because of the stone-only invariant: a course a lower layer has already
+finished is no longer stone. Where two layers genuinely meet flush, the one drawn first is what stands.
+
 ## 4. The cases — and the tests they drive
 
 Each scenario the prototype separated is a test fixture; several are now written as `TerrainPainterTests`
