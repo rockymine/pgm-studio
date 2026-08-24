@@ -5648,6 +5648,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A shape a layer cannot hold is declined by name (TS27, `SK9`).** A layer keeps one span per column and a
+  taller add replaces a shorter outright, floor included — so a floor with a roof drawn over it *on the same
+  layer* built as the roof alone, over open air, with no finding, no complaint and a board that read as
+  authored. `SketchRasterizer.StackedInOneLayer` finds the pairs (two adds contesting a cell whose spans do
+  not touch) and the gate raises one `SK9` per pair, naming both shapes and saying which is not in the world.
+  A **`Decline`**, not a refusal: the board builds and one thing the author drew is gone from it, which is
+  what that severity is for. Two adds at one floor are ordinary ground and stay silent; so do walls clamped
+  *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
+  fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
+  mineshaft and three-layer `opus5-undercroft` stay silent.
 - **A column segment says which layer drew it (TS22).** `SketchRasterizer.RasterizeColumns` answered
   `(X, Z, YFloor, YTop)` and `SketchRasterizer` dropped the layer id on the floor, so every read after it was
   guessing which storey it was describing. It answers `ColumnSegment` now — `(X, Z, YFloor, YTop, Layer)`, a

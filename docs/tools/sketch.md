@@ -662,6 +662,14 @@ at all, and 422 `SK7` when the layout rasterizes to no ground. It does *not* ask
 landmass rather than a side, and one continent both teams stand on is a common and correct shape. Symmetry
 decides whether a board has two sides, and it is stated in the setup rather than counted in the ground.
 
+**It declines a shape a layer cannot hold.** Two adds stacking over the same ground on one layer — a floor
+with a roof drawn over it rather than beside it — build as the upper alone, over open air, because a layer
+keeps one span per column and a taller add replaces a shorter outright, floor included. `SK9` names both
+shapes and says which one is not in the world. It is a **decline** rather than a complaint: the board builds
+and one thing the author drew is gone from it, which nothing else on the success would say. Two adds at one
+floor are ordinary ground and stay silent, and so do walls clamped *around* a tucked-in floor — the way a
+roofed gallery is actually built.
+
 **And it complains about a board with no finish at all.** `SK8` rides on the success when the stored layout
 carries **no theme registry, no relief and no props** — the finding names which of the three are absent. Ground
 alone is a legitimate board, so this stops nothing; what it stops is the board shipping unremarked. Every other

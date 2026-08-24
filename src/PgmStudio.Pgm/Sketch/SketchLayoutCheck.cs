@@ -83,6 +83,15 @@ public static class SketchLayoutCheck
         if (layout is null) return Findings.None;
 
         var findings = new List<Finding>();
+
+        // SK9 — a layer holds one span per column, so a second one drawn over the first is not in the world.
+        foreach (var (layerId, lost, kept) in SketchRasterizer.StackedInOneLayer(layout))
+            findings.Add(new Finding(SketchRules.StackedInOneLayer,
+                $"'{lost}' and '{kept}' stack over the same ground on layer '{layerId}', and a layer holds "
+                + $"one span per column — the world keeps '{kept}' and '{lost}' is not in it. Move '{kept}' "
+                + "to its own layer, or clamp walls around the lower shape rather than drawing over it",
+                Severity.Decline, Subjects: [lost, kept]));
+
         var mode = layout.Setup?.MirrorMode ?? "rot_180";
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;
 

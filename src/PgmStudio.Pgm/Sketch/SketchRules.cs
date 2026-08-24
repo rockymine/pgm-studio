@@ -75,4 +75,12 @@ public static class SketchRules
     /// <remarks>Give the board a theme registry, a relief, or props — whichever it was meant to have. The finding names which of the three are absent, and a board that is deliberately bare may ignore it.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string NoFinish = "SK8";
+
+    /// <summary>Two shapes on one layer stack over the same ground, and the lower one is not in the world. A
+    /// layer is a slab: it holds one span per column, and a taller add replaces a shorter one outright, floor
+    /// included. So a floor with a roof drawn over it on the same layer builds as the roof alone, over open
+    /// air, and reads as a board the author never drew.</summary>
+    /// <remarks>Move the upper shape to its own layer. A stack is a stack of layers — `base_y` is what puts one span above another, and two spans on one layer cannot both survive. Drawing the walls around the lower shape instead of over it is the other way, and is how a roofed gallery is built.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string StackedInOneLayer = "SK9";
 }

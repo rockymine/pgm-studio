@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Eleven entries, all about a stack of layers.** What is left of the group five authored maps
+**Ten entries, all about a stack of layers.** What is left of the group five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a board whose ground
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
@@ -105,22 +105,6 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
 
   *Also carrying it and deliberately untouched: the canvas z-stack (`render/layer-stack.js`, `data-layer`),
   which is the graphics term and reads as one; and `LayeredMaterial`'s own `layers[]` inside the theme JSON.*
-
-- [ ] **TS27 — Say something when a second segment in one layer erases the first.** `MergeCell` swallows the
-  lower of two shapes on one footprint: no finding, no complaint, and a board that reads as authored. Now that
-  one segment per column per layer is the law, an author who draws a roof over a floor **in the same layer**
-  has made a mistake the tool can name — raise it as `SK9` beside the eight sketch rules, naming **the shape
-  that did not survive** and saying that a roof is a second layer. A **`Decline`**, not a refusal and not a
-  complaint: the board builds and one thing the author drew is gone from it, which is what that severity is
-  for. *(Settled by the author.)*
-
-  **It cannot be a sweep, which is why it is not `TS24`.** The erasure happens inside `RasterGroup`/`MergeCell`,
-  before any segment list exists: by the time a sweep has data there is one segment and it reads as authored.
-  `SketchLayoutCheck` is a pure gate over the document and reaches neither. Where the finding is raised from
-  is the work.
-
-  *Both draw orders are committed as fixtures — `opus5-mineshaft.one-layer-a.layout.json` and
-  `…-b` — and each answers 480 cells, 0 stacked, every column `[16,22)`, nothing raised.*
 
 - [ ] **TS25 — Write the layer model down.** `docs/tools/sketch.md` gives a layer five lines closing on "an
   agent should author the ground layer only", which is advice rather than a description. What a reader cannot

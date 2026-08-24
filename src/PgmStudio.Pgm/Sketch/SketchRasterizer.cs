@@ -15,6 +15,10 @@ namespace PgmStudio.Pgm.Sketch;
 /// the footprint (<see cref="Triangulation"/>). Mirrors the JS geometry it must agree with (circle =
 /// 64-gon, Bézier = 16 samples/edge); per-island mirror copies follow the saved island <c>shapeIds</c>.
 /// </summary>
+/// <summary>Two shapes on one layer where the world holds only the upper: <paramref name="Lost"/> is the
+/// shape whose ground is not in the built board, <paramref name="Kept"/> the one that replaced it.</summary>
+public readonly record struct StackedShapes(string Layer, string Lost, string Kept);
+
 public static class SketchRasterizer
 {
     private const int CirclePoints  = 64;   // matches JS geometry/shape.js CIRCLE_POINTS
@@ -472,6 +476,53 @@ public static class SketchRasterizer
             solved[islandId] = field;
         }
         return solved;
+    }
+
+    /// <summary>A shape whose ground the world does not hold, and the one that took its place: two adds on
+    /// one layer covering a cell with spans that do not touch, where the taller replaces the shorter outright.
+    /// One entry per pair, whatever the number of cells they contest.
+    ///
+    /// <para>A layer holds one span per column, so this is the shape of a stack drawn where a stack cannot
+    /// go. Overlapping spans are not this — two adds at one floor with different thicknesses are ordinary
+    /// ground, and the taller winning is what "height is the tallest add" means.</para></summary>
+    public static List<StackedShapes> StackedInOneLayer(SketchLayout? state)
+    {
+        var found = new List<StackedShapes>();
+        foreach (var layer in ResolveLayers(state))
+        {
+            // Only an add places ground of its own; a subtract takes it away and a role-tagged shape is an
+            // annotation. An erected shape settles its top against the ground after the relief, so the span
+            // it states here is not the span it builds and a pair holding one cannot be judged.
+            var adds = layer.Shapes
+                .Where(shape => shape.Role is null && shape.Operation != "subtract" && !IsErected(shape))
+                .ToList();
+            if (adds.Count < 2) continue;
+
+            var byCell = new Dictionary<(int, int), List<(string Id, int Floor, int Top)>>();
+            foreach (var shape in adds)
+                foreach (var (x, z, top, floor) in RasterShape(shape))
+                {
+                    if (!byCell.TryGetValue((x, z), out var here)) byCell[(x, z)] = here = [];
+                    here.Add((shape.Id, floor, top));
+                }
+
+            var seen = new HashSet<(string, string)>();
+            foreach (var spans in byCell.Values)
+            {
+                if (spans.Count < 2) continue;
+                for (var i = 0; i < spans.Count; i++)
+                for (var j = 0; j < spans.Count; j++)
+                {
+                    if (i == j) continue;
+                    // A span starting at or above another's top is a second storey: the taller replaces the
+                    // shorter outright, floor included, so the lower one's ground is not in the world.
+                    if (spans[j].Floor < spans[i].Top) continue;
+                    if (seen.Add((spans[i].Id, spans[j].Id)))
+                        found.Add(new StackedShapes(layer.Id!, spans[i].Id, spans[j].Id));
+                }
+            }
+        }
+        return found;
     }
 
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────

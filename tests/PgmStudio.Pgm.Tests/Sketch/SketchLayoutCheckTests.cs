@@ -166,4 +166,58 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(SketchLayoutCheck.Check("this is not json")).IsEmpty();
         await Assert.That(SketchLayoutCheck.Check("""{"hello":"world"}""")).IsEmpty();
     }
+
+    // ── SK9: a layer holds one span per column ───────────────────────────────────────────────────────────
+    private const string Gallery =
+        """{"id":"gallery","type":"rectangle","operation":"add","min_x":-30,"max_x":24,"min_z":-6,"max_z":6,"floor":0,"base_height":4}""";
+    private const string Roof =
+        """{"id":"roof","type":"rectangle","operation":"add","min_x":-30,"max_x":24,"min_z":-6,"max_z":6,"floor":16,"base_height":6}""";
+
+    /// <summary>A floor with a roof drawn over it on one layer builds as the roof alone — the taller add
+    /// replaces the shorter outright, floor included. The board reads as authored and the gallery is gone, so
+    /// this is what says the input did not survive.</summary>
+    [Test]
+    public async Task A_second_span_on_one_layer_is_declined_by_name()
+    {
+        var findings = SketchLayoutCheck.Check(Layout(Gallery + "," + Roof));
+        var stacked = findings.Where(finding => finding.Rule == SketchRules.StackedInOneLayer).ToList();
+
+        await Assert.That(stacked.Count).IsEqualTo(1);
+        await Assert.That(stacked[0].Severity).IsEqualTo(Severity.Decline);
+        await Assert.That(stacked[0].SubjectIds).IsEquivalentTo(new[] { "gallery", "roof" });
+        await Assert.That(stacked[0].Message).Contains("gallery");
+    }
+
+    /// <summary>The order the two are drawn in does not change which one the world keeps, so it does not
+    /// change what is reported either.</summary>
+    [Test]
+    public async Task The_draw_order_does_not_change_what_is_declined()
+    {
+        var reversed = SketchLayoutCheck.Check(Layout(Roof + "," + Gallery))
+            .Where(finding => finding.Rule == SketchRules.StackedInOneLayer).ToList();
+        await Assert.That(reversed.Count).IsEqualTo(1);
+        await Assert.That(reversed[0].SubjectIds).IsEquivalentTo(new[] { "gallery", "roof" });
+    }
+
+    /// <summary>Two adds at one floor are ordinary ground and the taller winning is what "height is the
+    /// tallest add" means, so an overlap that is not a stack stays silent.</summary>
+    [Test]
+    public async Task Two_adds_at_one_floor_are_not_a_stack()
+    {
+        const string tall =
+            """{"id":"tall","type":"rectangle","operation":"add","min_x":-30,"max_x":24,"min_z":-6,"max_z":6,"floor":0,"base_height":20}""";
+        await Assert.That(SketchLayoutCheck.Check(Layout(Gallery + "," + tall))
+            .Where(finding => finding.Rule == SketchRules.StackedInOneLayer)).IsEmpty();
+    }
+
+    /// <summary>Walls clamped around a tucked-in floor is how a roofed gallery is built, and the shapes do
+    /// not contest a cell — so the way that works is not reported as the way that does not.</summary>
+    [Test]
+    public async Task Clamped_walls_beside_a_floor_are_not_a_stack()
+    {
+        const string wallNorth =
+            """{"id":"wall-n","type":"rectangle","operation":"add","min_x":-30,"max_x":24,"min_z":7,"max_z":20,"floor":0,"base_height":20}""";
+        await Assert.That(SketchLayoutCheck.Check(Layout(Gallery + "," + wallNorth))
+            .Where(finding => finding.Rule == SketchRules.StackedInOneLayer)).IsEmpty();
+    }
 }
