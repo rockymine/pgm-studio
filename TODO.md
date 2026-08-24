@@ -13,13 +13,14 @@ Board rules live in `CLAUDE.md` (§ "Status & task board").
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
 
-## Still open — three the author has not settled
+## Still open — one, and it is a naming call rather than a decision
 
 | | the question | blocks |
 |---|---|---|
-| **Q5b** | A sealed space is an author's choice and a floating slab is a warning, and both are a disconnected component. Is the line **a whole layer connecting to nothing** against **a pocket inside one**, or is it drawn somewhere else? | `TS24` `TS21` |
-| **Q7** | A sketch document holds its shapes under `layout` (one slab) **or** under `layers[]` (a stack). A plan compiles to the first; adding a second layer means moving to the second, and `opus5-undercroft`'s driver had to **delete `layout` by hand** or every island counted twice. No stored document carries both — 7 hold `layers`, 45 hold `layout`, 0 hold both — so the case is reachable and unspecified rather than live. Should a document carrying both be **refused**, should `layout` be read as **the ground layer under `layers`**, or should it be **ignored** whenever `layers` is present? | `TS28` |
-| **Q8** | The three type renames are settled. Beyond them sit `GET /map/{slug}/layers`, whose response says which *artifacts* a map holds while `layers[]` in the sketch document means slabs — the collision itself — and the internal `layer_segment` table, which nothing outside the studio reads. Rename the route, the table, both, or neither? | `WS13` `P7` |
+| **Q8** | The three type renames are settled and the scan family's own word — *segment* — is already the right one, so what is left is its borrowed `layer_` prefix and the public route `GET /map/{slug}/layers`, whose response says which *artifacts* a map holds. **The proposal, absent an objection:** drop the prefix (`SegmentIndex` keeps its name, `layer_segment` becomes `segment`, `LayerExtractors` becomes `SegmentExtractors`), and the route becomes `GET /map/{slug}/state` over a `MapArtifacts` record, which is what it already returns. | `WS13` `P7` |
+
+The word collides there and nowhere else because **a scanned cave and a stacked sketch are the same geometry
+seen twice** — which is a thing `TS25` has to write down whichever way `Q8` goes.
 
 ## A stack of layers: what it writes, and what no read can say about it
 
@@ -50,10 +51,20 @@ exactly one place per cell. The plan document does not change.
 another, and on a stack those sit above one another in the same column: a cell stops having a single owner.
 *(Settled by the author.)*
 
-**Two layers meeting flush is how a roof is built, and a sealed space is an author's choice** — a hidden room
-holding something useful is a thing someone may want, so neither is a complaint. What is worth one is a layer
-nothing connects to, which is a slab floating over the board rather than a storey of it. *(Settled by the
-author; `Q5b` is where that line falls.)*
+**Two layers meeting flush is how a roof is built, and a sealed room is an author's choice** — a hidden
+space holding something useful is a thing someone may want, so neither is a complaint, and neither is a gap
+too low to stand in. What is worth one is **standable ground under open sky that no route reaches**: a slab
+floating over the board rather than a storey of it. Even that is a complaint and never a refusal, because two
+flying islands stacked may be exactly what was drawn. The line is roofed against open — a pocket inside a
+layer is a room, a mass with sky above it is an island. *(Settled by the author.)*
+
+**An objective in a place nothing reaches is a different matter, and `EX1` already refuses it.** That rule
+names the isolated spawn or objective and stops the export; it needs no amendment, only a walk that can see
+storeys. *(Settled by the author.)*
+
+**A layout is composed of layers, and the ground is one of them.** The document holds `layers[]` and
+nothing beside it: a flat board is a stack of one, and `layout` as a peer key — the ground shapes sitting
+outside the stack they belong to — stops existing. *(Settled by the author.)*
 
 **A slab over void plates nothing.** Falling off a bridge into the void is the honest outcome — a build
 region covers the case where it should not be, and a board with ground nobody can walk to is complained
@@ -83,18 +94,22 @@ seven ways.
 `docs/world-export/terrain-painting.md`. The ids stay — both are already cited in commits — and each entry
 fixes the document it actually moves, alongside `docs/tools/sketch.md`.
 
-- [ ] **TS28 — One reader for a document's layers.** Seven places state "the layers of this document, else the
-  legacy single `layout`", and they do not agree. `SketchRasterizer.ResolveLayers`,
-  `SketchLayout.StructuralHeights` and `TerrainThemeScope.ShapeLists` read `layers` **or** `layout`;
-  `SketchLayout.IslandIds`, `SketchLayout.ShapeArrays`, `SketchLayoutCheck.Shapes` and
-  `SketchLayoutCheck.Islands` read `layers` **and** `layout`. So the gate quantifies over shapes the
-  rasterizer will never build, on a document that carries both. One public reader on `SketchLayout` answering
-  `(Id, Name, BaseY, Shapes, Islands)` per layer; all seven take it. It is also where `TS22`'s id comes from —
-  `ResolveLayers` never reads `l.Id` — and where a legacy document with no `layers[]` gets a synthesised one.
-  `Q7` is the decision it cannot be written without — the reader has to mean one thing. **First.**
+- [ ] **TS28 — A layout is composed of layers, and there is no second shape.** The document holds the ground
+  shapes under `layout` and anything stacked on them under `layers[]`, so the ground layer is not a layer and
+  seven readers disagree about a document carrying both: `SketchRasterizer.ResolveLayers`,
+  `SketchLayout.StructuralHeights` and `TerrainThemeScope.ShapeLists` read one **or** the other, while
+  `SketchLayout.IslandIds`, `SketchLayout.ShapeArrays`, `SketchLayoutCheck.Shapes` and `.Islands` read
+  **both** — so the gate quantifies over shapes the rasterizer will never build.
 
-  *`opus5-undercroft`'s driver had to delete the `layout` key by hand: `ResolveLayers` reads one or the other
-  while `IslandIds` reads both, and every island was counted twice.*
+  Collapse it rather than reconcile it: `SketchLayout` carries **`layers[]` only**, always at least one.
+  `PlanCompiler` emits a single `ground` layer, the stored documents migrate into one (45 in
+  `pgm-studio-mapgen/specs`, 4 in `tools/seeds`, plus the `sketch_layout_json` artifacts), and every `layout`
+  read path is deleted. The disagreement then has nothing to disagree about, and this is where `TS22`'s layer
+  id and a flat board's synthesised one both come from. **First.**
+
+  *`opus5-undercroft`'s driver had to delete the `layout` key by hand — `ResolveLayers` reads one or the
+  other while `IslandIds` reads both, and every island counted twice. With one shape there is nothing to
+  delete.*
 
 - [ ] **WS13 — Free the word `layer` for the thing that is one.** Seven senses, one true: `SketchLayer` is
   the slab and does **not** move. The rest borrowed it:
@@ -152,36 +167,41 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   *Both draw orders are committed as fixtures — `opus5-mineshaft.one-layer-a.layout.json` and
   `…-b` — and each answers 480 cells, 0 stacked, every column `[16,22)`, nothing raised.*
 
-- [ ] **TS25 — Write the layer model down.** `docs/tools/sketch.md` gives a layer five lines and closes with
-  "an agent should author the ground layer only", which is advice rather than a description. What a reader
-  needs and cannot get without three probes and a source read: a layer is a **slab** holding one
+- [ ] **TS25 — Write the layer model down.** `docs/tools/sketch.md` gives a layer five lines closing on "an
+  agent should author the ground layer only", which is advice rather than a description. What a reader cannot
+  get without three probes and a source read: a layer is a **slab** holding one
   `(Top, Floor)` per cell and a taller add replaces it outright, so a roofed gallery is walls *clamped around*
-  a tucked-in floor rather than a low shape drawn inside a tall one, and it takes two layers rather than two
-  floors; `floor` is the underside measured inside the layer, `base_height` is the thickness above it, and
-  `base_y` shifts the whole thing; `anchor_heights` slopes a shape between two layers; relief solves per layer
-  and returns already shifted into world Y; the set algebra is `((adds − subs) ∪ override-adds) −
-  override-subs`, **by category and not document order**; and the stone-only invariant in
+  a tucked-in floor rather than a low shape drawn inside a tall one; `floor` is the underside measured inside
+  the layer, `base_height` the thickness above it, `base_y` shifts the whole thing; `anchor_heights` slopes a
+  shape between two layers; relief solves per layer and returns shifted into world Y; the set algebra is
+  `((adds − subs) ∪ override-adds) − override-subs`, **by category and not document order**; and the
+  stone-only invariant in
   `TerrainPainter.Paint` is the one line that lets an air gap survive between two slabs. Plus the half no
-  probe can show — a placement names its layer and defaults to the top, a column carries one theme per layer,
-  a second storey is played on, a sealed space is allowed and a layer connecting to nothing is not — and
-  whatever `Q7` settles about a document holding both `layout` and `layers`.
+  probe can show — a document is `layers[]` and nothing beside it, a placement names its layer and defaults
+  to the top, a column carries one theme per layer, a second storey is played on, a sealed room is allowed
+  and a floating mass is not. And the sentence that
+  makes the word make sense: a column reading `[0,5]` · `[9,11]` off a world nobody authored is what
+  `RasterizeColumns` emits for a gallery under a deck — **one geometry, seen twice, differing only in
+  provenance.**
 
-- [ ] **TS24 — Warn where a layer connects to nothing.** Two thirds of what this entry used to propose is
-  now settled *not* to be a complaint: flush is how a roof is built, and a sealed space is an author's choice.
-  What is left is two checks of different kinds.
+- [ ] **TS24 — Complain where a mass connects to nothing, and where two segments overlap.** Three of the
+  four things this entry once proposed are settled *not* to be complaints — flush is how a roof is built, a
+  sealed room is an author's choice, and a gap too low to stand in is that room. Two findings remain, and
+  they are different mechanisms.
 
-  **Overlapping segments stay a complaint** — two shapes claiming the same Y in one column is a geometry
-  error whatever the author meant. A shape's bottom is flat inside its layer, so a cell's segments are
-  intervals and this is a sort and a scan of the rasterizer's own output, about fifteen lines, needing no
-  layer id.
+  **Overlapping segments** is a geometry error whatever was meant: two shapes claiming the same Y in one
+  column. A shape's bottom is flat inside its layer, so a cell's segments are intervals and this is a sort
+  and a scan of the rasterizer's own output, about fifteen lines, needing no layer id.
 
-  **A layer nothing connects to is the real warning**, and it is not an interval check at all: it asks
-  whether a player can get from this storey to any other, so it wants `TS21`'s places and the edges between
-  them. `Q5b` says where the line falls between a floating slab and a hidden room.
+  **Standable ground under open sky that no route reaches** is the warning — `EX5`, a **complaint and never
+  a refusal**, because two flying islands stacked may be what was drawn. Roofed ground stays silent: that is
+  the room. It asks whether a player can get there, so it wants `TS21`'s places. `EX1` owns the other half
+  already — it refuses an isolated *spawn or objective* by name — and needs no amendment, only a walk that
+  can see storeys.
 
   *`opus5-mineshaft`: the walls run `[0,25]` flush into the deck, the gallery keeps `[0,3]` · `[20,25]`
-  sixteen blocks below it, and the adit is the one connection between the two — which is exactly what this
-  check has to find, and what a segment sweep cannot see.*
+  sixteen blocks below, and the adit is the one connection between them. `EX1` passes on this board because
+  the traversability read projects the column to one cell.*
 
 - [ ] **TS21 — One cell per column is why a stacked board reads wrong.** `SegmentIndex.StandingTops` yields the
   **lowest** surface carrying headroom and stops there; `WorldColumns.Membership` discards Y outright. Neither
