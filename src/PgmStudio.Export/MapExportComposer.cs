@@ -304,19 +304,19 @@ public static class MapExportComposer
 
     /// <summary>Every column the board draws — a walkable surface, the same reading a scanned map's
     /// <c>layer_segment</c> rows give.</summary>
-    private static HashSet<(int, int)> Surface(IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns)
+    private static HashSet<(int, int)> Surface(IReadOnlyList<ColumnSegment> columns)
         => [.. columns.Select(column => (column.X, column.Z))];
 
     /// <summary>The columns whose span reaches the world floor, which is what tells ground apart from a
     /// bridge or a platform standing over void.</summary>
-    private static HashSet<(int, int)> AtY0(IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns)
+    private static HashSet<(int, int)> AtY0(IReadOnlyList<ColumnSegment> columns)
         => [.. columns.Where(column => column.YFloor <= 0 && 0 <= column.YTop)
                       .Select(column => (column.X, column.Z))];
 
     // ── OB17 — objective placement, over the ground the rasterizer actually produced ──────────────────────
 
     private static ExportComposition? RefuseObjectivePlacement(
-        IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns, MapIntent goals)
+        IReadOnlyList<ColumnSegment> columns, MapIntent goals)
     {
         var findings = CheckGoalPlacement(columns, goals);
         return findings.Count == 0 ? null : Refuse("objective placement", [.. findings]);
@@ -333,7 +333,7 @@ public static class MapExportComposer
     /// carries the answer as complaints, so an author hears it while drawing rather than at the door.</para>
     /// </summary>
     public static Findings CheckGoalPlacement(
-        IReadOnlyList<(int X, int Z, int YFloor, int YTop)> columns, MapIntent goals)
+        IReadOnlyList<ColumnSegment> columns, MapIntent goals)
     {
         var groundColumns = Surface(columns);
         bool IsLand(int x, int z) => groundColumns.Contains((x, z));

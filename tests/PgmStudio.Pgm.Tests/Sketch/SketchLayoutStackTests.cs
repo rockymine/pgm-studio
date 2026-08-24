@@ -72,4 +72,32 @@ public sealed class SketchLayoutStackTests
         await Assert.That(stack[0].Id).IsEqualTo(SketchLayer.GroundId);
         await Assert.That(stack[0].BaseY).IsEqualTo(0);
     }
+
+    /// <summary>Every segment says which layer drew it, so a cell standing on two layers answers twice and
+    /// the two answers can be told apart. Without this a stacked board's reads are all guessing.</summary>
+    [Test]
+    public async Task A_segment_carries_the_layer_that_drew_it()
+    {
+        const string upper = @"{""id"":""deck"",""base_y"":20,""layout"":" + Square + "}";
+        var segments = SketchRasterizer.RasterizeColumns(Stacked(GroundLayer + "," + upper));
+
+        await Assert.That(segments.Select(segment => segment.Layer).Distinct().Order())
+            .IsEquivalentTo(new[] { "deck", "ground" });
+
+        var stacked = segments.Where(segment => segment.Cell == (0, 0)).OrderBy(segment => segment.YFloor).ToList();
+        await Assert.That(stacked.Count).IsEqualTo(2);
+        await Assert.That(stacked[0].Layer).IsEqualTo("ground");
+        await Assert.That(stacked[1].Layer).IsEqualTo("deck");
+        await Assert.That(stacked[1].YFloor).IsEqualTo(20);
+    }
+
+    /// <summary>A layer that named nothing is still named, by its position — so a segment can never come back
+    /// saying it belongs to no layer, and two readers cannot invent different ids for the same one.</summary>
+    [Test]
+    public async Task An_unnamed_layer_is_named_by_its_position()
+    {
+        var doc = "{" + Setup + @",""layers"":[{""base_y"":0,""layout"":" + Square + "}]}";
+        await Assert.That(SketchRasterizer.RasterizeColumns(doc).Select(s => s.Layer).Distinct())
+            .IsEquivalentTo(new[] { "layer0" });
+    }
 }

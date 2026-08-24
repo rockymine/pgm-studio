@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Minecraft.Palette;
@@ -170,10 +171,10 @@ public sealed class TerrainPainterTests
         // The profile half of the same claim, over a real world rather than a hand-built column: three treads,
         // each a block taller than the last, with void all around. Every tread edge is an open edge; only the
         // footprint's own border touches the void.
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 9; x++)
         for (var z = 0; z < 9; z++)
-            columns.Add((x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
+            columns.Add(Seg(x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
         var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
 
@@ -200,10 +201,10 @@ public sealed class TerrainPainterTests
     [Test]
     public async Task The_inward_walk_runs_across_a_tread_rather_than_restarting_on_it()
     {
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 9; x++)
         for (var z = 0; z < 9; z++)
-            columns.Add((x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
+            columns.Add(Seg(x, z, 1, 9 + x / 3));       // three 3-wide treads at 9, 10 and 11
         var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
 
@@ -289,10 +290,10 @@ public sealed class TerrainPainterTests
     public async Task Painting_a_plateau_writes_rim_wall_grass_and_leaves_bedrock()
     {
         // a solid 5×5 plateau, surface top 9, surrounded by void.
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
-            columns.Add((x, z, 1, 9));
+            columns.Add(Seg(x, z, 1, 9));
         var terrain = TerrainBuilder.Build(columns);
         TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.Default);
 
@@ -333,10 +334,10 @@ public sealed class TerrainPainterTests
     [Test]
     public async Task Default_wall_paints_the_team_colour_and_neutral_grey_off_team()
     {
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
-            columns.Add((x, z, 1, 9));
+            columns.Add(Seg(x, z, 1, 9));
 
         var red = Build(columns);
         TerrainPainter.Paint(red.World, red.SurfaceTop, TerrainTheme.Default, teamDamageAt: (_, _) => 14);
@@ -352,25 +353,25 @@ public sealed class TerrainPainterTests
     {
         // a theme whose rim is team-tinted wool proves the tint is a general material, not wall-only.
         var theme = TerrainTheme.Default with { Rim = TerrainTheme.Default.Rim with { Material = new TeamTintedMaterial(Blocks.Wool, new SolidMaterial(Blocks.QuartzBlock)) } };
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
-            columns.Add((x, z, 1, 9));
+            columns.Add(Seg(x, z, 1, 9));
         var built = Build(columns);
         TerrainPainter.Paint(built.World, built.SurfaceTop, theme, teamDamageAt: (_, _) => 5);
         await Assert.That(built.World.GetBlock(0, 8, 2)).IsEqualTo((Blocks.Wool, 5));   // rim = team wool
     }
 
-    private static BuiltTerrain Build(List<(int, int, int, int)> columns) => TerrainBuilder.Build(columns);
+    private static BuiltTerrain Build(List<ColumnSegment> columns) => TerrainBuilder.Build(columns);
 
     [Test]
     public async Task The_painter_never_touches_a_stamped_structure_column()
     {
         // a 5×5 plateau; overwrite one column's surface block with bedrock to stand in for a stamp.
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
-            columns.Add((x, z, 1, 9));
+            columns.Add(Seg(x, z, 1, 9));
         var terrain = TerrainBuilder.Build(columns);
         // a "structure": bedrock all the way up the (2,2) column, taller than the terrain.
         for (var y = 0; y <= 12; y++) terrain.World.SetBlock(2, y, 2, Blocks.Bedrock);
@@ -395,10 +396,10 @@ public sealed class TerrainPainterTests
     public async Task A_columns_top_block_is_what_the_full_paint_writes_on_top()
     {
         // Two plateaus side by side, so the board carries void rims, a terrain step and interiors at once.
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 12; x++)
         for (var z = 0; z < 12; z++)
-            columns.Add((x, z, 1, x < 6 ? 9 : 14));
+            columns.Add(Seg(x, z, 1, x < 6 ? 9 : 14));
         var terrain = TerrainBuilder.Build(columns);
         int TeamAt(int x, int z) => x < 6 ? 14 : 11;   // a tint that differs across the two plateaus
 
@@ -546,4 +547,7 @@ public sealed class TerrainPainterTests
         await Assert.That(layered.Axis).IsEqualTo(BandAxis.Depth);
         await Assert.That(layered.Beyond).IsNull();
     }
+
+    /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
+    private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
 }

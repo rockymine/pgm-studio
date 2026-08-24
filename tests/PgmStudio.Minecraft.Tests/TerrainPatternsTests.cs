@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
@@ -418,10 +419,10 @@ public sealed class TerrainPatternsTests
     public async Task Perimeter_arc_rings_a_plateau_boundary_and_leaves_the_interior_unset()
     {
         // a solid 5×5 plateau: the 16 boundary cells get a contiguous arc 0..15, the inner 3×3 stay -1.
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
-            columns.Add((x, z, 1, 9));
+            columns.Add(Seg(x, z, 1, 9));
         var terrain = TerrainBuilder.Build(columns);
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
         var arc = profile.PaintableColumns().ToDictionary(p => p.Cell, p => p.Profile.PerimeterArc);
@@ -436,10 +437,10 @@ public sealed class TerrainPatternsTests
     public async Task A_wall_run_paints_the_perimeter_and_leaves_the_interior_to_its_bucket()
     {
         // a plateau themed with a 2-material wall-run: edge risers cycle the runs; the interior surface is untouched.
-        var columns = new List<(int, int, int, int)>();
+        var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
         for (var z = 0; z < 5; z++)
-            columns.Add((x, z, 1, 9));
+            columns.Add(Seg(x, z, 1, 9));
         var terrain = TerrainBuilder.Build(columns);
         var theme = TerrainTheme.Default with
         {
@@ -604,7 +605,7 @@ public sealed class TerrainPatternsTests
 
     private static TerrainProfile ProfileOf(IEnumerable<(int X, int Z)> footprint)
     {
-        var columns = footprint.Select(cell => (cell.X, cell.Z, 1, 9)).ToList();
+        var columns = footprint.Select(cell => Seg(cell.X, cell.Z, 1, 9)).ToList();
         var terrain = TerrainBuilder.Build(columns);
         return new TerrainProfile(terrain.World, terrain.SurfaceTop);
     }
@@ -734,4 +735,7 @@ public sealed class TerrainPatternsTests
         await Assert.That(spruce.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0,
             PerimeterRun: GridBoundary.RunAlongX))).IsEqualTo((Blocks.Log, 1 | AlongX));
     }
+
+    /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
+    private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
 }

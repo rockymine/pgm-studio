@@ -38,7 +38,7 @@ public static class TerrainPreview
         var (layoutJson, intent) = compiled;
 
         var surface = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layoutJson))
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(layoutJson))
             if (!surface.TryGetValue((x, z), out var cur) || top > cur) surface[(x, z)] = top;
         if (surface.Count == 0) return EmptyPaint("empty plan");
 

@@ -110,8 +110,18 @@ public sealed class SketchLayout
 
     /// <summary>The layers a document draws, in draw order — the one place the stack is read, so a gate, a
     /// rasterizer and a theme scope cannot disagree about which shapes a document holds. A document stating
-    /// none draws nothing, which is not the same as a document stating an empty layer.</summary>
-    public static IReadOnlyList<SketchLayer> Stack(SketchLayout? state) => state?.Layers ?? [];
+    /// none draws nothing, which is not the same as a document stating an empty layer.
+    ///
+    /// <para>A layer that named itself keeps its id; one that did not is given its position, so every segment
+    /// a rasterize produces can say which layer drew it. Naming here rather than at each reader is what keeps
+    /// two readers from inventing different ids for the same unnamed layer.</para></summary>
+    public static IReadOnlyList<SketchLayer> Stack(SketchLayout? state)
+    {
+        if (state?.Layers is not { Count: > 0 } layers) return [];
+        for (var i = 0; i < layers.Count; i++)
+            if (layers[i].Id is not { Length: > 0 }) layers[i].Id = $"layer{i}";
+        return layers;
+    }
 
     /// <summary>Every island id a layout names, across all its layers.</summary>
     public static IEnumerable<string> IslandIds(SketchLayout? state)

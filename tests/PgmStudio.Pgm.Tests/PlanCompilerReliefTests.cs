@@ -71,7 +71,7 @@ public sealed class PlanCompilerReliefTests
         var withRelief = WithRelief(layout);
 
         var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(withRelief))
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(withRelief))
             if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
 
         var inRoom = new List<int>();
@@ -107,7 +107,7 @@ public sealed class PlanCompilerReliefTests
         var withRelief = WithRelief(layout);
 
         var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(withRelief))
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(withRelief))
             if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
 
         // Near the h=26 mark, well outside the room and inside the ground piece: the solved surface reaches
@@ -127,7 +127,7 @@ public sealed class PlanCompilerReliefTests
         var withRelief = WithRelief(layout);
 
         var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(withRelief))
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(withRelief))
             if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
 
         var inRoom = new List<int>();

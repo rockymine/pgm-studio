@@ -109,7 +109,7 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows
     /// into the Configure wizard. Replaces any prior features for the map.
     /// </summary>
-    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<(int X, int Z, int YFloor, int YTop)> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
+    public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<ColumnSegment> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
     {
         // Surface layer = one row per (x,z) at its highest top (stacked layers can repeat a column); the
         // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in layer_segment.

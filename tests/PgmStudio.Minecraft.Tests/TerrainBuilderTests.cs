@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
@@ -13,7 +14,7 @@ public sealed class TerrainBuilderTests
     [Test]
     public async Task Bedrock_floor_and_stone_fill_a_ground_column()
     {
-        var terrain = TerrainBuilder.Build([(0, 0, 0, 4)]);   // 4-thick ground column
+        var terrain = TerrainBuilder.Build([Seg(0, 0, 0, 4)]);   // 4-thick ground column
         var w = terrain.World;
 
         await Assert.That(w.GetBlock(0, 0, 0)).IsEqualTo((Blocks.Bedrock, 0));   // floor
@@ -26,7 +27,7 @@ public sealed class TerrainBuilderTests
     [Test]
     public async Task Floating_segment_leaves_a_void_over_the_bedrock_floor()
     {
-        var terrain = TerrainBuilder.Build([(5, 10, 10, 13)]);   // sky bridge, no ground
+        var terrain = TerrainBuilder.Build([Seg(5, 10, 10, 13)]);   // sky bridge, no ground
         var w = terrain.World;
 
         await Assert.That(w.GetBlock(5, 0, 10)).IsEqualTo((Blocks.Bedrock, 0));  // floor under footprint
@@ -40,7 +41,7 @@ public sealed class TerrainBuilderTests
     [Test]
     public async Task Stacked_segments_on_one_cell_fill_independently_and_surface_is_the_tallest()
     {
-        var terrain = TerrainBuilder.Build([(2, 2, 0, 2), (2, 2, 5, 8)]);
+        var terrain = TerrainBuilder.Build([Seg(2, 2, 0, 2), Seg(2, 2, 5, 8)]);
         var w = terrain.World;
 
         await Assert.That(w.GetBlock(2, 0, 2)).IsEqualTo((Blocks.Bedrock, 0));
@@ -49,4 +50,7 @@ public sealed class TerrainBuilderTests
         await Assert.That(w.GetBlock(2, 6, 2)).IsEqualTo((Blocks.Stone, 0));   // upper segment
         await Assert.That(terrain.SurfaceTop[(2, 2)]).IsEqualTo(8);
     }
+
+    /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
+    private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
 }

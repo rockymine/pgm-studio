@@ -27,7 +27,7 @@ The writer is the mirror of the reader.
 
 ## 1. Terrain
 
-From `SketchRasterizer.RasterizeColumns` → `(X, Z, YFloor, YTop)` solid columns:
+From `SketchRasterizer.RasterizeColumns` → `ColumnSegment` solid runs, `(X, Z, YFloor, YTop, Layer)`:
 
 - **y = 0 layer = bedrock** (id 7).
 - The solid span above (`[YFloor, YTop]`) = **stone** (id 1).

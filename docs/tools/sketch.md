@@ -191,8 +191,11 @@ theme scope cannot disagree about which shapes a document holds.
 
 ### What the rasterizer makes of it
 
-`SketchRasterizer.RasterizeColumns` turns the document into the solid cells of the finished world: one entry
-per `(x, z)` with its span `[YFloor, YTop]`. Island mirror copies follow the saved `shapeIds` and the setup's
+`SketchRasterizer.RasterizeColumns` turns the document into the solid runs of the finished world, one
+`ColumnSegment` each: `(x, z)`, the span `[YFloor, YTop)`, and **the id of the layer that drew it**. A cell
+standing on two layers answers twice, once per layer, which is what lets a read tell a gallery from the deck
+over it. A layer that named itself keeps its id; one that did not is named by its position (`layer0`), so a
+segment can never come back belonging to no layer. Island mirror copies follow the saved `shapeIds` and the setup's
 mode, so an island that opted out of mirroring is rasterized once.
 
 **Two rasterizers have to agree, and five constants are what make them.** The live island preview runs the

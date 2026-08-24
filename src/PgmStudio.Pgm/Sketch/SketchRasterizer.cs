@@ -24,9 +24,10 @@ public static class SketchRasterizer
     public static List<(int X, int Z)> Rasterize(string layoutJson)
         => RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).Distinct().ToList();
 
-    /// <summary>As <see cref="Rasterize"/>, but each cell also carries its column span <c>[YFloor, YTop]</c>.
-    /// Height never affects membership — the footprint is identical to <see cref="Rasterize"/>.</summary>
-    public static List<(int X, int Z, int YFloor, int YTop)> RasterizeColumns(string layoutJson)
+    /// <summary>As <see cref="Rasterize"/>, but each cell also carries its column span <c>[YFloor, YTop]</c>
+    /// and the layer that drew it. Height never affects membership — the footprint is identical to
+    /// <see cref="Rasterize"/>, and a cell on two layers answers once per layer.</summary>
+    public static List<ColumnSegment> RasterizeColumns(string layoutJson)
     {
         var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
@@ -35,13 +36,14 @@ public static class SketchRasterizer
 
         // Stack every layer: each is rasterized in its own Y, then shifted by base_y. (x,z) may repeat
         // across layers — a column with a gap (e.g. ground + a sky bridge) keeps both segments.
-        var output = new List<(int X, int Z, int YFloor, int YTop)>();
+        var output = new List<ColumnSegment>();
         foreach (var layer in ResolveLayers(state))
         {
             int by = (int)Math.Round(layer.BaseY);
             foreach (var kv in RasterizeLayout(layer.Layout ?? new SketchShapes(), cx, cz, axes,
                                                state?.Relief, state?.Setup?.MirrorMode))
-                output.Add((kv.Key.Item1, kv.Key.Item2, kv.Value.Floor + by, kv.Value.Top + by));
+                output.Add(new ColumnSegment(kv.Key.Item1, kv.Key.Item2,
+                                            kv.Value.Floor + by, kv.Value.Top + by, layer.Id!));
         }
         return output;
     }

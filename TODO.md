@@ -82,9 +82,10 @@ both shapes on **one** layer does not build at all.
 here predates the commit and the fixture's own geometry differs, the entry says so rather than carrying the
 older number.
 
-What fails is everything downstream of the geometry, and four of the entries below share one cause: **a
-column segment does not carry the layer that produced it.** `SketchRasterizer` iterates layers and drops the
-id on the floor; every read after that is guessing. Under *that* sits a second cause nothing had named:
+What fails is everything downstream of the geometry, and four of the entries below shared one cause: **a
+column segment did not carry the layer that produced it.** That is settled — a segment is a `ColumnSegment`
+carrying its layer id (`TS22`, `FEATURES.md`), and what is left below is what each read does with it. Under
+it sat a second cause nothing had named:
 seven places stated what a document's layers were, in three different readings. That is settled: the
 document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
 `FEATURES.md`). What is left below is what the layer id is *for*.
@@ -104,23 +105,6 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
 
   *Also carrying it and deliberately untouched: the canvas z-stack (`render/layer-stack.js`, `data-layer`),
   which is the graphics term and reads as one; and `LayeredMaterial`'s own `layers[]` inside the theme JSON.*
-
-- [ ] **TS22 — A column segment carries its layer, and so does the claim.** `SketchRasterizer.RasterizeColumns`
-  answers `(X, Z, YFloor, YTop)`; make it `(X, Z, YFloor, YTop, Layer)` — eight call sites in `src/`, twenty
-  more in `tests/`, all mechanical. Carry it through to `WorldProvenance`, which keys `(X, Z) → (Pass, Owner)`
-  with no Y in it; keying the claim on the segment is what `C48` and `WS12` both need and neither owns. On its
-  own it changes no behaviour, which is the point.
-
-  **Two walks, not one.** `RasterizeColumns` is the geometry and `ShapeScopeOwners` is the theme walk, and
-  each has its own layer loop. This entry takes both, or `TS23` inherits half of it. The id comes off
-  `SketchLayer` through `SketchLayout.Stack`, which every walk already takes. The **placement** word a layer also
-  gains is `WE24`'s, not this entry's: a segment is where the layer comes from and a placement is where it is
-  spent.
-
-  *`ResolveLayers` never reads `l.Id`: `layers.Select(l => (l.Layout ?? new SketchShapes(), l.BaseY))`. The
-  `_` in `ShapeScopeOwners` discards `BaseY`, not the id — the id is dropped a level above it. The claim half
-  is visible in `opus5-mineshaft`'s `renders/topdown-mine.png`: two spawn cubes standing at 26 drawn into a
-  cut at `ymax=19`.*
 
 - [ ] **TS27 — Say something when a second segment in one layer erases the first.** `MergeCell` swallows the
   lower of two shapes on one footprint: no finding, no complaint, and a board that reads as authored. Now that
@@ -208,7 +192,7 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   sites in `Decorator` plus `DressingScope`. **Two readers, and the layer word has to reach both** or a tree
   and a monument in one hall disagree about where the hall is. The word is optional and defaults to the top
   layer, so nothing already authored moves; a placement naming a layer its cell has no segment on is a
-  `Decline` — the map builds and that one thing is not in it. Wants `TS22`.
+  `Decline` — the map builds and that one thing is not in it.
 
   *`opus5-undercroft`: "I stated a tree for the hall floor and got it on the roof, which was the point of
   stating it." The same grid put its destroyable on the terrace by itself.*
@@ -217,8 +201,7 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   readable from a signature. `TerrainBuilder` collapses a cell to its **maximum** top and `TerrainPainter`
   walks down from that one height, so nothing under the highest slab is visited. And `ShapeThemeOwners`
   answers `(x, z) → shapeId` over every layer at once while `themeAt(x, z)` has no Y to tell two layers
-  apart. Key the owner map on `(layer, cell)`: a cell stops having one owner, so each layer paints its own.
-  Wants `TS22`, both walks.
+  apart. Key the owner map on `(layer, cell)` — a cell stops having one owner, so each layer paints its own.
 
   **`SurfaceTop` is two questions under one name, and only one is this.** Fifteen files read it; twelve are
   stampers and dressing wanting *one* answer per column — where the thing placed here stands. Only the painter
@@ -234,15 +217,15 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
 
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
-  layer index per run and the toggle is client-side filtering in `sketch-canvas`'s column mesh. Wants `TS22`,
-  both halves — the claim has to be keyed on the segment, not on `(X, Z)`, or a run cannot be attributed.
+  layer index per run and the toggle is client-side filtering in `sketch-canvas`'s column mesh. The claim has to be keyed on
+  the segment rather than on `(X, Z)`, or a run cannot be attributed — that half is still open.
 
 - [ ] **WS12 — A read-back can be asked for one layer.** Every `render/*` route is whole-world, and the only
   cut a caller has is `ymax`, a single height, which separates two storeys just where one lies flat over the
   other. Add a layer word to the four reads that project a column to one cell — `topdown`, `heightmap`,
   `surface`, `structures`. `traversability` and `walk` project too and are **not** here: they want `TS21`
-  rather than a layer word. Wants `TS22`, both halves; wants `WS13` to have freed the word first. It is also
-  the acceptance test for `TS22` and `TS23`: without a per-layer read, whether a theme landed on the right
+  rather than a layer word. Wants the provenance claim keyed on the segment (`C48`'s half) and `WS13` to have
+  freed the word first. It is also the acceptance test for `TS23`: without a per-layer read, whether a theme landed on the right
   storey can only be inferred from segment counts.
 
   *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone and the

@@ -41,7 +41,7 @@ namespace PgmStudio.Export;
 public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
     IReadOnlyList<Finding>? Declined = null,
-    IReadOnlyList<(int X, int Z, int YFloor, int YTop)>? Columns = null,
+    IReadOnlyList<ColumnSegment>? Columns = null,
     DressingPlacement Dressing = default)
 {
     /// <summary>Every prop that did not land, and why. Never null — a caller spreading this into a list of

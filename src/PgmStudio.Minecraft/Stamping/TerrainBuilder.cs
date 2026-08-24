@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
@@ -7,7 +8,7 @@ namespace PgmStudio.Minecraft.Stamping;
 public sealed record BuiltTerrain(VoxelWorld World, IReadOnlyDictionary<(int X, int Z), int> SurfaceTop);
 
 /// <summary>
-/// Turns <c>SketchRasterizer.RasterizeColumns</c> output — <c>(X, Z, YFloor, YTop)</c> solid segments — into
+/// Turns <c>SketchRasterizer.RasterizeColumns</c> output — <see cref="ColumnSegment"/> solid runs — into
 /// a voxel world: a bedrock floor at y=0 under the whole footprint, stone filling each segment's
 /// <c>[YFloor, YTop)</c> span above it. Materials are deliberately flat (bedrock + stone) for now. Stacked
 /// disjoint segments per cell (e.g. ground + a sky bridge) each fill independently; the surface top is the
@@ -15,13 +16,13 @@ public sealed record BuiltTerrain(VoxelWorld World, IReadOnlyDictionary<(int X, 
 /// </summary>
 public static class TerrainBuilder
 {
-    public static BuiltTerrain Build(IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
+    public static BuiltTerrain Build(IEnumerable<ColumnSegment> columns)
     {
         var world = new VoxelWorld();
         var surface = new Dictionary<(int X, int Z), int>();
         var footprint = new HashSet<(int X, int Z)>();
 
-        foreach (var (x, z, yFloor, yTop) in columns)
+        foreach (var (x, z, yFloor, yTop, _) in columns)
         {
             var lo = Math.Max(1, yFloor);                          // y=0 is reserved for the bedrock floor
             var hi = Math.Min(VoxelWorld.MaxHeight, yTop);
@@ -39,11 +40,10 @@ public static class TerrainBuilder
     /// <summary>Just the per-cell surface tops of <paramref name="columns"/> — the same map <see cref="Build"/>
     /// produces, without filling a world. For callers that only need to know where the terrain's surface is
     /// (structure floors), for which the voxel fill is pure cost.</summary>
-    public static IReadOnlyDictionary<(int X, int Z), int> SurfaceTops(
-        IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
+    public static IReadOnlyDictionary<(int X, int Z), int> SurfaceTops(IEnumerable<ColumnSegment> columns)
     {
         var surface = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, yTop) in columns) AddSurface(surface, x, z, yTop);
+        foreach (var segment in columns) AddSurface(surface, segment.X, segment.Z, segment.YTop);
         return surface;
     }
 

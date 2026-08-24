@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests;
@@ -187,14 +188,14 @@ public sealed class SketchRasterizerTests
         """);
         var col = cells.Where(c => c.X == 1 && c.Z == 1).OrderBy(c => c.YFloor).ToList();
         await Assert.That(col.Count).IsEqualTo(2);
-        await Assert.That(col[0]).IsEqualTo((1, 1, 0, 5));
-        await Assert.That(col[1]).IsEqualTo((1, 1, 20, 24));
+        await Assert.That(col[0]).IsEqualTo(new ColumnSegment(1, 1, 0, 5, "layer0"));
+        await Assert.That(col[1]).IsEqualTo(new ColumnSegment(1, 1, 20, 24, "layer1"));
     }
 
     [Test]
-    public async Task Legacy_single_layout_still_rasterizes_as_one_layer()
+    public async Task A_flat_board_rasterizes_from_its_one_ground_layer()
     {
-        // Back-compat: a pre-S7 {layout:{…}} with no `layers` is treated as one layer at base_y 0.
+        // A board with nothing stacked on it is a stack of one, and the mirror fans it the same way.
         var cells = SketchRasterizer.Rasterize("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
          "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],"islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}

@@ -5648,6 +5648,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A column segment says which layer drew it (TS22).** `SketchRasterizer.RasterizeColumns` answered
+  `(X, Z, YFloor, YTop)` and `SketchRasterizer` dropped the layer id on the floor, so every read after it was
+  guessing which storey it was describing. It answers `ColumnSegment` now — `(X, Z, YFloor, YTop, Layer)`, a
+  named shape in `Geom` because the producer is `Pgm` and the consumers are `Minecraft`, `Data`, `Export` and
+  `Api`. A cell standing on two layers answers once per layer, and the two answers can be told apart.
+  `SketchLayout.Stack` names a layer that did not name itself, by its position, so no segment can come back
+  belonging to no layer. The scan's own four-field segments are untouched: a scanned world has no layers, and
+  a shared record would have made it say otherwise.
 - **The word `layer` names a slab and nothing else (WS13).** Seven things carried it and one was a layer.
   The three types that borrowed it are renamed: `TopDownLayer` is a render *subject* — one question per image
   — so it is `TopDownSubject`, and the query word and the round-trip flag follow (`render/topdown?subject=`,

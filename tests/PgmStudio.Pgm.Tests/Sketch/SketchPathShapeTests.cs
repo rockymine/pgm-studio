@@ -30,7 +30,7 @@ public sealed class SketchPathShapeTests
     private static Dictionary<(int X, int Z), int> Tops(string layoutJson)
     {
         var tops = new Dictionary<(int X, int Z), int>();
-        foreach (var (x, z, _, top) in SketchRasterizer.RasterizeColumns(layoutJson))
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(layoutJson))
             if (!tops.TryGetValue((x, z), out var current) || top > current) tops[(x, z)] = top;
         return tops;
     }
