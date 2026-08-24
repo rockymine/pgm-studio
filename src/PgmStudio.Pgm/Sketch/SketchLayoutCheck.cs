@@ -6,8 +6,12 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
-/// What a sketch layout says that the build cannot honour — read from the document, before any ground is
-/// realized.
+/// What a sketch layout says that the build cannot honour.
+///
+/// <para>Most of it is read from the document alone, before any ground is realized. Three findings measure
+/// the ground the document rasterizes to instead — a stack drawn where a stack cannot go (<c>SK9</c>), two
+/// layers claiming one column's blocks (<c>SK10</c>), and a mass nothing joins to the board (<c>SK11</c>) —
+/// because none of the three is visible in what the document says, only in what it builds.</para>
 ///
 /// <para>The rasterizer is set algebra over shapes, so a shape it cannot read contributes no ground rather
 /// than failing: a kind nobody has, a polygon of two vertices and a circle of no radius each rasterize to
@@ -82,6 +86,11 @@ public static class SketchLayoutCheck
     {
         if (layout is null) return Findings.None;
 
+        // SK2 first and alone: a board's cost is paid per column of its extent, so a board past the ceiling
+        // must be refused before anything walks one. Read off the shapes' own boxes across the symmetry
+        // orbit, which costs a pass over the document and no ground at all.
+        if (TooLarge(layout) is { } oversized) return new List<Finding> { oversized };
+
         var findings = new List<Finding>();
 
         // SK9 — a layer holds one span per column, so a second one drawn over the first is not in the world.
@@ -91,6 +100,23 @@ public static class SketchLayoutCheck
                 + $"one span per column — the world keeps '{kept}' and '{lost}' is not in it. Move '{kept}' "
                 + "to its own layer, or clamp walls around the lower shape rather than drawing over it",
                 Severity.Decline, Subjects: [lost, kept]));
+
+        // SK10 — the stack is what puts air between two slabs, so a pair whose spans meet builds as one mass.
+        foreach (var (lower, upper, courses, x, z, cells) in SketchRasterizer.OverlappingLayerSpans(layout))
+            findings.Add(new Finding(SketchRules.LayersOverlap,
+                $"layers '{lower}' and '{upper}' are driven {courses} block(s) into each other over {cells} "
+                + $"column(s) — deepest at ({x}, {z}) — so they build as one solid mass where they meet and "
+                + $"the gap between the two storeys is not in the world there. Raise the base_y of '{upper}', "
+                + "or lower what stands on it",
+                Severity.Complaint, Subjects: [lower, upper]));
+
+        // SK11 — ground with sky over it and no way onto it. Roofed ground is a room and stays silent.
+        foreach (var (places, x, z, y) in SketchRasterizer.DetachedMasses(layout))
+            findings.Add(new Finding(SketchRules.MassUnreached,
+                $"{places} place(s) of standable ground around ({x}, {z}) @{y} have open sky over them and no "
+                + "route onto them from the rest of the board — draw the way up, or leave it if a detached "
+                + "island is what this is",
+                Severity.Complaint));
 
         var mode = layout.Setup?.MirrorMode ?? "rot_180";
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;
@@ -102,8 +128,6 @@ public static class SketchLayoutCheck
                 Severity.Complaint, Field: "setup.mirror_mode"));
 
         var shapeIds = new HashSet<string>(StringComparer.Ordinal);
-        var extent = (MinX: double.MaxValue, MinZ: double.MaxValue, MaxX: double.MinValue, MaxZ: double.MinValue);
-
         foreach (var (shape, where) in Shapes(layout))
         {
             if (shape.Id.Length > 0) shapeIds.Add(shape.Id);
@@ -129,12 +153,6 @@ public static class SketchLayoutCheck
                     + "to fit rather than built as stated",
                     Severity.Complaint, Field: where, Subjects: Ids(shape)));
 
-            if (Bounds(shape) is not { } box) continue;
-            // The shape as drawn, then one image per orbit axis. Read through OrbitAxes rather than through
-            // Symmetry.Point's k, whose image index only varies for rot_90 — a mirror's k=0 is already the
-            // mirrored copy, so counting images that way loses the half the author actually drew.
-            Cover(box);
-            foreach (var axis in Symmetry.OrbitAxes(mode)) Cover(Turned(box, axis, centerX, centerZ));
         }
 
         var islands = new HashSet<string>(SketchLayout.IslandIds(layout), StringComparer.Ordinal);
@@ -174,18 +192,40 @@ public static class SketchLayoutCheck
                 + "cell no shape scope claims takes the built-in default instead",
                 Severity.Complaint, Field: "mapTheme"));
 
+        return findings;
+    }
+
+    /// <summary>The one refusal, measured before any ground is walked: a board whose extent across the
+    /// symmetry orbit is past <see cref="SketchRules.MaxBoardColumns"/>. A shape far out on one side widens
+    /// the board by twice its distance, which is why the orbit is measured rather than the drawing. Null
+    /// where the board fits, and for a board with no bounded shape in it at all.</summary>
+    private static Finding? TooLarge(SketchLayout layout)
+    {
+        var mode = layout.Setup?.MirrorMode ?? "rot_180";
+        double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;
+        var extent = (MinX: double.MaxValue, MinZ: double.MaxValue, MaxX: double.MinValue, MaxZ: double.MinValue);
+
+        foreach (var (shape, _) in Shapes(layout))
+        {
+            if (Bounds(shape) is not { } box) continue;
+            // The shape as drawn, then one image per orbit axis. Read through OrbitAxes rather than through
+            // Symmetry.Point's k, whose image index only varies for rot_90 — a mirror's k=0 is already the
+            // mirrored copy, so counting images that way loses the half the author actually drew.
+            Cover(box);
+            foreach (var axis in Symmetry.OrbitAxes(mode)) Cover(Turned(box, axis, centerX, centerZ));
+        }
+
+        if (extent.MaxX <= extent.MinX || Columns(extent) is not { } columns
+            || columns <= SketchRules.MaxBoardColumns) return null;
+
+        return new Finding(SketchRules.BoardTooLarge,
+            $"the board spans {Span(extent.MaxX - extent.MinX)}×{Span(extent.MaxZ - extent.MinZ)} columns "
+            + $"({columns:N0}) across its symmetry orbit, more ground than the studio will realize — draw "
+            + "it smaller, or nearer the symmetry centre");
+
         void Cover((double MinX, double MinZ, double MaxX, double MaxZ) box)
             => extent = (Math.Min(extent.MinX, box.MinX), Math.Min(extent.MinZ, box.MinZ),
                          Math.Max(extent.MaxX, box.MaxX), Math.Max(extent.MaxZ, box.MaxZ));
-
-        // The refusal goes first: a caller that stops at the first refusal should see the one that matters.
-        if (extent.MaxX > extent.MinX && Columns(extent) is { } columns && columns > SketchRules.MaxBoardColumns)
-            findings.Insert(0, new Finding(SketchRules.BoardTooLarge,
-                $"the board spans {Span(extent.MaxX - extent.MinX)}×{Span(extent.MaxZ - extent.MinZ)} columns "
-                + $"({columns:N0}) across its symmetry orbit, more ground than the studio will realize — draw "
-                + "it smaller, or nearer the symmetry centre"));
-
-        return findings;
     }
 
     // Every shape the layout carries, with the path to it — the layers a stacked sketch holds, and the

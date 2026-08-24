@@ -5686,6 +5686,46 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **A stacked board says where its storeys touch and where nothing reaches (TS24).** Two findings, read off
+  the rasterized spans rather than off the document, because neither is visible in what a layout says — a
+  layer states a `base_y` and a height and the pair reads perfectly either way. `SK10` names two **layers**
+  driven into each other: where their spans meet they build as one solid mass, the gap the storeys were drawn
+  to have is not in the world there, and the finding carries both layer ids, how deep they meet, the deepest
+  column and how many they contest in all. **One shared course is the seam, not a fault** — a layer's span is
+  inclusive of its top, so setting the upper layer's `base_y` to the lower one's top shares exactly one block,
+  which is the obvious gesture and how `opus5-mineshaft` is authored, its walls meeting the deck over 5,752 of
+  6,400 columns. `SK11` walks the board's own spans and names any standable mass of sixteen places or more
+  that **stands over other ground** and that nothing joins to the rest of the board, with the lowest place's
+  coordinates so it can be flown to. Two things stay silent by design: a mass merely *beside* another is an
+  island — two landmasses across a void are how a board is normally drawn, and the build zone bridges them at
+  a tier the sketch does not state — and roofed ground is a room. The discriminator is the whole difference
+  between a finding and noise: without it `thunderstorm`, a one-layer board of ordinary islands, reports
+  eight; with it every single-layer board is silent. Both findings are complaints: a two-thick plinth and a
+  deliberate perch may each be what was drawn.
+
+  Measured over the committed layouts: `opus5-mineshaft` is silent on both — its walls seam the deck over
+  5,752 columns and the adit joins the storeys; `opus5-undercroft` reports `SK10` twice (`ground`/`span` 3
+  courses deep over 160 columns at (-32, -12), `ground`/`terrace` 4 deep over 32 at (-20, -52)); and
+  `opus5-undermarket` reports `SK11` once — 1,440 places lowest at (-30, -12) @25, the terrace over the yard
+  with no way up drawn onto it.
+- **Joined means walked, not reached, and the bound is measured (TS24).** `SK11`'s flood is bounded to the
+  tallest step that counts as the ground joining itself. Unbounded it finds a way onto every exposed deck —
+  a player carrying blocks pillars up to it and the walk prices that climb rather than refusing it, which is
+  the right answer to *can anyone get there* and the wrong one to *is there a way up*. The bound is **two**,
+  the thinnest slab the rasterizer builds, so a layer seamed onto the one under it raises the standing surface
+  by exactly two: at one, `opus5-undercroft` reads as 41 masses over 7,766 places; at two the same board is
+  one, and `opus5-mineshaft` is silent at every bound.
+- **The board-size refusal is asked before anything walks a column (TS24).** `SketchLayoutCheck` measured the
+  extent while walking every shape and raised `SK2` at the end, so the three findings read off the rasterized
+  spans ran first — on a board past the ceiling, which is the one board that must not be rasterized at all.
+  The extent is read up front now, off the shapes' own boxes across the symmetry orbit, and an oversized board
+  returns that one finding and nothing else. The docstring already promised this; it is true now.
+- **One rule for where a player stands, in the leaf both halves reach (TS24).** `SegmentIndex.StandingTops`
+  read it off a scan and `WorldWalk` had a private twin of it for a board the studio built — the same
+  headroom test and the same ceiling read, written twice. It is `Walk.Standing` now, beside the solver whose
+  step rule depends on it, and `WalkGround.OfSpans` is the one place a stack of spans becomes a board. That
+  is what lets `Pgm` ask a connectivity question at all: the sketch gate walks its own rasterized columns
+  through the same `Walk` a distance is measured with, rather than growing a third reader.
 - **One navigability derivation, and it is the walk's (RP55).** `Traversability` built its own `bool[]` of
   navigable cells out of the scan's standing columns and the buildable verdict, labelled 4-connected
   components over it, and masked each team's `enter` denials into a second grid; `GroundCoverage` read the

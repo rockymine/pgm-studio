@@ -95,24 +95,6 @@ document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the
   *Also carrying it and deliberately untouched: the canvas z-stack (`render/layer-stack.js`, `data-layer`),
   which is the graphics term and reads as one; and `LayeredMaterial`'s own `layers[]` inside the theme JSON.*
 
-- [ ] **TS24 — Complain where a mass connects to nothing, and where two segments overlap.** Three of the
-  four things this entry once proposed are settled *not* to be complaints — flush is how a roof is built, a
-  sealed room is an author's choice, and a gap too low to stand in is that room. Two findings remain, and
-  they are different mechanisms.
-
-  **Overlapping segments** is a geometry error whatever was meant: two shapes claiming the same Y in one
-  column. A shape's bottom is flat inside its layer, so a cell's segments are intervals and this is a sort
-  and a scan of the rasterizer's own output, about fifteen lines, needing no layer id.
-
-  **Standable ground under open sky that no route reaches** is the warning — `EX5`, a **complaint and never
-  a refusal**, because two flying islands stacked may be what was drawn. Roofed ground stays silent: that is
-  the room. It asks whether a player can get there, which `Walk.Components` now answers per storey. `EX1`
-  owns the other half already — it refuses an isolated *spawn or objective* by name — and needs no
-  amendment.
-
-  *`opus5-mineshaft`: the walls run `[0,25]` flush into the deck, the gallery keeps `[0,3]` · `[20,25]`
-  sixteen blocks below, and the adit is the one connection between them.*
-
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
   layer index per run and the toggle is client-side filtering in `sketch-canvas`'s column mesh. The claim has to be keyed on

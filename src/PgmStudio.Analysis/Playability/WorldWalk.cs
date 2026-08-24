@@ -121,25 +121,6 @@ public static class WorldWalk
         return shared.Narrowed(new HashSet<(int X, int Z)>(shared.Footprint.Where(cell => !denied.Contains(cell))));
     }
 
-    /// <summary>Every place a player stands over a stack of spans, with how much room is over each: the first
-    /// air above a span carrying <see cref="Walk.Headroom"/> clear blocks, and the clear blocks there are
-    /// before the next solid one. The same rule <c>SegmentIndex.StandingTops</c> reads off a scan, so a board
-    /// the studio built and the same board scanned back answer alike.</summary>
-    private static IEnumerable<(int Top, int Clear)> StandingPlaces(List<(int Floor, int Top)> stack)
-    {
-        var ordered = stack.OrderBy(span => span.Top).ToList();
-        for (var i = 0; i < ordered.Count; i++)
-        {
-            var stand = ordered[i].Top + 1;
-            if (stand + Walk.Headroom > Walk.WorldHeight) continue;
-            if (ordered.Any(span => span.Floor <= stand + Walk.Headroom - 1 && stand <= span.Top)) continue;
-
-            var ceiling = ordered.Skip(i + 1).Select(span => span.Floor)
-                                 .Where(above => above >= stand).DefaultIfEmpty(int.MaxValue).Min();
-            yield return (stand, ceiling == int.MaxValue ? int.MaxValue : Math.Max(0, ceiling - stand));
-        }
-    }
-
     /// <summary>Give every bridgeable cell the height of the ground nearest it, spreading outward from the
     /// shores. A player bridging builds out level from where they left, so a crossing costs nothing until it
     /// reaches the far side — and then costs the rise onto it, which is the climb out of a gap and the most
@@ -174,24 +155,15 @@ public static class WorldWalk
         IEnumerable<(int MinX, int MinZ, int MaxX, int MaxZ)> buildAreas,
         IReadOnlySet<(int X, int Z)>? water = null)
     {
-        var spans = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
-        foreach (var (x, z, span, top) in columns)
-        {
-            if (!spans.TryGetValue((x, z), out var stack)) { stack = []; spans[(x, z)] = stack; }
-            stack.Add((span, top));
-        }
-
-        var ground = new HashSet<WalkPlace>();
+        var solid = WalkGround.OfSpans(columns);
+        var ground = new HashSet<WalkPlace>(solid.Ground);
         var clear = new Dictionary<WalkPlace, int>();
         var floor = new Dictionary<(int X, int Z), int>();
-        foreach (var (cell, stack) in spans)
-            foreach (var (top, room) in StandingPlaces(stack))
-            {
-                var place = new WalkPlace(cell.X, cell.Z, top);
-                ground.Add(place);
-                if (room != int.MaxValue) clear[place] = room;
-                if (!floor.TryGetValue(cell, out var lowest) || top < lowest) floor[cell] = top;
-            }
+        foreach (var place in ground)
+        {
+            if (solid.ClearAbove(place) is var room and not int.MaxValue) clear[place] = room;
+            if (!floor.TryGetValue(place.Cell, out var lowest) || place.Y < lowest) floor[place.Cell] = place.Y;
+        }
 
         var open = new HashSet<(int X, int Z)>();
         foreach (var (minX, minZ, maxX, maxZ) in buildAreas)

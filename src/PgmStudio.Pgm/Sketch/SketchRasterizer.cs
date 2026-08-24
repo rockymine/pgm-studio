@@ -19,8 +19,29 @@ namespace PgmStudio.Pgm.Sketch;
 /// shape whose ground is not in the built board, <paramref name="Kept"/> the one that replaced it.</summary>
 public readonly record struct StackedShapes(string Layer, string Lost, string Kept);
 
+/// <summary>Two layers driven into each other, the deepest they meet, and a column where they do.
+/// <see cref="Courses"/> is that depth in blocks and <see cref="Cells"/> counts every column the two contest,
+/// so a reader can tell a slab clipping a corner from two drawn through one another.</summary>
+public readonly record struct OverlappingLayers(string Lower, string Upper, int Courses, int X, int Z, int Cells);
+
+/// <summary>A mass of standable ground nothing joins to the main one: how many places it holds, and the
+/// lowest-then-northmost of them, so it can be flown to and looked at.</summary>
+public readonly record struct DetachedMass(int Places, int X, int Z, int Y);
+
 public static class SketchRasterizer
 {
+    /// <summary>How many blocks two layers may share before they are driven into each other rather than
+    /// seamed. One: a layer's span is inclusive of its top, so an upper layer sitting at the lower one's top
+    /// shares that course and nothing else.</summary>
+    private const int SeamCourses = 1;
+
+    /// <summary>The tallest step, up or down, that counts as the ground joining itself for
+    /// <see cref="DetachedMasses"/>. Two, because that is the thinnest slab the rasterizer builds: a layer
+    /// stacked on another raises the standing surface by two blocks at least, so a smaller bound would call
+    /// every stacked board detached — measured, it shreds `opus5-undercroft` into 41 masses over 7,766
+    /// places, and at two the same board is one.</summary>
+    private const int JoinedRise = 2;
+
     private const int CirclePoints  = 64;   // matches JS geometry/shape.js CIRCLE_POINTS
     private const int BezierSamples  = 16;   // matches JS geometry/shape.js BEZIER_SAMPLES
 
@@ -32,8 +53,12 @@ public static class SketchRasterizer
     /// and the layer that drew it. Height never affects membership — the footprint is identical to
     /// <see cref="Rasterize"/>, and a cell on two layers answers once per layer.</summary>
     public static List<ColumnSegment> RasterizeColumns(string layoutJson)
+        => RasterizeColumns(SketchLayout.Parse(layoutJson));
+
+    /// <summary>As above, off a layout already read. What a gate holding the document takes, so a check and
+    /// the build it describes rasterize the same board rather than parsing it twice.</summary>
+    public static List<ColumnSegment> RasterizeColumns(SketchLayout? state)
     {
-        var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
         var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
@@ -529,6 +554,101 @@ public static class SketchRasterizer
             }
         }
         return found;
+    }
+
+    /// <summary>Where two layers are driven into each other. A layer is a slab and the stack is what puts air
+    /// between two of them, so a pair whose spans meet builds as one solid mass and the gap the storeys were
+    /// drawn to have is not in the world. One entry per pair of layers, carrying how deep they meet, the
+    /// first column they contest and how many they contest in all.
+    ///
+    /// <para><b>A single shared course is the seam, not a fault.</b> A layer spans
+    /// <c>[base_y, base_y + height]</c> <em>inclusive</em>, so setting the upper layer's <c>base_y</c> to the
+    /// lower's top — "the deck starts where the walls end", the obvious gesture — shares exactly one block.
+    /// Complaining about that would be complaining about the coordinate system rather than about the board:
+    /// <c>opus5-mineshaft</c> is built that way, its walls meeting the deck over 5,752 of 6,400 columns.
+    /// Anything deeper is a slab driven through another.</para></summary>
+    public static List<OverlappingLayers> OverlappingLayerSpans(SketchLayout? state)
+    {
+        var byCell = new Dictionary<(int X, int Z), List<ColumnSegment>>();
+        foreach (var segment in RasterizeColumns(state))
+        {
+            if (!byCell.TryGetValue(segment.Cell, out var here)) byCell[segment.Cell] = here = [];
+            here.Add(segment);
+        }
+
+        var found = new Dictionary<(string, string), (int Courses, int X, int Z, int Cells)>();
+        foreach (var (cell, spans) in byCell.OrderBy(entry => entry.Key.X).ThenBy(entry => entry.Key.Z))
+        {
+            if (spans.Count < 2) continue;
+            var ordered = spans.OrderBy(span => span.YFloor).ToList();
+            for (var i = 0; i < ordered.Count; i++)
+            for (var j = i + 1; j < ordered.Count; j++)
+            {
+                if (ordered[i].Layer == ordered[j].Layer) continue;          // SK9's ground, not this one
+                var shared = Math.Min(ordered[i].YTop, ordered[j].YTop) - ordered[j].YFloor + 1;
+                if (shared <= SeamCourses) continue;                         // clear of each other, or the seam
+                var pair = (ordered[i].Layer, ordered[j].Layer);
+                found[pair] = found.TryGetValue(pair, out var known)
+                    ? (Math.Max(known.Courses, shared), known.X, known.Z, known.Cells + 1)
+                    : (shared, cell.X, cell.Z, 1);
+            }
+        }
+        return [.. found.Select(entry =>
+            new OverlappingLayers(entry.Key.Item1, entry.Key.Item2, entry.Value.Courses,
+                                  entry.Value.X, entry.Value.Z, entry.Value.Cells))];
+    }
+
+    /// <summary>Every mass of standable ground that <b>stands over other ground</b> and that nothing joins to
+    /// it. A storey with no way onto it, in other words — which is the one shape of this that is a fault
+    /// rather than a choice.
+    ///
+    /// <para><b>A mass beside another is an island, not a fault.</b> Two landmasses across a void are how a
+    /// board is normally drawn — the build zone bridges them at the intent tier, which a sketch does not
+    /// state — so a mass sharing no column with any other says nothing. What is reported is a mass some of
+    /// whose columns also carry ground in another mass: something floating above another thing, with nothing
+    /// between them. Measured, the discriminator is the whole difference between a useful finding and noise:
+    /// without it `thunderstorm`, a one-layer board of ordinary islands, reports eight.</para>
+    ///
+    /// <para>Ground under a roof says nothing either: that is a room, and a room with no door is the
+    /// author's to have. Only a mass with open sky over some of it is reported.</para>
+    ///
+    /// <para>Joined means walked, not reached: the flood is bounded to <see cref="JoinedRise"/>, so what
+    /// counts is a way the author <b>drew</b>. Unbounded it would find one onto every exposed deck, because
+    /// a player carrying blocks can pillar up to any of them and the walk prices that climb rather than
+    /// refusing it — which is the right answer to "can anyone get there" and the wrong one to "is there a way
+    /// up". The bound cuts both ways: a cliff a player can only drop off does not join its two sides.</para>
+    /// </summary>
+    /// <param name="floor">Masses smaller than this are a ledge or a rasterizer sliver, not a place.</param>
+    public static List<DetachedMass> DetachedMasses(SketchLayout? state, int floor = 16)
+    {
+        var ground = WalkGround.OfSpans(
+            RasterizeColumns(state).Select(segment => (segment.X, segment.Z, segment.YFloor, segment.YTop)));
+        if (ground.Ground.Count == 0) return [];
+
+        var components = Walk.Components(ground, JoinedRise);
+        var sizes = components.GroupBy(entry => entry.Value)
+                              .ToDictionary(group => group.Key, group => group.Count());
+        var main = sizes.OrderByDescending(entry => entry.Value).ThenBy(entry => entry.Key).First().Key;
+
+        // Which masses each column carries: a mass standing over another shares a column with it.
+        var massesAt = new Dictionary<(int X, int Z), HashSet<int>>();
+        foreach (var (place, id) in components)
+        {
+            if (!massesAt.TryGetValue(place.Cell, out var here)) massesAt[place.Cell] = here = [];
+            here.Add(id);
+        }
+
+        var found = new List<DetachedMass>();
+        foreach (var (id, size) in sizes.OrderBy(entry => entry.Key))
+        {
+            if (id == main || size < floor) continue;
+            var places = components.Where(entry => entry.Value == id).Select(entry => entry.Key).ToList();
+            if (places.All(place => ground.ClearAbove(place) != int.MaxValue)) continue;
+            if (!places.Any(place => massesAt[place.Cell].Count > 1)) continue;   // beside, not above
+            var seat = places.OrderBy(place => place.Y).ThenBy(place => place.Z).ThenBy(place => place.X).First();
+            found.Add(new DetachedMass(size, seat.X, seat.Z, seat.Y));
+        }
+        return [.. found.OrderByDescending(mass => mass.Places)];
     }
 
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────

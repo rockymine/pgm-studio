@@ -49,21 +49,8 @@ public sealed class SegmentIndex
     public IEnumerable<(int x, int z, int top, int clear)> StandingTops()
     {
         foreach (var (cell, segments) in _byCol)
-        {
-            var ordered = segments.OrderBy(segment => segment.ye).ToList();
-            for (var i = 0; i < ordered.Count; i++)
-            {
-                var top = ordered[i].ye + 1;
-                if (top + Walk.Headroom > Walk.WorldHeight) continue;
-                if (Enumerable.Range(top, Walk.Headroom).Any(y => IsSolid(cell.x, y, cell.z))) continue;
-
-                // The next segment starting above this surface is its ceiling; nothing above it is open sky.
-                var ceiling = ordered.Skip(i + 1).Select(segment => segment.ys)
-                                     .Where(floor => floor >= top).DefaultIfEmpty(int.MaxValue).Min();
-                yield return (cell.x, cell.z, top,
-                              ceiling == int.MaxValue ? int.MaxValue : Math.Max(0, ceiling - top));
-            }
-        }
+            foreach (var (top, clear) in Walk.Standing([.. segments.Select(s => (s.ys, s.ye))]))
+                yield return (cell.x, cell.z, top, clear);
     }
 
     public bool IsSolid(int x, int y, int z)

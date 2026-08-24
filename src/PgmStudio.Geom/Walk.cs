@@ -90,6 +90,35 @@ public sealed record WalkGround(
         new HashSet<WalkPlace>(Bridgeable.Where(place => keep.Contains(place.Cell))),
         Bounds, BlocksPerCell, Water, Clear);
 
+    /// <summary>The board a set of solid spans makes: every place a player can stand in them, with the room
+    /// over each. Nothing is bridgeable — a caller that knows where a block may be placed adds that itself —
+    /// so this is the ground as the world's own geometry states it.</summary>
+    /// <param name="columns">Every solid span, as <c>(x, z, floor, top)</c>. A cell may appear more than
+    /// once, and a cell whose spans offer nowhere to stand contributes no place.</param>
+    public static WalkGround OfSpans(IEnumerable<(int X, int Z, int YFloor, int YTop)> columns)
+    {
+        var stacks = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
+        foreach (var (x, z, floor, top) in columns)
+        {
+            if (!stacks.TryGetValue((x, z), out var spans)) stacks[(x, z)] = spans = [];
+            spans.Add((floor, top));
+        }
+
+        var ground = new HashSet<WalkPlace>();
+        var clear = new Dictionary<WalkPlace, int>();
+        foreach (var (cell, spans) in stacks)
+            foreach (var (top, room) in Walk.Standing(spans))
+            {
+                var place = new WalkPlace(cell.X, cell.Z, top);
+                ground.Add(place);
+                if (room != int.MaxValue) clear[place] = room;
+            }
+
+        var footprint = ground.Select(place => place.Cell).ToHashSet();
+        return new WalkGround(ground, new HashSet<WalkPlace>(),
+            footprint.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(footprint), 1, null, clear);
+    }
+
     /// <summary>Ground that is just a set of cells: everything in it is stood on for nothing, nothing is
     /// bridged, and no cell states a height. What a plan is before its relief is solved — a climb it does not
     /// yet know about cannot be charged, and pretending otherwise would price a slope the author has not
@@ -215,6 +244,30 @@ public static class Walk
     /// across, and it is the smaller of the two.</para></summary>
     public const int Detour = 10;
 
+    /// <summary>Every place a player can stand over one column's solid spans, with how many blocks are open
+    /// over each before the next solid one. A surface qualifies when <see cref="Headroom"/> blocks above it
+    /// are clear and the world has room for a head there; a column offering none answers empty, and a column
+    /// with two answers twice.
+    ///
+    /// <para>The one definition of where a player stands, so a world the studio built and the same world
+    /// scanned back cannot disagree about it. Answers lowest first.</para></summary>
+    /// <param name="spans">The column's solid runs, as <c>(floor, top)</c> inclusive, in any order.</param>
+    public static IEnumerable<(int Top, int Clear)> Standing(IReadOnlyCollection<(int Floor, int Top)> spans)
+    {
+        var ordered = spans.OrderBy(span => span.Top).ToList();
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var stand = ordered[i].Top + 1;
+            if (stand + Headroom > WorldHeight) continue;
+            if (ordered.Any(span => span.Floor <= stand + Headroom - 1 && stand <= span.Top)) continue;
+
+            // The next span whose floor is at or above this surface is its ceiling; nothing above it is sky.
+            var ceiling = ordered.Skip(i + 1).Select(span => span.Floor)
+                                 .Where(floor => floor >= stand).DefaultIfEmpty(int.MaxValue).Min();
+            yield return (stand, ceiling == int.MaxValue ? int.MaxValue : Math.Max(0, ceiling - stand));
+        }
+    }
+
     private static readonly (int X, int Z)[] Sides =
         [(1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1)];
 
@@ -244,8 +297,17 @@ public static class Walk
     /// component only where something joins them.
     ///
     /// <para>The flood is over the same edges <see cref="Between"/> solves across, which is what stops a
-    /// connectivity verdict and a distance disagreeing about whether there is a way.</para></summary>
-    public static Dictionary<WalkPlace, int> Components(WalkGround ground)
+    /// connectivity verdict and a distance disagreeing about whether there is a way.</para>
+    ///
+    /// <para><paramref name="rise"/> is what separates two questions a board is asked. Unbounded — the
+    /// default — a step is any the clearance admits, however high, because a player carries blocks and pays
+    /// for the climb: that is whether anyone <b>can</b> get there, which is what a gate refusing an
+    /// unreachable objective means. Bounded to <see cref="FreeRise"/> it is whether the ground itself
+    /// <b>joins</b>, since a rise the player has to build is a way nobody drew. The bound applies to a fall
+    /// too: a cliff a player can only drop off is not a connection between the two sides of it.</para>
+    /// </summary>
+    /// <param name="rise">The tallest step between two places, up or down, that counts as joining them.</param>
+    public static Dictionary<WalkPlace, int> Components(WalkGround ground, int rise = int.MaxValue)
     {
         var labels = new Dictionary<WalkPlace, int>();
         var id = 0;
@@ -256,8 +318,14 @@ public static class Walk
             labels[start] = ++id;
             frontier.Enqueue(start);
             while (frontier.Count > 0)
-                foreach (var (next, _) in Steps(frontier.Dequeue(), ground))
+            {
+                var place = frontier.Dequeue();
+                foreach (var (next, _) in Steps(place, ground))
+                {
+                    if (Math.Abs(next.Y - place.Y) > rise) continue;
                     if (labels.TryAdd(next, id)) frontier.Enqueue(next);
+                }
+            }
         }
         return labels;
     }

@@ -83,4 +83,20 @@ public static class SketchRules
     /// <remarks>Move the upper shape to its own layer. A stack is a stack of layers — `base_y` is what puts one span above another, and two spans on one layer cannot both survive. Drawing the walls around the lower shape instead of over it is the other way, and is how a roofed gallery is built.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string StackedInOneLayer = "SK9";
+
+    /// <summary>Two layers are driven into each other by more than the one course a stack shares at its
+    /// seam. A layer is a slab and the stack is what puts air between two of them, so where their spans meet
+    /// they build as one solid mass: the gap the storeys were drawn to have is not in the world there, and
+    /// nothing under the upper slab can be stood in.</summary>
+    /// <remarks>Raise the upper layer's `base_y`, or lower the height of what stands on the layer below. A layer's span is inclusive of its top, so an upper layer sitting exactly at the lower one's top shares that one course and is the ordinary seam — this fires only past it. The world is built either way.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string LayersOverlap = "SK10";
+
+    /// <summary>A mass of standable ground under open sky that no route reaches from the rest of the board.
+    /// Ground under a roof is a room and says nothing; ground with sky over it and no way onto it is either a
+    /// second island the author meant or a storey whose stair was never drawn, and only the author knows
+    /// which.</summary>
+    /// <remarks>Draw the way onto it — a ramp, a shaft, a shape bridging the gap — or leave it if a detached island is what the board is. The map builds either way.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
+    public const string MassUnreached = "SK11";
 }

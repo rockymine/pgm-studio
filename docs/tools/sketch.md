@@ -723,6 +723,42 @@ and one thing the author drew is gone from it, which nothing else on the success
 floor are ordinary ground and stay silent, and so do walls clamped *around* a tucked-in floor — the way a
 roofed gallery is actually built.
 
+**It complains where two layers are driven into each other.** A layer states a `base_y` and a height and the
+pair reads perfectly; only the rasterized spans say whether the air between the storeys is there. Where a
+lower layer's span reaches into an upper layer's, the two build as **one solid mass** there — the gap is not
+in the world and nothing under the upper slab can be stood in — and `SK10` names both layers, how deep they
+meet, the deepest column and how many they contest in all. It is a **complaint**: the board builds, and a
+plinth two layers thick may be what was meant.
+
+**One shared course is the seam, not a fault.** A layer spans `[base_y, base_y + height]` *inclusive*, so
+setting the upper layer's `base_y` to the lower one's top — "the deck starts where the walls end", the
+obvious gesture — shares exactly one block. `opus5-mineshaft` is authored that way, its walls meeting the
+deck over **5,752 of 6,400 columns**, and complaining about it would be complaining about the coordinate
+system rather than about the board. Two courses or more is a slab driven through another, and that is what
+fires.
+
+**And it complains where a storey has no way onto it.** `SK11` walks the board's own spans and reports any
+standable mass, sixteen places or more, that **stands over other ground** and that nothing joins to the rest
+of the board — with the count and the lowest place's coordinates, so it can be flown to.
+
+Two things are deliberately silent. **A mass beside another is an island**, not a fault: two landmasses across
+a void are how a board is normally drawn, and the build zone bridges them at the intent tier, which a sketch
+does not state — so a mass sharing no column with any other says nothing. Measured, that discriminator is the
+whole difference between a finding and noise: without it `thunderstorm`, a one-layer board of ordinary
+islands, reports **eight**. And **ground under a roof** is a room, and a room with no door is the author's to
+have, so only a mass with open sky over some of it is reported. What is left is something floating above
+another thing with nothing between them — a storey whose stair was never drawn, or a deliberate perch, and
+only the author knows which, so it is a complaint and never a refusal.
+
+**Joined means walked, not reached, and the bound is two blocks.** Unbounded, the walk finds a way onto every
+exposed deck — a player carrying blocks pillars up to it and the walk prices that climb rather than refusing
+it, which is the right answer to *can anyone get there* and the wrong one to *is there a way up*. So the flood
+is bounded to the tallest step that counts as the ground joining itself, and that is **two**: the thinnest
+slab the rasterizer builds is two blocks, so a layer seamed onto the one under it raises the standing surface
+by exactly two. A smaller bound calls every stack detached — at one, `opus5-undercroft` reads as **41 masses
+over 7,766 places**, and at two the same board is one. The bound cuts both ways: a cliff a player can only
+drop off does not join its two sides.
+
 **And it complains about a board with no finish at all.** `SK8` rides on the success when the stored layout
 carries **no theme registry, no relief and no props** — the finding names which of the three are absent. Ground
 alone is a legitimate board, so this stops nothing; what it stops is the board shipping unremarked. Every other
