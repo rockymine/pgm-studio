@@ -43,8 +43,7 @@ is for. *(Settled by the author; this is the law `TS22`'s layer id names and `TS
 letting it cut through is the toggle, not the other way round. *(Settled by the author.)*
 
 The mineshaft **is committed** — `pgm-studio-mapgen`, `maps/opus5-mineshaft` · `specs/opus5-mineshaft/` ·
-`reports/opus5-mineshaft-layers.md`, on `claude/map-relief-terrain-generation-lv9a39` and not yet merged. It
-is eighty blocks square, two layers, six shapes, no relief and no dressing: four wall rectangles clamped
+`reports/opus5-mineshaft-layers.md`, on this branch. It is eighty blocks square, two layers, six shapes, no relief and no dressing: four wall rectangles clamped
 around a tucked-in gallery floor, a ramp climbing out of the east end on `anchor_heights [4, 26, 26, 4]`, and
 a deck over all 6,400 cells at `base_y 20` with a mouth subtracted where the adit surfaces. A gallery column
 reads `[0,3]` · `[20,25]` — sixteen blocks of air between two storeys. A `subtract`-and-`override` variant
