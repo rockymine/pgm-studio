@@ -445,7 +445,7 @@ public static class PlanValidator
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<Finding>>> LintRules =
     [
         LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintWl1,
-        LintSp8, LintSp9, LintSt8, LintSt9, LintBz11, LintBoardEdges,
+        LintSp8, LintSp9, LintWl11, LintSt8, LintSt9, LintBz11, LintBoardEdges,
     ];
 
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
@@ -629,6 +629,41 @@ public static class PlanValidator
                     yield return Lint("SP8",
                         $"spawn egress steps {delta} blocks at '{seam.A}'–'{seam.B}' — use 1-level steps or "
                         + "a ramp against the spawn", seam.A, seam.B);
+            }
+        }
+    }
+
+    // WL11 — a wool room's approach steps two or more blocks and nothing bridges it. SP8's reading, asked of
+    // a room that has no facing: a room has no front, so every entry interface is a door and all of them are
+    // measured. The player who crosses one is the attacker — a team is kept out of its own wool — so the step
+    // is met at the end of the run that decides the map, as a wall to build up or a drop with no way back.
+    private static IEnumerable<Finding> LintWl11(PlanModel plan, ContactGraph d)
+    {
+        var seams = PieceInterfaces.Seams(d);
+        var rooms = plan.Placements.Wools.Select(wool => wool.Piece)
+            .Where(id => d.Piece(id) is { Role: PlanRoles.WoolRoom })
+            .Distinct(StringComparer.Ordinal);
+
+        foreach (var roomId in rooms)
+        {
+            var room = d.Piece(roomId)!.Value;
+            // The entry set the cage cuts its doors on, so a lint and a stamper cannot disagree about which
+            // seam is a way in. A room reachable only over a build zone declares no land seam here, and that
+            // is BZ5's business rather than this rule's.
+            var entries = PlanCompiler.WoolEntrySegments(d, roomId);
+            if (entries.Count == 0) continue;
+
+            foreach (var seam in seams)
+            {
+                if (seam.A != roomId && seam.B != roomId) continue;
+                var other = d.Piece(seam.A == roomId ? seam.B : seam.A);
+                if (other is null) continue;
+                var delta = Math.Abs(other.Value.Surface - room.Surface);
+                if (delta < 2) continue;
+                var arrival = other.Value.Surface > room.Surface ? "drops" : "climbs";
+                yield return Lint("WL11",
+                    $"wool room approach {arrival} {delta} blocks at '{seam.A}'–'{seam.B}' — an attacker "
+                    + "arrives across it, so use 1-level steps or a ramp against the room", seam.A, seam.B);
             }
         }
     }

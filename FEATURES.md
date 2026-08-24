@@ -1235,6 +1235,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`Pgm/Sketch/FootprintProbe.cs`, `Pgm/Sketch/SketchRasterizer.CellsOfRing`,
   `Api/Endpoints/SketchEndpoints.cs`, `docs/tools/sketch.md`, `FootprintProbeTests.cs`)
 
+- **A wool room's approach is measured the way a spawn's egress is (`WL11`, closing `B244`).** `SP8` refuses
+  a spawn egress stepping Δ≥2 ahead of its door; nothing asked the same of a wool room, though the seam there
+  is crossed by the **attacker** — a team is kept out of its own wool, so nobody defends through that door —
+  at the end of the run that decides the map, as a wall to build up or a drop with no way back out. `WL11` is
+  that read: every **entry** interface of a wool-room piece rather than the ones ahead of a facing, since a
+  room has no front, taken off `PlanCompiler.WoolEntrySegments` so a lint and the cage stamper cannot disagree
+  about which seam is a way in. The message names the direction, because a wall and a pit are different
+  problems on one seam. A room reached only over a build zone declares no land seam and is `BZ5`'s business.
+  *Fires on 12 of the 62 stored plans that carry a wool, over 16 seams — `coldharbour`'s wool yard drops 4
+  blocks onto the room and `marlstone-steps` climbs 4 into it.*
+  (`Pgm/Plan/PlanValidator.LintWl11`, `Domain/RuleCatalog.Raised`, `docs/generator/rules.md` WL11 +
+  amendment 22, `docs/tools/plan.md`, `PlanValidatorTests.cs`)
+
 - **A room is seated on the terrain at its door, not on the number it arrived with.** A spawn or wool room the
   plan compiler projects into a layout is a held shape carrying the plan's `surface` — the only height a
   plan-space piece can state before any terrain exists. The relief then moves the ground around it and the pin

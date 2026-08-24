@@ -172,6 +172,16 @@ and a fall counted but not charged, routing around voids — never the straight 
   the balance reads are blind to — a wool far from the front *and* far from everything can carry a
   perfectly balanced deficit while forcing the attacker to run the whole board into a defended
   chokepoint.
+- **WL11 [author]** A wool room's **approach steps by 1 level or takes a ramp**: an entry seam at
+  **Δ≥2** is un-walkable bare, the same reading `SP8` takes of a spawn's egress and for the same
+  reason (EL1's palette steps by 2). The player who crosses that seam is the **attacker** — a team
+  is kept out of its own wool, so nobody defends through the door — which is what makes the step
+  worse here than at a spawn: it is met at the end of the run that decides the map, either as a wall
+  to build up or as a drop that cannot be climbed back out of. Lint every **entry** interface of a
+  wool-room piece rather than a facing: a room has no front, and every seam an attacker can arrive
+  across is a door (`PlanCompiler.WoolEntrySegments`, the same set the cage cuts its doors on). A
+  room reached only over a build zone states no land seam and is not this rule's business but
+  `BZ5`'s.
 
 ## LN — Lane
 
@@ -787,6 +797,16 @@ both corrected.)
     tagged `[expert]` — the author's numbers, held until a played board moves them. The two that cannot be
     replaced this way stay marked at their citation sites: `B188`'s 164-map table (`seed-stats.md`) and
     `WL7`'s eight-pair band.
+
+22. **`WL11` added (2026-08-23).** Author's call, closing `B244`. `SP8` measures the seam ahead of a spawn
+    door and complains at Δ≥2; nothing asked the same of a wool room, though the seam an attacker arrives
+    across is met at the end of the run that decides the map. No existing rule changes: `WL11` is `SP8`'s
+    reading applied to a room that has no facing, so every entry interface is the egress rather than the
+    ones ahead of a door. The relief half of `B244` — a Δ the terrain creates under two pieces that declare
+    the same surface — is closed by construction rather than linted: a structural room the author has not
+    corrected is seated on the ground outside its own doors, so the plan number can no longer leave a room
+    in a pit. A Δ≥2 face between two ordinary pieces stays unlinted, being a design element as often as a
+    fault.
 
 ## Correction protocol
 

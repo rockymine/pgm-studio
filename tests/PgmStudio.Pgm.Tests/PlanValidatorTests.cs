@@ -470,6 +470,69 @@ public sealed class PlanValidatorTests
         PlanValidator.Check(p).Count(f => f.Severity == Severity.Complaint && f.Rule == rule);
 
     [Test]
+    public async Task A_wool_room_approach_stepping_two_fires_WL11_on_every_entry()
+    {
+        // A room has no facing, so every land seam an attacker can arrive across is a door and all of them
+        // are measured — which is the one way this differs from SP8's forward-only read.
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":11},
+                     {"id":"west","role":"lane","rect":[0,0,10,10],"surface":9},
+                     {"id":"east","role":"lane","rect":[0,20,10,10],"surface":9} ],
+          "placements":{ "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(LintCount(p, "WL11")).IsEqualTo(2);
+
+        var level = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":11},
+                     {"id":"west","role":"lane","rect":[0,0,10,10],"surface":11},
+                     {"id":"east","role":"lane","rect":[0,20,10,10],"surface":10} ],
+          "placements":{ "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(LintCount(level, "WL11")).IsEqualTo(0).Because("a single level is walked");
+    }
+
+    [Test]
+    public async Task WL11_names_which_way_the_attacker_meets_the_step()
+    {
+        // A wall to build up and a drop with no way back out are different problems on the same seam, and an
+        // attacker meets one of them at the end of the run that decides the map.
+        var wall = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":9},
+                     {"id":"approach","role":"lane","rect":[0,0,10,10],"surface":14} ],
+          "placements":{ "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        var finding = PlanValidator.Check(wall).Single(f => f.Rule == "WL11");
+        await Assert.That(finding.Message).Contains("drops 5 blocks");
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+
+        var pit = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":14},
+                     {"id":"approach","role":"lane","rect":[0,0,10,10],"surface":9} ],
+          "placements":{ "wools":[ {"piece":"room","at":[5,5]} ] } }
+        """);
+        await Assert.That(PlanValidator.Check(pit).Single(f => f.Rule == "WL11").Message)
+            .Contains("climbs 5 blocks");
+    }
+
+    [Test]
+    public async Task A_wool_on_a_plain_piece_is_not_a_room_and_states_no_approach()
+    {
+        // WL11 is about the seam a cage's door is cut on. A wool marker on ordinary ground has no room and
+        // no entries, so there is nothing for the rule to be about.
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"lane","role":"lane","rect":[0,10,10,10],"surface":11},
+                     {"id":"west","role":"lane","rect":[0,0,10,10],"surface":9} ],
+          "placements":{ "wools":[ {"piece":"lane","at":[5,5]} ] } }
+        """);
+        await Assert.That(LintCount(p, "WL11")).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task A_spawn_egress_stepping_two_fires_SP8_forward_only()
     {
         // the seam ahead of the door steps 2 (un-walkable bare) → SP8; the identical step behind the spawn
