@@ -56,7 +56,7 @@ public static class PlanCompiler
         SketchLayout layout, string id, string role, string intentRef, string color, BlockRect rect,
         int surface, int orbitIndex, IEnumerable<RoomEdge>? doors = null)
     {
-        var shapes = layout.Layout?.Shapes;
+        var shapes = SketchLayout.Stack(layout).FirstOrDefault()?.Layout?.Shapes;
         if (shapes is null) return;
         var shape = new SketchShape
         {
@@ -175,7 +175,7 @@ public static class PlanCompiler
                 Center = new SketchCenter { Cx = 0, Cz = 0 },
                 Bbox = FannedBbox(shapes, d),
             },
-            Layout = new SketchShapes { Shapes = shapes, Islands = islands },
+            Layers = [SketchLayer.Ground(shapes, islands)],
         };
     }
 

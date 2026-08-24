@@ -13,7 +13,7 @@ public sealed class SketchPathShapeTests
     private static string Layout(double radius, string? edge = null, double baseHeight = 3, bool mirrors = false) => $$"""
     {
       "setup": { "mirror_mode": "mirror_x", "center": { "cx": 40, "cz": 40 } },
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "plate", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 80, "max_z": 80, "base_height": 2, "floor": 0 },
@@ -23,7 +23,7 @@ public sealed class SketchPathShapeTests
             {{(edge is null ? "" : $", \"path_edge\": \"{edge}\", \"path_seed\": 7")}} }
         ],
         "islands": [ { "id": "i1", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["plate", "road"] } ]
-      }
+      } }]
     }
     """;
 
@@ -115,7 +115,7 @@ public sealed class SketchPathShapeTests
         // come through untouched rather than the rasterizer throwing on it.
         const string Stub = """
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "plate", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 20, "max_z": 20, "base_height": 2, "floor": 0 },
@@ -123,7 +123,7 @@ public sealed class SketchPathShapeTests
                 "vertices": [[10, 10]], "radius": 3, "base_height": 9, "floor": 0 }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["plate", "road"] } ]
-          }
+          } }]
         }
         """;
 

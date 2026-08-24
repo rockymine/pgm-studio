@@ -16,12 +16,9 @@ public sealed class SketchLayout
     /// its centre, and the chunk grid.</summary>
     [JsonPropertyName("setup")]  public SketchSetup? Setup { get; set; }
 
-    /// <summary>A single layer's shapes, written at the top level. A layout stating <see cref="Layers"/>
-    /// carries them there instead, and one stating both reads the layers.</summary>
-    [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
-
     /// <summary>The drawing, as ordered layers of shapes. Later layers are drawn over earlier ones, and a
-    /// shape's operation says whether it adds ground or takes it away.</summary>
+    /// shape's operation says whether it adds ground or takes it away. A flat board is a stack of one — the
+    /// ground is a layer like any other, which is what <see cref="Stack"/> reads.</summary>
     [JsonPropertyName("layers")] public List<SketchLayer>? Layers { get; set; }
 
     /// <summary>The terrain themes this map paints with, id → the theme JSON the painter deserializes. Held
@@ -111,15 +108,16 @@ public sealed class SketchLayout
         return relief.Keys.Where(id => !islands.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
     }
 
+    /// <summary>The layers a document draws, in draw order — the one place the stack is read, so a gate, a
+    /// rasterizer and a theme scope cannot disagree about which shapes a document holds. A document stating
+    /// none draws nothing, which is not the same as a document stating an empty layer.</summary>
+    public static IReadOnlyList<SketchLayer> Stack(SketchLayout? state) => state?.Layers ?? [];
+
     /// <summary>Every island id a layout names, across all its layers.</summary>
     public static IEnumerable<string> IslandIds(SketchLayout? state)
     {
-        if (state?.Layers is { Count: > 0 } layers)
-            foreach (var layer in layers)
-                foreach (var island in layer.Layout?.Islands ?? [])
-                    if (island.Id is { Length: > 0 } id) yield return id;
-        if (state?.Layout is { } single)
-            foreach (var island in single.Islands)
+        foreach (var layer in Stack(state))
+            foreach (var island in layer.Islands)
                 if (island.Id is { Length: > 0 } id) yield return id;
     }
 
@@ -183,25 +181,20 @@ public sealed class SketchLayout
     }
 
     // Every Role-tagged shape's stated height, keyed by IntentRef, over every layer a stored layout carries
-    // (legacy single `layout` and S7 `layers`) — only the ones the author actually corrected.
+    // — only the ones the author actually corrected.
     private static Dictionary<string, StructuralHeight> StructuralHeights(SketchLayout? state)
     {
-        var shapes = state?.Layers is { Count: > 0 } layers
-            ? layers.SelectMany(l => l.Layout?.Shapes ?? [])
-            : state?.Layout?.Shapes ?? [];
+        var shapes = Stack(state).SelectMany(layer => layer.Shapes);
         return shapes.Where(s => s.Role is not null && s.HeightAuthored == true && s.IntentRef is { Length: > 0 })
                      .ToDictionary(s => s.IntentRef!, s => new StructuralHeight(s.Floor, s.BaseHeight, s.AnchorHeights));
     }
 
-    // The shape arrays a compiled layout can hold its structural annotations in — legacy `layout.shapes`
-    // (what PlanCompiler emits today) and S7 `layers[].layout.shapes`, checked too so this keeps working if
-    // the compiler ever starts emitting stacked layers.
+    // The shape arrays a compiled layout holds its structural annotations in, one per layer.
     private static IEnumerable<JsonArray> ShapeArrays(JsonObject root)
     {
-        if (root["layout"]?["shapes"] is JsonArray single) yield return single;
-        if (root["layers"] is JsonArray layers)
-            foreach (var layer in layers)
-                if (layer?["layout"]?["shapes"] is JsonArray shapes) yield return shapes;
+        if (root["layers"] is not JsonArray layers) yield break;
+        foreach (var layer in layers)
+            if (layer?["layout"]?["shapes"] is JsonArray shapes) yield return shapes;
     }
 
     private readonly record struct StructuralHeight(double? Floor, double? BaseHeight, double[]? AnchorHeights);
@@ -241,6 +234,25 @@ public sealed class SketchRoomStyles
 /// <summary>One layer of the drawing: the shapes on it, and the height its ground starts at.</summary>
 public sealed class SketchLayer
 {
+    /// <summary>The id and name a compiled plan's single layer takes. A flat board is a stack of one, and
+    /// that one is the ground — so the words are stated here rather than spelled at each site that makes
+    /// one.</summary>
+    public const string GroundId = "ground";
+    public const string GroundName = "Ground";
+
+    /// <summary>The single layer a flat board is — the ground, at <c>base_y</c> 0, holding these shapes and
+    /// the islands they group into. Every producer of an unstacked document goes through this, so a board
+    /// drawn by the plan compiler, the island simplifier and the catalogue grid all state their one layer
+    /// the same way.</summary>
+    public static SketchLayer Ground(List<SketchShape>? shapes = null, List<SketchIsland>? islands = null) =>
+        new()
+        {
+            Id = GroundId,
+            Name = GroundName,
+            BaseY = 0,
+            Layout = new SketchShapes { Shapes = shapes ?? [], Islands = islands ?? [] },
+        };
+
     /// <summary>What the rest of the document names the layer by.</summary>
     [JsonPropertyName("id")]     public string? Id { get; set; }
 
@@ -252,6 +264,13 @@ public sealed class SketchLayer
 
     /// <summary>The shapes drawn on it, and the islands they group into.</summary>
     [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
+
+    /// <summary>The shapes on this layer — empty where it states none, so a caller walking a stack never
+    /// branches on a layer that was left blank.</summary>
+    [JsonIgnore] public List<SketchShape> Shapes => Layout?.Shapes ?? [];
+
+    /// <summary>The islands this layer's shapes group into, empty where it states none.</summary>
+    [JsonIgnore] public List<SketchIsland> Islands => Layout?.Islands ?? [];
 }
 
 /// <summary>The mirror mode + centre that fan a mirroring island's shapes onto their orbit images, plus the

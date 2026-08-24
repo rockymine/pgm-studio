@@ -824,7 +824,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnRelief", reliefState()); return null;
     },
 
-    // Load a persisted layout: setup + the layers[] array (or a legacy single layout → one layer at base_y 0).
+    // Load a persisted layout: setup + the layers[] array. A flat board is a stack of one.
     load(state) {
       const s = state ?? {};
       if (s.setup) applySetup(s.setup);
@@ -836,7 +836,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       };
       canvas.setDressing(s.dressing && typeof s.dressing === "object" ? s.dressing : null);
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
-      const raw = (s.layers && s.layers.length) ? s.layers : (s.layout ? [{ base_y: 0, layout: s.layout }] : []);
+      const raw = (s.layers && s.layers.length) ? s.layers : [];
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
       // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
       // mirror, edit) so they can neither be reshaped nor double-cover the ground. Everything else is terrain.

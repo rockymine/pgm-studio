@@ -16,7 +16,7 @@ public sealed class IslandSimplifierTests
         var r = IslandSimplifier.Simplify(ext);
         await Assert.That(r.Holes).IsEqualTo(0);
         await Assert.That(r.ExteriorVertices).IsEqualTo(4);
-        var shapes = r.Layout.Layout!.Shapes;
+        var shapes = SketchLayout.Stack(r.Layout)[0].Shapes;
         await Assert.That(shapes.Count).IsEqualTo(1);
         await Assert.That(shapes[0].Operation).IsEqualTo("add");
     }
@@ -37,7 +37,7 @@ public sealed class IslandSimplifierTests
         List<double[]> hole = [[15, 15], [25, 15], [25, 25], [15, 25]];   // area 100 ≥ minHoleArea
         var r = IslandSimplifier.Simplify(ext, [hole]);
         await Assert.That(r.Holes).IsEqualTo(1);
-        var shapes = r.Layout.Layout!.Shapes;
+        var shapes = SketchLayout.Stack(r.Layout)[0].Shapes;
         await Assert.That(shapes.Count).IsEqualTo(2);
         await Assert.That(shapes[0].Operation).IsEqualTo("add");
         await Assert.That(shapes[1].Operation).IsEqualTo("subtract");
@@ -48,6 +48,6 @@ public sealed class IslandSimplifierTests
     {
         List<double[]> ext = [[0, 0], [1, 1]];
         var r = IslandSimplifier.Simplify(ext);
-        await Assert.That(r.Layout.Layout!.Shapes.Count).IsEqualTo(0);
+        await Assert.That(SketchLayout.Stack(r.Layout)[0].Shapes.Count).IsEqualTo(0);
     }
 }

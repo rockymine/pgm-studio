@@ -29,8 +29,10 @@ public sealed class PlanCompileEndpointTests
 
         // The layout is a real sketch blob: setup + shapes + islands.
         await Assert.That(layout.GetProperty("setup").TryGetProperty("mirror_mode", out _)).IsTrue();
-        await Assert.That(layout.GetProperty("layout").GetProperty("shapes").GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(layout.GetProperty("layout").GetProperty("islands").GetArrayLength()).IsGreaterThan(0);
+        var ground = layout.GetProperty("layers")[0];
+        await Assert.That(ground.GetProperty("id").GetString()).IsEqualTo("ground");
+        await Assert.That(ground.GetProperty("layout").GetProperty("shapes").GetArrayLength()).IsGreaterThan(0);
+        await Assert.That(ground.GetProperty("layout").GetProperty("islands").GetArrayLength()).IsGreaterThan(0);
 
         // The intent carries teams + spawns + wools fanned from the authored unit.
         await Assert.That(intent.GetProperty("teams").GetArrayLength()).IsGreaterThan(0);

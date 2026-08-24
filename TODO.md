@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Twelve entries, all about a stack of layers.** What is left of the group five authored maps
+**Eleven entries, all about a stack of layers.** What is left of the group five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a board whose ground
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
@@ -85,31 +85,14 @@ older number.
 What fails is everything downstream of the geometry, and four of the entries below share one cause: **a
 column segment does not carry the layer that produced it.** `SketchRasterizer` iterates layers and drops the
 id on the floor; every read after that is guessing. Under *that* sits a second cause nothing had named:
-**seven places state what a document's layers are, in three different readings** — which is `TS28`, and it
-goes first, because `TS22` stamps the layer across sixteen sites and doing that over seven readers stamps it
-seven ways.
+seven places stated what a document's layers were, in three different readings. That is settled: the
+document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
+`FEATURES.md`). What is left below is what the layer id is *for*.
 
 **Two entries owe a document their prefix does not name.** `TS21`'s standing rule is written in
 `docs/world-scan/read-backs.md` § *Where a player stands in a column*, and `TS23`'s painter in
 `docs/world-export/terrain-painting.md`. The ids stay — both are already cited in commits — and each entry
 fixes the document it actually moves, alongside `docs/tools/sketch.md`.
-
-- [ ] **TS28 — A layout is composed of layers, and there is no second shape.** The document holds the ground
-  shapes under `layout` and anything stacked on them under `layers[]`, so the ground layer is not a layer and
-  seven readers disagree about a document carrying both: `SketchRasterizer.ResolveLayers`,
-  `SketchLayout.StructuralHeights` and `TerrainThemeScope.ShapeLists` read one **or** the other, while
-  `SketchLayout.IslandIds`, `SketchLayout.ShapeArrays`, `SketchLayoutCheck.Shapes` and `.Islands` read
-  **both** — so the gate quantifies over shapes the rasterizer will never build.
-
-  Collapse it rather than reconcile it: `SketchLayout` carries **`layers[]` only**, always at least one.
-  `PlanCompiler` emits a single `ground` layer, the stored documents migrate into one (45 in
-  `pgm-studio-mapgen/specs`, 4 in `tools/seeds`, plus the `sketch_layout_json` artifacts), and every `layout`
-  read path is deleted. The disagreement then has nothing to disagree about, and this is where `TS22`'s layer
-  id and a flat board's synthesised one both come from. **First.**
-
-  *`opus5-undercroft`'s driver had to delete the `layout` key by hand — `ResolveLayers` reads one or the
-  other while `IslandIds` reads both, and every island counted twice. With one shape there is nothing to
-  delete.*
 
 - [ ] **WS13 — Free the word `layer` for the thing that is one.** Seven senses, one true: `SketchLayer` is
   the slab and does **not** move. The rest borrowed it:
@@ -141,8 +124,8 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   own it changes no behaviour, which is the point.
 
   **Two walks, not one.** `RasterizeColumns` is the geometry and `ShapeScopeOwners` is the theme walk, and
-  each has its own layer loop. This entry takes both, or `TS23` inherits half of it. Wants `TS28` — the id
-  and the legacy document's synthesised one both come from that reader. The **placement** word a layer also
+  each has its own layer loop. This entry takes both, or `TS23` inherits half of it. The id comes off
+  `SketchLayer` through `SketchLayout.Stack`, which every walk already takes. The **placement** word a layer also
   gains is `WE24`'s, not this entry's: a segment is where the layer comes from and a placement is where it is
   spent.
 

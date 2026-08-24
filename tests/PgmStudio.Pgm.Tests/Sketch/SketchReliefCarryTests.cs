@@ -12,13 +12,13 @@ public sealed class SketchReliefCarryTests
 {
     private static string Layout(string islandId, string? relief = null) => $$"""
     {
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "s1", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10, "base_height": 2 }
         ],
         "islands": [ { "id": "{{islandId}}", "mirrors": false, "shapeIds": ["s1"] } ]
-      }
+      } }]
       {{(relief is null ? "" : $", \"relief\": {relief}")}}
     }
     """;
@@ -76,7 +76,7 @@ public sealed class SketchReliefCarryTests
         // The two carries are independent, and both run on a recompile: a relief is geometry, a theme is not.
         const string stored = """
         {
-          "layout": { "shapes": [], "islands": [ { "id": "i1", "mirrors": false, "shapeIds": [] } ] },
+          "layers": [{ "id": "ground", "base_y": 0, "layout": { "shapes": [], "islands": [ { "id": "i1", "mirrors": false, "shapeIds": [] } ] } }],
           "mapTheme": "grass",
           "relief": { "i1": { "base": 6 } }
         }

@@ -12,7 +12,7 @@ public sealed class SketchErectTests
     private static string Layout(string? mode, double amount = 4, double floor = 0) => $$"""
     {
       "setup": { "mirror_mode": "rot_180", "center": { "cx": 100, "cz": 100 } },
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "s1", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 40, "max_z": 40, "base_height": 5, "floor": 0 },
@@ -22,7 +22,7 @@ public sealed class SketchErectTests
             {{(mode is null ? "" : $", \"height_mode\": \"{mode}\"")}} }
         ],
         "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-      },
+      } }],
       "relief": {
         "i1": {
           "base": 6,
@@ -90,7 +90,7 @@ public sealed class SketchErectTests
         // swallowed the way an absolute height would be.
         static string At(int minX, int minZ) => $$"""
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "s1", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 40, "max_z": 40, "base_height": 5, "floor": 0 },
@@ -99,7 +99,7 @@ public sealed class SketchErectTests
                 "base_height": 6, "floor": 0 }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          },
+          } }],
           "relief": {
             "i1": { "base": 6, "marks": [ { "kind": "point", "at": [2, 2], "h": 6, "r": 3 },
                                           { "kind": "point", "at": [38, 38], "h": 26, "r": 3 } ] }
@@ -138,7 +138,7 @@ public sealed class SketchErectTests
         // levelled it.
         static string Tilted(string? mode) => $$"""
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "s1", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
@@ -148,7 +148,7 @@ public sealed class SketchErectTests
                 "anchor_heights": [8, 20, 20, 8], "base_height": 14, "floor": 0 }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          }
+          } }]
         }
         """;
 
@@ -171,7 +171,7 @@ public sealed class SketchErectTests
         // landform. The skirt eases the face back into the ground it meets over a stated distance.
         static string Mesa(int skirt) => $$"""
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "s1", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
@@ -180,7 +180,7 @@ public sealed class SketchErectTests
                 "base_height": 24, "floor": 0, "skirt": {{skirt}} }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          }
+          } }]
         }
         """;
 
@@ -210,7 +210,7 @@ public sealed class SketchErectTests
         // in the terrain rather than as a bevelled plate.
         const string layout = """
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "s1", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 40, "base_height": 6, "floor": 0 },
@@ -218,7 +218,7 @@ public sealed class SketchErectTests
                 "min_x": 20, "min_z": 12, "max_x": 44, "max_z": 30, "base_height": 26, "floor": 0, "skirt": 6 }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          },
+          } }],
           "relief": {
             "i1": { "base": 8, "marks": [ { "kind": "point", "at": [4, 20], "h": 8, "r": 3 },
                                           { "kind": "point", "at": [56, 20], "h": 22, "r": 3 } ] }
@@ -248,7 +248,7 @@ public sealed class SketchErectTests
         // a monolith.
         const string flat = """
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "s1", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 30, "max_z": 30, "base_height": 5, "floor": 0 },
@@ -256,7 +256,7 @@ public sealed class SketchErectTests
                 "min_x": 10, "min_z": 10, "max_x": 18, "max_z": 18, "base_height": 9, "floor": 0 }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
-          }
+          } }]
         }
         """;
         var tops = Tops(flat);

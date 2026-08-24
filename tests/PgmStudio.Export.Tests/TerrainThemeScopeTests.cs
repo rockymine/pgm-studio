@@ -30,11 +30,8 @@ public sealed class TerrainThemeScopeTests
             Setup = new SketchSetup { MirrorMode = "rot_180", Center = new SketchCenter { Cx = 0, Cz = 0 } },
             Themes = themes,
             MapTheme = mapTheme,
-            Layout = new SketchShapes
-            {
-                Shapes = shapes.ToList(),
-                Islands = [new SketchIsland { Id = "i", Mirrors = false, ShapeIds = shapes.Select(s => s.Id).ToList() }],
-            },
+            Layers = [SketchLayer.Ground(shapes.ToList(),
+                [new SketchIsland { Id = "i", Mirrors = false, ShapeIds = shapes.Select(s => s.Id).ToList() }])],
         };
         return layout.ToJson();
     }

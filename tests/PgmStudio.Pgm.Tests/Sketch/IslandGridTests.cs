@@ -46,13 +46,13 @@ public sealed class IslandGridTests
         var layout = IslandGrid.Lay(
             [.. Enumerable.Range(0, 7).Select(i => new GridPlot("rectangle", Name: $"plot {i}"))], Grid);
 
-        await Assert.That(layout.Layout!.Shapes.Count).IsEqualTo(7);
-        await Assert.That(layout.Layout.Islands.Count).IsEqualTo(7);
-        await Assert.That(layout.Layout.Islands.All(island => !island.Mirrors)).IsTrue();
-        await Assert.That(layout.Layout.Islands.All(island => island.ShapeIds.Count == 1)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Count).IsEqualTo(7);
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Count).IsEqualTo(7);
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.All(island => !island.Mirrors)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.All(island => island.ShapeIds.Count == 1)).IsTrue();
         await Assert.That(layout.Setup!.MirrorMode).IsEqualTo("none");
         // The name travels onto the island, which is what lets a report say what a plot was showing.
-        await Assert.That(layout.Layout.Islands[3].Name).IsEqualTo("plot 3");
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands[3].Name).IsEqualTo("plot 3");
     }
 
     [Test]
@@ -64,8 +64,8 @@ public sealed class IslandGridTests
 
         var (firstX, firstZ) = IslandGrid.Origin(0, 2, Grid);
         var (secondX, _) = IslandGrid.Origin(1, 2, Grid);
-        await Assert.That(layout.Layout!.Shapes[0].Vertices![0]).IsEquivalentTo(new[] { firstX - 4d, firstZ - 4d });
-        await Assert.That(layout.Layout.Shapes[1].Vertices![0]).IsEquivalentTo(new[] { secondX - 4d, firstZ - 4d });
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes[0].Vertices![0]).IsEquivalentTo(new[] { firstX - 4d, firstZ - 4d });
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes[1].Vertices![0]).IsEquivalentTo(new[] { secondX - 4d, firstZ - 4d });
     }
 
     [Test]
@@ -82,7 +82,7 @@ public sealed class IslandGridTests
             () => IslandGrid.Lay([new GridPlot("polygon", Vertices: [[-40, 0], [40, 0], [0, 40]])], Grid));
 
         // and the widest plot that still leaves ground between neighbours is drawn
-        await Assert.That(IslandGrid.Lay([new GridPlot("circle", Radius: 28)], Grid).Layout!.Shapes.Count)
+        await Assert.That(SketchLayout.Stack(IslandGrid.Lay([new GridPlot("circle", Radius: 28)], Grid))[0].Shapes.Count)
             .IsEqualTo(1);
     }
 
@@ -106,7 +106,7 @@ public sealed class IslandGridTests
             [new GridPlot("rectangle"), new GridPlot("circle"), new GridPlot("polygon",
                 Vertices: [[-4, -4], [4, -4], [0, 4]])], Grid);
 
-        await Assert.That(layout.Layout!.Shapes.All(shape => shape.Floor == 1)).IsTrue();
-        await Assert.That(layout.Layout.Shapes.All(shape => shape.BaseHeight == 25)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.All(shape => shape.Floor == 1)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.All(shape => shape.BaseHeight == 25)).IsTrue();
     }
 }

@@ -15,7 +15,7 @@ public sealed class SketchStructuralHeightCarryTests
     // terrain shape it sits on. The compiler never sets height_authored.
     private static string Compiled(string intentRef = "red", double baseHeight = 9) => $$"""
     {
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "s0", "type": "polygon", "operation": "add", "base_height": 9,
             "vertices": [[0,0],[0,20],[20,20],[20,0]] },
@@ -25,7 +25,7 @@ public sealed class SketchStructuralHeightCarryTests
             "base_height": {{baseHeight}}, "relief_scope": "hold" }
         ],
         "islands": [ { "id": "team", "mirrors": true, "shapeIds": ["s0"] } ]
-      }
+      } }]
     }
     """;
 
@@ -33,7 +33,7 @@ public sealed class SketchStructuralHeightCarryTests
     // relief existed, flagged height_authored so a recompile knows to keep it.
     private static string StoredWithCorrection(string intentRef = "red", double floor = 2, double baseHeight = 4) => $$"""
     {
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
             "intentRef": "{{intentRef}}", "color": "red",
@@ -42,7 +42,7 @@ public sealed class SketchStructuralHeightCarryTests
             "height_authored": true }
         ],
         "islands": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
-      }
+      } }]
     }
     """;
 
@@ -51,7 +51,7 @@ public sealed class SketchStructuralHeightCarryTests
     {
         var merged = SketchLayout.CarryStructuralHeight(Compiled(), StoredWithCorrection());
         var state = SketchLayout.Parse(merged);
-        var spawn = state!.Layout!.Shapes.Single(s => s.Id == "spawn-red");
+        var spawn = SketchLayout.Stack(state)[0].Shapes.Single(s => s.Id == "spawn-red");
 
         await Assert.That(spawn.Floor).IsEqualTo(2);
         await Assert.That(spawn.BaseHeight).IsEqualTo(4);
@@ -67,14 +67,14 @@ public sealed class SketchStructuralHeightCarryTests
         // Stored has no height_authored flag at all — nothing to carry, the fresh plan value stands.
         const string stored = """
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
                 "intentRef": "red", "color": "red",
                 "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10, "base_height": 9, "relief_scope": "hold" }
             ],
             "islands": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
-          }
+          } }]
         }
         """;
         var merged = SketchLayout.CarryStructuralHeight(Compiled(), stored);
@@ -102,7 +102,7 @@ public sealed class SketchStructuralHeightCarryTests
         // A plain terrain shape sharing no intentRef can't accidentally pick up a correction — role gates it.
         var merged = SketchLayout.CarryStructuralHeight(Compiled(), StoredWithCorrection());
         var state = SketchLayout.Parse(merged);
-        var terrain = state!.Layout!.Shapes.Single(s => s.Id == "s0");
+        var terrain = SketchLayout.Stack(state)[0].Shapes.Single(s => s.Id == "s0");
         await Assert.That(terrain.BaseHeight).IsEqualTo(9);
         await Assert.That(terrain.HeightAuthored).IsNull();
     }
@@ -113,7 +113,7 @@ public sealed class SketchStructuralHeightCarryTests
         // All three carries run together on a recompile (SketchFromPlanEndpoint) and must not interfere.
         const string stored = """
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "spawn-red", "type": "rectangle", "operation": "add", "role": "spawn",
                 "intentRef": "red", "color": "red",
@@ -121,7 +121,7 @@ public sealed class SketchStructuralHeightCarryTests
                 "floor": 2, "base_height": 4, "relief_scope": "hold", "height_authored": true }
             ],
             "islands": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
-          },
+          } }],
           "mapTheme": "grass",
           "relief": { "team": { "base": 6 } }
         }
@@ -133,7 +133,7 @@ public sealed class SketchStructuralHeightCarryTests
 
         await Assert.That(state!.MapTheme).IsEqualTo("grass");
         await Assert.That(state.Relief!.ContainsKey("team")).IsTrue();
-        var spawn = state.Layout!.Shapes.Single(s => s.Id == "spawn-red");
+        var spawn = SketchLayout.Stack(state)[0].Shapes.Single(s => s.Id == "spawn-red");
         await Assert.That(spawn.Floor).IsEqualTo(2);
         await Assert.That(spawn.BaseHeight).IsEqualTo(4);
     }
@@ -144,7 +144,7 @@ public sealed class SketchStructuralHeightCarryTests
     // not by ShapeIds membership, which is exactly the path a spawn/wool annotation takes.
     private const string HeldOverRelief = """
     {
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "land", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
@@ -154,7 +154,7 @@ public sealed class SketchStructuralHeightCarryTests
             "base_height": HEIGHT, "relief_scope": "hold", "height_authored": true }
         ],
         "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
-      },
+      } }],
       "relief": { "i1": { "base": 6, "marks": [
           { "kind": "point", "at": [3, 3], "h": 6, "r": 3 },
           { "kind": "point", "at": [57, 57], "h": 26, "r": 3 } ] } }
@@ -183,7 +183,7 @@ public sealed class SketchStructuralHeightCarryTests
     // the ground players actually cross.
     private const string RoomOnASlope = """
     {
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "land", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
@@ -193,7 +193,7 @@ public sealed class SketchStructuralHeightCarryTests
             "base_height": 9, "relief_scope": "hold"DOORS }
         ],
         "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
-      },
+      } }],
       "relief": { "i1": { "base": 10, "marks": [
           { "kind": "line", "points": [[0, 2], [60, 2]], "h": 6, "r": 3 },
           { "kind": "line", "points": [[0, 58], [60, 58]], "h": 30, "r": 3 } ] } }

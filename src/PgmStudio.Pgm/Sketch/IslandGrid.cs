@@ -91,7 +91,7 @@ public static class IslandGrid
         return new SketchLayout
         {
             Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter { Cx = 0, Cz = 0 } },
-            Layout = new SketchShapes { Shapes = shapes, Islands = islands },
+            Layers = [SketchLayer.Ground(shapes, islands)],
         };
     }
 

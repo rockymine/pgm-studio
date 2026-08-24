@@ -19,10 +19,10 @@ public sealed class WorldReadEndpointTests
     // A 60x60 island with a plateau on it, so there is ground to look at, height to profile and a cut to take.
     private const string Board = """
         {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
-         "layout":{"shapes":[
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
             {"id":"a","type":"rectangle","operation":"add","min_x":-30,"max_x":30,"min_z":-30,"max_z":30,"base_height":6},
             {"id":"b","type":"rectangle","operation":"add","min_x":-10,"max_x":10,"min_z":-10,"max_z":10,"base_height":14}],
-          "islands":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a","b"]}]}}
+          "islands":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a","b"]}]} }]}
         """;
 
     private static async Task<string> FinishedAsync(HttpClient client)

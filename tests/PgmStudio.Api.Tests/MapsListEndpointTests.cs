@@ -58,11 +58,11 @@ public sealed class MapsListEndpointTests
         var put = await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 0, cz = 0 } },
-            layout = new
+            layers = new object[] { new { id = "ground", base_y = 0, layout = new
             {
                 shapes = new object[] { new { id = "s1", type = "rectangle", operation = "add", @override = false, min_x = 10, max_x = 40, min_z = -20, max_z = 20 } },
                 islands = new object[] { new { id = "i1", name = "East", mirrors = true, shapeIds = new[] { "s1" } } },
-            },
+            } } },
         });
         await Assert.That(put.IsSuccessStatusCode).IsTrue();
 

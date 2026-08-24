@@ -17,8 +17,8 @@ public sealed class SketchRasterizerTests
         // mirror centre far away + mirrors:false → no mirror copy, just the primary rect.
         var cells = Raster("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":0,"max_x":4,"min_z":0,"max_z":4}],
-                   "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":0,"max_x":4,"min_z":0,"max_z":4}],
+                   "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Count).IsEqualTo(16);            // 4×4
         await Assert.That(cells.Contains((0, 0))).IsTrue();
@@ -31,10 +31,10 @@ public sealed class SketchRasterizerTests
     {
         var cells = Raster("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
             {"id":"a","type":"rectangle","operation":"add","override":false,"min_x":0,"max_x":10,"min_z":0,"max_z":10},
             {"id":"b","type":"rectangle","operation":"subtract","override":false,"min_x":3,"max_x":7,"min_z":3,"max_z":7}],
-          "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a","b"]}]}}
+          "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a","b"]}]} }]}
         """);
         await Assert.That(cells.Count).IsEqualTo(84);            // 100 − 16
         await Assert.That(cells.Contains((0, 0))).IsTrue();
@@ -47,8 +47,8 @@ public sealed class SketchRasterizerTests
     {
         var cells = Raster("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":0,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":20,"max_x":24,"min_z":0,"max_z":4}],
-                   "islands":[{"id":"i1","name":"A","mirrors":true,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":20,"max_x":24,"min_z":0,"max_z":4}],
+                   "islands":[{"id":"i1","name":"A","mirrors":true,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Count).IsEqualTo(32);            // 16 primary + 16 mirrored
         await Assert.That(cells.Contains((20, 0))).IsTrue();     // primary
@@ -62,8 +62,8 @@ public sealed class SketchRasterizerTests
         // Guards against the diagonal axes silently falling through to an identity transform.
         var cells = Raster("""
         {"setup":{"mirror_mode":"mirror_d1","center":{"cx":0,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":20,"max_x":24,"min_z":0,"max_z":4}],
-                   "islands":[{"id":"i1","name":"A","mirrors":true,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","override":false,"min_x":20,"max_x":24,"min_z":0,"max_z":4}],
+                   "islands":[{"id":"i1","name":"A","mirrors":true,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Count).IsEqualTo(32);            // 16 primary + 16 reflected (disjoint)
         await Assert.That(cells.Contains((20, 0))).IsTrue();     // primary
@@ -75,8 +75,8 @@ public sealed class SketchRasterizerTests
     {
         var cells = Raster("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"circle","operation":"add","override":false,"center_x":0,"center_z":0,"radius":5}],
-                   "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"circle","operation":"add","override":false,"center_x":0,"center_z":0,"radius":5}],
+                   "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Contains((0, 0))).IsTrue();      // centre
         await Assert.That(cells.Contains((4, 0))).IsTrue();      // dist 4.5 < 5
@@ -89,8 +89,8 @@ public sealed class SketchRasterizerTests
     {
         var cells = Raster("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add","override":false,"vertices":[[0,0],[10,0],[0,10]]}],
-                   "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add","override":false,"vertices":[[0,0],[10,0],[0,10]]}],
+                   "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Contains((1, 1))).IsTrue();      // inside (x+z < 10)
         await Assert.That(cells.Contains((8, 8))).IsFalse();     // outside the hypotenuse
@@ -100,7 +100,7 @@ public sealed class SketchRasterizerTests
     public async Task Empty_layout_yields_no_cells()
     {
         await Assert.That(SketchRasterizer.Rasterize("{}").Count).IsEqualTo(0);
-        await Assert.That(SketchRasterizer.Rasterize("""{"layout":{"shapes":[]}}""").Count).IsEqualTo(0);
+        await Assert.That(SketchRasterizer.Rasterize("""{"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[]} }]}""").Count).IsEqualTo(0);
     }
 
     // ── height (S5) ────────────────────────────────────────────────────────────
@@ -111,8 +111,8 @@ public sealed class SketchRasterizerTests
         // Floor = elevation, Height = thickness: floor 3 + height 12 → the column spans [3, 15].
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":12,"floor":3}],
-                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":12,"floor":3}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Count).IsEqualTo(16);
         await Assert.That(cells.All(c => c.YTop == 15 && c.YFloor == 3)).IsTrue();
@@ -124,8 +124,8 @@ public sealed class SketchRasterizerTests
         // A shape with no base_height is one block tall (top 1, floor 0) — never zero-height.
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],
-                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.All(c => c.YTop == 1 && c.YFloor == 0)).IsTrue();
     }
@@ -136,8 +136,8 @@ public sealed class SketchRasterizerTests
         // Legacy/out-of-range stored values are clamped on finish: floor >= 0, top >= 1.
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":-5,"floor":-2}],
-                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4,"base_height":-5,"floor":-2}],
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.All(c => c.YTop == 1 && c.YFloor == 0)).IsTrue();
     }
@@ -148,9 +148,9 @@ public sealed class SketchRasterizerTests
         // A 10×10 polygon: north edge (z=0) at 0, south edge (z=10) at 20 → YTop rises with z.
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add",
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add",
             "vertices":[[0,0],[10,0],[10,10],[0,10]],"anchor_heights":[0,0,20,20]}],
-                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         int Top(int x, int z) => cells.First(c => c.X == x && c.Z == z).YTop;
         await Assert.That(Top(5, 0)).IsLessThan(Top(5, 9));      // rises toward the south edge
@@ -164,9 +164,9 @@ public sealed class SketchRasterizerTests
         // 10 + the per-vertex thickness (thickness = anchor_heights, not an absolute top).
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add",
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"polygon","operation":"add",
             "vertices":[[0,0],[10,0],[10,10],[0,10]],"anchor_heights":[4,4,20,20],"floor":10}],
-                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+                   "islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}
         """);
         var south = cells.First(c => c.X == 5 && c.Z == 9);
         await Assert.That(south.YFloor).IsEqualTo(10);            // floor lifts the base
@@ -197,7 +197,7 @@ public sealed class SketchRasterizerTests
         // Back-compat: a pre-S7 {layout:{…}} with no `layers` is treated as one layer at base_y 0.
         var cells = SketchRasterizer.Rasterize("""
         {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],"islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}],"islands":[{"id":"i1","mirrors":false,"shapeIds":["a"]}]} }]}
         """).ToHashSet();
         await Assert.That(cells.Count).IsEqualTo(16);
     }
@@ -208,8 +208,8 @@ public sealed class SketchRasterizerTests
         // rot_180 of a height-12 rect about the origin: both the primary and its mirror are at YTop 12.
         var cells = SketchRasterizer.RasterizeColumns("""
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
-         "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":4,"max_x":8,"min_z":4,"max_z":8,"base_height":12}],
-                   "islands":[{"id":"i1","mirrors":true,"shapeIds":["a"]}]}}
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":4,"max_x":8,"min_z":4,"max_z":8,"base_height":12}],
+                   "islands":[{"id":"i1","mirrors":true,"shapeIds":["a"]}]} }]}
         """);
         await Assert.That(cells.Any(c => c.X >= 4 && c.YTop == 12)).IsTrue();   // primary
         await Assert.That(cells.Any(c => c.X < 0  && c.YTop == 12)).IsTrue();   // mirror, same height

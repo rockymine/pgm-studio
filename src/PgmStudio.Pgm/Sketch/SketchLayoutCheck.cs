@@ -183,20 +183,16 @@ public static class SketchLayoutCheck
     // single top-level layout a legacy one does (the same two the island walk reads).
     private static IEnumerable<(SketchShape Shape, string Where)> Shapes(SketchLayout layout)
     {
-        foreach (var (layer, index) in (layout.Layers ?? []).Select((layer, index) => (layer, index)))
-            foreach (var (shape, at) in (layer.Layout?.Shapes ?? []).Select((shape, at) => (shape, at)))
+        foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, index) => (layer, index)))
+            foreach (var (shape, at) in layer.Shapes.Select((shape, at) => (shape, at)))
                 yield return (shape, $"layers[{index}].layout.shapes[{at}]");
-        foreach (var (shape, at) in (layout.Layout?.Shapes ?? []).Select((shape, at) => (shape, at)))
-            yield return (shape, $"layout.shapes[{at}]");
     }
 
     private static IEnumerable<(SketchIsland Island, string Where)> Islands(SketchLayout layout)
     {
-        foreach (var (layer, index) in (layout.Layers ?? []).Select((layer, index) => (layer, index)))
-            foreach (var (island, at) in (layer.Layout?.Islands ?? []).Select((island, at) => (island, at)))
+        foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, index) => (layer, index)))
+            foreach (var (island, at) in layer.Islands.Select((island, at) => (island, at)))
                 yield return (island, $"layers[{index}].layout.islands[{at}]");
-        foreach (var (island, at) in (layout.Layout?.Islands ?? []).Select((island, at) => (island, at)))
-            yield return (island, $"layout.islands[{at}]");
     }
 
     // Why a shape of a known kind still draws nothing, or null where it draws something.

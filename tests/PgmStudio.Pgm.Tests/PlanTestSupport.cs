@@ -55,7 +55,7 @@ internal static class PlanTestSupport
     // Only the terrain shapes are polygon rings; the plan's structural annotations (S25) are locked
     // rectangles with no vertices and are compared elsewhere, so the ring helpers skip them.
     private static IEnumerable<SketchShape> TerrainShapes(SketchLayout layout) =>
-        (layout.Layout?.Shapes ?? []).Where(s => s.Role is null);
+        (SketchLayout.Stack(layout)[0].Shapes ?? []).Where(s => s.Role is null);
 
     /// <summary>The normalised ring for every terrain shape in a layout, as a set of strings.</summary>
     public static HashSet<string> ShapeRings(SketchLayout layout) =>

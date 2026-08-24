@@ -228,10 +228,10 @@ public sealed class DestroyableWorldTests
         // no plan piece behind it, no plan tier manufactured to carry the marker.
         const string layoutJson = """
             {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
-             "layout":{"shapes":[
+             "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
                {"id":"mesa","type":"rectangle","operation":"add",
                 "min_x":-30,"min_z":-30,"max_x":30,"max_z":30,"base_height":30}
-             ],"islands":[]}}
+             ],"islands":[]} }]}
             """;
 
         var built = WorldBuilder.Build(layoutJson, intent);
@@ -279,10 +279,10 @@ public sealed class DestroyableWorldTests
         // surface 58), authored as the polygon it actually is rather than demoted into the plan.
         const string layoutJson = """
             {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
-             "layout":{"shapes":[
+             "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
                {"id":"mesa","type":"rectangle","operation":"add",
                 "min_x":-118,"min_z":-94,"max_x":-68,"max_z":-40,"base_height":58}
-             ],"islands":[]}}
+             ],"islands":[]} }]}
             """;
 
         var built = WorldBuilder.Build(layoutJson, intent);

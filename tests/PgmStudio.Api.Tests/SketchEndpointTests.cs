@@ -106,20 +106,21 @@ public sealed class SketchEndpointTests
         var put = await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 0, cz = 0 } },
-            layout = new
+            layers = new object[] { new { id = "ground", base_y = 0, layout = new
             {
                 shapes = new object[] { new { id = "s1", type = "rectangle", operation = "add", @override = false, min_x = -20, max_x = 20, min_z = -20, max_z = 20 } },
                 islands = new object[] { new { id = "i1", name = "North", mirrors = true, shapeIds = new[] { "s1" } } },
-            },
+            } } },
         });
         await Assert.That(put.IsSuccessStatusCode).IsTrue();
 
         var got = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch");
         await Assert.That(got.GetProperty("setup").GetProperty("mirror_mode").GetString()).IsEqualTo("mirror_x");
-        var shapes = got.GetProperty("layout").GetProperty("shapes");
+        var ground = got.GetProperty("layers")[0].GetProperty("layout");
+        var shapes = ground.GetProperty("shapes");
         await Assert.That(shapes.GetArrayLength()).IsEqualTo(1);
         await Assert.That(shapes[0].GetProperty("id").GetString()).IsEqualTo("s1");
-        await Assert.That(got.GetProperty("layout").GetProperty("islands")[0].GetProperty("name").GetString()).IsEqualTo("North");
+        await Assert.That(ground.GetProperty("islands")[0].GetProperty("name").GetString()).IsEqualTo("North");
     }
 
     [Test]
@@ -164,7 +165,7 @@ public sealed class SketchEndpointTests
         var put = await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
-            layout = new
+            layers = new object[] { new { id = "ground", base_y = 0, layout = new
             {
                 shapes = new object[]
                 {
@@ -176,7 +177,7 @@ public sealed class SketchEndpointTests
                     new { id = "i1", name = "West", mirrors = false, shapeIds = new[] { "a" } },
                     new { id = "i2", name = "East", mirrors = false, shapeIds = new[] { "b" } },
                 },
-            },
+            } } },
         });
         await Assert.That(put.IsSuccessStatusCode).IsTrue();
 
@@ -223,11 +224,11 @@ public sealed class SketchEndpointTests
         await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
-            layout = new
+            layers = new object[] { new { id = "ground", base_y = 0, layout = new
             {
                 shapes = new object[] { new { id = "a", type = "rectangle", operation = "add", @override = false, min_x = 0, max_x = 20, min_z = 0, max_z = 20 } },
                 islands = new object[] { new { id = "i1", name = "Solo", mirrors = false, shapeIds = new[] { "a" } } },
-            },
+            } } },
         });
 
         var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
@@ -252,7 +253,8 @@ public sealed class SketchEndpointTests
         await client.PutAsJsonAsync($"/api/map/{slug}/sketch", new
         {
             setup = new { mirror_mode = "mirror_x", center = new { cx = 1000, cz = 0 } },
-            layout = new { shapes = Array.Empty<object>(), islands = Array.Empty<object>() },
+            layers = new object[] { new { id = "ground", base_y = 0,
+                layout = new { shapes = Array.Empty<object>(), islands = Array.Empty<object>() } } },
         });
 
         var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);

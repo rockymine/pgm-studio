@@ -996,22 +996,23 @@ static int RunIslandSketch(string mapDir, string outJson)
     {
         if (isl.Polygon is not NetTopologySuite.Geometries.Polygon poly) continue;
         var res = PgmStudio.Pgm.Sketch.IslandSimplifier.Simplify(Ring(poly.ExteriorRing), poly.InteriorRings.Select(Ring).ToList());
-        if (res.Layout.Layout!.Shapes.Count == 0) continue;
+        var islandShapes = PgmStudio.Pgm.Sketch.SketchLayout.Stack(res.Layout)[0].Shapes;
+        if (islandShapes.Count == 0) continue;
         imported++;
         Console.WriteLine($"  island {isl.Id,-3} blocks={isl.BlockCount,-6} outline={res.ExteriorVertices,-3}v holes={res.Holes}");
-        foreach (var s in res.Layout.Layout.Shapes)
+        foreach (var s in islandShapes)
         {
             s.Id = $"i{isl.Id}_{s.Id}";
             shapes.Add(s);
             foreach (var v in s.Vertices ?? []) { minX = Math.Min(minX, v[0]); maxX = Math.Max(maxX, v[0]); minZ = Math.Min(minZ, v[1]); maxZ = Math.Max(maxZ, v[1]); }
         }
-        islandGroups.Add(new PgmStudio.Pgm.Sketch.SketchIsland { Id = $"i{isl.Id}", Name = $"Island {isl.Id}", Mirrors = false, ShapeIds = [.. res.Layout.Layout.Shapes.Select(s => s.Id)] });
+        islandGroups.Add(new PgmStudio.Pgm.Sketch.SketchIsland { Id = $"i{isl.Id}", Name = $"Island {isl.Id}", Mirrors = false, ShapeIds = [.. islandShapes.Select(s => s.Id)] });
     }
 
     var layout = new PgmStudio.Pgm.Sketch.SketchLayout
     {
         Setup = new PgmStudio.Pgm.Sketch.SketchSetup { MirrorMode = "none", Center = new PgmStudio.Pgm.Sketch.SketchCenter { Cx = shapes.Count > 0 ? (minX + maxX) / 2 : 0, Cz = shapes.Count > 0 ? (minZ + maxZ) / 2 : 0 } },
-        Layout = new PgmStudio.Pgm.Sketch.SketchShapes { Shapes = shapes, Islands = islandGroups },
+        Layers = [PgmStudio.Pgm.Sketch.SketchLayer.Ground(shapes, islandGroups)],
     };
     File.WriteAllText(outJson, layout.ToJson());
     Console.WriteLine($"island-sketch: {imported}/{islands.Count} islands simplified (outline + holes) → {outJson}");

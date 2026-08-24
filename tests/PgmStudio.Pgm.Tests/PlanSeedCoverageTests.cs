@@ -1,5 +1,6 @@
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -26,7 +27,7 @@ public sealed class PlanSeedCoverageTests
             var plan = PlanModel.Parse(File.ReadAllText(path))!;
             var derived = ContactGraph.Build(plan);
             var (layout, _) = PlanCompiler.Compile(plan);
-            var shapes = layout.Layout!.Shapes;
+            var shapes = SketchLayout.Stack(layout)[0].Shapes;
 
             foreach (var piece in derived.Pieces)
             {

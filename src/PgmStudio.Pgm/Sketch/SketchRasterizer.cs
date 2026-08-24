@@ -36,10 +36,11 @@ public static class SketchRasterizer
         // Stack every layer: each is rasterized in its own Y, then shifted by base_y. (x,z) may repeat
         // across layers — a column with a gap (e.g. ground + a sky bridge) keeps both segments.
         var output = new List<(int X, int Z, int YFloor, int YTop)>();
-        foreach (var (layout, baseY) in ResolveLayers(state))
+        foreach (var layer in ResolveLayers(state))
         {
-            int by = (int)Math.Round(baseY);
-            foreach (var kv in RasterizeLayout(layout, cx, cz, axes, state?.Relief, state?.Setup?.MirrorMode))
+            int by = (int)Math.Round(layer.BaseY);
+            foreach (var kv in RasterizeLayout(layer.Layout ?? new SketchShapes(), cx, cz, axes,
+                                               state?.Relief, state?.Setup?.MirrorMode))
                 output.Add((kv.Key.Item1, kv.Key.Item2, kv.Value.Floor + by, kv.Value.Top + by));
         }
         return output;
@@ -70,13 +71,13 @@ public static class SketchRasterizer
         var cz = state.Setup?.Center?.Cz ?? 0;
 
         var fields = new Dictionary<string, HeightField>();
-        foreach (var (layout, baseY) in ResolveLayers(state))
+        foreach (var layer in ResolveLayers(state))
         {
-            var shapes = layout?.Shapes ?? [];
+            var shapes = layer.Shapes;
             if (shapes.Count == 0) continue;
 
-            var shift = (int)Math.Round(baseY);
-            foreach (var (islandId, field) in SolveRelief(RasterGroup(shapes), shapes, layout?.Islands ?? [],
+            var shift = (int)Math.Round(layer.BaseY);
+            foreach (var (islandId, field) in SolveRelief(RasterGroup(shapes), shapes, layer.Islands,
                                                           relief, state.Setup?.MirrorMode, cx, cz, warmStart))
             {
                 if (!fields.ContainsKey(islandId)) remember?.Invoke(islandId, field);
@@ -121,12 +122,12 @@ public static class SketchRasterizer
                 if (!owner.ContainsKey(cell) || area < areaOf[cell]) { owner[cell] = s.Id; areaOf[cell] = area; }
         }
 
-        foreach (var (layout, _) in ResolveLayers(state))
+        foreach (var layer in ResolveLayers(state))
         {
-            var shapes = layout?.Shapes ?? [];
+            var shapes = layer.Shapes;
             foreach (var s in shapes) Claim(s);                             // primary footprint
 
-            var metas = layout?.Islands ?? [];
+            var metas = layer.Islands;
             if (metas.Count == 0)
             {
                 foreach (var axis in axes) foreach (var s in shapes) Claim(MirrorShape(s, axis, cx, cz));
@@ -142,14 +143,8 @@ public static class SketchRasterizer
         return owner;
     }
 
-    // Layers to rasterize: the S7 `layers` array, else the legacy single `layout` at base_y 0.
-    private static List<(SketchShapes Layout, double BaseY)> ResolveLayers(SketchLayout? state)
-    {
-        if (state?.Layers is { Count: > 0 } layers)
-            return layers.Select(l => (l.Layout ?? new SketchShapes(), l.BaseY)).ToList();
-        if (state?.Layout is { } single) return [(single, 0.0)];
-        return [];
-    }
+    // Layers to rasterize, in draw order — read through the document's one stack reader.
+    private static IReadOnlyList<SketchLayer> ResolveLayers(SketchLayout? state) => SketchLayout.Stack(state);
 
     // One layer → its solid (x,z) cells with layer-local columns (primary + opted-in island mirror copies).
     private static Dictionary<(int, int), (int Top, int Floor)> RasterizeLayout(

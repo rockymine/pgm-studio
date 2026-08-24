@@ -44,11 +44,7 @@ public static class TerrainThemeScope
             && shapeTheme.TryGetValue(shapeId, out var theme) ? theme : mapDefault;
     }
 
-    // Every layer's shapes (the S7 `layers` array), else the legacy single `layout`.
+    // Every layer's shapes, read through the document's one stack reader.
     private static IEnumerable<List<SketchShape>> ShapeLists(SketchLayout? layout)
-    {
-        if (layout?.Layers is { Count: > 0 } layers)
-            foreach (var layer in layers) yield return layer.Layout?.Shapes ?? [];
-        else if (layout?.Layout is { } single) yield return single.Shapes;
-    }
+        => SketchLayout.Stack(layout).Select(layer => layer.Shapes);
 }

@@ -176,9 +176,9 @@ public sealed class PlanCompilerTests
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,2,4]}, {"id":"b","role":"lane","rect":[0,4,2,4]} ] }
         """);
         var (layout, _) = PlanCompiler.Compile(p);
-        await Assert.That(layout.Layout!.Shapes.Count).IsEqualTo(1);
-        await Assert.That(layout.Layout!.Islands.Count).IsEqualTo(1);
-        await Assert.That(layout.Layout!.Islands[0].Mirrors).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Count).IsEqualTo(1);
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Count).IsEqualTo(1);
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands[0].Mirrors).IsTrue();
     }
 
     // A spawn-role piece abutting a wool-room-role piece at one surface — S25's motivating case, since the
@@ -194,7 +194,7 @@ public sealed class PlanCompilerTests
     public async Task Structural_pieces_surface_as_locked_role_rectangles_distinct_from_the_fused_terrain()
     {
         var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
-        var shapes = layout.Layout!.Shapes;
+        var shapes = SketchLayout.Stack(layout)[0].Shapes;
         var spawns  = shapes.Where(s => s.Role == "spawn").ToList();
         var wools   = shapes.Where(s => s.Role == "woolRoom").ToList();
         var terrain = shapes.Where(s => s.Role is null).ToList();
@@ -221,7 +221,7 @@ public sealed class PlanCompilerTests
 
         // Strip the structural shapes and rasterize again — an identical footprint proves the rasterizer never
         // turned a locked annotation into ground (they overlap the fused terrain but add nothing to it).
-        layout.Layout!.Shapes.RemoveAll(s => s.Role is not null);
+        SketchLayout.Stack(layout)[0].Shapes.RemoveAll(s => s.Role is not null);
         var terrainOnly = SketchRasterizer.Rasterize(layout.ToJson()).ToHashSet();
 
         await Assert.That(terrainOnly.Count).IsGreaterThan(0);
@@ -242,8 +242,8 @@ public sealed class PlanCompilerTests
         """);
         var (layout, _) = PlanCompiler.Compile(p);
         // one island (all three pieces one component), one surface-9 shape, two surface-11 shapes
-        await Assert.That(layout.Layout!.Islands.Count).IsEqualTo(1);
-        var surface11 = layout.Layout!.Shapes.Where(s => s.BaseHeight == 11).ToList();
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Count).IsEqualTo(1);
+        var surface11 = SketchLayout.Stack(layout)[0].Shapes.Where(s => s.BaseHeight == 11).ToList();
         await Assert.That(surface11.Count).IsEqualTo(2);
         // the two patches are A's block box x[0,10]z[10,20] and B's x[20,30]z[10,20]
         var boxes = surface11.Select(s => Bbox(s.Vertices!)).ToHashSet();
@@ -268,10 +268,10 @@ public sealed class PlanCompilerTests
                      {"id":"step3","role":"piece","rect":[1,2,1,1],"surface":13} ] }
         """);
         var (layout, _) = PlanCompiler.Compile(p);
-        await Assert.That(layout.Layout!.Islands.Count).IsEqualTo(1);
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Count).IsEqualTo(1);
         // one shape per plateau: base 9 (bar + step1 unioned), 11, 13.
-        await Assert.That(layout.Layout!.Shapes.Count).IsEqualTo(3);
-        await Assert.That(layout.Layout!.Shapes.Select(s => s.BaseHeight!.Value).OrderBy(h => h).ToList())
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Count).IsEqualTo(3);
+        await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Select(s => s.BaseHeight!.Value).OrderBy(h => h).ToList())
             .IsEquivalentTo(new[] { 9d, 11d, 13d });
     }
 
@@ -289,10 +289,10 @@ public sealed class PlanCompilerTests
           "pieces":[ {"id":"n","role":"piece","rect":[0,0,3,1]}, {"id":"s","role":"piece","rect":[0,2,3,1]},
                      {"id":"w","role":"piece","rect":[0,1,1,1]}, {"id":"e","role":"piece","rect":[2,1,1,1]} ] }
         """));
-        var hole = layout.Layout!.Shapes.Single(s => s.Operation == "subtract");
+        var hole = SketchLayout.Stack(layout)[0].Shapes.Single(s => s.Operation == "subtract");
         await Assert.That(Bbox(hole.Vertices!)).IsEqualTo((5, 5, 10, 10));
         // it joins the island of the body that encloses it, so it mirrors with that body
-        await Assert.That(layout.Layout!.Islands.Single().ShapeIds.Contains(hole.Id)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Single().ShapeIds.Contains(hole.Id)).IsTrue();
 
         var cells = Footprint(layout);
         await Assert.That(cells.Contains((7, 7))).IsFalse();      // inside the hole — void

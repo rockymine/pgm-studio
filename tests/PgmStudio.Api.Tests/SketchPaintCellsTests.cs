@@ -41,11 +41,8 @@ public sealed class SketchPaintCellsTests
             Setup = new SketchSetup { MirrorMode = "rot_180", Center = new SketchCenter { Cx = 0, Cz = 0 } },
             Themes = themes,
             MapTheme = mapTheme,
-            Layout = new SketchShapes
-            {
-                Shapes = [.. shapes],
-                Islands = [new SketchIsland { Id = "i", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }],
-            },
+            Layers = [SketchLayer.Ground([.. shapes],
+                [new SketchIsland { Id = "i", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }])],
         }.ToJson();
 
     private static IReadOnlyList<SurfaceCell> Paint(string layoutJson)

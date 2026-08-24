@@ -47,8 +47,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | Key | Holds |
 |---|---|
 | `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
-| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, islands}}` |
-| `layout` | a legacy single-layer document, read as one layer at `base_y` 0 |
+| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, islands}}`. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `mapTheme` | the terrain-paint registry and the map-wide default |
 | `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
 | `dressing` | every placed prop |
@@ -180,14 +179,15 @@ One exception: the word is not read on a shape that declares a `height_mode`. Su
 of the field by construction, and `raise`/`sink` need to read the ground under their own footprint to know
 where to stand, which an excluded footprint would not have.
 
-A **layer** is a stacked slab with its own `base_y`. The editor always edits the active layer; the others ghost
-underneath in 2-D and stack in the isometric preview. A new layer defaults to ten blocks above the highest
-existing one, and there is always at least one — the first is called `Ground` and sits at 0. A cell's column is
-that layer's `[floor, top]` shifted by `base_y`, and the same `(x, z)` may appear on several layers, which is
-how a bridge over a gap keeps both segments.
+A **layout is composed of layers, and the ground is one of them.** A **layer** is a stacked slab with its own
+`base_y`; the document holds `layers[]` and nothing beside it, so a flat board is a stack of one — the layer a
+compiled plan emits, id `ground`, at `base_y` 0. The editor always edits the active layer; the others ghost
+underneath in 2-D and stack in the isometric preview, and a new layer defaults to ten blocks above the highest
+existing one. A cell's column is that layer's `[floor, top]` shifted by `base_y`, and the same `(x, z)` may
+appear on several layers, which is how a bridge over a gap keeps both segments.
 
-**An agent should author the ground layer only.** Stacking is for a person drawing an overhang by eye; a
-generated board wants one slab.
+Every reader takes the stack through one entry point, `SketchLayout.Stack`, so the gate, the rasterizer and the
+theme scope cannot disagree about which shapes a document holds.
 
 ### What the rasterizer makes of it
 

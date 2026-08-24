@@ -5648,6 +5648,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A layout is composed of layers, and the ground is one of them (TS28).** The document kept its ground
+  shapes under `layout` and anything stacked over them under `layers`, so the ground layer was the one layer
+  that was not in the stack — and seven readers disagreed about a document carrying both: three read one *or*
+  the other, four read *both*, which is why the gate quantified over shapes the rasterizer would never build
+  and why a driver adding a second layer had to delete `layout` by hand or count every island twice. The
+  document now holds `layers[]` and nothing beside it, always at least one, and a flat board is a stack of
+  one — `SketchLayer.Ground` makes it, `SketchLayout.Stack` is the single reader every walk takes, and
+  `SketchLayer.Shapes`/`.Islands` answer empty rather than null. `M0024` moves the stored artifacts, and the
+  55 checked-in layout documents move with them. `SK9`'s ground is the same collapse: there is now one place
+  a shape can live, so a second one is a fault rather than a reading.
 - **The document says what it names and does not have, and a board too large is refused (TS14).** The
   rasterizer is set algebra over shapes, so a shape it cannot read contributes no ground rather than failing —
   which meant a defect in the document read exactly like a smaller drawing. Measured against the real build:

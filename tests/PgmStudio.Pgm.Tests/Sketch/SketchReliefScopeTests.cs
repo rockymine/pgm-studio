@@ -14,7 +14,7 @@ public sealed class SketchReliefScopeTests
     // sitting in the middle of that slope. The compound's own stated top is 14.
     private static string Layout(string? scope) => $$"""
     {
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "land", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
@@ -23,7 +23,7 @@ public sealed class SketchReliefScopeTests
             {{(scope is null ? "" : $", \"relief_scope\": \"{scope}\"")}} }
         ],
         "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land", "town"] } ]
-      },
+      } }],
       "relief": {
         "i1": {
           "base": 6,
@@ -132,7 +132,7 @@ public sealed class SketchReliefScopeTests
         // would leave it reading its own plate — the word is ignored rather than honoured into a wrong answer.
         const string Raised = """
         {
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "land", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 60, "max_z": 60, "base_height": 5, "floor": 0 },
@@ -141,7 +141,7 @@ public sealed class SketchReliefScopeTests
                 "height_mode": "raise", "relief_scope": "SCOPE" }
             ],
             "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land", "rock"] } ]
-          },
+          } }],
           "relief": { "i1": { "base": 6, "marks": [
               { "kind": "point", "at": [3, 3], "h": 6, "r": 3 },
               { "kind": "point", "at": [57, 57], "h": 26, "r": 3 } ] } }
@@ -162,7 +162,7 @@ public sealed class SketchReliefScopeTests
         const string Mirrored = """
         {
           "setup": { "mirror_mode": "mirror_x", "center": { "cx": 50, "cz": 50 } },
-          "layout": {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
             "shapes": [
               { "id": "land", "type": "rectangle", "operation": "add",
                 "min_x": 4, "min_z": 20, "max_x": 46, "max_z": 80, "base_height": 5, "floor": 0 },
@@ -171,7 +171,7 @@ public sealed class SketchReliefScopeTests
                 "base_height": 24, "floor": 0, "height_mode": "level" }
             ],
             "islands": [ { "id": "i1", "mirrors": true, "shapeIds": ["land", "mesa"] } ]
-          },
+          } }],
           "relief": { "i1": { "base": 6, "marks": [
               { "kind": "point", "at": [8, 24], "h": 6, "r": 3 },
               { "kind": "point", "at": [44, 76], "h": 18, "r": 3 } ] } }

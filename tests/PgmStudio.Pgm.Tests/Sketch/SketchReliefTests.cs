@@ -14,13 +14,13 @@ public sealed class SketchReliefTests
     private static string Layout(string? relief, bool mirrors = false, string mirrorMode = "rot_180") => $$"""
     {
       "setup": { "mirror_mode": "{{mirrorMode}}", "center": { "cx": 40, "cz": 10 } },
-      "layout": {
+      "layers": [{ "id": "ground", "base_y": 0, "layout": {
         "shapes": [
           { "id": "s1", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 20, "max_z": 20, "base_height": 3, "floor": 0 }
         ],
         "islands": [ { "id": "i1", "name": "board", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["s1"] } ]
-      }
+      } }]
       {{(relief is null ? "" : $", \"relief\": {relief}")}}
     }
     """;

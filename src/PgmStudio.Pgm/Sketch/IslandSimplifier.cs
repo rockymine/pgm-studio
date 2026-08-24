@@ -21,7 +21,7 @@ public static class IslandSimplifier
             return new Result(new SketchLayout
             {
                 Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter() },
-                Layout = new SketchShapes(),
+                Layers = [SketchLayer.Ground()],
             }, 0, 0);
 
         var simp = PolygonSimplify.Simplify(exterior, holes, tolerance, minHoleArea: 8);
@@ -40,11 +40,8 @@ public static class IslandSimplifier
         var layout = new SketchLayout
         {
             Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter { Cx = (minX + maxX) / 2, Cz = (minZ + maxZ) / 2 } },
-            Layout = new SketchShapes
-            {
-                Shapes = shapes,
-                Islands = [new SketchIsland { Id = "island", Name = "Island", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }],
-            },
+            Layers = [SketchLayer.Ground(shapes,
+                [new SketchIsland { Id = "island", Name = "Island", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }])],
         };
         return new Result(layout, simp.Exterior.Count, hid);
     }
@@ -60,7 +57,7 @@ public static class IslandSimplifier
         double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
         foreach (var (id, ext, holes) in islands)
         {
-            var islandShapes = Simplify(ext, holes, tolerance).Layout.Layout!.Shapes;
+            var islandShapes = SketchLayout.Stack(Simplify(ext, holes, tolerance).Layout)[0].Shapes;
             if (islandShapes.Count == 0) continue;
             foreach (var s in islandShapes)
             {
@@ -73,7 +70,7 @@ public static class IslandSimplifier
         return new SketchLayout
         {
             Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter { Cx = shapes.Count > 0 ? (minX + maxX) / 2 : 0, Cz = shapes.Count > 0 ? (minZ + maxZ) / 2 : 0 } },
-            Layout = new SketchShapes { Shapes = shapes, Islands = groups },
+            Layers = [SketchLayer.Ground(shapes, groups)],
         };
     }
 
