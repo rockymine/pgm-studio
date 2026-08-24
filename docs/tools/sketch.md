@@ -179,15 +179,61 @@ One exception: the word is not read on a shape that declares a `height_mode`. Su
 of the field by construction, and `raise`/`sink` need to read the ground under their own footprint to know
 where to stand, which an excluded footprint would not have.
 
-A **layout is composed of layers, and the ground is one of them.** A **layer** is a stacked slab with its own
-`base_y`; the document holds `layers[]` and nothing beside it, so a flat board is a stack of one — the layer a
-compiled plan emits, id `ground`, at `base_y` 0. The editor always edits the active layer; the others ghost
-underneath in 2-D and stack in the isometric preview, and a new layer defaults to ten blocks above the highest
-existing one. A cell's column is that layer's `[floor, top]` shifted by `base_y`, and the same `(x, z)` may
-appear on several layers, which is how a bridge over a gap keeps both segments.
+### Layers, and what a stack of them is
 
-Every reader takes the stack through one entry point, `SketchLayout.Stack`, so the gate, the rasterizer and the
-theme scope cannot disagree about which shapes a document holds.
+**A layout is composed of layers, and the ground is one of them.** The document holds `layers[]` and nothing
+beside it, so a flat board is a stack of one — the layer a compiled plan emits, id `ground`, at `base_y` 0.
+Every reader takes the stack through one entry point, `SketchLayout.Stack`, which also names a layer that
+named nothing by its position (`layer0`); the gate, the rasterizer and the theme scope therefore cannot
+disagree about which shapes a document holds, nor about what to call the layer holding them.
+
+**A layer is a slab, and that is the whole of what makes stacking work.** One layer holds exactly one span per
+column — a `(Top, Floor)` pair — and where two adds contest a cell the taller replaces the shorter *outright,
+floor included*. So two shapes drawn over one another on a single layer do not stack: the lower one is simply
+not in the world, and the gate says so by name (`SK9`, below). A stack is a stack **of layers**, and `base_y`
+is what puts one span above another.
+
+The consequence is a drawing rule. **A roofed gallery is walls clamped around a tucked-in floor, on two
+layers** — four wall shapes leaving a channel, the floor shape claiming that channel, and the roof on the
+layer above. Drawing a low floor inside a tall wall shape on one layer builds the wall alone, because the wall
+is the taller add. `opus5-mineshaft` is that board built both ways: the two-layer version and the two one-layer
+variants that do not work, all three committed.
+
+**The three height words, and where each is measured from.** `floor` is the underside of a shape, measured
+*inside* its layer; `base_height` is the thickness above that floor; `base_y` shifts the whole layer. A cell's
+column is that layer's `[floor, floor + height)` shifted by `base_y`, so `base_y 20` with `floor 4` puts a
+soffit at y 24 whatever the relief does above it. `anchor_heights` interpolates thickness per vertex across a
+polygon, which is how a ramp climbs from one layer's floor to another's.
+
+**Relief solves per layer** and comes back already shifted into world Y, so a stacked board carries one solved
+surface per relief-bearing island and a caller never adds `base_y` a second time. **A depression or a river in
+an upper layer does not cut through the layer beneath it** — the layers are solved independently, which is
+what the author's ruling asks for.
+
+**The set algebra runs by category, not in document order**: `((adds − subtracts) ∪ override-adds) −
+override-subtracts`, per layer. An override-add is therefore laid after every ordinary subtract, which is what
+lets a shape sit inside a hole another shape cut.
+
+**One line lets an air gap survive between two slabs.** `TerrainPainter.Paint` writes only where the world
+already holds *stone*, and the gap between a gallery and the deck over it is air. Without that invariant the
+band resolver — which runs bedrock at the bottom and surface at the top of a column — would fill the storey
+out of existence.
+
+**A column carries one theme per layer, not one theme.** The board is painted one pass per layer, each storey
+against its own surface, so a cell standing on two layers is painted twice. Within a layer the smallest-area
+themed shape still wins a contested cell; across layers there is no contest, because each surface shows its
+own. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
+
+**What a stacked board still cannot say about itself.** The walk stands a player on the lowest surface in a
+column carrying headroom, so a second storey is not a place and the ways between storeys are not edges — a
+deck twenty blocks over a yard reads as unreachable ground the reads call connected (`TS21`). Nothing warns
+where a mass connects to nothing (`TS24`). A placement resolves its Y from the whole-board surface top and so
+lands on the highest slab whatever the author meant (`WE24`). And a scanned world's own segments carry no
+layer at all: **a scanned cave and a stacked sketch are one geometry seen twice**, differing only in
+provenance, which is why the word collides in the scan family and nowhere else.
+
+In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
+isometric preview, and a new layer defaults to ten blocks above the highest existing one.
 
 ### What the rasterizer makes of it
 

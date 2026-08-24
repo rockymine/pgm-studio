@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Eight entries, all about a stack of layers.** What is left of the group five authored maps
+**Seven entries, all about a stack of layers.** What is left of the group five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a board whose ground
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
@@ -20,7 +20,7 @@ built under a meadow is the worked example, and it is committed on this branch.
 | **Q8** | The three type renames are settled and the scan family's own word — *segment* — is already the right one, so what is left is its borrowed `layer_` prefix and the public route `GET /map/{slug}/layers`, whose response says which *artifacts* a map holds. **The proposal, absent an objection:** drop the prefix (`SegmentIndex` keeps its name, `layer_segment` becomes `segment`, `LayerExtractors` becomes `SegmentExtractors`), and the route becomes `GET /map/{slug}/state` over a `MapArtifacts` record, which is what it already returns. | `WS13` `P7` |
 
 The word collides there and nowhere else because **a scanned cave and a stacked sketch are the same geometry
-seen twice** — which is a thing `TS25` has to write down whichever way `Q8` goes.
+seen twice**, which `docs/tools/sketch.md` § Layers now says whichever way `Q8` goes.
 
 ## A stack of layers: what it writes, and what no read can say about it
 
@@ -28,7 +28,7 @@ seen twice** — which is a thing `TS25` has to write down whichever way `Q8` go
 add replaces it outright, floor included. Stacking inside a single layer is not a thing an author may do: two
 shapes on one footprint at two floors answer 480 cells, 0 stacked, every column `[16,22)`, the lower shape
 erased. A stack is a stack **of layers**, and `base_y`, per-layer relief and per-layer theming are what a slab
-is for. *(Settled by the author; this is the law `TS22`'s layer id names and `TS25` writes down.)*
+is for. *(Settled by the author, and written down in `docs/tools/sketch.md` § Layers.)*
 
 **A depression or a river in the upper layer does not bleed into the layer beneath it.** That is the default;
 letting it cut through is the toggle, not the other way round. *(Settled by the author.)*
@@ -100,23 +100,6 @@ commits — and the entry fixes the document it actually moves, alongside `docs/
 
   *Also carrying it and deliberately untouched: the canvas z-stack (`render/layer-stack.js`, `data-layer`),
   which is the graphics term and reads as one; and `LayeredMaterial`'s own `layers[]` inside the theme JSON.*
-
-- [ ] **TS25 — Write the layer model down.** `docs/tools/sketch.md` gives a layer five lines closing on "an
-  agent should author the ground layer only", which is advice rather than a description. What a reader cannot
-  get without three probes and a source read: a layer is a **slab** holding one
-  `(Top, Floor)` per cell and a taller add replaces it outright, so a roofed gallery is walls *clamped around*
-  a tucked-in floor rather than a low shape drawn inside a tall one; `floor` is the underside measured inside
-  the layer, `base_height` the thickness above it, `base_y` shifts the whole thing; `anchor_heights` slopes a
-  shape between two layers; relief solves per layer and returns shifted into world Y; the set algebra is
-  `((adds − subs) ∪ override-adds) − override-subs`, **by category and not document order**; and the
-  stone-only invariant in
-  `TerrainPainter.Paint` is the one line that lets an air gap survive between two slabs. Plus the half no
-  probe can show — a document is `layers[]` and nothing beside it, a placement names its layer and defaults
-  to the top, a column carries one theme per layer, a second storey is played on, a sealed room is allowed
-  and a floating mass is not. And the sentence that
-  makes the word make sense: a column reading `[0,5]` · `[9,11]` off a world nobody authored is what
-  `RasterizeColumns` emits for a gallery under a deck — **one geometry, seen twice, differing only in
-  provenance.**
 
 - [ ] **TS24 — Complain where a mass connects to nothing, and where two segments overlap.** Three of the
   four things this entry once proposed are settled *not* to be complaints — flush is how a roof is built, a
