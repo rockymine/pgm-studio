@@ -5686,6 +5686,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **A read-back can be asked for one storey (WS12).** Four reads project a column to one cell — `topdown`,
+  `heightmap`, `surface`, `structures` — so on a stacked board they drew the topmost storey and whatever
+  showed past it, and `ymax` was the only cut a caller had. A single height separates two storeys only where
+  the upper one happens to be flat: `opus5-mineshaft`'s `ymax=19` does reach the gallery, because that deck is
+  level, which is a property of that board rather than of stacking. `layer` names the storey instead, and
+  `WorldStorey.Of` cuts it: the layer's own ground **and everything standing on it**, from its floor to the
+  block below the next layer's floor in that same column and to the world ceiling for the topmost — keeping
+  only the span would drop the houses, the trees and the goal markers, which is most of what a picture of a
+  storey is for. A column the layer never drew contributes nothing, so a gallery under a deck reads as its own
+  footprint rather than as the whole board. A layer the board lacks is a 422 naming the ones it carries; a
+  board drawn in no layers says that instead. The word is declared once on `WorldRenderEndpoint` and opted
+  into by the four, so they cannot describe it four ways — `section` and `column` keep Y and show every storey
+  already, and `traversability` and `walk` answer per storey without being asked.
 - **A storey can be taken off the 3-D preview (C48).** `WorldColumnPayload.Of` read the finished `VoxelWorld`
   and emitted runs with no idea what had made any of them, so the preview was one rendering of a stack with
   no way to look inside it — and the overlay chips, which mean something in 2-D, had nothing to say in 3-D.

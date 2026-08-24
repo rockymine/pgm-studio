@@ -84,18 +84,6 @@ seven places stated what a document's layers were, in three different readings. 
 document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
 `FEATURES.md`). What is left below is what the layer id is *for*.
 
-- [ ] **WS12 — A read-back can be asked for one layer.** Every `render/*` route is whole-world, and the only
-  cut a caller has is `ymax`, a single height, which separates two storeys just where one lies flat over the
-  other. Add a layer word to the four reads that project a column to one cell — `topdown`, `heightmap`,
-  `surface`, `structures`. `traversability` and `walk` are **not** here: the walk answers per storey already
-  and a layer word would be a second way to ask.
-
-  *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone and the
-  gallery is reachable only through `ymax` — and only because that deck happens to be flat. The committed
-  `renders/topdown-mine.png` is that cut at `ymax=19`: it shows the gallery **and both spawn cubes**, which
-  stand on the meadow at 26, because provenance keys a claim `(X, Z)` with no Y and the structure layer is
-  drawn whole whatever the cut says.*
-
 ## What the front door still cannot say
 
 - [~] **RP23 — `docs/tools/capabilities.md` is 707 lines answering "what can I ask for", which the API now

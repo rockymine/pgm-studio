@@ -95,6 +95,18 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
 
     protected int? OptionalInt(string name) => Query<int?>(name, isRequired: false);
 
+    /// <summary>The `layer` word, for the reads that project a column to one cell. Declared here rather than
+    /// per endpoint so the four of them cannot describe the same word four ways.</summary>
+    protected static QueryWord Storey => new("layer",
+        "Draw one storey of a stacked board: the named sketch layer's own ground and everything standing on "
+        + "it, up to whatever the next layer starts at. Absent draws the whole world, which on a stacked "
+        + "board is the topmost storey and whatever shows past it.");
+
+    /// <summary>Whether this read narrows to a storey. The reads that keep Y — `section`, `column` — and the
+    /// two that walk the ground rather than draw it — `traversability`, `walk` — do not: the first two show
+    /// every storey already and the last two answer per storey without being asked.</summary>
+    protected virtual bool Storeyed => false;
+
     protected abstract byte[]? Draw(BuiltRead read);
 
     /// <summary>What this read cannot draw, for the 422 that says so.</summary>
@@ -112,6 +124,22 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
                     "this map has no stored sketch layout, so there is no world for the studio to build and "
                     + "read back — a map that ships its own region files is read from those instead")], ct);
             return;
+        }
+
+        if (Storeyed && Query<string?>("layer", isRequired: false) is { Length: > 0 } asked)
+        {
+            var storey = WorldStorey.Of(read.Built.World, read.Built.Columns, asked);
+            if (storey is null)
+            {
+                var names = WorldStorey.Names(read.Built.Columns);
+                await Refusals.WriteAsync(HttpContext, 422, "no such layer",
+                    [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                        names.Count == 0
+                            ? $"this board was not drawn in layers, so there is no '{asked}' storey to draw"
+                            : $"this board has no layer '{asked}' — it carries {string.Join(", ", names)}")], ct);
+                return;
+            }
+            read = read with { Built = read.Built with { World = storey } };
         }
 
         byte[]? png;
@@ -135,8 +163,8 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
     }
 }
 
-/// <summary>GET /api/map/{slug}/render/topdown — the board from above, one question per image. <c>layer</c>
-/// picks what is drawn: <c>ground</c> the terrain alone, <c>structure</c> what the build recorded itself
+/// <summary>GET /api/map/{slug}/render/topdown — the board from above, one question per image.
+/// <c>subject</c> picks what is drawn: <c>ground</c> the terrain alone, <c>structure</c> what the build recorded itself
 /// placing (the provenance sidecar, so it draws the buildings that were authored rather than the blocks that
 /// look like buildings), <c>foliage</c> the planting, <c>objectives</c> the goals and spawns, <c>combined</c>
 /// all of it. <c>material</c> switches the colouring from category to the real palette. The one read for
@@ -158,8 +186,11 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
                 + "what answers \"what kind of thing is here\"; the material reading answers \"what is it "
                 + "made of\"."),
             new QueryWord("ymax", "Ignore everything above this height, for looking under a roof or a canopy."),
+            Storey,
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
+
+    protected override bool Storeyed => true;
 
     protected override string Empty => "this world has no non-air column, so there is nothing to look down on";
 
@@ -245,8 +276,11 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
             new QueryWord("contour", "Blocks between contour lines. Absent draws one every 4."),
             new QueryWord("grey", "Present draws elevation in grey rather than in tone, for a board whose own "
                 + "palette fights the height reading."),
+            Storey,
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
+
+    protected override bool Storeyed => true;
 
     protected override string Empty => "this world has no ground column, so it has no elevation to draw";
 
@@ -267,8 +301,12 @@ internal sealed class SurfaceReadEndpoint(MapRepository repo, MapReader reader, 
         Get("/map/{slug}/render/surface");
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/surface"));
-        Description(b => b.Png().Refuses(404, 422).Reads(new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+        Description(b => b.Png().Refuses(404, 422).Reads(
+            Storey,
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
+
+    protected override bool Storeyed => true;
 
     protected override string Empty => "this world decodes to no column, so it has no surface to read";
 
@@ -297,7 +335,7 @@ internal sealed class TraversabilityReadEndpoint(MapRepository repo, MapReader r
 }
 
 /// <summary>GET /api/map/{slug}/render/structures — the building census by block material, for a world the
-/// studio did <b>not</b> build. On one it did, <c>render/topdown?layer=structure</c> is the read to take:
+/// studio did <b>not</b> build. On one it did, <c>render/topdown?subject=structure</c> is the read to take:
 /// this one finds roofs by material and cannot see a town in stone and quartz (`B149`), while the structure
 /// layer draws what the build recorded itself placing.</summary>
 internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
@@ -310,8 +348,11 @@ internal sealed class StructuresReadEndpoint(MapRepository repo, MapReader reade
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/structures"));
         Description(b => b.Png().Refuses(404, 422).Reads(
             new QueryWord("minarea", "The smallest footprint counted as a structure, in blocks. Absent is 16."),
+            Storey,
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
     }
+
+    protected override bool Storeyed => true;
 
     protected override string Empty => "this world decodes to no column, so it holds no structure to find";
 

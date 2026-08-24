@@ -34,12 +34,12 @@ block, 1 to 16, default 4, clamped rather than refused.
 
 | Route | Also | Answers |
 |---|---|---|
-| `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy |
+| `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
 | `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project |
-| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading |
-| `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names |
+| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey |
+| `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
-| `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16) |
+| `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` and `team` as above |
@@ -125,6 +125,28 @@ because a sum charges a longer route for its own length and would rank a safe de
 avoids. `comfort` has no field of its own — the bound is the journey's own length, so it is answered between
 two cells; `render/walk?aim=comfort` shades the travel field and draws the comfort route on it, which is the
 pairing that shows what the standoff bought.
+
+## A stacked board is drawn one storey at a time
+
+Four reads project a column to one cell — `topdown`, `heightmap`, `surface`, `structures` — so on a stacked
+board they draw the topmost storey and whatever shows past it. **`layer` names one instead**: the sketch layer
+by its id, drawn as its own ground and everything standing on it, up to whatever the next layer starts at.
+A layer the board does not carry is a **422** naming the ones it does, rather than an empty picture; a board
+drawn in no layers at all says that instead.
+
+**A storey is the span plus what stands on it**, because keeping only the span would drop the houses, the
+trees and the goal markers, which is most of what a picture of a storey is for. The window runs from the
+layer's floor to the block below the next layer's floor in that same column, and to the world ceiling for the
+topmost. A column the layer never drew contributes nothing, which is what makes a gallery under a deck read as
+its own footprint rather than as the whole board.
+
+`ymax` is the older cut and stays, but it is a single height and separates two storeys only where the upper one
+happens to be flat. On `opus5-mineshaft` the deck roofs all 6,400 cells and `ymax=19` does reach the gallery —
+because that deck is level, which is a property of that board and not of stacking.
+
+`section` and `column` take no `layer` word: they keep Y and show every storey already. Neither do
+`traversability` and `walk`, which run over the ground rather than draw it and answer per storey without being
+asked.
 
 ## One of them misleads, and it has cost a reader a conclusion
 

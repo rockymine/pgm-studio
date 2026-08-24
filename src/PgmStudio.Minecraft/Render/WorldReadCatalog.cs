@@ -64,7 +64,7 @@ public static class WorldReadCatalog
             "The building census by block material, for a world the studio did NOT build — a scanned map, or "
             + "a corpus one.",
             "It finds roofs by material and cannot see a town this studio built (`B149`): a cottage roofed in "
-            + "stained clay reads as ground. On a studio-built world take `render/topdown?layer=structure`, "
+            + "stained clay reads as ground. On a studio-built world take `render/topdown?subject=structure`, "
             + "which draws what the build recorded itself placing."),
 
         new("render/mirror", "--mirror",

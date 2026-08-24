@@ -50,8 +50,8 @@ public sealed class WorldReadEndpointTests
 
         foreach (var read in (string[])[
             "render/topdown",
-            "render/topdown?layer=ground",
-            "render/topdown?layer=structure&material=1",
+            "render/topdown?subject=ground",
+            "render/topdown?subject=structure&material=1",
             "render/heightmap",
             "render/surface",
             "render/traversability",
