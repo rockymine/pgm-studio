@@ -215,4 +215,36 @@ public sealed class SketchRasterizerTests
         await Assert.That(cells.Any(c => c.X >= 4 && c.YTop == 12)).IsTrue();   // primary
         await Assert.That(cells.Any(c => c.X < 0  && c.YTop == 12)).IsTrue();   // mirror, same height
     }
+
+    [Test]
+    public async Task A_push_reaching_a_structural_room_leaves_its_ground_flat()
+    {
+        // A room's floor is one course over its whole frame and the bedrock under it is filled column by
+        // column, so ground that slopes under a room is a floor spanning air. The room is held, and a push
+        // whose skirt reaches it must therefore leave it alone — while the ground either side of it still
+        // takes the lift, which is what makes the push worth having.
+        const string board = """
+        {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{
+           "shapes":[
+             {"id":"s0","type":"polygon","operation":"add","base_height":14,
+              "vertices":[[-20,0],[20,0],[20,60],[-20,60]]},
+             {"id":"room","type":"rectangle","operation":"add","role":"woolRoom","intentRef":"red:blue",
+              "base_height":18,"relief_scope":"hold","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
+           "islands":[{"id":"team","mirrors":false,"shapeIds":["s0"]}]}}],
+         "relief":{"team":{"base":14,"reach":0,"step":1,
+           "marks":[{"id":"m","kind":"area","h":14,"ring":[[-20,0],[20,0],[20,10],[-20,10]]}],
+           "pushes":[{"id":"rise","ring":[[-18,20],[18,20],[18,38],[-18,38]],
+                      "amount":6,"falloff":14,"crown":2,"seed":3}]}}}
+        """;
+
+        var top = SketchRasterizer.RasterizeColumns(board).ToDictionary(c => (c.X, c.Z), c => c.YTop);
+        var room = Enumerable.Range(-5, 10).SelectMany(x => Enumerable.Range(40, 10).Select(z => (x, z)))
+                             .Select(cell => top.GetValueOrDefault(cell, int.MinValue)).ToList();
+
+        await Assert.That(room.Distinct().Count()).IsEqualTo(1);        // the room is one height, everywhere
+        await Assert.That(room[0]).IsGreaterThan(int.MinValue);
+        // the push still did its job on the ground it was drawn over
+        await Assert.That(top[(0, 30)]).IsGreaterThan(14);
+    }
 }

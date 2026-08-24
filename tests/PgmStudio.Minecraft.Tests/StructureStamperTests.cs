@@ -39,6 +39,28 @@ public sealed class StructureStamperTests
     }
 
     [Test]
+    public async Task The_plinth_is_level_under_a_room_standing_on_sloping_ground()
+    {
+        // What stands on the plinth takes one floor course over its whole frame, read from the frame's
+        // highest column, so a plinth that followed the ground would stop short of the floor wherever the
+        // ground falls away and leave it spanning air.
+        var w = new VoxelWorld();
+        var surf = new Dictionary<(int X, int Z), int>();
+        for (var x = 0; x <= 10; x++)
+        for (var z = 0; z <= 10; z++)
+            surf[(x, z)] = 10 + z;                       // first air Y climbs one a row
+
+        StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+
+        // The highest column of the footprint is z=5, whose first air cell is 15 — so every column of it is
+        // solid to 14, the low rows included.
+        await Assert.That(w.GetBlock(3, 14, 2).Id).IsEqualTo(Blocks.Bedrock);   // lowest row, filled to the top
+        await Assert.That(w.GetBlock(3, 14, 5).Id).IsEqualTo(Blocks.Bedrock);   // highest row
+        await Assert.That(w.GetBlock(3, 15, 5).Id).IsEqualTo(Blocks.Air);       // its surface cell left open
+        await Assert.That(w.GetBlock(6, 14, 2).Id).IsEqualTo(Blocks.Air);       // max bound still exclusive
+    }
+
+    [Test]
     public async Task Redstone_line_lays_wire_between_torch_ends_on_the_surface()
     {
         var w = new VoxelWorld();

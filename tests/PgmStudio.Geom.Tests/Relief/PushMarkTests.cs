@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Geom.Relief;
 
 namespace PgmStudio.Geom.Tests.Relief;
@@ -39,6 +40,36 @@ public sealed class PushMarkTests
         var deep = lifted.Max(cell => cell.Z) - lifted.Min(cell => cell.Z) + 1;
 
         await Assert.That(deep).IsGreaterThan(wide * 2);
+    }
+
+    [Test]
+    public async Task A_push_lifts_a_plain_mark_and_steps_over_a_rigid_one()
+    {
+        // Which side of the vocabulary a push is on: it composes over ground, so an area mark stating a
+        // height is sculpted along with everything around it. A rigid mark is not ground — it is a floor,
+        // and a floor lifted on one side is a floor over a hole — so the lift steps over it, exactly as the
+        // grain already does. The two runs differ only in the flag.
+        var footprint = Board(40, 40);
+        var pad = Ring((16, 16), (24, 16), (24, 24), (16, 24));
+        // The push's ring stops halfway across the pad, so its skirt crosses the rest — the shape of the
+        // hollowmarch case, where a ring ending short of a wool room reached it through the falloff.
+        ReliefSpec Spec(bool rigid) => new()
+        {
+            Base = 5,
+            Marks = [new RimMark(5), new AreaMark(pad, 9) { Rigid = rigid }],
+            Pushes = [new PushMark(Ring((12, 4), (28, 4), (28, 20), (12, 20)), Amount: 6, Falloff: 6)],
+        };
+
+        var sculpted = ReliefSolver.Solve(footprint, Spec(rigid: false));
+        var floor = ReliefSolver.Solve(footprint, Spec(rigid: true));
+        var pinned = footprint.Land()
+                              .Where(cell => Polygon.PointInRing(cell.X + 0.5, cell.Z + 0.5, pad)).ToList();
+
+        await Assert.That(sculpted.At(20, 18)).IsGreaterThan(9);        // carried up by the push
+        await Assert.That(pinned.Select(cell => sculpted.At(cell.X, cell.Z)).Distinct().Count())
+            .IsGreaterThan(1);                                          // and tilted: the pad is not a floor
+        // Rigid, the same push leaves it exactly as it was stated — one height over every cell of it.
+        await Assert.That(pinned.All(cell => floor.At(cell.X, cell.Z) == 9)).IsTrue();
     }
 
     [Test]

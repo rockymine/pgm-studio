@@ -125,6 +125,13 @@ projected in so the room stays visible instead of dissolving into the fused isla
 back to the entity it belongs to and a `color`. Role-tagged shapes are loaded as a locked render-only overlay:
 never hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
 
+**Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
+ground it stands on is the island's; that overlap is what binds the room to its island's relief, since an
+annotation is never listed in an island's own `shapeIds` (`docs/world-export/relief.md` §11). Selecting the
+polygon in front of a room therefore selects one that reaches under the room as well — which is the shape of
+the thing, not a fault in it. What keeps the room level is the pin, and nothing after the pin may tilt it
+(§2.1).
+
 ### Islands and layers
 
 An **island** is not authored; it is computed. Every time the shapes change, the tool unions them and reports

@@ -471,7 +471,10 @@ public static class SketchRasterizer
                 if (ring.Count < 3) continue;
                 // A room whose height the author has corrected states it; one that has not is still carrying
                 // the plan's flat number and is seated on the terrain below, once there is terrain to read.
-                if (shape.HeightAuthored == true) held.Add(new AreaMark([.. ring], StatedTop(shape, ring)));
+                // Either way the mark is rigid: what it pins is a floor, and the sculpting passes may not
+                // tilt a floor.
+                if (shape.HeightAuthored == true)
+                    held.Add(new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true });
                 else seated.Add((shape, covered));
             }
 
@@ -496,8 +499,8 @@ public static class SketchRasterizer
                 {
                     var ring = RingOf(shape);
                     held.Add(SeatOf(shape, covered, field, footprint) is { } seat
-                        ? new AreaMark([.. ring], seat)
-                        : new AreaMark([.. ring], StatedTop(shape, ring)));
+                        ? new AreaMark([.. ring], seat) { Rigid = true }
+                        : new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true });
                 }
                 var reseated = stated.ToSpec(mirrorMode, cx, cz);
                 spec = reseated with { Marks = [.. reseated.Marks, .. held] };

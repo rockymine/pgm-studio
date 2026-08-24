@@ -53,22 +53,27 @@ public static class ReliefSolver
     {
         var pinned = new double[footprint.Cells];
         var isPinned = new bool[pinned.Length];
+        var isRigid = new bool[pinned.Length];
         foreach (var mark in spec.Marks)
             foreach (var (cell, height) in mark.Pins(footprint))
             {
                 if (!footprint.Inside(cell.X, cell.Z)) continue;
                 var index = footprint.Index(cell.X, cell.Z);
-                pinned[index] = height; isPinned[index] = true;
+                pinned[index] = height; isPinned[index] = true; isRigid[index] = mark.Rigid;
             }
 
         var field = Diffuse(footprint, pinned, isPinned, spec, warmStart, sweeps, cascade);
 
         // Pushes go on before the grain and before the fold, so a lifted spur gets the same wobble and the
-        // same symmetry guarantee as the ground it stands on.
+        // same symmetry guarantee as the ground it stands on. A rigid cell is the exception both of them
+        // make: a push composes over ground, and a floor is not ground — a room lifted a course on one side
+        // is a floor standing over a hole, since the world lays one floor course per room and fills the
+        // bedrock under it column by column.
         if (spec.Pushes.Count > 0)
         {
             var lift = Sculpt(footprint, spec.Pushes);
-            for (var index = 0; index < field.Length; index++) field[index] += lift[index];
+            for (var index = 0; index < field.Length; index++)
+                if (!isRigid[index]) field[index] += lift[index];
         }
 
         if (spec.Grain > 0)

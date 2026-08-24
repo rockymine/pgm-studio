@@ -4395,6 +4395,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A push may not tilt a floor, and a room's plinth is level (WE25).** The relief's two post-solve passes
+  disagreed about a pinned cell: the grain stepped over one ("grain never overrides a statement") and the
+  push added its lift to every cell of the field. A spawn or wool room is pinned flat by its `hold`
+  annotation, so a push whose skirt reached one tilted it — and because the world lays **one** floor course
+  over a room's whole frame while filling the bedrock under it **column by column**, a tilted room is a floor
+  spanning air. `Mark.Rigid` is the word for a pin the sculpting may not move; `SketchRasterizer` sets it on
+  the marks it builds for structural rooms, and only those — an author's own area mark is a statement about
+  ground and a push still composes over it. The room keeps riding *up* with a push, since the seating reads
+  its height off the finished surface before pinning it. Beside it, `StampFoundation` now fills a level
+  plinth at the footprint's highest column, which is what ST1 already claimed ("solid bedrock from y=0 to
+  its floor") and what makes a hollow impossible on uneven ground whatever put it there.
+  On `opus5-hollowmarch` the `under-back` push (ring stopping one block short of the back wool room,
+  `falloff` 10) tilted a room held at 18 across `23 22 22 21 20 20 19 19 19 19`; the built world had bedrock
+  to y19 at (−20,102) and to y17 at (−20,108) under planks at y20 both times — two courses of air under half
+  the floor. The field now reads a flat 19 across that room and its mirror, and the three rooms no push
+  reaches are unmoved at 18.
 - **A placement names the storey it rests on (WE24).** Everything the export put down resolved its Y from
   one whole-board surface grid, so on a stacked board a monument stated for a hall landed on the deck roofing
   it and a tree stated for a gallery floor landed on the roof — not declined, not warned, somewhere else.

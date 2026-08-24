@@ -15,19 +15,26 @@ public static class StructureStamper
     /// <summary>Cube edge (blocks): a 4×4×4 iron structure resting on the surface.</summary>
     public const int IronCubeSize = 4;
 
-    /// <summary>Fill a footprint with solid bedrock from y=0 up to (and including) the terrain surface
-    /// block, so what stands on it cannot be tunnelled into from below (ST1). This is the ground the building
-    /// sits on, not the course a player walks on — that one is the shell's own floor part. Footprint is
-    /// min-inclusive, max-exclusive (<c>[minX, maxX) × [minZ, maxZ)</c>).</summary>
+    /// <summary>Fill a footprint with solid bedrock from y=0 up to the terrain surface block, so what stands
+    /// on it cannot be tunnelled into from below (ST1). This is the ground the building sits on, not the
+    /// course a player walks on — that one is the shell's own floor part. Footprint is min-inclusive,
+    /// max-exclusive (<c>[minX, maxX) × [minZ, maxZ)</c>).
+    ///
+    /// <para>The plinth is <b>level, at the footprint's own highest column</b>, because what stands on it is:
+    /// a room takes one floor course over its whole frame, read from that same highest column, so a plinth
+    /// following the ground column by column leaves the floor spanning air wherever the ground falls away
+    /// under it. Levelling costs nothing where the ground is flat, which is the common case, and is the
+    /// difference between a floor and a lid everywhere else.</para></summary>
     public static void StampFoundation(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
     {
+        var level = 1;
+        foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
+            level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));   // topmost air cell
+
         foreach (var (x, z) in FoundationCells(minX, minZ, maxX, maxZ))
-        {
-            var top = surfaceTop.GetValueOrDefault((x, z), 1);   // topmost air cell; solid ends at top-1
-            for (var y = 0; y < top; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
-        }
+            for (var y = 0; y < level; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
     }
 
     /// <summary>The columns <see cref="StampFoundation"/> fills, for a caller recording what it covered. Its

@@ -14,6 +14,13 @@ public abstract record Mark
 {
     /// <summary>The cells this mark pins and the height it pins each to.</summary>
     public abstract IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint);
+
+    /// <summary>Whether the sculpting passes may move what this mark pinned. A mark states a height about
+    /// the <em>ground</em>, and a push composes over ground — that is the whole difference between the two
+    /// halves of the vocabulary. A built floor is not ground: a spawn or a wool room is a level rectangle
+    /// that can never slope, and one course of it lifted is a floor standing over a hole. So a mark placed
+    /// for a floor is rigid, and the lift steps over it exactly as the grain already does.</summary>
+    public bool Rigid { get; init; }
 }
 
 /// <summary>A summit, a hollow or a spot height: one position, one height, and the radius over which it is

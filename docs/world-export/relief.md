@@ -112,6 +112,19 @@ moving ground past it.
 Which side of the ring counts as "out" comes from the ring's own signed area, so a ring traced either way round
 gets its skirt outside it rather than inside, where it would read as a smaller push.
 
+A push composes over ground, and one thing on the board is not ground: a **floor**. A spawn or a wool room is a
+level rectangle that can never slope (§11), and the world lays one floor course over a room's whole frame while
+filling the bedrock under it column by column — so a room lifted a course on one side is a floor spanning air,
+not a landform. The mark that holds such a floor is therefore **rigid**, and the lift steps over it exactly as
+the grain already does. Nothing else is: an author's own area or point mark is a statement about the ground, and
+a push crossing one sculpts it along with everything around it, which is the composition the two halves of the
+vocabulary exist to give. What a rigid mark costs is a step at the room's edge where the push lifted the ground
+beside it, and that is the price §11 already names for any flat pad laid across a slope.
+
+The room still **rides with the push** rather than being stranded under it, because the seating in §11 reads its
+height off the finished surface — pushes included — before pinning it there. What is frozen is the room's
+flatness, not its elevation.
+
 ### 2.2 A push's top is a field, not a number
 
 A push that lifts its whole interior by one amount makes a plateau, and a plateau is a landform but not the
@@ -484,6 +497,15 @@ stating no door falls back to the median under its own footprint.
 The seating is the *preferred* correction of the two available. The other is re-authoring the relief so it
 arrives at the plan's number, which is a larger edit that gives up the terrain the author drew to satisfy a
 number stated before that terrain existed.
+
+**The height a room is seated at is read off the finished surface, and its flatness survives everything after
+it.** The seat is taken from the first solve, which has already had the pushes and the grain applied, so a room
+standing where a push lifts the ground comes up with it. The mark that then pins it is rigid (§2.1): the second
+solve's push may not tilt what the seat levelled, and the grain never could. Without that the pin is only as
+firm as the last pass over it — on `opus5-hollowmarch` the `under-back` push, whose ring stops one block short
+of the back wool room and whose skirt reaches ten blocks further, tilted a room held at 18 across `23 22 22 21
+20 20 19 19 19 19`, and the room's own floor course stayed flat over it: bedrock to y19 at the front of the
+room, bedrock to y17 at the back, planks at y20 the whole way, and two courses of air under half the floor.
 
 `height_authored: true` marks a shape whose `floor`/`base_height` the author corrected in the sketch rather than
 the compiler, and **it is what turns the seating off**: a height stated against real ground is a statement, and

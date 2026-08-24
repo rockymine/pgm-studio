@@ -764,7 +764,10 @@ these are asked for rather than assumed, and a style naming none leaves the ring
 it found it.
 
 What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and the
-**entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell.
+**entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell. The platform is level,
+at the highest column of the footprint it fills, because the room standing on it takes one floor course read
+from that same column — a platform following the ground would stop under the floor wherever the ground falls
+away and leave it spanning air.
 
 Check this section against the studio: the house-part library previews stamp a draft through the real
 `HouseStamper` and read it back out of the world, so where the prose here and the preview disagree, suspect
