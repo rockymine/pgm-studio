@@ -22,7 +22,7 @@ public sealed class MapImporter(PgmDb db, MapArtifactStore artifacts)
     private static readonly JsonSerializerOptions JsonOpts = new() { DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.Never };
 
     public sealed record Counts(int Regions, int Filters, int Wools, int Monuments, int Spawns,
-        int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int LayerSegments, int Artifacts,
+        int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int ScanSegments, int Artifacts,
         int MonumentCandidates);
 
     public async Task<Counts> ImportDirAsync(string slug, string dir)
@@ -88,7 +88,7 @@ public sealed class MapImporter(PgmDb db, MapArtifactStore artifacts)
         var rb = await BulkAsync(dir, "resources.parquet", r => new ResourceBlockRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldY = ParquetIo.I(r["world_y"]), ResourceType = ParquetIo.S(r["resource_type"]) });
         var ci = await BulkAsync(dir, "chests.parquet", r => new ChestItemRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldY = ParquetIo.I(r["world_y"]), ChestType = ParquetIo.S(r["chest_type"]), Slot = ParquetIo.I(r["slot"]), ItemId = ParquetIo.S(r["item_id"]), ItemDamage = ParquetIo.I(r["item_damage"]), Count = ParquetIo.I(r["count"]) });
         var sb = await BulkAsync(dir, "spawners.parquet", r => new SpawnerBlockRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldY = ParquetIo.I(r["world_y"]), EntityId = r.GetValueOrDefault("entity_id") as string, SpawnsWool = ParquetIo.BN(r.GetValueOrDefault("spawns_wool")), SpawnItemId = r.GetValueOrDefault("spawn_item_id") as string, SpawnItemDamage = ParquetIo.IN(r.GetValueOrDefault("spawn_item_damage")), SpawnCount = ParquetIo.IN(r.GetValueOrDefault("spawn_count")), SpawnRange = ParquetIo.IN(r.GetValueOrDefault("spawn_range")), MinSpawnDelay = ParquetIo.IN(r.GetValueOrDefault("min_spawn_delay")), MaxSpawnDelay = ParquetIo.IN(r.GetValueOrDefault("max_spawn_delay")), RequiredPlayerRange = ParquetIo.IN(r.GetValueOrDefault("required_player_range")), MaxNearbyEntities = ParquetIo.IN(r.GetValueOrDefault("max_nearby_entities")) });
-        var ls = await BulkAsync(dir, "layer_segments.parquet", r => new LayerSegmentRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldYStart = ParquetIo.I(r["world_y_start"]), WorldYEnd = ParquetIo.I(r["world_y_end"]) });
+        var ls = await BulkAsync(dir, "layer_segments.parquet", r => new ScanSegmentRow { MapId = mapId, WorldX = ParquetIo.I(r["world_x"]), WorldZ = ParquetIo.I(r["world_z"]), WorldYStart = ParquetIo.I(r["world_y_start"]), WorldYEnd = ParquetIo.I(r["world_y_end"]) });
         return (wb, rb, ci, sb, ls);
     }
 
@@ -106,7 +106,7 @@ public sealed class MapImporter(PgmDb db, MapArtifactStore artifacts)
         var n = 0;
         foreach (var (file, kind) in new[]
                  {
-                     ("layer.parquet", ArtifactKind.LayerParquet),
+                     ("layer.parquet", ArtifactKind.SurfaceParquet),
                      ("islands.json", ArtifactKind.IslandsJson),
                      // symmetry.json is intentionally NOT imported: symmetry is computed on demand by
                      // the B7 endpoint (the pipeline symmetry step isn't ported), and old pipeline

@@ -19,12 +19,12 @@ namespace PgmStudio.Api.Services;
 /// </summary>
 public static class MapMoves
 {
-    public static IReadOnlyList<MapMove> From(string stage, MapLayers layers) =>
+    public static IReadOnlyList<MapMove> From(string stage, MapArtifacts layers) =>
     [
         .. Every(stage, layers).OrderByDescending(move => move.Next),
     ];
 
-    private static IEnumerable<MapMove> Every(string stage, MapLayers layers)
+    private static IEnumerable<MapMove> Every(string stage, MapArtifacts layers)
     {
         yield return new MapMove("edit the plan", "PUT /api/map/{slug}/plan",
             Next: stage == MapStage.Plan);

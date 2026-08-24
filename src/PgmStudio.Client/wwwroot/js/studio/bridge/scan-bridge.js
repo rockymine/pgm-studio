@@ -12,7 +12,7 @@ export async function mount(svgEl, wrapEl, slug) {
   renderer.setMode("islands");   // surface pixels + island outlines — the "cleaned base" view
 
   const [topSurface, islands, symmetry] = await Promise.all([
-    fetchJson(`/api/map/${enc}/layers/top-surface`),
+    fetchJson(`/api/map/${enc}/top-surface`),
     fetchJson(`/api/map/${enc}/islands`),
     fetchJson(`/api/map/${enc}/symmetry`),
   ]);

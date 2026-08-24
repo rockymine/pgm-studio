@@ -1,7 +1,7 @@
 /**
  * SideviewCanvas — depth-tinted vertical cross-section of the map.
  *
- * Renders layer_segments.parquet data projected onto either the X-Y or Z-Y plane.
+ * Renders scan_segment rows projected onto either the X-Y or Z-Y plane.
  * A draggable horizontal line represents the max build height.
  *
  * Data format from /api/map/<name>/segments:

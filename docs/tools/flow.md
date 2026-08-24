@@ -72,7 +72,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 
 | Endpoint | Answers | Fails with |
 |---|---|---|
-| `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the layers it holds — the list a driver picks a slug out of | — |
+| `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
 | `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under. A map already at that slug is replaced — see *The three documents are also the way back in* below | 422 the layout carries no ground |
 
@@ -182,7 +182,7 @@ level never writes into an earlier one — and that is all it means: a configure
 endpoint refuses on `map.stage`. What the stage is *for* is saying which of the moves already open is the one
 the author was about to make.
 
-**`GET /api/map/{slug}/layers` answers all of it**: the stage, the layers, and the moves they allow, each with
+**`GET /api/map/{slug}/state` answers all of it**: the stage, the artifacts, and the moves they allow, each with
 its route. A move is offered because the documents it reads are stored rather than because the stage is right
 — rebuilding a drawing from a plan needs a plan, whatever stage the map is at — so a driver reads its options
 instead of learning them from this document. Its pair is `GET /api/map/{slug}/findings`, which answers what is

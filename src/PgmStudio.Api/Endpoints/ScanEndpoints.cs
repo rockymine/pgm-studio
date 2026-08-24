@@ -1,7 +1,7 @@
 using FastEndpoints;
 using LinqToDB;
 using LinqToDB.Async;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -14,7 +14,7 @@ using PgmStudio.Contracts;
 using PgmStudio.Minecraft.Palette;
 
 /// <summary>Shared surface-parquet → pixels / block-types projection (B4 + B9).</summary>
-internal static class LayerData
+internal static class BlockPixels
 {
     /// <summary>Parallel xs/zs/colors arrays + bounds for a column set (caller ensures non-empty).</summary>
     public static BlockPixelsDto Pixels(IReadOnlyList<SurfaceCell> cells)
@@ -135,25 +135,25 @@ internal static class LayerData
 }
 
 /// <summary>
-/// GET /api/map/{slug}/layers/top-surface — per-column surface colour overlay (B4). Reads the cached
+/// GET /api/map/{slug}/top-surface — per-column surface colour overlay (B4). Reads the cached
 /// <c>layer.parquet</c> artifact, maps each column's (block_id, block_data) to a hex colour, and
 /// returns parallel xs/zs/colors arrays + the bounds. Mirrors the reference <c>layer_top_surface</c>;
 /// unblocks the "Blocks" canvas overlay (C6).
 /// </summary>
 public sealed class TopSurfaceEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<BlockPixelsDto>
 {
-    public override void Configure() { Get("/map/{slug}/layers/top-surface"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/top-surface"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.LayerParquet, ct);
+        var layer = await artifacts.LoadAsync(map.Id, ArtifactKind.SurfaceParquet, ct);
         if (layer is null) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
 
         var cells = await SurfaceScan.ReadAsync(layer);
         if (cells.Count == 0) { await Refusals.NotFoundAsync(HttpContext, "surface layer", ct); return; }
-        await Send.OkAsync(LayerData.Pixels(cells), ct);
+        await Send.OkAsync(BlockPixels.Pixels(cells), ct);
     }
 }
 
@@ -183,7 +183,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         // (a point's column + neighbours, or a rectangle's footprint). Absent params = the whole map.
         int? Q(string k) => int.TryParse(HttpContext.Request.Query[k], out var v) ? v : null;
         int? xmin = Q("xmin"), xmax = Q("xmax"), zmin = Q("zmin"), zmax = Q("zmax");
-        var q = db.LayerSegments.Where(s => s.MapId == map.Id);
+        var q = db.ScanSegments.Where(s => s.MapId == map.Id);
         if (xmin is int a) q = q.Where(s => s.WorldX >= a);
         if (xmax is int b) q = q.Where(s => s.WorldX <= b);
         if (zmin is int c) q = q.Where(s => s.WorldZ >= c);
@@ -219,7 +219,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
         }
         var refY = int.TryParse(HttpContext.Request.Query["y"], out var ry) ? ry : int.MaxValue;
 
-        var tops = await db.LayerSegments
+        var tops = await db.ScanSegments
             .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
             .Select(s => s.WorldYEnd).ToListAsync(ct);
         if (tops.Count == 0) { await Send.OkAsync(new ColumnFloorDto(null), ct); return; }

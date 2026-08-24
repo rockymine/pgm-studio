@@ -257,7 +257,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
                                           or OverflowException or KeyNotFoundException)
         { await Refusals.UnreadableAsync(HttpContext, "could not paint layout", fault.Message, ct); return; }
 
-        await Send.OkAsync(cells.Count == 0 ? LayerData.EmptyPixels() : LayerData.PalettePixels(cells), ct);
+        await Send.OkAsync(cells.Count == 0 ? BlockPixels.EmptyPixels() : BlockPixels.PalettePixels(cells), ct);
     }
 }
 

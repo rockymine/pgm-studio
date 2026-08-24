@@ -286,11 +286,11 @@ into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, a
 as an isolated marker into `B99`.
 
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
-  `TopDownRender.ReadColumns` takes `LayerExtractors.Surface` with no exclusions and derives the frame from
+  `TopDownRender.ReadColumns` takes `SurfaceExtractors.Surface` with no exclusions and derives the frame from
   `columns.Keys.Min/Max`, so a column whose only block is a **floor marker** at y≤2 counts as extent. The
   frame then reaches past the ground and the margin is painted as void — which is what makes the important
   corner of a narrow board read as empty. `HeightProfileRender` already gets this right on the same world.
-  `LayerExtractors` has the rule to reuse: `FloorMarkerMaxY` already distinguishes a marker sheet at the world
+  `SurfaceExtractors` has the rule to reuse: `FloorMarkerMaxY` already distinguishes a marker sheet at the world
   floor from the same block used as terrain.
 
   *measured on a board built from `marlstone-steps`' plan: the top-down frames **144 × 190** blocks
@@ -615,15 +615,15 @@ finished. Diagnostics rather than gates — telling an author their imported map
 refusing to re-export it is the studio overreaching. Include resolution sits here for the same reason: an
 `<include>` is something the reader must follow to see the map a server actually plays.
 
-- [ ] **B57 — `layer_segment` counts a build-region marker as solid ground.** Island detection now separates
+- [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** Island detection now separates
   terrain from markers and from what a map erases before play (`FEATURES.md`,
   `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
-  ingest derivation, `FeatureExtractors.Segments` → `layer_segment`, has its own exclusion set and applies
+  ingest derivation, `FeatureExtractors.Segments` → `scan_segment`, has its own exclusion set and applies
   neither rule, so a floor sheet at `y=0` persists as a solid span. Everything reading it at query time
   (`SegmentIndex.BaseColumns` → `IslandDetector.CleanedBaseFootprint`) therefore walks on a marker. Narrower
   than it sounds — that path feeds kit-reach, not the island picture the configure tool draws — which is why
   it is filed rather than fixed alongside. The two derivations should agree on what ground is, and the fix is
-  to route the floor-marker rule through both. **Blocked in practice by re-import**: `layer_segment` is
+  to route the floor-marker rule through both. **Blocked in practice by re-import**: `scan_segment` is
   written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
   a map can be re-imported.
 
@@ -706,15 +706,15 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
   (`docs/pgm/include-resolution.md` §4)
 
-- [ ] **P7 — [Deferred decision] Consolidate the layer extractors / scan passes.** **`ND2` settles the
-  "consolidate vs keep" half: KEEP the exact per-layer extractors** — the World step uses them in distinct
+- [ ] **P7 — [Deferred decision] Consolidate the scan passes.** **`ND2` settles the
+  "consolidate vs keep" half: KEEP the exact per-pass extractors** — the World step uses them in distinct
   roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
-  not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
+  not duplication; their per-pass default ignored-block sets (`Base` gets the expanded ND2 noise set;
   Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
-  `exclude_blocks`). Pairs with A4. **`WS13`'s `Q8` decides whether this family keeps the word `layer` at
-  all** — `LayerExtractors`, `layer_segment`, `LayerParquet` and `PgmStudio.Analysis.Layer` are four of the
-  seven senses that word carries, and none of them is a slab.
+  `exclude_blocks`). Pairs with A4. The naming half is settled — the family is the *scan* now
+  (`SurfaceExtractors`, `scan_segment`, `SurfaceParquet`, `PgmStudio.Analysis.Scan`, `WS13`) — and what is
+  left here is only whether the passes themselves consolidate.
 
 ### The plan model: pieces, and the edges between them
 

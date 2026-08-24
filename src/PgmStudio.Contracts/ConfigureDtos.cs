@@ -6,8 +6,8 @@ namespace PgmStudio.Contracts;
 /// Where the Configure wizard has got to on one map (<c>GET /configure/{slug}/state</c>): what the scan was
 /// told to read, and whether the author has settled the symmetry.
 /// </summary>
-/// <param name="ScanLayer">Which layer the world scan reads the ground off — <c>surface</c> unless the author
-/// picked otherwise.</param>
+/// <param name="ScanRead">Which reading the world scan takes the ground off — <c>surface</c> unless the
+/// author picked otherwise.</param>
 /// <param name="ExcludeBlocks">Block ids the scan is told to ignore when it decides what ground is.</param>
 /// <param name="ExcludeIslands">Detected islands the author has struck out, by their index in the stored
 /// decomposition. Excluding one re-runs symmetry without re-reading the world.</param>
@@ -15,7 +15,7 @@ namespace PgmStudio.Contracts;
 /// <param name="ConfigureComplete">Whether the wizard is done, which is exactly whether the symmetry has been
 /// settled — it is the last thing the wizard asks and nothing downstream can proceed without it.</param>
 public sealed record ConfigureStateDto(
-    [property: JsonPropertyName("scan_layer")] string ScanLayer,
+    [property: JsonPropertyName("scan_read")] string ScanRead,
     [property: JsonPropertyName("exclude_blocks")] IReadOnlyList<int> ExcludeBlocks,
     [property: JsonPropertyName("exclude_islands")] IReadOnlyList<int> ExcludeIslands,
     [property: JsonPropertyName("symmetry_status")] string SymmetryStatus,

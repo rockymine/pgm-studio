@@ -942,7 +942,7 @@ answer either way, which is what matters: `AD-S6` and the reviewer's `C14` both 
 looked at **in section** before it stands on a map, and an agent that can only open a raster could not.
 
 **After Finish**, the map holds rasterized world geometry and three more reads open up:
-`GET /map/{slug}/layers/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and
+`GET /map/{slug}/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and
 `GET /map/{slug}/column-floor`. Data again, not pictures.
 
 **No picture of a sketch exists as an endpoint.** The API's only raster is the plan board —

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Domain;
 using PgmStudio.Pgm;

@@ -174,11 +174,11 @@ cost — the corpus-scale confirmation that the style menu is the precision leve
 sign), nutrient (wool pedestal + in-column "v \<colour\> Wool v" sign).
 
 ### Why `layer_segment.parquet` can't drive this
-`layer_segment` stores only `(world_x, world_z, world_y_start, world_y_end)` — per-column solid-run
+`scan_segment` stores only `(world_x, world_z, world_y_start, world_y_end)` — per-column solid-run
 extents, with **no block ids/data, no tile entities (signs), no entities**. The decisive monument signals
 — pedestal *material*, sign *text* + *facing*, armour-stand NBT — are all absent, so it cannot detect or
 classify monuments; neither can the cached `layer.parquet` (surface block per column only). The suggester
-reads the Anvil world directly, bounded to the author's box. `layer_segment`'s reuse is **downstream**:
+reads the Anvil world directly, bounded to the author's box. `scan_segment`'s reuse is **downstream**:
 it (with `/buildability`) establishes where buildable ground / air gaps are, so it's the right artifact
 to **snap/validate** a suggested monument onto a surface — not to find it.
 

@@ -231,7 +231,7 @@ export class PlanCanvas extends CanvasBase {
 
   // ── reference (tracing) backdrop ────────────────────────────────────────────
   // A real map's top-down block render, painted behind the grid so the author can trace over it. `data` is the
-  // /api/map/{slug}/layers/top-surface payload ({xs,zs,colors,min_x,min_z,max_x,max_z}); `cfg` is
+  // /api/map/{slug}/top-surface payload ({xs,zs,colors,min_x,min_z,max_x,max_z}); `cfg` is
   // {offset:[x,z] cells, scale, opacity}. The <image> sits at its natural world/block coords; a group transform
   // auto-centres its bbox on the symmetry origin, then applies the author's offset (cells → blocks) and scale, so
   // it shares the plan's block frame — a real 10-block lane reads as 2 cells at scale 1. The PNG is rebuilt only

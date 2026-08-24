@@ -83,13 +83,13 @@ public partial class PlanTool
     private MapState? state;
     private bool confirmingRebuild;
 
-    private bool Rebuilds => state is { Layers: { } held } && (held.Sketch || held.World);
+    private bool Rebuilds => state is { Artifacts: { } held } && (held.Sketch || held.World);
     private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
 
-    private async Task LoadLayersAsync()
+    private async Task LoadStateAsync()
     {
         if (!MapBacked) { state = null; return; }
-        try { state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/layers"); }
+        try { state = await Http.GetFromJsonAsync<MapState>($"api/map/{Slug}/state"); }
         catch { state = null; }   // unreachable / not a map row → treat as a first build, never block one
     }
 
@@ -853,7 +853,7 @@ public partial class PlanTool
     {
         showCompile = true;
         confirmingRebuild = false;
-        await LoadLayersAsync();   // re-read on open: a build in this session changes the answer
+        await LoadStateAsync();   // re-read on open: a build in this session changes the answer
         await Compile();
     }
 
@@ -1044,7 +1044,7 @@ public partial class PlanTool
             if (!await Ok(intentResp, "apply intent")) return;
 
             draftSlug = slug;
-            await LoadLayersAsync();   // the map now holds a sketch and a world — the next build is a rebuild
+            await LoadStateAsync();   // the map now holds a sketch and a world — the next build is a rebuild
         }
         catch (Exception ex) { draftError = ex.Message; }
         finally { draftBusy = false; StateHasChanged(); }

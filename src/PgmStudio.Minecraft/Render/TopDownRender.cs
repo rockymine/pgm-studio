@@ -297,7 +297,7 @@ public static class TopDownRender
     private static Dictionary<(int X, int Z), Column> ReadColumns(
         List<AnvilRegion.Chunk> chunks, int? yMax, WorldProvenance? provenance)
     {
-        var surface = LayerExtractors.Surface(chunks, maxBuildHeight: yMax).ToList();
+        var surface = SurfaceExtractors.Surface(chunks, maxBuildHeight: yMax).ToList();
         var byCell = new Dictionary<(int X, int Z), Column>(surface.Count);
         foreach (var block in surface)
             byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY,

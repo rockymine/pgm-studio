@@ -3,7 +3,7 @@ namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Analysis.Region;
 using PgmStudio.Geom;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 
 using Dict = Dictionary<string, object?>;
 

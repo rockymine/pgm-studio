@@ -33,7 +33,7 @@ public sealed class SchemaRoundTripTests
                      "map", "team", "region", "filter", "wool", "monument", "spawn", "kit",
                      "kit_item", "kit_armor", "map_spawner", "renewable", "block_drop_rule",
                      "apply_rule", "author", "wool_block", "resource_block", "chest_item",
-                     "spawner_block", "monument_candidate", "layer_segment", "map_artifact",
+                     "spawner_block", "monument_candidate", "scan_segment", "map_artifact",
                      "destroyable", "core", "mode",
                  })
         {

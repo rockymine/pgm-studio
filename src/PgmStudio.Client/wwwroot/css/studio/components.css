@@ -241,7 +241,7 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
    row says where the map stands as well as where it can be opened. */
 .map-row-action { display: flex; justify-content: flex-end; }
 
-.map-layers { display: flex; justify-content: flex-end; gap: var(--space-1); flex-wrap: wrap; }
+.map-artifacts { display: flex; justify-content: flex-end; gap: var(--space-1); flex-wrap: wrap; }
 
 .map-layer {
   padding: 2px 8px;

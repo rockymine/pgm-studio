@@ -87,7 +87,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
     // Returns false when no scan data is available, so the caller can leave the toggle off.
     async setBlocks(visible) {
       if (visible && !blockData) {
-        blockData = await fetchJson(`/api/map/${encodeURIComponent(slug)}/layers/top-surface`).catch(() => null);
+        blockData = await fetchJson(`/api/map/${encodeURIComponent(slug)}/top-surface`).catch(() => null);
         if (!blockData) return false;
         canvas.loadBlockLayer(blockData);
       }

@@ -23,7 +23,7 @@ namespace PgmStudio.Contracts;
 /// <param name="ResourceBlocks">Iron, gold and diamond blocks found.</param>
 /// <param name="ChestItems">Item slots found inside chests.</param>
 /// <param name="SpawnerBlocks">Dispensers and spawners found.</param>
-/// <param name="LayerSegments">Vertical runs of ground recorded per column — the section a side view
+/// <param name="ScanSegments">Vertical runs of ground recorded per column — the section a side view
 /// draws.</param>
 /// <param name="Islands">Separate landmasses the decomposition found.</param>
 /// <param name="MonumentCandidates">Places that could be a wool monument, scored.</param>
@@ -34,7 +34,7 @@ public sealed record WorldScanDto(
     [property: JsonPropertyName("resource_blocks")] int ResourceBlocks,
     [property: JsonPropertyName("chest_items")] int ChestItems,
     [property: JsonPropertyName("spawner_blocks")] int SpawnerBlocks,
-    [property: JsonPropertyName("layer_segments")] int LayerSegments,
+    [property: JsonPropertyName("scan_segments")] int ScanSegments,
     int Islands,
     [property: JsonPropertyName("monument_candidates")] int MonumentCandidates,
     [property: JsonPropertyName("core_candidates")] int CoreCandidates,

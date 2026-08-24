@@ -1,4 +1,4 @@
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Pgm;
 

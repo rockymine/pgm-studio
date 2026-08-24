@@ -38,8 +38,8 @@ public sealed class MapsListEndpoint(MapRepository repo, MapArtifactStore artifa
             : await repo.ListByStageAsync(stage!, ct);
 
         var owners = await artifacts.HoldersAsync(
-            [ArtifactKind.LayerParquet, ArtifactKind.SketchLayoutJson, ArtifactKind.PlanJson], ct);
-        var withSurface = owners[ArtifactKind.LayerParquet];
+            [ArtifactKind.SurfaceParquet, ArtifactKind.SketchLayoutJson, ArtifactKind.PlanJson], ct);
+        var withSurface = owners[ArtifactKind.SurfaceParquet];
         var withSketch = owners[ArtifactKind.SketchLayoutJson];
         var withPlan = owners[ArtifactKind.PlanJson];
 

@@ -266,7 +266,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
 
   async function fetchSurface(slug) {
     let res;
-    try { res = await fetch(`/api/map/${encodeURIComponent(slug)}/layers/top-surface`); } catch { return null; }
+    try { res = await fetch(`/api/map/${encodeURIComponent(slug)}/top-surface`); } catch { return null; }
     if (!res.ok) return null;
     try { return await res.json(); } catch { return null; }
   }

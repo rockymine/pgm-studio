@@ -127,7 +127,7 @@ Three consequences, and they reach further than this document:
 2. **Phantoms are load-bearing — dropping one is worse than losing an objective.** Lose abstract's phantom and
    the glass floor is never erased: the map keeps a solid bridge between the teams and plays wrong, rather
    than merely missing a goal.
-3. **It is what island detection would otherwise have to guess.** `LayerExtractors.CleanBaseExclude` excludes
+3. **It is what island detection would otherwise have to guess.** `SurfaceExtractors.CleanBaseExclude` excludes
    stained glass (95) as a "build-floor marker removed pre-game via a `destroyables` mode-change" — a material
    heuristic standing in for this exact pattern. The parsed phantom is exact where the heuristic guesses: its
    region states precisely which blocks vanish before play.

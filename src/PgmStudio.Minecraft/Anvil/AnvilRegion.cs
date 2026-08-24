@@ -50,7 +50,7 @@ public static class AnvilRegion
 
     /// <summary>Every chunk of an in-memory <see cref="VoxelWorld"/> as <see cref="Chunk"/>s, without touching
     /// disk. A world about to be written to region files, or one built for a preview that will never be
-    /// written at all, reads back through the same <see cref="Sections"/>/<see cref="LayerExtractors"/> path a
+    /// written at all, reads back through the same <see cref="Sections"/>/<see cref="SurfaceExtractors"/> path a
     /// loaded map does — <see cref="AnvilRegionWriter.BuildLevel"/> builds the identical <c>Level</c> NBT the
     /// writer would encode to a file, just kept as objects, so a world read-back renderer never needs a second
     /// world load to look at what was just built.</summary>

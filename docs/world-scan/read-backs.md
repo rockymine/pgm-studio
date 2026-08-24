@@ -185,7 +185,7 @@ is what makes a building behind the cut read as a building rather than as a ligh
 there" the same pixel. Sixteen blocks is the cap — a chunk, and deeper than any room this studio builds.
 
 `column` is still the only read that keeps Y over a single cell, and `sideview` the only one that reduces a
-whole map to a depth map per direction; it reads `layer_segments` rows and so answers only for a scanned map,
+whole map to a depth map per direction; it reads `scan_segment` rows and so answers only for a scanned map,
 which is why the two coexist rather than one replacing the other.
 
 The walk runs over **a place per standable surface**, so an overhang, a tunnel and a deck over a yard are each

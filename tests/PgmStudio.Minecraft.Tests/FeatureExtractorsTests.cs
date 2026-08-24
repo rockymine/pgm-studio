@@ -127,7 +127,7 @@ public class FeatureExtractorsTests
     }
 
     private static Dictionary<(int, int), (int Y, int Id)> FeatureExtractors_SurfaceByColumn() =>
-        LayerExtractors.Surface([BuildChunk()]).ToDictionary(s => (s.WorldX, s.WorldZ), s => (s.WorldY, s.BlockId));
+        SurfaceExtractors.Surface([BuildChunk()]).ToDictionary(s => (s.WorldX, s.WorldZ), s => (s.WorldY, s.BlockId));
 
     [Test]
     public async Task Segments_OneInclusiveRunPerSolidColumn()

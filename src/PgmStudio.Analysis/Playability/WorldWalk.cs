@@ -1,5 +1,5 @@
 using PgmStudio.Analysis.Footprint;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Geom;
 
 namespace PgmStudio.Analysis.Playability;

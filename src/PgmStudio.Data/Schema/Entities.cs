@@ -347,8 +347,8 @@ public sealed class MonumentCandidateRow
     [Column("evidence")] public string? Evidence { get; set; }
 }
 
-[Table("layer_segment")]
-public sealed class LayerSegmentRow
+[Table("scan_segment")]
+public sealed class ScanSegmentRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("map_id"), NotNull] public long MapId { get; set; }
@@ -394,7 +394,7 @@ public sealed class SymmetryRow
 /// <summary>Well-known <see cref="MapArtifactRow.Kind"/> values.</summary>
 public static class ArtifactKind
 {
-    public const string LayerParquet = "layer_parquet";
+    public const string SurfaceParquet = "surface_parquet";
     public const string IslandsJson = "islands_json";
     // symmetry_json was promoted to the `symmetry` table (M0003).
     public const string MapConfigJson = "map_config_json";

@@ -445,7 +445,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `POST /plan/{planId}/author` | — | `{slug}` — a map row seeded from a generator candidate | 404 unknown candidate |
 | `GET /map/{slug}/plan` | — | the stored document, or `{}` | 404 unknown map |
 | `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
-| `GET /map/{slug}/layers` | — | `{stage, layers, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
+| `GET /map/{slug}/state` | — | `{stage, layers, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
 | `GET /map/{slug}/findings` | — | `{stage, findings[], unasked[], refuses}` — everything wrong with the map right now, from every gate its stored documents can answer, plus the gates a read cannot reach and the route that does pay for them | 404 |
 | `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
 | `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: each objective's two walks and the ratio between them, where the ways in part and meet, whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
@@ -544,7 +544,7 @@ PUT    /api/map/voidwatch/intent/from-plan   <intent verbatim>
 
 `POST /api/plan/evaluate` and `POST /api/plan/feasibility` may be called on the document at any point before
 the compile, with no map in existence, and are the cheapest way to find out whether a board is well-formed.
-`GET /api/map/{slug}/layers` before the build says whether this is an origination or a rebuild, and what
+`GET /api/map/{slug}/state` before the build says whether this is an origination or a rebuild, and what
 else may be done from here. `GET /api/map/{slug}/export` afterwards returns the world.
 
 **Two reads make the loop act-then-ask rather than act-and-hope.** Every other gate is reached through the
@@ -553,7 +553,7 @@ placed is heard at the compile, a layout that rasterizes to nothing at the finis
 `GET /api/map/{slug}/findings` asks all of them at once, off the stored documents, and calls the same methods
 those steps call rather than restating them. It does not build: the export gates need the rasterized world,
 which is seconds a read would spend on every call, so each is named in `unasked` with the route that does pay
-— a list silent about what it skipped would read as *nothing is wrong*. `GET /api/map/{slug}/layers` is the
+— a list silent about what it skipped would read as *nothing is wrong*. `GET /api/map/{slug}/state` is the
 other half: what may be done next, with the route for each.
 
 **Two further calls belong after the intent, and the order is load-bearing.**

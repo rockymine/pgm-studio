@@ -63,10 +63,10 @@ public sealed class MapStateAndFindingsTests
         using var client = await FreshAsync();
         var slug = await PlanAsync(client, "Weirgate");
 
-        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/layers");
+        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/state");
 
         await Assert.That(state!.Stage).IsEqualTo("plan");
-        await Assert.That(state.Layers.Plan).IsTrue();
+        await Assert.That(state.Artifacts.Plan).IsTrue();
         await Assert.That(state.Moves).IsNotEmpty();
 
         var served = await ServedAsync(client);
@@ -86,7 +86,7 @@ public sealed class MapStateAndFindingsTests
         using var client = await FreshAsync();
         var slug = await PlanAsync(client, "Weirgate");
 
-        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/layers");
+        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/state");
         var routes = state!.Moves.Select(move => move.Route).ToList();
 
         await Assert.That(routes).Contains("PUT /api/map/{slug}/sketch/from-plan");

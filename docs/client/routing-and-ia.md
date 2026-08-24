@@ -4,7 +4,7 @@ Where everything lives in the URL, what each surface is called, and how a reader
 map and back. It owns four things nothing else does: the **URL law**, the **route table**, the **labels** the
 UI shows against the names the code uses, and the **collections** the maps page fans into. It does not
 describe what any tool does — that is `../tools/`, starting at `flow.md`, which also owns the difference
-between a map's stage and the layers it carries.
+between a map's stage and the artifacts it carries.
 
 ## The URL law
 

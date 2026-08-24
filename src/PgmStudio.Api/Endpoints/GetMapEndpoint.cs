@@ -52,24 +52,24 @@ public sealed class MapFindingsEndpoint(MapRepository repo, MapArtifactStore art
     }
 }
 
-/// <summary>GET /api/map/{slug}/layers — where this map has got to, which authoring layers it holds, and
+/// <summary>GET /api/map/{slug}/state — where this map has got to, which authoring artifacts it holds, and
 /// what may be done to it from here. A tool asks about the map it has open so it can tell an origination
 /// from a rebuild before offering the action rather than after performing it; the moves are the same
 /// question answered outright.</summary>
-public sealed class MapLayersEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapState>
+public sealed class MapStateEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<MapState>
 {
-    public override void Configure() { Get("/map/{slug}/layers"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/state"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var kinds = await artifacts.KindsAsync(map.Id, ct);
-        var layers = new MapLayers(
+        var held = new MapArtifacts(
             kinds.Contains(ArtifactKind.PlanJson),
             kinds.Contains(ArtifactKind.SketchLayoutJson),
-            kinds.Contains(ArtifactKind.LayerParquet),
+            kinds.Contains(ArtifactKind.SurfaceParquet),
             kinds.Contains(ArtifactKind.MapIntentJson));
-        await Send.OkAsync(new MapState(map.Stage, layers, MapMoves.From(map.Stage, layers)), ct);
+        await Send.OkAsync(new MapState(map.Stage, held, MapMoves.From(map.Stage, held)), ct);
     }
 }

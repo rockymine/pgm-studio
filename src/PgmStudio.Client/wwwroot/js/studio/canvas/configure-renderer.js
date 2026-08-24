@@ -45,7 +45,7 @@ export class ConfigureRenderer extends StaticSvgRenderer {
     this._build();
   }
 
-  /** Block pixel data from /api/map/<name>/layers/top-surface */
+  /** Block pixel data from /api/map/<name>/top-surface */
   loadBlockLayer(data) {
     this.#blockData = data;
     if (!this._bbox) {

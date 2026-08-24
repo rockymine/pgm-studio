@@ -1,4 +1,4 @@
-namespace PgmStudio.Analysis.Layer;
+namespace PgmStudio.Analysis.Scan;
 
 /// <summary>
 /// Side-view depth projection.

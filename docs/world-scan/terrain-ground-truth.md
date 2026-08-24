@@ -10,7 +10,7 @@ and what the map *says*.
 
 ## 1. Noise — blocks that are never ground, anywhere
 
-`LayerExtractors.CleanBaseExclude` is the flat exclusion: water and lava (the usual island *bridge*), foliage
+`SurfaceExtractors.CleanBaseExclude` is the flat exclusion: water and lava (the usual island *bridge*), foliage
 (leaves, logs, canopy, saplings, tall grass, vines, lily pads), redstone lines, cobweb, and PGM's invisible
 block-36 marker. A bottom-up scan looks up into anything above the terrain, so on a decorated world these form
 connected masses that merge islands which are not connected at all.
@@ -73,7 +73,7 @@ or blocks above the floor, is read correctly and no corpus map exercises that.
 ## 4. Where each rule applies
 
 All three run at **ingest**, inside the single world pass (`WorldFeatureWriter.WriteAsync` →
-`LayerExtractors.CleanColumns` → `islands_json`). The world is discarded afterwards, so an already-imported
+`SurfaceExtractors.CleanColumns` → `islands_json`). The world is discarded afterwards, so an already-imported
 map keeps the island picture it was imported with; a change to any rule here reaches existing maps only
 through re-import.
 
@@ -81,7 +81,7 @@ Only §3 needs the map's XML, and only a corpus map scanned through `scan-world`
 zip or folder import carries no XML by design, because the XML is what the configure tool *produces* from it.
 Those imports pass `PhantomErasure.None`, and §1 and §2 carry them entirely.
 
-`layer_segment` is a separate ingest derivation with its own exclusion (`FeatureExtractors.SegmentExclude`)
+`scan_segment` is a separate ingest derivation with its own exclusion (`FeatureExtractors.SegmentExclude`)
 and does not apply §2 or §3, so the query-time footprint built from it (`SegmentIndex.BaseColumns` →
 `IslandDetector.CleanedBaseFootprint`) still counts a floor marker as solid. That inconsistency is real and
 filed (`B57`); it is narrower than it sounds, because that path feeds kit-reach analysis rather than the

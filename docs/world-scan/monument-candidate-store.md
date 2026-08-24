@@ -18,7 +18,7 @@ Read alongside:
 The end state is a hosted tool: on the server where the map is built, the author types an in-game command, a
 plugin saves and zips the region files, uploads them, and posts back a link to author the map. For that the
 web tier has to be **stateless** — no mounted `.mca` corpus — and monument suggestion is the hardest of the
-three operations that used to read a world at runtime, because `layer_segment`/`layer.parquet` cannot drive
+three operations that used to read a world at runtime, because `scan_segment`/`layer.parquet` cannot drive
 it: they carry no block materials, no signs and no entities.
 
 The fix is the shape the rest of the data model already uses: **process the world once at ingest, persist the
@@ -180,5 +180,5 @@ unchanged, and the author corrects it on confirm.
 per-map thresholds they belong in `map_config_json`, not here, because this table stores results rather than
 settings.
 
-**Snapping a confirmed suggestion onto buildable ground** using `layer_segment` is downstream of this and
+**Snapping a confirmed suggestion onto buildable ground** using `scan_segment` is downstream of this and
 independent of it.

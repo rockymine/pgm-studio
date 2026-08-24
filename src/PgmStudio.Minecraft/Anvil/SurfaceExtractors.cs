@@ -6,9 +6,9 @@ namespace PgmStudio.Minecraft.Anvil;
 public readonly record struct SurfaceBlock(int WorldX, int WorldZ, int WorldY, int BlockId, int BlockData);
 
 /// <summary>
-/// Layer extractors — one row per column, the input to island detection. <c>SurfaceExtractor</c> from <c>minecraft/layers.py</c> (the default <c>ScanConfig.layer</c>).
+/// Surface extractors — one row per column, the input to island detection.
 /// </summary>
-public static class LayerExtractors
+public static class SurfaceExtractors
 {
     /// <summary>
     /// Highest non-excluded, non-air block per column (top-down). <paramref name="maxBuildHeight"/>

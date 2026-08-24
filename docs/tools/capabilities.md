@@ -8,7 +8,7 @@ the process (`mapgen-review.md` MG29).
 Four layers, in the order a map moves through them: a **plan** says where things go in cells, a **layout**
 says what ground exists and what it is made of, an **intent** says what the map is played for, and the
 **world plus `map.xml`** is what a server loads. Nothing skips a layer, and each is stored separately, so a
-map can stand at any of `plan` / `sketch` / `configure` / `edit` (`MapStage`) and carry the layers below it.
+map can stand at any of `plan` / `sketch` / `configure` / `edit` (`MapStage`) and carry the artifacts below it.
 
 ## The documents
 

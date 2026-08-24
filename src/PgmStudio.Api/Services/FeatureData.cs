@@ -1,6 +1,6 @@
 using LinqToDB;
 using LinqToDB.Async;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -15,7 +15,7 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
 {
     /// <summary>True when the map was world-scanned (has a cached raw layer artifact).</summary>
     public Task<bool> HasScanAsync(long mapId, CancellationToken ct = default)
-        => artifacts.HasAsync(mapId, ArtifactKind.LayerParquet, ct);
+        => artifacts.HasAsync(mapId, ArtifactKind.SurfaceParquet, ct);
 
     /// <summary>The canonical map bounding box (surface-layer extent saved at scan, islands-AABB fallback) —
     /// the finite clip box for unbounded <c>half</c>/<c>negative</c> regions. Null when neither is available.</summary>
@@ -24,7 +24,7 @@ public sealed class FeatureData(PgmDb db, MapArtifactStore artifacts)
 
     public async Task<SegmentIndex?> SegmentsAsync(long mapId, CancellationToken ct = default)
     {
-        var rows = await db.LayerSegments.Where(s => s.MapId == mapId).ToListAsync(ct);
+        var rows = await db.ScanSegments.Where(s => s.MapId == mapId).ToListAsync(ct);
         return rows.Count == 0 ? null : new SegmentIndex(rows.Select(r => (r.WorldX, r.WorldZ, r.WorldYStart, r.WorldYEnd)));
     }
 

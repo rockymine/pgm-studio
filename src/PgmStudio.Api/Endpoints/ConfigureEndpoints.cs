@@ -14,7 +14,7 @@ using PgmStudio.Contracts;
 
 /// <summary>
 /// The per-map scan configuration document (the <c>map_config_json</c> artifact): the island exclusions
-/// and the studio-chosen <c>scan_layer</c> marker written at world-load, plus the surface bounding box the
+/// and the studio-chosen <c>scan_read</c> marker written at world-load, plus the surface bounding box the
 /// scan measured. Detection runs on the fixed cleaned-base layer (no user scan-layer or block-exclusion
 /// choice, and no world re-scan): excluding an island only recomputes symmetry from the already-detected
 /// <c>islands_json</c>. A map with no stored document reads as the default below rather than as absent —
@@ -28,10 +28,10 @@ internal static class ScanConfig
         if (data is not null && JsonNode.Parse(Encoding.UTF8.GetString(data)) is JsonObject stored) return stored;
         return new JsonObject
         {
-            ["scan_layer"] = "surface",
+            ["scan_read"] = "surface",
             ["exclude_blocks"] = new JsonArray(),
             ["exclude_islands"] = new JsonArray(),
-            ["scan_layer_confirmed"] = false,
+            ["scan_read_confirmed"] = false,
         };
     }
 
@@ -60,7 +60,7 @@ public sealed class ConfigureStateEndpoint(MapRepository repo, PgmDb db, MapArti
         var symmetryStatus = symRow?.Status ?? "unconfirmed";
 
         await Send.OkAsync(new ConfigureStateDto(
-            cfg["scan_layer"]?.GetValue<string>() ?? "surface",
+            cfg["scan_read"]?.GetValue<string>() ?? "surface",
             [.. cfg["exclude_blocks"]?.AsArray().Select(n => n!.GetValue<int>()) ?? []],
             [.. cfg["exclude_islands"]?.AsArray().Select(n => n!.GetValue<int>()) ?? []],
             symmetryStatus,
@@ -102,16 +102,16 @@ public sealed class ConfigureExcludeIslandEndpoint(MapRepository repo, PgmDb db,
 internal static class ConfigureLayers
 {
     /// <summary>The cells for a layer type from the ingested artifacts, or null when not cached. The
-    /// studio-chosen <c>scan_layer</c> is served from the canonical <c>layer.parquet</c>; any other type
+    /// studio-chosen <c>scan_read</c> is served from the canonical <c>layer.parquet</c>; any other type
     /// from its per-type cache if one was stored. Never scans the world — the hosted tier has no
     /// <c>.mca</c> files, and per-map re-scan/re-detection is out of scope.</summary>
     public static async Task<List<SurfaceCell>?> CellsAsync(
         MapArtifactStore artifacts, long mapId, string layerType, CancellationToken ct)
     {
         var cfg = await ScanConfig.LoadAsync(artifacts, mapId, ct);
-        var scanLayer = cfg["scan_layer"]?.GetValue<string>() ?? "surface";
+        var scanRead = cfg["scan_read"]?.GetValue<string>() ?? "surface";
 
-        if (layerType == scanLayer && await artifacts.LoadAsync(mapId, ArtifactKind.LayerParquet, ct) is { } canon)
+        if (layerType == scanRead && await artifacts.LoadAsync(mapId, ArtifactKind.SurfaceParquet, ct) is { } canon)
             return await SurfaceScan.ReadAsync(canon);
 
         return await artifacts.LoadAsync(mapId, $"layer_{layerType}_parquet", ct) is { } cached

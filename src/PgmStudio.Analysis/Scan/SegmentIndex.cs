@@ -1,6 +1,6 @@
 using PgmStudio.Geom;
 
-namespace PgmStudio.Analysis.Layer;
+namespace PgmStudio.Analysis.Scan;
 
 /// <summary>
 /// Vertical-segment terrain index: solid Y-ranges per (x,z) column. The single source for Y=0 presence

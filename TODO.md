@@ -17,7 +17,7 @@ built under a meadow is the worked example, and it is committed on this branch.
 
 | | the question | blocks |
 |---|---|---|
-| **Q8** | The three type renames are settled and the scan family's own word — *segment* — is already the right one, so what is left is its borrowed `layer_` prefix and the public route `GET /map/{slug}/layers`, whose response says which *artifacts* a map holds. **The proposal, absent an objection:** drop the prefix (`SegmentIndex` keeps its name, `layer_segment` becomes `segment`, `LayerExtractors` becomes `SegmentExtractors`), and the route becomes `GET /map/{slug}/state` over a `MapArtifacts` record, which is what it already returns. | `WS13` `P7` |
+| **Q8** | The three type renames are settled and the scan family's own word — *segment* — is already the right one, so what is left is its borrowed `layer_` prefix and the public route `GET /map/{slug}/state`, whose response says which *artifacts* a map holds. **The proposal, absent an objection:** drop the prefix (`SegmentIndex` keeps its name, `scan_segment` becomes `segment`, `SurfaceExtractors` becomes `SegmentExtractors`), and the route becomes `GET /map/{slug}/state` over a `MapArtifacts` record, which is what it already returns. | `WS13` `P7` |
 
 The word collides there and nowhere else because **a scanned cave and a stacked sketch are the same geometry
 seen twice**, which `docs/tools/sketch.md` § Layers now says whichever way `Q8` goes.
@@ -84,17 +84,6 @@ seven places stated what a document's layers were, in three different readings. 
 document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
 `FEATURES.md`). What is left below is what the layer id is *for*.
 
-- [ ] **WS13 — Free the word `layer` in the scan family and on the route.** The three type renames landed
-  (`FEATURES.md`); `SketchLayer` stays, being the one use where the word is true. What is left is what `Q8`
-  decides: the **scan-segment family**, whose own word — *segment* — is already right, so only its borrowed
-  prefix is in question (`LayerSegments`, `layer_segment`, `LayerExtractors`, `LayersEndpoints.cs`,
-  `LayerParquet`, `scan_layer`, `PgmStudio.Analysis.Layer`), which `P7` also spends; and
-  **`GET /map/{slug}/layers`**, whose response says which *authoring artifacts* a map holds while `layers[]`
-  in the sketch document means slabs — the collision itself. Both cost a migration and nothing else.
-
-  *Also carrying it and deliberately untouched: the canvas z-stack (`render/layer-stack.js`, `data-layer`),
-  which is the graphics term and reads as one; and `LayeredMaterial`'s own `layers[]` inside the theme JSON.*
-
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
   layer index per run and the toggle is client-side filtering in `sketch-canvas`'s column mesh. The claim has to be keyed on
@@ -117,7 +106,7 @@ document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the
 
 - [~] **RP23 — `docs/tools/capabilities.md` is 707 lines answering "what can I ask for", which the API now
   answers itself.** The schema names every route, its body and its failure codes; `GET /api/rules` names
-  every refusal with its fix; `GET /map/{slug}/layers` puts the allowed moves on the map's own response.
+  every refusal with its fix; `GET /map/{slug}/state` puts the allowed moves on the map's own response.
   What prose is good at and this file is not organised around is the other half: **how to make a good map** —
   what an objective needs around it, what the corpus does — as against **what the system can be asked for**.
   Split it on that line: the capability half goes, the craft half moves to where its subject lives under

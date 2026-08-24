@@ -119,7 +119,7 @@ if (dcbIdx >= 0 && dcbIdx + 2 < args.Length)
     var ch = Directory.GetFiles(rd, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
     using var w = new StreamWriter(args[dcbIdx + 2]);
     w.WriteLine("x,z,baseY,blockId");
-    foreach (var c in PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(ch))
+    foreach (var c in PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanBase(ch))
         w.WriteLine($"{c.WorldX},{c.WorldZ},{c.WorldY},{c.BlockId}");
     Console.WriteLine($"dumped clean-base columns → {args[dcbIdx + 2]}");
     return 0;
@@ -564,12 +564,12 @@ static int RunIslandErasure(string[] corpusRoots, bool verbose)
         if (!erased.IsEmpty) withErasure++;
 
         // The old reading: stained glass excluded in every map, phantoms unread.
-        var guessExclude = new HashSet<int>(LayerExtractors.CleanBaseExclude) { 95 };
+        var guessExclude = new HashSet<int>(SurfaceExtractors.CleanBaseExclude) { 95 };
         var before = IslandDetector.DetectCleanedStairAware(
-            LayerExtractors.CleanColumns(chunks, PhantomErasure.None, guessExclude)
+            SurfaceExtractors.CleanColumns(chunks, PhantomErasure.None, guessExclude)
                 .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList(), []);
         var after = IslandDetector.DetectCleanedStairAware(
-            LayerExtractors.CleanColumns(chunks, erased)
+            SurfaceExtractors.CleanColumns(chunks, erased)
                 .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList(), []);
 
         if (before.Count == after.Count && !verbose) continue;
@@ -902,16 +902,16 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
         .Select(s => new ScanSegmentRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList());
 
     // Surface layer → layer.parquet (the cached artifact + the bounding-box source)
-    var surface = PgmStudio.Minecraft.Anvil.LayerExtractors.Surface(chunks).ToList();
+    var surface = PgmStudio.Minecraft.Anvil.SurfaceExtractors.Surface(chunks).ToList();
     await WriteParquet(Path.Combine(outDir, "layer.parquet"), surface
-        .Select(s => new ScanLayerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData }).ToList());
+        .Select(s => new SurfaceScanRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, BlockId = s.BlockId, BlockData = s.BlockData }).ToList());
 
     // Stair-aware islands on the cleaned columns, with the lazy y0 → bedrock fallback (matches
     // WorldFeatureWriter) → islands.json
     static (int X, int Z, int Y) Cell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var columns = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanColumns(chunks)
+    var columns = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanColumns(chunks)
         .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
-    var fallbacks = new[] { PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(Cell), PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(Cell) };
+    var fallbacks = new[] { PgmStudio.Minecraft.Anvil.SurfaceExtractors.Y0(chunks).Select(Cell), PgmStudio.Minecraft.Anvil.SurfaceExtractors.Bedrock(chunks).Select(Cell) };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleanedStairAware(columns, fallbacks);
     await File.WriteAllTextAsync(Path.Combine(outDir, "islands.json"), PgmStudio.Analysis.Footprint.IslandDetector.SerializeJson(islands));
 
@@ -938,8 +938,8 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     {
         ["exclude_islands"] = new System.Text.Json.Nodes.JsonArray(),
         ["exclude_blocks"] = new System.Text.Json.Nodes.JsonArray(),
-        ["scan_layer"] = "cleanbase",
-        ["scan_layer_confirmed"] = false,
+        ["scan_read"] = "cleanbase",
+        ["scan_read_confirmed"] = false,
         ["bounding_box"] = surface.Count > 0
             ? new System.Text.Json.Nodes.JsonObject { ["min_x"] = minX, ["min_z"] = minZ, ["max_x"] = maxX, ["max_z"] = maxZ }
             : null,
@@ -980,9 +980,9 @@ static int RunIslandSketch(string mapDir, string outJson)
     if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
     var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
     static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var columns = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanColumns(chunks)
+    var columns = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanColumns(chunks)
         .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
-    var fallbacks = new[] { PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell), PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell) };
+    var fallbacks = new[] { PgmStudio.Minecraft.Anvil.SurfaceExtractors.Y0(chunks).Select(ToCell), PgmStudio.Minecraft.Anvil.SurfaceExtractors.Bedrock(chunks).Select(ToCell) };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleanedStairAware(columns, fallbacks);
 
     static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
@@ -1026,16 +1026,16 @@ static int RunIslandStairAware(string mapDir)
     if (!Directory.Exists(regionDir)) { Console.Error.WriteLine($"  no region/ at {regionDir}"); return 1; }
     var chunks = Directory.GetFiles(regionDir, "*.mca").SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
 
-    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks)
+    var baseCells = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanBase(chunks)
         .Select(b => (b.WorldX, b.WorldZ, b.WorldY)).ToList();
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Y0(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Bedrock(chunks).Select(b => (b.WorldX, b.WorldZ, b.WorldY)),
     };
     var old = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
-    var columns = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanColumns(chunks)
+    var columns = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanColumns(chunks)
         .Select(c => (c.WorldX, c.WorldZ, c.BaseY, c.Surfaces)).ToList();
     var neu = PgmStudio.Analysis.Footprint.IslandDetector.DetectStairAware(columns);
 
@@ -1412,7 +1412,7 @@ static async Task<int> RunIslandParity(string regionDir, string oracleDir)
     IEnumerable<PgmStudio.Minecraft.Anvil.AnvilRegion.Chunk> Chunks() => mcas.SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks);
 
     // Surface layer: compare row count to layer.parquet (default ScanConfig: surface, no exclude/cap).
-    var surface = PgmStudio.Minecraft.Anvil.LayerExtractors.Surface(Chunks()).ToList();
+    var surface = PgmStudio.Minecraft.Anvil.SurfaceExtractors.Surface(Chunks()).ToList();
     var layerOra = await TryRead(Path.Combine(oracleDir, "layer.parquet"));
     var surfOk = surface.Count == layerOra.Count;
     Console.WriteLine($"  {(surfOk ? "OK  " : "FAIL")} surface        mine={surface.Count} oracle={layerOra.Count}");
@@ -1453,12 +1453,12 @@ static int RunCleanBaseRender(string regionDir, string outSvg)
         .SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
     static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
 
-    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var baseCells = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanBase(chunks).Select(ToCell).ToList();
     // Deferred — only extracted/scanned if the cleaned base reads degenerately (the fallback path).
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell),
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Bedrock(chunks).Select(ToCell),
     };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
@@ -1511,11 +1511,11 @@ static int RunIslandStudy(string regionDir, string outJson, double tolerance)
     var chunks = Directory.GetFiles(regionDir, "*.mca")
         .SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
     static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var baseCells = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanBase(chunks).Select(ToCell).ToList();
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell),
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Bedrock(chunks).Select(ToCell),
     };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
@@ -1567,11 +1567,11 @@ static int RunSkeletonStudy(string regionDir, string mapXml, string outJson, dou
     var chunks = Directory.GetFiles(regionDir, "*.mca")
         .SelectMany(PgmStudio.Minecraft.Anvil.AnvilRegion.ReadChunks).ToList();
     static (int, int, int) ToCell(PgmStudio.Minecraft.Anvil.SurfaceBlock b) => (b.WorldX, b.WorldZ, b.WorldY);
-    var baseCells = PgmStudio.Minecraft.Anvil.LayerExtractors.CleanBase(chunks).Select(ToCell).ToList();
+    var baseCells = PgmStudio.Minecraft.Anvil.SurfaceExtractors.CleanBase(chunks).Select(ToCell).ToList();
     var fallbacks = new[]
     {
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Y0(chunks).Select(ToCell),
-        PgmStudio.Minecraft.Anvil.LayerExtractors.Bedrock(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Y0(chunks).Select(ToCell),
+        PgmStudio.Minecraft.Anvil.SurfaceExtractors.Bedrock(chunks).Select(ToCell),
     };
     var islands = PgmStudio.Analysis.Footprint.IslandDetector.DetectCleaned(baseCells, fallbacks);
 
@@ -1788,7 +1788,7 @@ sealed class ScanSegmentRow
     [JP("world_y_end")] public int WorldYEnd { get; set; }
 }
 
-sealed class ScanLayerRow
+sealed class SurfaceScanRow
 {
     [JP("world_x")] public int WorldX { get; set; }
     [JP("world_z")] public int WorldZ { get; set; }

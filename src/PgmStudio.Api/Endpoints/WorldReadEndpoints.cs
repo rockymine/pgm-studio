@@ -10,7 +10,7 @@ using PgmStudio.Minecraft.Render;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;

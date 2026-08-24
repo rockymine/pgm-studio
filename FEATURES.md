@@ -114,14 +114,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (B52)
 - **The build says which of the two things it is about to do (S39).** One button meant both *originate this
   map* and *replace a board someone has since been working on*, and read the same either way. It now reads
-  the map first (`GET /api/map/{slug}/layers` → the four layer facts for one map, the per-map form of what
+  the map first (`GET /api/map/{slug}/state` → the four artifact facts for one map, the per-map form of what
   the list carries): a plan with no sketch and no world offers **Build the map** and runs; a map that has
   both offers **Rebuild this map** and states the trade before doing it — *replaces* the terrain and islands
   plus the teams, spawns, wools and build zones the plan states; *keeps* the terrain themes, room shells,
   placed dressing and the map's authors. That list is not decoration: it is exactly what B49 and B52 made
   true, so the sentence and the behaviour are the same fact. Cancel is a real exit, and a first build is
   never interrupted — there is nothing to lose, and a confirmation that always fires is one nobody reads.
-  (`MapLayers`, `MapLayersEndpoint`, `PlanTool`, `.plan-rebuild-warn`; e2e `map-layers`) (S39)
+  (`MapArtifacts`, `MapStateEndpoint`, `PlanTool`, `.plan-rebuild-warn`; e2e `map-layers`) (S39)
 - **Plan editor entry on the landing** — the studio landing (`/`) leads with a featured *Plan a
   layout* origin card (author a coarse cell-grid seed → compile straight into a sketch draft), set
   above a labelled `or work a map through its stages` divider from the three lifecycle cards; the
@@ -700,7 +700,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   in `unasked` with what it needs and the route that does pay, because a list silent about what it skipped
   reads as *nothing is wrong*.
 
-  **`GET /map/{slug}/layers` answers the other half** — where the map has got to, what it holds, and what may
+  **`GET /map/{slug}/state` answers the other half** — where the map has got to, what it holds, and what may
   be done from here, each move `{does, route, next}`. **A stage is a progress marker, not a lock**: nothing
   refuses on `map.stage`, because the one-way flow means nothing reads back up rather than that a built map
   may never be re-planned. A move is offered because the documents it reads are stored, not because the stage
@@ -1018,7 +1018,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
   **The scan family was one answer written out three times.** `POST …/scan-world`, `POST /map/import-folder`
   and `POST /map/import-url` all run `WorldFeatureWriter` and all reported its counts inline, and the two
-  imports had dropped `layer_segments` from theirs — the writer counts it, they just never said so. One
+  imports had dropped `scan_segment` from theirs — the writer counts it, they just never said so. One
   `WorldScanDto` built in one place (`WorldScans.Of`) answers all three now, so the eight counts read the
   same whichever route ran the scan, with `region_dir` and `mca_files` present only on the route that can
   answer them. The `ok: true` all three carried is gone: nothing read it, the 200 already says the scan ran,
@@ -1728,7 +1728,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   blocks is the cap — a chunk, and deeper than any room this studio builds. Category hue was the alternative
   and was declined: this renderer exists to say which block sits at which height, and a mode that swapped the
   material out would answer a different question than the mode it is a mode of. `SideView` is untouched — it
-  reduces a whole map to a depth map per direction off `layer_segments` rows, so it answers only for a
+  reduces a whole map to a depth map per direction off `scan_segment` rows, so it answers only for a
   scanned map and the two coexist.
   (`Minecraft/Render/SectionRender.cs`, `Minecraft/Render/WorldReadCatalog.cs`,
   `Api/Endpoints/WorldReadEndpoints.cs`, `tools/PgmStudio.RoundTrip/Program.cs`, `SectionRenderTests.cs`)
@@ -2088,7 +2088,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **`RegionBoundsDeriver`** — compound/transform `bounds_2d` recomputed on read. (B2)
 - **Configure endpoints** — `state` / `scan-layer` / `exclude-island` / `exclude-block` /
   `layers/{type}/pixels` / `…/block-types`, over the `map_config` artifact. (B3, B9)
-- **Top-surface layer endpoint** — `GET /layers/top-surface` (block-colour overlay data). (B4)
+- **Top-surface layer endpoint** — `GET /top-surface` (block-colour overlay data). (B4)
 - **Segments endpoint** — `GET /segments?axis=` side-view profile (windowed, ±X/±Z). (B5)
 - **Metadata write + Mojang resolve** — authors/contributors → `author` table; `GET /minecraft/player`
   resolves name↔uuid. (B6)
@@ -2257,19 +2257,19 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Block colours** — `BlockColors`, 197/197 known-table parity. (P5)
 - **Layer extractors** — `Y0` / `Bedrock` / `Base` (+ shared `BuildVolume`), generated on demand and
   cached. (P6)
-- **Cleaned-base island detection** — `LayerExtractors.CleanBase` (corpus-derived noise exclude:
+- **Cleaned-base island detection** — `SurfaceExtractors.CleanBase` (corpus-derived noise exclude:
   water/lava/foliage/redstone/cobweb) + `IslandDetector.DetectHeightAware`/`DetectCleaned`
   (height-aware connectivity prunes floating builds over void; y0/bedrock fallback). The new-map
   detection layer (ND2 §6a); validated on real worlds via `--clean-base-render`
   (`scripts/render_clean_base.sh`). (A5)
 - **Stained-glass build-floor exclude** — a low stained-glass slab is a build-region floor (PGM auto-detects it
   like the invisible block-36 marker; such maps remove it pre-game via a `destroyables` mode-change and define
-  their build region with a void filter — confirmed in `abstract`'s map.xml). `LayerExtractors.CleanBaseExclude`
+  their build region with a void filter — confirmed in `abstract`'s map.xml). `SurfaceExtractors.CleanBaseExclude`
   now drops stained glass (95) beside {36}; since the base read is bottom-up-lowest, only glass *floors* are
   affected (decorative glass walls/windows above other blocks are untouched). Un-merges the under-split teams on
   abstract/abstract_remix (one ~4937 blob → symmetric team pairs) with no change to the tested healthy or
   over-split maps. (G9)
-- **Stair-aware island detection** — `LayerExtractors.CleanColumns` reports each column's lowest cleaned-solid Y
+- **Stair-aware island detection** — `SurfaceExtractors.CleanColumns` reports each column's lowest cleaned-solid Y
   **plus every standable surface**, and `IslandDetector.DetectStairAware`/`DetectCleanedStairAware` join adjacent
   columns when any surface pair is within a step — so a walkable staircase keeps a raised structure attached to
   its terrace instead of the cleaned base reading the high floor as a cliff and carving it off. Including the base
@@ -2987,7 +2987,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
     (`{i} of {N} to do · {done} done`) — so a reviewer can check maps ahead/behind before cutting.
   - **Reference overlays (`Blocks` · `Anchors` · `Build`)** — three independent canvas overlays to guide
     cutting, each a `filter-chip` that persists (re-fetched per map) as you browse the queue: (a) the
-    **block-colour** palette (`GET /layers/top-surface`, `render/block-render.js`) below the pieces; (b)
+    **block-colour** palette (`GET /top-surface`, `render/block-render.js`) below the pieces; (b)
     **objective anchors** — wool tips + spawn spurs as ringed markers on top; (c) the **declared build region**
     as a dashed outline under the pieces. (b)/(c) consume the `GET /map/{slug}/island-roles` hook's `anchors`
     + `buildRegion`. (G8)
@@ -5686,6 +5686,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **The word `layer` names a slab and nothing else, on the wire and in the database too (WS13).** The three
+  type renames had landed; what was left was the family that had borrowed the word as a prefix and the route
+  that had borrowed it as a noun. The scan's own word is *segment*, so `layer_segment` is **`scan_segment`**,
+  `LayerSegmentRow`/`LayerSegments` are `ScanSegmentRow`/`ScanSegments`, and the namespace
+  `PgmStudio.Analysis.Layer` is `PgmStudio.Analysis.Scan`. `LayerExtractors` extracts surface rows, so it is
+  `SurfaceExtractors`. The `layer_parquet` artifact kind is the surface scan, so it is `surface_parquet`. And
+  the `scan_layer` key in `map_config_json` names which *reading* the scan takes the ground off — `surface` or
+  `cleanbase` — so it is `scan_read`, with `scan_layer_confirmed` following it; the DTO field follows.
+  `M0025` moves all three stored names and reverses cleanly, since every one is a rename.
+
+  The route was the collision itself: `GET /map/{slug}/layers` answered which *authoring artifacts* a map
+  holds while `layers[]` in a sketch document means slabs. It answers a `MapState`, so it is
+  **`GET /map/{slug}/state`**, with `MapLayers` → `MapArtifacts` and the field `Layers` → `Artifacts`; and
+  `/map/{slug}/layers/top-surface` is **`/map/{slug}/top-surface`**, flat like the `segments` and
+  `column-floor` reads it sits beside. Untouched by design: the canvas z-stack (`render/layer-stack.js`,
+  `data-layer`), which is the graphics term and reads as one; `LayeredMaterial`'s own `layers[]` inside the
+  theme JSON; and the `layer.parquet` / `layer_segments.parquet` files on disk, which are the corpus scan
+  output's names and not the studio's to change.
 - **A stacked board says where its storeys touch and where nothing reaches (TS24).** Two findings, read off
   the rasterized spans rather than off the document, because neither is visible in what a layout says — a
   layer states a `base_y` and a height and the pair reads perfectly either way. `SK10` names two **layers**
@@ -6003,7 +6021,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `floor`; `SketchRasterizer.RasterizeColumns` carries each cell's `[YFloor, YTop]` through the 4-step algebra
   (taller add wins on overlap), with a per-vertex **TIN** surface (`Geom.Triangulation` ear-clip + barycentric)
   for polygons whose anchor heights match their vertices; mirror copies preserve the column + vertex/anchor
-  alignment. `WriteSketchAsync` writes the real span to `layer_segment` (the SliceView reads it) and the
+  alignment. `WriteSketchAsync` writes the real span to `scan_segment` (the SliceView reads it) and the
   surface block at `YTop`. Verified by Geom + rasterizer unit tests and a DB-level finish (uniform + ramp).
   (S5 — rasterization; per-anchor editing UI is S5b) §3.
 - **Floor = elevation, Height = thickness** — the column model is the intuitive one: **Floor** is where a
@@ -6016,7 +6034,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Per-vertex height editing** — with a polygon selected, **click a vertex** to set its height (inspector
   *Vertex N height* field); every vertex shows its height as a **label** on the canvas (the shape's height
   profile), the selected one highlighted. Writes `anchor_heights[]`; on finish the rasterizer TIN-interpolates
-  the slope (a raised corner ramps down across the footprint — verified `0→14` gradient in `layer_segment`),
+  the slope (a raised corner ramps down across the footprint — verified `0→14` gradient in `scan_segment`),
   visible in Configure's height side-view. Click-vs-drag split by a movement threshold
   (`sketch-edit-controller`). (S5b) §3.
 - **Height editing field + isometric 3-D preview** — a freshly drawn shape stands **9 blocks** tall, the
@@ -6041,7 +6059,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (a legacy single `layout` loads as one layer at `base_y=0`). `SketchRasterizer.RasterizeColumns` rasterizes
   each layer in its own Y (primary + per-layer island mirror), shifts its columns by `base_y`, and concatenates
   — a column spanning multiple layers keeps **separate segments** (e.g. ground + a sky bridge, the gap
-  preserved). `WriteSketchAsync` writes every segment to `layer_segment` and the surface row at each column's
+  preserved). `WriteSketchAsync` writes every segment to `scan_segment` and the surface row at each column's
   max top. Verified by unit tests + a DB-level finish (two Y bands, shared column carries both). (S7 —
   rasterization; editor UI is S7b) §5.
 - **Stacked-layers editor** — a **Layers** panel in the sketch sidebar: add / select (active) / delete layers

@@ -58,11 +58,11 @@ public sealed class MapFromDocumentsTests
 
         // The four layers a whole map carries — the plan to re-plan from, the drawing, the world geometry the
         // finish wrote, and the intent. An imported world would have only the third.
-        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/layers");
-        await Assert.That(state!.Layers.Plan).IsTrue();
-        await Assert.That(state.Layers.Sketch).IsTrue();
-        await Assert.That(state.Layers.World).IsTrue();
-        await Assert.That(state.Layers.Intent).IsTrue();
+        var state = await client.GetFromJsonAsync<MapState>($"/api/map/{slug}/state");
+        await Assert.That(state!.Artifacts.Plan).IsTrue();
+        await Assert.That(state.Artifacts.Sketch).IsTrue();
+        await Assert.That(state.Artifacts.World).IsTrue();
+        await Assert.That(state.Artifacts.Intent).IsTrue();
 
         // And a map holding all four is offered the export, which a map holding none of them is not.
         await Assert.That(state.Moves.Select(move => move.Route)).Contains("GET /api/map/{slug}/export");

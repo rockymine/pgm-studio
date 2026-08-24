@@ -1,6 +1,6 @@
 using NetTopologySuite.Geometries;
 using PgmStudio.Domain;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Region;
 
 namespace PgmStudio.Analysis.Playability;

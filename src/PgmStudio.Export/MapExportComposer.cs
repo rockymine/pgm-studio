@@ -1,5 +1,5 @@
 using System.Text;
-using PgmStudio.Analysis.Layer;
+using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Dressing;
@@ -300,7 +300,7 @@ public static class MapExportComposer
     }
 
     /// <summary>Every column the board draws — a walkable surface, the same reading a scanned map's
-    /// <c>layer_segment</c> rows give.</summary>
+    /// <c>scan_segment</c> rows give.</summary>
     /// <summary>The rasterizer's own spans as the walk reads a scan: a cell standing on two layers answers
     /// twice here, so the gate sees the storeys the sketch drew rather than their shadow.</summary>
     private static SegmentIndex Rasterized(IReadOnlyList<ColumnSegment> columns)
