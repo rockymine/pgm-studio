@@ -399,14 +399,8 @@ author. Beside them, one where the *reader* disagrees with a document that is ri
   *`opus5-run2` §5 #2 · re-probed on `marlstone-steps` against the committed region files: `(0, 58)` is
   sandstone at y21 where `(0, 70)` — the same shelf at the same height — is quartz.*
 
-  **A stacked layer is the same cause with the tiers stacked rather than nested**, and it is worth settling
-  here rather than in `TS21`: `ShapeScopeOwners` walks every layer and gives a cell to the smallest-area
-  themed shape covering it, so a slab on an upper layer owns the ground **beneath** it as well. Whatever
-  rule settles the overlap has to say whether "most specific" means smallest area or highest column.
-
-  *`opus5-undercroft`: the hall floor at y14 is painted in the terrace's `flag` theme — stone brick from y0
-  to y14 — because the terrace's footprint 10 blocks above it is the smaller shape. It happens to read as a
-  paved undercroft, which is luck.*
+  **The stacked half of this is `TS23`**, whose `Q4` is this entry's question asked over two layers rather
+  than two nested tiers. Whatever settles one settles the other, and neither may answer it alone.
 
 - [ ] **B145 — Paint a spawn or wool shape's interior with its theme.** The shape is simply unthemed — not the
   known bedrock case, and conflating them is why it keeps being dismissed:
@@ -718,7 +712,9 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   not duplication; their per-layer default ignored-block sets (`Base` gets the expanded ND2 noise set;
   Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
-  `exclude_blocks`). Pairs with A4.
+  `exclude_blocks`). Pairs with A4. **`WS13`'s `Q8` decides whether this family keeps the word `layer` at
+  all** — `LayerExtractors`, `layer_segment`, `LayerParquet` and `PgmStudio.Analysis.Layer` are four of the
+  seven senses that word carries, and none of them is a slab.
 
 ### The plan model: pieces, and the edges between them
 
