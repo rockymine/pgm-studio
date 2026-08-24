@@ -219,6 +219,10 @@ already holds *stone*, and the gap between a gallery and the deck over it is air
 band resolver — which runs bedrock at the bottom and surface at the top of a column — would fill the storey
 out of existence.
 
+**A placement names the storey it rests on.** An objective, a spawn, a room and a prop each carry an optional
+`layer`; naming none takes the top surface, and naming one the board has no ground on is declined rather than
+seated on the top. `docs/world-export/decoration.md` §1 carries the prop half.
+
 **A column carries one theme per layer, not one theme.** The board is painted one pass per layer, each storey
 against its own surface, so a cell standing on two layers is painted twice. Within a layer the smallest-area
 themed shape still wins a contested cell; across layers there is no contest, because each surface shows its
@@ -227,8 +231,7 @@ own. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
 **What a stacked board still cannot say about itself.** The walk stands a player on the lowest surface in a
 column carrying headroom, so a second storey is not a place and the ways between storeys are not edges — a
 deck twenty blocks over a yard reads as unreachable ground the reads call connected (`TS21`). Nothing warns
-where a mass connects to nothing (`TS24`). A placement resolves its Y from the whole-board surface top and so
-lands on the highest slab whatever the author meant (`WE24`). And a scanned world's own segments carry no
+where a mass connects to nothing (`TS24`). And a scanned world's own segments carry no
 layer at all: **a scanned cave and a stacked sketch are one geometry seen twice**, differing only in
 provenance, which is why the word collides in the scan family and nowhere else.
 

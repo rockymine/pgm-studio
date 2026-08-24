@@ -4385,6 +4385,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A placement names the storey it rests on (WE24).** Everything the export put down resolved its Y from
+  one whole-board surface grid, so on a stacked board a monument stated for a hall landed on the deck roofing
+  it and a tree stated for a gallery floor landed on the roof — not declined, not warned, somewhere else.
+  **Two readers had to gain the word or they would disagree about where a hall is**: `BuiltTerrain.SurfaceFor`
+  answers it for a stamped thing (a spawn room, a wool room, an iron cube, a destroyable, a core, their
+  platforms) and `DressingContext.GroundFor` for every prop. The word is optional on all six intent
+  placements and on `PlacedProp`, and naming none keeps the top surface — nothing already authored moves.
+  Naming a layer the board has no ground on is a **`Decline`** (`DR-LAYER`) rather than a fallback to the top,
+  because the top is exactly the storey the author was saying they did not mean.
 - **Every storey is painted in its own theme (TS23).** `TerrainBuilder` collapsed a cell to its maximum top
   and the painter walked down from that one height, so nothing under the highest slab was ever visited; and
   `ShapeThemeOwners` answered `(x, z) → shapeId` over every layer at once, smallest area winning, while

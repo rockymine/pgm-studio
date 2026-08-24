@@ -35,6 +35,11 @@ public abstract record PlacedProp
     /// <summary>Stable id, so a canvas can select, move and delete one prop among many.</summary>
     public string Id { get; init; } = "";
 
+    /// <summary>Which layer's surface this prop rests on, or null for the top one. A stacked board has a
+    /// surface per storey, and a prop stated for a gallery floor lands on the deck over it unless it says
+    /// which storey it meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>The seed every field this prop rolls is keyed on. Two props of the same kind and knobs at
     /// different seeds differ; the same prop always re-exports identically.</summary>
     public uint Seed { get; init; }

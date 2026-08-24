@@ -67,6 +67,14 @@ public static class DressingRules
     /// <remarks>Move the prop onto drawn ground. A building needs drawn ground under its whole footprint, not merely under part of it. A prop whose orbit image falls off the board fails this way too — the whole prop is declined at the first image that finds no ground, since a rock standing on one half of a mirrored map and missing from the other is worse than neither.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string NoGround = "DR-SITE";
+
+    /// <summary>A prop names a layer this board does not have ground on. A stacked board carries a surface
+    /// per storey and a prop may say which one it rests on; naming one that is not there is not the same as
+    /// naming none, so it is declined rather than quietly seated on the top surface — which is exactly the
+    /// storey the author was saying they did not mean.</summary>
+    /// <remarks>Name a layer the board draws on, or leave the word off and take the top surface. The layer ids a board has are the `id` of each entry in its `layers[]`.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Feature, RuleConcern.Terrain)]
+    public const string NoSuchLayer = "DR-LAYER";
 }
 
 /// <summary>Why a cell is kept clear of everything the dressing pass places — the answer a decline names, so

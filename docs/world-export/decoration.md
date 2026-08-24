@@ -64,6 +64,14 @@ top block of each column and the ground the map keeps clear, and never has to re
 elevation model it needs is the same `BuiltTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
 first air Y above each column) the painter and every stamper already read.
 
+**On a stacked board a prop says which storey it rests on.** `SurfaceTop` names the highest surface at a
+cell, so a prop stated for a gallery floor would land on the deck over it. A prop carries an optional
+`layer`, and `DressingContext.GroundFor` answers that layer's own surfaces — `BuiltTerrain.SurfaceFor` is the
+same resolver for a stamped thing, so the two readers of a placement's storey cannot disagree about where it
+is. Naming no layer keeps the top surface, which is where everything already authored goes; naming one the
+board has no ground on is **declined** (`DR-LAYER`) rather than seated on the top, because that is exactly
+the storey the author was saying they did not mean.
+
 The break from the painter is the geometry. `TerrainMaterial.Resolve` only ever answers *which block* a
 stone cell becomes — it cannot add a cell. Flora, boulders and trees **are** added cells: a tall-grass
 block in the air at `SurfaceTop`, a rock volume, a trunk and canopy. So the dressing pass is not a new

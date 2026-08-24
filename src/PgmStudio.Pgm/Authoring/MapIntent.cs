@@ -89,6 +89,11 @@ public sealed record MapIntent
 /// symmetry orbit (docs/generator/rules.md ST1–ST4). Consumed by the sketch world-export path.</summary>
 public sealed record StructureIntent
 {
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>
     public List<RoomFloor> RoomFloors { get; init; } = new();
 
@@ -319,6 +324,11 @@ public sealed record TeamDef
 /// (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
 public sealed record SpawnIntent
 {
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
     /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
     /// receives an entry out of an already-fanned list and can only count.</summary>
@@ -367,6 +377,11 @@ public sealed record ObserverIntent
 /// the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
 public sealed record WoolIntent
 {
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
     /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
     /// receives an entry out of an already-fanned list and can only count.</summary>
@@ -406,6 +421,11 @@ public sealed record WoolIntent
 /// <summary>A capture point: the team that captures this wool, and where they place it.</summary>
 public sealed record MonumentIntent
 {
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>The team that captures the wool here, by id.</summary>
     public string Team { get; init; } = "";
 
@@ -430,6 +450,11 @@ public sealed record MonumentIntent
 /// </summary>
 public sealed record DestroyableIntent
 {
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
     /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
     /// receives an entry out of an already-fanned list and can only count.</summary>
@@ -477,6 +502,11 @@ public sealed record DestroyableIntent
 /// </summary>
 public sealed record CoreIntent
 {
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// meant.</summary>
+    public string? Layer { get; init; }
+
     /// <summary>Which authored unit this is an image of, and which image — set by whoever fanned the orbit,
     /// carried through to the stamper, and recorded as the column's owner. The stamper cannot derive it: it
     /// receives an entry out of an already-fanned list and can only count.</summary>

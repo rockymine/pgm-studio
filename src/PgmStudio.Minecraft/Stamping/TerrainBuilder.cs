@@ -13,7 +13,19 @@ namespace PgmStudio.Minecraft.Stamping;
 public sealed record BuiltTerrain(
     VoxelWorld World,
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> SurfaceByLayer);
+    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> SurfaceByLayer)
+{
+    /// <summary>The ground a thing placed on <paramref name="layer"/> stands on: that layer's own surfaces,
+    /// or — for a placement naming no layer, and for one naming a layer this board does not have — the
+    /// whole-board tops. Naming the layer is how a monument sits in a hall instead of on the deck roofing it;
+    /// naming none keeps the top surface, which is where everything already authored goes.</summary>
+    public IReadOnlyDictionary<(int X, int Z), int> SurfaceFor(string? layer) =>
+        layer is { Length: > 0 } named && SurfaceByLayer.TryGetValue(named, out var tops) ? tops : SurfaceTop;
+
+    /// <summary>Whether <paramref name="layer"/> is a layer this board has ground on. A placement naming one
+    /// it does not is a placement the world cannot seat where it was asked to.</summary>
+    public bool Knows(string? layer) => layer is not { Length: > 0 } || SurfaceByLayer.ContainsKey(layer);
+}
 
 /// <summary>
 /// Turns <c>SketchRasterizer.RasterizeColumns</c> output — <see cref="ColumnSegment"/> solid runs — into

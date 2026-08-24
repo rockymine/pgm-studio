@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Seven entries, all about a stack of layers.** What is left of the group five authored maps
+**Six entries, all about a stack of layers.** What is left of the group five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a board whose ground
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
@@ -33,10 +33,8 @@ is for. *(Settled by the author, and written down in `docs/tools/sketch.md` § L
 **A depression or a river in the upper layer does not bleed into the layer beneath it.** That is the default;
 letting it cut through is the toggle, not the other way round. *(Settled by the author.)*
 
-**A placement names its layer, and absent a name it takes the top one.** An objective, a spawn, a marker and
-a prop all state where they go in `(x, z)`, and on a stack that is not enough — the layer word is what lets a
-monument sit in a hall and a tree stand on a gallery floor. The top layer stays the default, so nothing
-already authored moves. *(Settled by the author.)*
+**A placement names its layer, and absent a name it takes the top one.** *(Settled by the author, and
+built — `WE24`, `FEATURES.md`.)*
 
 **A second storey is played on.** A tunnel under the ground is a second way to an objective — a flanking
 route — so the storeys of a stacked board and the ways between them are part of the map, not scenery under
@@ -137,17 +135,6 @@ commits — and the entry fixes the document it actually moves, alongside `docs/
   worstDrop 22** straight along x = 0. It is not a route: the standing surface flips from the deck at **26**
   to the mine floor at **4** where the gallery begins, and a twenty-two block fall is scored as one drop on
   one continuous surface. Traversability calls the same chain connected.*
-
-- [ ] **WE24 — A placement names its layer.** Everything the export puts down resolves its Y from an
-  `(x, z) → int` grid and so lands on the top slab whatever the author meant: an objective, a spawn, a room
-  and a wall through `PositionSnap.SurfaceYOver`, and every prop through `DressingContext.SurfaceTop` at ten
-  sites in `Decorator` plus `DressingScope`. **Two readers, and the layer word has to reach both** or a tree
-  and a monument in one hall disagree about where the hall is. The word is optional and defaults to the top
-  layer, so nothing already authored moves; a placement naming a layer its cell has no segment on is a
-  `Decline` — the map builds and that one thing is not in it.
-
-  *`opus5-undercroft`: "I stated a tree for the hall floor and got it on the roof, which was the point of
-  stating it." The same grid put its destroyable on the terrace by itself.*
 
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a

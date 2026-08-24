@@ -148,10 +148,12 @@ public static class WorldBuilder
             var w = wools[i];
             var slug = ColorSlug(w, teams);
             var frame = WoolFrame(w);
-            var fy = FrameFloor(frame, terrain.SurfaceTop, woolStyle);
+            // The storey this room was stated for, or the top one where it named none.
+            var woolGround = terrain.SurfaceFor(w.Layer);
+            var fy = FrameFloor(frame, woolGround, woolStyle);
             WoolStructureStamper.Stamp(world, new WoolStructure
             {
-                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = terrain.SurfaceTop, Shell = woolStyle,
+                Frame = frame, FloorY = fy, WoolSlug = slug, Ground = woolGround, Shell = woolStyle,
             });
             // The cells the shell actually filled, walked from the stamper's own function. A RoomFrame's
             // bounds are grid lines — its Width is MaxX − MinX — so carrying them into a max-inclusive
@@ -178,7 +180,8 @@ public static class WorldBuilder
             var s = intent.Spawns[spawnIndex];
             var room = SpawnRoom(s);
             var frame = room.Frame;
-            var fy = FrameFloor(frame, terrain.SurfaceTop, spawnStyle);
+            var spawnGround = terrain.SurfaceFor(s.Layer);
+            var fy = FrameFloor(frame, spawnGround, spawnStyle);
 
             var captured = wools.Select((w, i) => (w, i))
                 .Where(x => Capturers(x.w, teams).Contains(s.Team)).ToList();
@@ -200,7 +203,7 @@ public static class WorldBuilder
             foreach (var iron in room.Iron)
                 if (iron.Placeable)
                 {
-                    StructureStamper.StampIronCubeAt(world, terrain.SurfaceTop, iron.MinX, iron.MinZ, iron.Size);
+                    StructureStamper.StampIronCubeAt(world, spawnGround, iron.MinX, iron.MinZ, iron.Size);
                     provenance.ClaimRect(iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1,
                         ProvenancePass.Structure,
                         // The spawn's own unit, qualified by which of its cubes this is: one room's iron is
@@ -265,10 +268,10 @@ public static class WorldBuilder
         // and that is a thing the caller has to be told rather than a reason to stop.
         var goalComplaints = new List<Finding>();
         var resolvedDestroyables = StampDestroyables(
-            world, terrain.SurfaceTop, intent.Destroyables, teams, markerFloor, maxBuildHeight, provenance,
+            world, terrain, intent.Destroyables, teams, markerFloor, maxBuildHeight, provenance,
             goalComplaints);
         var resolvedCores = StampCores(
-            world, terrain.SurfaceTop, intent.Cores, teams, markerFloor, maxBuildHeight, provenance,
+            world, terrain, intent.Cores, teams, markerFloor, maxBuildHeight, provenance,
             goalComplaints);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
@@ -296,7 +299,8 @@ public static class WorldBuilder
             DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals),
             DressingScope.SymmetryOf(layoutJson),
             DressingScope.GoalGroundAt(goals),
-            DressingScope.GoalClearanceAt(goals)));
+            DressingScope.GoalClearanceAt(goals),
+            terrain.SurfaceByLayer));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.
@@ -436,7 +440,7 @@ public static class WorldBuilder
     // already errors on it, so reaching here means something upstream skipped the gate, and stamping the
     // wrong structure would hide that.
     private static List<DestroyableIntent>? StampDestroyables(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<DestroyableIntent>? destroyables,
+        VoxelWorld world, BuiltTerrain terrain, List<DestroyableIntent>? destroyables,
         IReadOnlyList<TeamDef> teams, int markerFloor, int maxBuildHeight, WorldProvenance provenance,
         List<Finding> complaints)
     {
@@ -450,7 +454,7 @@ public static class WorldBuilder
             // The same anchor→cell rule the compiler fanned this anchor with, so the stamp lands on the
             // block the plan validator measured and on the mirror of its own orbit image.
             var (ax, az) = ObjectiveFootprint.AnchorCell(b.Anchor.X, b.Anchor.Z);
-            var box = ObjectiveStamper.DestroyableBox(surface, ax, az, style, b.Float);
+            var box = ObjectiveStamper.DestroyableBox(terrain.SurfaceFor(b.Layer), ax, az, style, b.Float);
 
             // What the goal is actually built in. A material its size is wrong for, or one this studio does
             // not build at all, is corrected rather than refused — and the correction rides into the resolved
@@ -470,7 +474,7 @@ public static class WorldBuilder
             // monument cannot be undermined from below and the ground under it cannot be mined away.
             var (platformMinX, platformMinZ, platformMaxX, platformMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
-            StructureStamper.StampPlatform(world, surface, platformMinX, platformMinZ, platformMaxX, platformMaxZ);
+            StructureStamper.StampPlatform(world, terrain.SurfaceFor(b.Layer), platformMinX, platformMinZ, platformMaxX, platformMaxZ);
             provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
@@ -490,7 +494,7 @@ public static class WorldBuilder
     // shape, and the same one-box rule (OB8). Obsidian is not a knob (DC1): PGM defaults to it and the
     // corpus is effectively unanimous.
     private static List<CoreIntent>? StampCores(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, List<CoreIntent>? cores,
+        VoxelWorld world, BuiltTerrain terrain, List<CoreIntent>? cores,
         IReadOnlyList<TeamDef> teams, int markerFloor, int maxBuildHeight, WorldProvenance provenance,
         List<Finding> complaints)
     {
@@ -501,7 +505,7 @@ public static class WorldBuilder
             var c = cores[i];
             var owner = c.Stamp;
             var (ax, az) = ObjectiveFootprint.AnchorCell(c.Anchor.X, c.Anchor.Z);
-            var box = ObjectiveStamper.CoreBox(surface, ax, az, c.Size, c.Height, c.Float);
+            var box = ObjectiveStamper.CoreBox(terrain.SurfaceFor(c.Layer), ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
             OverCeiling(complaints, "core", GoalName(c.Name, c.Owner), owner, box, maxBuildHeight);
@@ -510,7 +514,7 @@ public static class WorldBuilder
             // defends, and the ground under it is as much worth holding.
             var (plateMinX, plateMinZ, plateMaxX, plateMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
-            StructureStamper.StampPlatform(world, surface, plateMinX, plateMinZ, plateMaxX, plateMaxZ);
+            StructureStamper.StampPlatform(world, terrain.SurfaceFor(c.Layer), plateMinX, plateMinZ, plateMaxX, plateMaxZ);
             provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.

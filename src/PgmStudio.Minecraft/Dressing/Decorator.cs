@@ -47,10 +47,26 @@ public sealed record DressingContext(
     Func<int, int, KeepOut?> KeptClearAt,
     DressingSymmetry Symmetry,
     Func<int, int, bool>? IsGoalGround = null,
-    Func<int, int, bool>? IsGoalClearance = null)
+    Func<int, int, bool>? IsGoalClearance = null,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
+
+    /// <summary>The surfaces a prop rests on: its own layer's, or the whole board's where it names none.
+    /// A board with one layer answers the same map either way, which is why every pass can ask.</summary>
+    public IReadOnlyDictionary<(int X, int Z), int> GroundFor(PlacedProp prop) =>
+        prop.Layer is { Length: > 0 } layer
+            ? SurfaceByLayer?.GetValueOrDefault(layer) ?? Empty
+            : SurfaceTop;
+
+    private static readonly IReadOnlyDictionary<(int X, int Z), int> Empty =
+        new Dictionary<(int X, int Z), int>();
+
+    /// <summary>Whether a prop names a layer this board has no ground on — the one case where it cannot be
+    /// seated where it was asked to and is declined rather than moved.</summary>
+    public bool Strands(PlacedProp prop) =>
+        prop.Layer is { Length: > 0 } layer && SurfaceByLayer?.ContainsKey(layer) != true;
 
     /// <summary>Whether the cell is held clear, for the passes that only need the fact.</summary>
     public bool IsKeptClear(int x, int z) => KeptClearAt(x, z) is not null;
@@ -163,6 +179,13 @@ public static class Decorator
         static string IdOf(string id, int index) =>
             string.IsNullOrEmpty(id) ? index.ToString(CultureInfo.InvariantCulture) : id;
 
+        // A prop naming a storey this board does not have is declined before anything is placed. Seating it
+        // on the top surface instead would put it on the one storey the author said they did not mean.
+        foreach (var stranded in context.Props.Where(context.Strands))
+            declined.Add(new Finding(DressingRules.NoSuchLayer,
+                $"prop '{stranded.Id}' rests on layer '{stranded.Layer}', which this board has no ground on",
+                Severity.Decline, Subjects: [stranded.Id]));
+
         foreach (var prop in context.Props.OfType<WaterProp>())
         {
             var result = PlaceWater(world, context, prop, claims);
@@ -240,6 +263,7 @@ public static class Decorator
     /// planted over and a road is not.</para></summary>
     private static Placed PlaceStroke(VoxelWorld world, DressingContext context, StrokeProp path, GroundClaims claims)
     {
+        var ground = context.GroundFor(path);
         if (path.Points.Count < 2) return Placed.None;
         var images = new List<List<(int X, int Z)>>();
         var stroke = PathStroke.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed).ToList();
@@ -251,7 +275,7 @@ public static class Decorator
         {
             var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, k);
             if (context.IsKeptClear(x, z)) continue;
-            if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
+            if (!ground.TryGetValue((x, z), out var top) || top < 1) continue;
 
             // A stamp's own block is not a road's to take: the painter only writes terrain, so anything else
             // on top of a column belongs to something the map is played through.
@@ -281,6 +305,7 @@ public static class Decorator
     /// every block written sits at or below terrain that was there before.</para></summary>
     private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims claims)
     {
+        var ground = context.GroundFor(water);
         if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return Placed.None;
         var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed).ToList();
         if (bed.Count == 0) return Placed.None;
@@ -306,7 +331,7 @@ public static class Decorator
             {
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
                 if (context.IsKeptClear(x, z)) continue;
-                if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 2) continue;
+                if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
                 // Water no more takes a stamp's own block than a path does: the painter writes only terrain, so
                 // anything else on a surface belongs to something the map is played through.
@@ -339,7 +364,7 @@ public static class Decorator
             {
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
                 if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
-                if (!context.SurfaceTop.TryGetValue((x, z), out var top) || top < 1) continue;
+                if (!ground.TryGetValue((x, z), out var top) || top < 1) continue;
                 var surfaceSolid = top - 1;
                 if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
@@ -357,6 +382,7 @@ public static class Decorator
     /// local frame and no turning.</summary>
     private static Placed PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, GroundClaims claims)
     {
+        var ground = context.GroundFor(area);
         if (area.Points.Count < 3) return Placed.None;
         var ring = area.Points.Select(point => new[] { point[0], point[1] }).ToList();
         var images = new List<List<(int X, int Z)>>();
@@ -367,7 +393,7 @@ public static class Decorator
         foreach (var (x, z) in Inside(ring, context.Symmetry, k))
         {
             if (claims.Holds(x, z) || context.IsKeptClear(x, z)) continue;
-            if (!context.SurfaceTop.TryGetValue((x, z), out var top)) continue;
+            if (!ground.TryGetValue((x, z), out var top)) continue;
             if (world.GetBlock(x, top, z).Id != Blocks.Air) continue;   // something is already there
 
             var (groundId, groundData) = world.GetBlock(x, top - 1, z);
@@ -470,6 +496,7 @@ public static class Decorator
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims claims,
         List<Finding> declined)
     {
+        var ground = context.GroundFor(house);
         if (house.Plan() is not { } plan)
         {
             // Check() never disagrees with Plan()'s own refusal — Plan() is Check().Refuses ? null : Read() —
@@ -535,7 +562,7 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            var (floorY, bare) = Ground(context, image);
+            var (floorY, bare) = Ground(context, ground, image);
             if (floorY is null)
             {
                 declined.Add(new Finding(DressingRules.NoGround,
@@ -547,7 +574,7 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            if (!HasPassage(context, claims, image))
+            if (!HasPassage(context, ground, claims, image))
             {
                 declined.Add(new Finding(DressingRules.PassAround,
                     $"building '{house.Id}' leaves no way past it: fewer than "
@@ -564,7 +591,7 @@ public static class Decorator
         for (var k = 0; k < images.Count; k++)
         {
             var (image, front, floorY) = images[k];
-            Excavate(world, context, image, floorY);
+            Excavate(world, context, ground, image, floorY);
             HouseStamper.Stamp(
                 world, image, floorY, house.Style,
                 doors: front is { } side ? Doorway(house.Style, image, side) : null);
@@ -692,7 +719,7 @@ public static class Decorator
     /// Passable is terrain with nothing <em>built</em> on it — a road or a channel alongside the wall is
     /// still a way past, an earlier building is not. Measured over the plan's bounding box: the notch of an L
     /// is the building's own ground, not a public route through it.</summary>
-    private static bool HasPassage(DressingContext context, GroundClaims claims, BuildingPlan plan)
+    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims claims, BuildingPlan plan)
     {
         int minX = plan.MinX, minZ = plan.MinZ, maxX = plan.MaxX, maxZ = plan.MaxZ;
         var depth = DressingRules.PassAroundWidth;
@@ -707,7 +734,7 @@ public static class Decorator
             for (var z = fromZ; z <= toZ; z++)
             for (var x = fromX; x <= toX; x++)
             {
-                if (!context.SurfaceTop.ContainsKey((x, z))) return false;
+                if (!ground.ContainsKey((x, z))) return false;
                 if (claims.HoldsKind(x, z, ClaimKind.Structure)) return false;
             }
             return true;
@@ -723,12 +750,12 @@ public static class Decorator
     /// footprint and the excavation skips a missing column rather than refusing it. Half a building on solid
     /// ground is worse than none, so the quantifier is what a refusal is made of and the column it stopped at
     /// is what the refusal names.</para></summary>
-    private static (int? Floor, (int X, int Z)? Bare) Ground(DressingContext context, BuildingPlan plan)
+    private static (int? Floor, (int X, int Z)? Bare) Ground(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan)
     {
         var lowest = int.MaxValue;
         foreach (var (x, z) in plan.Cells())
         {
-            if (!context.SurfaceTop.TryGetValue((x, z), out var top)) return (null, (x, z));
+            if (!ground.TryGetValue((x, z), out var top)) return (null, (x, z));
             lowest = Math.Min(lowest, top);
         }
         return lowest == int.MaxValue || lowest < 2 ? (null, null) : (lowest - 1, null);
@@ -743,11 +770,11 @@ public static class Decorator
     /// old surface, so the house sinks into the slope with its interior intact. Only the wall plan is carved —
     /// the ground under the eaves is outside the building — and a column whose surface carries a stamp is left
     /// whole, the rule every pass keeps.</summary>
-    private static void Excavate(VoxelWorld world, DressingContext context, BuildingPlan plan, int floorY)
+    private static void Excavate(VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan, int floorY)
     {
         foreach (var (x, z) in plan.Cells())
         {
-            if (!context.SurfaceTop.TryGetValue((x, z), out var top)) continue;
+            if (!ground.TryGetValue((x, z), out var top)) continue;
             if (DressingPalette.IsStamp(world.GetBlock(x, top - 1, z).Id)) continue;
             for (var y = floorY + 1; y < top; y++)
             {
@@ -783,7 +810,7 @@ public static class Decorator
         List<Finding> declined)
     {
         var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
-        return Fan(world, context, (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
+        return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }
 
     /// <summary>A boulder as offsets from its own anchor, before it knows where on the map it goes. The rock's
@@ -826,7 +853,7 @@ public static class Decorator
     private static Placed PlaceTree(
         VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims claims,
         List<Finding> declined)
-        => Fan(world, context, (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
+        => Fan(world, context, context.GroundFor(tree), (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
 
     /// <summary>How far this tree's crown actually reaches from its own trunk — the farthest a leaf cell of
     /// <see cref="TemplateTree"/> or <see cref="GrownTree"/> stands from the anchor, horizontally. This is the
@@ -912,7 +939,7 @@ public static class Decorator
     /// block nearer a protected column, or on ground the relief left slightly steeper, does not get to stand on
     /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
     /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
-    private static Placed Fan(VoxelWorld world, DressingContext context, (int X, int Z) site,
+    private static Placed Fan(VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, (int X, int Z) site,
         List<PropCell> prop, GroundClaims claims, int routeStandoff, string id, string kind, List<Finding> declined)
     {
         if (prop.Count == 0) return Placed.None;
@@ -930,7 +957,7 @@ public static class Decorator
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the
             // whole prop, and that is the one image and cell named — a second orbit image failing the same
             // way is not a second entry.
-            if (!Seats(context, anchor, turned, claims, routeStandoff, id, kind, out var baseY, out var decline))
+            if (!Seats(context, ground, anchor, turned, claims, routeStandoff, id, kind, out var baseY, out var decline))
             {
                 declined.Add(decline!);
                 return Placed.None;
@@ -980,7 +1007,7 @@ public static class Decorator
     /// monument at y+15 is not a trunk grown through it — a hand-built map's trees overhang its structures
     /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
-        DressingContext context, (int X, int Z) anchor, List<PropCell> prop, GroundClaims claims,
+        DressingContext context, IReadOnlyDictionary<(int X, int Z), int> tops, (int X, int Z) anchor, List<PropCell> prop, GroundClaims claims,
         int routeStandoff, string id, string kind, out int baseY, out Finding? decline)
     {
         baseY = int.MaxValue;
@@ -1018,7 +1045,7 @@ public static class Decorator
                     + $"at ({road.X}, {road.Z})");
                 return false;
             }
-            if (!context.SurfaceTop.TryGetValue(ground, out var top))
+            if (!tops.TryGetValue(ground, out var top))
             {
                 decline = Declined(DressingRules.NoGround, id, kind, $"has no ground at ({ground.X}, {ground.Z})");
                 return false;
