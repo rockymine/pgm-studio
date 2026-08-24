@@ -195,7 +195,7 @@ public sealed class PlanColumnsEndpoint : EndpointWithoutRequest<WorldColumnsDto
                 return;
             }
             var built = WorldBuilder.Build(compiled.LayoutJson, compiled.Intent);
-            payload = WorldColumnPayload.Of(built.World);
+            payload = WorldColumnPayload.Of(built.World, built.Columns);
             // The compiled layout's own complaints ride with the dressing's: a plan that compiles to a board
             // naming something the studio does not have is still a plan whose picture is missing it. This
             // route gates nothing, so it is the one that hands them over rather than StopAsync.

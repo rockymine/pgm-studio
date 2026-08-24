@@ -7,12 +7,16 @@ import assert from "node:assert/strict";
 import { meshColumns, decodeColumns, openSpans, hexRgb }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/render/column-mesh.js";
 
-// A payload built the way the server writes one: [x, z, runCount, (yTop, yBottom, colorIdx) × runCount, …]
+// A payload the way the server writes one: [x, z, runCount, (yTop, yBottom, colorIdx, layerIdx) × runCount, …]
 const payload = (palette, ...columns) => ({
   palette,
   cols: columns.flatMap(([x, z, ...runs]) =>
-    [x, z, runs.length, ...runs.flatMap(([top, bottom, color = 0]) => [top, bottom, color])]),
+    [x, z, runs.length,
+     ...runs.flatMap(([top, bottom, color = 0, layer = -1]) => [top, bottom, color, layer])]),
 });
+
+/** The same, with the layer ids the indices point into. */
+const layered = (names, palette, ...columns) => ({ ...payload(palette, ...columns), layers: names });
 
 const QUAD_FLOATS = 18;   // six vertices, three floats each
 
@@ -47,9 +51,40 @@ test("decodeColumns walks the flat array by its run counts", () => {
   const columns = decodeColumns(payload(["#fff"], [3, 4, [10, 0, 0]], [5, 6, [20, 18, 0], [12, 0, 0]]));
 
   assert.equal(columns.size, 2);
-  assert.deepEqual(columns.get("3,4").runs, [{ yTop: 10, yBottom: 0, color: 0 }]);
+  assert.deepEqual(columns.get("3,4").runs, [{ yTop: 10, yBottom: 0, color: 0, layer: -1 }]);
   assert.deepEqual(columns.get("5,6").runs,
-    [{ yTop: 20, yBottom: 18, color: 0 }, { yTop: 12, yBottom: 0, color: 0 }]);
+    [{ yTop: 20, yBottom: 18, color: 0, layer: -1 },
+     { yTop: 12, yBottom: 0, color: 0, layer: -1 }]);
+});
+
+// ── hiding a storey ───────────────────────────────────────────────────────────
+
+test("a hidden layer's runs are left out and the rest are kept", () => {
+  // One column: a yard on layer 0, a deck on layer 1, and a tree standing on the deck belonging to neither.
+  const board = layered(["yard", "deck"], ["#fff"],
+    [0, 0, [30, 27, 0, -1], [26, 20, 0, 1], [8, 0, 0, 0]]);
+
+  const all = decodeColumns(board);
+  assert.deepEqual(all.get("0,0").runs.map(run => run.layer), [-1, 1, 0]);
+
+  // Hiding the deck takes its own runs and nothing else — the tree over it is a different claim.
+  const withoutDeck = decodeColumns(board, new Set([1]));
+  assert.deepEqual(withoutDeck.get("0,0").runs.map(run => run.yBottom), [27, 0]);
+});
+
+test("meshColumns hides a layer by the id the payload spells", () => {
+  const board = layered(["yard", "deck"], ["#808080"],
+    [0, 0, [26, 20, 0, 1], [8, 0, 0, 0]]);
+
+  const whole = meshColumns(board);
+  const yardOnly = meshColumns(board, ["deck"]);
+
+  assert.equal(whole.maxY, 27);
+  assert.equal(yardOnly.maxY, 9);            // the deck is gone, so the yard's own top is the ceiling
+  assert.ok(yardOnly.quads < whole.quads);
+
+  // A name the board does not carry hides nothing rather than hiding everything.
+  assert.equal(meshColumns(board, ["cellar"]).quads, whole.quads);
 });
 
 test("an empty payload meshes to nothing rather than throwing", () => {

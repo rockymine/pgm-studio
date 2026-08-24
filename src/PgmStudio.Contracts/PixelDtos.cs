@@ -47,16 +47,24 @@ public sealed record BlockPixelsDto(
 /// what is there.
 ///
 /// <para><see cref="Cols"/> is one flat integer array walked with its own stride —
-/// <c>[x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]</c> — rather than a record per run,
-/// because a board is over a hundred thousand runs and a pair of field names each would be most of the
+/// <c>[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]</c> — rather than a record
+/// per run, because a board is over a hundred thousand runs and four field names each would be most of the
 /// bytes. The bounds are the footprint the columns cover, degenerate when there are none, so a caller
 /// decodes one shape either way.</para>
+///
+/// <para><b>Every run says which layer drew it</b>, so a viewer can hide a storey without asking for the
+/// board again. The index is into <see cref="Layers"/>; <c>-1</c> is a run no layer accounts for — a house,
+/// a tree, anything standing on the ground rather than being it — which is the honest answer rather than
+/// attributing a structure to the terrain it happens to sit over.</para>
 /// </summary>
 /// <param name="Palette">The distinct colours, once each, indexed by the values inside
 /// <paramref name="Cols"/>.</param>
 /// <param name="Cols">One flat array walked with its own stride —
-/// <c>[x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]</c> — rather than a record per run,
-/// because a board is over a hundred thousand runs.</param>
+/// <c>[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]</c> — rather than a record
+/// per run, because a board is over a hundred thousand runs.</param>
+/// <param name="Layers">The sketch layers that drew this world, bottom-most first, indexed by the layer
+/// values inside <paramref name="Cols"/>. Empty for a world built from something other than a stack of
+/// layers, and then every run answers <c>-1</c>.</param>
 /// <param name="MinX">The west edge of the ground it covers, in blocks.</param>
 /// <param name="MinZ">The north edge.</param>
 /// <param name="MaxX">The east edge.</param>
@@ -67,7 +75,8 @@ public sealed record WorldColumnsDto(
     [property: JsonPropertyName("min_x")] int MinX,
     [property: JsonPropertyName("min_z")] int MinZ,
     [property: JsonPropertyName("max_x")] int MaxX,
-    [property: JsonPropertyName("max_z")] int MaxZ);
+    [property: JsonPropertyName("max_z")] int MaxZ,
+    IReadOnlyList<string>? Layers = null);
 
 /// <summary>
 /// The vertical segments of a map projected onto one face, as the side-view canvas draws it: a

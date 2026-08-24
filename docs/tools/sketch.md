@@ -319,6 +319,18 @@ those into triangles. So the picture carries the terrain's own materials, the re
 to, the structures stamped on them and the goal markers hanging over the build ceiling — none of which the
 browser can derive. It rotates in 90° steps and disables itself where WebGL is unavailable.
 
+**In the preview the overlay chips become the board's own storeys**, one per sketch layer, because what an
+author wants of a picture of a stack is to take the deck off and look under it. Every run in the payload says
+which layer drew it, so hiding one is a filter over what the browser already holds rather than a second build
+— and the faces are re-meshed against the board actually shown, so a gallery under a hidden deck gets its top
+face rather than reading as roofed by something no longer there. **A run belongs to a layer by where it
+starts**: the painter writes several runs inside one span, a stone core and the bands over it, and every one
+of them begins inside the span that made the ground. A run beginning outside every span is a structure
+standing on the terrain rather than being it — a house, a tree — and belongs to no layer, so hiding the
+ground a house stands on does not take the house with it. A board of one layer shows no chips: there is
+nothing to take off. A hidden layer **stays hidden across an edit**, and one the author deletes comes back
+neither listed nor hidden.
+
 **Height is why it works this way.** A column's top is settled in three stages — the rasterized ground, then
 the per-island relief solve, then whatever an erected shape says about levelling, raising or sinking — and
 only the first is knowable client-side. A preview that extruded each shape to its own thickness drew stage one
@@ -850,7 +862,7 @@ carry — the board an author is looking at is the one place those complaints ar
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
-| `POST /map/{slug}/sketch/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. The claim is what a keep-out is measured against, and a stroke's is decided by its style, coverage and seed — none of which can be reasoned about from the document | 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `board too large` `SK2` · 404 |
 
@@ -869,7 +881,8 @@ which is the same derivation `CT8` counts enclosed voids with, so the probe and 
 what a hole is.
 
 **The column payload** is one flat integer array walked by its own counts:
-`cols = [x, z, runCount, (yTop, yBottom, paletteIndex) × runCount, …]`, with `palette` a list of `#rrggbb`.
+`cols = [x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, with `palette` a list of
+`#rrggbb` and `layers` the layer ids `layerIndex` points into (`-1` where no layer accounts for the run).
 A run is a span that is solid throughout and one material throughout, listed top first, and `yTop`/`yBottom`
 are both inclusive. Air is never sent, and a column holding nothing is absent rather than empty. One structure
 answers three questions, because a run boundary is where a solid span ends *and* where the material changes:

@@ -304,7 +304,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         try
         {
             var built = WorldBuilder.Build(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
-            payload = WorldColumnPayload.Of(built.World);
+            payload = WorldColumnPayload.Of(built.World, built.Columns);
             Complaints.Add(HttpContext, built.Declines);
 
             // OB17, asked here because this build already paid for everything it needs — the same ground the

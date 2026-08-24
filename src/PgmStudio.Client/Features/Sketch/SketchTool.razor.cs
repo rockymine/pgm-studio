@@ -288,6 +288,19 @@ public partial class SketchTool
 
     private Task RotateIso() => handle?.InvokeVoidAsync("rotateIso").AsTask() ?? Task.CompletedTask;
 
+    /// <summary>The layers the built board is made of, as the preview payload spells them, and which of them
+    /// are switched off. Only the 3-D view has them — a 2-D drawing is one plan whatever it stacks.</summary>
+    private IReadOnlyList<string> isoLayers = [];
+    private readonly HashSet<string> isoHidden = [];
+
+    private async Task ToggleIsoLayer(string id)
+    {
+        if (!isoHidden.Remove(id)) isoHidden.Add(id);
+        if (handle is not null)
+            await handle.InvokeVoidAsync("setIsoLayerShown", id, !isoHidden.Contains(id));
+        StateHasChanged();
+    }
+
     private Task SetHeight((string Id, double Base, double Floor) e)
         => handle?.InvokeVoidAsync("setHeight", e.Id, e.Base, e.Floor).AsTask() ?? Task.CompletedTask;
 
@@ -374,6 +387,22 @@ public partial class SketchTool
 
     [JSInvokable]
     public void OnRelief(string json) { reliefJson = json; reliefRevision++; StateHasChanged(); }
+
+    /// <summary>Which layers the board the preview just built is made of, and which of them it is leaving
+    /// out. The bridge keeps a hidden layer hidden across a rebuild, so this is where the two agree again
+    /// after an edit — including a layer the author deleted, which comes back neither listed nor hidden.
+    /// </summary>
+    [JSInvokable]
+    public void OnIsoLayers(string json)
+    {
+        var read = JsonSerializer.Deserialize<IsoLayersMessage>(json);
+        isoLayers = read?.Layers ?? [];
+        isoHidden.Clear();
+        foreach (var id in read?.Hidden ?? []) isoHidden.Add(id);
+        StateHasChanged();
+    }
+
+    private sealed record IsoLayersMessage(IReadOnlyList<string> Layers, IReadOnlyList<string> Hidden);
 
     /// <summary>The bridge couldn't show the read-only 3-D preview; fall back to 2-D and disable the toggle.
     /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the

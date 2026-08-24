@@ -25,12 +25,22 @@ const FACES = [
 ];
 
 /**
- * Mesh a `{ palette, cols }` payload.
+ * Mesh a `{ palette, cols, layers }` payload.
+ *
+ * `hide` names the layers to leave out, by id as `payload.layers` spells them. A hidden layer's runs are
+ * dropped before the mesh is walked, so the faces of what is left are computed against the board actually
+ * shown — a gallery under a hidden deck gets its top face rather than reading as roofed by something no
+ * longer there.
+ *
  * @returns {{positions: Float32Array, normals: Float32Array, colors: Float32Array,
  *            minX: number, maxX: number, minZ: number, maxZ: number, maxY: number, quads: number}}
  */
-export function meshColumns(payload) {
-  const columns = decodeColumns(payload);
+export function meshColumns(payload, hide = null) {
+  const names = payload?.layers ?? [];
+  const hidden = hide?.length
+    ? new Set(hide.map(id => names.indexOf(id)).filter(at => at >= 0))
+    : null;
+  const columns = decodeColumns(payload, hidden);
   const colors = (payload?.palette ?? []).map(hexRgb);
 
   const positions = [];
@@ -91,15 +101,23 @@ export function meshColumns(payload) {
   };
 }
 
-/** The flat `cols` array as a map of `"x,z"` → `{x, z, runs}`, runs top first as the server wrote them. */
-export function decodeColumns(payload) {
+/**
+ * The flat `cols` array as a map of `"x,z"` → `{x, z, runs}`, runs top first as the server wrote them.
+ *
+ * `hidden` is a set of layer indices to leave out — what a viewer passes to hide a storey. A run whose layer
+ * is `-1` is one no layer accounts for (a house, a tree) and is never hidden by a layer toggle: hiding the
+ * ground a house stands on should not take the house with it, since the two are different claims and only
+ * one of them is the storey being switched off.
+ */
+export function decodeColumns(payload, hidden = null) {
   const cols = payload?.cols ?? [];
   const columns = new Map();
   for (let at = 0; at < cols.length;) {
     const x = cols[at++], z = cols[at++], count = cols[at++];
-    const runs = new Array(count);
+    const runs = [];
     for (let i = 0; i < count; i++) {
-      runs[i] = { yTop: cols[at++], yBottom: cols[at++], color: cols[at++] };
+      const run = { yTop: cols[at++], yBottom: cols[at++], color: cols[at++], layer: cols[at++] };
+      if (!hidden || run.layer < 0 || !hidden.has(run.layer)) runs.push(run);
     }
     columns.set(cellKey(x, z), { x, z, runs });
   }

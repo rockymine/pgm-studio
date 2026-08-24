@@ -234,13 +234,26 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // out of it — so it happens on entering the preview rather than on every edit. Nothing is drawn in 3-D, so
   // there is no edit to keep up with; the mesh is kept against the layout it was built from, and re-entering
   // an untouched board draws the cached one instead of asking again.
-  let isoMesh = null, isoStamp = null, isoSeq = 0;
+  let isoMesh = null, isoPayload = null, isoStamp = null, isoSeq = 0;
+
+  // Which layers the preview is leaving out, by the ids the payload spells. Kept across a rebuild, so an
+  // author who hid the deck to look under it does not have to hide it again after every edit.
+  const isoHidden = new Set();
 
   function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, setup.bbox); }
 
+  // Re-mesh what is already in hand. Hiding a storey is a filter over the payload rather than a question for
+  // the server: the runs say which layer drew them, so the board only has to be built once.
+  async function remeshIso() {
+    if (!isoPayload) return;
+    const { meshColumns } = await import("../render/column-mesh.js");
+    isoMesh = meshColumns(isoPayload, [...isoHidden]);
+    refreshIso();
+  }
+
   // An edit invalidates the picture. A stale mesh redrawn on rotate would show the board as it was two edits
   // ago and give no sign of it.
-  function dropIsoMesh() { isoMesh = null; isoStamp = null; }
+  function dropIsoMesh() { isoMesh = null; isoPayload = null; isoStamp = null; }
 
   // Enter the preview, then fill it. Two steps so the toggle answers the click at once and the wait is a
   // spinner over the 3-D surface rather than a frozen 2-D one.
@@ -255,12 +268,21 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const seq = ++isoSeq;
     const built = await fetchColumns(state);
     if (seq !== isoSeq || view !== "iso") return;   // left the preview, or a newer entry overtook this one
-    if (!built.mesh) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
-    isoMesh = built.mesh; isoStamp = state;
+    if (!built.payload) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
+
+    isoPayload = built.payload; isoStamp = state;
+    // A layer the board no longer has is not left hidden: it would be a switch the host cannot show and the
+    // author cannot turn back on.
+    const names = isoPayload.layers ?? [];
+    for (const id of [...isoHidden]) if (!names.includes(id)) isoHidden.delete(id);
+    fire("OnIsoLayers", JSON.stringify({ layers: names, hidden: [...isoHidden] }));
+
+    const { meshColumns } = await import("../render/column-mesh.js");
+    isoMesh = meshColumns(isoPayload, [...isoHidden]);
     canvas.drawIso(isoMesh, isoYaw, setup.bbox);
   }
 
-  // Answers {mesh} or {error}: the reason travels because the host shows it. A refused build carries the
+  // Answers {payload} or {error}: the reason travels because the host shows it. A refused build carries the
   // studio's own envelope — a rule id and a sentence — and dropping that on the floor is what made every
   // failure read as "no WebGL", including on a browser that has it.
   async function fetchColumns(state) {
@@ -270,8 +292,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         method: "POST", headers: { "Content-Type": "application/json" }, body: state,
       });
       if (!res.ok) return { error: await refusalText(res) };
-      const { meshColumns } = await import("../render/column-mesh.js");
-      return { mesh: meshColumns(await res.json()) };
+      return { payload: await res.json() };
     } catch { return { error: "the build could not be reached" }; }   // offline or mid-navigation
   }
 
@@ -597,6 +618,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       enterIso();
     },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
+    // Show or hide one storey of the preview. The board is not rebuilt — the runs already say which layer
+    // drew them, so this re-meshes what is in hand.
+    setIsoLayerShown(id, shown) {
+      if (shown) isoHidden.delete(id); else isoHidden.add(id);
+      remeshIso();
+    },
     setHeight(id, base, floor) {
       const s = canvas.getShape(id); if (!s) return;
       if (base  !== null && base  !== undefined) s.base_height = clampHeight(base);   // >= 1

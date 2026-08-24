@@ -116,9 +116,10 @@
 
           <CanvasReadout @ref="readout" ShowSize />
 
-          @* In 3-D the layer chips have nothing to toggle — the isometric preview is one rendering of the
-             finished heights, not a stack of overlays — so the row collapses to the two controls that still
-             mean something there: the rotate that replaces fit, and the toggle back out. *@
+          @* The chips mean different things either side of the toggle. In 2-D they are overlays over the
+             drawing; in 3-D they are the board's own storeys, one chip per sketch layer, because the thing
+             an author wants in a preview of a stack is to take the deck off and look under it. A board of
+             one layer shows none — there is nothing to take off — and the rotate replaces fit either way. *@
           <CanvasLayerBar>
             @if (!threeD)
             {
@@ -138,6 +139,12 @@
             }
             else
             {
+              @foreach (var id in isoLayers)
+              {
+                <LayerChip Icon="layers" Active="@(!isoHidden.Contains(id))"
+                           Title="@($"Show the '{id}' layer in the preview")"
+                           OnClick="@(() => ToggleIsoLayer(id))">@id</LayerChip>
+              }
               <CanvasRoundButton Icon="rotate-cw" Title="Rotate the preview 90°" OnClick="RotateIso" />
             }
             @if (isoUnavailable)

@@ -84,17 +84,11 @@ seven places stated what a document's layers were, in three different readings. 
 document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
 `FEATURES.md`). What is left below is what the layer id is *for*.
 
-- [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
-  emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
-  layer index per run and the toggle is client-side filtering in `sketch-canvas`'s column mesh. The claim has to be keyed on
-  the segment rather than on `(X, Z)`, or a run cannot be attributed — that half is still open.
-
 - [ ] **WS12 — A read-back can be asked for one layer.** Every `render/*` route is whole-world, and the only
   cut a caller has is `ymax`, a single height, which separates two storeys just where one lies flat over the
   other. Add a layer word to the four reads that project a column to one cell — `topdown`, `heightmap`,
   `surface`, `structures`. `traversability` and `walk` are **not** here: the walk answers per storey already
-  and a layer word would be a second way to ask. Wants the provenance claim keyed on the segment (`C48`'s half) and `WS13` to have
-  freed the word first.
+  and a layer word would be a second way to ask.
 
   *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone and the
   gallery is reachable only through `ymax` — and only because that deck happens to be flat. The committed

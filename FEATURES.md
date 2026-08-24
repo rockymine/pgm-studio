@@ -5686,6 +5686,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **A storey can be taken off the 3-D preview (C48).** `WorldColumnPayload.Of` read the finished `VoxelWorld`
+  and emitted runs with no idea what had made any of them, so the preview was one rendering of a stack with
+  no way to look inside it — and the overlay chips, which mean something in 2-D, had nothing to say in 3-D.
+  Every run carries the layer that drew it now: the payload gains `layers`, the flat `cols` stride gains a
+  `layerIndex`, and the attribution comes off the rasterizer's own `ColumnSegment` spans rather than off
+  provenance, which is keyed `(X, Z)` and could not have told two storeys apart. **A run belongs to a layer by
+  where it starts** — the painter writes a stone core and the bands over it inside one span, and every one of
+  them begins inside it; a run beginning outside every span is a structure standing on the terrain rather than
+  being it, answers `-1`, and is never hidden by a layer toggle, so taking away the ground a house stands on
+  does not take the house.
+
+  Hiding is a filter over what the browser already holds: the bridge caches the payload rather than the mesh
+  and re-meshes on toggle, so the board is built once. The faces are recomputed against the board actually
+  shown, which is what gives a gallery its top face when the deck over it is switched off rather than leaving
+  it reading as roofed. The chips are one per layer, a board of one layer shows none, a hidden layer stays
+  hidden across an edit, and a layer the author deletes comes back neither listed nor hidden.
 - **The word `layer` names a slab and nothing else, on the wire and in the database too (WS13).** The three
   type renames had landed; what was left was the family that had borrowed the word as a prefix and the route
   that had borrowed it as a noun. The scan's own word is *segment*, so `layer_segment` is **`scan_segment`**,
