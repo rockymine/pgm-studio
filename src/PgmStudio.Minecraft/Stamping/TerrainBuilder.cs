@@ -9,7 +9,7 @@ public sealed record BuiltTerrain(VoxelWorld World, IReadOnlyDictionary<(int X, 
 
 /// <summary>
 /// Turns <c>SketchRasterizer.RasterizeColumns</c> output — <see cref="ColumnSegment"/> solid runs — into
-/// a voxel world: a bedrock floor at y=0 under the whole footprint, stone filling each segment's
+/// a voxel world: a bedrock floor at y=0 under every column whose ground reaches it, stone filling each segment's
 /// <c>[YFloor, YTop)</c> span above it. Materials are deliberately flat (bedrock + stone) for now. Stacked
 /// disjoint segments per cell (e.g. ground + a sky bridge) each fill independently; the surface top is the
 /// tallest segment's <c>YTop</c>.
@@ -20,7 +20,7 @@ public static class TerrainBuilder
     {
         var world = new VoxelWorld();
         var surface = new Dictionary<(int X, int Z), int>();
-        var footprint = new HashSet<(int X, int Z)>();
+        var grounded = new HashSet<(int X, int Z)>();
 
         foreach (var (x, z, yFloor, yTop, _) in columns)
         {
@@ -28,11 +28,17 @@ public static class TerrainBuilder
             var hi = Math.Min(VoxelWorld.MaxHeight, yTop);
             for (var y = lo; y < hi; y++) world.SetBlock(x, y, z, Blocks.Stone);
 
-            footprint.Add((x, z));
+            // The floor goes under a column that rests on it — one whose own floor is the bedrock course or
+            // the first block over it — and nowhere else. A slab across open void, a bridge over a strait or
+            // a deck overhanging a court stands on nothing, so plating it would put a floor under the fall
+            // and add the column to the Y0 set a void filter reads. A one-thick slab at floor 0 writes no
+            // stone at all and the bedrock is its whole ground, which is why this reads the floor rather
+            // than what the fill wrote.
+            if (yFloor <= 1) grounded.Add((x, z));
             AddSurface(surface, x, z, yTop);
         }
 
-        foreach (var (x, z) in footprint) world.SetBlock(x, 0, z, Blocks.Bedrock);
+        foreach (var (x, z) in grounded) world.SetBlock(x, 0, z, Blocks.Bedrock);
 
         return new BuiltTerrain(world, surface);
     }

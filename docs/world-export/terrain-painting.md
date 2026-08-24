@@ -36,8 +36,8 @@ ids here are `TP*` (terrain paint), local to this file the way `structures.md` o
 
 ## 1. The painter's domain
 
-The painter touches **only stone**. Terrain arrives from `TerrainBuilder` as a bedrock floor at y=0
-with a stone column filling `[1, surfaceTop)` above it; every structure the stampers add — the wool-cage
+The painter touches **only stone**. Terrain arrives from `TerrainBuilder` as a bedrock floor at y=0 under
+every column whose ground reaches it, with a stone column filling `[1, surfaceTop)` above it; every structure the stampers add — the wool-cage
 and spawn-cube **bedrock plateaus**, their shells, the objectives — is bedrock, wool, obsidian, anything
 but stone. So the pass runs **last**, after every stamp, and rewrites stone blocks only. Bedrock at y=0 and
 the full room pieces (a wool room sits on a solid bedrock plateau, not on paintable stone) are excluded

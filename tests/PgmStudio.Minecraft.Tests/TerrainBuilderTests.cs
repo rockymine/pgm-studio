@@ -25,12 +25,12 @@ public sealed class TerrainBuilderTests
     }
 
     [Test]
-    public async Task Floating_segment_leaves_a_void_over_the_bedrock_floor()
+    public async Task Floating_segment_stands_over_void_all_the_way_down()
     {
         var terrain = TerrainBuilder.Build([Seg(5, 10, 10, 13)]);   // sky bridge, no ground
         var w = terrain.World;
 
-        await Assert.That(w.GetBlock(5, 0, 10)).IsEqualTo((Blocks.Bedrock, 0));  // floor under footprint
+        await Assert.That(w.GetBlock(5, 0, 10)).IsEqualTo((Blocks.Air, 0));      // nothing stands on the floor
         await Assert.That(w.GetBlock(5, 5, 10)).IsEqualTo((Blocks.Air, 0));      // void between
         await Assert.That(w.GetBlock(5, 10, 10)).IsEqualTo((Blocks.Stone, 0));
         await Assert.That(w.GetBlock(5, 12, 10)).IsEqualTo((Blocks.Stone, 0));
@@ -53,4 +53,18 @@ public sealed class TerrainBuilderTests
 
     /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
     private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
+
+    /// <summary>One board, both cases: the floor goes under ground that rests on it and not under the slab
+    /// standing over the void beside it. Plating the slab would put a floor under the fall off a bridge and
+    /// add the column to the Y0 set a void filter reads.</summary>
+    [Test]
+    public async Task The_floor_goes_under_ground_and_not_under_a_slab_beside_it()
+    {
+        var terrain = TerrainBuilder.Build([Seg(0, 0, 0, 4), Seg(9, 9, 14, 18)]);
+        var world = terrain.World;
+
+        await Assert.That(world.GetBlock(0, 0, 0).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(world.GetBlock(9, 0, 9).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(world.GetBlock(9, 14, 9).Id).IsEqualTo(Blocks.Stone);    // and still stands
+    }
 }

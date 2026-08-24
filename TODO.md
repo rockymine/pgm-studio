@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Ten entries, all about a stack of layers.** What is left of the group five authored maps
+**Nine entries, all about a stack of layers.** What is left of the group five authored maps
 (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a board whose ground
 is stacked, where a hall runs under a terrace and every read projects the column to one cell. A mineshaft
 built under a meadow is the worked example, and it is committed on this branch.
@@ -65,10 +65,6 @@ storeys. *(Settled by the author.)*
 **A layout is composed of layers, and the ground is one of them.** The document holds `layers[]` and
 nothing beside it: a flat board is a stack of one, and `layout` as a peer key — the ground shapes sitting
 outside the stack they belong to — stops existing. *(Settled by the author.)*
-
-**A slab over void plates nothing.** Falling off a bridge into the void is the honest outcome — a build
-region covers the case where it should not be, and a board with ground nobody can walk to is complained
-about on its own account. *(Settled by the author.)*
 
 The mineshaft **is committed** — `pgm-studio-mapgen`, `maps/opus5-mineshaft` · `specs/opus5-mineshaft/` ·
 `reports/opus5-mineshaft-layers.md`, on this branch. It is eighty blocks square, two layers, six shapes, no
@@ -159,16 +155,6 @@ fixes the document it actually moves, alongside `docs/tools/sketch.md`.
   worstDrop 22** straight along x = 0. It is not a route: the standing surface flips from the deck at **26**
   to the mine floor at **4** where the gallery begins, and a twenty-two block fall is scored as one drop on
   one continuous surface. Traversability calls the same chain connected.*
-
-- [ ] **WE22 — A slab over void should not lay bedrock at the bottom of the world.**
-  `TerrainBuilder.Build` writes a bedrock course at y0 under **every** footprint cell (`world.SetBlock(x, 0,
-  z, Blocks.Bedrock)`), so a bridge slab across a strait drops its own plate into the abyss and an
-  overhanging deck does the same over whatever it hangs past. The theme's `bedrock` value does not reach it —
-  the painter only overwrites stone. Condition the course on the cell having a segment that reaches it: a
-  player falling off a bridge meets the void, which is the honest outcome. *(Settled by the author.)*
-
-  *`opus5-undercroft`: bedrock at y0 under **(−32..−12, −10..10)** and **(12..32, −10..10)**, under two
-  bridges 14 blocks above it. Those columns also join the Y0 set a void filter reads.*
 
 - [ ] **WE24 — A placement names its layer.** Everything the export puts down resolves its Y from an
   `(x, z) → int` grid and so lands on the top slab whatever the author meant: an objective, a spawn, a room

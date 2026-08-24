@@ -29,8 +29,10 @@ The writer is the mirror of the reader.
 
 From `SketchRasterizer.RasterizeColumns` → `ColumnSegment` solid runs, `(X, Z, YFloor, YTop, Layer)`:
 
-- **y = 0 layer = bedrock** (id 7).
-- The solid span above (`[YFloor, YTop]`) = **stone** (id 1).
+- **y = 0 = bedrock** (id 7), under a column whose ground reaches it and nowhere else. A slab standing over
+  open void — a bridge across a strait, a deck overhanging a court — lays no floor beneath itself, so a fall
+  off it meets the void and the column stays out of the Y0 set a void filter reads.
+- The solid span above (`[YFloor, YTop)`) = **stone** (id 1).
 
 Flat materials for now — a later task may add a surface palette. Handle stacked disjoint segments per `(x,z)`.
 

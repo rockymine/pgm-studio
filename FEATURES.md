@@ -4385,6 +4385,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A slab over void plates nothing under itself (WE22).** `TerrainBuilder` wrote a bedrock course at y0
+  under **every** footprint cell, so a bridge across a strait dropped its own plate into the abyss and an
+  overhanging deck did the same over whatever it hung past — `opus5-undercroft` had two 20×20 plates under
+  bridges fourteen blocks above them. The theme's `bedrock` value never reached those columns either, because
+  the painter only overwrites stone. The course now goes under a column whose own floor is the bedrock course
+  or the first block over it, and nowhere else: falling off a bridge meets the void, which is the honest
+  outcome, and the column stays out of the Y0 set a void filter reads. A one-thick slab at floor 0 writes no
+  stone at all and the bedrock is its whole ground, which is why the test is the segment's floor rather than
+  what the fill wrote.
 - **A footprint turns as a cell, so a stamp lands on the ground's own mirror (B250).** A board of even extent
   turns about a **cell boundary**, so the image of cell `x` is `−1−x`; reflecting a footprint's corners as
   *positions* and flooring them lands it on `−x`, one block from where the terrain puts it. Houses,
