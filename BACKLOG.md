@@ -712,9 +712,10 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   not duplication; their per-pass default ignored-block sets (`Base` gets the expanded ND2 noise set;
   Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
   surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
-  `exclude_blocks`). Pairs with A4. The naming half is settled — the family is the *scan* now
-  (`SurfaceExtractors`, `scan_segment`, `SurfaceParquet`, `PgmStudio.Analysis.Scan`, `WS13`) — and what is
-  left here is only whether the passes themselves consolidate.
+  `exclude_blocks`). Pairs with A4. The naming half is settled — the family is the *scan*
+  (`SurfaceExtractors`, `SurfaceParquet`, `PgmStudio.Analysis.Scan`, `WS13`), and its rows are named for what
+  a row is rather than for the pass that wrote it (`segment`, `Q8`) — so what is left here is only whether
+  the passes themselves consolidate.
 
 ### The plan model: pieces, and the edges between them
 

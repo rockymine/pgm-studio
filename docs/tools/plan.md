@@ -445,7 +445,7 @@ document as the body and need no map, which is what lets a plan be checked befor
 | `POST /plan/{planId}/author` | — | `{slug}` — a map row seeded from a generator candidate | 404 unknown candidate |
 | `GET /map/{slug}/plan` | — | the stored document, or `{}` | 404 unknown map |
 | `PUT /map/{slug}/plan` | the document | `{}` — a verbatim replace; `warnings` carries any field the plan reader has nowhere to keep (`RQ3`), which the blob would otherwise store and nothing downstream would read. The `ETag` is the revision it landed at | 400 non-JSON · **409 `RQ5`** an `If-Match` naming a revision the plan is no longer at · 404 unknown map |
-| `GET /map/{slug}/state` | — | `{stage, layers, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
+| `GET /map/{slug}/state` | — | `{stage, artifacts, moves[]}` — where the map has got to, which documents it holds, and what may be done to it from here. Each move is `{does, route, next}`; several are open at once and `next` marks the ones the stage is waiting on | 404 |
 | `GET /map/{slug}/findings` | — | `{stage, findings[], unasked[], refuses}` — everything wrong with the map right now, from every gate its stored documents can answer, plus the gates a read cannot reach and the route that does pay for them | 404 |
 | `GET /map/{slug}/plan/ascii[?every=N]` | — | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. `every` draws one character per N cells for a board wider than a terminal | 404 unknown map or no plan · 422 stored plan unreadable |
 | `GET /map/{slug}/plan/flow` | — | `text/plain` — how the board is come at and what that leaves unused: each objective's two walks and the ratio between them, where the ways in part and meet, whether the defence shares the attackers' road, and the ground no journey reaches, named with its pieces | 404 · 422 |
@@ -611,6 +611,11 @@ scale — and nothing it draws has a diagonal, a curve or a notch. There is no p
 Refining the shape of the ground is the Sketch tool's, which takes the compiled layout and works on the fused
 outline. Height is the one property a plan states finely, and it states one flat surface per piece: valleys,
 slopes, contours and any interior elevation belong to the relief phase downstream.
+
+**A plan states no stack.** The plan model is flat by decision rather than by omission — a storey is a fact
+about ground that has been drawn, and the sketch is where ground is drawn — so `layers[]` has no counterpart
+here and a compiled plan emits exactly one, id `ground`, at `base_y` 0. That the walk's node is a *place*
+rather than a cell costs a plan board nothing: it simply has one place per cell.
 
 It authors no paint and no dressing. Themes, styles, trees, paths, ponds, rocks and houses are all the Sketch
 tool's; a plan carrying theme keys has them dropped on parse.

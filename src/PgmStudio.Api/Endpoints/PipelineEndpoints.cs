@@ -13,7 +13,7 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// POST /api/map/{slug}/scan-world — scan the map's Minecraft world (<c>&lt;root&gt;/&lt;slug&gt;/region</c>)
-/// and (re)write its relational feature rows (wools/resources/chests/spawners/scan_segments).
+/// and (re)write its relational feature rows (wools/resources/chests/spawners/segments).
 /// The world-import half of the pipeline; the xml half is the importer / map editors.
 /// </summary>
 public sealed class ScanWorldEndpoint(MapRepository repo, WorldFeatureWriter writer, MapsRoots roots)

@@ -110,7 +110,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Export` | 9 | 1,911 | flat |
 | `Geom` | 48 | 5,749 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 5 · 17 at root |
 | `Import` | 4 | 471 | flat |
-| `Migrations` | 26 | 1,735 | `Migrations/` 25 · 1 at root |
+| `Migrations` | 27 | 1,756 | `Migrations/` 26 · 1 at root |
 | `Minecraft` | 80 | 15,585 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 11 · `Houses/` 10 · `Render/` 9 · `Painting/` 8 · `Dressing/` 7 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 148 | 23,595 | `Compose/` 42 (nested) · `Authoring/` 21 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 8 · `Plan/` 7 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 7 | 679 | flat |
@@ -164,7 +164,7 @@ map, team, region, filter, wool, monument, spawn, apply_rule, kit — and JSON c
 leaves, a region's or filter's type-specific parameters and an apply-rule's event map, where a column per
 variant would be a schema per type. Block data splits the same way by volume rather than by shape: the small
 **feature** parquet becomes relational rows (`wool_block`, `resource_block`, `chest_item`, `spawner`,
-`scan_segment`), while the raw `layer.parquet` — around 7,700 rows for a single map — stays a regenerable
+`segment`), while the raw `layer.parquet` — around 7,700 rows for a single map — stays a regenerable
 cached artifact in a `map_artifact` blob rather than a row per block. `PgmStudio.Import` replays parquet into
 those rows, so migrating an existing map needs no world re-scan; only importing a new one does.
 

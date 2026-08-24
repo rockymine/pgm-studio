@@ -195,7 +195,7 @@ foreach (var dir in dirs)
         var c = await importer.ImportDirAsync(slug, dir);
         ok++;
         Console.WriteLine($"  {slug,-22} regions={c.Regions,-4} filters={c.Filters,-4} wools={c.Wools}/{c.Monuments,-5} " +
-                          $"spawns={c.Spawns,-3} blocks(w/r/c/s/seg)={c.WoolBlocks}/{c.ResourceBlocks}/{c.ChestItems}/{c.SpawnerBlocks}/{c.ScanSegments} mon_cand={c.MonumentCandidates,-4} artifacts={c.Artifacts}");
+                          $"spawns={c.Spawns,-3} blocks(w/r/c/s/seg)={c.WoolBlocks}/{c.ResourceBlocks}/{c.ChestItems}/{c.SpawnerBlocks}/{c.Segments} mon_cand={c.MonumentCandidates,-4} artifacts={c.Artifacts}");
     }
     catch (Exception ex) { failed++; Console.WriteLine($"  {slug,-22} FAILED: {ex.GetType().Name}: {ex.Message}"); }
 }
@@ -213,7 +213,7 @@ foreach (var dir in dirs)
                  ("wools.parquet", id => db.WoolBlocks.CountAsync(x => x.MapId == id)),
                  ("resources.parquet", id => db.ResourceBlocks.CountAsync(x => x.MapId == id)),
                  ("chests.parquet", id => db.ChestItems.CountAsync(x => x.MapId == id)),
-                 ("layer_segments.parquet", id => db.ScanSegments.CountAsync(x => x.MapId == id)),
+                 ("layer_segments.parquet", id => db.Segments.CountAsync(x => x.MapId == id)),
              })
     {
         var path = Path.Combine(dir, file);

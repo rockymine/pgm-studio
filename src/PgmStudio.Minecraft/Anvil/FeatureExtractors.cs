@@ -18,7 +18,7 @@ public readonly record struct SegmentFeature(int WorldX, int WorldZ, int WorldYS
 /// <summary>
 /// Locate specific block types across a set of region files — "where are the X blocks and what
 /// are they?". <c>minecraft/layers.py</c>. Each method scans the decoded block stream / tile-entity NBT and
-/// yields per-instance rows matching <c>wools/resources/chests/spawners/scan_segments</c>.
+/// yields per-instance rows matching <c>wools/resources/chests/spawners/segments</c>.
 /// </summary>
 public static class FeatureExtractors
 {

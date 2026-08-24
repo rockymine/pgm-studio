@@ -175,6 +175,19 @@ buried, and what settles it is how many trees the leaves are divided among — a
 a canopy with gaps under it, and a few dozen is a blanket laid over the board. The measure that would actually
 answer it is neither number but what share of the ground stands under a leaf (`B96`).
 
+## A second storey is played on
+
+**[author]** A tunnel under the ground is not scenery beneath the board. It is a second way to an objective —
+a flanking route with its own cover, its own sightlines and its own way of being defended — so the storeys of
+a stacked board and the ways between them are part of the map, and a read that cannot see them is describing
+half of it.
+
+That is what makes the gap between two storeys a design quantity rather than an artifact of drawing. A deck
+over a yard with nothing joining them is two boards; a stair, a ramp or a hole cut in the roof is what makes
+it one, and where the join is decides which approach the second storey serves. `docs/tools/sketch.md`
+§ Layers carries what the studio does with that, and `SK11` is the complaint it raises where a storey has
+nothing onto it.
+
 ## Where the rest lives
 
 `match-flow.md` is what a match does to a finished board — the three fidelities a route has and the played

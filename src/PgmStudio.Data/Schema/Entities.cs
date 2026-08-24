@@ -347,8 +347,8 @@ public sealed class MonumentCandidateRow
     [Column("evidence")] public string? Evidence { get; set; }
 }
 
-[Table("scan_segment")]
-public sealed class ScanSegmentRow
+[Table("segment")]
+public sealed class SegmentRow
 {
     [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
     [Column("map_id"), NotNull] public long MapId { get; set; }

@@ -183,7 +183,7 @@ public sealed class SegmentsEndpoint(MapRepository repo, PgmDb db) : EndpointWit
         // (a point's column + neighbours, or a rectangle's footprint). Absent params = the whole map.
         int? Q(string k) => int.TryParse(HttpContext.Request.Query[k], out var v) ? v : null;
         int? xmin = Q("xmin"), xmax = Q("xmax"), zmin = Q("zmin"), zmax = Q("zmax");
-        var q = db.ScanSegments.Where(s => s.MapId == map.Id);
+        var q = db.Segments.Where(s => s.MapId == map.Id);
         if (xmin is int a) q = q.Where(s => s.WorldX >= a);
         if (xmax is int b) q = q.Where(s => s.WorldX <= b);
         if (zmin is int c) q = q.Where(s => s.WorldZ >= c);
@@ -219,7 +219,7 @@ public sealed class ColumnFloorEndpoint(MapRepository repo, PgmDb db) : Endpoint
         }
         var refY = int.TryParse(HttpContext.Request.Query["y"], out var ry) ? ry : int.MaxValue;
 
-        var tops = await db.ScanSegments
+        var tops = await db.Segments
             .Where(s => s.MapId == map.Id && s.WorldX == x && s.WorldZ == z)
             .Select(s => s.WorldYEnd).ToListAsync(ct);
         if (tops.Count == 0) { await Send.OkAsync(new ColumnFloorDto(null), ct); return; }

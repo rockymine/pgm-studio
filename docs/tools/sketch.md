@@ -234,10 +234,10 @@ where the lower one's clearance admits it. A yard roofed by the deck over it is 
 cut a hole in the roof and the two join there. `docs/world-scan/read-backs.md` §"What a walk costs" carries the
 rule.
 
-**What a stacked board still cannot say about itself.** Nothing warns where a mass connects to nothing
-(`TS24`). And a scanned world's own segments carry no layer at all: **a scanned cave and a stacked sketch are
-one geometry seen twice**, differing only in provenance, which is why the word collides in the scan family and
-nowhere else.
+**What a stacked board says about itself, and what it does not.** `SK10` names two layers cutting into one
+another and `SK11` names a mass no route reaches, both as complaints. What neither can say is which storey a
+scanned world's ground belongs to: a scan's segments carry no layer at all, because **a scanned cave and a
+stacked sketch are one geometry seen twice**, differing only in provenance.
 
 In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
 isometric preview, and a new layer defaults to ten blocks above the highest existing one.

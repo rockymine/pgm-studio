@@ -81,7 +81,7 @@ Only §3 needs the map's XML, and only a corpus map scanned through `scan-world`
 zip or folder import carries no XML by design, because the XML is what the configure tool *produces* from it.
 Those imports pass `PhantomErasure.None`, and §1 and §2 carry them entirely.
 
-`scan_segment` is a separate ingest derivation with its own exclusion (`FeatureExtractors.SegmentExclude`)
+`segment` is a separate ingest derivation with its own exclusion (`FeatureExtractors.SegmentExclude`)
 and does not apply §2 or §3, so the query-time footprint built from it (`SegmentIndex.BaseColumns` →
 `IslandDetector.CleanedBaseFootprint`) still counts a floor marker as solid. That inconsistency is real and
 filed (`B57`); it is narrower than it sounds, because that path feeds kit-reach analysis rather than the

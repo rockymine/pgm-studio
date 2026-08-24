@@ -5715,15 +5715,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shown, which is what gives a gallery its top face when the deck over it is switched off rather than leaving
   it reading as roofed. The chips are one per layer, a board of one layer shows none, a hidden layer stays
   hidden across an edit, and a layer the author deletes comes back neither listed nor hidden.
-- **The word `layer` names a slab and nothing else, on the wire and in the database too (WS13).** The three
-  type renames had landed; what was left was the family that had borrowed the word as a prefix and the route
-  that had borrowed it as a noun. The scan's own word is *segment*, so `layer_segment` is **`scan_segment`**,
-  `LayerSegmentRow`/`LayerSegments` are `ScanSegmentRow`/`ScanSegments`, and the namespace
+- **The word `layer` names a slab and nothing else, on the wire and in the database too (WS13, `Q8`).** The
+  three type renames had landed; what was left was the family that had borrowed the word as a prefix and the
+  route that had borrowed it as a noun. The scan's own word is *segment*, so `layer_segment` is
+  **`segment`**, `LayerSegmentRow`/`LayerSegments` are `SegmentRow`/`Segments`, and the namespace
   `PgmStudio.Analysis.Layer` is `PgmStudio.Analysis.Scan`. `LayerExtractors` extracts surface rows, so it is
   `SurfaceExtractors`. The `layer_parquet` artifact kind is the surface scan, so it is `surface_parquet`. And
   the `scan_layer` key in `map_config_json` names which *reading* the scan takes the ground off — `surface` or
   `cleanbase` — so it is `scan_read`, with `scan_layer_confirmed` following it; the DTO field follows.
-  `M0025` moves all three stored names and reverses cleanly, since every one is a rename.
+  `M0025` moves all three stored names and reverses cleanly, since every one is a rename, and **`M0026`
+  drops the prefix from the table outright**: every table a scan writes is named for what a row *is* —
+  `wool_block`, `resource_block`, `chest_item`, `spawner_block`, `monument_candidate`, `core_candidate` —
+  and none of them says which pass produced it, because they all come from the same one. The wire field
+  `scan_segments` is `segments` with it.
 
   The route was the collision itself: `GET /map/{slug}/layers` answered which *authoring artifacts* a map
   holds while `layers[]` in a sketch document means slabs. It answers a `MapState`, so it is

@@ -899,7 +899,7 @@ static async Task<int> RunScanOut(string mapDir, string outRoot)
     await WriteParquet(Path.Combine(outDir, "spawners.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Spawners(chunks)
         .Select(s => new ScanSpawnerRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldY = s.WorldY, EntityId = s.EntityId, SpawnsWool = s.SpawnsWool, SpawnItemId = s.SpawnItemId, SpawnItemDamage = s.SpawnItemDamage, SpawnCount = s.SpawnCount, SpawnRange = s.SpawnRange, MinSpawnDelay = s.MinSpawnDelay, MaxSpawnDelay = s.MaxSpawnDelay, RequiredPlayerRange = s.RequiredPlayerRange, MaxNearbyEntities = s.MaxNearbyEntities }).ToList());
     await WriteParquet(Path.Combine(outDir, "layer_segments.parquet"), PgmStudio.Minecraft.Anvil.FeatureExtractors.Segments(chunks)
-        .Select(s => new ScanSegmentRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList());
+        .Select(s => new SegmentRow { WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList());
 
     // Surface layer → layer.parquet (the cached artifact + the bounding-box source)
     var surface = PgmStudio.Minecraft.Anvil.SurfaceExtractors.Surface(chunks).ToList();
@@ -1780,7 +1780,7 @@ sealed class ScanSpawnerRow
     [JP("max_nearby_entities")] public int? MaxNearbyEntities { get; set; }
 }
 
-sealed class ScanSegmentRow
+sealed class SegmentRow
 {
     [JP("world_x")] public int WorldX { get; set; }
     [JP("world_z")] public int WorldZ { get; set; }

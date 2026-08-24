@@ -21,7 +21,7 @@ namespace PgmStudio.Data.Features;
 /// </summary>
 public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
 {
-    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int ScanSegments, int Islands, int MonumentCandidates, int CoreCandidates);
+    public readonly record struct Counts(int WoolBlocks, int ResourceBlocks, int ChestItems, int SpawnerBlocks, int Segments, int Islands, int MonumentCandidates, int CoreCandidates);
 
     /// <summary>One surface-scan row (layer.parquet schema).</summary>
     private sealed class LayerRow
@@ -64,7 +64,7 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
                 RequiredPlayerRange = s.RequiredPlayerRange, MaxNearbyEntities = s.MaxNearbyEntities,
             }).ToList();
         var segs = FeatureExtractors.Segments(chunks)
-            .Select(s => new ScanSegmentRow { MapId = mapId, WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList();
+            .Select(s => new SegmentRow { MapId = mapId, WorldX = s.WorldX, WorldZ = s.WorldZ, WorldYStart = s.WorldYStart, WorldYEnd = s.WorldYEnd }).ToList();
 
         // The world, read once, for both suggesters. Decoding is the world package's and what a monument or
         // a core is is a derivation, so the read happens here — at the one caller that has both — and each
@@ -105,14 +105,14 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
     /// <summary>
     /// Persist the geometry artifacts for a <b>finished sketch</b> (docs/tools/sketch.md, Finish):
     /// the rasterized cells become a synthetic surface layer (stone at Y=0) → layer.parquet, the supplied
-    /// islands → islands.json, one single-block segment per column → scan_segment, plus the default
+    /// islands → islands.json, one single-block segment per column → segment, plus the default
     /// map_config. The sketched map then has the same geometry shape an imported world does, so it flows
     /// into the Configure wizard. Replaces any prior features for the map.
     /// </summary>
     public async Task WriteSketchAsync(long mapId, IReadOnlyCollection<ColumnSegment> cells, IReadOnlyList<IslandDetector.Island> islands, CancellationToken ct = default)
     {
         // Surface layer = one row per (x,z) at its highest top (stacked layers can repeat a column); the
-        // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in scan_segment.
+        // per-segment spans (possibly several per column, e.g. ground + a sky bridge) live in segment.
         var layerRows = cells.GroupBy(c => (c.X, c.Z))
             .Select(g => new LayerRow { WorldX = g.Key.X, WorldZ = g.Key.Z, WorldY = g.Max(c => c.YTop), BlockId = 1, BlockData = 0 }).ToList();
         byte[] layerBytes;
@@ -122,7 +122,7 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
             layerBytes = ms.ToArray();
         }
 
-        var segs = cells.Select(c => new ScanSegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = c.YFloor, WorldYEnd = c.YTop }).ToList();
+        var segs = cells.Select(c => new SegmentRow { MapId = mapId, WorldX = c.X, WorldZ = c.Z, WorldYStart = c.YFloor, WorldYEnd = c.YTop }).ToList();
 
         var config = new JsonObject
         {
@@ -231,6 +231,6 @@ public sealed class WorldFeatureWriter(PgmDb db, MapArtifactStore artifacts)
         await db.ChestItems.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.SpawnerBlocks.Where(x => x.MapId == mapId).DeleteAsync(ct);
         await db.MonumentCandidates.Where(x => x.MapId == mapId).DeleteAsync(ct);
-        await db.ScanSegments.Where(x => x.MapId == mapId).DeleteAsync(ct);
+        await db.Segments.Where(x => x.MapId == mapId).DeleteAsync(ct);
     }
 }
