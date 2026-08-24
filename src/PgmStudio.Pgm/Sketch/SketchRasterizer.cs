@@ -384,6 +384,11 @@ public static class SketchRasterizer
     {
         var doors = (shape.Doors ?? []).Select(RoomEdges.OfWord).Where(edge => edge is not null)
                                        .Select(edge => edge!.Value).Distinct().ToList();
+        // A room stating no door is entered from wherever the ground reaches it, so every side is read.
+        // The ground under the footprint is the wrong answer here and is only the last resort: it splits the
+        // difference and leaves a step at the door as well as at the back, which is the whole reason the
+        // height is read outside the room in the first place.
+        if (doors.Count == 0) doors = [.. Enum.GetValues<RoomEdge>()];
         var inside = new HashSet<(int X, int Z)>(covered);
 
         var outside = new List<int>();
@@ -399,6 +404,7 @@ public static class SketchRasterizer
         }
         if (outside.Count > 0) { outside.Sort(); return outside[outside.Count / 2]; }
 
+        // Nothing outside it at all — a room filling its own island. Its own ground is all there is to read.
         var under = covered.Where(cell => footprint.Inside(cell.X, cell.Z))
                            .Select(cell => field.At(cell.X, cell.Z)).ToList();
         if (under.Count == 0) return null;

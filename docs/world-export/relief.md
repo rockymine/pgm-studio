@@ -491,8 +491,15 @@ a mean would carry into the floor and a min or max would take as the answer.
 Which sides those are is carried on the shape as `doors`, written by the plan compiler for the authored orbit
 image only: a spawn's from the facing its placement states, a wool room's from every entry
 `WoolEntrySegments` reports — a wool room is entered by the **attacker**, since the owning team is kept out of
-its own wool, so the ground that has to be level with it is the ground the attack arrives across. A room
-stating no door falls back to the median under its own footprint.
+its own wool, so the ground that has to be level with it is the ground the attack arrives across.
+
+**A room stating no door is read on every side**, because a room nobody named a way into is entered from
+wherever the ground reaches it. The median under its own footprint is the answer this rule exists to reject —
+it splits the difference and leaves a step at the way in as well as at the back — so it is the last resort
+only, for a room with no ground outside it at all, which is a room filling its own island. The distinction is
+not academic: a stored layout written before `doors` existed carries none, and on `opus5-hollowmarch` reading
+the footprint seats the back wool room at **19** against an approach at **21**, while reading the ring outside
+seats it at **21** and the way in is flush.
 
 The seating is the *preferred* correction of the two available. The other is re-authoring the relief so it
 arrives at the plan's number, which is a larger edit that gives up the terrain the author drew to satisfy a

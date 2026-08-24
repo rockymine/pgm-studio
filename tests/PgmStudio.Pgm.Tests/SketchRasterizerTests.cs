@@ -247,4 +247,35 @@ public sealed class SketchRasterizerTests
         // the push still did its job on the ground it was drawn over
         await Assert.That(top[(0, 30)]).IsGreaterThan(14);
     }
+
+    [Test]
+    public async Task A_room_stating_no_door_seats_on_the_ground_outside_it()
+    {
+        // Which side a room is entered from is what decides the height it should be flat at, and a room
+        // stating no door is entered from wherever the ground reaches it. Reading the median under its own
+        // footprint instead splits the difference and leaves a step at the way in as well as at the back.
+        // Here the ground climbs along +z, so the two answers differ by more than a step.
+        const string board = """
+        {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{
+           "shapes":[
+             {"id":"s0","type":"polygon","operation":"add","base_height":10,
+              "vertices":[[-20,0],[20,0],[20,60],[-20,60]]},
+             {"id":"room","type":"rectangle","operation":"add","role":"woolRoom","intentRef":"red:blue",
+              "base_height":10,"relief_scope":"hold","min_x":-5,"min_z":40,"max_x":5,"max_z":50}],
+           "islands":[{"id":"team","mirrors":false,"shapeIds":["s0"]}]}}],
+         "relief":{"team":{"base":10,"reach":0,"step":1,"marks":[
+           {"id":"low","kind":"area","h":10,"ring":[[-20,0],[20,0],[20,6],[-20,6]]},
+           {"id":"high","kind":"area","h":24,"ring":[[-20,54],[20,54],[20,60],[-20,60]]}]}}}
+        """;
+
+        var top = SketchRasterizer.RasterizeColumns(board).ToDictionary(c => (c.X, c.Z), c => c.YTop);
+        var room = Enumerable.Range(-5, 10).SelectMany(x => Enumerable.Range(40, 10).Select(z => (x, z)))
+                             .Select(cell => top[cell]).ToList();
+
+        await Assert.That(room.Distinct().Count()).IsEqualTo(1);        // flat, as a room always is
+        // Flush with the ground either side of it, within the step a player takes for nothing.
+        await Assert.That(Math.Abs(room[0] - top[(0, 39)])).IsLessThanOrEqualTo(1);
+        await Assert.That(Math.Abs(room[0] - top[(0, 50)])).IsLessThanOrEqualTo(1);
+    }
 }

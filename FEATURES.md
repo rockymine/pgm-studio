@@ -4409,8 +4409,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   On `opus5-hollowmarch` the `under-back` push (ring stopping one block short of the back wool room,
   `falloff` 10) tilted a room held at 18 across `23 22 22 21 20 20 19 19 19 19`; the built world had bedrock
   to y19 at (−20,102) and to y17 at (−20,108) under planks at y20 both times — two courses of air under half
-  the floor. The field now reads a flat 19 across that room and its mirror, and the three rooms no push
-  reaches are unmoved at 18.
+  the floor.
+
+  **And a room stating no door is seated on the ground outside it, not the ground under it.** Flat is only
+  half of level: the seat decides *which* height the room is flat at, and the footprint median is the answer
+  §11 exists to reject — it splits the difference and leaves a step at the way in as well as at the back. The
+  fallback is now the door rule with every side, since a room nobody named a way into is entered from wherever
+  the ground reaches it; reading under the footprint is the last resort only, for a room with no ground
+  outside it at all. It matters on a stored layout written before `doors` existed, which carries none:
+  hollowmarch's six rooms went from three sloping and three one block proud to **all six flat and flush** —
+  the back pair at 21 against an approach at 21, the rest at 17 against 17, every step 0.
 - **A placement names the storey it rests on (WE24).** Everything the export put down resolved its Y from
   one whole-board surface grid, so on a stacked board a monument stated for a hall landed on the deck roofing
   it and a tree stated for a gallery floor landed on the roof — not declined, not warned, somewhere else.
