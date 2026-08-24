@@ -99,6 +99,12 @@ public sealed class ReliefMarkJson
     /// band is twice it, since it reaches either side of the centerline.</summary>
     [JsonPropertyName("r")]      public double Radius { get; set; } = 2;
 
+    /// <summary>The name a stored line mark carries its reach under, read into <see cref="Radius"/>. Set-only,
+    /// so it is never written back: a document that is loaded and saved comes out spelling the one name, and
+    /// the number never changes meaning — the field always was the distance either side of the line, and only
+    /// its name promised otherwise.</summary>
+    [JsonPropertyName("width")]  public double Width { set => Radius = value; }
+
     /// <summary>A line's or scarp's course, as <c>[x, z]</c> pairs.</summary>
     [JsonPropertyName("points")] public double[][]? Points { get; set; }
 

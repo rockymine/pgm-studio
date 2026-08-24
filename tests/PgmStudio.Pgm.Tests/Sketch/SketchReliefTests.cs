@@ -55,6 +55,43 @@ public sealed class SketchReliefTests
     }
 
     [Test]
+    public async Task A_stored_line_mark_keeps_the_band_it_was_drawn_with()
+    {
+        // The reach either side of a line is one quantity under one name; a document stored under the other
+        // reads into the same field, so a relief authored before the rename holds the same ground. Seventeen
+        // committed layouts carry it, and the failure is silent: the mark falls back to the default reach and
+        // the terrain under it quietly flattens.
+        const string stored = """
+        { "i1": { "base": 3, "reach": 12, "marks": [
+          { "id": "m", "kind": "line", "points": [[0, 10], [20, 10]], "h": 12, "width": 6 },
+          { "id": "edge", "kind": "rim", "h": 3, "depth": 1 } ] } }
+        """;
+        const string renamed = """
+        { "i1": { "base": 3, "reach": 12, "marks": [
+          { "id": "m", "kind": "line", "points": [[0, 10], [20, 10]], "h": 12, "r": 6 },
+          { "id": "edge", "kind": "rim", "h": 3, "depth": 1 } ] } }
+        """;
+        const string defaulted = """
+        { "i1": { "base": 3, "reach": 12, "marks": [
+          { "id": "m", "kind": "line", "points": [[0, 10], [20, 10]], "h": 12 },
+          { "id": "edge", "kind": "rim", "h": 3, "depth": 1 } ] } }
+        """;
+
+        var byOldName = SketchRasterizer.ReliefFields(Layout(stored))["i1"];
+        var byNewName = SketchRasterizer.ReliefFields(Layout(renamed))["i1"];
+        var byDefault = SketchRasterizer.ReliefFields(Layout(defaulted))["i1"];
+
+        // The two spellings are the same surface, cell for cell.
+        foreach (var (x, z) in byNewName.Footprint.Land())
+            await Assert.That(byOldName.At(x, z)).IsEqualTo(byNewName.At(x, z));
+
+        // And the stored name is genuinely read: a mark falling back to the default reach holds less ground,
+        // which is the silent flattening this exists to stop.
+        await Assert.That(byOldName.At(10, 15)).IsEqualTo(12);
+        await Assert.That(byDefault.At(10, 15)).IsLessThan(12);
+    }
+
+    [Test]
     public async Task A_rim_keeps_the_hill_inside_the_shape()
     {
         const string relief = """

@@ -67,8 +67,10 @@ Five kinds cover the vocabulary, and the first four differ only in the shape of 
 
 A point mark with a radius of zero pins one cell and reads as a spike; from about two up it reads as a summit,
 which is why the radius exists at all. A line mark states the same quantity under the same name — `r` reaches
-either side of the centerline, so the band it writes is **twice** it: `"r": 6` holds a twelve-block strip. Its
-per-vertex heights are interpolated along its arc, so one drawn stroke can be a ridge that descends. The rim is optional and it is what keeps a hill inside its shape:
+either side of the centerline, so the band it writes is **twice** it: `"r": 6` holds a twelve-block strip. A
+line stored under `width` reads into the same field and is written back as `r`; the number never meant
+anything else, and only the name promised otherwise. Its per-vertex heights are interpolated along its arc, so
+one drawn stroke can be a ridge that descends. The rim is optional and it is what keeps a hill inside its shape:
 without one, marks alone decide the whole surface, so a shape carrying a single high mark rises to that height
 everywhere and simply runs off its own edge — which is usually what an island's interior wants, and never what
 a lake wants.
