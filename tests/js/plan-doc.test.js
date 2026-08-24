@@ -10,7 +10,7 @@ import {
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
   contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES, ROLE_COLORS,
-  canonicalRole, cycleWall, nearestInterface,
+  canonicalRole, toggleWall, nearestInterface,
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
   pieceSurface, surfaceRange, surfaceFraction, markerList, markerAt, MARKER_KINDS,
   boxMembers, boxAtCell, boxOfPiece, boxMirrorImages, rectContainsRect,
@@ -316,13 +316,12 @@ test("pieceMirrorImages fans a buffer with mirrors unset and skips one with mirr
   assert.equal(imgs[0].role, "buffer");
 });
 
-test("cycleWall walks a mark through both chest sides and off again, order-insensitive", () => {
+test("toggleWall raises a mark and takes it off again, order-insensitive", () => {
+  // Which face the chests open on is derived, not authored, so a click decides only whether the wall stands.
   const doc = normalizeDoc({ plan: 1 });
-  assert.equal(cycleWall(doc, "a", "b"), "a");               // raised, chests facing the first piece
-  assert.deepEqual(doc.walls, [{ a: "a", b: "b", side: "a" }]);
-  assert.equal(cycleWall(doc, "b", "a"), "b");               // same pair reversed → the other face opens
-  assert.deepEqual(doc.walls, [{ a: "a", b: "b", side: "b" }]);
-  assert.equal(cycleWall(doc, "a", "b"), null);              // and round to no wall at all
+  assert.equal(toggleWall(doc, "a", "b"), true);
+  assert.deepEqual(doc.walls, [{ a: "a", b: "b" }]);         // no side: nothing here names a face
+  assert.equal(toggleWall(doc, "b", "a"), false);            // same pair reversed → the same mark, removed
   assert.deepEqual(doc.walls, []);
 });
 

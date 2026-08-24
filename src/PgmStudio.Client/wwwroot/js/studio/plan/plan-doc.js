@@ -368,23 +368,21 @@ export function attachMarker(doc, cx, cz) {
 export function wallMatches(w, a, b) { return (w.a === a && w.b === b) || (w.a === b && w.b === a); }
 
 /**
- * Cycle the wall mark on the (unordered) piece pair `a`/`b` through the three states a wall can be in:
- * none → a wall whose chests face `a` → a wall whose chests face `b` → none. Mutates `doc.walls` in place and
- * returns the piece the chests now face, or null when the mark was removed.
+ * Toggle the wall mark on the (unordered) piece pair `a`/`b`: none → a wall → none. Mutates `doc.walls` in
+ * place and returns true when a wall now stands there.
  *
  * A wall is two blocks thick so exactly one of its faces can be opened for the defence chests, and which face
- * that is decides which side of the line can reach the supply — so it is the author's to say. Cycling on the
- * same click that raises the wall is the spawn marker's idiom (click a placed one to turn it), and it keeps
- * the wall an annotation on a seam rather than something with its own selection and inspector.
+ * that is is **not authored** — it is the approach side, the one further from the wool, derived by the
+ * compiler and reported back on the interface feed for the overlay to draw. So the only thing a click decides
+ * is whether the wall is there at all. It stays an annotation on a seam rather than something with its own
+ * selection and inspector.
  */
-export function cycleWall(doc, a, b) {
+export function toggleWall(doc, a, b) {
   if (!doc.walls) doc.walls = [];
   const i = doc.walls.findIndex(w => wallMatches(w, a, b));
-  if (i < 0) { doc.walls.push({ a, b, side: "a" }); return a; }
-  const wall = doc.walls[i];
-  if (wall.side === "b") { doc.walls.splice(i, 1); return null; }
-  wall.side = "b";
-  return wall.b;
+  if (i < 0) { doc.walls.push({ a, b }); return true; }
+  doc.walls.splice(i, 1);
+  return false;
 }
 
 /** Distance (blocks) from point `(px, pz)` to the segment `(x1,z1)-(x2,z2)`. */

@@ -123,6 +123,12 @@ public sealed class ContactGraph
         BuildRegions = ComputeBuildRegions(plan, Cell);
         GapLinks = ComputeGapLinks(BuildRegions, Pieces, Components);
         InterfaceSegments = BuildInterfaceSegments(_byId, Contacts, plan.Walls);
+        // A walled seam's chest face is derived, so it is filled once the graph can answer it — the overlay
+        // draws the face off this feed, and a face the author cannot set is still a face they should see.
+        InterfaceSegments = [.. InterfaceSegments.Select(seg => seg.Wall
+            && WallInterfaces.FirstOrDefault(c => c.A == seg.A && c.B == seg.B) is { } walled
+            ? seg with { WallChestPiece = WallChestPiece(walled) }
+            : seg)];
         FrontlineEdges = ComputeFrontlineEdges(plan, Cell, Pieces);
     }
 
@@ -381,7 +387,7 @@ public sealed class ContactGraph
             var walled = IsLandInterface(c.Kind)
                 && walls.Any(w => (w.A == c.A && w.B == c.B) || (w.A == c.B && w.B == c.A));
             list.Add(new InterfaceSegment(
-                c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, walled, null));
+                c.A, c.B, c.Kind, x1, z1, x2, z2, c.BorderLength, woolRoom, walled, null));   // face filled below
         }
         return list;
     }
