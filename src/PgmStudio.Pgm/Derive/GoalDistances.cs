@@ -70,9 +70,14 @@ public static class GoalDistances
                 continue;
             }
             // One field out of the goal answers both sides, rather than a walk apiece.
-            var reach = Walk.Field(goalCell, ground);
-            var own = Nearest(reach, spawnCells[0]);
-            var enemy = spawnCells[1].Count > 0 ? Nearest(reach, spawnCells[1]) : null;
+            if (ground.Stand(goalCell) is not { } seat)
+            {
+                walks.Add(new GoalWalk(id, kind, null, null, null));
+                continue;
+            }
+            var reach = Walk.Field(seat, ground);
+            var own = Nearest(reach, spawnCells[0], ground);
+            var enemy = spawnCells[1].Count > 0 ? Nearest(reach, spawnCells[1], ground) : null;
             var ratio = own is > 0 && enemy is { } far ? far / own : null;
             walks.Add(new GoalWalk(id, kind, own, enemy, ratio));
         }
@@ -80,11 +85,13 @@ public static class GoalDistances
     }
 
     /// <summary>The nearest of a set, in blocks, out of a field already walked — null where none is reached.</summary>
-    private static double? Nearest(Dictionary<(int X, int Z), WalkCost> reach, List<(int, int)> targets)
+    private static double? Nearest(Dictionary<WalkPlace, WalkCost> reach, List<(int, int)> targets,
+        WalkGround ground)
     {
         double? best = null;
         foreach (var target in targets)
-            if (reach.TryGetValue(target, out var cost) && cost.Distance < (best ?? double.MaxValue))
+            if (ground.Stand(target) is { } place && reach.TryGetValue(place, out var cost)
+                && cost.Distance < (best ?? double.MaxValue))
                 best = cost.Distance;
         return best;
     }

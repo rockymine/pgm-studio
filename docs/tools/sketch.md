@@ -228,12 +228,16 @@ against its own surface, so a cell standing on two layers is painted twice. With
 themed shape still wins a contested cell; across layers there is no contest, because each surface shows its
 own. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
 
-**What a stacked board still cannot say about itself.** The walk stands a player on the lowest surface in a
-column carrying headroom, so a second storey is not a place and the ways between storeys are not edges — a
-deck twenty blocks over a yard reads as unreachable ground the reads call connected (`TS21`). Nothing warns
-where a mass connects to nothing (`TS24`). And a scanned world's own segments carry no
-layer at all: **a scanned cave and a stacked sketch are one geometry seen twice**, differing only in
-provenance, which is why the word collides in the scan family and nowhere else.
+**A stacked board is walked storey by storey.** The walk's node is a place — a cell and the storey of it — so
+a deck twenty blocks over a yard is two somewheres rather than one, and a step between them is a step only
+where the lower one's clearance admits it. A yard roofed by the deck over it is a separate board from the deck;
+cut a hole in the roof and the two join there. `docs/world-scan/read-backs.md` §"What a walk costs" carries the
+rule.
+
+**What a stacked board still cannot say about itself.** Nothing warns where a mass connects to nothing
+(`TS24`). And a scanned world's own segments carry no layer at all: **a scanned cave and a stacked sketch are
+one geometry seen twice**, differing only in provenance, which is why the word collides in the scan family and
+nowhere else.
 
 In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
 isometric preview, and a new layer defaults to ten blocks above the highest existing one.

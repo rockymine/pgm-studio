@@ -5686,6 +5686,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **The walk stands a player in a place, not on a cell (TS21).** `WalkGround` was keyed `(X, Z)` — one node
+  per column, its height carried alongside in a `Surface` map — so a column with two standable surfaces had to
+  pick one, and every read after it described a board that was not there: a deck twenty blocks over a yard was
+  the same somewhere as the yard, and a route down one was scored as a route down the other. The node is a
+  `WalkPlace` — `(X, Z, Y)` — and a column offers one for every surface carrying headroom. `Stacks` gives a
+  cell's places lowest-first, `Stand(cell)` the one a player walking in at terrain level reaches,
+  `Nearest(cell, y)` the one a marker that knows its own height means, and `Footprint` the cell projection a
+  picture takes. A step between two places must fit under the lower one's **clearance**, so a gallery roofed
+  sixteen blocks up is not a step from a deck twenty-six over it and the same gallery with the roof cut away
+  is; a place under open sky has no ceiling, which is why a board with nothing stacked answers exactly as it
+  did. `SegmentIndex.StandingTops` yields every surface with its clearance rather than stopping at the lowest,
+  and `WorldWalk.OfBuilt` reads the built columns under the same rule, so a board the studio built and the
+  same board scanned back agree. `/map/{slug}/walk` and `render/walk` take `x,z,y` to name a storey.
+  Measured over the 68 committed maps, 774 marker pairs: no pair changed reachability, and the 195 that moved
+  all moved one way — 113 the same distance for fewer placed blocks, 82 a little further for fewer blocks and
+  fewer falls, because a player can no longer build up through a ceiling onto the deck above them.
 - **A column segment says which layer drew it (TS22).** `SketchRasterizer.RasterizeColumns` answered
   `(X, Z, YFloor, YTop)` and `SketchRasterizer` dropped the layer id on the floor, so every read after it was
   guessing which storey it was describing. It answers `ColumnSegment` now — `(X, Z, YFloor, YTop, Layer)`, a

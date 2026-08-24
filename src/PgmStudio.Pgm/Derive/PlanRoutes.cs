@@ -72,13 +72,16 @@ public static class PlanRoutes
     {
         var within = nav.Navigable;
         var ground = nav.Walkable();
-        var direct = Walk.Between(from, to, ground);
+        var seat = ground.Stand(from);
+        var target = ground.Stand(to);
+        var direct = seat is { } a && target is { } b ? Walk.Between(a, b, ground) : null;
         if (direct is null)
             return new RouteRead(from, to, null, [], new HashSet<(int X, int Z)>(), 0,
                 ReadHoles(nav, new HashSet<(int X, int Z)>(), from, to, within), null);
 
+        var (start, goal) = (seat!.Value, target!.Value);
         var shortest = direct.Cost.Distance;
-        var corridor = Walk.Corridor(from, to, ground, slack);
+        var corridor = Walk.Corridor(start, goal, ground, slack).Select(place => place.Cell).ToHashSet();
         var share = within.Count == 0 ? 0 : (double)corridor.Count / within.Count;
 
         var options = new List<RouteOption> { Option("direct", direct, nav) };
@@ -92,7 +95,7 @@ public static class PlanRoutes
             foreach (var (forward, side) in Sides(horizontal))
             {
                 var open = Without(within, Cells.RayCut(cells, nav.Bounds, horizontal, forward), from, to);
-                if (Walk.Between(from, to, ground.Narrowed(open)) is not { } path) continue;
+                if (Walk.Between(start, goal, ground.Narrowed(open)) is not { } path) continue;
                 var option = Option($"hole {hole.Index}: {side}", path, nav);
                 if (seen.Add(Signature(option))) options.Add(option);
             }
@@ -120,7 +123,9 @@ public static class PlanRoutes
 
         var split = shortestPath[prefix - 1];
         var fuse = shortestPath[^suffix];
-        var between = Walk.Between(split, fuse, ground)?.Cost.Distance ?? 0;
+        var between = ground.Stand(split) is { } from && ground.Stand(fuse) is { } to
+            ? Walk.Between(from, to, ground)?.Cost.Distance ?? 0
+            : 0;
         return new RouteFork(split, fuse, between);
 
         static int Common(IReadOnlyList<(int X, int Z)> a, IReadOnlyList<(int X, int Z)> b, bool fromEnd)

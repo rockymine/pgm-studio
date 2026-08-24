@@ -140,15 +140,17 @@ internal static class Triangle
     {
         var ground = SurfaceNav.Ground(ctx);
         var spawns = ctx.Plan.Placements.Spawns
-            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Ground))
+            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint))
             .Where(c => c is not null).Select(c => c!.Value).ToList();
         return ctx.Plan.Placements.Wools.Select(w =>
         {
-            if (spawns.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Ground) is not { } wc)
+            if (spawns.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint) is not { } wc)
                 return (double?)null;
+            if (ground.Stand(wc) is not { } target) return null;
             double? best = null;
             foreach (var seat in spawns)
-                if (Walk.Between(seat, wc, ground) is { } walked && walked.Cost.Distance < (best ?? double.MaxValue))
+                if (ground.Stand(seat) is { } from && Walk.Between(from, target, ground) is { } walked
+                    && walked.Cost.Distance < (best ?? double.MaxValue))
                     best = walked.Cost.Distance;
             return best;
         }).ToList();
@@ -164,13 +166,14 @@ internal static class Triangle
         var band = ctx.Board.BuildKindOf.Where(kv => kv.Value == "front-front").Select(kv => kv.Key).ToHashSet();
         return ctx.Plan.Placements.Wools.Select(w =>
         {
-            if (band.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Ground) is not { } wc)
+            if (band.Count == 0 || SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint) is not { } wc)
                 return (double?)null;
+            if (ground.Stand(wc) is not { } from) return null;
             // One field out of the wool prices every band cell at once, rather than a walk apiece.
-            var reach = Walk.Field(wc, ground);
+            var reach = Walk.Field(from, ground);
             double? best = null;
-            foreach (var seat in band)
-                if (reach.TryGetValue(seat, out var cost) && cost.Distance < (best ?? double.MaxValue))
+            foreach (var (place, cost) in reach)
+                if (band.Contains(place.Cell) && cost.Distance < (best ?? double.MaxValue))
                     best = cost.Distance;
             return best;
         }).ToList();

@@ -480,16 +480,23 @@ internal static class WalkReads
         return cells.Count == 0 ? null : cells;
     }
 
-    /// <summary>A stated <c>x,z</c>, snapped onto ground a walk can reach. A marker's own coordinates are a
-    /// block in a room rather than a cell of terrain, so they land inside a wall as often as on it. Snapped
-    /// on the <b>shared</b> ground: a barred cell must stay where it is and answer unreachable, rather than
-    /// slide until it finds one the team may stand on.</summary>
-    public static (int X, int Z)? Seat(string? asked, WalkGround ground)
+    /// <summary>A stated <c>x,z</c> or <c>x,z,y</c>, snapped onto ground a walk can reach. A marker's own
+    /// coordinates are a block in a room rather than a cell of terrain, so they land inside a wall as often
+    /// as on it. Snapped on the <b>shared</b> ground: a barred cell must stay where it is and answer
+    /// unreachable, rather than slide until it finds one the team may stand on.
+    ///
+    /// <para>A stated <c>y</c> picks which storey of a stacked column is meant — the gallery under a deck
+    /// and the deck over it are the same cell and different places. Stating none takes the lowest, which is
+    /// where a player walking in at terrain level ends up.</para></summary>
+    public static WalkPlace? Seat(string? asked, WalkGround ground)
     {
         var parts = (asked ?? "").Split(',');
-        if (parts.Length != 2 || !int.TryParse(parts[0], out var x) || !int.TryParse(parts[1], out var z))
-            return null;
-        return Cells.SnapToWalkable((x, z), ground.Passable, 24);
+        if (parts.Length is not (2 or 3)
+            || !int.TryParse(parts[0], out var x) || !int.TryParse(parts[1], out var z)) return null;
+        if (Cells.SnapToWalkable((x, z), ground.Footprint, 24) is not { } cell) return null;
+        return parts.Length == 3 && int.TryParse(parts[2], out var y)
+            ? ground.Nearest(cell, y)
+            : ground.Stand(cell);
     }
 
     public static WalkAim Aim(string? asked) => asked?.ToLowerInvariant() switch
@@ -517,8 +524,9 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("walk"));
         Description(b => b.Refuses(404, 422).Reads(
-            new QueryWord("from", "Where the journey starts, as `x,z`. Snapped onto the nearest ground."),
-            new QueryWord("to", "Where it ends, as `x,z`."),
+            new QueryWord("from", "Where the journey starts, as `x,z`, or `x,z,y` to pick which storey of a "
+                               + "stacked column is meant. Snapped onto the nearest ground."),
+            new QueryWord("to", "Where it ends, as `x,z`, or `x,z,y`."),
             new QueryWord("aim", "Which route to take: `travel` is the shortest, `reach` the one asking for "
                                + "the fewest placed blocks, `comfort` the least edge-hugging of the routes "
                                + $"within {Walk.Detour} blocks of the shortest. They differ, and the "
@@ -552,7 +560,8 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk between",
                 [new Vocabulary.Finding(RequestRules.Conflict,
-                    "give `from` and `to` as `x,z`; both must lie within 24 blocks of ground this board has")], ct);
+                    "give `from` and `to` as `x,z` (or `x,z,y` to pick a storey); both must lie within 24 "
+                    + "blocks of ground this board has")], ct);
             return;
         }
 
@@ -577,8 +586,10 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/walk"));
         Description(b => b.Png().Refuses(404, 422).Reads(
-            new QueryWord("from", "Where the field is measured from, as `x,z`."),
-            new QueryWord("to", "Where the drawn route ends, as `x,z`. Absent draws the field alone."),
+            new QueryWord("from", "Where the field is measured from, as `x,z`, or `x,z,y` to pick which "
+                               + "storey of a stacked column is meant."),
+            new QueryWord("to", "Where the drawn route ends, as `x,z` or `x,z,y`. Absent draws the field "
+                               + "alone."),
             new QueryWord("field", "Which answer to shade by. Absent shades the blocks a player must place.",
                 WalkRender.Fields),
             new QueryWord("aim", "Which route to draw, and which cost the field prices. `comfort` has no "
@@ -613,7 +624,8 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         {
             await Refusals.WriteAsync(HttpContext, 422, "nowhere to walk from",
                 [new Vocabulary.Finding(RequestRules.Conflict,
-                    "give `from` as `x,z`, within 24 blocks of ground this board has")], ct);
+                    "give `from` as `x,z` (or `x,z,y` to pick a storey), within 24 blocks of ground this "
+                    + "board has")], ct);
             return;
         }
 

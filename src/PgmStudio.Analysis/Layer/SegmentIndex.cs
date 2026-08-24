@@ -25,7 +25,8 @@ public sealed class SegmentIndex
         => _byCol.Where(kv => kv.Value.Any(s => s.ys <= 0 && 0 <= s.ye)).Select(kv => kv.Key).ToHashSet();
 
     /// <summary>Columns a player can stand in — those <see cref="StandingTops"/> finds a surface for. A
-    /// column solid to the sky, or roofed everywhere at less than <see cref="Walk.Headroom"/>, is not one.</summary>
+    /// column solid to the sky, or roofed everywhere at less than <see cref="Walk.Headroom"/>, is not one.
+    /// The storey is discarded here and only here; a caller that needs it takes the tops.</summary>
     public HashSet<(int, int)> StandingColumns() => StandingTops().Select(row => (row.x, row.z)).ToHashSet();
 
     /// <summary>Lowest solid block per column (x, z, y) — the bottom-up base scan that feeds
@@ -34,25 +35,35 @@ public sealed class SegmentIndex
     public IEnumerable<(int x, int z, int y)> BaseColumns()
         => _byCol.Select(kv => (kv.Key.x, kv.Key.z, kv.Value.Min(s => s.ys)));
 
-    /// <summary>Where a player stands in each column: the first air over the <b>lowest</b> surface that
-    /// carries <see cref="Walk.Headroom"/> clear blocks above it, which is where someone walking in at
-    /// terrain level ends up. A column offering no such surface is not returned at all.
+    /// <summary>Every place a player can stand, with how much room is over it: the first air above each
+    /// surface that carries <see cref="Walk.Headroom"/> clear blocks, and the number of clear blocks there
+    /// are before the next solid one. A column offering no such surface is not returned at all.
     ///
-    /// <para>Both halves of that rule are load-bearing. Lowest, because the highest surface of a wooded cell
-    /// is its canopy and of a roofed cell its ridge, and a route that had to climb either would avoid every
-    /// tree on the board. With headroom, because the lowest surface under a building is the course its floor
-    /// sits on, and a walk reading that crosses the walls as if they were not there.</para></summary>
-    public IEnumerable<(int x, int z, int top)> StandingTops()
+    /// <para>A stacked column answers more than once — a gallery under a deck is two places, and they are
+    /// different somewhere to be. The clearance is what keeps them apart: a player builds up through open air
+    /// and falls down through it, so a roof sixteen blocks over a floor is what says the deck above is not a
+    /// step from it, while the same floor where the roof is cut away is open to the sky.</para>
+    ///
+    /// <para>The headroom test is load-bearing on its own: the surface under a building is the course its
+    /// floor sits on, and a walk that took it would cross the walls as if they were not there.</para></summary>
+    public IEnumerable<(int x, int z, int top, int clear)> StandingTops()
     {
         foreach (var (cell, segments) in _byCol)
-            foreach (var (_, ye) in segments.OrderBy(segment => segment.ye))
+        {
+            var ordered = segments.OrderBy(segment => segment.ye).ToList();
+            for (var i = 0; i < ordered.Count; i++)
             {
-                var top = ye + 1;
+                var top = ordered[i].ye + 1;
                 if (top + Walk.Headroom > Walk.WorldHeight) continue;
                 if (Enumerable.Range(top, Walk.Headroom).Any(y => IsSolid(cell.x, y, cell.z))) continue;
-                yield return (cell.x, cell.z, top);
-                break;
+
+                // The next segment starting above this surface is its ceiling; nothing above it is open sky.
+                var ceiling = ordered.Skip(i + 1).Select(segment => segment.ys)
+                                     .Where(floor => floor >= top).DefaultIfEmpty(int.MaxValue).Min();
+                yield return (cell.x, cell.z, top,
+                              ceiling == int.MaxValue ? int.MaxValue : Math.Max(0, ceiling - top));
             }
+        }
     }
 
     public bool IsSolid(int x, int y, int z)

@@ -88,9 +88,9 @@ public static class KitReach
             var ground = WorldWalk.For(shared, data, team.Length == 0 ? null : team);
 
             var start = NavPoints.Centre(NavPoints.Region(sp.GetValueOrDefault("region"), regions), regions, bounds) is { } seat
-                ? Cells.SnapToWalkable(seat, ground.Passable, SnapRadius)
+                ? Cells.SnapToWalkable(seat, ground.Footprint, SnapRadius)
                 : null;
-            var field = start is { } from
+            var field = start is { } cell && ground.Stand(cell) is { } from
                 ? Walk.Field(from, ground, WalkAim.Reach)
                 : [];
 
@@ -102,8 +102,9 @@ public static class KitReach
                 // field. Snapping on the team's ground instead would slide a barred wool sideways until it
                 // found a cell the team may stand on, and report the walk to that cell as the walk to the
                 // wool.
-                var target = Cells.SnapToWalkable((wx, wz), shared.Passable, SnapRadius);
-                var cost = target is { } to && field.TryGetValue(to, out var reached) ? reached : (WalkCost?)null;
+                var target = Cells.SnapToWalkable((wx, wz), shared.Footprint, SnapRadius);
+                var cost = target is { } at && shared.Stand(at) is { } to && field.TryGetValue(to, out var reached)
+                    ? reached : (WalkCost?)null;
                 var reachable = cost is not null;
                 var need = cost?.Blocks ?? -1;
                 var within = reachable && need <= budget;

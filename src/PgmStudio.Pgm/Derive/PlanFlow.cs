@@ -67,7 +67,11 @@ public static class PlanFlow
         var used = new HashSet<(int X, int Z)>();
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
-                used.UnionWith(Walk.Corridor(waypoints[i], waypoints[j], ground, Walk.Detour));
+            {
+                if (ground.Stand(waypoints[i]) is not { } from || ground.Stand(waypoints[j]) is not { } to)
+                    continue;
+                used.UnionWith(Walk.Corridor(from, to, ground, Walk.Detour).Select(place => place.Cell));
+            }
         foreach (var w in waypoints)
             for (var dz = -2; dz <= 2; dz++)
                 for (var dx = -2; dx <= 2; dx++)
@@ -98,6 +102,13 @@ public static class PlanFlow
         return new Result(gamemode, legs, nav.Ground.Count * cell * cell, dead.Count * cell * cell, places, cell);
     }
 
+    /// <summary>How far it is between two cells at the plan fidelity, in blocks — zero where either end is
+    /// off the board or nothing joins them.</summary>
+    private static int Reach(WalkGround ground, (int X, int Z) from, (int X, int Z) to)
+        => ground.Stand(from) is { } start && ground.Stand(to) is { } goal
+            ? Walk.Between(start, goal, ground)?.Cost.Distance ?? 0
+            : 0;
+
     private static List<FlowLeg> Legs(PlanNav nav, PlanModel plan, int cell)
     {
         var legs = new List<FlowLeg>();
@@ -112,13 +123,11 @@ public static class PlanFlow
             if (nav.Snap(goal.Cell) is not { } to) continue;
             var read = PlanRoutes.Read(nav, from, to);
             if (read.Shortest is not { } attack) continue;
-            var defend = Walk.Between(den, to, ground)?.Cost.Distance ?? 0;
+            var defend = Reach(ground, den, to);
 
             var split = read.Fork?.Split;
             var fuse = read.Fork?.Fuse;
-            var viaMerge = fuse is { } f
-                ? (Walk.Between(den, f, ground)?.Cost.Distance ?? 0) + (Walk.Between(f, to, ground)?.Cost.Distance ?? 0)
-                : 0;
+            var viaMerge = fuse is { } f ? Reach(ground, den, f) + Reach(ground, f, to) : 0;
             var detour = fuse is null ? 0 : Math.Max(0, viaMerge - defend);
 
             legs.Add(new FlowLeg(
@@ -127,7 +136,7 @@ public static class PlanFlow
                 split, fuse,
                 split is { } s ? Width(nav, s) * cell : 0,
                 fuse is { } g ? Width(nav, g) * cell : 0,
-                fuse is { } h ? Walk.Between(h, to, ground)?.Cost.Distance ?? 0 : 0,
+                fuse is { } h ? Reach(ground, h, to) : 0,
                 fuse is not null && detour == 0, detour));
         }
         return legs;

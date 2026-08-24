@@ -65,7 +65,8 @@ internal static class SurfaceNav
     public static IReadOnlyList<Evidence> RouteEvidence(
         WalkGround ground, (int, int) a, (int, int) b, string label)
     {
-        if (Walk.Between(a, b, ground) is not { } walked) return [];
+        if (ground.Stand(a) is not { } from || ground.Stand(b) is not { } to) return [];
+        if (Walk.Between(from, to, ground) is not { } walked) return [];
         var path = walked.Cells.Select(cell => (cell.X, cell.Z)).ToList();
         var evidence = new List<Evidence>
         {

@@ -38,14 +38,24 @@ public static class WalkRender
     /// <param name="Highest">The dearest cell in the field, in the field's own unit.</param>
     public sealed record Result(byte[] Pixels, int Reached, int Unreachable, int Highest);
 
-    /// <summary>The picture. <paramref name="route"/> is drawn over the field where one was asked for.</summary>
-    public static Result Png(WalkGround ground, IReadOnlyDictionary<(int X, int Z), WalkCost> field,
-        string what, (int X, int Z)? start, (int X, int Z)? target, WalkPath? route, int scale = 2)
+    /// <summary>The picture. <paramref name="route"/> is drawn over the field where one was asked for.
+    ///
+    /// <para>One pixel a cell, so a stacked column is drawn at its <b>cheapest</b> storey: the picture is
+    /// asking how far this piece of the board is, and the answer is the nearest way onto any of it. The
+    /// footing under the pixel is that storey's, so a deck reached over void and the gallery under it do not
+    /// borrow each other's colour.</para></summary>
+    public static Result Png(WalkGround ground, IReadOnlyDictionary<WalkPlace, WalkCost> field,
+        string what, WalkPlace? start, WalkPlace? target, WalkPath? route, int scale = 2)
     {
         var read = Reader(what);
         var onRoute = route is null ? [] : new HashSet<(int X, int Z)>(route.Cells);
         var highest = field.Count == 0 ? 0 : field.Values.Max(read);
-        var unreachable = ground.Passable.Count(cell => !field.ContainsKey(cell));
+
+        var cheapest = new Dictionary<(int X, int Z), (WalkPlace Place, WalkCost Cost)>();
+        foreach (var (place, cost) in field)
+            if (!cheapest.TryGetValue(place.Cell, out var known) || read(cost) < read(known.Cost))
+                cheapest[place.Cell] = (place, cost);
+        var unreachable = ground.Footprint.Count(cell => !cheapest.ContainsKey(cell));
 
         var bounds = ground.Bounds;
         int step = Cell * Math.Max(1, scale), width = bounds.Width * step, height = bounds.Height * step;
@@ -56,13 +66,13 @@ public static class WalkRender
         for (var column = 0; column < bounds.Width; column++)
         {
             var cell = (X: bounds.X + column, Z: bounds.Z + row);
-            var hex = cell == start ? StartRgb
-                : cell == target ? TargetRgb
+            var hex = cell == start?.Cell ? StartRgb
+                : cell == target?.Cell ? TargetRgb
                 : onRoute.Contains(cell) ? RouteRgb
-                : !ground.Passable.Contains(cell) ? null
-                : !field.TryGetValue(cell, out var cost)
-                    ? (ground.Ground.Contains(cell) ? Unreached : Bridgeable)
-                    : Ramp(read(cost), highest, Under(cell, ground));
+                : !ground.Footprint.Contains(cell) ? null
+                : !cheapest.TryGetValue(cell, out var reached)
+                    ? (ground.Stand(cell) is { } stood && ground.Ground.Contains(stood) ? Unreached : Bridgeable)
+                    : Ramp(read(reached.Cost), highest, Under(reached.Place, ground));
             if (hex is not null) Paint(canvas, width, hex, column * step, row * step, step, step);
         }
 
@@ -157,9 +167,9 @@ public static class WalkRender
 
     /// <summary>Which of the three a cell is. Water is read before ground, because a swum cell is ground
     /// whose cost the walk doubles and drawing it as plain ground hides the reason the field slows.</summary>
-    private static Footing Under((int X, int Z) cell, WalkGround ground)
-        => ground.Water?.Contains(cell) == true ? Footing.Water
-            : ground.Ground.Contains(cell) ? Footing.Ground : Footing.Bridged;
+    private static Footing Under(WalkPlace place, WalkGround ground)
+        => ground.Water?.Contains(place.Cell) == true ? Footing.Water
+            : ground.Ground.Contains(place) ? Footing.Ground : Footing.Bridged;
 
     /// <summary>Cheap to dear over one hue per footing, so the ramp reads as a quantity while the hue says
     /// what the cell asks of a player: ground is free, bridged is a block placed, water is twice the walk.

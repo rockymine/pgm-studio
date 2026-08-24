@@ -65,12 +65,26 @@ answers four things at once, each in its own unit and **none of them weighed aga
 | `blocks` | **blocks placed** | the climb and the bridging — the number a kit budget is compared against |
 | `drops` · `worstDrop` | **falls, and blocks** | a fall is free, and still a delay |
 
-**Where a player stands in a column is the lowest surface in it carrying two clear blocks above.** That is
-what makes a building a building: the terrain under a wall has no headroom, so the wall's own top is the
-surface, and crossing it costs the climb. Reading the highest surface instead would put a wooded cell on its
-canopy and send every route round every tree; reading the lowest without the headroom test puts a walled cell
-on the floor the wall stands beside, which is how a route comes to walk through a house for nothing. A column
-offering no such surface anywhere is not walkable at all.
+**A column offers a place for every surface in it carrying two clear blocks above, and the walk's node is a
+place rather than a cell.** A cell is `(x, z)`, a column seen from above; a place is `(x, z, y)`, a cell and
+the storey of it. A gallery under a deck is one cell and two places, and they are different somewhere to be —
+which is the whole reason the walk cannot be keyed on the cell. A column offering no such surface anywhere is
+not walkable at all, and a column with nothing stacked over it offers exactly one place, so a board drawn on
+flat ground is a stack of one the whole way through.
+
+The headroom test is what makes a building a building: the terrain under a wall has no headroom, so the wall's
+own top is the surface, and crossing it costs the climb. Without it a walled cell reads at the floor the wall
+stands beside, which is how a route comes to walk through a house for nothing.
+
+**A step between two places has to fit under the lower one's clearance** — how many blocks are open over it
+before the next solid one. A player builds up through open air and falls down through it, so a gallery roofed
+sixteen blocks up is not a step from a deck twenty-six blocks over it, while the same gallery where the roof
+is cut away is. A place with open sky over it has no ceiling to fit under, so on a board with nothing stacked
+the rule never refuses a step.
+
+**A cell with no storey stated means its lowest place**, which is where a player walking in at terrain level
+ends up. `from` and `to` take `x,z,y` to say otherwise, and the storey nearest the stated `y` is the one
+walked from.
 
 **A climb of Δ costs Δ−1 blocks.** One block up is a step; anything higher is ground the player first has to
 make. **A drop is free to 3 and counted beyond it**, because 4 is where fall damage starts — every kit carries
@@ -172,7 +186,7 @@ there" the same pixel. Sixteen blocks is the cap — a chunk, and deeper than an
 whole map to a depth map per direction; it reads `layer_segments` rows and so answers only for a scanned map,
 which is why the two coexist rather than one replacing the other.
 
-The walk runs over **one cell per column**, so no fidelity of it can see under an overhang or through a
-tunnel (`TS21`). Every distance the studio reports is this walk: the evaluator's spawn, wool and frontline
+The walk runs over **a place per standable surface**, so an overhang, a tunnel and a deck over a yard are each
+somewhere of their own. Every distance the studio reports is this walk: the evaluator's spawn, wool and frontline
 terms, the plan tier's route and coverage reads and the destroy-goal ratio all solve over a `WalkGround`,
 and the bands they are judged against were measured in its unit.

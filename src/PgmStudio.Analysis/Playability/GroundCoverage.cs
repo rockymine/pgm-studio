@@ -123,11 +123,12 @@ public static class GroundCoverage
         for (var i = 0; i < waypoints.Count; i++)
             for (var j = i + 1; j < waypoints.Count; j++)
             {
-                var ribbon = Walk.Corridor(waypoints[i], waypoints[j], walked, Walk.Detour);
+                if (walked.Stand(waypoints[i]) is not { } from || walked.Stand(waypoints[j]) is not { } to) continue;
+                var ribbon = Walk.Corridor(from, to, walked, Walk.Detour);
                 if (ribbon.Count == 0) continue;
                 journeys++;
-                foreach (var cell in ribbon) traffic[cell] = traffic.GetValueOrDefault(cell) + 1;
-                if (Walk.Between(waypoints[i], waypoints[j], walked) is { } path)
+                foreach (var place in ribbon) traffic[place.Cell] = traffic.GetValueOrDefault(place.Cell) + 1;
+                if (Walk.Between(from, to, walked) is { } path)
                     foreach (var cell in path.Cells) routeCells.Add(cell);
             }
 
@@ -256,8 +257,10 @@ public static class GroundCoverage
         foreach (var origin in from)
         {
             if (Cells.SnapToWalkable(origin, navigable, 3) is not { } seat) continue;
-            foreach (var (cell, cost) in Walk.Field(seat, walked))
-                if (cost.Distance < best.GetValueOrDefault(cell, double.MaxValue)) best[cell] = cost.Distance;
+            if (walked.Stand(seat) is not { } start) continue;
+            foreach (var (place, cost) in Walk.Field(start, walked))
+                if (cost.Distance < best.GetValueOrDefault(place.Cell, double.MaxValue))
+                    best[place.Cell] = cost.Distance;
         }
         return best;
     }

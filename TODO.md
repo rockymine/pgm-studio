@@ -84,10 +84,6 @@ seven places stated what a document's layers were, in three different readings. 
 document holds `layers[]` and nothing beside it, and `SketchLayout.Stack` is the one reader (`TS28`,
 `FEATURES.md`). What is left below is what the layer id is *for*.
 
-**One entry owes a document its prefix does not name.** `TS21`'s standing rule is written in
-`docs/world-scan/read-backs.md` § *Where a player stands in a column*. The id stays — it is already cited in
-commits — and the entry fixes the document it actually moves, alongside `docs/tools/sketch.md`.
-
 - [ ] **WS13 — Free the word `layer` in the scan family and on the route.** The three type renames landed
   (`FEATURES.md`); `SketchLayer` stays, being the one use where the word is true. What is left is what `Q8`
   decides: the **scan-segment family**, whose own word — *segment* — is already right, so only its borrowed
@@ -110,31 +106,19 @@ commits — and the entry fixes the document it actually moves, alongside `docs/
 
   **Standable ground under open sky that no route reaches** is the warning — `EX5`, a **complaint and never
   a refusal**, because two flying islands stacked may be what was drawn. Roofed ground stays silent: that is
-  the room. It asks whether a player can get there, so it wants `TS21`'s places. `EX1` owns the other half
-  already — it refuses an isolated *spawn or objective* by name — and needs no amendment, only a walk that
-  can see storeys.
+  the room. `EX1` owns the other half already — it refuses an isolated *spawn or objective* by name — and
+  needs no amendment beyond `TS26`, which is what tells it which storey a marker is on.
 
   *`opus5-mineshaft`: the walls run `[0,25]` flush into the deck, the gallery keeps `[0,3]` · `[20,25]`
-  sixteen blocks below, and the adit is the one connection between them. `EX1` passes on this board because
-  the traversability read projects the column to one cell.*
+  sixteen blocks below, and the adit is the one connection between them.*
 
-- [ ] **TS21 — One cell per column is why a stacked board reads wrong.** `SegmentIndex.StandingTops` yields the
-  **lowest** surface carrying headroom and stops there; `WorldColumns.Membership` discards Y outright. Neither
-  the coverage read nor traversability can say a board has two storeys, let alone which one the match is
-  played on. Preferring the upper surface is the same bug with the sign flipped: a column with two standable
-  surfaces holds two places and the ways between them.
-
-  **The node becomes a place.** `WalkGround` is keyed `(X, Z)` in five places — `Ground`, `Bridgeable`,
-  `Surface`, its `Passable` union, `Narrowed` — over nine files, and the same type serves the plan fidelity
-  (`PlanNav`, `PlanRoutes`, `GoalDistances`, `SurfaceNav`). Key it on the cell **and the height stood at**: a
-  plan board then has one place per cell and states nothing new, a built column one per standable surface,
-  and a ramp is an ordinary edge between two of them.
-  Reads the built world's columns, so it needs no layer id.
-
-  *`opus5-mineshaft`, spawn to spawn across the middle, answers **reachable, distance 60, blocks 21, drops 1,
-  worstDrop 22** straight along x = 0. It is not a route: the standing surface flips from the deck at **26**
-  to the mine floor at **4** where the gallery begins, and a twenty-two block fall is scored as one drop on
-  one continuous surface. Traversability calls the same chain connected.*
+- [ ] **TS26 — A marker names the storey it stands on.** A `NavPoint` carries `x, z` and no `y`, so every
+  spawn, wool and monument resolves to its cell's **lowest** place. On `opus5-mineshaft` both spawns stand on
+  the deck at 26 and are read as standing on the mine floor at 4, which is the one thing `TS21`'s places
+  cannot fix from the outside. `NavPoints.Of` already reads a `<block>` or a region centre that has a Y;
+  carry it and resolve with `WalkGround.Nearest(cell, y)` where `Stand(cell)` is called today —
+  `GroundCoverage`, `KitReach`, `WalkReads.Seat` (which takes `x,z,y` already), `GoalDistances`. The plan
+  tier states one storey per cell and is unaffected.
 
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
@@ -144,8 +128,8 @@ commits — and the entry fixes the document it actually moves, alongside `docs/
 - [ ] **WS12 — A read-back can be asked for one layer.** Every `render/*` route is whole-world, and the only
   cut a caller has is `ymax`, a single height, which separates two storeys just where one lies flat over the
   other. Add a layer word to the four reads that project a column to one cell — `topdown`, `heightmap`,
-  `surface`, `structures`. `traversability` and `walk` project too and are **not** here: they want `TS21`
-  rather than a layer word. Wants the provenance claim keyed on the segment (`C48`'s half) and `WS13` to have
+  `surface`, `structures`. `traversability` and `walk` are **not** here: the walk answers per storey already
+  and a layer word would be a second way to ask. Wants the provenance claim keyed on the segment (`C48`'s half) and `WS13` to have
   freed the word first.
 
   *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone and the

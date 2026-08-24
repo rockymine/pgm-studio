@@ -31,7 +31,7 @@ public sealed class WoolWoolDistance : SoftTerm
     {
         var ground = SurfaceNav.Ground(ctx);
         var wools = ctx.Plan.Placements.Wools
-            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Ground))
+            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint))
             .Where(c => c is not null).Select(c => c!.Value).ToList();
         if (wools.Count < 2) return (null, null, null);
 
@@ -39,7 +39,8 @@ public sealed class WoolWoolDistance : SoftTerm
         (int, int)? ba = null, bb = null;
         for (var i = 0; i < wools.Count; i++)
             for (var j = i + 1; j < wools.Count; j++)
-                if (Walk.Between(wools[i], wools[j], ground) is { } walked
+                if (ground.Stand(wools[i]) is { } from && ground.Stand(wools[j]) is { } to
+                    && Walk.Between(from, to, ground) is { } walked
                     && walked.Cost.Distance < (best ?? double.MaxValue))
                     { best = walked.Cost.Distance; ba = wools[i]; bb = wools[j]; }
         return (best, ba, bb);

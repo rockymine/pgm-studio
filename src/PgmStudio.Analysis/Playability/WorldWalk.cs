@@ -37,31 +37,41 @@ public static class WorldWalk
     {
         var build = Buildability.Compute(data, segments?.Y0Columns(), null, margin);
 
-        var surface = new Dictionary<(int X, int Z), int>();
+        var places = new HashSet<WalkPlace>();
+        var clear = new Dictionary<WalkPlace, int>();
+        var floor = new Dictionary<(int X, int Z), int>();
         if (segments is not null)
-            foreach (var (x, z, top) in segments.StandingTops())
-                surface[(x, z)] = top;
+            foreach (var (x, z, top, room) in segments.StandingTops())
+            {
+                var place = new WalkPlace(x, z, top);
+                places.Add(place);
+                if (room != int.MaxValue) clear[place] = room;
+                if (!floor.TryGetValue(place.Cell, out var lowest) || top < lowest) floor[place.Cell] = top;
+            }
 
         // Two filters, and each rules out something the other cannot see. The cleaned base footprint drops a
-        // build floating over void, which must not pose as free standing-ground at its own high Y because the
-        // grid a walk runs over is one cell per column. The standing surfaces drop a column with nowhere in it
-        // to stand.
-        var ground = segments is null
-            ? []
+        // build floating over void, whose storeys must not pose as free standing-ground over nothing. The
+        // standing surfaces drop a column with nowhere in it to stand.
+        var standable = segments is null
+            ? new HashSet<(int X, int Z)>()
             : new HashSet<(int X, int Z)>(
-                IslandDetector.CleanedBaseFootprint(segments.BaseColumns()).Where(surface.ContainsKey));
+                IslandDetector.CleanedBaseFootprint(segments.BaseColumns()).Where(floor.ContainsKey));
+        var ground = new HashSet<WalkPlace>(places.Where(place => standable.Contains(place.Cell)));
 
-        var bridgeable = new HashSet<(int X, int Z)>();
+        var open = new HashSet<(int X, int Z)>();
         for (var i = 0; i < build.Verdict.Length; i++)
         {
             if (build.Verdict[i] is not (0 or 3)) continue;      // buildable, or restricted-but-placeable
             var cell = (build.MinX + i % build.Width, build.MinZ + i / build.Width);
-            if (!ground.Contains(cell)) bridgeable.Add(cell);
+            if (!standable.Contains(cell)) open.Add(cell);
         }
 
-        Level(bridgeable, surface);
-        return new WalkGround(ground, bridgeable, surface,
-            new CellRect(build.MinX, build.MinZ, build.Width, build.Height));
+        Level(open, floor);
+        var bridgeable = new HashSet<WalkPlace>(
+            open.Where(floor.ContainsKey).Select(cell => new WalkPlace(cell.X, cell.Z, floor[cell])));
+
+        return new WalkGround(ground, bridgeable, new CellRect(build.MinX, build.MinZ, build.Width, build.Height),
+            1, null, clear);
     }
 
     /// <summary>One team's own ground: the same walk with every cell an <c>enter</c> rule bars it from taken
@@ -78,23 +88,26 @@ public static class WorldWalk
         if (data is null || team is null || over.Width <= 0 || over.Height <= 0) return shared;
         if (EntryDenials.Cells(data, team, over) is not { Count: > 0 } denied) return shared;
 
-        return shared.Narrowed(new HashSet<(int X, int Z)>(shared.Passable.Where(cell => !denied.Contains(cell))));
+        return shared.Narrowed(new HashSet<(int X, int Z)>(shared.Footprint.Where(cell => !denied.Contains(cell))));
     }
 
-    /// <summary>Where a player stands over a stack of spans: the first air above the lowest span carrying
-    /// <see cref="Walk.Headroom"/> clear blocks, or null where the column offers nowhere to stand. The same
-    /// rule <c>SegmentIndex.StandingTops</c> reads off a scan, so a board the studio built and the same board
-    /// scanned back answer alike.</summary>
-    private static int? Standing(List<(int Floor, int Top)> stack)
+    /// <summary>Every place a player stands over a stack of spans, with how much room is over each: the first
+    /// air above a span carrying <see cref="Walk.Headroom"/> clear blocks, and the clear blocks there are
+    /// before the next solid one. The same rule <c>SegmentIndex.StandingTops</c> reads off a scan, so a board
+    /// the studio built and the same board scanned back answer alike.</summary>
+    private static IEnumerable<(int Top, int Clear)> StandingPlaces(List<(int Floor, int Top)> stack)
     {
-        foreach (var (_, top) in stack.OrderBy(span => span.Top))
+        var ordered = stack.OrderBy(span => span.Top).ToList();
+        for (var i = 0; i < ordered.Count; i++)
         {
-            var stand = top + 1;
+            var stand = ordered[i].Top + 1;
             if (stand + Walk.Headroom > Walk.WorldHeight) continue;
-            if (stack.Any(span => span.Floor <= stand + Walk.Headroom - 1 && stand <= span.Top)) continue;
-            return stand;
+            if (ordered.Any(span => span.Floor <= stand + Walk.Headroom - 1 && stand <= span.Top)) continue;
+
+            var ceiling = ordered.Skip(i + 1).Select(span => span.Floor)
+                                 .Where(above => above >= stand).DefaultIfEmpty(int.MaxValue).Min();
+            yield return (stand, ceiling == int.MaxValue ? int.MaxValue : Math.Max(0, ceiling - stand));
         }
-        return null;
     }
 
     /// <summary>Give every bridgeable cell the height of the ground nearest it, spreading outward from the
@@ -102,19 +115,19 @@ public static class WorldWalk
     /// reaches the far side — and then costs the rise onto it, which is the climb out of a gap and the most
     /// common climb on a capture board. Without this a bridge has no stated height at either end, and a step
     /// between two heights one of which is unknown charges nothing at all.</summary>
-    private static void Level(IReadOnlySet<(int X, int Z)> bridgeable, Dictionary<(int X, int Z), int> surface)
+    private static void Level(IReadOnlySet<(int X, int Z)> bridgeable, Dictionary<(int X, int Z), int> floor)
     {
         var queue = new Queue<(int X, int Z)>();
         foreach (var cell in bridgeable)
             foreach (var side in Cells.N4(cell))
-                if (surface.ContainsKey(side)) { queue.Enqueue(side); break; }
+                if (floor.ContainsKey(side)) { queue.Enqueue(side); break; }
 
         while (queue.Count > 0)
         {
             var cell = queue.Dequeue();
-            var height = surface[cell];
+            var height = floor[cell];
             foreach (var side in Cells.N4(cell))
-                if (bridgeable.Contains(side) && surface.TryAdd(side, height)) queue.Enqueue(side);
+                if (bridgeable.Contains(side) && floor.TryAdd(side, height)) queue.Enqueue(side);
         }
     }
 
@@ -132,27 +145,37 @@ public static class WorldWalk
         IReadOnlySet<(int X, int Z)>? water = null)
     {
         var spans = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
-        foreach (var (x, z, floor, top) in columns)
+        foreach (var (x, z, span, top) in columns)
         {
             if (!spans.TryGetValue((x, z), out var stack)) { stack = []; spans[(x, z)] = stack; }
-            stack.Add((floor, top));
+            stack.Add((span, top));
         }
 
-        var surface = new Dictionary<(int X, int Z), int>();
+        var ground = new HashSet<WalkPlace>();
+        var clear = new Dictionary<WalkPlace, int>();
+        var floor = new Dictionary<(int X, int Z), int>();
         foreach (var (cell, stack) in spans)
-            if (Standing(stack) is { } top) surface[cell] = top;
-        var ground = new HashSet<(int X, int Z)>(surface.Keys);
+            foreach (var (top, room) in StandingPlaces(stack))
+            {
+                var place = new WalkPlace(cell.X, cell.Z, top);
+                ground.Add(place);
+                if (room != int.MaxValue) clear[place] = room;
+                if (!floor.TryGetValue(cell, out var lowest) || top < lowest) floor[cell] = top;
+            }
 
-        var bridgeable = new HashSet<(int X, int Z)>();
+        var open = new HashSet<(int X, int Z)>();
         foreach (var (minX, minZ, maxX, maxZ) in buildAreas)
             for (var x = minX; x <= maxX; x++)
                 for (var z = minZ; z <= maxZ; z++)
-                    if (!ground.Contains((x, z))) bridgeable.Add((x, z));
+                    if (!floor.ContainsKey((x, z))) open.Add((x, z));
 
-        var all = new HashSet<(int X, int Z)>(ground);
-        all.UnionWith(bridgeable);
-        Level(bridgeable, surface);
+        Level(open, floor);
+        var bridgeable = new HashSet<WalkPlace>(
+            open.Where(floor.ContainsKey).Select(cell => new WalkPlace(cell.X, cell.Z, floor[cell])));
+
+        var all = new HashSet<(int X, int Z)>(floor.Keys);
+        all.UnionWith(open);
         var bounds = all.Count == 0 ? new CellRect(0, 0, 0, 0) : Cells.BoundingBox(all);
-        return new WalkGround(ground, bridgeable, surface, bounds, 1, water);
+        return new WalkGround(ground, bridgeable, bounds, 1, water, clear);
     }
 }

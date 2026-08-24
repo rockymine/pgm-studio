@@ -31,10 +31,10 @@ public sealed class SpawnWoolDistance : SoftTerm
     {
         var ground = SurfaceNav.Ground(ctx);
         var spawns = ctx.Plan.Placements.Spawns
-            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Ground))
+            .Select(s => SurfaceNav.MarkerCell(ctx, s.Piece, s.At, ground.Footprint))
             .Where(c => c is not null).Select(c => c!.Value).ToList();
         var wools = ctx.Plan.Placements.Wools
-            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Ground))
+            .Select(w => SurfaceNav.MarkerCell(ctx, w.Piece, w.At, ground.Footprint))
             .Where(c => c is not null).Select(c => c!.Value).ToList();
         if (spawns.Count == 0 || wools.Count == 0) return (null, null, null);
 
@@ -42,7 +42,9 @@ public sealed class SpawnWoolDistance : SoftTerm
         (int, int)? ba = null, bb = null;
         foreach (var s in spawns)
             foreach (var w in wools)
-                if (Walk.Between(s, w, ground) is { } walked && walked.Cost.Distance < (best ?? double.MaxValue))
+                if (ground.Stand(s) is { } from && ground.Stand(w) is { } to
+                    && Walk.Between(from, to, ground) is { } walked
+                    && walked.Cost.Distance < (best ?? double.MaxValue))
                     { best = walked.Cost.Distance; ba = s; bb = w; }
         return (best, ba, bb);
     }

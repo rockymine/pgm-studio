@@ -92,7 +92,12 @@ public sealed class PlanNav
     /// zones to bridge, and each cell's stated surface. A plan has no relief, no boulder and no pond, so it
     /// has no water and its heights are the ones an author typed — which is the whole of what this tier can
     /// answer, and it can answer it before a world exists.</summary>
-    public WalkGround Walkable() => new(Ground, Bridge, SurfaceAt, Bounds, Cell);
+    public WalkGround Walkable() => new(Seat(Ground), Seat(Bridge), Bounds, Cell);
+
+    /// <summary>The cells at their stated surface. A plan states one storey per cell, so a cell names exactly
+    /// one place and the board is a stack of one the whole way through.</summary>
+    private HashSet<WalkPlace> Seat(IEnumerable<(int X, int Z)> cells)
+        => [.. cells.Select(cell => new WalkPlace(cell.X, cell.Z, SurfaceAt.GetValueOrDefault(cell)))];
 
     /// <param name="lanesNavigable">Whether a water lane counts as a crossing. Off by default: a lane opens
     /// partway through a match, so a route walked through one is not a route the opening is played on.</param>
