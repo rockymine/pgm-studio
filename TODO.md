@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Eight entries, all about a stack of layers**, and one of them unlocks the rest. What is left of the group
+**Nine entries, all about a stack of layers**, and one of them unlocks the rest. What is left of the group
 five authored maps (`pgm-studio-mapgen/reports/opus5-*`) opened is the question the others did not touch: a
 board whose ground is stacked, where a hall runs under a terrace and every read projects the column to one
 cell. A mineshaft built under a meadow is the worked example the entries are measured on.
@@ -54,6 +54,18 @@ beneath it. That is the default; letting it cut through is the toggle, not the o
   the healthy case and must stay silent: the rock mass meeting the deck underside is how a roof is built.
 
   *On the mineshaft: 0 overlapping, 11,600 flush, 528 separated with a thinnest gap of 14.*
+
+- [ ] **WS12 — A read-back can be asked for one layer.** Every `render/*` route is whole-world. The word
+  `layer` on `render/topdown` names a **category** — `ground` · `structure` · `foliage` · `objectives` — not a
+  storey, and two things sharing a name and not a meaning is a name to fix. The only cut a caller has is
+  `ymax`, a single height, which separates two storeys just where one lies flat over the other. Add a layer to
+  the claim and a query word to the four reads that project a column to one cell — `topdown`, `heightmap`,
+  `surface`, `structures`. Wants `TS22`, and shares `C48`'s second half: `WorldProvenance` keys
+  `(X, Z) → (Layer, Owner)`, one claim per column with no Y in it, so even the structure read cannot tell a
+  hall under a terrace from the terrace.
+
+  *On the mineshaft the deck roofs all 6,400 cells, so every top-down read draws the deck alone; the gallery
+  at `[0,4)` is reachable only through `ymax`, and only because that deck happens to be flat at `y 20`.*
 
 - [ ] **C48 — Toggle a layer in the 3-D view.** `WorldColumnPayload.Of` reads the finished `VoxelWorld` and
   emits runs of blocks with no idea which layer made any of them, so the preview cannot hide one. Carry a
