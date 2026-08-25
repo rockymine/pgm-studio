@@ -224,9 +224,11 @@ public sealed record Storey
 ///
 /// <para><b>The footing is the foundation proper, and it is optional.</b> One course ringing the plate a block
 /// proud on every side, so the building meets the ground on something instead of stopping dead at it. Null is
-/// no footing — a real state rather than a bare air material standing in for one, which is what a building
-/// seated into terrain wants (author). <see cref="Depth"/> and what the plate is laid in are the two things
-/// that vary about it, and both are the plate's.</para>
+/// no footing and is the default — a real state rather than a bare air material standing in for one, which is
+/// what a building seated into terrain wants (author). It belongs to a plate of <b>two or three</b> courses,
+/// where there is a foundation for it to be the foot of; on a plate of one it is a rim round nothing.
+/// <see cref="Depth"/> and what the plate is laid in are the two things that vary about it, and both are the
+/// plate's.</para>
 /// </summary>
 public sealed record Foundation
 {
@@ -237,9 +239,11 @@ public sealed record Foundation
     /// default, which is the plate showing through unchanged.</summary>
     public FloorSurface Surface { get; init; } = FloorSurface.Plain;
 
-    /// <summary>The course ringing the plate one block proud, or null for a building that meets the ground
-    /// without one.</summary>
-    public TerrainMaterial? Footing { get; init; } = new SolidMaterial(Blocks.Cobblestone);
+    /// <summary>The course ringing the plate one block proud, or null — the default — for a building that
+    /// meets the ground without one. A footing is what a <b>deep</b> plate stands on: over a plate of one
+    /// course it is a one-block rim round a building that has no foundation to speak of, which reads as noise
+    /// rather than as masonry (author).</summary>
+    public TerrainMaterial? Footing { get; init; }
 
     /// <summary>How far the plate claims downward — the whole of what "how deep is the foundation" means.</summary>
     [JsonIgnore]

@@ -458,6 +458,11 @@ rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` 
   mid-air. The doorway itself is not refused: an opening cut in an open storey is nothing at all, which is why
   the `Stilts` preset passes and the same house with a head does not.
 
+- **`HS7` — a footing round a plate one course deep.** A **complaint**, not a refusal: the building stands
+  either way and what the rim costs is how it reads. A footing is what a foundation stands on, so over a plate
+  of a single course it is a one-block rim round a building with no foundation under it. Either drop it — no
+  footing is the default — or give the plate the two or three courses that earn one.
+
 Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
 bucket that still paints is dropped rather than rejected. Nothing yet validates a *composition* as a whole — a
 roof and a storey that would look wrong stacked, a window sized bigger than the wall that holds it — only that

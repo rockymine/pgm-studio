@@ -53,6 +53,13 @@ public static class HouseStyleRules
     /// <remarks>Take the doorway off the storey, or give the storey a wall to cut it through. A stilt house is entered from the storey above it, so the door belongs there.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World)]
     public const string DoorWithoutWall = "HS6";
+
+    /// <summary>A footing round a plate one course deep. The footing is what a foundation stands on, so over
+    /// a plate that is a single course it is a one-block rim round a building with no foundation under it —
+    /// noise at every wall, on every house, and the commonest thing wrong with how a village reads.</summary>
+    /// <remarks>Drop the footing, or give the plate the depth that earns one: two or three courses, which is the foundation a footing is the foot of. It is a complaint rather than a refusal because the building stands either way — what it costs is how the building looks.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.World)]
+    public const string ShallowFooting = "HS7";
 }
 
 /// <summary>
@@ -89,6 +96,7 @@ public static class HouseStyleValidation
         CheckPartMaterials(style, findings);
         CheckOres(style, findings);
         CheckDoorHasWall(style, findings);
+        CheckFooting(style.Foundation, findings);
         return findings;
     }
 
@@ -191,6 +199,17 @@ public static class HouseStyleValidation
             $"the ground storey's wall is air over all {courses} of the doorway's courses, so there is no "
             + "wall to carry a door head — the arch and its lintel stand in mid-air.",
             Field: "doorHead.form"));
+    }
+
+    /// <summary>A footing on a plate too shallow to have a foot. A complaint: the building stands either
+    /// way, and what a one-block rim costs is how it reads.</summary>
+    private static void CheckFooting(Foundation foundation, List<Finding> findings)
+    {
+        if (foundation.Footing is null || foundation.Depth >= 2) return;
+        findings.Add(new Finding(HouseStyleRules.ShallowFooting,
+            "the foundation rings a plate one course deep with a footing, which is a one-block rim round a "
+            + "building with no foundation under it. Drop the footing, or give the plate two or three courses.",
+            Severity.Complaint, Field: "foundation.footing"));
     }
 
     /// <summary>Every material a style names, with the field it was named in — what a check that is about the

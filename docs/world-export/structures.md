@@ -697,10 +697,16 @@ in `HouseStyle.Levels` rather than at the point each is used.
 sits on rather than lifting its inside off it, and its top course is the ground storey's deck — which is why a
 ground storey names none of its own. The plate's **surface** divides that top course across the room, a border
 and a field and an inlay. The **footing** rings the plate one block proud on every side, and it is the
-optional one: absent, the walls meet the ground flush, which is what a building seated into finished terrain
-wants (author). Absent is a state and not a block that happens to be air — the air material that used to stand
-in for it made "does this building have a footing" a comparison against a sentinel rather than a question the
-style could answer.
+optional one — and **absent is the default**: the walls meet the ground flush, which is what a building seated
+into finished terrain wants (author). Absent is a state and not a block that happens to be air — the air
+material that used to stand in for it made "does this building have a footing" a comparison against a
+sentinel rather than a question the style could answer.
+
+**A footing belongs to a plate of two or three courses**, which is the foundation it is the foot of; over a
+plate of one it is a one-block rim round a building with no foundation under it, and it reads as noise at
+every wall of every house (author). `HS7` complains where the two disagree — a complaint, since the building
+stands either way and what the rim costs is how it looks. The five village presets carry a plinth and now
+carry the depth that earns one.
 
 Every storey stands on a **deck**: one course infilled across the interior, the perimeter being wall already.
 It is an infill rather than a lid — the walls already span that course, which is what a floor is when a

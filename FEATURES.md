@@ -1115,6 +1115,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **No footing is the default, and a footing belongs to a plate that has a foot (WE39).**
+  `Foundation.Footing` defaulted to cobblestone, so every style that said nothing about it wore a one-block
+  rim — 54 of the 89 styles committed in `pgm-studio-mapgen`, over a plate one course deep. The default is
+  null, and **`HS7`** complains where a footing rings a plate of a single course: a rim round a building with
+  no foundation under it, which is noise at every wall of every house (author). A complaint rather than a
+  refusal, since the building stands either way and what it costs is how it reads.
+
+  The five village presets keep their plinth and now carry the depth that earns one — a plate of **two**
+  courses, which is the foundation a footing is the foot of.
+
 - **A beam is a log, a pair is one material, and an ore is not a house (WE37).** Four rulings the author
   made off the built maps, three of them new rule ids. `HS1` gains `beams.block`, which has to be a **log** —
   its own docstring already said "the log the ends are cut from" and nothing asked. **`HS4`** holds every part

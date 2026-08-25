@@ -427,7 +427,7 @@ public static class HousePresets
 
         Foundation = new Foundation
         {
-            Plate = RoomPart.Of(Spruces),
+            Plate = RoomPart.Of(Spruces, 2),                    // two courses: the plinth a footing is the foot of
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
         Doorway = new Doorway
@@ -495,7 +495,7 @@ public static class HousePresets
 
         Foundation = new Foundation
         {
-            Plate = RoomPart.Of(Spruces),
+            Plate = RoomPart.Of(Spruces, 2),                    // two courses: the plinth a footing is the foot of
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
         Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
@@ -572,7 +572,7 @@ public static class HousePresets
 
         Foundation = new Foundation
         {
-            Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
+            Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock), 2),
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
         Doorway = new Doorway
@@ -654,7 +654,7 @@ public static class HousePresets
 
         Foundation = new Foundation
         {
-            Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock)),
+            Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock), 2),
             Footing = new SolidMaterial(Blocks.Cobblestone),
         },
         Doorway = new Doorway
@@ -724,7 +724,7 @@ public static class HousePresets
 
         Foundation = new Foundation
         {
-            Plate = RoomPart.Of(Spruces),
+            Plate = RoomPart.Of(Spruces, 2),                    // two courses: the plinth a footing is the foot of
             Surface = new FloorSurface
             {
                 Field = Spruces,

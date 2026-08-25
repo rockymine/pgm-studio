@@ -100,15 +100,16 @@ public sealed class HousePartLibraryEndpointsTests
         var envelope = await refused.Content.ReadFromJsonAsync<RefusalDto>();
         await Assert.That(envelope!.Findings.Select(f => f.Rule)).Contains(HouseStyleRules.RoofMaterial);
 
-        // The same roof with the slab named pairs correctly, and the number round-trips.
+        // The same roof with the slab named pairs correctly, and the number round-trips. The slab is the
+        // body's own wood: a roof is one material and its half-course slab continues it (HS3).
         var paired = Roof("shingled", RoofForms.Gable, new RoomCourseDto(RoomParts.Roof, 0, slabs, 1))
-            with { RoofSlab = Blocks.WoodenSlab, RoofSlabData = 2 };
+            with { RoofSlab = Blocks.WoodenSlab, RoofSlabData = 0 };
         var created = await (await client.PostAsJsonAsync("/api/roof-styles", paired))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
 
         var detail = await client.GetFromJsonAsync<RoofStyleDetail>($"/api/roof-styles/{created!.Id}");
         await Assert.That(detail!.RoofSlab).IsEqualTo(Blocks.WoodenSlab);
-        await Assert.That(detail.RoofSlabData).IsEqualTo(2);
+        await Assert.That(detail.RoofSlabData).IsEqualTo(0);
     }
 
     [Test]

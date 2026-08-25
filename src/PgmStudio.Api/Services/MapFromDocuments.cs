@@ -55,10 +55,12 @@ public static class MapFromDocuments
             .. Unread("intent", request.Intent, IntentWrite.Stated)]);
 
         // The gate every other road to a stored layout runs: a house is stamped from the style that arrives
-        // here, and this is the last point before it is built.
+        // here, and this is the last point before it is built. Its complaints ride on the success the way
+        // they do on the other two roads, so what is worth saying is said either way.
         var layoutJson = request.Layout.GetRawText();
-        if (SketchRoomStyleGate.Check(layoutJson) is { Count: > 0 } styleFaults)
-            return new(new Refusal(400, "invalid house style", [.. styleFaults]));
+        var styles = SketchRoomStyleGate.Check(layoutJson);
+        if (styles.Refuses) return new(new Refusal(400, "invalid house style", [.. styles.Refusals]));
+        Complaints.Add(http, styles.Complaints);
 
         var slug = Slugs.Of(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);
         var existing = await repo.GetBySlugAsync(slug, ct);

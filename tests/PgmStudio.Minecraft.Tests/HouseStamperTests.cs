@@ -915,7 +915,16 @@ public sealed class HouseStamperTests
     {
         var plan = Ell();
         var world = new VoxelWorld();
-        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle());
+        // A footing is stated rather than inherited: no footing is the default, and a building without one
+        // has no sill for this to be about.
+        HouseStamper.Stamp(world, plan, FloorY, new HouseStyle
+        {
+            Foundation = new Foundation
+            {
+                Plate = RoomPart.Of(new SolidMaterial(Blocks.Planks), 2),
+                Footing = new SolidMaterial(Blocks.Cobblestone),
+            },
+        });
 
         var sill = new HashSet<(int X, int Z)>();
         for (var x = plan.MinX - 2; x <= plan.MaxX + 2; x++)

@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Eleven entries, one group, and the order is the point.** They are one review of the built maps
+**Ten entries, one group, and the order is the point.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -26,15 +26,6 @@ mirror read compares shape and never material, on the stated grounds that a patt
 falls — which is the defect rather than a reason to allow it.
 
 ### The house: what it may be built of, and who asks
-
-- [ ] **WE39 — The cobble footing is a default, not a choice, and it is on 54 of 89 styles.**
-  `Foundation.Footing` defaults to `new SolidMaterial(Blocks.Cobblestone)`, so every style that says nothing
-  about it wears a one-block rim. The rule (author): **null by default**; a footing is for a building whose
-  plate is 2–3 courses deep and reads as noise on a one-course plate. `WithoutFooting()` already exists.
-  Change the default and the presets that inherit it, and refuse — or complain — where a footing sits on a
-  plate of one. `docs/world-export/structures.md` § the foundation.
-
-  *54 of the 89 committed styles carry a footing over a 1-course plate.*
 
 - [ ] **WE31 — A stamped room's foundation is bedrock from `y 0`, through open sky if it has to be.**
   `StructureStamper.StampFoundation` fills `for (var y = 0; y < level; y++)` where `level` is the highest
