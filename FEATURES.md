@@ -5767,6 +5767,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   board drawn in no layers says that instead. The word is declared once on `WorldRenderEndpoint` and opted
   into by the four, so they cannot describe it four ways — `section` and `column` keep Y and show every storey
   already, and `traversability` and `walk` answer per storey without being asked.
+- **A layer switch keeps the incoming storey's island identity (C49).** `sketch-bridge` holds one live
+  island list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and
+  an **id** across from that list, matching by centroid within 32 blocks. `loadActiveToCanvas` left the
+  outgoing storey's islands in it, and two storeys of one board are centred on the same place, so the match
+  always succeeded: switching to the ground of a stacked board renamed its island after the storey under it.
+  An island id is what a relief is keyed by, so the ground lost its terrain in the live layout — the 3-D
+  preview drew the board flat — and the tool saves what the canvas holds, so the wrong id went into the
+  stored document and the relief was orphaned there too. The live list is now seeded from the layer being
+  loaded, falling back to that layer's persisted island records when it has none yet.
+
+  Measured on `pgm-studio-mapgen`'s `maps/opus5-sandcaster-ii`, whose `under` storey sits below its ground:
+  from a clean document, clicking the ground layer's row left the ground island named `under`, the preview's
+  payload topping out at y91 instead of y103, and the stored sketch rewritten. With the seed it stays `team`,
+  the payload tops out at y103, and the document is untouched.
+
 - **A storey can be taken off the 3-D preview (C48).** `WorldColumnPayload.Of` read the finished `VoxelWorld`
   and emitted runs with no idea what had made any of them, so the preview was one rendering of a stack with
   no way to look inside it — and the overlay chips, which mean something in 2-D, had nothing to say in 3-D.

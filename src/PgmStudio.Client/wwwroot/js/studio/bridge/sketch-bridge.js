@@ -329,12 +329,20 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute. The active layer's
   // locked plan pieces (S25) ride alongside as a render-only overlay — never a drawn/edited shape.
+  //
+  // `islands` is seeded from the layer being loaded before the recompute, because `recompute` carries
+  // identity over from whatever `islands` holds: leaving the outgoing layer's there matches the incoming
+  // island against a stranger by centroid and adopts its id, and an id is what a relief is keyed by. Two
+  // storeys of one board are centred on the same place, so the match always succeeds and the ground of a
+  // stacked board comes back named after the storey under it — losing its relief in the live layout and
+  // writing the wrong id into the document on the next save.
   function loadActiveToCanvas() {
     canvas.clearShapes();
     for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
     canvas.setStructural(layers[active].structural ?? []);
     selectShape(null);
-    recompute();
+    islands = layers[active].islands ?? [];
+    recompute(!islands.length && (layers[active].savedMetas?.length ?? 0) > 0);
   }
 
   function switchLayer(id) {

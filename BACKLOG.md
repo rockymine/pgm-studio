@@ -75,20 +75,23 @@ the focus-integration polish remains.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
-- [ ] **TS29 — The 3-D preview draws a stacked board without its relief.** On a layout carrying an
-  `addLayers` storey the Sketch tool's WebGL canvas renders every column at its shape's `base_height`, so a
-  board with a range on it reads as a table. The same board's world has the elevation and so does the
-  preview's own payload: `POST /map/{slug}/sketch/columns` answers tops in the forties and seventies where
-  the canvas draws 21.
+- [ ] **WE28 — A relief is keyed by island id, and on a stacked board two storeys hold the same island.**
+  `SketchReliefJson` rides top-level on the layout keyed by island, which is right when an island is a
+  landmass: it is the unit the solve runs over, and a recompile that re-fuses the board genuinely produces a
+  different one. It reads badly on a stack, where the ground and the storey under it are the *same footprint
+  one layer up* and their islands are told apart only by an id that nothing in the geometry distinguishes —
+  both are centred on the same place, both cover the same cells, and only a string says which is which.
 
-  **Evidence.** `pgm-studio-mapgen` `maps/opus5-sandcaster-ii` (two layers, `under` + `ground`, relief keyed
-  `team`): `/column` reads `66 68 67 65 76 75 40 21 …` across `z = 96`, `render/heightmap` draws the
-  contours, and the 3-D canvas draws one flat plane. `showcase/19-mountain-range` (one layer, same relief
-  shape) draws the range correctly in the same canvas. So the split is the layer stack, not the relief.
+  That fragility has already cost one bug (`C49`, fixed): a centroid match adopted the wrong storey's id and
+  the relief silently detached. The fix is correct and the shape it defends is still a string equality
+  between two documents that a recompile, a rename, a fork or a hand-edit can each break on their own, with
+  no gate to notice — an orphaned relief is caught only on the compile path (`SK1`), not on a plain save.
 
-  Where it lands: `js/studio/render/iso-webgl.js` and whatever feeds it — either the canvas state the tool
-  posts loses the relief when a second layer is present, or the mesh builder reads a per-layer height rather
-  than the solved field. Confirm against the two boards above before changing either.
+  **The question to settle before building anything**: whether the key should be the *layer* plus the island
+  (which is what an author means — "the ground of the ground storey"), or whether a relief should ride on the
+  layer that carries it rather than at the document root. Either would make the pairing structural instead of
+  nominal. Wants the model in `docs/world-export/relief.md` amended first; there is no code task until the
+  key is decided.
 
 - [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
   (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than

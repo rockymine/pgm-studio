@@ -168,6 +168,16 @@ it persists nothing — saving is the host's, on the author's word), `sketch-bri
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, which is inconsistent today (**CV15**).
 
+**A layer switch seeds island identity from the layer it is switching to.** `sketch-bridge` keeps one live
+island list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and —
+load-bearingly — an **id** across from whatever that live list holds, matching by centroid within 32 blocks.
+Loading another storey onto the canvas without reseeding leaves the outgoing storey's islands there, and two
+storeys of one board are centred on the same place, so the match always succeeds: the ground of a stacked
+board comes back carrying the workings' id. A relief is keyed by island id, so it detaches — and because
+the tool saves what the canvas holds, the wrong id is written into the document. `loadActiveToCanvas`
+therefore sets the live list to the incoming layer's own islands before recomputing, and falls back to that
+layer's persisted island records when it has none yet.
+
 **A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed
 to C# as one bare `OnIsoUnavailable()`, so the canvas answered *no WebGL* on browsers that plainly had it and
