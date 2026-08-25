@@ -55,7 +55,7 @@ null `cores` and nothing about cores is generated or cleared.
 
 | Slice | Holds |
 |---|---|
-| `meta` | name, authors, contributors — an account (a `uuid`) or a pseudonym (a bare name) |
+| `meta` | name, `created` (`yyyy-mm-dd`), authors, contributors — an account (a `uuid`) or a pseudonym (a bare name) |
 | `symmetry` | the confirmed mode and centre; drives orbit-fill |
 | `teams` · `maxPlayers` | the teams to generate and the shared per-team cap |
 | `islandTeams` | island id → team; an authoring aid, read by the spawn step, not by the generator |
@@ -68,6 +68,13 @@ null `cores` and nothing about cores is generated or cleared.
 | `waterLanes` | the late-opening gaps — carried, never authored here (below) |
 | `structures` · `spawns[].piece` · `wools[].piece`/`entries` | written only by the plan compiler; consumed by the world export |
 
+**Map identity is half derived and half stated.** `MetaGenerator` writes the version (`1.0.0`) and the phase
+(`development` — every map the studio authors is one; a map is promoted by the server that serves it, not by
+the tool that drew it), and derives the `<gamemode>` elements and the objective line from the objective slices
+the intent actually carries. What it cannot derive is the map's name, its people and its **creation date**: an
+intent stating no `meta.created` produces a map with no `<created>` element, because a date nobody stated is
+not a fact about the map.
+
 Here is a complete hand-authored intent — enough to generate a two-team CTW map, and the shape an agent
 writes:
 
@@ -75,6 +82,7 @@ writes:
 {
   "meta": {
     "name": "Voidwatch",
+    "created": "2026-08-25",
     "authors": [ { "name": "rockymine", "contribution": "Layout" } ],
     "contributors": []
   },

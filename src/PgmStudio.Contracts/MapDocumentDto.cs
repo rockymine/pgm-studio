@@ -20,6 +20,10 @@ namespace PgmStudio.Contracts;
 /// <param name="Regions">Region definitions by id, same.</param>
 /// <param name="Name">The map's title.</param>
 /// <param name="Version">The version its <c>map.xml</c> states.</param>
+/// <param name="Created">When the map was made, as <c>yyyy-mm-dd</c>. Empty where the map does not say —
+/// the studio takes this from whoever authors the map and derives nothing.</param>
+/// <param name="Phase">How finished the map is: <c>development</c> on every map the studio authors, and
+/// whatever a parsed map states. Empty where the map does not say.</param>
 /// <param name="Objective">The one-line objective sentence a player is shown.</param>
 /// <param name="MaxBuildHeight">The ceiling players may build to, where the map states one.</param>
 /// <param name="Authors">Who is credited, and for what.</param>
@@ -40,6 +44,8 @@ public sealed record MapDocumentDto(
     string? Version,
     IReadOnlyList<string> Gamemode,
     string? Objective,
+    string? Created,
+    string? Phase,
     [property: JsonPropertyName("max_build_height")] int? MaxBuildHeight,
     IReadOnlyList<MapAuthorDto> Authors,
     IReadOnlyList<JsonElement> Kits,

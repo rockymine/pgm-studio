@@ -62,6 +62,28 @@ public sealed class CodecTests
         await Assert.That(m.ObserverSpawn).IsNotNull();
     }
 
+    /// <summary>A map's own words for when it was made and how finished it is survive the codec: parsed off
+    /// the XML, carried through the dict, and written back. Neither is invented for a map that states
+    /// neither — the sample above has no <c>&lt;created&gt;</c> and no <c>&lt;phase&gt;</c>, and gets none
+    /// back.</summary>
+    [Test]
+    public async Task Created_and_phase_round_trip_and_are_never_invented()
+    {
+        var bare = XmlWriter.ToXml(Parse());
+        await Assert.That(bare).DoesNotContain("<created>");
+        await Assert.That(bare).DoesNotContain("<phase>");
+
+        var stated = SampleXml.Replace("<objective>Capture the wool</objective>",
+            "<objective>Capture the wool</objective>\n  <created>2026-08-25</created>\n  <phase>development</phase>");
+        var parsed = MapParser.ParseXmlString(stated);
+        await Assert.That(parsed.Created).IsEqualTo("2026-08-25");
+        await Assert.That(parsed.Phase).IsEqualTo("development");
+
+        var written = XmlWriter.ToXml(Deserializer.FromDict(Serializer.ToDict(parsed)));
+        await Assert.That(written).Contains("<created>2026-08-25</created>");
+        await Assert.That(written).Contains("<phase>development</phase>");
+    }
+
     [Test]
     public async Task Wools_group_by_colour_with_one_monument_per_team()
     {

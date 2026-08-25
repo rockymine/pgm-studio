@@ -125,6 +125,8 @@ public sealed partial class MapParser
             Version = GetText("version", ""),
             DeclaredGamemode = GetTextList("gamemode"),
             Objective = GetText("objective", ""),
+            Created = GetText("created", ""),
+            Phase = GetText("phase", ""),
             Authors = ParseAuthors(),
             Teams = ParseTeams(),
             Kits = ParseKits(),

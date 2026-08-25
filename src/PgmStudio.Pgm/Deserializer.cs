@@ -23,6 +23,8 @@ public static class Deserializer
             Version = Str(d, "version"),
             DeclaredGamemode = ListOf(d, "gamemode").Select(g => g as string ?? "").Where(g => g.Length > 0).ToList(),
             Objective = Str(d, "objective"),
+            Created = Str(d, "created"),
+            Phase = Str(d, "phase"),
             MaxBuildHeight = AsIntN(Val(d, "max_build_height")),
             Authors = ListOf(d, "authors").Select(a => DecodeAuthor(AsDict(a))).ToList(),
             Kits = ListOf(d, "kits").Select(k => DecodeKit(AsDict(k))).ToList(),

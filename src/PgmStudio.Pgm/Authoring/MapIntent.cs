@@ -239,6 +239,11 @@ public sealed record MetaIntent
     /// <summary>The map's title.</summary>
     public string Name { get; init; } = "";
 
+    /// <summary>When the map was made, as <c>yyyy-mm-dd</c>. Stated by whoever authors the map — the studio
+    /// has no way to know it and does not invent one, so an intent that says nothing writes no
+    /// <c>&lt;created&gt;</c>.</summary>
+    public string Created { get; init; } = "";
+
     /// <summary>Who made it.</summary>
     public List<AuthorIntent> Authors { get; init; } = new();
 

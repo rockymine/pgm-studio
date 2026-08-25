@@ -28,6 +28,8 @@ public static class Serializer
         ["version"] = m.Version,
         ["gamemode"] = m.DeclaredGamemode.ToList<object?>(),
         ["objective"] = m.Objective,
+        ["created"] = m.Created,
+        ["phase"] = m.Phase,
         ["max_build_height"] = m.MaxBuildHeight,
         ["authors"] = m.Authors.Select(EncodeAuthor).ToList<object?>(),
         ["kits"] = m.Kits.Select(EncodeKit).ToList<object?>(),

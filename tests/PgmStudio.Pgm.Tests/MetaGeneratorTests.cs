@@ -32,6 +32,31 @@ public sealed class MetaGeneratorTests
         await Assert.That(doc["version"]).IsEqualTo("1.0.0");
     }
 
+    /// <summary>A map the studio authors is a map under development, whatever the intent says — the word is
+    /// the studio's, like the version, and not one of the author's fields.</summary>
+    [Test]
+    public async Task Every_authored_map_is_in_development()
+    {
+        var doc = new Dict();
+        MetaGenerator.Apply(doc, new MapIntent { Meta = new MetaIntent { Name = "M" } });
+        await Assert.That(doc["phase"]).IsEqualTo("development");
+    }
+
+    /// <summary>The creation date is the author's, and the only identity field the studio cannot derive: what
+    /// the intent states is what the document carries, and an intent stating none leaves the key absent
+    /// rather than inventing today.</summary>
+    [Test]
+    public async Task The_creation_date_is_carried_and_never_invented()
+    {
+        var stated = new Dict();
+        MetaGenerator.Apply(stated, new MapIntent { Meta = new MetaIntent { Name = "M", Created = "2026-08-25" } });
+        await Assert.That(stated["created"]).IsEqualTo("2026-08-25");
+
+        var silent = new Dict();
+        MetaGenerator.Apply(silent, new MapIntent { Meta = new MetaIntent { Name = "M" } });
+        await Assert.That(silent.ContainsKey("created")).IsFalse();
+    }
+
     [Test]
     public async Task A_single_wool_declares_ctw_and_the_singular_capture_line()
     {

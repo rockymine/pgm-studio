@@ -115,6 +115,11 @@ public static partial class XmlWriter
         // map that declared none gets none back rather than an invented one.
         foreach (var id in m.DeclaredGamemode) root.Add(new XElement("gamemode", id));
         root.Add(new XElement("objective", m.Objective));
+        // After the objective and before the includes, which is where docs/pgm/template.xml puts them.
+        // Either is written only when the map states it: a date nobody stated is not a fact about the map,
+        // and a phase nobody stated is not `development` by default.
+        if (m.Created.Length > 0) root.Add(new XElement("created", m.Created));
+        if (m.Phase.Length > 0) root.Add(new XElement("phase", m.Phase));
 
         foreach (var inc in m.Includes) root.Add(new XElement("include", new XAttribute("id", inc)));
 

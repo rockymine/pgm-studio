@@ -6,10 +6,13 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Map-identity slice of the declarative generator (new-map-authoring.md): sets the map name and the
-/// auto-derived fields — version, gamemode, and the objective text. Version is fixed; gamemode and the
-/// objective both follow which objective modules the intent actually carries (wools, destroyables, cores),
-/// the same rule <see cref="Gamemodes"/> applies to a parsed map (destroyables-and-cores.md OB7), so a
-/// destroy or core board is labelled by what it carries rather than by whatever the boilerplate names first.
+/// auto-derived fields — version, phase, gamemode, and the objective text. Version and phase are fixed;
+/// gamemode and the objective both follow which objective modules the intent actually carries (wools,
+/// destroyables, cores), the same rule <see cref="Gamemodes"/> applies to a parsed map
+/// (destroyables-and-cores.md OB7), so a destroy or core board is labelled by what it carries rather than by
+/// whatever the boilerplate names first.
+/// <para>The creation date is the one identity field the studio cannot derive: it is whatever the intent
+/// states and nothing when the intent states nothing.</para>
 /// <para>Authors/contributors are <b>not</b> set here — they're Minecraft usernames that need async
 /// resolution to uuids (<c>MojangClient</c>), which the intent endpoint does before saving. Proto
 /// (1.5.0) is an XML-export concern, not a persisted column.</para>
@@ -19,11 +22,18 @@ public static class MetaGenerator
     public const string Version = "1.0.0";
     public const string Proto = "1.5.0";   // emitted at XML export, not stored on the map
 
+    /// <summary>What a map the studio authors is: a map under development. Every board here is one, so the
+    /// word is fixed rather than authored — a map is promoted by the server that serves it, not by the tool
+    /// that drew it.</summary>
+    public const string Phase = "development";
+
     public static void Apply(Dict doc, MapIntent intent)
     {
         if (intent.Meta is not { } m) return;
         if (!string.IsNullOrWhiteSpace(m.Name)) doc["name"] = m.Name.Trim();
         doc["version"] = Version;
+        doc["phase"] = Phase;
+        if (!string.IsNullOrWhiteSpace(m.Created)) doc["created"] = m.Created.Trim();
         doc["gamemode"] = DeclaredGamemode(intent).ToList<object?>();
         doc["objective"] = Objective(intent);
     }

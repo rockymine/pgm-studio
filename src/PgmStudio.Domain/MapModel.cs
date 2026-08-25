@@ -286,6 +286,15 @@ public sealed class MapXml
     /// </summary>
     public List<string> DeclaredGamemode = [];
     public string Objective = "";
+
+    /// <summary>When the map was made, as <c>yyyy-mm-dd</c>. The author's own statement — a map that does not
+    /// say carries the empty string and writes no element, since a date nobody stated is a date nobody
+    /// knows.</summary>
+    public string Created = "";
+
+    /// <summary>How finished the map is: <c>development</c> or <c>production</c>. Round-tripped verbatim;
+    /// what the studio writes onto a map it authors is <see cref="Authoring.MetaGenerator.Phase"/>.</summary>
+    public string Phase = "";
     public int? MaxBuildHeight;
     public List<Author> Authors = [];
     public List<Kit> Kits = [];
