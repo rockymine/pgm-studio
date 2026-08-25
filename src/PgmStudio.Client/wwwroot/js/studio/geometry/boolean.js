@@ -255,21 +255,35 @@ function _transformRing(ring, axis, cx, cz) {
 
 /**
  * Apply saved island metadata to computed islands by matching on shapeId overlap.
+ *
+ * **A saved record is claimed by one island.** One of the fields carried across is the id, and an id is
+ * what a relief is keyed by, so handing the same record to two islands writes a layout in which two
+ * islands answer to one name — the relief then belongs to whichever of them the solver reaches first and
+ * the rest of the board comes back flat. The pairing is therefore resolved greedily by overlap: the
+ * strongest (island, record) pair first, then the next over what is left, and an island no record
+ * reaches keeps the identity it was computed with.
+ *
  * @param {object[]} islands   from computeIslands (shapeIds populated)
  * @param {object[]} savedMeta persisted island records ({shapeIds, …fields})
- * @param {string[]} fields    which fields to copy from the best match onto each island
+ * @param {string[]} fields    which fields to copy from the matched record onto each island
  */
 export function restoreIslandMeta(islands, savedMeta, fields) {
   if (!savedMeta.length) return;
+  const pairs = [];
   for (const isl of islands) {
-    let best = null, bestScore = 0;
     for (const meta of savedMeta) {
-      const overlap = isl.shapeIds.filter(sid => (meta.shapeIds ?? []).includes(sid)).length;
-      if (overlap > bestScore) { bestScore = overlap; best = meta; }
+      const saved = new Set(meta.shapeIds ?? []);
+      const overlap = isl.shapeIds.reduce((n, sid) => n + (saved.has(sid) ? 1 : 0), 0);
+      if (overlap > 0) pairs.push({ isl, meta, overlap });
     }
-    if (!best || bestScore === 0) continue;
+  }
+  pairs.sort((a, b) => b.overlap - a.overlap);
+  const takenIslands = new Set(), takenMeta = new Set();
+  for (const { isl, meta } of pairs) {
+    if (takenIslands.has(isl) || takenMeta.has(meta)) continue;
+    takenIslands.add(isl); takenMeta.add(meta);
     for (const field of fields) {
-      if (best[field] !== undefined) isl[field] = best[field];
+      if (meta[field] !== undefined) isl[field] = meta[field];
     }
   }
 }

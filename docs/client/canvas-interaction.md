@@ -178,6 +178,14 @@ the tool saves what the canvas holds, the wrong id is written into the document.
 therefore sets the live list to the incoming layer's own islands before recomputing, and falls back to that
 layer's persisted island records when it has none yet.
 
+**A saved island record is claimed by one island.** The other half of the same fact: `restoreIslandMeta`
+copies a name, a `mirrors` flag and an **id** from the persisted island records onto the recomputed
+islands, matched by shapeId overlap. Matching each island to its best record independently gives every
+island of a split board the same record — and a relief is keyed by id, so the board then has several
+islands under one name and its terrain reaches only the first of them. The pairing is resolved greedily
+instead: strongest overlap first, each record and each island claimed once, and an island no record
+reaches keeps the identity it was computed with. `SK12` reports a layout that still carries one id twice.
+
 **A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
 causes — the browser has no WebGL, or the server would not build the board — and for a long time both crossed
 to C# as one bare `OnIsoUnavailable()`, so the canvas answered *no WebGL* on browsers that plainly had it and

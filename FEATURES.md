@@ -5767,6 +5767,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   board drawn in no layers says that instead. The word is declared once on `WorldRenderEndpoint` and opted
   into by the four, so they cannot describe it four ways — `section` and `column` keep Y and show every storey
   already, and `traversability` and `walk` answer per storey without being asked.
+- **A saved island record is claimed by one island, and a board carrying an id twice says so (C50).**
+  `restoreIslandMeta` matched each computed island to its best saved record by shapeId overlap with no
+  exclusivity, so a board the canvas split into several islands handed every one of them the same record —
+  and one of the fields carried across is the **id**, which is the key a relief is stored under. Three
+  islands under one name is a layout with no single answer for that terrain: it lands on whichever is
+  solved first and the rest of the board builds flat. The pairing is now resolved greedily by overlap —
+  strongest pair first, each record and each island claimed once — and an island no record reaches keeps
+  the identity it was computed with. `SK12` reports the malformed shape wherever it still arrives, because
+  a document written by hand or by another tool can carry it too.
+
+  Measured on `pgm-studio-mapgen`'s `opus5-ravensmere`: two brush strokes drawn wholly on the mirrored half
+  of the board fell outside the compiled ground's own polygon, the canvas read them as islands of their
+  own, all three took the id `team`, and the 3-D preview drew a board with 63 courses of relief in it as
+  one flat plateau.
+
 - **A layer switch keeps the incoming storey's island identity (C49).** `sketch-bridge` holds one live
   island list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and
   an **id** across from that list, matching by centroid within 32 blocks. `loadActiveToCanvas` left the

@@ -163,6 +163,19 @@ public static class SketchLayoutCheck
                     Severity.Complaint, Field: $"{where}.shapeIds",
                     Subjects: island.Id is { Length: > 0 } id ? [id] : null));
 
+        // SK12 — one id, two islands. The relief is stored under the id and so is a placement's island, so a
+        // board carrying it twice has no single answer to either.
+        foreach (var group in Islands(layout).Select(entry => entry.Island)
+                                             .Where(island => island.Id is { Length: > 0 })
+                                             .GroupBy(island => island.Id!, StringComparer.Ordinal)
+                                             .Where(group => group.Count() > 1)
+                                             .OrderBy(group => group.Key, StringComparer.Ordinal))
+            findings.Add(new Finding(SketchRules.IslandIdTwice,
+                $"{group.Count()} islands answer to the id '{group.Key}', so terrain and placements stored "
+                + "under it have no single island to belong to — the first one solved takes them and the "
+                + "rest build flat. Give each island its own id",
+                Severity.Complaint, Subjects: [group.Key]));
+
         foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !islands.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
             findings.Add(new Finding(SketchRules.NamesNothing,
                 $"a relief is stated for island '{orphan}', which the layout does not carry, so that "

@@ -92,6 +92,15 @@ public static class SketchRules
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string LayersOverlap = "SK10";
 
+    /// <summary>Two islands of one layer answering to the same id. An island id is the key a relief is
+    /// stored under and the handle a placement names, so a board carrying it twice has no single answer to
+    /// either: the terrain authored under that name lands on whichever of them is solved first and the rest
+    /// of the ground builds flat.</summary>
+    /// <remarks>Give each island its own id. A recompile mints one per island, so a duplicate is a document
+    /// that was written by hand or by a tool that copied a record onto more than one island.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string IslandIdTwice = "SK12";
+
     /// <summary>A mass of standable ground under open sky that no route reaches from the rest of the board.
     /// Ground under a roof is a room and says nothing; ground with sky over it and no way onto it is either a
     /// second island the author meant or a storey whose stair was never drawn, and only the author knows

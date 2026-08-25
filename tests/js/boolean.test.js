@@ -70,6 +70,28 @@ test("restoreIslandMeta copies fields from the best shapeId-overlap match", () =
   assert.equal(islands[0].mirrors, false);
 });
 
+test("restoreIslandMeta gives one saved record to one island", () => {
+  // The board's own island and two strays a brush stroke left outside it, all overlapping the single
+  // saved record. Handing that record to all three would write three islands under one id — and an id
+  // is what a relief is keyed by, so the board comes back flat.
+  const islands = [
+    { shapeIds: ["s0", "a", "b", "c"], id: "isl_1", name: "Island 1" },
+    { shapeIds: ["d"], id: "isl_2", name: "Island 2" },
+    { shapeIds: ["e"], id: "isl_3", name: "Island 3" },
+  ];
+  restoreIslandMeta(islands, [{ shapeIds: ["s0", "a", "b", "c", "d", "e"], id: "team", name: "Team island" }],
+                    ["id", "name"]);
+  assert.deepEqual(islands.map(i => i.id), ["team", "isl_2", "isl_3"]);
+  assert.equal(new Set(islands.map(i => i.id)).size, 3);
+});
+
+test("restoreIslandMeta pairs two records with two islands by strongest overlap first", () => {
+  const islands = [{ shapeIds: ["a", "b", "c"] }, { shapeIds: ["d", "e"] }];
+  restoreIslandMeta(islands, [{ shapeIds: ["d", "e"], id: "south" }, { shapeIds: ["a", "b", "c"], id: "north" }],
+                    ["id"]);
+  assert.deepEqual(islands.map(i => i.id), ["north", "south"]);
+});
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 test("shapeToMultiPoly wraps a ring; degenerate → []", () => {
   assert.equal(shapeToMultiPoly(rect("a", 0, 0, 4, 4))[0][0].length, 5);
