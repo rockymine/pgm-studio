@@ -1115,6 +1115,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **Every house in a board is checked, on every road a board is stored through (WE35).** The house-style
+  gate was wired to `PUT /map/{slug}/sketch` alone, so `HS1`, `HS2`, `HS3` and `WX10` were never asked of a
+  board authored through `sketch/from-plan` or `from-documents` — which is every board in `pgm-studio-mapgen`.
+  All three roads run it now, and it reads the shell of every building in `dressing.props` beside the bound
+  cage and spawn: a prop carries its style as a snapshot, so what is stored is what the export stamps, and
+  `HouseProp.Check` reads only wings and joints. A building's findings name it — `dressing.props[3].style.verge`,
+  with the prop's own id as the subject.
+
+  **What it was hiding:** thirteen of the 63 committed styles in `pgm-studio-mapgen/tools/styles/` set
+  `roof.verge.id = 17`, a log, which `HouseStyleValidation.CheckRoof` has refused since it was written.
+  `SketchRoomStyleGateTests` posts one bad board down all three roads.
+
 - **The one-call authoring path answers for every field it could not keep (RP60).** `POST /map/from-documents`
   reads three documents into three types and complained about none of them, while each of the single-document
   writes beside it answers `RQ3` — so the route a headless author stores a whole map through was the one route

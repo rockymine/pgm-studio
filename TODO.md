@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Fourteen entries, over the cap of twelve, on the author's call.** They are one review of the built maps
+**Thirteen entries, over the cap of twelve, on the author's call.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -26,18 +26,6 @@ mirror read compares shape and never material, on the stated grounds that a patt
 falls — which is the defect rather than a reason to allow it.
 
 ### The house: what it may be built of, and who asks
-
-- [ ] **WE35 — The house-style gate runs on the one road no board is authored on.** `SketchRoomStyleGate`
-  is wired into `PUT /map/{slug}/sketch` alone. `PUT …/sketch/from-plan` and `POST /map/from-documents` —
-  the two a compiled board is actually stored through — run `SketchLayoutCheck` and never it, so `HS1`,
-  `HS2`, `HS3` and `WX10` have never been asked of an authored map. Run it wherever a layout is stored, and
-  widen it past `roomStyles.cage`/`.spawn` to every `dressing.props[].style`: `HouseProp.Check()` reads wings
-  and joints and never opens the style. `docs/tools/library.md` § what it writes, and
-  `docs/world-export/structures.md`.
-
-  *Thirteen of the 63 committed styles in `pgm-studio-mapgen/tools/styles/` set `roof.verge.id = 17` — a log,
-  which `HouseStyleValidation.CheckRoof` already refuses. Twenty-six more carry a roof slab of another
-  material. None was ever asked.*
 
 - [ ] **WE36 — A roof is one material, and its half-course slab is the same one.** The rule (author):
   `roof.body` and `roof.verge` are each a **single solid material** — never a pattern, so an agent cannot

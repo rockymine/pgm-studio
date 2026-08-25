@@ -412,10 +412,11 @@ else depends on are protected, and the things nothing depends on are the author'
 two `/storey-styles` verbs (over the storey's own window); the two `/roof-styles` verbs run
 `HouseStyleValidation.CheckRoof` over the composed roof, which is the whole roof gate rather than half of it —
 a roof part states its own `roofSlab`, so the slab/pitch pairing has both numbers there. The same checks run
-on the two other doors a `HouseStyle` snapshot enters the studio through: `PUT /map/{slug}/sketch`'s bound
-`roomStyles.cage` and `roomStyles.spawn` (`docs/tools/sketch.md`'s Refusals) — the wool cage and the spawn
-checked identically, since nothing about a spawn asks for a different rule, and there against the build
-ceiling as well (`WX10`, `docs/world-export/structures.md`). Every style finding names one of three stable
+wherever else a `HouseStyle` snapshot enters the studio: a stored sketch's bound `roomStyles.cage` and
+`roomStyles.spawn` and the shell of every building in its `dressing` (`docs/tools/sketch.md`'s Refusals) — the
+wool cage, the spawn and a placed house checked identically, since none of the three asks for a different
+rule, and there against the build ceiling as well (`WX10`, `docs/world-export/structures.md`). All three roads
+to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan`, and `POST /map/from-documents`. Every style finding names one of three stable
 rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing
 `message`:
 

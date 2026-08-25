@@ -54,6 +54,12 @@ public static class MapFromDocuments
             .. Unread("layout", request.Layout, SketchLayout.Stated),
             .. Unread("intent", request.Intent, IntentWrite.Stated)]);
 
+        // The gate every other road to a stored layout runs: a house is stamped from the style that arrives
+        // here, and this is the last point before it is built.
+        var layoutJson = request.Layout.GetRawText();
+        if (SketchRoomStyleGate.Check(layoutJson) is { Count: > 0 } styleFaults)
+            return new(new Refusal(400, "invalid house style", [.. styleFaults]));
+
         var slug = Slugs.Of(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);
         var existing = await repo.GetBySlugAsync(slug, ct);
         var mapId = await MapOrigin.ReplacingAsync(repo, slug, name, MapStage.Plan, ct);

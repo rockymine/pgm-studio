@@ -211,10 +211,14 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
 
-        // The same gate the plain PUT runs, over the document that is actually stored — which is the merged
+        // Both gates the plain PUT runs, over the document that is actually stored — which is the merged
         // one, not the posted one, since the carry is what decides whether a shape's theme has a registry to
-        // find. This road is the one an agent drives (compile, patch, put), so a board whose names match
-        // nothing is told here rather than only on the road a person takes.
+        // find, and whether a room style came across. This road is the one an agent drives (compile, patch,
+        // put), so a board whose names match nothing, or whose houses are built of the wrong blocks, is told
+        // here rather than only on the road a person takes.
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style",
+                SketchRoomStyleGate.Check(merged), ct)) return;
+
         var document = SketchLayoutCheck.Check(merged);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
 
