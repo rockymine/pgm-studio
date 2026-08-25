@@ -4673,9 +4673,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   gated by a new e2e spec (`tests/e2e/draw-tools.mjs`, 11 checks: exactly one operation control with nothing
   else repeating its state, dimmed on move and measure, awake on rectangle, a click flipping it each way, and
   the mode surviving a tool change).
+- **Five full cubes an authored board is built of now resolve to a tone family (WS15).** `SurfaceReport`
+  counts a full cube no family names as *unnamed material* and legends it magenta, so a block missing from
+  `TerrainPalette.Grouped` reads as a fault in the board rather than as a hole in the vocabulary. Swept over
+  the 68 distinct blocks the 37 committed mapgen specs use as theme material: **smooth sandstone `24:2`** →
+  sand, **mossy stone brick `98:1`** → cobble, **chiselled stone brick `98:3`** → grey stone, **mushroom
+  pores `99:0`** → pale stone, **iron block `42:0`** → ash. Four sit beside a variant of the same id the
+  table already claimed; the fifth is what an iron cube is built of, which had been putting a permanent
+  magenta speck on every board carrying one. Logs are not in it — a log on the surface is read as canopy and
+  stepped past — and **bedrock stays unnamed by design** (`TP16`: the map's floor and the shell of its
+  walls). Measured after: `opus5-sandcaster` and `opus5-thornfell` both fall from two unnamed blocks to one,
+  and the one is the observer pad.
+
 - **The paint palette is grouped by tone family, and a family fills a pattern in one choice (TP16).**
   `TerrainPalette`'s taxonomy groups — Rock, Earth, Wood, Mineral — were replaced by the **19 tone families over
-  72 full blocks** the surface analysis measures ground by, so one table now serves both: what an author paints
+  86 full blocks** the surface analysis measures ground by, so one table now serves both: what an author paints
   and what a report names cannot drift apart. A taxonomy could not do the job a pattern needs — Rock held stone,
   obsidian and bedrock together, which is true about rock and useless as a palette for a field. Under every
   material list (a stack's layers, a voronoi's bands, a cell pattern's patches, a field's stops, a wall's

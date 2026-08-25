@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Fourteen entries, over the cap of twelve, on the author's call.** Thirteen of them are one group and
+**Thirteen entries, over the cap of twelve, on the author's call.** Twelve of them are one group and
 the group is one cause, so splitting it across two files would hide the cause; the trade is that the board
 **takes nothing new until that group drains**, and anything found while working goes to `BACKLOG.md`.
 
@@ -21,11 +21,11 @@ and forty-two lines of spline geometry, under a docstring that says it computes 
 
 Those keys and that geometry sort into two halves, and this group is ordered by them. **What a board cannot
 be told** is the first six: a statement an author has to make, with no field to make it in, so the driver
-edits a compiled document on its way past. **What a board cannot be asked** is the seven after: a question
+edits a compiled document on its way past. **What a board cannot be asked** is the six after: a question
 whose answer already exists inside a refusal, a solver or a palette, and which no read returns — so every
 board answered it with a throwaway script and a hand-typed column transect.
 
-The pattern under all thirteen: **not one of these faults was caught by a gate.** The export gate was open,
+The pattern under all of them: **not one of these faults was caught by a gate.** The export gate was open,
 the mirror clean and the traversability whole on every board named below.
 
 ### What a board cannot be told
@@ -158,15 +158,6 @@ the mirror clean and the traversability whole on every board named below.
   *Every board verified its paths with a throwaway per-block column transect — `opus5-thornfell`'s four
   tracks, **308 cells**, checked for a step greater than one. Written fresh each time and thrown away each
   time.*
-
-- [ ] **WS15 — Three block ids no paint family claims, so they render as unnamed material.**
-  `TerrainPalette.Grouped` is one vocabulary shared by what an author paints and what a report measures,
-  which is right, and is why a hole in it shows as a hole in the reading. `24:0` sandstone is in *sand* and
-  **`24:2` smooth sandstone is in nothing**; `99:15` is in *pale stone* and **`99:0` is in nothing**; and
-  **bedrock `7:0` is in nothing at all**, which is why every observer pad reads magenta on
-  `render/surface`. Three rows in `TerrainPalette.cs`. The only judgement is which family bedrock belongs
-  to — or whether the legend should name it rather than call it unclaimed.
-  `docs/world-scan/block-palette.md`.
 
 ## What the front door still cannot say
 

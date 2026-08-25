@@ -133,6 +133,30 @@ public sealed class TerrainPaletteTests
     }
 
     [Test]
+    public async Task A_full_cube_a_board_is_built_of_resolves_to_a_tone_family()
+    {
+        // `SurfaceReport` counts a full cube no family names as "unnamed material" and legends it magenta,
+        // which is the vocabulary reporting its own gap. Four of these sit beside a variant of the same id the
+        // vocabulary already claims; the fifth is the block an iron cube is built of, which stands on the
+        // ground of every board that carries one.
+        await Assert.That(TerrainPalette.FamilyOf(24, 2)).IsEqualTo("sand");        // smooth sandstone, beside 24:0
+        await Assert.That(TerrainPalette.FamilyOf(98, 1)).IsEqualTo("cobble");      // mossy stone brick, beside 48:0
+        await Assert.That(TerrainPalette.FamilyOf(98, 3)).IsEqualTo("grey stone");  // chiselled stone brick, beside 98:0
+        await Assert.That(TerrainPalette.FamilyOf(99, 0)).IsEqualTo("pale stone");  // mushroom pores, beside 99:15
+        await Assert.That(TerrainPalette.FamilyOf(42, 0)).IsEqualTo("ash");         // iron block
+    }
+
+    [Test]
+    public async Task Bedrock_is_named_by_no_family_because_it_is_a_fixture_rather_than_a_ground()
+    {
+        // Bedrock is what a board stands on and what its rim is cut from, not a ground an author paints, so
+        // the picker does not offer it. It is a full cube, so a column whose surface is bedrock still reports
+        // as unnamed material.
+        await Assert.That(TerrainPalette.FamilyOf(Blocks.Bedrock, 0)).IsNull();
+        await Assert.That(BlockRoles.IsFullCube(Blocks.Bedrock)).IsTrue();
+    }
+
+    [Test]
     public async Task The_default_theme_is_built_from_blocks_the_picker_offers()
     {
         var offered = TerrainPalette.Paintable.Select(b => (b.Id, b.Data)).ToHashSet();
