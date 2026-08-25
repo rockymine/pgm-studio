@@ -121,6 +121,14 @@ public static class RoomFrameRules
     /// <remarks>Take courses out of the shell — a storey off the stack, a shallower roof pitch, or a lower clear — until it stands under the build ceiling. The cap is the same one players build under, and a marker hanging above it is what makes a goal readable across the map.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Objective)]
     public const string ShellOverCeiling = "WX10";
+
+    /// <summary>A stamped structure stands over ground the cell beside it does not have. Its foundation fills
+    /// the column under its whole footprint, so where the neighbouring cell is void or well below the floor
+    /// what the building meets the world with is a sheer face of bedrock — a wall nobody drew, at a height
+    /// nobody chose, which a player cannot climb and no other read reports.</summary>
+    /// <remarks>Bring the ground up to the building, or move the building onto ground that carries it: the drop is measured from the floor it stands on to the surface of the cell beside it, and a step of one is a doorstep rather than a wall. A building deliberately sited on a ledge is the case to ignore — this is a complaint, and the world builds either way.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.World, RuleConcern.Terrain)]
+    public const string StructureOnAPlinth = "WX11";
 }
 
 /// <summary>One iron marker's resolution beside a spawn room (WX8/WX9): the cube footprint min corner and

@@ -692,6 +692,20 @@ own wall, windows, floor zoning and deck, and falls back to the building's where
 identical storeys is a count rather than a repeated description, and every one of those fallbacks is resolved
 in `HouseStyle.Levels` rather than at the point each is used.
 
+**The foundation seals the ground a cell has and never invents one.** Downward it turns the solid column to
+bedrock and stops at the first air, so on ordinary ground it reaches the world's own bedrock floor and on
+ground that floats it reaches the underside of the slab: a board whose land hangs over void would otherwise
+carry a bedrock pillar from `y 0` under every stamped room, twenty-five courses of it in open sky
+(`opus5-aerie`, probed at `(20, 28)`). A footprint cell with no ground at all is left alone — there is nothing
+under it to seal.
+
+**And where the cell beside a building has no ground to meet it on, `WX11` says so** — a complaint at the
+columns tier, since a building on a ledge is a real thing to draw and the world builds either way. The
+foundation levels its plinth at the footprint's own highest column, so a neighbour that is void, or more than
+a step below the floor, is met by a sheer face of that plinth: a wall a player cannot climb, at a height
+nobody chose. It is read off the **provenance** rather than off the intent, so it covers everything a pass
+stamped — a wool cage, a spawn cube, a placed building — by the identity each already recorded.
+
 **A building stands on a foundation**, and it is one thing rather than three fields beside each other. The
 **plate** claims downward from the course players walk on, so a thicker one digs into the ground the house
 sits on rather than lifting its inside off it, and its top course is the ground storey's deck — which is why a

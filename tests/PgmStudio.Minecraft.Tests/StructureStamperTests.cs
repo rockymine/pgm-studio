@@ -22,11 +22,23 @@ public sealed class StructureStamperTests
         return d;
     }
 
+    /// <summary>The world a surface map describes: stone from <paramref name="floor"/> up to each column's
+    /// own first-air. The foundation seals the column a cell has, so a fixture that states a surface and
+    /// leaves the world empty is describing ground that is not there.</summary>
+    private static VoxelWorld Ground(IReadOnlyDictionary<(int X, int Z), int> surface, int floor = 0)
+    {
+        var world = new VoxelWorld();
+        foreach (var ((x, z), top) in surface)
+            for (var y = floor; y < top; y++)
+                world.SetBlock(x, y, z, Blocks.Stone);
+        return world;
+    }
+
     [Test]
     public async Task Room_floor_fills_bedrock_from_zero_to_the_surface()
     {
-        var w = new VoxelWorld();
         var surf = FlatSurface(0, 0, 10, 10, top: 13);
+        var w = Ground(surf);
         StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
         // Solid bedrock through the whole column [0, 13); air at and above the surface top.
@@ -34,8 +46,8 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(3, 7, 3).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(5, 12, 5).Id).IsEqualTo(Blocks.Bedrock);   // top solid block
         await Assert.That(w.GetBlock(5, 13, 5).Id).IsEqualTo(Blocks.Air);       // surface cell left open
-        // The max bound is exclusive — column x=6 is outside the footprint.
-        await Assert.That(w.GetBlock(6, 0, 3).Id).IsEqualTo(Blocks.Air);
+        // The max bound is exclusive — column x=6 is outside the footprint and keeps the ground it had.
+        await Assert.That(w.GetBlock(6, 0, 3).Id).IsEqualTo(Blocks.Stone);
     }
 
     [Test]
@@ -44,11 +56,11 @@ public sealed class StructureStamperTests
         // What stands on the plinth takes one floor course over its whole frame, read from the frame's
         // highest column, so a plinth that followed the ground would stop short of the floor wherever the
         // ground falls away and leave it spanning air.
-        var w = new VoxelWorld();
         var surf = new Dictionary<(int X, int Z), int>();
         for (var x = 0; x <= 10; x++)
         for (var z = 0; z <= 10; z++)
             surf[(x, z)] = 10 + z;                       // first air Y climbs one a row
+        var w = Ground(surf);
 
         StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
@@ -58,6 +70,40 @@ public sealed class StructureStamperTests
         await Assert.That(w.GetBlock(3, 14, 5).Id).IsEqualTo(Blocks.Bedrock);   // highest row
         await Assert.That(w.GetBlock(3, 15, 5).Id).IsEqualTo(Blocks.Air);       // its surface cell left open
         await Assert.That(w.GetBlock(6, 14, 2).Id).IsEqualTo(Blocks.Air);       // max bound still exclusive
+    }
+
+    /// <summary>Ground that floats over void is sealed to the underside of what it stands on and no further.
+    /// A foundation that filled from <c>y 0</c> hung a bedrock pillar under every stamped room on a board of
+    /// crags — measured on `opus5-aerie` at `(20, 28)`: bedrock from y0 to y24 under a wool room whose crag
+    /// begins at y16, in open sky the whole way.</summary>
+    [Test]
+    public async Task Ground_that_floats_is_sealed_to_its_own_underside_and_no_further()
+    {
+        var surf = FlatSurface(0, 0, 10, 10, top: 30);
+        var w = Ground(surf, floor: 20);                 // a slab ten courses thick, hanging over nothing
+
+        StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+
+        await Assert.That(w.GetBlock(3, 29, 3).Id).IsEqualTo(Blocks.Bedrock);   // the slab's top course
+        await Assert.That(w.GetBlock(3, 20, 3).Id).IsEqualTo(Blocks.Bedrock);   // its lowest
+        await Assert.That(w.GetBlock(3, 19, 3).Id).IsEqualTo(Blocks.Air);       // and the void under it
+        await Assert.That(w.GetBlock(3, 0, 3).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary>A cell of the footprint with no ground at all is left alone: there is nothing under it to
+    /// seal, and a column raised there stands in open sky.</summary>
+    [Test]
+    public async Task A_footprint_cell_over_nothing_gets_no_column()
+    {
+        var surf = FlatSurface(0, 0, 10, 10, top: 13);
+        surf.Remove((3, 3));                             // one cell of the footprint is void
+        var w = Ground(surf);
+
+        StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
+
+        await Assert.That(w.GetBlock(3, 12, 3).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(3, 0, 3).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(4, 12, 4).Id).IsEqualTo(Blocks.Bedrock);   // its neighbour is sealed
     }
 
     [Test]

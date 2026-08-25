@@ -1115,6 +1115,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **A foundation seals the ground a cell has, and says when its neighbour has none (WE31).**
+  `StampFoundation` filled bedrock from `y 0` to the footprint's highest surface, so on a board whose land
+  floats every stamped room hung a pillar into open sky — `opus5-aerie` at `(20, 28)` carried bedrock from y0
+  to y24 under a wool room whose crag begins at y16. It now seals downward through the column the cell
+  actually has and stops at the first air, levels up to the plinth, and leaves a cell with no ground alone.
+
+  **`WX11`** is the other half: a complaint at the columns tier where the cell beside a stamped structure is
+  void or more than a step below the floor it stands on, which the foundation meets with a sheer face of its
+  own bedrock. Read off the **provenance**, so it covers a wool cage, a spawn cube and a placed building alike
+  by the identity each stamp already recorded, and needs no list of what a structure is.
+
+  *`opus5-thornfell`, first build: a room floor at `y43` over 42 courses of bedrock with `x −93` and `x −69`
+  void at `z 117`. Export gate open, mirror ✓, buildability ✓, traversability ✓, nothing declined.*
+
 - **No footing is the default, and a footing belongs to a plate that has a foot (WE39).**
   `Foundation.Footing` defaulted to cobblestone, so every style that said nothing about it wore a one-block
   rim — 54 of the 89 styles committed in `pgm-studio-mapgen`, over a plate one course deep. The default is

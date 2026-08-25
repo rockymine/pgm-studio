@@ -15,16 +15,23 @@ public static class StructureStamper
     /// <summary>Cube edge (blocks): a 4×4×4 iron structure resting on the surface.</summary>
     public const int IronCubeSize = 4;
 
-    /// <summary>Fill a footprint with solid bedrock from y=0 up to the terrain surface block, so what stands
-    /// on it cannot be tunnelled into from below (ST1). This is the ground the building sits on, not the
-    /// course a player walks on — that one is the shell's own floor part. Footprint is min-inclusive,
-    /// max-exclusive (<c>[minX, maxX) × [minZ, maxZ)</c>).
+    /// <summary>Turn the ground under a footprint to solid bedrock, so what stands on it cannot be tunnelled
+    /// into from below (ST1). This is the ground the building sits on, not the course a player walks on —
+    /// that one is the shell's own floor part. Footprint is min-inclusive, max-exclusive
+    /// (<c>[minX, maxX) × [minZ, maxZ)</c>).
     ///
     /// <para>The plinth is <b>level, at the footprint's own highest column</b>, because what stands on it is:
     /// a room takes one floor course over its whole frame, read from that same highest column, so a plinth
     /// following the ground column by column leaves the floor spanning air wherever the ground falls away
     /// under it. Levelling costs nothing where the ground is flat, which is the common case, and is the
-    /// difference between a floor and a lid everywhere else.</para></summary>
+    /// difference between a floor and a lid everywhere else.</para>
+    ///
+    /// <para><b>It seals the column a cell has and never invents one.</b> Downward it turns solid blocks to
+    /// bedrock and stops at the first air, so on ordinary ground it reaches the world's own bedrock floor and
+    /// on ground that floats it reaches the underside of the slab and no further — a board whose land hangs
+    /// over void would otherwise carry a bedrock pillar from <c>y 0</c> under every stamped room. A cell with
+    /// no ground at all is left alone: there is nothing under it to seal, and building a column there would
+    /// put a stack of bedrock in open sky.</para></summary>
     public static void StampFoundation(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
@@ -33,8 +40,15 @@ public static class StructureStamper
         foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
             level = Math.Max(level, surfaceTop.GetValueOrDefault(cell, 1));   // topmost air cell
 
-        foreach (var (x, z) in FoundationCells(minX, minZ, maxX, maxZ))
-            for (var y = 0; y < level; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
+        foreach (var cell in FoundationCells(minX, minZ, maxX, maxZ))
+        {
+            if (!surfaceTop.TryGetValue(cell, out var top)) continue;         // no ground here to stand on
+            var (x, z) = cell;
+            // down through the column this cell actually has, and up to the level the room is floored at
+            for (var y = top - 1; y >= 0 && world.GetBlock(x, y, z).Id != Blocks.Air; y--)
+                world.SetBlock(x, y, z, Blocks.Bedrock);
+            for (var y = top; y < level; y++) world.SetBlock(x, y, z, Blocks.Bedrock);
+        }
     }
 
     /// <summary>The columns <see cref="StampFoundation"/> fills, for a caller recording what it covered. Its

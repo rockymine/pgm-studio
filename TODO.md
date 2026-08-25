@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Ten entries, one group, and the order is the point.** They are one review of the built maps
+**Nine entries, one group, and the order is the point.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -26,20 +26,6 @@ mirror read compares shape and never material, on the stated grounds that a patt
 falls — which is the defect rather than a reason to allow it.
 
 ### The house: what it may be built of, and who asks
-
-- [ ] **WE31 — A stamped room's foundation is bedrock from `y 0`, through open sky if it has to be.**
-  `StructureStamper.StampFoundation` fills `for (var y = 0; y < level; y++)` where `level` is the highest
-  surface over the footprint — from the world floor, never from the terrain's own. On a board whose ground
-  floats it hangs a solid bedrock pillar under every stamped room; where the cell beside it is void or lower
-  it is a sheer bedrock wall a raider cannot climb. Fill from the column's own `YFloor` instead, and not at
-  all where the cell carries no ground. Raise a complaint at the columns tier for a perimeter cell that is
-  void or more than a step below the floor — `DressingRules.SiteNotLevel` asks the same question of a house.
-  `docs/world-export/structures.md`.
-
-  *`opus5-aerie` at `(20, 28)`: **bedrock y0 → y24**, wool at y25. One block out at `(11, 28)`: the terrain's
-  own bedrock at y16–17, stone to y22, grass at y25. The room drove 16 courses below the ground it stands on
-  and out into the void. `opus5-thornfell`: room floor at `y43` over 42 courses, `x −93` and `x −69` void at
-  `z 117`. Export gate open on both.*
 
 ### Colour: one family, and the table that names it
 

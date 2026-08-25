@@ -317,6 +317,11 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
             // drawing, as a complaint, since nothing about this request is being refused.
             Complaints.Add(HttpContext,
                 MapExportComposer.CheckGoalPlacement(built.Columns!, built.ResolvedIntent).AsComplaints());
+
+            // WX11, for the same reason and off the same build: a building whose neighbours have no ground
+            // to meet it on shows the world a sheer face of its own foundation, and nothing else reports it.
+            Complaints.Add(HttpContext,
+                MapExportComposer.CheckStructureSites(built.Columns!, built.Provenance));
         }
         // A dressing document that will not read is refused by name, exactly as the export refuses it — the
         // preview and the export cannot disagree about what a malformed prop list is.

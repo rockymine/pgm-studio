@@ -2,6 +2,8 @@ using System.Text;
 using PgmStudio.Analysis.Scan;
 using PgmStudio.Analysis.Playability;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
+using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
@@ -325,6 +327,62 @@ public static class MapExportComposer
     /// that state cannot be shipped; <c>POST …/sketch/columns</c> asks the same question of the same build and
     /// carries the answer as complaints, so an author hears it while drawing rather than at the door.</para>
     /// </summary>
+    /// <summary>
+    /// <b><c>WX11</c> — every stamped structure whose neighbours have no ground to meet it on.</b> A
+    /// foundation seals the column under the whole footprint and levels it at the footprint's own highest,
+    /// so where the cell beside a building is void, or well below the floor it stands on, what the building
+    /// shows the world is a sheer face of bedrock: a wall nobody drew, at a height nobody chose.
+    ///
+    /// <para>Read off the provenance rather than the intent, so it covers everything a pass stamped — a wool
+    /// cage, a spawn cube, a placed building — by the identity each already recorded, and needs no list of
+    /// what a structure is. A complaint: a building on a ledge is a real thing to draw, and the world builds
+    /// either way.</para>
+    /// </summary>
+    public static Findings CheckStructureSites(
+        IReadOnlyList<ColumnSegment> columns, WorldProvenance provenance)
+    {
+        var surface = new Dictionary<(int X, int Z), int>();
+        foreach (var column in columns)
+            if (!surface.TryGetValue(column.Cell, out var top) || column.YTop > top)
+                surface[column.Cell] = column.YTop;
+
+        var byOwner = new Dictionary<string, List<(int X, int Z)>>();
+        foreach (var (cell, pass, owner) in provenance.Claims)
+        {
+            if (pass != ProvenancePass.Structure || owner is not { } stamp) continue;
+            var identity = $"{stamp.Kind}:{stamp.Unit}:{stamp.Image}";
+            if (!byOwner.TryGetValue(identity, out var cells)) byOwner[identity] = cells = [];
+            cells.Add(cell);
+        }
+
+        var findings = new List<Finding>();
+        foreach (var (identity, cells) in byOwner.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+        {
+            var footprint = cells.ToHashSet();
+            var floor = cells.Where(surface.ContainsKey).Select(cell => surface[cell]).DefaultIfEmpty(0).Max();
+            int worst = 0, atX = 0, atZ = 0;
+            var voids = 0;
+            foreach (var (x, z) in cells)
+                foreach (var (nx, nz) in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+                {
+                    if (footprint.Contains((nx, nz))) continue;
+                    // A cell with no ground at all is the whole drop: the face runs to the void.
+                    var drop = surface.TryGetValue((nx, nz), out var beside) ? floor - beside : floor;
+                    if (!surface.ContainsKey((nx, nz))) voids++;
+                    if (drop > worst) (worst, atX, atZ) = (drop, nx, nz);
+                }
+
+            if (worst <= 1) continue;
+            var over = voids > 0 ? $"{voids} of them over the void" : "the ground falling away";
+            findings.Add(new Finding(RoomFrameRules.StructureOnAPlinth,
+                $"{identity.Replace(":", " ")} stands {worst} blocks above the cell beside it at "
+                + $"({atX}, {atZ}) — {over}. Its foundation fills that face in bedrock, which is a wall a "
+                + "player cannot climb and nobody drew.",
+                Severity.Complaint, Subjects: [identity]));
+        }
+        return findings;
+    }
+
     public static Findings CheckGoalPlacement(
         IReadOnlyList<ColumnSegment> columns, MapIntent goals)
     {
