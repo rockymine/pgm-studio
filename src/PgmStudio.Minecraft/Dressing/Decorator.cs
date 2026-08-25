@@ -562,7 +562,7 @@ public static class Decorator
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
-            var (floorY, bare) = Ground(context, ground, image);
+            var (floorY, bare, rise) = Ground(context, ground, image);
             if (floorY is null)
             {
                 declined.Add(new Finding(DressingRules.NoGround,
@@ -571,6 +571,24 @@ public static class Decorator
                           + "inside its footprint — the building would seat on its lowest column and hang off "
                           + "the rest"
                         : $"building '{house.Id}' has no ground under any of its cells",
+                    Severity.Decline, Subjects: [house.Id]));
+                return [];
+            }
+            // The building seats on its lowest column and the ground over that floor is carved out of the
+            // footprint, so a site with more relief across it than the building is tall comes out with its
+            // uphill wall below the ground beside it. Sinking into a slope is what the seating rule is for;
+            // disappearing into one is a site that was never level enough to build on.
+            // Measured against the ridge rather than the eave: a wall below the ground beside it is a house
+            // dug into a slope, which is what the seating rule is for, and a roof below it is a house nobody
+            // can see. The roof's rise is two courses per pitch over a wing of any ordinary width.
+            var buries = house.Style.WallCourses + 2 * Math.Max(1, house.Style.Roof.Pitch);
+            if (rise >= buries)
+            {
+                declined.Add(new Finding(DressingRules.SiteNotLevel,
+                    $"building '{house.Id}' stands on ground that rises {rise} block(s) across its own "
+                    + $"footprint, which is what the building itself stands — the uphill side would be "
+                    + "under the ground beside it, roof and all. Move it onto flatter ground, or give it a "
+                    + "plateau to stand on",
                     Severity.Decline, Subjects: [house.Id]));
                 return [];
             }
@@ -750,15 +768,18 @@ public static class Decorator
     /// footprint and the excavation skips a missing column rather than refusing it. Half a building on solid
     /// ground is worse than none, so the quantifier is what a refusal is made of and the column it stopped at
     /// is what the refusal names.</para></summary>
-    private static (int? Floor, (int X, int Z)? Bare) Ground(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan)
+    private static (int? Floor, (int X, int Z)? Bare, int Rise) Ground(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, BuildingPlan plan)
     {
-        var lowest = int.MaxValue;
+        int lowest = int.MaxValue, highest = int.MinValue;
         foreach (var (x, z) in plan.Cells())
         {
-            if (!ground.TryGetValue((x, z), out var top)) return (null, (x, z));
+            if (!ground.TryGetValue((x, z), out var top)) return (null, (x, z), 0);
             lowest = Math.Min(lowest, top);
+            highest = Math.Max(highest, top);
         }
-        return lowest == int.MaxValue || lowest < 2 ? (null, null) : (lowest - 1, null);
+        return lowest == int.MaxValue || lowest < 2
+            ? (null, null, 0)
+            : (lowest - 1, null, highest - lowest);
     }
 
     /// <summary>Carve the terrain standing above a building's floor out of its footprint, before the stamp.

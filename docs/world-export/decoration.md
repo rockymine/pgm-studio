@@ -517,6 +517,21 @@ covers it — the passage walk reads the bands *outside* the footprint, and the 
 column rather than refusing it. Half a building on solid ground is worse than none, so the first bare column
 declines the whole prop as `DR-SITE` and the finding names that column.
 
+**And that seat is why the site has to be level enough (`DR-SLOPE`).** Seating on the lowest column means
+the terrain standing over that floor runs through the rooms, so the pass carves it out — every footprint
+column is cleared from the floor's own course up to its old surface, and the ground outside the walls keeps
+its height. That is what lets a house dig into a hillside instead of standing on a plinth, and it has a
+limit: where the ground rises across the footprint by as much as the building itself stands — its wall
+courses plus the rise of its roof — the uphill side is under the ground beside it *roof and all*, and what
+was built is a house nobody can see. The threshold is the style's own height rather than a constant, so a
+two-storey barn may stand on a bank a cottage may not.
+
+The failure was generated for real, on `pgm-studio-mapgen`'s `opus5-ravensmere`: four of five houses sited
+on rolling downs came out on footprints spanning 8 to 13 courses of relief, and one of them landed inside a
+crevasse — declined by nothing, because every cell had ground under it. The fix at the authoring end is the
+same one an objective's ground gets: an `area` relief mark under the footprint, which states the plateau
+rather than hoping for one.
+
 **It must leave a way past itself (`DR-PASS`).** Beside a building there must be **five blocks** of passable
 ground along at least one of its four sides — the whole run of that side, extended one step past each
 corner, which is the cell a player turns in from and exactly what separates a flank that can be entered from

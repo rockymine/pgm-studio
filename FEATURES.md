@@ -5767,6 +5767,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   board drawn in no layers says that instead. The word is declared once on `WorldRenderEndpoint` and opted
   into by the four, so they cannot describe it four ways — `section` and `column` keep Y and show every storey
   already, and `traversability` and `walk` answer per storey without being asked.
+- **A building's site has to be level enough to stand on (WE29).** A building seats on the **lowest** column
+  of its footprint and the terrain over that floor is carved out of it, which is what lets a house dig into
+  a hillside — and had no limit, so a footprint spanning more relief than the building is tall built a house
+  whose uphill side was under the ground beside it, roof and all, declined by nothing because every cell had
+  ground under it. `DR-SLOPE` declines a site whose rise across the footprint reaches the style's own height
+  (wall courses plus the roof's rise), so a two-storey barn may stand on a bank a cottage may not.
+
+  Measured on `pgm-studio-mapgen`'s `opus5-ravensmere`, whose houses were hand-sited on rolling downs: four
+  of five footprints spanned 8 to 13 courses, and one of them sat inside a crevasse — its own ground reading
+  11 against a 31-block wall three blocks away. The authoring answer is the one an objective's ground already
+  gets: an `area` relief mark under the footprint, which states the plateau rather than hoping for one.
+
 - **A saved island record is claimed by one island, and a board carrying an id twice says so (C50).**
   `restoreIslandMeta` matched each computed island to its best saved record by shapeId overlap with no
   exclusivity, so a board the canvas split into several islands handed every one of them the same record —

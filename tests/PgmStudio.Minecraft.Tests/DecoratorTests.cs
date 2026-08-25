@@ -720,12 +720,15 @@ public sealed class DecoratorTests
         // to stand inside the rooms: the stamper deliberately never cuts terrain, and nothing else did
         // either. The building wins the ground it was drawn on (the author's ruling) — the slope inside the
         // footprint is carved to air down to the floor, and the hill outside the walls keeps its height.
+        // Four courses of mound, which is a slope this building may stand on: past its own height the site
+        // is refused instead (`DR-SLOPE`), and a fixture that buried the house would be testing the carve
+        // on a placement the pass no longer makes.
         var (world, top) = Plateau();
         for (var x = 16; x <= 30; x++)
         for (var z = 16; z <= 24; z++)
         {
-            for (var y = 8; y <= 13; y++) world.SetBlock(x, y, z, Blocks.Stone);
-            top[(x, z)] = 14;
+            for (var y = 8; y <= 11; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            top[(x, z)] = 12;
         }
 
         var tally = Decorator.Decorate(world, Context(top,
@@ -739,12 +742,12 @@ public sealed class DecoratorTests
 
         await Assert.That(tally.Houses).IsEqualTo(1);
         await Assert.That(tally.Declines).IsEmpty();
-        // The mound is gone from the interior: the column that stood six courses over the floor is open air.
-        for (var y = 9; y <= 13; y++)
+        // The mound is gone from the interior: the column that stood four courses over the floor is open air.
+        for (var y = 9; y <= 11; y++)
             await Assert.That(world.GetBlock(20, y, 20).Id).IsEqualTo(Blocks.Air);
         // The floor still owns its course under the carve, and the hill outside the footprint is untouched.
         await Assert.That(world.GetBlock(20, 7, 20).Id).IsNotEqualTo(Blocks.Air);
-        await Assert.That(world.GetBlock(28, 13, 18).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(world.GetBlock(28, 11, 18).Id).IsEqualTo(Blocks.Stone);
     }
 
     [Test]
@@ -768,6 +771,40 @@ public sealed class DecoratorTests
                 Doorway = new Doorway { Door = DoorMaterial.Air },
             } }]));
         await Assert.That(atFloor.Houses).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task A_house_on_ground_that_rises_past_its_own_walls_is_refused()
+    {
+        // The failure this rule closes, found on `pgm-studio-mapgen`'s `opus5-ravensmere`: a house sited on
+        // a hillside seats on the LOWEST column of its footprint and the terrain over that floor is carved
+        // out of it, so a site with more relief across it than the building is tall builds a house nobody
+        // can see — its uphill wall is below the ground beside it. Sinking into a slope is the seating rule
+        // working; disappearing into one is a site that was never level enough.
+        var (hill, hillTop) = Plateau();
+        for (var z = 0; z < 40; z++)
+        for (var x = 0; x < 40; x++)
+        {
+            var lift = 2 * Math.Max(0, x - 14);        // a bank climbing east, two courses a block
+            for (var y = 8; y < 8 + lift; y++) hill.SetBlock(x, y, z, Blocks.Stone);
+            hillTop[(x, z)] = 8 + lift;
+        }
+
+        var buried = Decorator.Decorate(hill, Context(hillTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 16], [20, 24]])],
+                             Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
+        await Assert.That(buried.Houses).IsEqualTo(0);
+        var drop = buried.Declines.Single();
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.SiteNotLevel);
+        await Assert.That(drop.Message).Contains("across its own footprint");
+
+        // The same house on level ground stands: the rule is about the site, not about the building.
+        var (flat, flatTop) = Plateau();
+        var seated = Decorator.Decorate(flat, Context(flatTop,
+            [new HouseProp { Id = "h", Wings = [new AuthoredWing([[10, 16], [20, 24]])],
+                             Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } } }]));
+        await Assert.That(seated.Houses).IsEqualTo(1);
+        await Assert.That(seated.Declines.Where(f => f.Rule == DressingRules.SiteNotLevel)).IsEmpty();
     }
 
     [Test]

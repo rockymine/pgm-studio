@@ -68,6 +68,16 @@ public static class DressingRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string NoGround = "DR-SITE";
 
+    /// <summary>A building's own footprint is not level enough to stand on: the ground across it rises by at
+    /// least the height of the building itself — its wall courses plus the rise of its roof. A building seats on the <b>lowest</b> column of its
+    /// plan and the terrain standing over that floor is carved out of it, so a footprint spanning more relief
+    /// than the building is tall comes out with its uphill wall entirely below the ground beside it — a house
+    /// hidden in a hill rather than one dug into a slope. Sinking into a slope is what the seating rule is
+    /// for and stays silent; disappearing into one is this.</summary>
+    /// <remarks>Move the building onto a flatter site, or state the plateau it stands on — an `area` relief mark under the footprint gives it one, and is what the ground of an objective is given for the same reason. The threshold is the style's own height, so a two-storey barn may stand where a cottage may not. The whole building is declined and is not in the exported world.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
+    public const string SiteNotLevel = "DR-SLOPE";
+
     /// <summary>A prop names a layer this board does not have ground on. A stacked board carries a surface
     /// per storey and a prop may say which one it rests on; naming one that is not there is not the same as
     /// naming none, so it is declined rather than quietly seated on the top surface — which is exactly the
