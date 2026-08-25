@@ -303,6 +303,19 @@ says what a concentric house floor would have; and four folded into a neighbour 
 into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, and a walled wool room reading
 as an isolated marker into `B99`.
 
+- [ ] **RP59 — The authoring call a headless caller wants is documented as a way back in.** `POST
+  /map/from-documents` stores a plan, a layout and an intent under a named slug, replacing whatever is there,
+  and applies the authors in the same body (`RP13`). `docs/tools/flow.md` presents it under *The three
+  documents are also the way back in*, which reads as a re-import, so every authored board took six calls
+  instead: `POST /plan` — a fresh slug each time — then `PUT …/plan`, `PUT …/sketch/from-plan`, `POST
+  …/sketch/finish`, `PUT …/intent/from-plan`, and `PATCH …/metadata` last, because storing an intent projects
+  the map document over whatever the metadata said. Say in `flow.md` and `docs/architecture.md` that it is the
+  authoring call as well, and what the six-call path is for: a map walked through the tools one stage at a
+  time, which is the editor's path and not a driver's.
+
+  *`opus5-thornfell` was corrected three times and left `thornfell`, `thornfell-2` and `thornfell-3` in the
+  database; every render, provenance sidecar and column read had to be traced to the right one by hand.*
+
 - [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
   `TopDownRender.ReadColumns` takes `SurfaceExtractors.Surface` with no exclusions and derives the frame from
   `columns.Keys.Min/Max`, so a column whose only block is a **floor marker** at y≤2 counts as extent. The
