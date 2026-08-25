@@ -420,7 +420,9 @@ to a stored layout ask it: the plain `PUT …/sketch`, `PUT …/sketch/from-plan
 rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` rather than parsing
 `message`:
 
-- **`HS1` — a stair or a slab, unchecked.** `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
+- **`HS1` — a block named for a role that is not that kind of block.** `beams.block` must be a **log** — a
+  beam is the end of a floor timber and docks against the posts, which is what a log is for and the only thing
+  it is a house material for. `doorHead.block` must be a stair; its `fillBlock` under `upperSlab`
   must be a single slab; a `windows.block` under `stairLattice` or `arched` must be a stair, and under
   `slabBanded` a single slab; `roofSlab` itself must be a single slab when it names one at all — a **double**
   slab (43/125/181) does not count, since it ignores the half a window or a door head writes into its data and
@@ -443,6 +445,18 @@ rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` 
   see-through roof at a whole block of rise; a log or a ground material named as `roof` or `verge` is refused
   outright, whichever role it is asked to fill. The **gable** is the end wall carried up and follows the wall,
   so it is not held to this.
+
+- **`HS4` — a part built of two blocks, built of two materials.** A door head is a stair at each corner and a
+  slab between them, and a window may be seated in a host block; each pair is one line of the building and is
+  cut from one material. It is the *material* that has to match and not the shape — a stair over a slab is the
+  whole point of the pair — so a sandstone stair takes a sandstone slab and a birch stair a birch one.
+- **`HS5` — an ore as a building material.** An ore is stone with something in it: it belongs to the ground a
+  map is dug out of, and in a wall, a post or a beam it reads as a mistake rather than as a material. Checked
+  over every material a style names, patterns walked to their leaves, so it cannot be hidden inside a voronoi.
+- **`HS6` — a door head with no wall to carry it.** A storey whose wall is air across the doorway's own
+  courses — a house on stilts, an open undercroft — has nothing to cut, so an arch and its lintel stand in
+  mid-air. The doorway itself is not refused: an opening cut in an open storey is nothing at all, which is why
+  the `Stilts` preset passes and the same house with a head does not.
 
 Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
 bucket that still paints is dropped rather than rejected. Nothing yet validates a *composition* as a whole — a

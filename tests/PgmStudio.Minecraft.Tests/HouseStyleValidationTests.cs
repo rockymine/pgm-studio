@@ -93,8 +93,8 @@ public sealed class HouseStyleValidationTests
         // ashfall-scar: nine houses' stairLattice windows given Oak Fence (85).
         var style = HousePresets.Alpine.Style with { Windows = HousePresets.Alpine.Style.Windows with { Form = form, Block = Blocks.OakFence } };
         var findings = HouseStyleValidation.Check(style);
-        await Assert.That(findings.Single().Rule).IsEqualTo(HouseStyleRules.BlockKind);
-        await Assert.That(findings.Single().Field).IsEqualTo("windows.block");
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.BlockKind && f.Field == "windows.block"))
+            .IsTrue();
     }
 
     [Test]
@@ -103,8 +103,8 @@ public sealed class HouseStyleValidationTests
         // sable-marsh's spawn windows: slabBanded given Glass Pane (102).
         var style = HousePresets.Workshop.Style with { Windows = HousePresets.Workshop.Style.Windows with { Block = Blocks.GlassPane } };
         var findings = HouseStyleValidation.Check(style);
-        await Assert.That(findings.Single().Rule).IsEqualTo(HouseStyleRules.BlockKind);
-        await Assert.That(findings.Single().Field).IsEqualTo("windows.block");
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.BlockKind && f.Field == "windows.block"))
+            .IsTrue();
     }
 
     [Test]
@@ -273,6 +273,81 @@ public sealed class HouseStyleValidationTests
         var brick = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
         brick = brick with { Roof = brick.Roof with { Slab = Blocks.StoneSlab, SlabData = 4 } };
         await Assert.That(HouseStyleValidation.Check(brick).Any(f => f.Field == "roofSlab")).IsFalse();
+    }
+
+    // ── HS1 · HS4 · HS5 · HS6 — the beams, the pairs, the ores, and a door with no wall ────────────────
+
+    /// <summary>The beams that run past a building's corners are the ends of its floor timbers, and a log is
+    /// what one is cut from — which is what <see cref="BeamStyle.Block"/>'s own docstring has always said.
+    /// `sn-compass-keep` gave them iron ore.</summary>
+    [Test]
+    public async Task A_beam_that_is_not_a_log_is_refused()
+    {
+        var style = HousePresets.Alpine.Style with { Beams = new BeamStyle { Block = 15 } };
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.BlockKind && f.Field == "beams.block"))
+            .IsTrue();
+        // and the same block is an ore wherever it stands
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.OreMaterial)).IsTrue();
+    }
+
+    /// <summary>A door head's two corners and the line between them are one head. `kr-block` and its three
+    /// siblings put a birch stair over a sandstone slab.</summary>
+    [Test]
+    public async Task A_door_head_of_two_materials_is_refused()
+    {
+        var style = Headed(HousePresets.Alpine.Style,
+            head => head with { Form = DoorHeadForm.Arched, Block = 135, Fill = DoorHeadFill.UpperSlab,
+                                FillBlock = Blocks.StoneSlab, FillData = 1 });
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.PartMaterial
+                                         && f.Field == "doorHead.fillBlock")).IsTrue();
+
+        // the same head with a birch slab under the birch stair passes
+        var birch = Headed(HousePresets.Alpine.Style,
+            head => head with { Form = DoorHeadForm.Arched, Block = 135, Fill = DoorHeadFill.UpperSlab,
+                                FillBlock = Blocks.WoodenSlab, FillData = 2 });
+        await Assert.That(HouseStyleValidation.Check(birch)
+            .Any(f => f.Rule == HouseStyleRules.PartMaterial)).IsFalse();
+    }
+
+    /// <summary>A window and the block it is seated in are one opening.</summary>
+    [Test]
+    public async Task A_window_seated_in_another_material_is_refused()
+    {
+        var style = HousePresets.Workshop.Style with
+        {
+            Windows = HousePresets.Workshop.Style.Windows with { HostBlock = 24, HostData = 0 },
+        };
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.PartMaterial
+                                         && f.Field == "windows.hostBlock")).IsTrue();
+    }
+
+    /// <summary>An ore is stone with something in it. `sb-assay` and `sn-compass-keep` built walls, posts and
+    /// beams out of iron ore.</summary>
+    [Test]
+    public async Task An_ore_named_anywhere_in_a_style_is_refused()
+    {
+        var style = HousePresets.Alpine.Style with { Post = new SolidMaterial(15) };
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.OreMaterial && f.Field == "post"))
+            .IsTrue();
+    }
+
+    /// <summary>A house on stilts has no wall on its ground storey, so an arch and its lintel over the
+    /// doorway stand in mid-air — `ow-stilt`, on Overwall. The doorway itself is not the fault: an opening cut
+    /// in an open storey is nothing at all, which is why <see cref="HousePresets.Stilts"/> passes.</summary>
+    [Test]
+    public async Task A_door_head_over_an_open_storey_is_refused_and_a_bare_doorway_is_not()
+    {
+        await Assert.That(HouseStyleValidation.Check(HousePresets.Stilts.Style)).IsEmpty();
+
+        var headed = Headed(HousePresets.Stilts.Style,
+            head => head with { Form = DoorHeadForm.Arched, Block = 109,
+                                Fill = DoorHeadFill.UpperSlab, FillBlock = Blocks.StoneSlab, FillData = 5 });
+        var findings = HouseStyleValidation.Check(headed);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.DoorWithoutWall)).IsTrue();
     }
 
     // ── the footing has a legible off switch ───────────────────────────────────────────────────────────

@@ -1115,6 +1115,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **A beam is a log, a pair is one material, and an ore is not a house (WE37).** Four rulings the author
+  made off the built maps, three of them new rule ids. `HS1` gains `beams.block`, which has to be a **log** —
+  its own docstring already said "the log the ends are cut from" and nothing asked. **`HS4`** holds every part
+  built of two blocks to one material: a door head's stair and its slab fill, a window and the host it is
+  seated in. **`HS5`** refuses an ore anywhere in a style, walked over every material a style names with
+  patterns followed to their leaves, so it cannot hide inside a voronoi. **`HS6`** refuses a door head over a
+  storey whose wall is air across the doorway's courses — the doorway itself is not the fault, since an
+  opening cut in an open storey is nothing at all, which is why `HousePresets.Stilts` passes and the same
+  house with an arch does not.
+
+  *The maps that earned them: `sn-compass-keep` built its post, its beams and four wall bands out of iron ore
+  and `sb-assay` three more; `kr-block` and its three siblings head a birch stair with a sandstone slab;
+  `ow-stilt` — Overwall — puts an arched head on a ground storey that is five courses of air.*
+
 - **A roof is one material, and its slab is that material in halves (WE36).** `HS3` held a roof to two
   things — not a slab at a whole block of rise, not a log or a ground material — and both only when the field
   named a bare block, so a patterned roof went unread. The rule is now the author's: `roof` and `verge` are

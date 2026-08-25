@@ -32,6 +32,27 @@ public static class HouseStyleRules
     /// <remarks>Give the roof one material and the verge one material. They may be the same — a brick body with a brick verge is a whole brick roof — or they may differ, which is how a dark oak verge trims a brick roof; what they may not be is a pattern, several blocks, or a log or a ground material. Set `roofSlab` to a slab of the body's own material, or leave it unset and let the body carry the whole rise. The gable is the end wall and follows the wall, not this rule.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string RoofMaterial = "HS3";
+
+    /// <summary>A part built of two blocks is built of two materials — a door head whose stair and whose slab
+    /// fill are cut from different stone, a window whose block and whose host disagree. The two blocks are
+    /// one line of the building and read as one thing or as a mistake.</summary>
+    /// <remarks>Cut both blocks from the same material: a sandstone stair takes a sandstone slab, a birch stair a birch one. It is the material that has to match and not the shape — a stair over a slab is the point of the pair.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string PartMaterial = "HS4";
+
+    /// <summary>An ore is used as a building material. An ore is stone with something in it — it belongs in
+    /// the ground a map is dug out of, and in a wall, a post or a beam it reads as a mistake rather than as a
+    /// material.</summary>
+    /// <remarks>Choose a building material. If the intent was the colour, the block it is embedded in is the one to name — stone for iron and coal, and the stained clay or wool nearest the tint for anything else.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
+    public const string OreMaterial = "HS5";
+
+    /// <summary>A door is cut through a wall that is not there. A storey whose wall is air over the doorway's
+    /// own courses — a house on stilts, an open undercroft — has nothing to cut, so a doorway and its head are
+    /// a lintel standing in mid-air.</summary>
+    /// <remarks>Take the doorway off the storey, or give the storey a wall to cut it through. A stilt house is entered from the storey above it, so the door belongs there.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World)]
+    public const string DoorWithoutWall = "HS6";
 }
 
 /// <summary>
@@ -64,6 +85,10 @@ public static class HouseStyleValidation
                 CheckWindow($"storeys[{at}].windows", storeyWindows, findings);
         findings.AddRange(CheckRoof(style.Roof));
         CheckDoorClearance(style.Doorway, findings);
+        CheckBeams(style.Beams, findings);
+        CheckPartMaterials(style, findings);
+        CheckOres(style, findings);
+        CheckDoorHasWall(style, findings);
         return findings;
     }
 
@@ -86,6 +111,115 @@ public static class HouseStyleValidation
                 "slab included — reads as a full cube instead.",
                 Field: "doorHead.fillBlock"));
     }
+
+    // ── a beam is a log, and a part built of two blocks is built of one material ──────────────────────────
+
+    /// <summary>The beams that run past a building's corners are the ends of its floor timbers, which is what
+    /// <see cref="BeamStyle.Block"/> has always been — the docstring says "the log the ends are cut from".
+    /// Anything else is a beam that is not one.</summary>
+    private static void CheckBeams(BeamStyle beams, List<Finding> findings)
+    {
+        if (beams.Block >= 0 && !BlockFamilies.IsLog(beams.Block))
+            findings.Add(new Finding(HouseStyleRules.BlockKind,
+                $"beams.block ({beams.Block}) is not a log. A beam is the end of a floor timber and docks "
+                + "against the posts; a log is what one is cut from.",
+                Field: "beams.block"));
+    }
+
+    /// <summary>Every pair of blocks that has to read as one line: a door head's stair and the slab that fills
+    /// it, a window's block and the block it is seated in. Each pair is checked only where both halves are
+    /// actually named — a window with no host names none.</summary>
+    private static void CheckPartMaterials(HouseStyle style, List<Finding> findings)
+    {
+        var head = style.Doorway.Head;
+        if (head.Form != DoorHeadForm.None && head.Fill == DoorHeadFill.UpperSlab
+            && !BlockMaterials.Same(head.Block, 0, head.FillBlock, head.FillData))
+            findings.Add(new Finding(HouseStyleRules.PartMaterial,
+                $"doorHead.block is {BlockMaterials.Of(head.Block, 0)} and its fill is "
+                + $"{BlockMaterials.Of(head.FillBlock, head.FillData)}. The two corners and the line between "
+                + "them are one head, so they are cut from one material.",
+                Field: "doorHead.fillBlock"));
+
+        void Window(string where, WindowStyle? window)
+        {
+            if (window is not { } win || win.Form == WindowForm.None || win.HostBlock < 0) return;
+            if (!BlockMaterials.Same(win.Block, win.Data, win.HostBlock, win.HostData))
+                findings.Add(new Finding(HouseStyleRules.PartMaterial,
+                    $"{where}.block is {BlockMaterials.Of(win.Block, win.Data)} and the host it is seated in "
+                    + $"is {BlockMaterials.Of(win.HostBlock, win.HostData)}. A window and its host are one "
+                    + "opening, so they are cut from one material.",
+                    Field: $"{where}.hostBlock"));
+        }
+        Window("windows", style.Windows);
+        Window("gableWindows", style.Roof.GableWindows);
+        for (var at = 0; at < style.Storeys.Count; at++)
+            Window($"storeys[{at}].windows", style.Storeys[at].Windows);
+    }
+
+    /// <summary>Every ore named anywhere in the style. Walked over the materials rather than checked field by
+    /// field, because an ore is wrong in all of them and a list of the places it has been found is a list that
+    /// grows.</summary>
+    private static void CheckOres(HouseStyle style, List<Finding> findings)
+    {
+        foreach (var (field, material) in Materials(style))
+            foreach (var id in Blocks(material))
+                if (BlockFamilies.IsOre(id))
+                {
+                    findings.Add(new Finding(HouseStyleRules.OreMaterial,
+                        $"{field} names {BlockPalette.Name(id, 0)}, which is an ore. An ore is stone with "
+                        + "something in it and is not a building material.",
+                        Field: field));
+                    break;
+                }
+    }
+
+    /// <summary>A door <b>head</b> written over a storey whose wall is air across the doorway's own courses.
+    /// The head is what the rule is about and not the doorway: an opening cut in an open storey is nothing at
+    /// all, while an arch and its lintel stand in mid-air over the stilts. Asked of the ground storey, which
+    /// is the one a door is cut through, and only where the house states storeys of its own — a house whose
+    /// wall is the fallback has a wall.</summary>
+    private static void CheckDoorHasWall(HouseStyle style, List<Finding> findings)
+    {
+        if (style.Doorway.Head.Form == DoorHeadForm.None) return;
+        if (style.Storeys.Count == 0 || style.Storeys[0].Wall is not { } wall) return;
+
+        var courses = Math.Max(1, style.Doorway.Height);
+        for (var course = 0; course < courses; course++)
+            if (wall.At(course).Material is not SolidMaterial { Id: 0 }) return;
+
+        findings.Add(new Finding(HouseStyleRules.DoorWithoutWall,
+            $"the ground storey's wall is air over all {courses} of the doorway's courses, so there is no "
+            + "wall to carry a door head — the arch and its lintel stand in mid-air.",
+            Field: "doorHead.form"));
+    }
+
+    /// <summary>Every material a style names, with the field it was named in — what a check that is about the
+    /// material rather than about the role reads.</summary>
+    private static IEnumerable<(string Field, TerrainMaterial Material)> Materials(HouseStyle style)
+    {
+        yield return ("roof", style.Roof.Body);
+        yield return ("verge", style.Roof.Verge);
+        yield return ("gable", style.Roof.Gable);
+        yield return ("wall", style.Wall.At(0).Material);
+        yield return ("foundation.plate", style.Foundation.Plate.At(0).Material);
+        if (style.Foundation.Footing is { } footing) yield return ("foundation.footing", footing);
+        if (style.Post is { } post) yield return ("post", post);
+        for (var at = 0; at < style.Storeys.Count; at++)
+        {
+            if (style.Storeys[at].Wall is { } wall) yield return ($"storeys[{at}].wall", wall.At(0).Material);
+            if (style.Storeys[at].Post is { } storeyPost) yield return ($"storeys[{at}].post", storeyPost);
+        }
+        if (style.Beams.Block >= 0) yield return ("beams.block", new SolidMaterial(style.Beams.Block, style.Beams.Data));
+    }
+
+    /// <summary>Every block id a material can resolve to, a pattern walked to its leaves.</summary>
+    private static IEnumerable<int> Blocks(TerrainMaterial material) => material switch
+    {
+        SolidMaterial solid => [solid.Id],
+        LayeredMaterial layered => layered.Stack.Bands.SelectMany(band => Blocks(band.Material)),
+        VoronoiMaterial voronoi => voronoi.Bands.SelectMany(band => Blocks(band.Material)),
+        _ => [],
+    };
 
     /// <summary>Whether <paramref name="windows"/>'s <see cref="WindowStyle.Block"/> is the kind its
     /// <see cref="WindowStyle.Form"/> needs, standalone — what a storey style checks itself with, off the same

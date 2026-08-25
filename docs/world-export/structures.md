@@ -847,6 +847,12 @@ verge is one and the gable face is one. Each of a roof's three pieces is therefo
 editor offers one picker rather than a stack — offering a stack offered courses the stamper read the first of
 and dropped the rest of, which is a knob whose preview never moves.
 
+**A log is a post and a beam, and nothing else a house is made of.** The corner posts and the beam ends that
+dock against them are the two places a log belongs; a log in a roof, a verge or a wall band is refused
+(`HS3`, `HS1`). The rest of the pairs a house is built of are held to one material each: a door head's stairs
+and the slab between them, a window and the host it is seated in (`HS4`). And no part of a house is built of
+an **ore** (`HS5`) — an ore is ground a map is dug out of.
+
 What the house keeps is what belongs to no part: its foundation — the footing and the plate's depth — and its
 door. Everything else it names is a **fallback**. A bound part takes over from the columns on the house that
 describe the same part, and only those, which is what made the level free to add: a house that binds nothing is

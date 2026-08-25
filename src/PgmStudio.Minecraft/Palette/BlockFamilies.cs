@@ -65,6 +65,15 @@ public static class BlockFamilies
     /// </summary>
     public static readonly IReadOnlySet<int> Soil = new HashSet<int> { 2, 3, 12, 13, 60, 110 };
 
+    /// <summary>The ores: the eight blocks that are stone with something in it, plus the two nether ones.
+    /// They are ground a map is dug out of rather than material a building is made of, which is the claim a
+    /// style's gate reads them for.</summary>
+    public static readonly IReadOnlySet<int> Ores =
+        new HashSet<int> { 14, 15, 16, 21, 56, 73, 74, 129, 153 };
+
+    /// <summary>Whether the id is an ore.</summary>
+    public static bool IsOre(int blockId) => Ores.Contains(blockId);
+
     /// <summary>Whether the id is a stair, whichever material it is cut from.</summary>
     public static bool IsStair(int blockId) => Stairs.Contains(blockId);
 

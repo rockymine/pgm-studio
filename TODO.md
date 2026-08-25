@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Twelve entries, at the cap, and one group.** They are one review of the built maps
+**Eleven entries, one group, and the order is the point.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -26,17 +26,6 @@ mirror read compares shape and never material, on the stated grounds that a patt
 falls — which is the defect rather than a reason to allow it.
 
 ### The house: what it may be built of, and who asks
-
-- [ ] **WE37 — A beam is a log, a door head is one material, and an ore is not a building block.** Four
-  rulings, one gate. `beams.block` is a **log** — its own docstring already says "the log the ends are cut
-  from" and nothing checks it; those beams dock against pillars and that is what they are for. A door head's
-  stair and its slab fill are **one material**, and so are a window's block and its host. **No ore anywhere in
-  a style.** And a storey whose wall is air carries **no door head** — a stilt house has no wall to put one
-  in. `HouseStyleValidation`, `docs/world-export/structures.md`.
-
-  *`sn-compass-keep` uses iron ore for its `post`, its `beams.block` and four wall bands; `sb-assay` for three
-  more. `kr-block`/`deck`/`gate`/`vault` head a birch stair with a sandstone slab. `ow-stilt` — Overwall —
-  puts an arched head on a ground storey that is five courses of air.*
 
 - [ ] **WE39 — The cobble footing is a default, not a choice, and it is on 54 of 89 styles.**
   `Foundation.Footing` defaults to `new SolidMaterial(Blocks.Cobblestone)`, so every style that says nothing
