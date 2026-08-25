@@ -75,6 +75,21 @@ the focus-integration polish remains.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
+- [ ] **TS29 — The 3-D preview draws a stacked board without its relief.** On a layout carrying an
+  `addLayers` storey the Sketch tool's WebGL canvas renders every column at its shape's `base_height`, so a
+  board with a range on it reads as a table. The same board's world has the elevation and so does the
+  preview's own payload: `POST /map/{slug}/sketch/columns` answers tops in the forties and seventies where
+  the canvas draws 21.
+
+  **Evidence.** `pgm-studio-mapgen` `maps/opus5-sandcaster-ii` (two layers, `under` + `ground`, relief keyed
+  `team`): `/column` reads `66 68 67 65 76 75 40 21 …` across `z = 96`, `render/heightmap` draws the
+  contours, and the 3-D canvas draws one flat plane. `showcase/19-mountain-range` (one layer, same relief
+  shape) draws the range correctly in the same canvas. So the split is the layer stack, not the relief.
+
+  Where it lands: `js/studio/render/iso-webgl.js` and whatever feeds it — either the canvas state the tool
+  posts loses the relief when a second layer is present, or the mesh builder reads a per-layer height rather
+  than the solved field. Confirm against the two boards above before changing either.
+
 - [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
   (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
   theoretical. The other two are still open: a carve and a graded road each decide things by **walking** the
