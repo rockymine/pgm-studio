@@ -341,9 +341,13 @@ which is not a landing place at all, so a document naming one is naming somethin
 it inside themselves, after their upgrade has run, because only they know when the retired names have been
 carried forward. The plan, the sketch layout and the intent have no upgrade step, so the reading is taken at
 the edge — `PUT …/sketch`, `PUT …/sketch/from-plan`, `PUT …/intent`, `PUT …/intent/from-plan`,
-`PUT …/plan`, `POST /plans` and `POST /plan/compile` — over the body **as posted**, before any of them merges
-what it was sent into what the map already holds, because the posted document is the only one the caller can
-correct.
+`PUT …/plan`, `POST /plans`, `POST /plan/compile` and `POST /map/from-documents` — over the body **as
+posted**, before any of them merges what it was sent into what the map already holds, because the posted
+document is the only one the caller can correct.
+
+`POST /map/from-documents` carries all three documents at once, so each path is prefixed with the member it
+was posted under — `layout.setupp`, `intent.teamz` — since a bare `meta.athors` cannot say which of the three
+said it.
 
 **`RQ4` — the route names a subject the studio does not have.** A slug no map is stored under, an id no
 library row carries, an artifact a stage has not produced yet. It is **404 with a body**, because an empty one

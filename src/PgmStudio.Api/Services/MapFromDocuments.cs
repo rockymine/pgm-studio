@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http;
 using PgmStudio.Api.Endpoints;
 using PgmStudio.Data.Features;
@@ -6,6 +7,8 @@ using PgmStudio.Data.Map;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
+using PgmStudio.Pgm.Plan;
+using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Services;
@@ -28,6 +31,10 @@ public sealed record MapLoad(
 /// <para>A map already stored under the slug is <b>replaced</b>: the documents name one map, and loading them
 /// twice is a reload rather than a second map. A load that fails partway takes back what it wrote, the way
 /// the world imports do, so a refusal never leaves half a map behind.</para>
+///
+/// <para><b>All three documents answer <c>RQ3</c>.</b> Each is read into a type, so each can carry a name
+/// that type has nowhere to keep, and the paths are prefixed with the member the document was posted under —
+/// a bare <c>meta.athors</c> cannot say which of the three said it.</para>
 /// </summary>
 public static class MapFromDocuments
 {
@@ -41,6 +48,11 @@ public static class MapFromDocuments
         if (string.IsNullOrWhiteSpace(name))
             return Refuse(400, "no name given", new Finding(RequestRules.Unreadable,
                 "neither a name nor the intent's own meta.name says what this map is called", Field: "name"));
+
+        Complaints.Unread(http, [
+            .. Unread("plan", request.Plan, PlanModel.Stated),
+            .. Unread("layout", request.Layout, SketchLayout.Stated),
+            .. Unread("intent", request.Intent, IntentWrite.Stated)]);
 
         var slug = Slugs.Of(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);
         var existing = await repo.GetBySlugAsync(slug, ct);
@@ -83,6 +95,18 @@ public static class MapFromDocuments
             await repo.DeleteMapAsync(mapId, ct);
             throw;
         }
+    }
+
+    /// <summary>The fields <paramref name="read"/> had nowhere to keep, under the member the document was
+    /// posted as. A document that is absent or is not an object has nothing to compare.</summary>
+    private static IEnumerable<string> Unread(string member, JsonElement? document, Func<string, object?> read)
+    {
+        if (document is not { ValueKind: JsonValueKind.Object } stated) return [];
+        var json = stated.GetRawText();
+        JsonNode? node;
+        try { node = JsonNode.Parse(json); }
+        catch (JsonException) { return []; }
+        return DocumentShape.Unread(node, read(json)).Select(field => $"{member}.{field}");
     }
 
     /// <summary>An author as the metadata write states one: a bare pseudonym, or the four fields of a

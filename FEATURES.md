@@ -1115,6 +1115,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **The one-call authoring path answers for every field it could not keep (RP60).** `POST /map/from-documents`
+  reads three documents into three types and complained about none of them, while each of the single-document
+  writes beside it answers `RQ3` — so the route a headless author stores a whole map through was the one route
+  where a misspelled field went in silently. It now reads all three, each path prefixed with the member it was
+  posted under (`plan.celll`, `layout.setupp`, `intent.teamz`), since a bare `meta.athors` cannot say which of
+  the three said it. `MapFromDocumentsTests` holds one board carrying a misspelling in each.
+
 - **Every operation on the surface says what it answers (RP29).** The twenty-four edit routes handed back
   whatever `Dictionary<string, object?>` an editor in `Pgm/Editing` returned, so each published a **204 it
   did not answer**. `Contracts/EditDtos.cs` names the ten shapes behind them and each route declares its own,

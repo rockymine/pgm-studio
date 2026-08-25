@@ -149,6 +149,34 @@ public sealed class MapFromDocumentsTests
         await Assert.That(maps.EnumerateArray().Any(m => m.GetProperty("slug").GetString() == "empty")).IsFalse();
     }
 
+    /// <summary>Three documents in one body, so a name none of them can keep is named with the member it was
+    /// posted under. A single-document write answers <c>RQ3</c> for its own body; this one has to say which of
+    /// the three said it, or the complaint cannot be acted on.</summary>
+    [Test]
+    public async Task Every_document_answers_for_the_fields_it_could_not_keep()
+    {
+        using var client = await FreshAsync();
+
+        var resp = await client.PostAsJsonAsync("/api/map/from-documents", new
+        {
+            plan = JsonDocument.Parse("""{"cell":9,"pieces":[],"celll":9}""").RootElement,
+            layout = JsonDocument.Parse(Layout.Replace("\"setup\"", "\"setupp\":{},\"setup\"")).RootElement,
+            intent = JsonDocument.Parse("""{"meta":{"name":"Weirgate"},"teamz":[]}""").RootElement,
+            name = "Weirgate",
+        });
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+
+        var loaded = await resp.Content.ReadFromJsonAsync<JsonElement>();
+        var named = loaded.GetProperty("warnings").EnumerateArray()
+            .Where(warning => warning.GetProperty("rule").GetString() == "RQ3")
+            .Select(warning => warning.GetProperty("field").GetString())
+            .ToList();
+
+        await Assert.That(named).Contains("plan.celll");
+        await Assert.That(named).Contains("layout.setupp");
+        await Assert.That(named).Contains("intent.teamz");
+    }
+
     private static async Task<HttpClient> FreshAsync()
     {
         await ApiTestFactory.ResetSchemaAsync();

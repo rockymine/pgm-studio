@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under. A map already at that slug is replaced — see *The three documents are also the way back in* below | 422 the layout carries no ground |
+| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under. A map already at that slug is replaced — see *The three documents are also the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 422 the layout carries no ground |
 
 ## The hand-offs
 
