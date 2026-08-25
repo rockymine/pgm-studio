@@ -42,6 +42,7 @@ public static class HousePresets
     private const int SmoothSandstone = 2;                      // the nibble of block 24
     private const int StoneBrickStairs = 109, SandstoneStairs = 128;
     private const int SpruceFence = 189, SpruceSlab = 1;        // 1 is the spruce nibble of block 126
+    private const int DarkOakSlab = 5;                          // 5 is the dark-oak nibble of block 126
     private const int StoneBrickSlab = 5;                       // 5 is the stone-brick nibble of block 44
 
     /// <summary>
@@ -692,7 +693,7 @@ public static class HousePresets
             // building it comes out all roof — eleven courses over a six-course wall. Half courses are the lever:
             // the slope travels one half per block instead of two, so the same lean-to costs half the height.
             Slab = Blocks.WoodenSlab,
-            SlabData = SpruceSlab,
+            SlabData = DarkOakSlab,                             // the slab continues the body, so it is its material
             Body = DarkOak,
             Verge = Spruces,
             Gable = Spruces,

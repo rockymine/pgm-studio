@@ -25,10 +25,11 @@ public static class HouseStyleRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.Structure)]
     public const string DoorClearance = "HS2";
 
-    /// <summary>A roof's own materials are wrong for its pitch (a slab named as a whole-block roof with no
-    /// half-course companion) or its family (a log or a ground material standing in for the roof or the
-    /// verge).</summary>
-    /// <remarks>Match the roof material to its pitch and family: a 45° roof takes whole blocks and stairs, never slabs, and a log or a ground material is not a roof or a verge.</remarks>
+    /// <summary>A roof is not one material. Its body and its verge are each a single block — never a
+    /// pattern, so nothing spreads a voronoi across a roof — and the half-course slab continues the body in
+    /// the body's own material. A log or a ground material is not a roof material at all, and a slab named as
+    /// the whole-block body with no half-course companion builds a roof with a gap in every course.</summary>
+    /// <remarks>Give the roof one material and the verge one material. They may be the same — a brick body with a brick verge is a whole brick roof — or they may differ, which is how a dark oak verge trims a brick roof; what they may not be is a pattern, several blocks, or a log or a ground material. Set `roofSlab` to a slab of the body's own material, or leave it unset and let the body carry the whole rise. The gable is the end wall and follows the wall, not this rule.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string RoofMaterial = "HS3";
 }
@@ -157,7 +158,16 @@ public static class HouseStyleValidation
 
         foreach (var (field, material) in new[] { ("roof", roof.Body), ("verge", roof.Verge) })
         {
-            if (SolidId(material) is not { } id) continue;
+            // A roof is read from below and from a distance, and both halves of it are one plane each: a
+            // pattern there is several blocks in one surface, which is the fault rather than a style.
+            if (material is not SolidMaterial solid)
+            {
+                findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                    $"{field} is a {Patterned(material)} rather than one block. A roof's body and its verge " +
+                    "are each a single material — name the block itself.", Field: field));
+                continue;
+            }
+            var id = solid.Id;
             if (BlockFamilies.IsLog(id))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                     $"{field} ({id}) is a log. A log is never a roof or a verge material.", Field: field));
@@ -166,13 +176,27 @@ public static class HouseStyleValidation
                     $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
                     "never a roof or a verge material.", Field: field));
         }
+
+        // The half-course slab is the body continuing by halves, so it is the body's own material. A slab of
+        // something else makes the roof two materials in alternating courses, which reads as neither.
+        if (roof.Slab >= 0 && roof.Body is SolidMaterial body
+            && !BlockMaterials.Same(body.Id, body.Data, roof.Slab, roof.SlabData))
+            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                $"roofSlab is {BlockMaterials.Of(roof.Slab, roof.SlabData)} and the roof it steps in halves " +
+                $"is {BlockMaterials.Of(body.Id, body.Data)}. The half-course slab continues the body, so it " +
+                "is the body's own material.",
+                Field: "roofSlab"));
         return findings;
     }
 
-    /// <summary>The block id a material resolves to when it is a bare <see cref="SolidMaterial"/>, or null for
-    /// anything patterned. The corpus fault this checks is always a literal id named in the field, so a
-    /// patterned roof (a voronoi, a noise field) is left unchecked rather than guessed at from one sample.</summary>
+    /// <summary>The block id a material resolves to when it is a bare <see cref="SolidMaterial"/>, or null
+    /// for anything patterned.</summary>
     private static int? SolidId(TerrainMaterial material) => material is SolidMaterial solid ? solid.Id : null;
+
+    /// <summary>What a non-solid material is, in the word its own <c>kind</c> uses — so a finding can say
+    /// which pattern was found rather than only that one was.</summary>
+    private static string Patterned(TerrainMaterial material) =>
+        material.GetType().Name.Replace("Material", "").ToLowerInvariant() + " pattern";
 
     // ── a door's clear height ──────────────────────────────────────────────────────────────────────────────
 

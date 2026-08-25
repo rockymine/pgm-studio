@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Thirteen entries, over the cap of twelve, on the author's call.** They are one review of the built maps
+**Twelve entries, at the cap, and one group.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -26,17 +26,6 @@ mirror read compares shape and never material, on the stated grounds that a patt
 falls — which is the defect rather than a reason to allow it.
 
 ### The house: what it may be built of, and who asks
-
-- [ ] **WE36 — A roof is one material, and its half-course slab is the same one.** The rule (author):
-  `roof.body` and `roof.verge` are each a **single solid material** — never a pattern, so an agent cannot
-  spread a voronoi across a roof — and `roof.slab` is the body's own material. Body and verge may be the same
-  (a whole brick roof) or differ (a dark oak verge over brick reads well). A log or a ground material is
-  refused in either, which `HS3` already says for a bare solid and skips for a pattern, since `SolidId`
-  answers null. **The gable is not in this rule**: it is the end wall and follows the wall. Lands in
-  `HouseStyleValidation.CheckRoof`, `docs/world-export/structures.md` § the roof.
-
-  *26 of 89 styles: `rg-*` a spruce slab under a **snow** roof, `kr-*` sandstone under brick, `ae-*` cobble
-  under spruce, `ow-stilt` stonebrick under spruce. `kr-deck`'s roof body is **air**.*
 
 - [ ] **WE37 — A beam is a log, a door head is one material, and an ore is not a building block.** Four
   rulings, one gate. `beams.block` is a **log** — its own docstring already says "the log the ends are cut

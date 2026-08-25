@@ -330,6 +330,15 @@ the eave's rise goes negative below the base plane and rounding those cells back
 the slope it belongs to. The slab is a block id rather than a material, for the reason a window's is: which
 half of its cube a slab fills is geometry.
 
+**A roof is one material, and the slab is that material in halves.** The body and the verge are each a single
+block — a pattern is refused in either (`HS3`), because a roof is read as one plane from below and a voronoi
+across it is several blocks in one surface — and the slab continues the body, so it is the body's own
+material: a sandstone slab under a brick roof builds alternating courses of two materials and reads as
+neither. Body and verge may be the same block, which is a whole brick roof, or they may differ, which is how a
+dark oak verge trims one; what neither may be is a log or a ground material. The **gable is not in this rule**:
+it is the end wall carried up and it follows the wall, which is why a stone brick gable under a spruce roof is
+a house rather than a fault.
+
 Every roof here is a height field over **one rectangle**, and a building is not always one. A `BuildingPlan` is
 one or more touching **wings**; everything below the eave — the foundation, the walls, the
 window runs, the doorways, the slab and the beams — reads the plan's own cells, so an L, a T or a U is built as

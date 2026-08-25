@@ -1115,6 +1115,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **A roof is one material, and its slab is that material in halves (WE36).** `HS3` held a roof to two
+  things — not a slab at a whole block of rise, not a log or a ground material — and both only when the field
+  named a bare block, so a patterned roof went unread. The rule is now the author's: `roof` and `verge` are
+  each a **single** solid material, a pattern in either is refused, and `roofSlab` is the body's own material.
+  Body and verge may be the same (a whole brick roof) or differ (a dark oak verge over brick); the **gable** is
+  the end wall carried up and follows the wall, not this.
+
+  **`BlockMaterials`** is what makes "the same material" answerable: a sandstone block, a sandstone stair and a
+  sandstone slab are one substance in three shapes, where `BlockFamilies` answers the shape. State bits are
+  stripped through `BlockVariants.Normalize`, and a block outside the table is its own material rather than
+  merged with anything.
+
+  **It caught a shipped preset**: `HousePresets.Workshop` roofed a dark oak body with a spruce slab. Of the 89
+  committed styles in `pgm-studio-mapgen`, 26 carry the same fault — Kiln Row's sandstone slab under brick,
+  Rimegarth's spruce slab under snow, Aerie's cobble under spruce.
+
 - **Every house in a board is checked, on every road a board is stored through (WE35).** The house-style
   gate was wired to `PUT /map/{slug}/sketch` alone, so `HS1`, `HS2`, `HS3` and `WX10` were never asked of a
   board authored through `sketch/from-plan` or `from-documents` — which is every board in `pgm-studio-mapgen`.

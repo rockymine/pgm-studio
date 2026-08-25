@@ -230,10 +230,49 @@ public sealed class HouseStyleValidationTests
     [Test]
     public async Task RoofSlab_itself_has_to_be_a_single_slab_when_set()
     {
+        // Two faults in one field, and both are true: a cobblestone block is not a slab at all (HS1), and it
+        // is not the brick the body is laid in either (HS3).
         var style = Slabbed(HousePresets.Diorite.Style, Blocks.Cobblestone);
         var findings = HouseStyleValidation.Check(style);
-        await Assert.That((findings.Single().Rule, findings.Single().Field))
-            .IsEqualTo((HouseStyleRules.BlockKind, "roofSlab"));
+        await Assert.That(findings.All(f => f.Field == "roofSlab")).IsTrue();
+        await Assert.That(findings.Select(f => f.Rule))
+            .Contains(HouseStyleRules.BlockKind).And.Contains(HouseStyleRules.RoofMaterial);
+    }
+
+    /// <summary>A roof is read as one plane from below and from a distance, so a pattern in it is several
+    /// blocks in one surface. Both halves are held to a single block.</summary>
+    [Test]
+    public async Task A_patterned_roof_or_verge_is_refused()
+    {
+        var voronoi = new VoronoiMaterial(1, 5,
+            [new VoronoiBand(new SolidMaterial(98), 1), new VoronoiBand(new SolidMaterial(Blocks.Planks, 1), 1)]);
+        var body = HouseStyleValidation.Check(Roofed(HousePresets.Desert.Style, voronoi));
+        await Assert.That(body.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roof")).IsTrue();
+        var verge = HouseStyleValidation.Check(Roofed(HousePresets.Desert.Style, verge: voronoi));
+        await Assert.That(verge.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "verge")).IsTrue();
+    }
+
+    /// <summary>The half-course slab continues the body by halves, so it is the body's own material. Kiln
+    /// Row's four styles put a sandstone slab (44:1) under a brick roof (45); Rimegarth's four put a spruce
+    /// slab under a snow one.</summary>
+    [Test]
+    public async Task A_roof_slab_of_another_material_than_the_body_is_refused()
+    {
+        var kilnRow = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
+        kilnRow = kilnRow with { Roof = kilnRow.Roof with { Slab = Blocks.StoneSlab, SlabData = 1 } };
+        var findings = HouseStyleValidation.Check(kilnRow);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roofSlab"))
+            .IsTrue();
+    }
+
+    /// <summary>The same roof in one material passes — a brick body over the brick slab (44:4), which is the
+    /// whole brick roof the rule exists to allow.</summary>
+    [Test]
+    public async Task A_roof_and_its_slab_in_one_material_pass()
+    {
+        var brick = Roofed(HousePresets.Diorite.Style, new SolidMaterial(45)) with { };
+        brick = brick with { Roof = brick.Roof with { Slab = Blocks.StoneSlab, SlabData = 4 } };
+        await Assert.That(HouseStyleValidation.Check(brick).Any(f => f.Field == "roofSlab")).IsFalse();
     }
 
     // ── the footing has a legible off switch ───────────────────────────────────────────────────────────

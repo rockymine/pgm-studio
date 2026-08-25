@@ -435,9 +435,14 @@ rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` 
   door clears two full courses plus, if the fill is genuinely an upper slab, half of a third — 2.5 at the least
   a door may clear (author). A style whose fill only *claims* to be a slab, or is a solid beam by design, clears
   a flat 2.0 and is refused the same way.
-- **`HS3` — a roof's own materials.** A slab named as the whole-block `roof` while `roofSlab` is unset builds a
+- **`HS3` — a roof's own materials.** A roof is **one material and its verge is one material**: a pattern in
+  either is refused, since a roof is read as one plane and a voronoi across it is several blocks in one
+  surface, and `roofSlab` is the body's own material, since the slab is the body continuing by halves. The two
+  may be the same block — a brick body with a brick verge is a whole brick roof — or they may differ, which is
+  how a dark oak verge trims one. A slab named as the whole-block `roof` while `roofSlab` is unset builds a
   see-through roof at a whole block of rise; a log or a ground material named as `roof` or `verge` is refused
-  outright, whichever role it is asked to fill.
+  outright, whichever role it is asked to fill. The **gable** is the end wall carried up and follows the wall,
+  so it is not held to this.
 
 Beyond that the library barely refuses. A save needs a name. A storey's clear floors at three. An unbound
 bucket that still paints is dropped rather than rejected. Nothing yet validates a *composition* as a whole — a
