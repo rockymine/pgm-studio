@@ -303,6 +303,24 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
+- [ ] **G231 — `EL1` measures a piece against the global surface, not against its neighbour, so it
+  complains about half a flight of stairs.** `PlanValidator.LintEl1` takes `p.Surface − globals.Surface` and
+  raises where that is odd. EL1's own text in `docs/generator/rules.md` states the measured quantity as the
+  **land-interface** delta — "every one of the 137 measured land-interface deltas is even" — which is a
+  different number: a piece two tiers up from base sits at delta 2 over its own neighbour and delta 4 over
+  the global.
+
+  **Evidence.** `pgm-studio-mapgen`'s `showcase/05-steps`: four treads at surfaces 10, 11, 12, 13 over a
+  global of 9, every interface delta 1. EL1 complains at `tread-1` (delta 1) and `tread-3` (delta 3) and
+  says nothing about `tread-2` or `tread-4` — half a uniform flight flagged and half not, which is the tell
+  that the quantity is wrong.
+
+  **And a stair is not a plateau.** EL1's evidence is a corpus histogram of where one *plateau* meets
+  another; a flight of one-block treads is the shape a 2-block riser exists to avoid, since no player walks
+  up two blocks. So the lint should measure the interface, and it should not fire on a run of pieces whose
+  interface deltas are uniform and 1. Amending the rule text goes through `rules.md`'s own correction
+  protocol.
+
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
   are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
   — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
