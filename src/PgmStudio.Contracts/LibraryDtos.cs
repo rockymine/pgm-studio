@@ -99,12 +99,6 @@ public sealed record MaterialPreviewDto(string Plan, string Section);
 /// as in the whole.</param>
 public sealed record ThemePreviewDto(string Section, IReadOnlyDictionary<string, string> Buckets);
 
-/// <summary>Why a style could not be forgotten (DELETE /api/styles/{id}, 409): the themes and room styles still
-/// binding it. A style is shared, so the refusal names what would break instead of surfacing a foreign-key
-/// error.</summary>
-/// <param name="Error">Why the style could not be deleted, in a sentence.</param>
-/// <param name="Themes">The themes still binding it, by name — what an author has to unbind first.</param>
-public sealed record StyleInUseDto(string Error, IReadOnlyList<string> Themes);
 
 // ── room styles ───────────────────────────────────────────────────────────────
 // A room style is composed the way a theme is — library styles bound to the parts of a thing — but a part takes

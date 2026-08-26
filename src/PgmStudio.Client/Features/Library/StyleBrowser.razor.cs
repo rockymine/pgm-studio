@@ -59,7 +59,7 @@ public partial class StyleBrowser
     private async Task Reload()
     {
         loading = true;
-        styles = await Library.StylesAsync();
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
         loading = false;
         StateHasChanged();
     }
@@ -116,8 +116,8 @@ public partial class StyleBrowser
         if (draft is null || !CanSave) return;
         var request = new StyleSaveRequest(draftName.Trim(), DraftKind, draft.ToJsonString());
         var saved = editingId is { } id
-            ? await Library.UpdateStyleAsync(id, request)
-            : await Library.CreateStyleAsync(request);
+            ? await Library.UpdateAsync<StyleDto>(LibraryKinds.Styles, id, request)
+            : await Library.CreateAsync<StyleDto>(LibraryKinds.Styles, request);
         if (saved is null) { note = "The library refused that style."; return; }
 
         // An edit reaches every theme binding this style — the library is the shared copy, and a map's applied
@@ -130,7 +130,7 @@ public partial class StyleBrowser
     private async Task SaveAsCopy()
     {
         if (draft is null || !CanSave) return;
-        var copy = await Library.CreateStyleAsync(
+        var copy = await Library.CreateAsync<StyleDto>(LibraryKinds.Styles,
             new StyleSaveRequest($"{draftName.Trim()} copy", DraftKind, draft.ToJsonString()));
         if (copy is null) { note = "The library refused that style."; return; }
         editingId = copy.Id;
@@ -142,9 +142,9 @@ public partial class StyleBrowser
     private async Task Delete()
     {
         if (editingId is not { } id) return;
-        if (await Library.DeleteStyleAsync(id) is { } inUse)
+        if (await Library.DeleteAsync(LibraryKinds.Styles, id) is { Deleted: false } refused)
         {
-            note = $"Still bound by {string.Join(", ", inUse.Themes)} — unbind it there first.";
+            note = $"Still bound by {string.Join(", ", refused.BoundBy)} — unbind it there first.";
             return;
         }
         Close();

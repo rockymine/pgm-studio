@@ -120,7 +120,7 @@ public partial class SketchDressingInspector
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(Spec(PropFields.Rock));
         if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
-        if (kind == PropKinds.House && shells.Count == 0) shells = await Library.RoomStylesAsync();
+        if (kind == PropKinds.House && shells.Count == 0) shells = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         if (!editingSelection && prop is null) await LoadToolSettings();
         if (kind == PropKinds.Tree && IsGrown) await LoadWoods();
     }
@@ -130,7 +130,7 @@ public partial class SketchDressingInspector
     /// styles follow, so editing that library row later cannot rebuild a map's scenery.</summary>
     private async Task PickShell(RoomStyleSummary shell)
     {
-        var json = await Library.RoomStyleJsonAsync(shell.Id);
+        var json = await Library.DocumentAsync(LibraryKinds.Houses, shell.Id);
         if (json is null) return;
         await Set(PropFields.Style, JsonNode.Parse(json));
         shellName = shell.Name;

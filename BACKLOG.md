@@ -517,6 +517,20 @@ author. Beside them, one where the *reader* disagrees with a document that is ri
   *reported by the author while theming a board — "a cobble rim, then two rings of stone brick, then a grass
   field". The worked JSON is in `docs/world-export/terrain-painting.md`.*
 
+- [~] **WE41 — A pattern is a family shown off rather than a ground.** *Parked on a ruling: no candidate
+  predicate reproduces the author's judgement, and nothing is built until one is chosen.* The predicate the
+  author has since named is not colour distance but **how much of a family a pattern takes**: two blocks is a
+  texture, three a mottle, five a family on display. Complain where a pattern's entry list carries more than
+  two members of one `TerrainPalette` family. Beside it, two placements the author states absolutely: a
+  **voronoi** belongs in the **fill** and is made of stone — never the surface — and a **field** pattern's two
+  blocks must be near shades of one ground, so it carries a texture and never a border between two grounds.
+  `docs/world-export/terrain-painting.md`.
+
+  *Measured over the 51 boards in `pgm-studio-mapgen/specs` that carry a theme registry: of **277 patterns**,
+  85% carry three entries or more — 51 carry five, 8 carry six or seven — and only 15% carry two. Of **50
+  voronois**, 44 are on the surface and none is in the fill. The earlier candidates (one family per pattern:
+  157/201; a neutral family mixed with a warm one: 54) are superseded.*
+
 ### The house: what it stamps, where it stands, and what an author can say
 
 - [ ] **WE15 — A hand-built core stamps nothing, because its size defaults to zero.**

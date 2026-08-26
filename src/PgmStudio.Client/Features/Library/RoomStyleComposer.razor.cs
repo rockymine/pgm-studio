@@ -65,11 +65,11 @@ public partial class RoomStyleComposer
     private async Task Reload()
     {
         loading = true;
-        rooms = await Library.RoomStylesAsync();
-        styles = await Library.StylesAsync();
-        roofs = await Library.RoofStylesAsync();
-        storeys = await Library.StoreyStylesAsync();
-        porches = await Library.PorchStylesAsync();
+        rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        roofs = await Library.ListAsync<RoofStyleSummary>(LibraryKinds.Roofs);
+        storeys = await Library.ListAsync<StoreyStyleSummary>(LibraryKinds.Storeys);
+        porches = await Library.ListAsync<PorchStyleSummary>(LibraryKinds.Porches);
         loading = false;
         StateHasChanged();
     }
@@ -107,7 +107,7 @@ public partial class RoomStyleComposer
 
     private async Task Edit(long id)
     {
-        var detail = await Library.RoomStyleAsync(id);
+        var detail = await Library.GetAsync<RoomStyleDetail>(LibraryKinds.Houses, id);
         if (detail is null) { note = "That room style could not be read."; return; }
         editingId = detail.Id;
         draftName = detail.Name;
@@ -377,7 +377,9 @@ public partial class RoomStyleComposer
     // Both go through the same request value: the preview is what the save would compose to.
     private async Task Preview()
     {
-        preview = draft is null ? null : await Library.RoomStyleDraftPreviewAsync(Saveable(draft));
+        preview = draft is null
+            ? null
+            : await Library.DraftPreviewAsync<RoomStylePreviewDto>(LibraryKinds.Houses, Saveable(draft));
         StateHasChanged();
     }
 
@@ -391,8 +393,8 @@ public partial class RoomStyleComposer
         if (draft is null || string.IsNullOrWhiteSpace(draftName)) return;
         var request = Saveable(draft);
         var saved = editingId is { } id
-            ? await Library.UpdateRoomStyleAsync(id, request)
-            : await Library.CreateRoomStyleAsync(request);
+            ? await Library.UpdateAsync<RoomStyleDetail>(LibraryKinds.Houses, id, request)
+            : await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses, request);
         if (saved is null) { note = "The library refused that room style."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         editingId = saved.Id;
@@ -402,7 +404,8 @@ public partial class RoomStyleComposer
     private async Task SaveAsCopy()
     {
         if (draft is null) return;
-        var copy = await Library.CreateRoomStyleAsync(Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
+        var copy = await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses,
+            Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
         if (copy is null) { note = "The library refused that room style."; return; }
         editingId = copy.Id;
         draftName = copy.Name;
@@ -413,7 +416,7 @@ public partial class RoomStyleComposer
     private async Task Delete()
     {
         if (editingId is not { } id) return;
-        await Library.DeleteRoomStyleAsync(id);
+        await Library.DeleteAsync(LibraryKinds.Houses, id);
         Close();
         await Reload();
     }

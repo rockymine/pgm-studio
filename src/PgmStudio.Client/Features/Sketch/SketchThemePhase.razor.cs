@@ -284,7 +284,7 @@ public partial class SketchThemePhase
     // travel as the painter's theme JSON, so the sketch never learns how the library stores a theme and the
     // library never learns how a sketch names one. A pulled theme is a copy: editing it here does not reach
     // back into the library, and a library edit does not repaint a sketch that already took one.
-    private async Task LoadLibrary() => LibraryThemes = await Library.ThemesAsync();
+    private async Task LoadLibrary() => LibraryThemes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
 
     private ThemeSummary? PickedLibraryTheme => LibraryThemes.FirstOrDefault(theme => theme.Id == LibraryPick);
 
@@ -294,7 +294,7 @@ public partial class SketchThemePhase
     private async Task PullFromLibrary()
     {
         if (Handle is null || PickedLibraryTheme is not { } picked) return;
-        var themeJson = await Library.ThemeJsonAsync(picked.Id);
+        var themeJson = await Library.DocumentAsync(LibraryKinds.Themes, picked.Id);
         if (themeJson is null) { LibraryNote = "That theme could not be read."; return; }
 
         Selected = await Handle.InvokeAsync<string>("defineTheme", picked.Name);

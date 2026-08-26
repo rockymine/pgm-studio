@@ -156,7 +156,8 @@ public sealed class ThemeLibraryEndpointsTests
 
         var refused = await client.DeleteAsync($"/api/styles/{bound}");
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
-        await Assert.That((await refused.Content.ReadFromJsonAsync<StyleInUseDto>())!.Themes).Contains("meadow");
+        var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
+        await Assert.That(why!.Findings.SelectMany(finding => finding.SubjectIds)).Contains("meadow");
 
         // The unbound one goes without argument.
         await Assert.That((await client.DeleteAsync($"/api/styles/{loose}")).StatusCode).IsEqualTo(HttpStatusCode.NoContent);

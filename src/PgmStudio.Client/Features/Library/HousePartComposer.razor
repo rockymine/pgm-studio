@@ -12,13 +12,13 @@
         once tops every building that wants it.</p>
       @foreach (var candidate in PartKindInfo.All)
       {
-        <Button Full Icon="@candidate.Icon" @key="candidate.Id"
-                Variant="@(candidate.Id == kind.Id ? "primary" : null)"
-                OnClick="() => Switch(candidate)">@candidate.Plural</Button>
+        <Button Full Icon="@candidate.Kind.Icon" @key="candidate.Kind.Slug"
+                Variant="@(candidate.Kind.Slug == partKind.Kind.Slug ? "primary" : null)"
+                OnClick="() => Switch(candidate)">@candidate.Kind.Title</Button>
       }
     </Section>
 
-    <Button Full Variant="primary" Icon="plus" OnClick="StartNew">New @kind.Singular</Button>
+    <Button Full Variant="primary" Icon="plus" OnClick="StartNew">New @partKind.Kind.One</Button>
 
     <Section Title="Styles">
       <p class="section-desc">A course can only bind a style the library already holds — @styles.Count saved.
@@ -28,12 +28,12 @@
   </aside>
 
   <main class="lib-main">
-    <p class="lib-intro">@kind.Intro</p>
+    <p class="lib-intro">@partKind.Kind.Blurb</p>
 
     @if (loading) { <p class="lib-status">Reading the library…</p> }
     else
     {
-      <p class="lib-count">@entries.Count @(entries.Count == 1 ? kind.Singular : kind.Plural.ToLowerInvariant())</p>
+      <p class="lib-count">@entries.Count @(entries.Count == 1 ? partKind.Kind.One : partKind.Kind.Title.ToLowerInvariant())</p>
       <div class="lib-grid lib-grid--wide">
         @foreach (var entry in entries)
         {
@@ -49,8 +49,8 @@
       </div>
       @if (entries.Count == 0)
       {
-        <p class="lib-status">No @kind.Plural.ToLowerInvariant() yet — start one with
-          <strong>New @kind.Singular</strong>.</p>
+        <p class="lib-status">No @partKind.Kind.Title.ToLowerInvariant() yet — start one with
+          <strong>New @partKind.Kind.One</strong>.</p>
       }
     }
   </main>
@@ -63,7 +63,7 @@
       <div class="lib-rail-pin">
         <div class="lib-rail-head">
           <div class="section-heading">
-            <span class="lib-rail-title">@(editingId is null ? $"New {kind.Singular}" : $"Edit {kind.Singular}")</span>
+            <span class="lib-rail-title">@(editingId is null ? $"New {partKind.Kind.One}" : $"Edit {partKind.Kind.One}")</span>
             <HelpMark Open="figureHelp" Title="What the views show"
                       OnClick="() => figureHelp = !figureHelp" />
           </div>
@@ -72,7 +72,7 @@
         @if (figureHelp)
         {
           <div class="help-note-body">The part on a plain sample building, so what differs between two cards is
-            the part and never the house around it. @kind.FigureNote</div>
+            the part and never the house around it. @partKind.FigureNote</div>
         }
         <HouseViews Preview="preview" />
       </div>
@@ -82,7 +82,7 @@
           <input class="field-input" @bind="draftName" @bind:event="oninput" />
         </Field>
 
-        @foreach (var part in kind.Stacked)
+        @foreach (var part in partKind.Stacked)
         {
           <Section Title="@part.Title" Variant="list" @key="part.Id"
                    HelpTitle="@($"What the {part.Title.ToLowerInvariant()} is")">
@@ -125,14 +125,14 @@
           </Section>
         }
 
-        @if (kind.Single.Count > 0)
+        @if (partKind.Single.Count > 0)
         {
           <Section Title="Trim" Variant="list" HelpTitle="Why these are not stacks">
             <Help>Each of these is one material read straight through, so binding one is a single choice rather
               than a stack. A post is a post all the way up; a ceiling is one slab, and what a player stands on
               over it is divided by the storey above's own zones rather than by a second stack here.</Help>
             <ChildContent>
-              @foreach (var part in kind.Single)
+              @foreach (var part in partKind.Single)
               {
                 <Field Label="@part.Title" @key="part.Id">
                   <select class="field-input field-input--slim" title="@part.Blurb"

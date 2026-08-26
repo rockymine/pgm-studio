@@ -25,7 +25,7 @@ public partial class HousePartComposer
     // Every edit renders fresh <i data-lucide> nodes, and lucide only processes what exists when it runs.
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
-    private PartKindInfo kind = PartKindInfo.All[0];
+    private PartKindInfo partKind = PartKindInfo.All[0];
 
     /// <summary>The cards showing, flattened out of whichever kind is on — the three summaries differ only in
     /// their type, and a list that had to be three lists would make the shared markup three copies.</summary>
@@ -64,8 +64,8 @@ public partial class HousePartComposer
 
     private async Task Switch(PartKindInfo next)
     {
-        if (next.Id == kind.Id) return;
-        kind = next;
+        if (next.Kind.Slug == partKind.Kind.Slug) return;
+        partKind = next;
         Close();
         await Reload();
     }
@@ -73,12 +73,15 @@ public partial class HousePartComposer
     private async Task Reload()
     {
         loading = true;
-        styles = await Library.StylesAsync();
-        entries = kind.Id switch
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+        entries = partKind.Kind.Slug switch
         {
-            PartKindInfo.Roof => [.. (await Library.RoofStylesAsync()).Select(r => (r.Id, r.Name, r.Preview))],
-            PartKindInfo.Storey => [.. (await Library.StoreyStylesAsync()).Select(r => (r.Id, r.Name, r.Preview))],
-            _ => [.. (await Library.PorchStylesAsync()).Select(r => (r.Id, r.Name, r.Preview))],
+            LibraryKinds.RoofsSlug => [.. (await Library.ListAsync<RoofStyleSummary>(partKind.Kind))
+                .Select(row => (row.Id, row.Name, row.Preview))],
+            LibraryKinds.StoreysSlug => [.. (await Library.ListAsync<StoreyStyleSummary>(partKind.Kind))
+                .Select(row => (row.Id, row.Name, row.Preview))],
+            _ => [.. (await Library.ListAsync<PorchStyleSummary>(partKind.Kind))
+                .Select(row => (row.Id, row.Name, row.Preview))],
         };
         loading = false;
         StateHasChanged();
@@ -91,12 +94,12 @@ public partial class HousePartComposer
         draftName = "";
         note = null;
         Clear();
-        switch (kind.Id)
+        switch (partKind.Kind.Slug)
         {
-            case PartKindInfo.Roof:
+            case LibraryKinds.RoofsSlug:
                 roof = new RoofStyleSaveRequest("", RoofForms.Gable, 1, 1, false, false, []);
                 break;
-            case PartKindInfo.Storey:
+            case LibraryKinds.StoreysSlug:
                 storey = new StoreyStyleSaveRequest("", 3, 1, 2, NoWindows, []);
                 break;
             default:
@@ -117,25 +120,25 @@ public partial class HousePartComposer
     {
         note = null;
         Clear();
-        switch (kind.Id)
+        switch (partKind.Kind.Slug)
         {
-            case PartKindInfo.Roof:
-                if (await Library.RoofStyleAsync(id) is not { } roofDetail) { note = Unreadable; return; }
+            case LibraryKinds.RoofsSlug:
+                if (await Library.GetAsync<RoofStyleDetail>(partKind.Kind, id) is not { } roofDetail) { note = Unreadable; return; }
                 (editingId, draftName) = (roofDetail.Id, roofDetail.Name);
                 roof = new RoofStyleSaveRequest(
                     roofDetail.Name, roofDetail.Form, roofDetail.Pitch,
                     roofDetail.Overhang, roofDetail.RoofHole, roofDetail.RidgeCap, roofDetail.Courses,
                     roofDetail.RoofSlab, roofDetail.RoofSlabData);
                 break;
-            case PartKindInfo.Storey:
-                if (await Library.StoreyStyleAsync(id) is not { } storeyDetail) { note = Unreadable; return; }
+            case LibraryKinds.StoreysSlug:
+                if (await Library.GetAsync<StoreyStyleDetail>(partKind.Kind, id) is not { } storeyDetail) { note = Unreadable; return; }
                 (editingId, draftName) = (storeyDetail.Id, storeyDetail.Name);
                 storey = new StoreyStyleSaveRequest(
                     storeyDetail.Name, storeyDetail.Clear, storeyDetail.BorderWidth, storeyDetail.InlayInset,
                     storeyDetail.Windows, storeyDetail.Courses);
                 break;
             default:
-                if (await Library.PorchStyleAsync(id) is not { } porchDetail) { note = Unreadable; return; }
+                if (await Library.GetAsync<PorchStyleDetail>(partKind.Kind, id) is not { } porchDetail) { note = Unreadable; return; }
                 (editingId, draftName) = (porchDetail.Id, porchDetail.Name);
                 porch = new PorchStyleSaveRequest(
                     porchDetail.Name, porchDetail.Depth, porchDetail.Inset, porchDetail.Edge,
@@ -319,16 +322,9 @@ public partial class HousePartComposer
     /// path a save would take, so the picture and the save cannot disagree.</summary>
     private async Task Preview()
     {
-        preview = kind.Id switch
-        {
-            PartKindInfo.Roof when roof is not null
-                => await Library.RoofStyleDraftPreviewAsync(roof with { Name = draftName }),
-            PartKindInfo.Storey when storey is not null
-                => await Library.StoreyStyleDraftPreviewAsync(storey with { Name = draftName }),
-            PartKindInfo.Porch when porch is not null
-                => await Library.PorchStyleDraftPreviewAsync(porch with { Name = draftName }),
-            _ => null,
-        };
+        preview = Draft() is { } draft
+            ? await Library.DraftPreviewAsync<RoomStylePreviewDto>(partKind.Kind, draft)
+            : null;
         StateHasChanged();
     }
 
@@ -337,59 +333,34 @@ public partial class HousePartComposer
     {
         if (string.IsNullOrWhiteSpace(draftName)) return;
         var name = draftName.Trim();
-        var saved = kind.Id switch
-        {
-            PartKindInfo.Roof => await SaveRoof(name),
-            PartKindInfo.Storey => await SaveStorey(name),
-            _ => await SavePorch(name),
-        };
-        if (!saved) { note = "That could not be saved."; return; }
+        if (Draft(name) is not { } request) { note = "That could not be saved."; return; }
+        var saved = editingId is { } id
+            ? await Library.UpdateAsync<object>(partKind.Kind, id, request)
+            : await Library.CreateAsync<object>(partKind.Kind, request);
+        if (saved is null) { note = "That could not be saved."; return; }
         note = null;
         Close();
         await Reload();
     }
 
-    private async Task<bool> SaveRoof(string name)
+    /// <summary>The one draft this kind is holding, named — what both the preview and the save post.</summary>
+    private object? Draft(string? name = null) => partKind.Kind.Slug switch
     {
-        if (roof is null) return false;
-        var request = roof with { Name = name };
-        return (editingId is { } id
-            ? await Library.UpdateRoofStyleAsync(id, request)
-            : await Library.CreateRoofStyleAsync(request)) is not null;
-    }
-
-    private async Task<bool> SaveStorey(string name)
-    {
-        if (storey is null) return false;
-        var request = storey with { Name = name };
-        return (editingId is { } id
-            ? await Library.UpdateStoreyStyleAsync(id, request)
-            : await Library.CreateStoreyStyleAsync(request)) is not null;
-    }
-
-    private async Task<bool> SavePorch(string name)
-    {
-        if (porch is null) return false;
-        var request = porch with { Name = name };
-        return (editingId is { } id
-            ? await Library.UpdatePorchStyleAsync(id, request)
-            : await Library.CreatePorchStyleAsync(request)) is not null;
-    }
+        LibraryKinds.RoofsSlug => roof is null ? null : roof with { Name = name ?? draftName },
+        LibraryKinds.StoreysSlug => storey is null ? null : storey with { Name = name ?? draftName },
+        _ => porch is null ? null : porch with { Name = name ?? draftName },
+    };
 
     /// <summary>Forget the open part. A part a house still binds is refused with the names of the buildings
     /// wearing it, since deleting it would silently change every one of them.</summary>
     private async Task Delete()
     {
         if (editingId is not { } id) return;
-        var response = kind.Id switch
+        if (await Library.DeleteAsync(partKind.Kind, id) is { Deleted: false } refused)
         {
-            PartKindInfo.Roof => await Library.DeleteRoofStyleAsync(id),
-            PartKindInfo.Storey => await Library.DeleteStoreyStyleAsync(id),
-            _ => await Library.DeletePorchStyleAsync(id),
-        };
-        if ((int)response.StatusCode == 409)
-        {
-            note = "Still used by a room style — change those first.";
+            note = refused.BoundBy.Count > 0
+                ? $"Still worn by {string.Join(", ", refused.BoundBy)} — change those first."
+                : "That could not be forgotten.";
             return;
         }
         Close();

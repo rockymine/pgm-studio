@@ -106,7 +106,9 @@ public sealed class StyleDeleteEndpoint(ThemeStore store, RoomStyleStore rooms) 
             .Concat(await rooms.UsingStyleAsync(id, ct)).ToList();
         if (users.Count > 0)
         {
-            await Send.ResponseAsync(new StyleInUseDto("The style is bound by a theme or room style.", users), 409, ct);
+            await Refusals.ConflictAsync(HttpContext, "style in use",
+                $"{users.Count} theme(s) and room style(s) still bind this style — unbind them before "
+                + "forgetting it", ct, holding: users);
             return;
         }
         await store.DeleteStyleAsync(id, ct);

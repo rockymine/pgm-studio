@@ -58,8 +58,8 @@ public partial class ThemeComposer
     private async Task Reload()
     {
         loading = true;
-        themes = await Library.ThemesAsync();
-        styles = await Library.StylesAsync();
+        themes = await Library.ListAsync<ThemeSummary>(LibraryKinds.Themes);
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
         loading = false;
         StateHasChanged();
     }
@@ -86,7 +86,7 @@ public partial class ThemeComposer
 
     private async Task Edit(long id)
     {
-        var detail = await Library.ThemeAsync(id);
+        var detail = await Library.GetAsync<ThemeDetail>(LibraryKinds.Themes, id);
         if (detail is null) { note = "That theme could not be read."; return; }
         editingId = detail.Id;
         draftName = detail.Name;
@@ -156,7 +156,7 @@ public partial class ThemeComposer
     // Both go through the same request value: the preview is what the save would compose to.
     private async Task Preview()
     {
-        preview = draft is null ? null : await Library.ThemeDraftPreviewAsync(Saveable(draft));
+        preview = draft is null ? null : await Library.DraftPreviewAsync<ThemePreviewDto>(LibraryKinds.Themes, Saveable(draft));
         StateHasChanged();
     }
 
@@ -174,8 +174,8 @@ public partial class ThemeComposer
         if (draft is null || string.IsNullOrWhiteSpace(draftName)) return;
         var request = Saveable(draft);
         var saved = editingId is { } id
-            ? await Library.UpdateThemeAsync(id, request)
-            : await Library.CreateThemeAsync(request);
+            ? await Library.UpdateAsync<ThemeDetail>(LibraryKinds.Themes, id, request)
+            : await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes, request);
         if (saved is null) { note = "The library refused that theme."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
         editingId = saved.Id;
@@ -185,7 +185,8 @@ public partial class ThemeComposer
     private async Task SaveAsCopy()
     {
         if (draft is null) return;
-        var copy = await Library.CreateThemeAsync(Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
+        var copy = await Library.CreateAsync<ThemeDetail>(LibraryKinds.Themes,
+            Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
         if (copy is null) { note = "The library refused that theme."; return; }
         editingId = copy.Id;
         draftName = copy.Name;
@@ -196,7 +197,7 @@ public partial class ThemeComposer
     private async Task Delete()
     {
         if (editingId is not { } id) return;
-        await Library.DeleteThemeAsync(id);
+        await Library.DeleteAsync(LibraryKinds.Themes, id);
         Close();
         await Reload();
     }

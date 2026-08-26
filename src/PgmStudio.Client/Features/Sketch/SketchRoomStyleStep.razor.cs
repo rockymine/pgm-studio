@@ -55,7 +55,7 @@ public partial class SketchRoomStyleStep
 
     protected override async Task OnInitializedAsync()
     {
-        rooms = await Library.RoomStylesAsync();
+        rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         await ReadBindings();
     }
 
@@ -82,7 +82,7 @@ public partial class SketchRoomStyleStep
         if (!long.TryParse((string?)e.Value, out var id) || id == 0) { await Clear(kind); return; }
 
         // The snapshot is taken here: from now on the map holds the style, not a pointer at the row.
-        var styleJson = await Library.RoomStyleJsonAsync(id);
+        var styleJson = await Library.DocumentAsync(LibraryKinds.Houses, id);
         if (styleJson is null) { note = "That room style could not be read."; return; }
 
         bound[kind] = styleJson;

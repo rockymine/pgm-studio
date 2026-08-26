@@ -149,8 +149,8 @@ public sealed class RoomStyleLibraryEndpointsTests
 
         var refused = await client.DeleteAsync($"/api/styles/{stone}");
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.Conflict);
-        var why = await refused.Content.ReadFromJsonAsync<StyleInUseDto>();
-        await Assert.That(why!.Themes).Contains("bunker");
+        var why = await refused.Content.ReadFromJsonAsync<RefusalDto>();
+        await Assert.That(why!.Findings.SelectMany(finding => finding.SubjectIds)).Contains("bunker");
     }
 
     [Test]

@@ -64,149 +64,70 @@ public sealed class TerrainLibraryClient(HttpClient http)
     public Task<DressingPreviewDto?> PropPreviewAsync(string propJson, string? themeJson)
         => PostOrNull<DressingPreviewDto>("api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson));
 
-    // ── room styles ─────────────────────────────────────────────────────────────
-    // The same shape as the theme half below: a library list carrying each row's picture, one detail read, a
-    // draft preview that composes exactly as a save would, and the write/forget pair.
-    public async Task<IReadOnlyList<RoomStyleSummary>> RoomStylesAsync()
-        => await GetOrDefault<List<RoomStyleSummary>>("api/room-styles") ?? [];
+    // ── the six libraries ───────────────────────────────────────────────────────
+    // One verb per concept over LibraryKinds, because the six differ only in a route stem and the shapes the
+    // caller names: repeating list/get/preview/create/update/delete per kind is how the delete half came to
+    // have three return types for one question.
 
-    /// <summary>The doors a room may be stamped with. Served, never restated here: the authoritative list is
+    /// <summary>Every row of a library, newest first, each carrying its own card picture. Empty when the call
+    /// fails: a grid with no cards is a state the page can render.</summary>
+    public async Task<IReadOnlyList<TSummary>> ListAsync<TSummary>(LibraryKind kind, string? query = null)
+        => await GetOrDefault<List<TSummary>>(
+            string.IsNullOrEmpty(query) ? $"api/{kind.Route}" : $"api/{kind.Route}?{query}") ?? [];
+
+    /// <summary>One row in full — its parts, courses and bindings.</summary>
+    public Task<TDetail?> GetAsync<TDetail>(LibraryKind kind, long id)
+        => GetOrDefault<TDetail>($"api/{kind.Route}/{id}");
+
+    /// <summary>What a draft composes to, saving nothing. The body is the save request itself, so the picture
+    /// cannot promise something the save would not build.</summary>
+    public Task<TPreview?> DraftPreviewAsync<TPreview>(LibraryKind kind, object draft)
+        => PostOrNull<TPreview>($"api/{kind.Route}/preview", draft);
+
+    public Task<TDetail?> CreateAsync<TDetail>(LibraryKind kind, object request)
+        => PostOrNull<TDetail>($"api/{kind.Route}", request);
+
+    public Task<TDetail?> UpdateAsync<TDetail>(LibraryKind kind, long id, object request)
+        => PutOrNull<TDetail>($"api/{kind.Route}/{id}", request);
+
+    /// <summary>Forget a row, or report the compositions that still bind it — a style, a roof, a storey and a
+    /// porch are each refused while something composes them, and the caller shows which.</summary>
+    public async Task<LibraryDelete> DeleteAsync(LibraryKind kind, long id)
+    {
+        HttpResponseMessage response;
+        try { response = await http.DeleteAsync($"api/{kind.Route}/{id}"); }
+        catch { return LibraryDelete.Failed; }
+
+        if (response.IsSuccessStatusCode) return LibraryDelete.Gone;
+        var refusal = await ReadOrNull<RefusalDto>(response);
+        return new LibraryDelete(false, [.. refusal?.Findings.SelectMany(finding => finding.SubjectIds) ?? []]);
+    }
+
+    /// <summary>The document form of a row — the painter's theme JSON, or the stamper's house JSON — which is
+    /// what a map snapshots when it binds one. Both routes wrap it in a one-field envelope, so the field is
+    /// taken by shape rather than by name.</summary>
+    public async Task<string?> DocumentAsync(LibraryKind kind, long id)
+    {
+        var envelope = await GetOrDefault<Dictionary<string, string>>($"api/{kind.Route}/{id}/json");
+        return envelope?.Values.FirstOrDefault();
+    }
+
+    // ── shapes only one library has ─────────────────────────────────────────────
+    /// <summary>The doors a house may be stamped with. Served, never restated here: the authoritative list is
     /// the table the wool-room block filter is built from.</summary>
     public async Task<IReadOnlyList<DoorOptionDto>> RoomDoorsAsync()
         => await GetOrDefault<List<DoorOptionDto>>("api/room-styles/doors") ?? [];
-
-    public Task<RoomStyleDetail?> RoomStyleAsync(long id)
-        => GetOrDefault<RoomStyleDetail>($"api/room-styles/{id}");
-
-    public Task<RoomStylePreviewDto?> RoomStyleDraftPreviewAsync(RoomStyleSaveRequest draft)
-        => PostOrNull<RoomStylePreviewDto>("api/room-styles/preview", draft);
-
-    public Task<RoomStyleDetail?> CreateRoomStyleAsync(RoomStyleSaveRequest request)
-        => PostOrNull<RoomStyleDetail>("api/room-styles", request);
-
-    public Task<RoomStyleDetail?> UpdateRoomStyleAsync(long id, RoomStyleSaveRequest request)
-        => PutOrNull<RoomStyleDetail>($"api/room-styles/{id}", request);
-
-    public Task DeleteRoomStyleAsync(long id) => http.DeleteAsync($"api/room-styles/{id}");
-
-    /// <summary>A library room style composed into the stamper's JSON — the form a map snapshots when it binds
-    /// one, so the map keeps what it picked rather than a pointer at a row that may move.</summary>
-    public async Task<string?> RoomStyleJsonAsync(long id)
-        => (await GetOrDefault<RoomStyleJsonResponse>($"api/room-styles/{id}/json"))?.StyleJson;
 
     /// <summary>The shell a <em>bound</em> style stamps. Previewed from the snapshot the map holds, never from
     /// the library row it came from — the row may have moved on since.</summary>
     public Task<RoomStylePreviewDto?> RoomStyleSnapshotPreviewAsync(string styleJson)
         => PostJsonDocument<RoomStylePreviewDto>("api/room-styles/preview-snapshot", styleJson);
 
-    private sealed record RoomStyleJsonResponse(string StyleJson);
-
-    // ── house parts ─────────────────────────────────────────────────────────────
-    // Roofs, storeys and porches: the same five calls each, because they are the same kind of thing — a part
-    // authored once and bound by the houses that want it, exactly as a style is by a theme.
-    public async Task<IReadOnlyList<RoofStyleSummary>> RoofStylesAsync()
-        => await GetOrDefault<List<RoofStyleSummary>>("api/roof-styles") ?? [];
-
-    public Task<RoofStyleDetail?> RoofStyleAsync(long id)
-        => GetOrDefault<RoofStyleDetail>($"api/roof-styles/{id}");
-
-    public Task<RoomStylePreviewDto?> RoofStyleDraftPreviewAsync(RoofStyleSaveRequest draft)
-        => PostOrNull<RoomStylePreviewDto>("api/roof-styles/preview", draft);
-
-    public Task<RoofStyleDetail?> CreateRoofStyleAsync(RoofStyleSaveRequest request)
-        => PostOrNull<RoofStyleDetail>("api/roof-styles", request);
-
-    public Task<RoofStyleDetail?> UpdateRoofStyleAsync(long id, RoofStyleSaveRequest request)
-        => PutOrNull<RoofStyleDetail>($"api/roof-styles/{id}", request);
-
-    public Task<HttpResponseMessage> DeleteRoofStyleAsync(long id) => http.DeleteAsync($"api/roof-styles/{id}");
-
-    public async Task<IReadOnlyList<StoreyStyleSummary>> StoreyStylesAsync()
-        => await GetOrDefault<List<StoreyStyleSummary>>("api/storey-styles") ?? [];
-
-    public Task<StoreyStyleDetail?> StoreyStyleAsync(long id)
-        => GetOrDefault<StoreyStyleDetail>($"api/storey-styles/{id}");
-
-    public Task<RoomStylePreviewDto?> StoreyStyleDraftPreviewAsync(StoreyStyleSaveRequest draft)
-        => PostOrNull<RoomStylePreviewDto>("api/storey-styles/preview", draft);
-
-    public Task<StoreyStyleDetail?> CreateStoreyStyleAsync(StoreyStyleSaveRequest request)
-        => PostOrNull<StoreyStyleDetail>("api/storey-styles", request);
-
-    public Task<StoreyStyleDetail?> UpdateStoreyStyleAsync(long id, StoreyStyleSaveRequest request)
-        => PutOrNull<StoreyStyleDetail>($"api/storey-styles/{id}", request);
-
-    public Task<HttpResponseMessage> DeleteStoreyStyleAsync(long id) => http.DeleteAsync($"api/storey-styles/{id}");
-
-    public async Task<IReadOnlyList<PorchStyleSummary>> PorchStylesAsync()
-        => await GetOrDefault<List<PorchStyleSummary>>("api/porch-styles") ?? [];
-
-    public Task<PorchStyleDetail?> PorchStyleAsync(long id)
-        => GetOrDefault<PorchStyleDetail>($"api/porch-styles/{id}");
-
-    public Task<RoomStylePreviewDto?> PorchStyleDraftPreviewAsync(PorchStyleSaveRequest draft)
-        => PostOrNull<RoomStylePreviewDto>("api/porch-styles/preview", draft);
-
-    public Task<PorchStyleDetail?> CreatePorchStyleAsync(PorchStyleSaveRequest request)
-        => PostOrNull<PorchStyleDetail>("api/porch-styles", request);
-
-    public Task<PorchStyleDetail?> UpdatePorchStyleAsync(long id, PorchStyleSaveRequest request)
-        => PutOrNull<PorchStyleDetail>($"api/porch-styles/{id}", request);
-
-    public Task<HttpResponseMessage> DeletePorchStyleAsync(long id) => http.DeleteAsync($"api/porch-styles/{id}");
-
-    // ── styles ──────────────────────────────────────────────────────────────────
-    /// <summary>The style library, newest first; <paramref name="kind"/> narrows it to one material kind.</summary>
-    public async Task<IReadOnlyList<StyleDto>> StylesAsync(string? kind = null)
-        => await GetOrDefault<List<StyleDto>>(
-            string.IsNullOrEmpty(kind) ? "api/styles" : $"api/styles?kind={kind}") ?? [];
-
-    public Task<StyleDto?> CreateStyleAsync(StyleSaveRequest request)
-        => PostOrNull<StyleDto>("api/styles", request);
-
-    public Task<StyleDto?> UpdateStyleAsync(long id, StyleSaveRequest request)
-        => PutOrNull<StyleDto>($"api/styles/{id}", request);
-
-    /// <summary>Forget a style, or report the themes that still bind it — a shared style is not deletable while
-    /// something composes it, and the caller shows which themes those are rather than a bare failure.</summary>
-    public async Task<StyleInUseDto?> DeleteStyleAsync(long id)
-    {
-        var response = await http.DeleteAsync($"api/styles/{id}");
-        return response.StatusCode == HttpStatusCode.Conflict
-            ? await ReadOrNull<StyleInUseDto>(response)
-            : null;
-    }
-
-    // ── themes ──────────────────────────────────────────────────────────────────
-    /// <summary>The theme library, newest first, each with the sample plateau it finishes.</summary>
-    public async Task<IReadOnlyList<ThemeSummary>> ThemesAsync()
-        => await GetOrDefault<List<ThemeSummary>>("api/themes") ?? [];
-
-    public Task<ThemeDetail?> ThemeAsync(long id) => GetOrDefault<ThemeDetail>($"api/themes/{id}");
-
-    public Task<ThemeDetail?> CreateThemeAsync(ThemeSaveRequest request)
-        => PostOrNull<ThemeDetail>("api/themes", request);
-
-    public Task<ThemeDetail?> UpdateThemeAsync(long id, ThemeSaveRequest request)
-        => PutOrNull<ThemeDetail>($"api/themes/{id}", request);
-
-    public Task DeleteThemeAsync(long id) => http.DeleteAsync($"api/themes/{id}");
-
-    /// <summary>What a set of bindings composes to, previewed without saving — the theme editor's live picture.</summary>
-    public Task<ThemePreviewDto?> ThemeDraftPreviewAsync(ThemeSaveRequest draft)
-        => PostOrNull<ThemePreviewDto>("api/themes/preview", draft);
-
-    /// <summary>A library theme assembled into the painter's theme JSON — what a map takes a copy of when it
-    /// applies the theme.</summary>
-    public async Task<string?> ThemeJsonAsync(long id)
-        => (await GetOrDefault<ThemeJsonResponse>($"api/themes/{id}/json"))?.ThemeJson;
-
     /// <summary>Lift a whole theme JSON into the library as one style per bucket plus a theme binding them.
     /// Returns the new theme's id, or null when the JSON was refused.</summary>
     public async Task<long?> ImportThemeAsync(string name, string themeJson)
         => (await PostOrNull<ImportedTheme>("api/themes/import", new ThemeImportRequest(name, themeJson)))?.Id;
 
-    private sealed record ThemeJsonResponse(string ThemeJson);
     private sealed record ImportedTheme(long Id);
 
     // ── plumbing ────────────────────────────────────────────────────────────────

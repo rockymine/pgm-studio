@@ -400,8 +400,10 @@ library", editing one is "Saved. Every theme binding it now paints this."
 ## Refusals
 
 **A bound row cannot be forgotten.** `DELETE /styles/{id}` answers **409** naming the themes and room styles
-still binding it, so the refusal says what would break rather than surfacing a foreign-key error. The three
-part kinds answer the same way: a roof, storey or porch a house still wears is refused.
+still binding it, so the refusal says what would break rather than surfacing a foreign-key error. It is the
+same refusal envelope every other gate answers in — `{error, message, findings}` with the names in the
+finding's `subjects` — so a caller reads one shape whatever it asked to forget. The three part kinds answer
+identically: a roof, storey or porch a house still wears is refused.
 
 **A composition can be.** Deleting a theme or a room style is unguarded — a theme's bucket bindings and a room
 style's courses cascade, and the styles they bound stay. That asymmetry is deliberate: the things something
@@ -476,7 +478,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 |---|---|
 | `GET /styles[?kind=]` · `GET /styles/{id}` | the style library, newest first, each with its card picture |
 | `POST /styles` · `PUT /styles/{id}` | save a material recipe — body `{name, kind, params}`, where `params` is the material as a **string** |
-| `DELETE /styles/{id}` | 409 `{error, themes}` when something still binds it |
+| `DELETE /styles/{id}` | 409 `{error, message, findings}` when something still binds it — the finding's `subjects` name the themes and room styles |
 | `GET /themes` · `GET /themes/{id}` | the theme library and one theme's bucket bindings |
 | `POST /themes` · `PUT /themes/{id}` | compose from existing styles — body `{name, rimEdges, …knobs, buckets[]}`, the knobs plus bucket→style bindings |
 | `POST /themes/preview` | what a set of bindings composes to, saving nothing — same body as `POST /themes` |
