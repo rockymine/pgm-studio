@@ -58,8 +58,8 @@ public static class MapFromDocuments
         // here, and this is the last point before it is built. Its complaints ride on the success the way
         // they do on the other two roads, so what is worth saying is said either way.
         var layoutJson = request.Layout.GetRawText();
-        var styles = SketchRoomStyleGate.Check(layoutJson);
-        if (styles.Refuses) return new(new Refusal(400, "invalid house style", [.. styles.Refusals]));
+        var styles = SketchMaterialGate.Check(layoutJson);
+        if (styles.Refuses) return new(new Refusal(400, "invalid style or theme", [.. styles.Refusals]));
         Complaints.Add(http, styles.Complaints);
 
         var slug = Slugs.Of(string.IsNullOrWhiteSpace(request.Slug) ? name : request.Slug!);

@@ -227,6 +227,21 @@ public static class BlockRoles
 
     public static bool IsBuilt(int blockId) => BuiltSurfaces.Contains(blockId);
 
+    /// <summary>The blocks whose whole meaning is "this is the top": grass, podzol and mycelium are a skin
+    /// over soil, and farmland is soil that has been worked. Each is exactly one course thick in the world —
+    /// what lies under one is dirt — so a block from this set written more than one course deep is ground
+    /// made of its own surface.</summary>
+    public static readonly IReadOnlySet<int> Surfacing = new HashSet<int> { 2, 60, 110, 208 };
+
+    /// <summary>Whether the block surfaces ground rather than being ground. Podzol is a data variant of dirt
+    /// (<c>3:2</c>) and is answered by <see cref="IsSurfacing(int, int)"/>, since membership by id alone
+    /// cannot tell it from the dirt under it.</summary>
+    public static bool IsSurfacing(int blockId) => Surfacing.Contains(blockId);
+
+    /// <summary>The same question of a block and its variant, which is what podzol needs.</summary>
+    public static bool IsSurfacing(int blockId, int blockData) =>
+        IsSurfacing(blockId) || (blockId == 3 && BlockVariants.Normalize(3, blockData) == 2);
+
     /// <summary>Whether the block is the terrain itself: not air, not something standing on the ground, not
     /// something built, not a liquid, and not a log — so a pass reading the natural surface steps past a
     /// building's own courses and the water over them to reach the ground underneath.</summary>

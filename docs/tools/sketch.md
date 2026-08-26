@@ -711,9 +711,14 @@ The sketch has almost no gate, and that is deliberate: an unfinished drawing is 
 tool saves it. Eight things nonetheless refuse — and beside them sits a second list, of what the document says
 that the build cannot honour, which **complains** rather than refusing because the board still builds.
 
-**Every house in a board is checked before the layout is stored.** The gate reads `roomStyles.cage`,
-`roomStyles.spawn` and the shell of every building in `dressing.props` off the document that is about to be
-written, and runs each through the same house-style gate
+**Everything the finish is made of is checked before the layout is stored** — the house styles a board binds
+and the terrain themes it registers, in one gate, because they enter together and are built together. The
+themes answer for what their own materials cannot do at the depth a bucket claims (`PT1`,
+`docs/world-export/terrain-painting.md`): a surfacing block below the course it surfaces, which is the single
+most repeated authoring mistake in this repository.
+
+**The house half** reads `roomStyles.cage`, `roomStyles.spawn` and the shell of every building in
+`dressing.props` off the document that is about to be written, and runs each through the same house-style gate
 (`docs/tools/library.md`'s Refusals, rule ids `HS1`–`HS3`) — a block named for a geometric role that is not
 that kind of block, a doorway that does not clear 2.5 blocks once its head is written in, or a roof whose own
 materials are wrong for its pitch or its family. The cage and the spawn are checked identically: a stair
@@ -727,10 +732,10 @@ rather than a reference to a library row, so the style stored here is the style 
 runs it over the merged document, and `POST /map/from-documents` over the layout it is handed. A gate wired to
 one of the three is a gate two thirds of the maps in this repository never met.
 
-Answers **400** `{error: "invalid house style", message, findings[]}` (`docs/refusals.md`), one finding per
-fault, and writes nothing. A layout with no `roomStyles` and no buildings, or one whose snapshot does not
-parse as a house style at all, is not this gate's business and saves as it always did — only a well-formed
-style that is wrong is refused.
+Answers **400** `{error: "invalid style or theme", message, findings[]}` (`docs/refusals.md`), one finding
+per fault, and writes nothing. A layout with no `roomStyles`, no buildings and no themes — or one whose
+snapshot does not parse as a house style or a theme at all — is not this gate's business and saves as it
+always did: only a well-formed style or theme that is wrong is refused.
 
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while

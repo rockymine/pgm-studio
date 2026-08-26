@@ -15,7 +15,7 @@ namespace PgmStudio.Api.Tests;
 /// <para>Runs against the <c>pgm_studio_test</c> schema, so it runs serially with the other DB suites.</para>
 /// </summary>
 [NotInParallel("api-db")]
-public sealed class SketchRoomStyleGateTests
+public sealed class SketchMaterialGateTests
 {
     /// <summary>A board whose wool cage wears a log verge — which <c>HS3</c> refuses, since a log is never a
     /// roof or a verge material.</summary>

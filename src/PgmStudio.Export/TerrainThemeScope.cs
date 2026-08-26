@@ -44,6 +44,21 @@ public static class TerrainThemeScope
             && shapeTheme.TryGetValue(shapeId, out var theme) ? theme : mapDefault;
     }
 
+    /// <summary>Every theme a layout carries, by the id it is registered under. What a gate reading the
+    /// registry walks — the same deserialization the painter does, so a theme that will not parse as one is
+    /// left out here exactly as it is dropped there.</summary>
+    public static IEnumerable<(string Id, TerrainTheme Theme)> ThemesOf(string layoutJson)
+    {
+        var layout = SketchLayout.Parse(layoutJson);
+        foreach (var (id, json) in layout?.Themes ?? new())
+        {
+            TerrainTheme theme;
+            try { theme = TerrainThemeJson.Deserialize(json.GetRawText()); }
+            catch (System.Text.Json.JsonException) { continue; }
+            yield return (id, theme);
+        }
+    }
+
     // Every layer's shapes, read through the document's one stack reader.
     private static IEnumerable<List<SketchShape>> ShapeLists(SketchLayout? layout)
         => SketchLayout.Stack(layout).Select(layer => layer.Shapes);

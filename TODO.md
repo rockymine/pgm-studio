@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Eight entries, one group, and the order is the point.** They are one review of the built maps
+**Seven entries, one group, and the order is the point.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -41,19 +41,6 @@ falls — which is the defect rather than a reason to allow it.
   *`opus5-ravensmere`: gravel + sand + dirt in one voronoi — cobble, sand and dirt families. `opus5-rimegarth`:
   snow, dirt, stone and mossy cobble over the whole surface — four. `opus5-deepcut`: white clay, quartz and
   light grey clay at a small cell — sand, bright and dirt.*
-
-- [ ] **B163 — A surface block never appears below the course it surfaces.** A `cell` is a **pick, not a
-  stack**, so the chosen block is written to every course of its depth. The rule (author): a grass course is
-  exactly one block thick and grass never appears below it — and **podzol is the same block by another name**,
-  so the check takes the whole set of surface-only blocks (grass, podzol, mycelium, path, farmland) rather
-  than grass alone. A palette holding one is invalid at any depth over one unless it is the top layer of a
-  layered stack. Checkable at the theme, before a build. `docs/world-export/terrain-painting.md`.
-
-  *author, 2026-08-14 · four maps carry the grass half, written by three models: `corvid-hollow`
-  (`rookwood`), `sable-marsh` (`sable-reeds`), `sonnet-briarlock` (`briarlock`), `tallow-weirgate`
-  (`weir-silt`). Probed at `(−55, −5)` on Corvid and `(30, −35)` on Weirgate — grass at all three courses in
-  each. The podzol half is `opus5-ravensmere` and `opus5-rimegarth`. The same map's `hollow-turf` uses
-  `layered` with grass at thickness 1 and is correct.*
 
 ### What the ground is shaped like
 

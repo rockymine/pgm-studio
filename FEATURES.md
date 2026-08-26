@@ -1115,6 +1115,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **A block that surfaces ground is never painted below the course it surfaces (B163).** A bucket carries a
+  depth and a material carries none, so a material that is a **pick** — a cell, a voronoi, a noise field —
+  writes whichever block it picked into every course the bucket claims. Grass, podzol, mycelium and farmland
+  are each one course thick and what lies under one is soil, so `PT1` refuses one in a bucket deeper than a
+  course. A `layered` material is the exception and the answer: a stack may carry a surfacing block as its
+  **top band at one course**, which is what the standard grass-over-two-dirt surface already is. Podzol is
+  answered by its variant, since it shares an id with the dirt under it.
+
+  **`TerrainThemeValidation` and the `PT` family are new**, and the gate that asks them is the one that asks
+  the house styles: `SketchRoomStyleGate` becomes **`SketchMaterialGate`**, over everything a sketch's finish
+  is made of, refusing `invalid style or theme` on all three roads to a stored layout.
+
+  *author, 2026-08-14 · `corvid-hollow` (`rookwood`), `sable-marsh` (`sable-reeds`), `sonnet-briarlock`
+  (`briarlock`), `tallow-weirgate` (`weir-silt`) — probed at `(−55, −5)` on Corvid and `(30, −35)` on
+  Weirgate, grass at all three courses in each. The podzol half is `opus5-ravensmere` and `opus5-rimegarth`.*
+
 - **A neutral family holds neutral blocks (WE40).** `TerrainPalette` filed the two mushroom blocks under
   **pale stone**, whose other members are diorite and polished diorite — so a board reaching for the pale grey
   got a yellow-tan, which is what `opus5-sandcaster` painted with. Both rows move to **sand**, the colour they

@@ -133,8 +133,8 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
 
         var bytes = await RawBody.BytesAsync(HttpContext, ct);
         var layoutJson = Encoding.UTF8.GetString(bytes);
-        var findings = SketchRoomStyleGate.Check(layoutJson);
-        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style", findings, ct)) return;
+        var findings = SketchMaterialGate.Check(layoutJson);
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid style or theme", findings, ct)) return;
 
         // The document's own gate: a board too large to realize is refused here, where it is stored, rather
         // than at the preview that would have to walk it. What it merely names and does not have rides back
@@ -216,8 +216,8 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         // find, and whether a room style came across. This road is the one an agent drives (compile, patch,
         // put), so a board whose names match nothing, or whose houses are built of the wrong blocks, is told
         // here rather than only on the road a person takes.
-        if (await Refusals.StopAsync(HttpContext, 400, "invalid house style",
-                SketchRoomStyleGate.Check(merged), ct)) return;
+        if (await Refusals.StopAsync(HttpContext, 400, "invalid style or theme",
+                SketchMaterialGate.Check(merged), ct)) return;
 
         var document = SketchLayoutCheck.Check(merged);
         if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;

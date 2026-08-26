@@ -48,7 +48,7 @@ public static class MapFindings
         if (await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { Length: > 0 } layoutBytes)
         {
             var layoutJson = Encoding.UTF8.GetString(layoutBytes);
-            findings.AddRange(SketchRoomStyleGate.Check(layoutJson));
+            findings.AddRange(SketchMaterialGate.Check(layoutJson));
             findings.AddRange(SketchLayoutCheck.Check(layoutJson));
         }
 
