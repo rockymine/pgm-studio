@@ -266,7 +266,9 @@ What a style decides is the **band**; what fills it is the stroke's **pave**, an
 `MaterialEditor` a theme bucket is. The two are independent, so a worn cobble and a solid cobble are both
 sayable, which they were not while the tiling was a mode of the stroke. A cobbled road is now a `CellMaterial`
 at a three-block patch size — the same jittered grid the old style tiled by, said in the vocabulary every other
-finish already used.
+finish already used. It resolves at the symmetry fold the painter uses (`terrain-painting.md` TP21), so the
+images of one stroke are paved alike rather than each falling where its own noise falls; the channel's bank
+below does the same. A boulder needs neither, being built in its own local frame and turned into place.
 
 Being a *fill* rather than an *outline* is what makes all five possible. An earlier cut made a stroke a
 `SketchShape` whose closed ring was rasterized as terrain, and two of these could not be expressed that way

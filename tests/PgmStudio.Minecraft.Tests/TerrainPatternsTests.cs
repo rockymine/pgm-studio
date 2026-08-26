@@ -1,3 +1,4 @@
+using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Painting;
@@ -734,6 +735,68 @@ public sealed class TerrainPatternsTests
         var spruce = new LaidLogMaterial(Blocks.Log, 1);
         await Assert.That(spruce.Resolve(new BucketContext(0, 0, 0, TerrainBucket.Wall, 0,
             PerimeterRun: GridBoundary.RunAlongX))).IsEqualTo((Blocks.Log, 1 | AlongX));
+    }
+
+    // ── the symmetry fold: a pattern samples the orbit's representative, not the cell ────────────────────
+
+    /// <summary>A 12x12 board painted with a four-colour cell pattern on its surface, mirrored about z = 6 —
+    /// so cell z pairs with cell 11 - z.</summary>
+    private static (VoxelWorld World, IReadOnlyDictionary<(int X, int Z), int> Tops) Board()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 12; x++)
+        for (var z = 0; z < 12; z++)
+            columns.Add(Seg(x, z, 1, 9));
+        var terrain = TerrainBuilder.Build(columns);
+        return (terrain.World, terrain.SurfaceTop);
+    }
+
+    private static TerrainTheme Patterned() => TerrainTheme.Default with
+    {
+        Surface = TerrainTheme.Default.Surface with
+        {
+            Material = new CellMaterial(7, 3, 40, 2, [
+                new SolidMaterial(Blocks.Wool, 0), new SolidMaterial(Blocks.Wool, 4),
+                new SolidMaterial(Blocks.Wool, 5), new SolidMaterial(Blocks.Wool, 14)]),
+        },
+    };
+
+    [Test]
+    public async Task A_pattern_painted_through_the_fold_matches_across_the_mirror()
+    {
+        var (world, tops) = Board();
+        var fold = OrbitScatter.CanonicalizerFor("mirror_z", 6, 6);
+        TerrainPainter.Paint(world, tops, Patterned(), foldAt: fold);
+
+        for (var x = 0; x < 12; x++)
+        for (var z = 0; z < 6; z++)
+            await Assert.That(world.GetBlock(x, 8, z)).IsEqualTo(world.GetBlock(x, 8, 11 - z));
+    }
+
+    [Test]
+    public async Task The_same_pattern_painted_without_the_fold_does_not()
+    {
+        // The other half of the previous test: a pattern is a function of position, so left to the world
+        // coordinate it falls where its noise falls and the two halves disagree.
+        var (world, tops) = Board();
+        TerrainPainter.Paint(world, tops, Patterned());
+
+        var mismatched = 0;
+        for (var x = 0; x < 12; x++)
+        for (var z = 0; z < 6; z++)
+            if (world.GetBlock(x, 8, z) != world.GetBlock(x, 8, 11 - z)) mismatched++;
+        await Assert.That(mismatched).IsGreaterThan(0);
+    }
+
+    [Test]
+    public async Task A_context_with_no_fold_samples_its_own_cell()
+    {
+        var plain = new BucketContext(3, 4, 5, TerrainBucket.Surface, 0);
+        await Assert.That(plain.Sample).IsEqualTo((3, 5));
+
+        var folded = plain with { Sample = (9, 1) };
+        await Assert.That(folded.Sample).IsEqualTo((9, 1));
+        await Assert.That((folded.X, folded.Z)).IsEqualTo((3, 5));   // the cell it paints is still its own
     }
 
     /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>

@@ -281,8 +281,11 @@ public static class WorldBuilder
         // TerrainThemeScope (a shape override, else the map default — docs/world-export/terrain-painting.md
         // TP10); team ownership is read through TeamTerritory — the canonical islands_json decomposition plus
         // the stored/pre-filled IslandTeams — so the tint agrees with configure.
+        // The board's symmetry, read once and used twice: the painter folds every cell into the primary image
+        // before a pattern samples it (TP21), and the dressing pass below fans each prop across the same orbit.
+        var symmetry = DressingScope.SymmetryOf(layoutJson);
         TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
-                             TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent));
+                             TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical);
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders half-buried in
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
@@ -297,7 +300,7 @@ public static class WorldBuilder
             terrain.SurfaceTop,
             DressingScope.PropsOf(layoutJson),
             DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals),
-            DressingScope.SymmetryOf(layoutJson),
+            symmetry,
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),
             terrain.SurfaceByLayer));

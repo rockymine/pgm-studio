@@ -282,8 +282,10 @@ public static class Decorator
             if (DressingPalette.IsStamp(world.GetBlock(x, top - 1, z).Id)) continue;
 
             // The pave is a full terrain material, resolved at the cell the way the painter resolves a surface,
-            // so a cobbled road is a cell pattern at a small patch size rather than a mode of the stroke.
-            var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0));
+            // so a cobbled road is a cell pattern at a small patch size rather than a mode of the stroke —
+            // sampled at the orbit's representative, so the images of one stroke are paved alike (TP21).
+            var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0)
+                { Sample = context.Symmetry.Canonical(x, z) });
             world.SetBlock(x, top - 1, z, id, data);
             if (path.Route) claims.Claim(x, z, ClaimKind.Route, path.Id);
             cells.Add((x, z));
@@ -313,7 +315,8 @@ public static class Decorator
 
         // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
         // pattern the painter offers, resolved cell by cell exactly as the painter resolves a surface.
-        (int Id, int Data) Bank(int x, int y, int z) => water.Bank.Resolve(new BucketContext(x, y, z, TerrainBucket.Surface, 0));
+        (int Id, int Data) Bank(int x, int y, int z) => water.Bank.Resolve(
+            new BucketContext(x, y, z, TerrainBucket.Surface, 0) { Sample = context.Symmetry.Canonical(x, z) });
 
         // The water first, every image: carve each bed and fill it to that image's own level line. The columns
         // it wets are remembered so the beach, which comes after, never lays sand over open water where the two

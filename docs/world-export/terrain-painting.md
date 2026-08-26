@@ -6,7 +6,7 @@ objectives onto the terrain, this pass dresses the terrain **itself**: the raw s
 becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
 world builder already placed and rewrites its surface — no new geometry, only materials.
 
-**Status: the whole model — TP1–TP15, including scoped per-shape theming (TP10) — is built and shipped.**
+**Status: the whole model — TP1–TP21, including scoped per-shape theming (TP10) — is built and shipped.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `WorldBuilder.Build`;
 the four-stage architecture of §5 is in place. A theme is resolved **per cell** through `TerrainThemeScope` (a
 sketch shape's own theme, else the map default); themes are authored in the Sketch tool's **Theme** phase and
@@ -15,7 +15,8 @@ carries a bucket's material, depth and toggle), so a theme sets the rim depth an
 independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
 be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, wall-runs that wrap the
 void-facing perimeter (TP13), those runs sheared onto the diagonal, a checkerboard laid in the face it
-paints (TP17), or that same board turning one log upright and on its side (TP20) —
+paints (TP17), or that same board turning one log upright and on its side (TP20) — every one of them sampled
+at the cell folded into the board's primary image, so a mirrored map is painted alike on both sides (TP21) —
 and the whole theme serializes to the theme JSON (`TerrainThemeJson`), the data a TP10 scope attaches to a
 shape. The model was first validated by a
 scratch prototype's figures (two real seeds — `mirror-tiny-map-cliff`, `isolated-spawn` — compiled through
@@ -512,6 +513,35 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   *which cells* are in the bucket, so TP1–TP12 (the geometry) were untouched — the one new geometric fact is the
   outer-perimeter arc (below).
 
+- **TP21** *(built)* *A pattern samples the cell folded into the board's primary image.* A pattern is a
+  function of position — a voronoi asks which site is nearest, a field asks what the noise reads — so on a
+  mirrored board a cell and its mirror ask about two different places and come out two different blocks. The
+  fault is not in any one pattern; it is in the coordinate every pattern reads. What a mirrored map claims is
+  that its halves are the same ground, and the ground includes what it is made of, so a floor pattern that
+  does not match across the axis and a middle that is not symmetric with itself are the map failing its own
+  claim.
+
+  The painter therefore hands each column a **sample point** (`BucketContext.Sample`) beside the cell it is
+  painting: the cell put through `OrbitScatter.Canonical` — the same fold the dressing pass already scatters
+  props on — which answers the one member of a symmetry orbit that stands for all of them. Every cell of an
+  orbit samples that member, so every cell of an orbit resolves to the same block; a cell on the axis is its
+  own representative and folds to itself. The fold is of the **plane** only, because no symmetry mode this
+  studio has turns the vertical: a risen pattern (TP15) samples the folded column at its own height, so a wall
+  carries the same fabric on both sides while still varying up its face.
+
+  The cell being painted is untouched — `Sample` sits beside `X`/`Z` rather than replacing them — because the
+  two are different questions. Where a block is written is a fact about the world; where its material is read
+  from is a fact about the board's symmetry, and a context built off a world with no orbit to fold into (a
+  style swatch, a house course, a board authored freeform) samples its own cell, which is the answer it had
+  before there was a fold at all. A **team-tinted** material is the one thing that must *not* fold: it reads
+  `TeamData`, which is a fact about the cell, so each side keeps its own colour under a pattern the two share.
+  The fold is taken once per column rather than once per block, since it does not depend on height.
+
+  The same point is handed to the two dressing materials resolved at world cells — a path's **pave** and a
+  water prop's **bank** — so a cobbled road is cobbled the same way on both sides. A boulder needs nothing:
+  it is built in its own local frame and turned into place, so its material was already asked in coordinates
+  its images share.
+
 ## Rule catalog
 
 | id | rule |
@@ -533,3 +563,8 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP15** | Every area pattern carries a `Rise`: the vertical period of its field in blocks, 0 for the plane. At 0 a column resolves to one block and the pattern decides only the ground; above it the field is sampled over the volume, so the wall and the fill carry the pattern too. Off by default — it is the more expensive field and a three-course surface has nothing to vary. A volume field carries its own octave statistics, so its outer stops hold. |
 | **PT1** | *A block that surfaces ground is never painted below the course it surfaces.* Grass, podzol, mycelium and farmland are each exactly one course thick in the world — what lies under one is soil — so a bucket deeper than a course filled with one writes it into every course of its depth, and the ground comes out made of its own skin. The rule is about **depth**, which is where a theme's materials and its buckets meet: a `layered` material is a stack and may carry a surfacing block as its **top band at one course**, which is what the standard grass-over-two-dirt surface is; every other kind is a **pick**, so whichever block it picks fills the whole depth and a surfacing block cannot go in one at any depth over one. The fill claims everything under the buckets above it, so a surfacing block there is buried by definition. Refused where a layout is stored, alongside the house styles (`docs/tools/sketch.md`'s Refusals); podzol is answered by its variant, since it shares an id with the dirt under it. |
 | **TP16** | `TerrainPalette` is grouped by **tone family** — the set of blocks that read as one ground with a texture — and a family is the unit a material's list is filled from: one entry per block, in the family's light-to-dark order, replacing what the list held. An author then removes the blocks that ground does not use, which is shorter than picking each one by hand. Only full cubes are named; an ore sits with its stone, planks are in where logs are out, and bedrock has no family because it is the map's floor and the shell of its walls. Where colour and use disagree the use wins — gravel is cobble, not grey stone, because it is laid at the water's edge. **A neutral family holds neutral blocks**, though: where a family's own colour is a grey every block in it has to read as one, since asking the picker for the pale grey and being handed a yellow-tan is the swatch lying about what it offers — which is why the two mushroom blocks sit with sand, whose colour they actually read as, and why a test holds every grey family to it with the two by-use exceptions named rather than derived. The same table names ground in the surface analysis, so what an author paints and what a report measures cannot drift apart — which is what makes the table's completeness load-bearing: `SurfaceReport` counts a full cube no family names as **unnamed material** and legends it magenta, so a block missing from a family reads as a fault in the board rather than as a hole in the vocabulary. Two things follow. A **data variant** of a claimed id is claimed too wherever it reads as the same ground — smooth sandstone beside sandstone, chiselled stone brick beside stone brick — and the **blocks a board's own fixtures are built of** are named, since an iron block left out put a permanent magenta speck on every board carrying an iron cube. |
+| **TP17** | The wall's stripe cycle is also read sheared and squared. `WallDiagonalMaterial` starts each course `Slope` cells further round the perimeter than the one beneath, so a stripe travels one cell along per course up at slope 1 (45° on a square-blocked face), lays flatter as the slope rises, leans the other way when it is negative, and is the vertical run again at 0 — read off world height, so two walls of unequal height meet with their diagonals in line. `CheckerMaterial` alternates two materials over squares `Size` on a side, laid **in the face it paints**: the perimeter arc and height on an outer wall, the two ground axes anywhere else, since world x and z everywhere would answer a whole column at once and come out as stripes down a wall rather than squares on it. Square indices are floored rather than truncated, so the board does not fold at the origin. |
+| **TP18** | A corner is a **turn**, not a change of direction. A wall exists only as squares, so a boundary that is not axis-aligned is drawn as steps and its direction changes at nearly every cell; the profile instead measures how far the boundary bends over a span either side (`GridBoundary.TurnAt`), which cancels the staircase and leaves curvature. Each boundary column carries that angle (`BucketContext.PerimeterTurn`) beside its arc, so a material asks one threshold and a shape drawn round reaches it nowhere. |
+| **TP19** | `WallFrameMaterial` inks the top and bottom `Thickness` courses and the corners of the shape the wall wraps, filling the panel between. `Angle` is how sharp a turn (TP18) has to be to be inked, and the same number sets how far the ink wraps round each corner, because the measured turn ramps to a vertex rather than switching on at it. A circle reaches no usable threshold, so it has no corners and the frame falls back to its two courses — a layer stack, which is the right answer for a shape with nothing to pick out. A wall too short to hold two courses is all edge. |
+| **TP20** | `LogCheckerMaterial` lays a checkerboard with **one** log and varies how it is turned rather than what it is made of: upright on one square, on its side on the next, so a single block reads as a woven board. Its own material rather than a checker over two solids, because the two squares are one block and two orientations and a log's data nibble *is* its axis. **A log on its side lies along the wall, never across it** — the axis decides which two faces are the sawn ends — so it takes the wall's own run (`BucketContext.PerimeterRun`, the third perimeter fact beside the arc and the turn); at a corner no lying log shows bark to both faces, so it stands. `LaidLogMaterial` is that pattern with one of its two squares taken away: the beam course running through the masonry everywhere. |
+| **TP21** | A pattern samples the cell **folded into the board's primary image**, not the cell itself. Every pattern is a function of position, so on a mirrored board a cell and its image sample two different places and resolve to two different blocks — a floor that does not match across the map and a middle that is not symmetric with itself. The painter fills `BucketContext.Sample` with the cell put through `OrbitScatter.Canonical`, the one member of a symmetry orbit that stands for all of them, so every image resolves alike and a cell on the axis folds to itself. The fold is of the plane only — no symmetry mode turns the vertical — so a risen pattern (TP15) samples the folded column at its own height. The cell being painted is untouched: a context with no orbit to fold into (a style swatch, a house course, a freeform board) samples its own cell. A team tint does not fold, since `TeamData` is a fact about the cell and each side keeps its colour. The same point is handed to a path's pave and a water prop's bank; a boulder needs none, being built in its own local frame and turned into place. |

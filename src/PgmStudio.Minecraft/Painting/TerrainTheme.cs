@@ -38,8 +38,31 @@ public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(Json
 /// the count runs across the treads and up the hill rather than restarting on each.</param>
 public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1)
 {
+    private readonly (int X, int Z)? sample;
+
     /// <summary>Whether the cell belongs to a team (a colour is available for a team-tinted material).</summary>
     public bool HasTeam => TeamData >= 0;
+
+    /// <summary>
+    /// Where a pattern reads its field, in the plane (TP21). A pattern is a function of position, so on a
+    /// mirrored board a cell and its image sample two different places and come out two different blocks —
+    /// which is a floor that does not match across the map and a middle that is not symmetric with itself.
+    /// The painter fills this with the cell folded into the board's <b>primary image</b>
+    /// (<see cref="PgmStudio.Geom.Algorithms.OrbitScatter.Canonical"/>), so every cell of an orbit samples the
+    /// one place and resolves to the one block; a cell on the axis folds to itself.
+    ///
+    /// <para>Unset it is the cell's own <c>(X, Z)</c>, which is the right answer for a board with no symmetry
+    /// and for every context built off a world — a style swatch, a house course — where there is no orbit to
+    /// fold into.</para>
+    ///
+    /// <para>The plane only: <see cref="Y"/> is not folded, because no symmetry mode this studio has turns
+    /// the vertical. A volume pattern therefore samples the folded column at its own height.</para>
+    /// </summary>
+    public (int X, int Z) Sample
+    {
+        get => sample ?? (X, Z);
+        init => sample = value;
+    }
 }
 
 /// <summary>

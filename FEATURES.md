@@ -1131,6 +1131,21 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **A pattern samples the cell folded into the board's primary image (WE42).** Every terrain pattern is a
+  function of position — a voronoi asks which site is nearest, a field asks what the noise reads — so on a
+  mirrored board a cell and its image sampled two different places and resolved to two different blocks: a
+  floor that did not match across the map and a middle not symmetric with itself. The painter now hands each
+  column a **sample point** (`BucketContext.Sample`), the cell put through `OrbitScatter.Canonical` — the same
+  fold the dressing pass scatters props on — so every cell of an orbit resolves alike and a cell on the axis
+  folds to itself. `TP21`.
+
+  The fold is of the **plane** only, since no symmetry mode turns the vertical: a risen pattern samples the
+  folded column at its own height. The cell being painted is untouched, so a context with no orbit to fold
+  into — a style swatch, a house course, a freeform board — samples its own cell. A **team tint** does not
+  fold: `TeamData` is a fact about the cell, and each side keeps its colour under a pattern the two share. The
+  same point is handed to a path's **pave** and a water prop's **bank**; a boulder needs none, being built in
+  its own local frame and turned into place.
+
 - **A block that surfaces ground is never painted below the course it surfaces (B163).** A bucket carries a
   depth and a material carries none, so a material that is a **pick** — a cell, a voronoi, a noise field —
   writes whichever block it picked into every course the bucket claims. Grass, podzol, mycelium and farmland

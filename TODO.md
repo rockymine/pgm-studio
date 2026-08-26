@@ -48,15 +48,6 @@ falls — which is the defect rather than a reason to allow it.
 
 ### The two halves of a mirrored board
 
-- [ ] **WE42 — A pattern samples world coordinates, so it cannot be symmetric.**
-  `VoronoiMaterial.Resolve` calls `Voronoi.NearestTwo(ctx.X, ctx.Z, …)`, and every other pattern does the
-  same, so a cell falls where the noise falls rather than where the mirror is: floor patterns do not match
-  across the board and the middle is not symmetric with itself. Give `BucketContext` a sample point the
-  painter fills by folding `(x, z)` into the primary image through **`Geom.Symmetry`** — the one canonical
-  leaf — and have the patterns read it. Team-tinted materials keep reading `TeamData`, so each side keeps its
-  colour, and a cell on the axis folds to itself. `TerrainPainter.Paint` takes the mode and centre from the
-  layout `WorldBuilder` already holds. `docs/world-export/terrain-painting.md`.
-
 - [ ] **WS16 — The mirror read compares shape and never material, because it could not.**
   `MirrorReport` states it outright: comparing blocks "would paint the whole map as a fault", since a voronoi
   cell falls where its noise falls. Once `WE42` folds the sample that stops being true, and the read can

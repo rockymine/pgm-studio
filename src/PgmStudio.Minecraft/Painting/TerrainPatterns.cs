@@ -67,12 +67,13 @@ public sealed record VoronoiMaterial(uint Seed, int CellSize, IReadOnlyList<Voro
     // How far the cell reaches past this block: the Worley F2 − F1 gap, over the plane or over the volume.
     private double Gap(in BucketContext ctx)
     {
+        var (sx, sz) = ctx.Sample;
         if (Rise <= 0)
         {
-            var (flatNear, flatFar, _, _) = Voronoi.NearestTwo(ctx.X, ctx.Z, Seed, CellSize);
+            var (flatNear, flatFar, _, _) = Voronoi.NearestTwo(sx, sz, Seed, CellSize);
             return flatFar - flatNear;
         }
-        var (near, far, _, _, _) = Voronoi.NearestTwo(ctx.X, ctx.Y, ctx.Z, Seed, CellSize, Rise);
+        var (near, far, _, _, _) = Voronoi.NearestTwo(sx, ctx.Y, sz, Seed, CellSize, Rise);
         return far - near;
     }
 
@@ -112,12 +113,13 @@ public sealed record CellMaterial(uint Seed, int CellSize, int Jitter, int Warp,
 
     private uint PlaneRegion(in BucketContext ctx)
     {
-        int x = ctx.X, z = ctx.Z;
+        var (sx, sz) = ctx.Sample;
+        int x = sx, z = sz;
         if (Warp > 0)
         {
             int period = Math.Max(2, CellSize);
-            x += Displace(PatternNoise.Value(ctx.X, ctx.Z, Seed ^ WarpX, period));
-            z += Displace(PatternNoise.Value(ctx.X, ctx.Z, Seed ^ WarpZ, period));
+            x += Displace(PatternNoise.Value(sx, sz, Seed ^ WarpX, period));
+            z += Displace(PatternNoise.Value(sx, sz, Seed ^ WarpZ, period));
         }
         var (gx, gz) = Voronoi.NearestSite(x, z, Seed, CellSize, Spread);
         return PatternNoise.Hash(gx, gz, Seed);
@@ -125,13 +127,14 @@ public sealed record CellMaterial(uint Seed, int CellSize, int Jitter, int Warp,
 
     private uint VolumeRegion(in BucketContext ctx)
     {
-        int x = ctx.X, y = ctx.Y, z = ctx.Z;
+        var (sx, sz) = ctx.Sample;
+        int x = sx, y = ctx.Y, z = sz;
         if (Warp > 0)
         {
             int period = Math.Max(2, CellSize), lift = Math.Max(2, Rise);
-            x += Displace(PatternNoise.Value(ctx.X, ctx.Y, ctx.Z, Seed ^ WarpX, period, lift));
-            y += Displace(PatternNoise.Value(ctx.X, ctx.Y, ctx.Z, Seed ^ WarpY, period, lift));
-            z += Displace(PatternNoise.Value(ctx.X, ctx.Y, ctx.Z, Seed ^ WarpZ, period, lift));
+            x += Displace(PatternNoise.Value(sx, ctx.Y, sz, Seed ^ WarpX, period, lift));
+            y += Displace(PatternNoise.Value(sx, ctx.Y, sz, Seed ^ WarpY, period, lift));
+            z += Displace(PatternNoise.Value(sx, ctx.Y, sz, Seed ^ WarpZ, period, lift));
         }
         var (gx, gy, gz) = Voronoi.NearestSite(x, y, z, Seed, CellSize, Rise, Spread);
         return PatternNoise.Hash(gx, gy, gz, Seed);
@@ -169,7 +172,8 @@ internal static class FieldPattern
         PatternNoise.NoiseShape shape, IReadOnlyList<TerrainMaterial> stops, in BucketContext ctx)
     {
         if (stops is not { Count: > 0 }) return (Blocks.Stone, 0);
-        double v = PatternNoise.Field(ctx.X, ctx.Y, ctx.Z, seed, scale, rise, octaves, shape);
+        var (sx, sz) = ctx.Sample;
+        double v = PatternNoise.Field(sx, ctx.Y, sz, seed, scale, rise, octaves, shape);
         int idx = Math.Clamp((int)(v * stops.Count), 0, stops.Count - 1);
         return stops[idx].Resolve(in ctx);
     }
@@ -363,7 +367,7 @@ public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMate
     internal static int Parity(in BucketContext ctx, int size)
     {
         var side = Math.Max(1, size);
-        var (along, up) = ctx.PerimeterArc >= 0 ? (ctx.PerimeterArc, ctx.Y) : (ctx.X, ctx.Z);
+        var (along, up) = ctx.PerimeterArc >= 0 ? (ctx.PerimeterArc, ctx.Y) : ctx.Sample;
         return (Floor(along, side) + Floor(up, side)) & 1;
     }
 
