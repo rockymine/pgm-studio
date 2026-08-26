@@ -162,8 +162,8 @@ public static class Decorator
         // prop that carves the ground — everything after it seats on what it leaves. Then paths, whose paved
         // cells become bare ground for the props above them (a route with a tree in the middle of it is not a
         // route); then buildings, which check every claim but the road's — paths are laid first and a road is
-        // meant to run to a porch or a door, so a house standing over pavement wins the ground and the path
-        // simply ends at its wall (the author's ruling). Then the big props, each an exclusion for the small
+        // meant to run to a porch or a door, so a house at the end of the pavement wins the ground and the
+        // path ends at its wall, while one the road runs past is DR-CROSS. Then the big props, each an exclusion for the small
         // ones and each keeping its own stated standoff from the road, and cover last, into whatever is left.
         var claims = new GroundClaims();
         var placed = new DressingPlacement();
@@ -199,10 +199,17 @@ public static class Decorator
             placed = placed with { WaterCells = placed.WaterCells + result.Count };
             propIndex++;
         }
+        // The ways the author drew, image by image, kept for the buildings below: a road is a way through the
+        // board and a building may end one but not cross it (DR-CROSS). Paint is not a way, so only a stroke
+        // marked a route is here.
+        var roads = new List<(string Id, IReadOnlyList<(int X, int Z)> Cells)>();
         foreach (var prop in context.Props.OfType<StrokeProp>())
         {
             var result = PlaceStroke(world, context, prop, claims);
             Cover(result, "stroke", prop.Id);
+            if (prop.Route)
+                foreach (var image in result.Images.Where(cells => cells.Count > 0))
+                    roads.Add((prop.Id, image));
             placed = placed with { PathCells = placed.PathCells + result.Count };
             propIndex++;
         }
@@ -212,7 +219,7 @@ public static class Decorator
         var ways = houses.Count > 0 ? context.Ways() : null;
         foreach (var prop in houses)
         {
-            var raised = PlaceHouse(world, context, prop, claims, declined, ways);
+            var raised = PlaceHouse(world, context, prop, claims, declined, ways, roads);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
@@ -491,7 +498,8 @@ public static class Decorator
     /// rectangles that overlap are two buildings colliding, and a building is no more owed the ground under
     /// an earlier one than a tree is owed the ground under a building. The one claim it does not check is
     /// <see cref="ClaimKind.Route"/> — strokes are laid first and a road is meant to run to a porch, so a house
-    /// over pavement stands and the road ends at its wall (the author's ruling).</para>
+    /// at the end of the pavement stands and the road ends at its wall (the author's ruling). A house the road
+    /// runs <em>past</em> is a different fault and is refused by <see cref="RouteCrossing"/>.</para>
     ///
     /// <para>What it does need is ground, and that is physics rather than policy: it seats on the
     /// <b>lowest</b> column of its own footprint, so it settles into a slope rather than standing on stilts
@@ -507,7 +515,8 @@ public static class Decorator
     /// </summary>
     private static List<PlacementClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims claims,
-        List<Finding> declined, WayThrough? ways)
+        List<Finding> declined, WayThrough? ways,
+        IReadOnlyList<(string Id, IReadOnlyList<(int X, int Z)> Cells)> roads)
     {
         var ground = context.GroundFor(house);
         if (house.Plan() is not { } plan)
@@ -616,6 +625,23 @@ public static class Decorator
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
             images.Add((image, front, floorY.Value));
+        }
+
+        // Whether a road the author drew runs on past the far wall (DR-CROSS). Per image and per road: a
+        // building and a road are both fanned, so the pair that matters is one image of each.
+        foreach (var (image, _, _) in images)
+        {
+            var footprint = ClaimedCells(image, house.Style).ToHashSet();
+            foreach (var (road, paving) in roads)
+            {
+                if (!RouteCrossing.Crosses(paving, footprint)) continue;
+                declined.Add(new Finding(DressingRules.RouteCrossed,
+                    $"building '{house.Id}' stands across the route '{road}', which carries on past its far "
+                    + "wall — the way through is now two dead ends at a building. A road ending at the "
+                    + "building is a porch and stands; this one does not end there",
+                    Severity.Decline, Subjects: [house.Id]));
+                return [];
+            }
         }
 
         // Whether the board still joins up with the whole building on it (DR-WAY). Asked once for the orbit

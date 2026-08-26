@@ -1131,6 +1131,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **A building may end a road but never stand across one (WE44).** A road runs to a porch, so a building
+  taking the ground a road covers is ordinary — the road ends at its wall and the building wins the cell. A
+  building the road carries on **past** is the other thing: what was one way through the board becomes two
+  dead ends facing a wall, and every other gate answers 200 because the ground beside it is wide and the
+  objectives still connect some other way. `RouteCrossing` tells the two apart by what is left of the paving
+  once the footprint is out of it — one run is an end, two or more a crossing — counted **before against
+  after**, so a worn road's own holes are not the building's fault, and joining any two paved cells within two
+  blocks. Only a stroke marked a **route** is a way; paint is ground. `DR-CROSS`, a decline.
+
+  *Measured over the thirty-two boards `pgm-studio-mapgen` has built: **7 of 122** buildings stand across a
+  route and 3 sit at the end of one. Live: `opus5-whinnymoor` declines `hut-w` and `hut-e` (35 and 32 paved
+  cells under them) and keeps `engine`; `opus5-rimegarth` declines `hall` (51 cells under it) and keeps
+  `solar` — which is the author's own reading of all five.*
+
 - **The CTW strait is re-read off the drawn board (TN8).** `CT12` judges the direct crossing between the two
   team islands of a two-team wool board, and it took that reading over the plan's **rectangles** — before a
   shape existed. A finish is free to move it: a shape across the gap bridges it, a quay narrows it, a fill

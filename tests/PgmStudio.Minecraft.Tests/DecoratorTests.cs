@@ -77,10 +77,10 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_house_stands_over_the_path_and_the_road_still_keeps_a_tree_off_the_route()
     {
-        // The path is laid first and a road is meant to run to a porch or a door, so a house drawn across the
-        // pavement wins the ground and the path simply ends at its wall — a band that dropped the building was
-        // the old silent decline read backwards. The band's claim still holds against the props above the buildings:
-        // a trunk in the middle of the route is refused, with the colliding cell named.
+        // The path is laid first and a road is meant to run to a porch or a door, so a house at the END of
+        // the pavement wins the ground and the path simply ends at its wall (a house the road carries on past
+        // is DR-CROSS, below). The band's claim still holds against the props above the buildings: a trunk in
+        // the middle of the route is refused, with the colliding cell named.
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
         [
@@ -91,7 +91,7 @@ public sealed class DecoratorTests
             },
             new HouseProp
             {
-                Id = "h", Wings = [new AuthoredWing([[10, 16], [18, 24]])],
+                Id = "h", Wings = [new AuthoredWing([[2, 16], [10, 24]])],
                 Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
             },
             new TreeProp { Id = "t", X = 30, Z = 20, Species = "oak", Height = 14, Seed = 5 },
@@ -110,7 +110,40 @@ public sealed class DecoratorTests
         await Assert.That(drop.Message).Contains("claimed by the route 'p'");
         // The road survives up to the wall and the house's floor owns the ground inside it.
         await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
-        await Assert.That(world.GetBlock(14, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
+        await Assert.That(world.GetBlock(6, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
+    }
+
+    [Test]
+    public async Task A_house_the_road_runs_past_is_declined_and_paint_is_not_a_road()
+    {
+        // The same road and a house in the middle of it: what was one way through the board becomes two dead
+        // ends facing a wall, so the whole building is declined (DR-CROSS). The stroke has to be a route — a
+        // band laid to change a finish is ground rather than a way, and a house on paint is a house on grass.
+        HouseProp Middle() => new()
+        {
+            Id = "h", Wings = [new AuthoredWing([[14, 16], [22, 24]])],
+            Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
+        };
+        StrokeProp Band(bool route) => new()
+        {
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = route,
+            Pave = new SolidMaterial(Blocks.Gravel),
+        };
+
+        var (paved, pavedTop) = Plateau();
+        var across = Decorator.Decorate(paved, Context(pavedTop, [Band(route: true), Middle()]));
+
+        await Assert.That(across.Houses).IsEqualTo(0);
+        var drop = across.Declines.Single(finding => finding.SubjectIds.Contains("h"));
+        await Assert.That(drop.Rule).IsEqualTo(DressingRules.RouteCrossed);
+        await Assert.That(drop.Severity).IsEqualTo(Severity.Decline);
+        await Assert.That(drop.Message).Contains("stands across the route 'p'");
+
+        var (painted, paintedTop) = Plateau();
+        var overPaint = Decorator.Decorate(painted, Context(paintedTop, [Band(route: false), Middle()]));
+
+        await Assert.That(overPaint.Houses).IsEqualTo(1);
+        await Assert.That(overPaint.Declines).IsEmpty();
     }
 
     [Test]

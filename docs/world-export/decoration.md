@@ -544,6 +544,23 @@ Passable means terrain with nothing *built* on it: a road or a channel alongside
 way past, an earlier building does not. A breach declines the whole prop with the rule id in its census
 reason, decided once for the orbit like every other refusal here.
 
+**It may end a road but never stand across one (`DR-CROSS`).** A road is meant to run to a porch or a door,
+so a building taking the ground a road covers is ordinary: the road ends at its wall and the building wins the
+cell (the author's ruling, and why a building checks every claim but `ClaimKind.Route`). A building the road
+carries on **past** is the other thing entirely — what was one way through the board becomes two dead ends
+facing a wall, and every other gate answers 200 because the ground beside it is wide and the objectives still
+connect by some other way.
+
+The two are told apart by **what is left of the paving once the footprint is out of it**: one run of road is
+an end, two or more is a crossing (`RouteCrossing`). The count is taken **before and after** rather than
+against one, because a stroke's own coverage leaves cells out — a worn road is holes by design and a
+stepping-stone crossing is nothing but holes — so what fires is the building *adding* a break. For the same
+reason two paved cells within two blocks of each other count as one run. Only a stroke the author marked a
+**route** is a way; paint laid to change a finish is ground, and a building on it is a building on grass.
+
+Measured over the thirty-two boards `pgm-studio-mapgen` has built: **7 of 122** buildings stand across a
+route, on five boards, and **3** sit at the end of one and stand.
+
 **It must not close a way the board is played along (`DR-WAY`).** `DR-PASS` is local: it asks whether there
 is ground beside the building, and a building can leave five clear blocks on every side and still cork the
 one leg the map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck.
@@ -562,10 +579,9 @@ the shortest way it does not touch is still there at the price it already cost. 
 before the first building, rather than per prop.
 
 Props **accumulate**: an admitted footprint stays out of the ground the next candidate is judged on, so two
-buildings that each leave a way and together leave none are caught at the second. What is *not* asked is the
-declared route strokes: a road is meant to run to a porch, and a house standing on pavement wins the ground
-with the path ending at its wall (the author's ruling) — so a stroke is a finish on the ground here and never
-a way in its own right.
+buildings that each leave a way and together leave none are caught at the second. The declared route strokes
+are not part of this reading — a road is judged by `DR-CROSS` above, on whether it ends at the building or
+carries on past it — so a stroke is a finish on the ground here and never a way in its own right.
 
 **It carves the slope out of its own rooms.** Seating on the lowest column means that on a hillside or a
 relief mark the higher ground runs exactly where the rooms will be — and the stamper deliberately never cuts
@@ -604,10 +620,10 @@ rebuild a map's scenery.
 **Every whole-prop decline is a `Finding`, in the shape everything else says no in.** A house whose wings
 make no building, a house whose ground something already claimed, a house with a cell of its footprint over no
 ground, with no way past it
-or standing in a door's approach or across a way the board is played along, a tree or a boulder whose site finds no ground, lands on a column the map
+or standing in a door's approach, across a drawn road or across a way the board is played along, a tree or a boulder whose site finds no ground, lands on a column the map
 keeps clear or one already claimed, or breaks its kind's road standoff — each appends one finding to
-`DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-WAY`,
-`DR-SIZE`, or
+`DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-CROSS`,
+`DR-WAY`, `DR-SIZE`, or
 the building rule that refused a plan), one sentence naming the prop, the cell and the cause, the prop's id
 as its subject, and `Severity.Complaint` — the world was built, and some of what was authored is not standing
 in it.
@@ -734,6 +750,7 @@ and lands in the same realize seam.
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
 | The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
+| A road a building stands on | the stroke's own placed cells, per orbit image | `RouteCrossing` — the runs the paving falls into with the footprint out of it, before against after | `DR-CROSS` |
 | The document itself | — | `DressingParseException` — a parse failure anywhere in the stored document names the prop and the field rather than being read as though nothing had been placed; joins the export gate as a 422 (`docs/tools/configure.md`) | `DR-DOC` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass

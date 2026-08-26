@@ -26,6 +26,21 @@ public static class DressingRules
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
     public const int PassAroundWidth = 5;
 
+    /// <summary>A building stands <b>across</b> a route: the road it covers carries on out the other side, so
+    /// what was one way through the board is now two dead ends at a wall. A road that simply <em>ends</em> at
+    /// the building is a porch and stands — that is what a road running to a door is — and the two are told
+    /// apart by what is left of the stroke once the footprint is out of it: one run of paving is an end, two
+    /// or more is a crossing. Only a stroke the author marked a <b>route</b> counts; paint laid to change a
+    /// finish is ground rather than a way.</summary>
+    /// <remarks>Move the building off the road, or redraw the road to end at its door. A house at the end of a road is a porch and is not this fault — what fires is a road that continues past the far wall, which means players walked that way and now cannot. The whole building is declined and is not in the exported world.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
+    public const string RouteCrossed = "DR-CROSS";
+
+    /// <summary>How far apart two paved cells may lie and still be one run of road, in blocks. A stroke's own
+    /// coverage leaves cells out — a worn road is holes by design — and the question here is whether the road
+    /// carries on past the building, not whether its paving is unbroken.</summary>
+    public const int RouteRunGap = 2;
+
     /// <summary>A prop closes the way between two of the places the map is played between — its spawns, its
     /// monuments, its goals — or sends that way further round than a player will go. Measured by walking the
     /// terrain between every pair of waypoints and walking it again with the prop's footprint taken out of the
