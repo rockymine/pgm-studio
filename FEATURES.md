@@ -1131,6 +1131,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **The CTW strait is re-read off the drawn board (TN8).** `CT12` judges the direct crossing between the two
+  team islands of a two-team wool board, and it took that reading over the plan's **rectangles** — before a
+  shape existed. A finish is free to move it: a shape across the gap bridges it, a quay narrows it, a fill
+  closes it, and the plan's verdict then stood over ground that no longer matched. `StraitReadback` measures
+  the same pairs again over the rasterized footprint at `SketchFinish`, against the same 15–40 band, and
+  complains with **both** numbers — what the plan put between the islands and what the drawn board does.
+
+  **The pairs come from the plan and never from the raster.** Which crossing is the strait is a fact about
+  roles and build regions that a footprint does not carry: `opus5-aerie` has six landmasses and fifteen gaps,
+  eleven of them outside the band and all of them authored water. Only a pair the plan **passed** is re-read,
+  since one already out of band is the plan's own finding.
+
+  *Live: `opus5-whinnymoor` stays quiet — the plan puts its team islands 30 blocks apart and the drawn board
+  puts them 30. A compiled 30-block strait with a rectangle drawn across it answers `the drawn board joins
+  them into one landmass`.*
+
 - **A shape drawn over ground a subtract takes away is no longer silent (TS33).** A subtract is how a board
   states its **negative space** — the void a plan's buffer pieces compile to, the hole a composed footprint
   leaves — and drawing over one said nothing either way it landed. On the same layer a plain add draws

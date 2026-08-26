@@ -263,6 +263,22 @@ shapes over whatever no generating piece covers. Islands are mirror groups: ever
 everything on-axis in `neutral`. The framing box is the extent of every terrain shape fanned across the orbit,
 one cell proud.
 
+**The strait the compile hands over is measured again once the board is drawn.** `CT12` judges the direct
+crossing between the two team islands of a two-team wool board, and it takes that reading over the plan's
+rectangles — before a shape exists. A finish is free to move it: a shape drawn across the gap bridges it, a
+quay pushed out from one shore narrows it, a fill closes it altogether, and the plan's verdict then stands
+over ground that no longer matches it. So `SketchFinish` re-reads it (`StraitReadback`): the same pairs, over
+the rasterized footprint, against the same 15–40 band, and a **complaint** carrying both numbers — what the
+plan put between the two islands and what the drawn board does.
+
+**The pairs come from the plan and never from the raster.** Which crossing is the strait is a fact about the
+board's roles and its build regions, and a rasterized footprint carries neither: `opus5-aerie` has six
+landmasses and fifteen gaps between them, of which one is a strait and the rest are authored water — so
+judging every pair against the band would report eleven faults on a board that has none. Taking the plan's own
+answer is what keeps this to the crossing `CT12` judged. Only a pair the plan **passed** is re-read, since a
+strait already out of band is the plan's own finding and saying it twice would read as two faults; and a board
+with no wool, or a symmetry that is not a mirror pair, is not this rule's to judge in the first place.
+
 Spawn-role and wool-room-role pieces are additionally emitted as **structural shapes** — locked annotation
 rectangles tagged with their role and an `intentRef` back to the entity they belong to — so a room stays
 visible in the Sketch tool instead of dissolving into the fused island. The authored image also pins its
@@ -411,7 +427,8 @@ wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before th
 outside ~15 in front of the wool room's entrance), `ST9` (a wool-room or spawn piece over 20×20 blocks),
 `BZ11` (several zones stitching one rectangular region a single zone would have drawn), `FR8` (a crossing
 turned into frontline over less than a third of the face it docks against) and `CT12` (a two-team wool
-board's direct team-island strait outside 15–40 blocks). The whole lint table now rides `/api/plan/evaluate`'s response as `lint[]` beside
+board's direct team-island strait outside 15–40 blocks — read here over the plan's rectangles, and again over
+the drawn board at the finish, *What a compile produces*). The whole lint table now rides `/api/plan/evaluate`'s response as `lint[]` beside
 the scored terms — the compile endpoint returns errors alone, so the one call an authoring loop already makes
 is where every complaint, an unplaceable iron included, becomes visible.
 

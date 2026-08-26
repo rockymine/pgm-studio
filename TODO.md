@@ -8,26 +8,16 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Six entries, one group, and the order is the point.** One of them (`WE41`) is parked on a ruling: the
-measurement is done and no candidate predicate reproduces the author's judgement, so nothing is built until
-one is chosen. They are one review of the built maps
-and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
-mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
-drains**, and anything found while working goes to `BACKLOG.md`.
+**One entry, parked on a ruling.** The group has drained: everything the author's review of the built boards
+called for is in `FEATURES.md`, and what is left is `WE41`, where the measurement is done and no candidate
+predicate reproduces the author's judgement. Nothing is built until one is chosen. The next group comes up
+from `BACKLOG.md` when it is pulled; anything found while working goes there.
 
 ## What a map is made of, read off the maps
 
 The author reviewed the boards this repository has built and ruled on what is wrong with them. The rulings
 are the map **as it is played and looked at**, so they are not derivable from the corpus or the code — they
 are recorded here as law, with the measurement that found each one beside it.
-
-Two facts shape the whole group. **A rule nobody asks is not a rule**: `HouseStyleValidation` has forbidden a
-log verge since it was written, and thirteen committed styles carry one, because the gate is wired to the one
-endpoint no authored board goes through. And **a fault the studio cannot see is a fault it teaches**: the
-mirror read compares shape and never material, on the stated grounds that a pattern falls where its noise
-falls — which is the defect rather than a reason to allow it.
-
-### The house: what it may be built of, and who asks
 
 ### Colour: one family, and the table that names it
 
@@ -45,14 +35,3 @@ falls — which is the defect rather than a reason to allow it.
   stone, mossy cobble — bright + dirt, 388. `opus5-deepcut`: white clay, quartz, light grey clay — bright,
   dirt, sand, 388, at cell size 6. Against them: `opus5-thornfell`'s `moor` spans dirt, loam and verdant at
   spread 121 and is a meadow.*
-
-### The void a plan declared
-
-- [ ] **TN8 — A strait is measured on the plan and never again.** `POST /plan/inspect` answers `islandGaps`
-  against `CT12`'s 15–40 off the plan's rectangles, before a shape has been drawn. Nothing re-measures it on
-  the rasterized board, so a finish that bridges, fills or narrows the gap leaves the plan's verdict standing
-  over ground that no longer matches it. Re-read the gap off the raster at the sketch stage and complain where
-  it has moved out of band since the plan was checked. `docs/tools/plan.md` § what it compiles to.
-
-  *The same Rimegarth pool: `CT12` passed on a strait the finish then closed. `opus5-aerie` is the case that
-  must stay quiet — its four straits are authored gaps and read the same way.*

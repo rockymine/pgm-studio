@@ -3,6 +3,7 @@ using PgmStudio.Analysis.Footprint;
 using PgmStudio.Data.Features;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
+using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
@@ -51,6 +52,15 @@ public static class SketchFinish
         // something stated to disagree with, and a board that states none of it slips between them.
         if (SketchLayoutCheck.Unfinished(stated) is { } bare)
             checkedBoard = new Findings([.. checkedBoard, bare]);
+
+        // The strait, re-read off the ground rather than off the rectangles it was checked against. Only a
+        // board drawn from a plan has one: the pairs come from the plan's own roles and build regions, which
+        // a rasterized footprint does not carry.
+        if (await artifacts.LoadAsync(mapId, ArtifactKind.PlanJson, ct) is { } planned)
+        {
+            var moved = StraitReadback.Check(PlanModel.Stated(Encoding.UTF8.GetString(planned)), layoutJson);
+            if (moved.Count > 0) checkedBoard = new Findings([.. checkedBoard, .. moved]);
+        }
 
         var cells = SketchRasterizer.RasterizeColumns(layoutJson);
         var islands = IslandDetector.Detect(cells.Select(cell => (cell.X, cell.Z)), minIslandSize: 1);

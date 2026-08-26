@@ -33,12 +33,14 @@ public static class PieceInterfaces
 
     /// <summary>Two landmasses a build region bridges, with the walk across the strait between them in
     /// blocks (a cardinal step count over the empty cells the crossing spans) and a few piece
-    /// ids naming each side so a finding can point at the board. <see cref="Direct"/> marks a crossing some
+    /// ids naming each side so a finding can point at the board. <see cref="IslandA"/>/<see cref="IslandB"/>
+    /// index the board's own islands, so a caller can reach the cells behind the names and measure the same
+    /// pair somewhere else. <see cref="Direct"/> marks a crossing some
     /// shared region carries with no third landmass in it — the strait one bridge spans, as opposed to a
     /// chain hopping stepping stones, whose per-hop distances are the gap links' to judge.</summary>
     public sealed record IslandGap(
         IReadOnlyList<string> PiecesA, IReadOnlyList<string> PiecesB, string RoleA, string RoleB,
-        int Blocks, bool Direct);
+        int Blocks, bool Direct, int IslandA, int IslandB);
 
     /// <summary>A frontline run in block units: one island's contiguous void-facing face, its width (the
     /// longer extent of its bounding box) and where it stands.</summary>
@@ -178,7 +180,8 @@ public static class PieceInterfaces
                 var keyA = string.Join(",", namesA);
                 var keyB = string.Join(",", namesB);
                 var key = string.CompareOrdinal(keyA, keyB) <= 0 ? (keyA, keyB) : (keyB, keyA);
-                var gap = new IslandGap(namesA, namesB, board.Roles[a], board.Roles[b], gapCells * board.Cell, direct);
+                var gap = new IslandGap(namesA, namesB, board.Roles[a], board.Roles[b], gapCells * board.Cell,
+                                        direct, a, b);
                 if (!gaps.TryGetValue(key, out var held)
                     || gap.Blocks < held.Blocks
                     || (gap.Blocks == held.Blocks && gap.Direct && !held.Direct))
