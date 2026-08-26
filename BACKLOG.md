@@ -334,6 +334,30 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
+- [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
+  from across the map, which means its walls are not in the tone family under its feet. Complain where a
+  building's wall material and the terrain ringing its footprint resolve to one `TerrainPalette` family, and
+  refuse an ore block as a building material outright. `docs/world-export/decoration.md`.
+
+  *9 of 50 buildings on the spec boards are walled in the ground's own family — `opus5-siderite-bowl` puts
+  three grey-stone houses on grey stone, `sonnet-gantry` two brick houses on brick.*
+
+- [ ] **WE47 — A board wears a theme per piece.** A theme is a *place* and a board has two or three; giving
+  every piece of the plan its own is the plan leaking into the paint. Complain where a layout's `themes`
+  registry carries more than three, and where a flight of steps compiled from a plan does not share one theme
+  with itself. `docs/tools/sketch.md`.
+
+  *51 boards carry a registry: 16 hold three, but 11 hold five, 7 hold six, and five hold between sixteen and
+  twenty-four — `opus5-interchange` has 24.*
+
+- [ ] **WE48 — A pattern's brush is smaller than the thing it dresses.** A field whose features are smaller
+  than what they are laid over reads as static however good its palette is. Complain under a floor on
+  `CellMaterial.CellSize` and the field patterns' `Scale`; the floor is the author's to state.
+  `docs/world-export/terrain-painting.md`.
+
+  *Medians over the committed themes: `cellSize` 6 for a cell pattern (down to 2), `scale` 8 for a noise field
+  (down to 4), `cellSize` 6 for a voronoi. Those are the numbers that produced the boards under review.*
+
 - [ ] **WE45 — `DR-PASS` measures the wrong rectangle and asks the wrong question.** Three faults, one rule.
   It measures the **wall rectangle** rather than the stamped extent, so a roof overhanging the passage is not
   counted: `opus5-rimegarth`'s `hall` has zero clear blocks on all four sides once eaves count and passes

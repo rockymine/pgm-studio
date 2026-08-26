@@ -21,17 +21,15 @@ are recorded here as law, with the measurement that found each one beside it.
 
 ### Colour: one family, and the table that names it
 
-- [~] **WE41 — A pattern that clashes, and no rule yet that names one.** The three boards the author called
-  out are real and measured; what is not settled is the predicate. **One family per pattern** is what the
-  palette's docstring says a family is for, and it fires on **157 of the 201** scatter patterns in the
-  committed themes, Thornfell's praised moor among them — a flood. **Colour spread** between the families
-  ranks Rimegarth and Deepcut top at 388 but puts `fable-r5-whitebarrow`'s all-grey scar above both at 401.
-  **A neutral family mixed with a warm one** fits the three complaints and still flags 54, including eight on
-  Thornfell and ten on Sandcaster. The measurement is in the commit that opened this; the ruling is the
-  author's, and the entry stays parked until it lands.
+- [~] **WE41 — A pattern is a family shown off rather than a ground.** The predicate the author has since
+  named is not colour distance but **how much of a family a pattern takes**: two blocks is a texture, three a
+  mottle, five a family on display. Complain where a pattern's entry list carries more than two members of one
+  `TerrainPalette` family. Beside it, two placements the author states absolutely: a **voronoi** belongs in
+  the **fill** and is made of stone — never the surface — and a **field** pattern's two blocks must be near
+  shades of one ground, so it carries a texture and never a border between two grounds.
   `docs/world-export/terrain-painting.md`.
 
-  *`opus5-ravensmere`: gravel + sand + dirt — cobble, sand, dirt, spread 293. `opus5-rimegarth`: snow, dirt,
-  stone, mossy cobble — bright + dirt, 388. `opus5-deepcut`: white clay, quartz, light grey clay — bright,
-  dirt, sand, 388, at cell size 6. Against them: `opus5-thornfell`'s `moor` spans dirt, loam and verdant at
-  spread 121 and is a meadow.*
+  *Measured over the 51 boards in `pgm-studio-mapgen/specs` that carry a theme registry: of **277 patterns**,
+  85% carry three entries or more — 51 carry five, 8 carry six or seven — and only 15% carry two. Of **50
+  voronois**, 44 are on the surface and none is in the fill. The earlier candidates (one family per pattern:
+  157/201; a neutral family mixed with a warm one: 54) are superseded.*
