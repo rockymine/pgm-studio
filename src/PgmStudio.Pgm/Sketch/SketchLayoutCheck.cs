@@ -8,10 +8,11 @@ namespace PgmStudio.Pgm.Sketch;
 /// <summary>
 /// What a sketch layout says that the build cannot honour.
 ///
-/// <para>Most of it is read from the document alone, before any ground is realized. Three findings measure
+/// <para>Most of it is read from the document alone, before any ground is realized. Four findings measure
 /// the ground the document rasterizes to instead — a stack drawn where a stack cannot go (<c>SK9</c>), two
-/// layers claiming one column's blocks (<c>SK10</c>), and a mass nothing joins to the board (<c>SK11</c>) —
-/// because none of the three is visible in what the document says, only in what it builds.</para>
+/// layers claiming one column's blocks (<c>SK10</c>), a mass nothing joins to the board (<c>SK11</c>), and a
+/// shape drawn over ground a subtract takes away (<c>SK13</c>) — because none of the four is visible in what
+/// the document says, only in what it builds.</para>
 ///
 /// <para>The rasterizer is set algebra over shapes, so a shape it cannot read contributes no ground rather
 /// than failing: a kind nobody has, a polygon of two vertices and a circle of no radius each rasterize to
@@ -117,6 +118,23 @@ public static class SketchLayoutCheck
                 + "route onto them from the rest of the board — draw the way up, or leave it if a detached "
                 + "island is what this is",
                 Severity.Complaint));
+
+        // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
+        // lands: it draws nothing, or it puts the ground back.
+        foreach (var (add, addLayer, subtract, subtractLayer, survives, cells, x, z) in
+                 SketchRasterizer.AddsOverSubtracts(layout))
+            findings.Add(new Finding(SketchRules.DrawnOverSubtraction,
+                survives
+                    ? $"'{add}' fills {cells} column(s) that '{subtract}' takes away — from ({x}, {z}) — so "
+                      + $"the negative space the board states there is ground in the world. "
+                      + (addLayer == subtractLayer
+                          ? "An override add beats a subtract on its own layer"
+                          : $"'{add}' is on layer '{addLayer}' and the subtract on '{subtractLayer}', and a "
+                            + "subtract reaches only the layer it is on")
+                    : $"'{add}' draws nothing over {cells} column(s) — from ({x}, {z}) — because '{subtract}' "
+                      + "takes them away, and a subtract beats every plain add on its layer whatever order "
+                      + "the two are written in. The shape is on the canvas and not in the world",
+                Severity.Complaint, Subjects: [add, subtract]));
 
         var mode = layout.Setup?.MirrorMode ?? "rot_180";
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;

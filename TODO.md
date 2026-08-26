@@ -48,15 +48,6 @@ falls — which is the defect rather than a reason to allow it.
 
 ### The void a plan declared
 
-- [ ] **TS33 — An authored shape may fill the ground a plan subtracted, in silence.** A plan's buffer pieces
-  compile to **subtract** shapes, which is how a board states its negative space; an `addShapes` entry drawn
-  over those cells puts the ground back and nothing says a word. Raise a complaint for an add whose cells fall
-  inside a compiled subtract, naming both shapes. `docs/tools/sketch.md` § Refusals and complaints.
-
-  *`opus5-rimegarth` composed a CTW board off the generator, walled the lanes correctly, then filled the void
-  down the middle with an ice-and-water pool. The void is what the walls guard, so the walls now guard
-  nothing, and every gate answered 200.*
-
 - [ ] **TN8 — A strait is measured on the plan and never again.** `POST /plan/inspect` answers `islandGaps`
   against `CT12`'s 15–40 off the plan's rectangles, before a shape has been drawn. Nothing re-measures it on
   the rasterized board, so a finish that bridges, fills or narrows the gap leaves the plan's verdict standing

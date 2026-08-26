@@ -108,4 +108,14 @@ public static class SketchRules
     /// <remarks>Draw the way onto it — a ramp, a shaft, a shape bridging the gap — or leave it if a detached island is what the board is. The map builds either way.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string MassUnreached = "SK11";
+
+    /// <summary>An add covers ground a subtract takes away. A subtract is how a board states its negative
+    /// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and drawing
+    /// over one is silent either way it lands. On the same layer a plain add draws nothing at all there, since
+    /// a subtract beats every plain add whatever order the two are written in, so a shape the author can see
+    /// on the canvas is not in the world. An override add, or any add on another layer, puts the ground back
+    /// instead, and the void the board declared is filled.</summary>
+    /// <remarks>Move the add off the subtracted ground, or drop the subtract if the negative space is no longer meant. Where the fill is deliberate — a slab over a composed hole — this is the sentence that says so out loud, and the board builds either way.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string DrawnOverSubtraction = "SK13";
 }

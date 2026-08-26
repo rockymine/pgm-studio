@@ -794,6 +794,21 @@ by exactly two. A smaller bound calls every stack detached — at one, `opus5-un
 over 7,766 places**, and at two the same board is one. The bound cuts both ways: a cliff a player can only
 drop off does not join its two sides.
 
+**And it complains where a shape is drawn over ground a subtract takes away.** A subtract is how a board
+states its **negative space** — the void a plan's buffer pieces compile to, the hole a composed footprint
+leaves — and a shape drawn over one is silent whichever way it lands. On the same layer a plain add draws
+**nothing at all** there, because the algebra is `((adds − subs) ∪ override-adds) − override-subs` and a
+subtract beats every plain add whatever order the two are written in: the shape is on the canvas and not in
+the world. An override add, or any add on **another layer** — a subtract reaches only the layer it is on —
+puts the ground back instead, and the void the board declared is filled. `SK13` names both shapes, which of
+the two happened, how many columns they contest and the northmost of them.
+
+**What separates that from a donut is the order.** A body and the hole cut out of it are written in that
+order — an exterior ring then its interior rings, a compiled footprint then the buffers stating its negative
+space — so a subtract *following* an add is that add's own hole and says nothing. The algebra cannot tell the
+two cases apart, being order-independent; the document can, because what the order carries is which shape the
+void belongs to. Without that reading every simplified island with a hole in it would report a fault.
+
 **And it complains about a board with no finish at all.** `SK8` rides on the success when the stored layout
 carries **no theme registry, no relief and no props** — the finding names which of the three are absent. Ground
 alone is a legitimate board, so this stops nothing; what it stops is the board shipping unremarked. Every other

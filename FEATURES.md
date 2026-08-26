@@ -1131,6 +1131,24 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **A shape drawn over ground a subtract takes away is no longer silent (TS33).** A subtract is how a board
+  states its **negative space** — the void a plan's buffer pieces compile to, the hole a composed footprint
+  leaves — and drawing over one said nothing either way it landed. On the same layer a plain add draws
+  **nothing at all**, since the algebra is `((adds − subs) ∪ override-adds) − override-subs` and a subtract
+  beats every plain add whatever order the two are written in: a shape the author can see on the canvas is
+  not in the world. An override add, or any add on **another layer** — a subtract reaches only the layer it is
+  on — puts the ground back, and the declared void is filled. `SK13` names both shapes, which of the two
+  happened, how many columns they contest and the northmost of them; a complaint, since a slab over a composed
+  hole may be exactly what was meant.
+
+  **The order is what separates a fill from a donut.** A body and the hole cut out of it are written in that
+  order, so a subtract *following* an add is that add's own hole and says nothing. The algebra cannot tell
+  them apart, being order-independent; the document can, and without that reading every simplified island with
+  a hole in it would report a fault.
+
+  *Live: a board of one rectangle, a subtract down its middle and an override add over the subtract answers
+  `'bridge' fills 320 column(s) that 'gap' takes away — from (-8, -10)`.*
+
 - **A building may not close a way the board is played along (WE43).** `DR-PASS` is local — is there ground
   beside the building — so a house can leave five clear blocks on every side and still cork the one leg the
   map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck. `WayThrough`

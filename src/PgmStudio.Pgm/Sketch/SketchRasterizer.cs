@@ -24,6 +24,13 @@ public readonly record struct StackedShapes(string Layer, string Lost, string Ke
 /// so a reader can tell a slab clipping a corner from two drawn through one another.</summary>
 public readonly record struct OverlappingLayers(string Lower, string Upper, int Courses, int X, int Z, int Cells);
 
+/// <summary>An add drawn over ground a subtract takes away, and what the algebra does with it.
+/// <see cref="Survives"/> says which of the two silences this is: false where the add draws nothing at all,
+/// true where it puts the ground back. <see cref="Cells"/> counts the columns the two contest and
+/// <see cref="X"/>/<see cref="Z"/> name the northmost of them, so the pair can be flown to.</summary>
+public readonly record struct AddOverSubtract(string Add, string AddLayer, string Subtract, string SubtractLayer,
+                                              bool Survives, int Cells, int X, int Z);
+
 /// <summary>A mass of standable ground nothing joins to the main one: how many places it holds, and the
 /// lowest-then-northmost of them, so it can be flown to and looked at.</summary>
 public readonly record struct DetachedMass(int Places, int X, int Z, int Y);
@@ -562,6 +569,55 @@ public static class SketchRasterizer
                 }
             }
         }
+        return found;
+    }
+
+    /// <summary>
+    /// Every add that covers ground a subtract takes away, whatever layer either is on. A subtract is how a
+    /// board states its <b>negative space</b> — the void a plan's buffer pieces compile to — and an add over
+    /// one is one of two silences: on the same layer a plain add draws nothing there, because the algebra is
+    /// <c>((adds − subs) ∪ override-adds) − override-subs</c> and a subtract beats every plain add whatever
+    /// order they are written in; an override add, or any add on another layer, puts the ground back instead.
+    ///
+    /// <para><b>Only an add written after the subtract.</b> A body and the hole cut out of it are drawn in
+    /// that order — an exterior ring then its interior rings, a compiled footprint then the buffers that
+    /// state its negative space — so a subtract following an add is that add's own hole and says nothing.
+    /// The algebra is order-independent and the document is not: what the order carries is which shape the
+    /// void belongs to.</para>
+    ///
+    /// <para>One entry per contesting pair, carrying which of the two happened. Role-tagged shapes are
+    /// annotations and are not in it.</para>
+    /// </summary>
+    public static List<AddOverSubtract> AddsOverSubtracts(SketchLayout? state)
+    {
+        var subtracts = new List<(string Id, string Layer, bool Override, int Index, HashSet<(int X, int Z)> Cells)>();
+        var adds = new List<(string Id, string Layer, bool Override, int Index, HashSet<(int X, int Z)> Cells)>();
+        var index = 0;
+        foreach (var layer in ResolveLayers(state))
+            foreach (var shape in layer.Shapes)
+            {
+                index++;
+                if (shape.Role is not null) continue;
+                var cells = RasterShape(shape).Select(column => (column.X, column.Z)).ToHashSet();
+                if (cells.Count == 0) continue;
+                (shape.Operation == "subtract" ? subtracts : adds)
+                    .Add((shape.Id, layer.Id!, shape.Override, index, cells));
+            }
+
+        var found = new List<AddOverSubtract>();
+        foreach (var subtract in subtracts)
+            foreach (var add in adds)
+            {
+                if (add.Index < subtract.Index) continue;
+                var shared = add.Cells.Where(subtract.Cells.Contains).ToList();
+                if (shared.Count == 0) continue;
+                // A subtract only reaches the layer it is on, so an add anywhere else is ground of its own
+                // over the hole. On one layer the override flags decide it.
+                var survives = add.Layer != subtract.Layer || (add.Override && !subtract.Override);
+                var first = shared.MinBy(cell => (cell.Z, cell.X));
+                found.Add(new AddOverSubtract(add.Id, add.Layer, subtract.Id, subtract.Layer,
+                                              survives, shared.Count, first.X, first.Z));
+            }
         return found;
     }
 
