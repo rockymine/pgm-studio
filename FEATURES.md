@@ -1131,6 +1131,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **A building may not close a way the board is played along (WE43).** `DR-PASS` is local — is there ground
+  beside the building — so a house can leave five clear blocks on every side and still cork the one leg the
+  map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck. `WayThrough`
+  walks the board instead: the shortest route over the bare terrain between every pair of the cells the map is
+  **played between** (spawns, wool rooms and monuments, destroyables, cores), then the building's whole orbit
+  taken out of the ground and every route it stood on walked again. A pair left with no route is a way closed;
+  one whose route survives more than **ten blocks** longer — `Walk.Detour`, how far out of their way a player
+  goes — is the same fault at a lesser degree. Either way the whole prop is declined, `DR-WAY`.
+
+  Props **accumulate**, so two buildings that each leave a way and together leave none are caught at the
+  second. A candidate standing on no current route is admitted without a second walk, which is what makes it
+  cheap enough to ask of every building.
+
+  *Live, on `opus5-whinnymoor` (13,200 cells, ten waypoints, forty-five pairs): all three of its houses stand —
+  the moor around them is open and no route is lengthened. A wall laid across the same board at `z = 105`
+  answers `closes the only way between (1, 100) and (47, 112)`.*
+
 - **The mirror read compares material as well as shape (WS16).** `MirrorReport` compared solid spans and
   stopped, on the grounds that a pattern falls where its noise falls — which `WE42` made untrue. The read now
   asks two questions and the picture separates them: a column that does not stand where its image stands

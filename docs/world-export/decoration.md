@@ -544,6 +544,29 @@ Passable means terrain with nothing *built* on it: a road or a channel alongside
 way past, an earlier building does not. A breach declines the whole prop with the rule id in its census
 reason, decided once for the orbit like every other refusal here.
 
+**It must not close a way the board is played along (`DR-WAY`).** `DR-PASS` is local: it asks whether there
+is ground beside the building, and a building can leave five clear blocks on every side and still cork the
+one leg the map is walked down, because the ground it corks is a hundred blocks away and shaped like a neck.
+So the board is walked. Between every pair of the cells the map is **played between** — its spawns, its wool
+rooms and monuments, its destroyables and cores — the shortest route over the bare terrain is taken once, and
+the building is then admitted to that board: its whole orbit's footprint comes out of the ground and every
+route it stood on is walked again. A pair that had a route and now has none is a way closed. A pair whose
+route survives more than **ten blocks** longer is the same fault at a lesser degree — ten is `Walk.Detour`,
+how far out of their way a player will go, so a building spending more than that has moved the route rather
+than been walked past. Either way the whole prop is declined.
+
+Three things make it cheap enough to ask of every building. The walk is over the **terrain surface**, one
+place a column, which is the ground a building is planted on and the ground a route between objectives runs
+over. A candidate standing on **no current route** changes nothing and is admitted without a second walk —
+the shortest way it does not touch is still there at the price it already cost. And the board is read once,
+before the first building, rather than per prop.
+
+Props **accumulate**: an admitted footprint stays out of the ground the next candidate is judged on, so two
+buildings that each leave a way and together leave none are caught at the second. What is *not* asked is the
+declared route strokes: a road is meant to run to a porch, and a house standing on pavement wins the ground
+with the path ending at its wall (the author's ruling) — so a stroke is a finish on the ground here and never
+a way in its own right.
+
 **It carves the slope out of its own rooms.** Seating on the lowest column means that on a hillside or a
 relief mark the higher ground runs exactly where the rooms will be — and the stamper deliberately never cuts
 terrain (air resolved out of a material is a gap left open, never a hole punched), so without a carve the
@@ -581,9 +604,10 @@ rebuild a map's scenery.
 **Every whole-prop decline is a `Finding`, in the shape everything else says no in.** A house whose wings
 make no building, a house whose ground something already claimed, a house with a cell of its footprint over no
 ground, with no way past it
-or standing in a door's approach, a tree or a boulder whose site finds no ground, lands on a column the map
+or standing in a door's approach or across a way the board is played along, a tree or a boulder whose site finds no ground, lands on a column the map
 keeps clear or one already claimed, or breaks its kind's road standoff — each appends one finding to
-`DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-SIZE`, or
+`DressingPlacement.Declined`: a rule id (`DR-KEEP`, `DR-CLAIM`, `DR-SITE`, `DR-ROAD`, `DR-PASS`, `DR-WAY`,
+`DR-SIZE`, or
 the building rule that refused a plan), one sentence naming the prop, the cell and the cause, the prop's id
 as its subject, and `Severity.Complaint` — the world was built, and some of what was authored is not standing
 in it.
@@ -709,6 +733,7 @@ and lands in the same realize seam.
 | Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
+| The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
 | The document itself | — | `DressingParseException` — a parse failure anywhere in the stored document names the prop and the field rather than being read as though nothing had been placed; joins the export gate as a 422 (`docs/tools/configure.md`) | `DR-DOC` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass
@@ -753,14 +778,16 @@ there:
 
 **`PgmStudio.Minecraft/Dressing` — the world-writing pass.** `Decorator`, sibling to `ObjectiveStamper` and
 `TerrainPainter`: it takes a `DressingContext` (the surface, the placed props, the keep-out mask and what
-each cell is held for, the symmetry) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
+each cell is held for, the symmetry, the cells the map is played between) and writes blocks via `SetBlock`. It reaches `Geom` for the algorithms and `DressingSymmetry` for
 the orbit fan. The props themselves (`StrokeProp`, `WaterProp`, `FloraProp`, `HouseProp`, `TreeProp`,
 `BoulderProp` under one `PlacedProp` discriminator) and the block palette live here beside
-`Blocks`/`BlockPalette`. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the
+`Blocks`/`BlockPalette`. `WayThrough` is here too, for the same reason: it reads `Walk` out of `Geom` and
+answers a question only the pass asks. A building's own stamper is **not** here — `HouseStamper` sits a folder up, where the
 room stampers already call it, and the pass reaches sideways to it rather than growing a second copy.
 
 **`PgmStudio.Export`** — **reading + wiring.** `DressingScope` answers the three things the pass needs from
-a map: what was placed, how the map is mirrored, and what must be left bare. Unlike `TerrainThemeScope` there
+a map: what was placed, how the map is mirrored, what must be left bare, and the cells the map is played
+between (`WaypointsOf`, `DR-WAY`). Unlike `TerrainThemeScope` there
 is no scope to resolve — a prop is not a recipe applied to a footprint, so reading it is reading a list.
 `WorldBuilder.Build` then calls `Decorator.Decorate` immediately after `TerrainPainter.Paint`.
 

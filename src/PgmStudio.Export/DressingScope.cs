@@ -106,6 +106,26 @@ public static class DressingScope
             : null;
     }
 
+    /// <summary>The cells the map is <b>played between</b>: every spawn, every wool room and its monuments,
+    /// and every destroyable and core at its anchor. What the ways through the board are measured between
+    /// (<c>DR-WAY</c>), and deliberately the same set a coverage read walks its journeys over — a corridor is
+    /// only a corridor because someone travels it, so the two must not disagree about who travels.</summary>
+    public static IReadOnlyList<(int X, int Z)> WaypointsOf(MapIntent intent)
+    {
+        var cells = new List<(int X, int Z)>();
+        void At(double x, double z) => cells.Add(((int)Math.Floor(x), (int)Math.Floor(z)));
+
+        foreach (var spawn in intent.Spawns) At(spawn.Point.X, spawn.Point.Z);
+        foreach (var wool in intent.Wools ?? [])
+        {
+            At(wool.Spawn.X, wool.Spawn.Z);
+            foreach (var monument in wool.Monuments) At(monument.Location.X, monument.Location.Z);
+        }
+        foreach (var destroyable in intent.Destroyables ?? []) At(destroyable.Anchor.X, destroyable.Anchor.Z);
+        foreach (var core in intent.Cores ?? []) At(core.Anchor.X, core.Anchor.Z);
+        return [.. cells.Distinct()];
+    }
+
     /// <summary>How far cover must stay off a goal, beyond the ground the structure itself covers. An
     /// objective is the one thing on a map that wants its approach legible — a defender needs to see what is
     /// coming and an attacker needs to pay something visible for arriving — so the clearance is what makes the

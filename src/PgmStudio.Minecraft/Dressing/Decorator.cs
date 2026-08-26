@@ -48,7 +48,8 @@ public sealed record DressingContext(
     DressingSymmetry Symmetry,
     Func<int, int, bool>? IsGoalGround = null,
     Func<int, int, bool>? IsGoalClearance = null,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null)
+    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? SurfaceByLayer = null,
+    IReadOnlyList<(int X, int Z)>? Waypoints = null)
 {
     public DressingContext(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, IReadOnlyList<PlacedProp> props)
         : this(surfaceTop, props, (_, _) => null, DressingSymmetry.None) { }
@@ -76,6 +77,11 @@ public sealed record DressingContext(
 
     /// <summary>Whether a placed prop may rest on a cell — false inside a goal's clearance.</summary>
     public bool AllowsProp(int x, int z) => IsGoalClearance is null || !IsGoalClearance(x, z);
+
+    /// <summary>The board's ways between its waypoints, read once and then held as props are admitted to it
+    /// (<see cref="WayThrough"/>). Null where the caller named no waypoints — a preview, a fixture — which is
+    /// a board with nothing to close.</summary>
+    public WayThrough? Ways() => Waypoints is { Count: > 1 } points ? WayThrough.Of(SurfaceTop, points) : null;
 }
 
 /// <summary>
@@ -200,9 +206,13 @@ public static class Decorator
             placed = placed with { PathCells = placed.PathCells + result.Count };
             propIndex++;
         }
-        foreach (var prop in context.Props.OfType<HouseProp>())
+        // The ways the board is played along, read off the bare terrain and then held as each building is
+        // admitted to it. Read only where there is a building to judge, since it walks every waypoint pair.
+        var houses = context.Props.OfType<HouseProp>().ToList();
+        var ways = houses.Count > 0 ? context.Ways() : null;
+        foreach (var prop in houses)
         {
-            var raised = PlaceHouse(world, context, prop, claims, declined);
+            var raised = PlaceHouse(world, context, prop, claims, declined, ways);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
@@ -497,7 +507,7 @@ public static class Decorator
     /// </summary>
     private static List<PlacementClaim> PlaceHouse(
         VoxelWorld world, DressingContext context, HouseProp house, GroundClaims claims,
-        List<Finding> declined)
+        List<Finding> declined, WayThrough? ways)
     {
         var ground = context.GroundFor(house);
         if (house.Plan() is not { } plan)
@@ -606,6 +616,19 @@ public static class Decorator
 
             var front = house.Front is { } edge ? context.Symmetry.TurnEdge(edge, k) : (RoomEdge?)null;
             images.Add((image, front, floorY.Value));
+        }
+
+        // Whether the board still joins up with the whole building on it (DR-WAY). Asked once for the orbit
+        // rather than once per image, because a route round the far side of the map is closed by the images
+        // together and by no one of them: the ground taken is what every image stamps.
+        if (ways is { HasRoutes: true })
+        {
+            var footprint = images.SelectMany(seated => ClaimedCells(seated.Plan, house.Style)).Distinct().ToList();
+            if (ways.Admit(house.Id, footprint) is { } closed)
+            {
+                declined.Add(closed);
+                return [];
+            }
         }
 
         var raised = new List<PlacementClaim>(images.Count);

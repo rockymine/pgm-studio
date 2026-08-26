@@ -303,7 +303,8 @@ public static class WorldBuilder
             symmetry,
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),
-            terrain.SurfaceByLayer));
+            terrain.SurfaceByLayer,
+            DressingScope.WaypointsOf(goals)));
         // A dressing-placed building is a structure the author chose, not scenery the way a tree or a boulder
         // is (docs/world-export/decoration.md) — its footprint claims Structure last, over whatever ground
         // provenance the terrain under it carried, the same "later pass wins" rule every stamp above follows.

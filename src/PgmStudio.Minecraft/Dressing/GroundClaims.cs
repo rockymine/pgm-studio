@@ -26,6 +26,17 @@ public static class DressingRules
     /// <summary>The passage's width in blocks — <see cref="PassAround"/>'s one number.</summary>
     public const int PassAroundWidth = 5;
 
+    /// <summary>A prop closes the way between two of the places the map is played between — its spawns, its
+    /// monuments, its goals — or sends that way further round than a player will go. Measured by walking the
+    /// terrain between every pair of waypoints and walking it again with the prop's footprint taken out of the
+    /// ground: a pair that had a route and now has none is a way closed, and a route surviving more than ten
+    /// blocks longer is the same fault at a lesser degree, ten being how far out of their way a player goes.
+    /// Props accumulate, so two buildings that each leave a way and together leave none are caught at the
+    /// second.</summary>
+    /// <remarks>Move the prop off the corridor the finding names, or open another way between those two points. This is the corridor the board was drawn to have rather than a stroke somebody drew on it, so a standoff to a road cannot answer it — a building across a leg with no road on it passes every other test on the board. The whole prop is declined and is not in the exported world.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Feature, RuleConcern.Terrain)]
+    public const string WayThrough = "DR-WAY";
+
     /// <summary>A building's box is smaller than 5×5 blocks: a footprint four blocks deep is a wall with a
     /// roof, not a building anyone enters, and a corpus run produced eight of fourteen that way. Measured on
     /// the plan's bounding box, so a multi-wing building is judged as the one building it is.</summary>

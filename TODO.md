@@ -46,18 +46,6 @@ falls — which is the defect rather than a reason to allow it.
   dirt, sand, 388, at cell size 6. Against them: `opus5-thornfell`'s `moor` spans dirt, loam and verdant at
   spread 121 and is a meadow.*
 
-### Where a thing may stand
-
-- [ ] **WE43 — A building may close the only way through and nothing asks.** `DR-ROAD` measures a prop's
-  standoff to a **declared** route stroke; a building dropped across a corridor nobody drew a stroke on passes
-  every gate on the board. Walk the ground with the props and without them — `WorldWalk` and `Walk.Components`
-  already do it, and coverage already walks every waypoint pair — and decline a prop that disconnects a pair
-  or lifts a route's cost past a stated margin. `docs/world-export/decoration.md`.
-
-  *`opus5-whinnymoor` and `opus5-rimegarth` both stand houses across the paths through the map. Both exported
-  with the gate open, the mirror clean and traversability whole, because traversability asks whether the
-  objectives connect and never whether the way between them is the one the board was drawn to have.*
-
 ### The void a plan declared
 
 - [ ] **TS33 — An authored shape may fill the ground a plan subtracted, in silence.** A plan's buffer pieces
