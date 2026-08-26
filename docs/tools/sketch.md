@@ -678,7 +678,7 @@ each:
               "fernShare": 0.25, "flowerShare": 0.18, "flowerScale": 18, "tallShare": 0 } },
   { "id": "d4", "kind": "house", "seed": 4, "points": [[-22, -16], [-14, -8]],
     "front": "negZ", "style": {} },
-  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2,
+  { "id": "d5", "kind": "tree", "seed": 5, "x": -32, "z": 2, "layer": "ground",
     "form": "template", "species": "birch", "height": 12 },
   { "id": "d6", "kind": "boulder", "seed": 6, "x": -8, "z": 14,
     "form": "cairn", "size": 3, "mossy": true,
@@ -691,6 +691,17 @@ The three geometries are visible in the shape of the entries: a marker carries `
 opposite corners of its rectangle. `pave`, `bank` and `rock` are full terrain materials, so any of the
 fourteen kinds in `library.md` may stand there; a building's `style` is a `HouseStyle` snapshot, and `{}`
 means the built-in shell.
+
+**On a stacked board a prop says which storey it rests on.** Every entry takes an optional `layer` — the id of
+the layer whose surface it sits on, as the tree above states it. Naming none keeps the top surface, which is
+where a flat board's props all are and where everything authored before the stack landed stays.
+`DressingContext.GroundFor` answers that layer's own surfaces, and it is the same storey reading
+`BuiltTerrain.SurfaceFor` gives a stamped thing, so a prop and a monument on one floor cannot disagree about
+where that floor is. Naming a layer the board has no ground at is **declined** (`DR-LAYER`) rather than seated
+on the top, because the top is exactly the storey the author was saying they did not mean. `decoration.md`
+carries the pass itself. The Dressing phase cannot state it — the layer rail renders only in Draw, so a prop
+placed in the browser always takes the top surface and a `layer` set over the API survives an edit unshown
+(`B263`).
 
 **Every word above is written in camelCase, and that is the canonical form** — what `POST .../sketch/finish`
 and the export always write back, and the form every example in this document is in. The reader is more

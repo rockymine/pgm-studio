@@ -640,40 +640,6 @@ one of them opens the others.
 
 **Authoring — what a style can say, and what a library shows back.**
 
-- [ ] **B221 — The style libraries preview a stamped world, and a part editor frames a section of it.**
-  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
-  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
-  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
-  rather than a stamp of a fixed 10×10 sample. Authoring a **part** — `RoofStyle`, `Storey`, `PorchStyle`,
-  `Foundation`, each a record of its own — wants a **section** through that world at the part, because the
-  part is currently lost inside the whole: `RoomStylePreview.Views` takes `Outer(style)`, the entire shell,
-  whichever of the three part libraries is open, and nothing on that path asks which part is being edited.
-
-  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
-  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
-  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
-  isolated part synthesises the context that decides its geometry anyway.
-
-  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
-  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
-  air.*
-
-- [~] **B70 — The room-style *card* cannot show a porch or a window.** The open editor draws four views now
-  (B71), the cutaway among them, so a style's porch and its windows read there. A library **card** still
-  carries the section alone, and a section projected onto the front wall shows a window as a patch of the same
-  colour as the wall around it. The sample is the other half: `RoomStylePreview` stamps the shipped 10×10
-  piece's 8×8 shell, which is small enough that a porch leaves little room behind it. The library therefore
-  still has knobs whose *card* does not change when they are turned, which is the one thing the preview exists
-  to prevent. Wants a larger sample footprint, and a card that is not the one view those knobs are invisible in.
-
-  **And one footprint is the wrong number, not merely a small one.** `Sample` is a single `static readonly`
-  field, so every style in the library is judged at 10×10 and at no other proportion — while a style states
-  nothing about the footprint it will be stamped over, only storey heights and a roof's pitch. That would be a
-  gap even if the shapes agreed, and they do not: `Wing.RidgeAlongX` derives the ridge from the rectangle's own
-  proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched, and an
-  author has no way to see the second. So the sample wants to be a parameter with a few proportions behind it —
-  square, long, narrow — rather than one bigger square.
-
 - [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
   (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it
   (`docs/world-export/structures.md` §9). The export reads all three and the stampers have always accepted
@@ -1346,14 +1312,6 @@ time — its hypothesis, that an earlier spec breaks the stored plan, is disprov
   Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
   slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
   data is wrong, and both orders are deterministic.
-
-- [ ] **B47 — The library has no search, and the sketch's theme names are its own.** Two small gaps the
-  library page left open, worth doing once it has enough rows to hurt. The style browser filters by kind but
-  not by name, so a library of forty styles is a scroll; the theme half has no filter at all. And a theme
-  pulled into a sketch takes the library's name as its sketch-side id, which the bridge uniquifies — pull the
-  same theme twice and the second is `meadow-2` with nothing saying they are the same theme. A name search box
-  on both halves, and a note on the pulled theme recording where it came from (which slots into B44's
-  snapshot record rather than duplicating it).
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
