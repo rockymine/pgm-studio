@@ -1115,6 +1115,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **A neutral family holds neutral blocks (WE40).** `TerrainPalette` filed the two mushroom blocks under
+  **pale stone**, whose other members are diorite and polished diorite — so a board reaching for the pale grey
+  got a yellow-tan, which is what `opus5-sandcaster` painted with. Both rows move to **sand**, the colour they
+  actually read as. A test keeps it true, measuring **warmth** — the spread between a colour's highest and
+  lowest channel — rather than distance to the family's average, which does not see it: brown mushroom spends
+  42 on its channels and only 42 from pale stone's own colour, well inside what an ordinary member spends.
+  The two by-use exceptions the palette's docstring already names (an ore with its stone, gravel and mossy by
+  where they are laid) are allowed by name rather than by rule.
+
 - **A foundation seals the ground a cell has, and says when its neighbour has none (WE31).**
   `StampFoundation` filled bedrock from `y 0` to the footprint's highest surface, so on a board whose land
   floats every stamped room hung a pillar into open sky — `opus5-aerie` at `(20, 28)` carried bedrock from y0

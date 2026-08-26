@@ -84,6 +84,44 @@ public sealed class TerrainPaletteTests
         }
     }
 
+    /// <summary>A family whose own colour is a grey holds blocks that read as one. A warm block among neutrals
+    /// is a block an author cannot reach for: asking the picker for the pale grey and getting a yellow-tan is
+    /// the swatch lying about what it offers, which is what `opus5-sandcaster` painted with when the two
+    /// mushroom blocks sat in pale stone.
+    ///
+    /// <para>Measured as <b>warmth</b> — the spread between a colour's highest and lowest channel — because
+    /// distance to the family's average does not see it: brown mushroom is 42 apart on its channels and only
+    /// 42 from pale stone's own colour, which is inside what an ordinary member spends. Two exceptions the
+    /// palette's docstring already names are allowed by name rather than by rule: an ore sits with the stone
+    /// it is embedded in, and gravel and mossy cobble go by use.</para></summary>
+    [Test]
+    public async Task A_neutral_family_holds_no_warm_block()
+    {
+        // What the family's own colour has to spend before it stops being a grey, and what a block in one may.
+        const int NeutralFamily = 8, WarmestMember = 25;
+        var byUse = new HashSet<(int, int)> { (15, 0), (16, 0), (13, 0), (48, 0), (98, 1) };
+
+        static int Warmth(string hex)
+        {
+            var value = Convert.ToInt32(hex.TrimStart('#'), 16);
+            int red = (value >> 16) & 255, green = (value >> 8) & 255, blue = value & 255;
+            return Math.Max(red, Math.Max(green, blue)) - Math.Min(red, Math.Min(green, blue));
+        }
+
+        foreach (var family in TerrainPalette.Families)
+        {
+            if (Warmth(family.Hex) > NeutralFamily) continue;      // a family that is a colour, not a grey
+            foreach (var block in family.Blocks)
+            {
+                if (byUse.Contains((block.Id, block.Data))) continue;
+                await Assert.That(Warmth(block.Hex))
+                    .IsLessThanOrEqualTo(WarmestMember)
+                    .Because($"{block.Name} ({block.Id}:{block.Data}, {block.Hex}) is warm and "
+                             + $"{family.Name} ({family.Hex}) is a grey");
+            }
+        }
+    }
+
     [Test]
     public async Task No_block_belongs_to_two_families()
     {
@@ -142,7 +180,7 @@ public sealed class TerrainPaletteTests
         await Assert.That(TerrainPalette.FamilyOf(24, 2)).IsEqualTo("sand");        // smooth sandstone, beside 24:0
         await Assert.That(TerrainPalette.FamilyOf(98, 1)).IsEqualTo("cobble");      // mossy stone brick, beside 48:0
         await Assert.That(TerrainPalette.FamilyOf(98, 3)).IsEqualTo("grey stone");  // chiselled stone brick, beside 98:0
-        await Assert.That(TerrainPalette.FamilyOf(99, 0)).IsEqualTo("pale stone");  // mushroom pores, beside 99:15
+        await Assert.That(TerrainPalette.FamilyOf(99, 0)).IsEqualTo("sand");        // mushroom pores, a warm tan
         await Assert.That(TerrainPalette.FamilyOf(42, 0)).IsEqualTo("ash");         // iron block
     }
 

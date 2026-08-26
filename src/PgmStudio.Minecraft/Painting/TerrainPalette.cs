@@ -39,6 +39,11 @@ public readonly record struct PaintFamily(string Name, int Rgb, IReadOnlyList<Pa
 /// is the map's floor and the shell of its walls, the one block that means the world ends here, so offering it
 /// as a grey would invite a boundary into terrain.</para>
 ///
+/// <para><b>A neutral family holds neutral blocks.</b> Where a family's own colour is a grey — pale stone,
+/// ash, grey stone — every block in it reads as one, and a warm block among them is a block an author cannot
+/// reach for: asking for the pale grey and getting a yellow-tan is the picker lying about what it offers. The
+/// two mushroom blocks are warm and sit with sand, whose colour they actually read as.</para>
+///
 /// <para><b>A family is a use as much as a colour, and where the two disagree the use wins.</b> Gravel reads
 /// grey enough to sit with stone, but it is laid where cobble is laid — the low, wet ground at a water's edge —
 /// and grouping it by colour buries that: with gravel and mossy cobble in the cobble family the two stone
@@ -71,9 +76,9 @@ public static class TerrainPalette
         ("dirt",      0x8A6743, [(5, 0), (5, 3), (159, 8), (3, 0), (3, 1), (5, 1)]),
         ("brick",     0x9A6250, [(1, 1), (1, 2), (45, 0), (172, 0), (159, 6)]),
         ("rust",      0xA85A28, [(5, 4), (159, 1), (12, 1), (179, 0), (181, 8), (159, 14)]),
-        ("sand",      0xD6C894, [(12, 0), (5, 2), (159, 0), (24, 0), (24, 2), (43, 9), (121, 0)]),
+        ("sand",      0xD6C894, [(12, 0), (5, 2), (159, 0), (24, 0), (24, 2), (43, 9), (121, 0), (99, 15), (99, 0)]),
         ("gold",      0xC6A62F, [(35, 4), (19, 0), (19, 1), (103, 0), (159, 4), (170, 0)]),
-        ("pale stone",0xB4B2AE, [(1, 3), (1, 4), (99, 0), (99, 15)]),
+        ("pale stone",0xB4B2AE, [(1, 3), (1, 4)]),
         ("ash",       0x9DA0A0, [(35, 8), (42, 0), (82, 0), (43, 8), (43, 0)]),
         ("grey stone",0x7C817A, [(1, 0), (1, 5), (1, 6), (98, 0), (98, 3), (15, 0), (16, 0)]),
         ("cobble",    0x767B72, [(13, 0), (4, 0), (98, 2), (98, 1), (48, 0)]),

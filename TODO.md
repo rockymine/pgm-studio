@@ -8,7 +8,7 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Nine entries, one group, and the order is the point.** They are one review of the built maps
+**Eight entries, one group, and the order is the point.** They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -28,18 +28,6 @@ falls — which is the defect rather than a reason to allow it.
 ### The house: what it may be built of, and who asks
 
 ### Colour: one family, and the table that names it
-
-- [ ] **WE40 — The two mushroom blocks are filed under a family of neutral greys.** `TerrainPalette.Grouped`
-  puts `99:0` and `99:15` in **pale stone**, whose other members are diorite and polished diorite. They are
-  warm and the family is not, so a board reaching for "the pale grey" gets a yellow-tan — which is what
-  `opus5-sandcaster` painted with. Move both rows to **sand**. Then keep it true: a test that a block's own
-  swatch is not a warmth outlier inside a neutral family, with the two deliberate exceptions the docstring
-  already names (an ore sits with its stone; gravel and mossy go by use).
-  `docs/world-export/terrain-painting.md` § the families.
-
-  *Warmth (max−min channel) inside pale stone: diorite `#acacae` 2, polished diorite `#b7b7b9` 2, **brown
-  mushroom `#bfaf95` 42, mushroom stem `#cbc4ab` 32**. `99:15` is already closer to sand (39) than to pale
-  stone (53) on the family's own colour.*
 
 - [ ] **WE41 — A pattern is filled from one family, and nothing says so.** The palette's own docstring states
   it — "a family is the unit a pattern's stops, bands or patches are filled from" — and `MaterialRecipes`
