@@ -2209,6 +2209,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/themes/{id}/json` reassembles a library theme back into the exact painter JSON, and `POST
   /api/themes/import` lifts a whole theme JSON in as one style per bucket + a theme binding them (400, never 500,
   on malformed JSON). Import-then-compose is byte-for-byte identity, proven end-to-end through the real database.
+- **The library is a tool, so it is shaped like one — a rail, a chooser, a browse page and an editor page
+  (TL3, B254, B255, B256).** Six kinds on the activity rail every other tool already carries — styles, themes,
+  roofs, storeys, porches, houses — which splits the old Parts tab into the three libraries it hid behind a
+  select. `/library` chooses between them as cards over live counts; `/library/{kind}` browses one, with a
+  name search, the kind's own filters and **New** in a strip over a full-width grid; `/library/{kind}/{id}`
+  (or `/new`) opens one entry as the studio's own three-pane workspace — the document as an outline, the
+  preview across the middle, and the picked row's fields in the inspector. A material's nest **is** the
+  outline, indented by depth, so a five-entry pattern is five rows rather than five boxes inside one another;
+  `MaterialEditor` draws one level at a time for it. One browse shell, one editor frame and one load/save
+  state machine serve all six where four copies stood.
 - **The library is a page you author in, and the sketch draws from it (B44).** `/library` is the studio's
   fourth entry point, on the shape catalog's browse layout (a filter rail, a grid of pictures, a rail for the
   one you picked — now one `lib-*` namespace both pages share). Its **Styles** half filters by kind, starts one

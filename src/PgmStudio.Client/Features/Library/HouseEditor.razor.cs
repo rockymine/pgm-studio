@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
@@ -7,29 +6,32 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Client.Features.Library;
 
 /// <summary>
-/// The library's room half (G34b): a room style is composed, not drawn — each part of the shell takes an
-/// ordered stack of saved styles, plus the knobs that are not materials at all. The draft it edits is the
-/// <see cref="RoomStyleSaveRequest"/> itself, so what is previewed and what is saved are the same value and
-/// the picture cannot promise a shell the save would not build.
+/// Composes one whole building. Each part of the shell takes an ordered stack of saved styles, plus the knobs
+/// that are not materials at all. The draft it edits is the <see cref="RoomStyleSaveRequest"/> itself, so what
+/// is previewed and what is saved are the same value and the picture cannot promise a shell the save would not
+/// build.
 ///
 /// <para>A part with no courses is one the style does not override: it keeps the built-in finish, the way an
 /// unbound theme bucket does. That is what makes the library worth having for a style that only changes its
 /// roof.</para>
 /// </summary>
-public partial class RoomStyleComposer
+public partial class HouseEditor
 {
-    [Inject] public TerrainLibraryClient Library { get; set; } = default!;
-    [Inject] public IJSRuntime JS { get; set; } = default!;
+    [Parameter, EditorRequired] public string Entry { get; set; } = "";
+    [Parameter] public EventCallback<string?> OnSaved { get; set; }
+    [Parameter] public EventCallback<string> OnName { get; set; }
 
-    // Every edit renders fresh <i data-lucide> nodes, and lucide only processes what exists when it runs.
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+    /// <summary>The outline rows that are not one of the shell's own parts.</summary>
+    private const string ComposedPart = "composed";
+    private const string TrimPart = "trim";
+    private const string PorchPart = "porch";
+    private const string DoorPart = "door";
 
-    private IReadOnlyList<RoomStyleSummary> rooms = [];
     private IReadOnlyList<StyleDto> styles = [];
     private IReadOnlyList<DoorOptionDto> doors = [];
 
-    // The parts this house may be composed from (B71). Names and ids only: the rail binds one by picking it,
-    // and what it looks like is the picture the Parts tab already draws.
+    // The parts this house may be composed from. Names and ids only: the editor binds one by picking it, and
+    // what it looks like is the picture that part's own library draws.
     private IReadOnlyList<RoofStyleSummary> roofs = [];
     private IReadOnlyList<StoreyStyleSummary> storeys = [];
     private IReadOnlyList<PorchStyleSummary> porches = [];
@@ -39,45 +41,109 @@ public partial class RoomStyleComposer
     /// slab fills — and a material would resolve that from where the cell sits.</summary>
     private IReadOnlyList<PaintBlockDto> blocks = [];
 
-    private bool loading = true;
-    private string? note;
-
-    /// <summary>Whether the "?" beside the rail's title is showing what the pinned sample is.</summary>
-    private bool figureHelp;
-
-    /// <summary>The room style open in the rail, or null when nothing is. Null id = not in the library yet.</summary>
     private RoomStyleSaveRequest? draft;
     private long? editingId;
     private string draftName = "";
+    private string selected = ComposedPart;
+    private string? note;
     private RoomStylePreviewDto? preview;
 
     private IEnumerable<IGrouping<string, StyleDto>> StylesByKind => styles.GroupBy(style => style.Kind);
 
     private StyleDto? StyleOf(long id) => styles.FirstOrDefault(style => style.Id == id);
 
+    /// <summary>The shell part the outline has picked, or null when it has picked a row that is not one.</summary>
+    private RoomPartInfo? Piece => RoomPartInfo.All.FirstOrDefault(part => part.Id == selected);
+
+    private IReadOnlyList<EditorPart> Outline
+    {
+        get
+        {
+            if (draft is null) return [];
+            List<EditorPart> rows =
+            [
+                new(ComposedPart, "Composed from", "blocks", Badge: BoundParts),
+                .. RoomPartInfo.All.Select(part => new EditorPart(
+                    part.Id, part.Title, "layers", Badge: PartBadge(part))),
+                new(TrimPart, "Frame and trim", "dot", Badge: TrimBadge),
+                new(PorchPart, "Porch", "door-open",
+                    Badge: draft.Porch is null ? "none" : PorchEdges.Canonical(draft.Porch.Edge)),
+                new(DoorPart, "Doorway", "door-open", Badge: draft.Door),
+            ];
+            return rows;
+        }
+    }
+
+    private string BoundParts
+    {
+        get
+        {
+            var bound = (draft!.RoofStyleId is not null ? 1 : 0) + (draft.PorchStyleId is not null ? 1 : 0)
+                + (draft.StoreyStack.Count > 0 ? 1 : 0);
+            return bound == 0 ? "own" : $"{bound} bound";
+        }
+    }
+
+    private string PartBadge(RoomPartInfo part)
+    {
+        if (!part.Stacked) return StyleOf(Single(part.Id))?.Name ?? "built-in";
+        var count = Courses(part.Id).Count;
+        return count == 0 ? "built-in" : $"{count} course{(count == 1 ? "" : "s")}";
+    }
+
+    private string TrimBadge
+    {
+        get
+        {
+            var bound = RoomPartInfo.Trim.Count(part => Single(part.Id) > 0);
+            return bound == 0 ? "plain" : $"{bound} bound";
+        }
+    }
+
+    private string Footnote => draft is null
+        ? ""
+        : $"{draft.Storeys} storey{(draft.Storeys == 1 ? "" : "s")} · {RoofForms.Canonical(draft.RoofForm)} roof"
+          + $" · door {draft.DoorHeight} tall";
+
     protected override async Task OnInitializedAsync()
     {
         doors = await Library.RoomDoorsAsync();
         blocks = await Library.BlocksAsync();
-        await Reload();
-    }
-
-    private async Task Reload()
-    {
-        loading = true;
-        rooms = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
         roofs = await Library.ListAsync<RoofStyleSummary>(LibraryKinds.Roofs);
         storeys = await Library.ListAsync<StoreyStyleSummary>(LibraryKinds.Storeys);
         porches = await Library.ListAsync<PorchStyleSummary>(LibraryKinds.Porches);
-        loading = false;
-        StateHasChanged();
     }
 
+    /// <summary>What the draft was loaded for. A parameter set that does not move the route is the host
+    /// re-rendering — reloading there would re-read the row, report the name back up, and re-render the host
+    /// again.</summary>
+    private string? loaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loaded == Entry) return;
+        loaded = Entry;
+        note = null;
+        selected = ComposedPart;
+        if (long.TryParse(Entry, out var id)) await Load(id);
+        else StartNew();
+        await OnName.InvokeAsync(draftName);
+        await Preview();
+    }
+
+    private async Task SetName(string name)
+    {
+        draftName = name;
+        await OnName.InvokeAsync(name);
+    }
+
+    private void Pick(string part) => selected = part;
+
     // ── the draft ──────────────────────────────────────────────────────────────────────────────────
-    /// <summary>What a new room style starts as: the shipped shell — a flat lid with a hole in it, no windows
-    /// and no porch — so the first thing an author sees is what the export builds today and every knob turned
-    /// from here is a visible change to it.</summary>
+    /// <summary>What a new house starts as: the shipped shell — a flat lid with a hole in it, no windows and
+    /// no porch — so the first thing an author sees is what the export builds today and every knob turned from
+    /// here is a visible change to it.</summary>
     private RoomStyleSaveRequest EmptyDraft(string name) => new(
         name, FloorDepth: 1, WallHeight: 7,
         RoofForm: RoofForms.Flat, Pitch: 1, Overhang: 0, RoofHole: true, RidgeCap: false,
@@ -94,24 +160,23 @@ public partial class RoomStyleComposer
     private static readonly RoomPorchDto DefaultPorch =
         new(Depth: 2, Inset: 0, Edge: PorchEdges.Front, Roof: RoofForms.Shed, RailBlock: 85);
 
-    /// <summary>Open the rail on a room style that is not in the library yet. It is unnamed: the name is the
-    /// rail's first field, the same as a style's, and the save stays disabled until it is filled in.</summary>
-    private async Task StartNew()
+    private void StartNew()
     {
         editingId = null;
         draftName = "";
-        note = null;
         draft = EmptyDraft(draftName);
-        await Preview();
     }
 
-    private async Task Edit(long id)
+    private async Task Load(long id)
     {
-        var detail = await Library.GetAsync<RoomStyleDetail>(LibraryKinds.Houses, id);
-        if (detail is null) { note = "That room style could not be read."; return; }
+        if (await Library.GetAsync<RoomStyleDetail>(LibraryKinds.Houses, id) is not { } detail)
+        {
+            note = "That house could not be read.";
+            draft = null;
+            return;
+        }
         editingId = detail.Id;
         draftName = detail.Name;
-        note = null;
         draft = new RoomStyleSaveRequest(
             detail.Name, detail.FloorDepth, detail.WallHeight,
             detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.RidgeCap,
@@ -119,15 +184,6 @@ public partial class RoomStyleComposer
             detail.Windows, detail.Porch,
             detail.Door, detail.DoorHeight,
             detail.RoofStyleId, detail.PorchStyleId, detail.StoreyStack, detail.Courses);
-        await Preview();
-    }
-
-    private void Close()
-    {
-        draft = null;
-        editingId = null;
-        preview = null;
-        note = null;
     }
 
     // ── the course stacks ──────────────────────────────────────────────────────────────────────────
@@ -395,10 +451,11 @@ public partial class RoomStyleComposer
         var saved = editingId is { } id
             ? await Library.UpdateAsync<RoomStyleDetail>(LibraryKinds.Houses, id, request)
             : await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses, request);
-        if (saved is null) { note = "The library refused that room style."; return; }
+        if (saved is null) { note = "The library refused that house."; return; }
         note = editingId is null ? "Added to the library." : "Saved.";
-        editingId = saved.Id;
-        await Reload();
+        await OnSaved.InvokeAsync("saved");
+        if (editingId is null) Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}/{saved.Id}");
+        else editingId = saved.Id;
     }
 
     private async Task SaveAsCopy()
@@ -406,18 +463,14 @@ public partial class RoomStyleComposer
         if (draft is null) return;
         var copy = await Library.CreateAsync<RoomStyleDetail>(LibraryKinds.Houses,
             Saveable(draft) with { Name = $"{draftName.Trim()} copy" });
-        if (copy is null) { note = "The library refused that room style."; return; }
-        editingId = copy.Id;
-        draftName = copy.Name;
-        note = "Saved as a new room style; the one it was copied from is unchanged.";
-        await Reload();
+        if (copy is null) { note = "The library refused that house."; return; }
+        Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}/{copy.Id}");
     }
 
     private async Task Delete()
     {
         if (editingId is not { } id) return;
         await Library.DeleteAsync(LibraryKinds.Houses, id);
-        Close();
-        await Reload();
+        Nav.NavigateTo($"/library/{LibraryKinds.HousesSlug}");
     }
 }

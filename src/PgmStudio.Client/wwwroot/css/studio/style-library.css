@@ -1,8 +1,5 @@
-/* Style & theme library (B44) — the browse-library shell (library.css) plus what this subject needs: a card
-   that reads as picked while its editor is open, a wider cell for the theme cross-sections, and the bucket
-   binding row (a style select with the style's own picture beside it). */
-
-.lib-card--picked { border-color: var(--accent); }
+/* The style library's own additions to the browse shell (library.css): a wider cell for the cut-open
+   samples, and the binding row — a style select with the style's own picture beside it. */
 
 /* A style swatch is square and a theme's cut-open plateau is wide, so the theme grid takes the wider cell. */
 .lib-grid--wide { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }

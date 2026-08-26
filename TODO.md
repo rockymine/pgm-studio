@@ -15,47 +15,9 @@ takes nothing new until the shape lands. Anything found while working goes to `B
 
 ## The library: a browse page, an editor page, and the rail between them
 
-The author ruled on the shape. Browsing is a page you leave; an entry opens a **full page** that edits it or
-starts a new one, laid out as the studio's own workspace — the document as an outline, the preview at full
-width, and the fields of whatever the outline has selected in the inspector. The rail carries the six kinds,
-`/library` is a chooser over them, and the right-hand rail goes.
-
-### The shape
-
-- [ ] **TL3 — The library takes the rail, and `/library` becomes a chooser.** It is the only tool rendering
-  `StudioShell Bare="true"`, and its four halves switch by four `Button`s in the topbar's `<Right>` slot —
-  the slot every other tool fills with status. Give it a `NavRail` of six kinds — styles, themes, roofs,
-  storeys, porches, houses — which splits `Parts` into the three libraries it hides behind a select, and make
-  `/library` a chooser of six `card card--action` cards over live counts, the shape the landing already uses.
-  `/library/{kind}` stays the browse grid; the tab buttons leave the topbar with them.
-  `docs/tools/library.md`'s *Tabs* section describes the shape being replaced, and
-  `docs/client/routing-and-ia.md` carries the route table and the landing's card count.
-
-- [ ] **B254 — An entry opens a page of its own, not a rail.** All four halves edit in `aside.lib-rail`
-  beside the grid — six occurrences of it in each of `StyleBrowser`, `ThemeComposer`, `HousePartComposer` and
-  `RoomStyleComposer` — so a twenty-five-field building is authored down a column. Give every kind
-  `/library/{kind}/{id}` and `/library/{kind}/new`, opening full-width as the studio's own `Workspace`:
-  a `Sidebar` holding the document as an outline — the parts, the courses and a material's nested bands, each
-  row carrying its own state — the preview in the canvas pane with its views as `LayerChip`s, and an
-  `Inspector` holding the fields of the selected row. The rail goes with it.
-
-- [ ] **B255 — One browse shell, not four copies of it.** The same markup opens all four: `lib-body` →
-  `aside.lib-filters` carrying a New button → `main.lib-main` with an intro, `lib-status`, `lib-count`, a
-  `lib-grid` and a `lib-card` whose figure button opens the editor. Extract one browser to `Components/`
-  taking the rows, the card figure, the badges and the New label. The filter aside goes with it — a filter is
-  a horizontal thing, so the kind chips, the name search and New become a strip above the grid and the grid
-  takes the width. Only `StyleBrowser`'s kind filter is genuinely its own.
-
-- [ ] **B256 — One editing state machine, not four.** Seven fields are declared identically in all four —
-  `loading`, `note`, `figureHelp`, `editingId`, `draftName`, `preview`, `draft` — with `StylesByKind` and
-  `StyleOf` copied verbatim into three of them and `OnAfterRenderAsync → studio.icons` into all four.
-  Whatever `B255` extracts owns them.
-
-- [ ] **B257 — One library verb per concept; there are six blocks and four ways to delete.**
-  `TerrainLibraryClient` repeats list, get, draft-preview, create, update and delete for room, roof, storey,
-  porch, style and theme. The delete half does not agree with itself — `Task`, `Task<HttpResponseMessage>`
-  and `Task<StyleInUseDto?>` for one verb, which is the shared-shape-unshared-verb failure `CLAUDE.md` names.
-  One generic pair over a per-kind descriptor, and one return.
+The shape has landed: the rail carries the six kinds, `/library` chooses between them, and an entry opens a
+page laid out as the studio's own workspace. What is left is what an author can *say* on it, what they can
+*see* while saying it, and what is on the shelf to say it about.
 
 ### What the author can say
 

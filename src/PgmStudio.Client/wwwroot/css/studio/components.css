@@ -1529,3 +1529,6 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 /* The first column names the row, so it reads as a label rather than as another number. */
 .readback-table td:first-child { color: var(--text-dim); }
+
+/* A rule between two groups of rail buttons — the library's chooser above its six kinds. */
+.nav-rail-div { width: 22px; height: 1px; margin: 2px 0; background: var(--border); flex: 0 0 auto; }

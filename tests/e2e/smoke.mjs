@@ -23,11 +23,15 @@ const ROUTES = [
   { path: "/generator",                           name: "generator",      expect: "body" },
   // the catalog proves itself by its cards: an empty grid is a dead enumerator, not a slow page
   { path: "/catalog",                             name: "shape catalog",  expect: ".lib-grid .lib-card" },
-  // the library's three halves render from the database, so an empty one is still a live page — its filter
-  // rail is the proof, since that is what a dead component would take down with it
-  { path: "/library",                             name: "style library",  expect: ".lib-body .lib-filters" },
-  { path: "/library/themes",                      name: "theme library",  expect: ".lib-body .lib-filters" },
-  { path: "/library/rooms",                       name: "room library",   expect: ".lib-body .lib-filters" },
+  // the library renders from the database, so an empty kind is still a live page — the chooser's cards and a
+  // browse strip are the proof, since those are what a dead component would take down with it
+  { path: "/library",                             name: "library chooser", expect: ".lib-choices .card" },
+  { path: "/library/styles",                      name: "style library",  expect: ".lib-page .lib-strip" },
+  { path: "/library/themes",                      name: "theme library",  expect: ".lib-page .lib-strip" },
+  { path: "/library/houses",                      name: "house library",  expect: ".lib-page .lib-strip" },
+  // an editor page is the half a browse grid cannot prove: its outline is built from the draft
+  { path: "/library/styles/new",                  name: "style editor",   expect: ".lib-outline-row" },
+  { path: "/library/houses/new",                  name: "house editor",   expect: ".lib-outline-row" },
   { path: "/plan-editor",                         name: "plan editor (bare)", expect: ".map-canvas-svg" },
   { path: `/maps/${seed.planSlug}/plan`,          name: "plan tool",      expect: "body" },
   { path: `/maps/${seed.sketchSlug}/sketch`,      name: "sketch tool",    expect: "body" },

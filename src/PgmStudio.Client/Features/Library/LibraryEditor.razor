@@ -1,0 +1,57 @@
+@namespace PgmStudio.Client.Features.Library
+
+@* The editor page every library opens an entry on: the document as an outline, the preview at the width of
+   the window, and the fields of the picked outline row. The preview is what every field is judged by, so it
+   takes the middle and never scrolls with the knobs that change it. *@
+
+<Workspace>
+  <Sidebar>
+    <div class="lib-name">
+      <label class="field-label" for="lib-entry-name">Name</label>
+      <input id="lib-entry-name" class="field-input" placeholder="@($"a {Kind.One} you will recognise")"
+             value="@Name" @oninput="OnNameInput" />
+    </div>
+
+    <Section Title="@Kind.Title" Variant="list">
+      <div class="lib-outline">
+        @foreach (var part in Outline)
+        {
+          <button class="lib-outline-row @(part.Id == Selected ? "lib-outline-row--picked" : null)"
+                  style="@Indent(part)" @key="part.Id" @onclick="() => OnSelect.InvokeAsync(part.Id)">
+            <span class="lib-outline-mark">
+              @if (part.Swatch is not null)
+              {
+                <span class="lib-outline-swatch" style="@($"background:{part.Swatch}")"></span>
+              }
+              else
+              {
+                <i data-lucide="@part.Icon" @key="part.Icon"></i>
+              }
+            </span>
+            <span class="lib-outline-label">@part.Title</span>
+            @if (part.Badge is not null) { <span class="lib-outline-tag">@part.Badge</span> }
+          </button>
+        }
+      </div>
+    </Section>
+  </Sidebar>
+
+  <div class="sidebar-handle"></div>
+
+  <div class="workspace-canvas lib-stage">
+    @if (Views is not null) { <CanvasLayerBar>@Views</CanvasLayerBar> }
+    <div class="lib-stage-figure">@Preview</div>
+    @if (Footnote is not null) { <span class="canvas-note">@Footnote</span> }
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  <Inspector>
+    <DetailHeader Icon="@SelectedPart.Icon" Label="@SelectedPart.Title">
+      @if (SelectedPart.Badge is not null) { <Badge Kind="dim">@SelectedPart.Badge</Badge> }
+    </DetailHeader>
+    @Fields
+    @if (Note is not null) { <p class="section-desc">@Note</p> }
+    <div class="panel-actions">@Actions</div>
+  </Inspector>
+</Workspace>

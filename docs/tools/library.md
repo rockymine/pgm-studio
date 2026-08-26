@@ -6,10 +6,16 @@ The library is where a material is authored once and reused. It is the only tool
 nothing about maps: no slug, no stage, no map row anywhere in it. What it holds is recipes, and the tools that
 build worlds reach into it to pick one.
 
-Its route is `/library`, or `/library/{tab}`. Four tabs, in the order the things compose: **Styles** — a style
-is one material; **Themes** — a terrain finish made of styles; **Parts** — the roofs, storeys and porches a
-house is composed from, each made of styles; **Rooms** — a whole building made of parts and styles. A style is
-browsed by what it looks like; everything above it by what it composes to.
+Six kinds, in the order the things compose: **Styles** — a style is one material; **Themes** — a terrain
+finish made of styles; **Roofs**, **Storeys** and **Porches** — the parts a building binds, each made of
+styles; **Houses** — a whole building made of parts and styles. A style is browsed by what it looks like;
+everything above it by what it composes to. A house's row is a `room_style` and composes to a `HouseStyle`;
+the surface calls it what the thing is.
+
+Three routes, and the rail carries the six kinds. `/library` is the chooser — one card per kind over its own
+count and a picture of what it holds. `/library/{kind}` browses that kind: a strip carrying a name search,
+whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
+`/library/{kind}/new`, opens one entry on a page of its own.
 
 Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, and its
 Rooms step binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase's
@@ -387,15 +393,29 @@ is why the two end-stone-and-sandstone courses are a list and the brick roof is 
 same about the course a building normally stands proud of the ground on. `storeys` is empty because the shell
 is one room rather than a stack, and `porch` is null for the same reason.
 
-## Tabs
+## The editor page
 
-Every tab is the same shape: a browsing grid of cards on the left and an editing rail on the right, with New,
-Save, Save as copy and Delete. Styles adds a filter by kind and a count per kind.
+Every kind edits in the same three-pane workspace the map tools are laid out in: the document as an
+**outline** on the left, the **preview** across the middle, and the fields of whichever outline row is picked
+in the **inspector**. The name sits above the outline, because it is the document's rather than any one
+part's.
 
-The rail's draft **is the save request** — for a style, the material's own JSON node; for the rest, the request
-value itself — so the preview re-renders from the same value the save would post, and a picture cannot promise
+**The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
+part is *bound* or keeps the *built-in* finish, a stack says how many courses it runs, a theme bucket names
+the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
+stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
+five rows rather than five boxes inside one another. The inspector then draws that node alone — its kind, its
+scalars, and its own entries as rows the outline is already carrying.
+
+**What the outline shows, the preview answers.** A style draws its plan and its section, either or both by a
+chip; a house and a part draw the sample building four ways. The picture takes the width of the window and
+never scrolls with the knobs that change it.
+
+The draft **is the save request** — for a style, the material's own JSON node; for the rest, the request value
+itself — so the preview re-renders from the same value the save would post, and a picture cannot promise
 something the save would not build. Saving a style says which way it reaches: adding one is "Added to the
-library", editing one is "Saved. Every theme binding it now paints this."
+library", editing one is "Saved. Every theme binding it now paints this." A save that creates a row lands on
+that row's own route, so the URL always names what is open.
 
 ## Refusals
 

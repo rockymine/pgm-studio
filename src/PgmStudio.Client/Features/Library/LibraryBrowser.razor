@@ -1,0 +1,54 @@
+@namespace PgmStudio.Client.Features.Library
+
+@* The browse page every library opens on: a strip carrying the name search, whatever the kind filters by,
+   and the New button, over a grid of cards. Picking a card opens the editor at its own route. *@
+
+<div class="lib-page">
+  <div class="lib-strip">
+    <label class="lib-search">
+      <i data-lucide="search" @key="@("lib-search")"></i>
+      <input class="lib-search-input" type="search" placeholder="@($"Search {Kind.Title.ToLowerInvariant()} by name…")"
+             value="@search" @oninput="OnSearch" />
+    </label>
+    @Filters
+    <span class="lib-strip-gap"></span>
+    <span class="lib-count">@Shown.Count of @Rows.Count</span>
+    <Button Variant="primary" Icon="plus" Href="@($"/library/{Kind.Slug}/new")">New @Kind.One</Button>
+  </div>
+
+  <div class="lib-scroll">
+    @if (Loading) { <p class="lib-status">Reading the library…</p> }
+    else
+    {
+      <div class="lib-grid @(Wide ? "lib-grid--wide" : null)">
+        @foreach (var row in Shown)
+        {
+          <div class="lib-card" @key="row.Id">
+            @if (Badge is not null)
+            {
+              <div class="lib-card-badges"><span class="lib-badge">@Badge(row)</span></div>
+            }
+            <a class="lib-card-fig" href="@($"/library/{Kind.Slug}/{row.Id}")" title="@($"Open {row.Name}")">
+              @((MarkupString)row.Preview)
+            </a>
+            <div class="lib-card-foot"><span class="lib-card-meta">@row.Name</span></div>
+          </div>
+        }
+      </div>
+
+      @if (Shown.Count == 0)
+      {
+        <p class="lib-status">
+          @if (Rows.Count == 0)
+          {
+            @($"No {Kind.Title.ToLowerInvariant()} yet — start one with New {Kind.One}.")
+          }
+          else
+          {
+            @($"Nothing here matches that.")
+          }
+        </p>
+      }
+    }
+  </div>
+</div>

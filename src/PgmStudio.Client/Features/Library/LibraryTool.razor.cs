@@ -1,27 +1,41 @@
 using Microsoft.AspNetCore.Components;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Client.Features.Library;
 
 /// <summary>
-/// The style library's routable host (B44, G34b). It holds no library state of its own: each half owns the
-/// data it browses, and this only says which one is showing, so the route is the only thing that has to agree
+/// The library's routable host. It holds no library state of its own: each kind's browser and editor own what
+/// they read, and this only says which route is showing, so the URL is the only thing that has to agree
 /// between them.
 /// </summary>
 public partial class LibraryTool
 {
-    /// <summary>Which half is showing — the route segment, absent meaning styles.</summary>
-    [Parameter] public string? Tab { get; set; }
+    /// <summary>Which library is open — the route segment, absent meaning the chooser.</summary>
+    [Parameter] public string? Kind { get; set; }
 
-    internal const string StylesTab = "styles";
-    internal const string ThemesTab = "themes";
-    internal const string PartsTab = "parts";
-    internal const string RoomsTab = "rooms";
+    /// <summary>Which entry is open — a row id, or <c>new</c>. Absent means the browse grid.</summary>
+    [Parameter] public string? Entry { get; set; }
 
-    /// <summary>Styles is the one with no segment of its own, so it is what nothing else claims.</summary>
-    private bool On(string tab) => tab == StylesTab
-        ? !On(ThemesTab) && !On(PartsTab) && !On(RoomsTab)
-        : string.Equals(Tab, tab, StringComparison.OrdinalIgnoreCase);
+    private string? entryName;
+    private string? saveState;
 
-    private string TabName =>
-        On(ThemesTab) ? "Themes" : On(PartsTab) ? "House parts" : On(RoomsTab) ? "Rooms" : "Styles";
+    private LibraryKind? Open => LibraryKinds.Of(Kind);
+
+    private string PageName => Open is null ? "Library" : $"{Open.Title} — library";
+
+    private string EntryName => string.IsNullOrWhiteSpace(entryName)
+        ? Entry == "new" ? $"New {Open?.One}" : "Entry"
+        : entryName;
+
+    /// <summary>The crumb follows the name as it is typed, so the trail names what is being edited.</summary>
+    private void OnEntryName(string name) => entryName = name;
+
+    private void OnSaved(string? state) => saveState = state;
+
+    /// <summary>A move between kinds or entries is a different document, so nothing carries over.</summary>
+    protected override void OnParametersSet()
+    {
+        entryName = null;
+        saveState = null;
+    }
 }

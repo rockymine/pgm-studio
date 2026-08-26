@@ -806,7 +806,7 @@ the prose.
 ## 8. The library
 
 A room style is a **library row**, browsed and composed the way a terrain theme is (M0012, `room_style` +
-`room_style_course`, served at `/api/room-styles`, authored on the `/library/rooms` tab). It binds the same
+`room_style_course`, served at `/api/room-styles`, authored at `/library/houses`). It binds the same
 `style` shelf a theme binds — a `Band`'s material *is* a `TerrainMaterial`, so the two libraries share
 their leaf rather than each keeping one — and the third tab exists because what is composed out of styles
 differs: a theme composes a terrain finish, a room style a shell.

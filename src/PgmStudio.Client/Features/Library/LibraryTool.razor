@@ -1,37 +1,76 @@
 @page "/library"
-@page "/library/{Tab}"
+@page "/library/{Kind}"
+@page "/library/{Kind}/{Entry}"
 @layout StudioLayout
 
-@* The style library (B44, G34b, B71): where materials are authored once and reused. Four halves, in the order
-   they compose — a style is one material, a theme is a terrain finish made of styles, a house part is a roof, a
-   storey or a porch made of styles, and a room is a building made of parts. A style is browsed by what it looks
-   like; everything above it by what it composes to. The host owns only the shell and which one is showing. *@
+@* The library: where a material is authored once and reused. Six kinds on the rail, in the order they
+   compose; /library chooses between them, /library/{kind} browses one, and /library/{kind}/{id} — or
+   /new — edits an entry on a page of its own. The host owns only the shell and which route is showing. *@
 
-<PageTitle>Style library — PGM Studio</PageTitle>
+<PageTitle>@PageName — PGM Studio</PageTitle>
 
-<StudioShell Bare="true">
+<StudioShell>
   <Bar>
     <Topbar HomeHref="/" HomeLabel="Studio" HomeTitle="Studio home">
       <Crumbs>
-        <Crumb Dim>Style library</Crumb>
-        <Crumb>@TabName</Crumb>
+        @if (Open is null)
+        {
+          <Crumb Dim>Library</Crumb>
+        }
+        else
+        {
+          <Crumb Href="/library" Dim>Library</Crumb>
+          @if (Entry is null)
+          {
+            <Crumb>@Open.Title</Crumb>
+          }
+          else
+          {
+            <Crumb Href="@($"/library/{Open.Slug}")" Dim>@Open.Title</Crumb>
+            <Crumb>@EntryName</Crumb>
+          }
+        }
       </Crumbs>
       <Right>
-        <Button Href="@($"/library/{StylesTab}")" Variant="@(On(StylesTab) ? "primary" : null)"
-                Icon="paintbrush" Title="Every reusable material recipe">Styles</Button>
-        <Button Href="@($"/library/{ThemesTab}")" Variant="@(On(ThemesTab) ? "primary" : null)"
-                Icon="layers" Title="Styles composed into whole terrain finishes">Themes</Button>
-        <Button Href="@($"/library/{PartsTab}")" Variant="@(On(PartsTab) ? "primary" : null)"
-                Icon="blocks" Title="Roofs, storeys and porches a house is composed from">Parts</Button>
-        <Button Href="@($"/library/{RoomsTab}")" Variant="@(On(RoomsTab) ? "primary" : null)"
-                Icon="box" Title="Parts and styles composed into whole buildings">Rooms</Button>
+        @if (saveState is not null) { <span class="topbar-save-status">@saveState</span> }
       </Right>
     </Topbar>
   </Bar>
+  <Rail>
+    <NavRail LogoHref="/" LogoTitle="Studio home">
+      <NavButton Icon="library" Title="Every library" Href="/library" Active="@(Open is null)" />
+      <div class="nav-rail-div"></div>
+      @foreach (var kind in LibraryKinds.All)
+      {
+        <NavButton Icon="@kind.Icon" Title="@kind.Title" Href="@($"/library/{kind.Slug}")"
+                   Active="@(Open?.Slug == kind.Slug)" @key="kind.Slug" />
+      }
+    </NavRail>
+  </Rail>
   <ChildContent>
-    @if (On(ThemesTab)) { <ThemeComposer /> }
-    else if (On(PartsTab)) { <HousePartComposer /> }
-    else if (On(RoomsTab)) { <RoomStyleComposer /> }
-    else { <StyleBrowser /> }
+    @if (Open is null)
+    {
+      <LibraryChooser />
+    }
+    else if (Entry is null)
+    {
+      <LibraryBrowseHost Kind="Open" />
+    }
+    else if (Open.Slug == LibraryKinds.StylesSlug)
+    {
+      <StyleEditor Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />
+    }
+    else if (Open.Slug == LibraryKinds.ThemesSlug)
+    {
+      <ThemeEditor Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />
+    }
+    else if (Open.Slug == LibraryKinds.HousesSlug)
+    {
+      <HouseEditor Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />
+    }
+    else
+    {
+      <HousePartEditor Part="PartKindInfo.Of(Open.Slug)" Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />
+    }
   </ChildContent>
 </StudioShell>

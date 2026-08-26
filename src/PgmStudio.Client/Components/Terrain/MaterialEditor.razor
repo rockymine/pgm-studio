@@ -126,6 +126,10 @@
     </div>
   }
 
+  @* A stub is one row of a list the outline is already carrying: its kind, its extent and the way to remove
+     it. What it is made of is edited by picking it in the outline, which is where its own nest lives. *@
+  @if (!Stub)
+  {
   <div class="material-editor-body">
     @switch (Kind)
     {
@@ -135,13 +139,13 @@
 
       case MaterialKind.TeamTint:
         <BlockPicker Blocks="Blocks" Id="@Int(ThemeFields.BlockId, 159)" Data="0" ShowColors="false" OnPick="PickTintBlock" />
-        <MaterialEditor Nested Label="Neutral land" Blocks="Blocks" Node="Neutral" OnChanged="Changed" />
+        <MaterialEditor Nested Flat="Flat" Label="@ChildLabel(ThemeFields.Neutral)" Blocks="Blocks" Node="Neutral" OnChanged="Changed" />
         break;
 
       case MaterialKind.Layered:
         @foreach (var layer in List(ThemeFields.Layers))
         {
-          <MaterialEditor Nested Label="@($"Layer {layer.Index + 1}")" Blocks="Blocks" @key="layer.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Layers, layer.Index)" Blocks="Blocks" @key="layer.Node"
                           Node="@layer.Material" OnChanged="Changed" OnRemove="@layer.Remove">
             <HeadExtra>
               <CoordField Prefix="Courses" Type="number" Value="@layer.Extent" OnChange="@layer.SetExtent"
@@ -170,7 +174,7 @@
         </div>
         @foreach (var band in List(ThemeFields.Bands))
         {
-          <MaterialEditor Nested Label="@BandLabel(band.Index)" Blocks="Blocks" @key="band.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Bands, band.Index)" Blocks="Blocks" @key="band.Node"
                           Node="@band.Material" OnChanged="Changed" OnRemove="@band.Remove">
             <HeadExtra>
               <CoordField Prefix="Blocks" Type="number" Value="@band.Extent" OnChange="@band.SetExtent"
@@ -207,7 +211,7 @@
         </div>
         @foreach (var entry in List(ThemeFields.Palette))
         {
-          <MaterialEditor Nested Label="@($"Patch {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Palette, entry.Index)" Blocks="Blocks" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
         @ListFoot(ThemeFields.Palette, "Add a patch material")
@@ -237,7 +241,7 @@
         </div>
         @foreach (var entry in List(ThemeFields.Stops))
         {
-          <MaterialEditor Nested Label="@($"Stop {entry.Index + 1}")" Blocks="Blocks" @key="entry.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Stops, entry.Index)" Blocks="Blocks" @key="entry.Node"
                           Node="@entry.Material" OnChanged="Changed" OnRemove="@entry.Remove" />
         }
         @ListFoot(ThemeFields.Stops, "Add stop")
@@ -246,7 +250,7 @@
       case MaterialKind.WallRun:
         @foreach (var run in List(ThemeFields.Runs))
         {
-          <MaterialEditor Nested Label="@($"Stripe {run.Index + 1}")" Blocks="Blocks" @key="run.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Runs, run.Index)" Blocks="Blocks" @key="run.Node"
                           Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove">
             <HeadExtra>
               <CoordField Prefix="Cells" Type="number" Value="@run.Extent" OnChange="@run.SetExtent"
@@ -267,7 +271,7 @@
         </div>
         @foreach (var run in List(ThemeFields.Runs))
         {
-          <MaterialEditor Nested Label="@($"Stripe {run.Index + 1}")" Blocks="Blocks" @key="run.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Runs, run.Index)" Blocks="Blocks" @key="run.Node"
                           Node="@run.Material" OnChanged="Changed" OnRemove="@run.Remove">
             <HeadExtra>
               <CoordField Prefix="Cells" Type="number" Value="@run.Extent" OnChange="@run.SetExtent"
@@ -286,8 +290,8 @@
                    value="@Int(ThemeFields.Size, 1)" @onchange="SetSize" />
           </Field>
         </div>
-        <MaterialEditor Nested Label="Light square" Blocks="Blocks" Node="Even" OnChanged="Changed" />
-        <MaterialEditor Nested Label="Dark square" Blocks="Blocks" Node="Odd" OnChanged="Changed" />
+        <MaterialEditor Nested Flat="Flat" Label="@ChildLabel(ThemeFields.Even)" Blocks="Blocks" Node="Even" OnChanged="Changed" />
+        <MaterialEditor Nested Flat="Flat" Label="@ChildLabel(ThemeFields.Odd)" Blocks="Blocks" Node="Odd" OnChanged="Changed" />
         break;
 
       case MaterialKind.LogChecker:
@@ -316,11 +320,12 @@
                    value="@Int(ThemeFields.Thickness, 1)" @onchange="SetThickness" />
           </Field>
         </div>
-        <MaterialEditor Nested Label="Frame" Blocks="Blocks" Node="Edge" OnChanged="Changed" />
-        <MaterialEditor Nested Label="Panel" Blocks="Blocks" Node="Panel" OnChanged="Changed" />
+        <MaterialEditor Nested Flat="Flat" Label="@ChildLabel(ThemeFields.Edge)" Blocks="Blocks" Node="Edge" OnChanged="Changed" />
+        <MaterialEditor Nested Flat="Flat" Label="@ChildLabel(ThemeFields.Fill)" Blocks="Blocks" Node="Panel" OnChanged="Changed" />
         break;
     }
   </div>
+  }
 </div>
 
 @code {

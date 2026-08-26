@@ -34,7 +34,9 @@ phase a tool opens on (`?phase=info`), the row a listing should highlight (`?jus
 | `/plan-editor` | `PlanTool` | the same tool with no map: a candidate plan row, no phase host |
 | `/generator` | `GeneratorTool` | the composer's browse-and-pin gallery |
 | `/catalog` | `CatalogTool` | the shape catalog |
-| `/library` · `/library/{tab}` | `LibraryTool` | the style, theme, part and room library |
+| `/library` | `LibraryTool` | the chooser — one card per library kind |
+| `/library/{kind}` | `LibraryTool` | one library's browse grid; `kind` is `styles\|themes\|roofs\|storeys\|porches\|houses` |
+| `/library/{kind}/{entry}` | `LibraryTool` | one entry's editor; `entry` is a row id or `new` |
 | `/design` | `Design` | the component showcase |
 | `/not-found` | `NotFound` | 404 |
 

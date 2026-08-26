@@ -1,0 +1,25 @@
+@namespace PgmStudio.Client.Features.Library
+@inject TerrainLibraryClient Library
+
+@* Every kind's rows, read through the one list verb and handed to the one browser. The style half adds the
+   filter a style is browsed by — its kind, which is the question an author starts from ("show me every
+   voronoi"); nothing else in the library varies by anything but its name. *@
+
+<LibraryBrowser Kind="Kind" Rows="Shown" Loading="loading" Wide="@(Kind.Slug != LibraryKinds.StylesSlug)"
+                Badge="@(Kind.Slug == LibraryKinds.StylesSlug ? row => MaterialKind.NameOf(row.Kind ?? "") : null)">
+  <Filters>
+    @if (Kind.Slug == LibraryKinds.StylesSlug)
+    {
+      @foreach (var (id, name) in MaterialKind.All)
+      {
+        var count = rows.Count(row => row.Kind == id);
+        @if (count > 0)
+        {
+          <Chip Active="kindFilter.Contains(id)" @key="id" OnClick="() => ToggleKind(id)">
+            @name<span class="filter-chip-n">@count</span>
+          </Chip>
+        }
+      }
+    }
+  </Filters>
+</LibraryBrowser>

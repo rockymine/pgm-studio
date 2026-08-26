@@ -383,7 +383,7 @@ public sealed record RoomPartInfo(string Id, string Title, string Blurb, string?
 /// is the part's <see cref="LibraryKind"/>, so a roof is named in one place.
 /// </summary>
 public sealed record PartKindInfo(
-    LibraryKind Kind, string FigureNote,
+    LibraryKind Kind, string KnobsTitle, string FigureNote,
     IReadOnlyList<RoomPartInfo> Stacked, IReadOnlyList<RoomPartInfo> Single)
 {
     public static readonly IReadOnlyList<PartKindInfo> All =
@@ -392,23 +392,136 @@ public sealed record PartKindInfo(
         // counts upward from its part's own base, which a wall has and a roof does not: a slope's depth at a
         // cell is however many courses close the step down to its neighbour, so there is no second course for
         // a stack to name. The body is one pass, the verge is one, the gable face is one.
-        new(LibraryKinds.Roofs,
+        new(LibraryKinds.Roofs, "Shape",
             "The roof is drawn on the least wall that can carry its own eave.",
             [],
             [RoomPartInfo.Of(RoomParts.Roof), RoomPartInfo.Of(RoomParts.Verge), RoomPartInfo.Of(RoomParts.Gable)]),
 
-        new(LibraryKinds.Storeys,
+        new(LibraryKinds.Storeys, "The room",
             "The storey is drawn as the one-storey building it makes — or, where it names a ceiling, as two of itself, since the slab it closes with only exists under something.",
             [RoomPartInfo.Of(RoomParts.Wall)],
             [RoomPartInfo.Of(RoomParts.Post), RoomPartInfo.Of(RoomParts.Deck),
              RoomPartInfo.Of(RoomParts.Field), RoomPartInfo.Of(RoomParts.Border),
              RoomPartInfo.Of(RoomParts.Inlay)]),
 
-        new(LibraryKinds.Porches,
+        new(LibraryKinds.Porches, "The deck",
             "The porch fronts a plain gabled building.",
             [], []),
     ];
 
     public static PartKindInfo Of(string? slug)
         => All.FirstOrDefault(part => part.Kind.Slug == slug) ?? All[0];
+}
+
+/// <summary>
+/// How a material holds other materials: which field a kind keeps its entries in, what extent each entry
+/// claims, and which single children it names. Stated once, so the form that edits a nest and the outline
+/// that walks it cannot disagree about what a nest is.
+/// </summary>
+public static class MaterialTree
+{
+    /// <summary>The field a kind carries its entry list in, with the extent each entry claims — null where
+    /// the entries are bare materials.</summary>
+    public static (string Field, string? Extent)? ListOf(string kind) => kind switch
+    {
+        MaterialKind.Layered => (ThemeFields.Layers, ThemeFields.Thickness),
+        MaterialKind.Voronoi => (ThemeFields.Bands, ThemeFields.Depth),
+        MaterialKind.WallRun or MaterialKind.WallDiagonal => (ThemeFields.Runs, ThemeFields.Width),
+        MaterialKind.Cell => (ThemeFields.Palette, null),
+        MaterialKind.Noise or MaterialKind.Turbulence or MaterialKind.Electric => (ThemeFields.Stops, null),
+        _ => null,
+    };
+
+    /// <summary>The extent a list's entries claim, by the field they sit in; null for a bare list.</summary>
+    public static string? ExtentOf(string field) => field switch
+    {
+        ThemeFields.Layers => ThemeFields.Thickness,
+        ThemeFields.Runs => ThemeFields.Width,
+        ThemeFields.Bands => ThemeFields.Depth,
+        _ => null,
+    };
+
+    /// <summary>The single children a kind names, each with the word the editor offers it under.</summary>
+    public static IReadOnlyList<(string Field, string Label)> ChildrenOf(string kind) => kind switch
+    {
+        MaterialKind.TeamTint => [(ThemeFields.Neutral, "Neutral land")],
+        MaterialKind.Checker => [(ThemeFields.Even, "Light square"), (ThemeFields.Odd, "Dark square")],
+        MaterialKind.WallFrame => [(ThemeFields.Edge, "Frame"), (ThemeFields.Fill, "Panel")],
+        _ => [],
+    };
+
+    /// <summary>What one entry of a list is called, by where it sits. A voronoi band is named for what it
+    /// does — the first draws the grid, the last takes the middle — and every other list counts.</summary>
+    public static string EntryLabel(string field, int index, int count) => field switch
+    {
+        ThemeFields.Bands when index == 0 => "Grid line",
+        ThemeFields.Bands when index == count - 1 => "Middle",
+        ThemeFields.Bands => $"Band {index}",
+        ThemeFields.Layers => $"Layer {index + 1}",
+        ThemeFields.Runs => $"Stripe {index + 1}",
+        ThemeFields.Stops => $"Stop {index + 1}",
+        _ => $"Patch {index + 1}",
+    };
+
+    /// <summary>Every material in a tree, outermost first, each with the path that reaches it and how deep it
+    /// sits. The root's path is the empty string.</summary>
+    public static IEnumerable<(string Path, string Label, JsonObject Node, int Depth)> Walk(
+        JsonObject root, string label = "Material")
+    {
+        yield return ("", label, root, 0);
+        foreach (var found in Below(root, "", 1)) yield return found;
+    }
+
+    private static IEnumerable<(string, string, JsonObject, int)> Below(JsonObject node, string path, int depth)
+    {
+        var kind = JsonEdit.KindOf(node);
+
+        foreach (var (field, label) in ChildrenOf(kind))
+        {
+            if (node[field] is not JsonObject child) continue;
+            var childPath = Join(path, field);
+            yield return (childPath, label, child, depth);
+            foreach (var found in Below(child, childPath, depth + 1)) yield return found;
+        }
+
+        if (ListOf(kind) is not { } list) yield break;
+        var array = JsonEdit.Array(node, list.Field);
+        for (var i = 0; i < array.Count; i++)
+        {
+            if (array[i] is not JsonNode entry) continue;
+            if (Material(list.Field, JsonEdit.AsObject(entry)) is not { } material) continue;
+            var entryPath = Join(path, $"{list.Field}/{i}");
+            yield return (entryPath, EntryLabel(list.Field, i, array.Count), material, depth);
+            foreach (var found in Below(material, entryPath, depth + 1)) yield return found;
+        }
+    }
+
+    /// <summary>The material a path names, or null where the path no longer reaches one — which is what an
+    /// outline row selected before its list was shortened becomes.</summary>
+    public static JsonObject? At(JsonObject root, string path)
+    {
+        if (string.IsNullOrEmpty(path)) return root;
+        var node = root;
+        var steps = path.Split('/');
+        for (var i = 0; i < steps.Length && node is not null; i++)
+        {
+            var field = steps[i];
+            if (i + 1 < steps.Length && int.TryParse(steps[i + 1], out var index))
+            {
+                var array = JsonEdit.Array(node, field);
+                node = index >= 0 && index < array.Count ? Material(field, JsonEdit.AsObject(array[index])) : null;
+                i++;
+                continue;
+            }
+            node = node[field] as JsonObject;
+        }
+        return node;
+    }
+
+    /// <summary>The material an entry carries: the entry itself where the list is bare, the wrapped child
+    /// where it claims an extent.</summary>
+    private static JsonObject? Material(string field, JsonObject entry)
+        => ExtentOf(field) is null ? entry : entry[ThemeFields.Material] as JsonObject;
+
+    private static string Join(string path, string step) => path.Length == 0 ? step : $"{path}/{step}";
 }

@@ -140,22 +140,24 @@ await page.goto(`${BASE}/library/styles`, { waitUntil: "networkidle", timeout: 3
 await page.waitForSelector(".lib-card", { timeout: 20000 });
 await page.locator(".lib-card", { hasText: "E2E control row" }).locator(".lib-card-fig").click();
 await page.waitForSelector(".material-editor-head", { timeout: 20000 });
-await measureRows("style rail");
-const stylesRailGlyphs = "style rail";
+await measureRows("style editor");
+const stylesEditorGlyphs = "style editor";
 
 clearFaults(page);
-await page.goto(`${BASE}/library/rooms`, { waitUntil: "networkidle", timeout: 30000 });
+await page.goto(`${BASE}/library/houses`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector(".lib-card", { timeout: 20000 });
 await page.locator(".lib-card", { hasText: "E2E control room" }).locator(".lib-card-fig").click();
+await page.waitForSelector(".lib-outline-row", { timeout: 20000 });
+await page.locator(".lib-outline-row", { hasText: "Walls" }).click();
 await page.waitForSelector(".lib-bind", { timeout: 20000 });
-await measureRows("room rail");
-await measureUnconstrainedSelect("room rail");
+await measureRows("house editor");
+await measureUnconstrainedSelect("house editor");
 
 // ── the icon scale ───────────────────────────────────────────────────────────────────────────────
-// The room rail is still open, so this pass covers the rail's own chrome (its close ✕) — a surface the
-// resting routes below never render.
+// The house editor is still open, so this pass covers the outline and the inspector — surfaces the resting
+// routes below never render.
 checks.section("every glyph lands on the icon scale");
-await measureGlyphs("room rail (open)");
+await measureGlyphs("house editor (open)");
 
 for (const route of ["/", "/library/styles", "/maps", "/catalog"]) {
   clearFaults(page);
@@ -163,13 +165,13 @@ for (const route of ["/", "/library/styles", "/maps", "/catalog"]) {
   await measureGlyphs(route);
 }
 
-// The style rail's chrome, for the same reason — and it carries the material editor's own glyphs.
+// The style editor, for the same reason — and it carries the material editor's own glyphs.
 clearFaults(page);
 await page.goto(`${BASE}/library/styles`, { waitUntil: "networkidle", timeout: 30000 });
 await page.waitForSelector(".lib-card", { timeout: 20000 });
 await page.locator(".lib-card", { hasText: "E2E control row" }).locator(".lib-card-fig").click();
 await page.waitForSelector(".material-editor-head", { timeout: 20000 });
-await measureGlyphs(`${stylesRailGlyphs} (open)`);
+await measureGlyphs(`${stylesEditorGlyphs} (open)`);
 
 checks.finish();
 await browser.close();

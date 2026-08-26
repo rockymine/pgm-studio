@@ -1,7 +1,6 @@
-/* The browse-library layout, shared by every page that is "a filter rail, a grid of pictures, and a rail on the
-   right for the one you picked": the shape catalog (G144) and the style/theme library (B44). It is the same
-   surface asking about different things, so the shell is one namespace and each page adds only the badges and
-   controls its own subject needs (catalog.css, style-library.css). */
+/* The browse-library shell: a grid of pictures, and whatever a page narrows it by. The shape catalog keeps its
+   filters in an aside beside the grid (catalog.css); the style library keeps them in a strip above it, because
+   a search box and a row of chips are horizontal things and a grid wants the width. */
 
 .lib-body { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 
@@ -46,44 +45,94 @@
   color: var(--text-secondary); border-top: 1px solid var(--border);
 }
 
-/* The right rail — what the picked card is, in detail, and the knobs that change it. Two parts, and the
-   split is what makes the rail usable: the picture of what is being edited is pinned at the top, and only
-   the knobs under it scroll. Every edit in the rail is judged by that picture, so scrolling to the control
-   that changes it must not take it off screen. */
-/* The rail is where the work happens — the grid beside it only picks what to work on, and it reflows to
-   whatever is left. At 320px a material's own row could not hold a kind select, a course count and a remove
-   button at once, so every one of them wrapped and the panel scrolled sideways. It takes a share of the
-   window instead, bounded so a wide monitor does not hand it half the screen. */
-.lib-rail {
-  flex-shrink: 0; width: clamp(360px, 32vw, 560px);
-  border-left: 1px solid var(--border); overflow: hidden;
-  display: flex; flex-direction: column;
-}
-.lib-rail-pin {
-  flex-shrink: 0; padding: var(--space-3); border-bottom: 1px solid var(--border);
-  display: flex; flex-direction: column; gap: var(--space-2);
-}
-.lib-rail-body {
-  flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-3);
-  display: flex; flex-direction: column; gap: var(--space-3);
-}
-/* The body scrolls, so its children must keep their own height: a flex column shrinks its items to fit
-   before it will overflow, which squashes a section under a tall editor rather than scrolling past it. */
-.lib-rail-body > * { flex-shrink: 0; }
-.lib-rail-head { display: flex; align-items: center; justify-content: space-between; }
-.lib-rail-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
-.lib-rail-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
-.lib-rail-x:hover { color: var(--text-bright); border-color: var(--accent); }
-.lib-rail-x svg { width: var(--icon-xs); height: var(--icon-xs); }
-
+/* One picture of what is being authored, on the ground the canvas uses. */
 .lib-fig {
   display: flex; align-items: center; justify-content: center; min-height: 150px;
   padding: 10px; background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-sm);
 }
 .lib-fig svg { width: 100%; height: auto; max-height: 260px; display: block; }
 
-/* A pinned figure is measured against the viewport, not its own drawing: it never scrolls away, so on a
-   short window a fixed pixel height would take the rail and leave the knobs a slit to scroll in. */
-.lib-rail-pin .lib-fig { min-height: 0; }
-.lib-rail-pin .lib-fig svg,
-.lib-rail-pin .theme-section-figure svg { max-height: min(180px, 20vh); }
+/* ── the browse page: a strip over a grid ─────────────────────────────────────────────────────────── */
+.lib-page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+.lib-strip {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-panel); border-bottom: 1px solid var(--border);
+}
+.lib-strip-gap { flex: 1 1 auto; }
+.lib-strip .lib-count { margin: 0; }
+
+.lib-search {
+  display: flex; align-items: center; gap: var(--space-2); flex: 0 1 260px; min-width: 180px;
+  height: var(--control-height); padding: 0 var(--space-2);
+  background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.lib-search:focus-within { border-color: var(--accent); }
+.lib-search svg { width: var(--icon-xs); height: var(--icon-xs); color: var(--text-muted); flex: 0 0 auto; }
+.lib-search-input {
+  flex: 1; min-width: 0; height: 100%; border: 0; background: transparent;
+  color: var(--text-primary); font: inherit; font-size: var(--font-sm); outline: none;
+}
+
+.lib-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-3); }
+
+/* A card is a link to its editor, so the whole figure is the target. */
+a.lib-card-fig { text-decoration: none; }
+.lib-card:hover { border-color: var(--accent); }
+
+/* ── the chooser: the six libraries, over what each one holds ─────────────────────────────────────── */
+.lib-hero { margin-bottom: var(--space-4); }
+.lib-hero-title { margin: 0 0 var(--space-2); font-size: var(--font-2xl); color: var(--text-bright); }
+.lib-hero-lead { margin: 0; max-width: 72ch; color: var(--text-secondary); }
+.lib-choices { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.lib-choice-fig {
+  display: flex; align-items: center; justify-content: center; height: 96px; overflow: hidden;
+  background: var(--canvas); border: 1px solid var(--border); border-radius: var(--radius-sm);
+}
+.lib-choice-fig svg { max-width: 100%; max-height: 100%; }
+.lib-choice-empty { font-size: var(--font-xs); color: var(--text-muted); }
+
+/* ── the editor page: the name, the outline, and the stage the preview stands on ──────────────────── */
+.lib-name { padding: 0 0 var(--space-2); }
+
+.lib-outline { display: flex; flex-direction: column; gap: 1px; }
+.lib-outline-row {
+  display: flex; align-items: center; gap: var(--space-2); width: 100%;
+  padding: 5px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-primary); font: inherit; font-size: var(--font-sm);
+  text-align: left; cursor: pointer;
+}
+.lib-outline-row:hover { background: var(--bg-selected-hover); }
+.lib-outline-row--picked { background: var(--bg-selected); color: var(--text-strong); box-shadow: var(--shadow-ring); }
+.lib-outline-mark { flex: 0 0 auto; display: grid; place-items: center; width: var(--icon-xs); height: var(--icon-xs); }
+.lib-outline-mark svg { width: 100%; height: 100%; color: var(--text-muted); }
+.lib-outline-row--picked .lib-outline-mark svg { color: var(--text-strong); }
+.lib-outline-swatch { width: 100%; height: 100%; border-radius: 2px; border: 1px solid var(--border-swatch); }
+.lib-outline-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lib-outline-tag {
+  flex: 0 0 auto; font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 4px;
+}
+
+/* The preview is what every field is judged by, so it takes the middle and never scrolls with the knobs. Each
+   view states the height it may claim and the picture fills it: a server-drawn SVG carries its own pixel
+   size, which on a stage this wide would leave a house the size of a card. */
+.lib-stage { display: flex; align-items: center; justify-content: center; overflow: auto; padding: var(--space-3); }
+.lib-stage-figure {
+  display: flex; flex-direction: column; align-items: stretch; gap: var(--space-3);
+  width: 100%; max-width: 760px;
+}
+.lib-stage-figure figure { margin: 0; display: flex; align-items: center; justify-content: center; }
+.lib-stage-figure .lib-fig { min-height: 0; height: 34vh; }
+.lib-stage-figure .lib-fig svg { height: 100%; width: auto; max-width: 100%; }
+
+/* The four house views laid out for a stage rather than a column: the isometric leads, the plan and the
+   section sit beside each other under it, and the cutaway closes. */
+.lib-stage-figure .house-views__iso { height: 32vh; }
+.lib-stage-figure .house-views__cut { height: 16vh; }
+.lib-stage-figure .house-views__iso svg,
+.lib-stage-figure .house-views__cut svg { height: 100%; width: auto; max-width: 100%; }
+.lib-stage-figure .dressing-views { display: flex; gap: var(--space-3); justify-content: center; height: 18vh; }
+.lib-stage-figure .theme-section-figure { height: 100%; }
+.lib-stage-figure .theme-section-figure svg { height: 100%; width: auto; max-width: 100%; }

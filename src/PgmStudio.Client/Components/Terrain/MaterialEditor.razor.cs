@@ -19,6 +19,10 @@ public partial class MaterialEditor
     [Parameter] public string? Label { get; set; }
     /// <summary>Renders inside another material — indented and ruled, rather than as a top-level block.</summary>
     [Parameter] public bool Nested { get; set; }
+    /// <summary>Draws one level only: a nested material renders as its own row and nothing below it, because
+    /// the outline beside the form is carrying the nest. The flag passes down, so setting it at the root
+    /// flattens the whole form.</summary>
+    [Parameter] public bool Flat { get; set; }
     /// <summary>Extra controls for the material's own row, between the kind and the remove button. Set by a
     /// list that gives its entries an extent (a layer's courses, a band's depth, a stripe's width): the
     /// number belongs to the entry, not to the material, but it reads as part of the same row.</summary>
@@ -30,6 +34,9 @@ public partial class MaterialEditor
     /// <summary>Whether the "?" beside the kind is showing its note. Top-level only — a nested material
     /// never renders the mark, so it never carries the state either.</summary>
     private bool helpOpen;
+
+    /// <summary>Whether this instance is one of a flattened form's rows rather than a form of its own.</summary>
+    private bool Stub => Nested && Flat;
 
     private string Kind => JsonEdit.KindOf(Node);
     private int Int(string field, int fallback) => JsonEdit.Int(Node, field, fallback);
@@ -63,14 +70,13 @@ public partial class MaterialEditor
         "A rise of 0 paints the ground and leaves every wall face striped; give it a vertical period in blocks "
         + "and the pattern carries through the depth of the terrain instead.";
 
-    /// <summary>What a voronoi band is, by where it sits: the first draws the grid, the last takes whatever is
-    /// left of the cell, and the ones between are rings working inward.</summary>
-    private string BandLabel(int index)
-    {
-        var count = JsonEdit.Array(Node, ThemeFields.Bands).Count;
-        if (index == 0) return "Grid line";
-        return index == count - 1 ? "Middle" : $"Band {index}";
-    }
+    /// <summary>What one of a kind's single children is called.</summary>
+    private string ChildLabel(string field)
+        => MaterialTree.ChildrenOf(Kind).FirstOrDefault(child => child.Field == field).Label ?? field;
+
+    /// <summary>What one entry of a list is called, by where it sits.</summary>
+    private string EntryLabel(string field, int index)
+        => MaterialTree.EntryLabel(field, index, JsonEdit.Array(Node, field).Count);
 
     /// <summary>One entry of a material's child list, with everything the markup binds to. A pattern's entry
     /// is a bare material; a layer or a stripe wraps one with the extent it claims, which is what
@@ -79,19 +85,10 @@ public partial class MaterialEditor
         JsonNode Node, int Index, JsonObject Material, int Extent,
         EventCallback Remove, EventCallback<ChangeEventArgs> SetExtent);
 
-    // The wrapped lists carry their extent under different names; the bare ones carry none.
-    private static string? ExtentField(string field) => field switch
-    {
-        ThemeFields.Layers => ThemeFields.Thickness,
-        ThemeFields.Runs => ThemeFields.Width,
-        ThemeFields.Bands => ThemeFields.Depth,
-        _ => null,
-    };
-
     private IEnumerable<Entry> List(string field)
     {
         var array = JsonEdit.Array(Node, field);
-        var extentField = ExtentField(field);
+        var extentField = MaterialTree.ExtentOf(field);
         for (var i = 0; i < array.Count; i++)
         {
             var node = array[i];

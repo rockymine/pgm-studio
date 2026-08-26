@@ -1,0 +1,36 @@
+@namespace PgmStudio.Client.Features.Library
+@inject TerrainLibraryClient Library
+@inject IJSRuntime JS
+
+@* What /library opens on: the six libraries as cards, in the order they compose, each over its own count and
+   a picture taken from the first row it holds. *@
+
+<ContentColumn MaxWidth="1080">
+  <header class="lib-hero">
+    <h1 class="lib-hero-title">Six libraries, in the order they compose</h1>
+    <p class="lib-hero-lead">A style is one material; a theme is a whole terrain finish made of styles; a roof,
+      a storey and a porch are the parts a building binds; a house is the building itself. Author one once and
+      every map that wants it takes a copy.</p>
+  </header>
+
+  <div class="card-grid lib-choices">
+    @foreach (var kind in LibraryKinds.All)
+    {
+      <a class="card card--action lib-choice" href="@($"/library/{kind.Slug}")" @key="kind.Slug">
+        <div class="card-head">
+          <span class="card-icon"><i data-lucide="@kind.Icon" @key="kind.Icon"></i></span>
+          <span class="card-title">@kind.Title</span>
+        </div>
+        <div class="lib-choice-fig">
+          @if (Sample(kind) is { } picture) { @((MarkupString)picture) }
+          else { <span class="lib-choice-empty">nothing here yet</span> }
+        </div>
+        <p class="card-desc">@kind.Blurb</p>
+        <span class="card-foot">
+          <span class="card-foot-count">@CountLabel(kind)</span>
+          <span class="card-foot-go">Open <i data-lucide="arrow-right" @key="@($"go-{kind.Slug}")"></i></span>
+        </span>
+      </a>
+    }
+  </div>
+</ContentColumn>

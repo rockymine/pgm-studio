@@ -1,0 +1,47 @@
+@namespace PgmStudio.Client.Features.Library
+@inject TerrainLibraryClient Library
+@inject NavigationManager Nav
+
+@* One material, on a page of its own. A material nests — a band, a layer and a stop are each themselves a
+   material — so the nest is the outline and the inspector edits whichever node it has picked. *@
+
+<LibraryEditor Kind="LibraryKinds.Styles" Name="@draftName" NameChanged="SetName"
+               Outline="Outline" Selected="@selected" OnSelect="Pick"
+               Footnote="@Footnote" Note="@note">
+  <Views>
+    <LayerChip Icon="grid" Active="@(view == Plan)" Title="One course, from above"
+               OnClick="() => view = Plan">Plan</LayerChip>
+    <LayerChip Icon="layers" Active="@(view == Section)" Title="The same material cut open downward"
+               OnClick="() => view = Section">Section</LayerChip>
+    <LayerChip Icon="squares-intersect" Active="@(view == Both)" Title="Both views, side by side"
+               OnClick="() => view = Both">Both</LayerChip>
+  </Views>
+  <Preview>
+    @if (preview is null) { <p class="lib-status">Nothing to draw yet.</p> }
+    else
+    {
+      @if (view != Section) { <figure class="lib-fig">@((MarkupString)preview.Plan)</figure> }
+      @if (view != Plan) { <figure class="lib-fig lib-fig--section">@((MarkupString)preview.Section)</figure> }
+    }
+  </Preview>
+  <Fields>
+    @if (Picked is { } node)
+    {
+      <MaterialEditor Flat Node="node" Blocks="blocks" OnChanged="DraftEdited" @key="selected" />
+    }
+    else
+    {
+      <p class="section-desc">That part of the material is gone — pick another row.</p>
+    }
+  </Fields>
+  <Actions>
+    <Button Variant="primary" Icon="save" Disabled="@(!CanSave)" OnClick="Save">
+      @(editingId is null ? "Add to library" : "Save changes")
+    </Button>
+    @if (editingId is not null)
+    {
+      <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
+      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+    }
+  </Actions>
+</LibraryEditor>

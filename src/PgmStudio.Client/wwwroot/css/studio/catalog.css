@@ -25,3 +25,33 @@
 }
 .cat-probe-why { margin: 0; font-size: var(--font-xs); line-height: 1.5; color: var(--text-secondary); }
 .cat-probe-ok { margin: 0; font-size: var(--font-xs); line-height: 1.5; color: var(--text-secondary); font-family: ui-monospace, monospace; }
+
+/* The knob panel — what the picked card is, in detail, and the controls that re-probe it. Two parts, and the
+   split is what makes it usable: the picture is pinned at the top and only the knobs under it scroll, since
+   every edit is judged by that picture and scrolling to a control must not take it off screen. */
+.lib-rail {
+  flex-shrink: 0; width: clamp(360px, 32vw, 560px);
+  border-left: 1px solid var(--border); overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.lib-rail-pin {
+  flex-shrink: 0; padding: var(--space-3); border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: var(--space-2);
+}
+.lib-rail-body {
+  flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-3);
+  display: flex; flex-direction: column; gap: var(--space-3);
+}
+/* The body scrolls, so its children must keep their own height: a flex column shrinks its items to fit
+   before it will overflow, which squashes a section under a tall editor rather than scrolling past it. */
+.lib-rail-body > * { flex-shrink: 0; }
+.lib-rail-head { display: flex; align-items: center; justify-content: space-between; }
+.lib-rail-title { font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-secondary); }
+.lib-rail-x { width: 24px; height: 24px; display: grid; place-items: center; background: transparent; color: var(--text-secondary); border: 1px solid var(--border); border-radius: var(--radius-sm); cursor: pointer; }
+.lib-rail-x:hover { color: var(--text-bright); border-color: var(--accent); }
+.lib-rail-x svg { width: var(--icon-xs); height: var(--icon-xs); }
+
+/* A pinned figure is measured against the viewport, not its own drawing: it never scrolls away, so on a
+   short window a fixed pixel height would take the panel and leave the knobs a slit to scroll in. */
+.lib-rail-pin .lib-fig { min-height: 0; }
+.lib-rail-pin .lib-fig svg { max-height: min(180px, 20vh); }

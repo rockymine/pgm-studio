@@ -481,6 +481,15 @@ model — everything else from that pool has moved to the heading its subject ow
 
   *`opus-run2` §1.7 and §5 #7.*
 
+- [ ] **TS34 — The dressing spec counts five placing tools where the dock offers six.** `tests/e2e/dressing.mjs`
+  asserts *"the phase offers its five placing tools"* and the Dressing dock draws `DressingTools.All` —
+  stroke, water, ground cover, building, tree, boulder. The count assertion fails and the drive that follows
+  clicks a tool by the position it no longer holds, so three of the spec's 22 checks fail on a phase that
+  works. Count the tools off `DressingTools.All` rather than restating the number, and re-point the drive.
+
+  *`./tools/e2e.sh dressing` → 19/22, with the same three failures on a clean checkout: "the phase offers its
+  five placing tools — Select | Move | Stroke | Water | Ground cover | Building | Tree | Boulder".*
+
 ### Painting: the theme a document states is not what lands
 
 Four places the paint and the document disagree — an overlap resolved by opposite rules, a shape whose

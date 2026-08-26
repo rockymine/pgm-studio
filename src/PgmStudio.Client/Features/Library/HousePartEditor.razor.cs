@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Components;
-using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 using PgmStudio.Vocabulary;
@@ -7,94 +6,107 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Client.Features.Library;
 
 /// <summary>
-/// The library's parts half (B71): roofs, storeys and porches, each authored once and bound by the houses that
-/// want them. One composer for the three because they are the same act — pick a kind, bind styles to that
-/// kind's parts, turn that kind's knobs — and what differs between them is <see cref="PartKindInfo"/>, which is
-/// data rather than a third editor.
+/// Authors one house part. One editor for a roof, a storey and a porch because they are the same act — pick a
+/// form, bind styles to that kind's pieces, turn that kind's knobs — and what differs between them is
+/// <see cref="PartKindInfo"/>, which is data.
 ///
-/// <para>The draft it edits is the save request itself, so what is previewed and what is saved are the same
-/// value and the picture cannot promise a part the save would not build. A part is not a building, so every
-/// picture stands it on a plain sample one: what differs between two cards is then the part and never the house
-/// around it.</para>
+/// <para>Exactly one of the three drafts is non-null, and which one is the kind. They are kept as the request
+/// types rather than as a shared shape because a roof and a porch state different things, and a type that held
+/// both would be two records wearing one name.</para>
 /// </summary>
-public partial class HousePartComposer
+public partial class HousePartEditor
 {
-    [Inject] public TerrainLibraryClient Library { get; set; } = default!;
-    [Inject] public IJSRuntime JS { get; set; } = default!;
+    [Parameter, EditorRequired] public PartKindInfo Part { get; set; } = default!;
+    [Parameter, EditorRequired] public string Entry { get; set; } = "";
+    [Parameter] public EventCallback<string?> OnSaved { get; set; }
+    [Parameter] public EventCallback<string> OnName { get; set; }
 
-    // Every edit renders fresh <i data-lucide> nodes, and lucide only processes what exists when it runs.
-    protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
+    /// <summary>The outline row the kind's own knobs sit on, and the one a storey's windows sit on.</summary>
+    private const string KnobsPart = "knobs";
+    private const string WindowsPart = "windows";
 
-    private PartKindInfo partKind = PartKindInfo.All[0];
+    // The few block ids the editor names. Literals because the client references Contracts only — Blocks lives
+    // in Minecraft, which is the export's layer and not the browser's.
+    private const int OakStairs = 53, GlassPane = 102, WoodenSlab = 126, OakFence = 85;
 
-    /// <summary>The cards showing, flattened out of whichever kind is on — the three summaries differ only in
-    /// their type, and a list that had to be three lists would make the shared markup three copies.</summary>
-    private List<(long Id, string Name, string Preview)> entries = [];
+    private static readonly RoomWindowDto NoWindows =
+        new(WindowForms.None, Block: GlassPane, Data: 0, Sill: 2, Width: 2, Height: 2, Spacing: 3);
 
     private IReadOnlyList<StyleDto> styles = [];
     private IReadOnlyList<PaintBlockDto> blocks = [];
-
-    private bool loading = true;
-    private bool figureHelp;
-    private string? note;
-
-    private long? editingId;
-    private string draftName = "";
-    private RoomStylePreviewDto? preview;
-
-    // Exactly one of the three is non-null, and which one is the kind. Kept as the request types rather than as
-    // one union so the save is the value the editor was holding all along.
     private RoofStyleSaveRequest? roof;
     private StoreyStyleSaveRequest? storey;
     private PorchStyleSaveRequest? porch;
-
-    /// <summary>Whether anything is open in the rail. The three drafts are one editor, so the rail asks this
-    /// rather than which of them is set.</summary>
-    private bool Editing => roof is not null || storey is not null || porch is not null;
+    private long? editingId;
+    private string draftName = "";
+    private string selected = KnobsPart;
+    private string? note;
+    private RoomStylePreviewDto? preview;
 
     private IEnumerable<IGrouping<string, StyleDto>> StylesByKind => styles.GroupBy(style => style.Kind);
 
     private StyleDto? StyleOf(long id) => styles.FirstOrDefault(style => style.Id == id);
 
+    /// <summary>The stacked piece the outline has picked, or null when it has picked something else.</summary>
+    private RoomPartInfo? Stacked => Part.Stacked.FirstOrDefault(piece => piece.Id == selected);
+
+    /// <summary>The single-material piece the outline has picked, or null when it has picked something else.</summary>
+    private RoomPartInfo? SingleBound => Part.Single.FirstOrDefault(piece => piece.Id == selected);
+
+    private IReadOnlyList<EditorPart> Outline
+    {
+        get
+        {
+            List<EditorPart> rows = [new(KnobsPart, Part.KnobsTitle, Part.Kind.Icon, Badge: KnobsBadge)];
+            if (storey is not null)
+            {
+                rows.Add(new EditorPart(WindowsPart, "Windows", "grid",
+                    Badge: WindowForms.Canonical(storey.Windows.Form)));
+            }
+            rows.AddRange(Part.Stacked.Select(piece => new EditorPart(
+                piece.Id, piece.Title, "layers",
+                Badge: Courses(piece.Id).Count is var n and > 0 ? $"{n} course{(n == 1 ? "" : "s")}" : "built-in")));
+            rows.AddRange(Part.Single.Select(piece => new EditorPart(
+                piece.Id, piece.Title, "dot",
+                Badge: StyleOf(Single(piece.Id))?.Name ?? "unbound")));
+            return rows;
+        }
+    }
+
+    private string KnobsBadge => roof is not null ? RoofForms.Canonical(roof.Form)
+        : storey is not null ? $"clear {storey.Clear}"
+        : porch is not null ? $"{porch.Depth} deep"
+        : "";
+
     protected override async Task OnInitializedAsync()
     {
         blocks = await Library.BlocksAsync();
-        await Reload();
-    }
-
-    private async Task Switch(PartKindInfo next)
-    {
-        if (next.Kind.Slug == partKind.Kind.Slug) return;
-        partKind = next;
-        Close();
-        await Reload();
-    }
-
-    private async Task Reload()
-    {
-        loading = true;
         styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
-        entries = partKind.Kind.Slug switch
-        {
-            LibraryKinds.RoofsSlug => [.. (await Library.ListAsync<RoofStyleSummary>(partKind.Kind))
-                .Select(row => (row.Id, row.Name, row.Preview))],
-            LibraryKinds.StoreysSlug => [.. (await Library.ListAsync<StoreyStyleSummary>(partKind.Kind))
-                .Select(row => (row.Id, row.Name, row.Preview))],
-            _ => [.. (await Library.ListAsync<PorchStyleSummary>(partKind.Kind))
-                .Select(row => (row.Id, row.Name, row.Preview))],
-        };
-        loading = false;
-        StateHasChanged();
     }
 
-    // ── the draft ──────────────────────────────────────────────────────────────────────────────────
-    private async Task StartNew()
+    /// <summary>What the draft was loaded for. A parameter set that does not move the route is the host
+    /// re-rendering — reloading there would re-read the row, report the name back up, and re-render the host
+    /// again.</summary>
+    private string? loaded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (loaded == $"{Part.Kind.Slug}/{Entry}") return;
+        loaded = $"{Part.Kind.Slug}/{Entry}";
+        note = null;
+        selected = KnobsPart;
+        Clear();
+        if (long.TryParse(Entry, out var id)) await Load(id);
+        else StartNew();
+        await OnName.InvokeAsync(draftName);
+        await Preview();
+    }
+
+    private void StartNew()
     {
         editingId = null;
         draftName = "";
-        note = null;
-        Clear();
-        switch (partKind.Kind.Slug)
+        switch (Part.Kind.Slug)
         {
             case LibraryKinds.RoofsSlug:
                 roof = new RoofStyleSaveRequest("", RoofForms.Gable, 1, 1, false, false, []);
@@ -106,24 +118,18 @@ public partial class HousePartComposer
                 porch = new PorchStyleSaveRequest("", 2, 0, PorchEdges.Front, RoofForms.Shed, OakFence);
                 break;
         }
-        await Preview();
     }
 
-    // The few block ids the editor names. Literals because the client references Contracts only — Blocks lives
-    // in Minecraft, which is the export's layer and not the browser's.
-    private const int OakStairs = 53, GlassPane = 102, WoodenSlab = 126, OakFence = 85;
-
-    private static readonly RoomWindowDto NoWindows =
-        new(WindowForms.None, Block: GlassPane, Data: 0, Sill: 2, Width: 2, Height: 2, Spacing: 3);
-
-    private async Task Edit(long id)
+    private async Task Load(long id)
     {
-        note = null;
-        Clear();
-        switch (partKind.Kind.Slug)
+        switch (Part.Kind.Slug)
         {
             case LibraryKinds.RoofsSlug:
-                if (await Library.GetAsync<RoofStyleDetail>(partKind.Kind, id) is not { } roofDetail) { note = Unreadable; return; }
+                if (await Library.GetAsync<RoofStyleDetail>(Part.Kind, id) is not { } roofDetail)
+                {
+                    note = Unreadable;
+                    return;
+                }
                 (editingId, draftName) = (roofDetail.Id, roofDetail.Name);
                 roof = new RoofStyleSaveRequest(
                     roofDetail.Name, roofDetail.Form, roofDetail.Pitch,
@@ -131,34 +137,41 @@ public partial class HousePartComposer
                     roofDetail.RoofSlab, roofDetail.RoofSlabData);
                 break;
             case LibraryKinds.StoreysSlug:
-                if (await Library.GetAsync<StoreyStyleDetail>(partKind.Kind, id) is not { } storeyDetail) { note = Unreadable; return; }
+                if (await Library.GetAsync<StoreyStyleDetail>(Part.Kind, id) is not { } storeyDetail)
+                {
+                    note = Unreadable;
+                    return;
+                }
                 (editingId, draftName) = (storeyDetail.Id, storeyDetail.Name);
                 storey = new StoreyStyleSaveRequest(
                     storeyDetail.Name, storeyDetail.Clear, storeyDetail.BorderWidth, storeyDetail.InlayInset,
                     storeyDetail.Windows, storeyDetail.Courses);
                 break;
             default:
-                if (await Library.GetAsync<PorchStyleDetail>(partKind.Kind, id) is not { } porchDetail) { note = Unreadable; return; }
+                if (await Library.GetAsync<PorchStyleDetail>(Part.Kind, id) is not { } porchDetail)
+                {
+                    note = Unreadable;
+                    return;
+                }
                 (editingId, draftName) = (porchDetail.Id, porchDetail.Name);
                 porch = new PorchStyleSaveRequest(
                     porchDetail.Name, porchDetail.Depth, porchDetail.Inset, porchDetail.Edge,
                     porchDetail.Roof, porchDetail.RailBlock);
                 break;
         }
-        await Preview();
     }
 
     private const string Unreadable = "That part could not be read.";
 
     private void Clear() => (roof, storey, porch) = (null, null, null);
 
-    private void Close()
+    private async Task SetName(string name)
     {
-        Clear();
-        editingId = null;
-        preview = null;
-        note = null;
+        draftName = name;
+        await OnName.InvokeAsync(name);
     }
+
+    private void Pick(string part) => selected = part;
 
     // ── the course stacks ──────────────────────────────────────────────────────────────────────────
     /// <summary>The courses the open draft carries, whichever kind it is. A porch has none, so it answers
@@ -315,55 +328,57 @@ public partial class HousePartComposer
         return Preview();
     }
 
-    private static int Parse(ChangeEventArgs e, int fallback)
-        => int.TryParse((string?)e.Value, out var value) ? value : fallback;
-
     /// <summary>Re-draw the sample building from the draft as it stands. Composed server-side by exactly the
     /// path a save would take, so the picture and the save cannot disagree.</summary>
     private async Task Preview()
     {
         preview = Draft() is { } draft
-            ? await Library.DraftPreviewAsync<RoomStylePreviewDto>(partKind.Kind, draft)
+            ? await Library.DraftPreviewAsync<RoomStylePreviewDto>(Part.Kind, draft)
             : null;
         StateHasChanged();
     }
 
-    // ── saving ─────────────────────────────────────────────────────────────────────────────────────
-    private async Task Save()
-    {
-        if (string.IsNullOrWhiteSpace(draftName)) return;
-        var name = draftName.Trim();
-        if (Draft(name) is not { } request) { note = "That could not be saved."; return; }
-        var saved = editingId is { } id
-            ? await Library.UpdateAsync<object>(partKind.Kind, id, request)
-            : await Library.CreateAsync<object>(partKind.Kind, request);
-        if (saved is null) { note = "That could not be saved."; return; }
-        note = null;
-        Close();
-        await Reload();
-    }
-
     /// <summary>The one draft this kind is holding, named — what both the preview and the save post.</summary>
-    private object? Draft(string? name = null) => partKind.Kind.Slug switch
+    private object? Draft(string? name = null) => Part.Kind.Slug switch
     {
         LibraryKinds.RoofsSlug => roof is null ? null : roof with { Name = name ?? draftName },
         LibraryKinds.StoreysSlug => storey is null ? null : storey with { Name = name ?? draftName },
         _ => porch is null ? null : porch with { Name = name ?? draftName },
     };
 
+    private async Task Save()
+    {
+        if (string.IsNullOrWhiteSpace(draftName)) return;
+        if (Draft(draftName.Trim()) is not { } request) { note = "That could not be saved."; return; }
+        var saved = editingId is { } id
+            ? await Library.UpdateAsync<PartSaved>(Part.Kind, id, request)
+            : await Library.CreateAsync<PartSaved>(Part.Kind, request);
+        if (saved is null) { note = "That could not be saved."; return; }
+        note = editingId is null ? "Added to the library." : "Saved.";
+        await OnSaved.InvokeAsync("saved");
+        if (editingId is null) Nav.NavigateTo($"/library/{Part.Kind.Slug}/{saved.Id}");
+        else editingId = saved.Id;
+    }
+
+    /// <summary>The one field a save's answer is read for — the three part kinds each answer their own detail
+    /// and only the new row's id is acted on.</summary>
+    private sealed record PartSaved(long Id);
+
     /// <summary>Forget the open part. A part a house still binds is refused with the names of the buildings
     /// wearing it, since deleting it would silently change every one of them.</summary>
     private async Task Delete()
     {
         if (editingId is not { } id) return;
-        if (await Library.DeleteAsync(partKind.Kind, id) is { Deleted: false } refused)
+        if (await Library.DeleteAsync(Part.Kind, id) is { Deleted: false } refused)
         {
             note = refused.BoundBy.Count > 0
                 ? $"Still worn by {string.Join(", ", refused.BoundBy)} — change those first."
                 : "That could not be forgotten.";
             return;
         }
-        Close();
-        await Reload();
+        Nav.NavigateTo($"/library/{Part.Kind.Slug}");
     }
+
+    private static int Parse(ChangeEventArgs e, int fallback)
+        => int.TryParse((string?)e.Value, out var value) ? value : fallback;
 }
