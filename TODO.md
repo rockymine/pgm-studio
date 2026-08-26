@@ -136,11 +136,36 @@ the three things the API accepts that no control can say.
 
 ## Looking at a board that was built
 
-- [ ] **B262 — The eight read-backs have no browser surface.** `render/topdown`, `surface`, `walk`, `mirror`,
-  `section`, `structures`, `traversability` and `heightmap` answer a picture each over HTTP and are fetched
-  by nothing in the client. `docs/world-scan/read-backs.md` never claimed a UI, so this is a gap rather than
-  drift — but reviewing what a board looks like is the loop the paint work runs on, and today it runs at
-  in-game speed. A page per map, and a contact sheet across maps.
+- [ ] **B262 — The read-backs have no browser surface, and neither do the ones already taken.**
+  `render/topdown`, `surface`, `walk`, `mirror`, `section`, `structures`, `traversability` and `heightmap`
+  answer a picture each over HTTP and are fetched by nothing in the client. `docs/world-scan/read-backs.md`
+  never claimed a UI, so this is a gap rather than drift — but reviewing what a board looks like is the loop
+  the paint work runs on, and today it runs at in-game speed. A page per map, live off the routes.
+
+  **The larger half is that the pictures already exist.** `pgm-studio-mapgen`'s `tools/drive.py` takes all
+  eleven world reads over HTTP after every build and writes them beside the documents: 64 renders a map in
+  `specs/<name>/renders/`, a `world-surface.png` per board and a `theme-*-surface.png` per theme — which is
+  the palette read `WE41` is parked on — and a `world-layer-*.png` per storey where the board is stacked.
+  Fifty-odd boards' worth of provenance-backed pictures nobody can see side by side. So the second surface is
+  a **contact sheet over a renders directory**: one row per map, one column per view, the view pickable, at a
+  size where a whole run is judged in one screen. That is what makes a preference pass over the built boards
+  affordable, and it needs no new render.
+
+- [ ] **B265 — A disk read cannot be given the provenance sidecar, and this repo's worlds never carry one.**
+  `TopDownRender.Run(regionDir, …)` finds provenance only by `WorldProvenanceFile.TryRead(regionDir)`, and
+  `drive.py` deliberately moves `provenance.json` out to `specs/<name>/` because `maps/<name>/` is uploaded to
+  the PGM server and holds only `region/`, `map.xml` and `level.dat`. So every render taken off a shipped
+  world after the fact degrades to the material estimate — correctly labelled in the legend (`B133`), and on a
+  painted board wrong enough to read terrain as structure across half the map. The HTTP routes are unaffected;
+  they build the world and hold `Built.Provenance`. Wants `--provenance <path>` on the reads that take a
+  region directory, so a sidecar kept beside the documents can be pointed at.
+
+- [ ] **B266 — The read-back help documents a flag the CLI does not parse.** `--help` prints
+  `--topdown --layer …` for every subject, because the text is generated from `WorldReadCatalog`, which is
+  written for the HTTP route — where the query parameter really is `layer`. The CLI parses `--subject`, so
+  the documented form fails as `no region dir: --layer`, naming the wrong argument. One of the two words has
+  to give; the route's is the published one, so the CLI should take `--layer` (keeping `--subject` is a second
+  accepted spelling, which is what rots).
 
 ## The storey a placement rests on
 
