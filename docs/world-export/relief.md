@@ -273,6 +273,34 @@ usable, and a place is anything holding a hundredth of the ground.
 Four blocks over a room is where the surface stops being flat and stays entirely open. Eight is where it begins
 to charge. Fourteen is a room with a hill in it, which is a legitimate thing to build.
 
+### 6.1 What kind of ground it is, and whether it was ever graded
+
+Those numbers are one room's. Across a whole board the same question is asked with two, and both are read back
+off the solved surface rather than off what the marks asked for.
+
+**Elevation is read for the board's own size.** The measure is the range over the square root of the island's
+cells, because a bare range says nothing on its own: twenty-eight blocks is a mountain on a board a hundred
+cells across and a slope on one four hundred across — `opus5-deepcut` carries 28 over 4,736 cells and
+`opus5-elderwold` 22 over 13,950, and one is a quarry while the other is a hillside. The four bands are the
+gaps between the boards this repository has built, read against the author's own reading of them: a **plain**
+below 0.10 (`opus5-whinnymoor` 0.065), **rolling** from 0.15 (`opus5-thornfell` 0.232, called good rolling
+hills), **hills** from 0.35 (`opus5-tarnfell` 0.402, called smooth-ish), and a **mountain** from 0.50
+(`opus5-sandcaster-ii` 0.524). A third of Thornfell's elevation is what the author put a flatter plain at, and
+it lands at 0.077.
+
+**Whether that elevation was graded is a separate number**, and it is what tells a quarry from a mountainside:
+the `steps` histogram's **scramble against barrier** — two-block steps against everything taller. Ground that
+rolls keeps more of the first; ground where every height change is a wall keeps the reverse, whatever its
+range. Thornfell rolls at 7.6 scrambles per barrier and Tarnfell at 3.0; **Deepcut has not one scramble
+transition on it** and 7.85% of its steps are barriers, which is a mountain's elevation with none of a
+mountain's shaping. At or above two the ground rolls; at or below one it steps.
+
+An island **states which of the four it is meant to be** (`relief.landform`), and the read answers what it
+measured. Where the two disagree the response carries an `RL1` complaint, and ground that carries elevation it
+never graded carries `RL2` — complaints, never refusals: a relief is authored ground, and the studio's business
+is to measure it and say where the measurement and the statement disagree. A plain is never `RL2`, since a
+plain has no elevation to have shaped.
+
 ## 7. Shapes erected out of the field
 
 A relief makes rolling ground. What makes a map is the thing standing in it, and the shape model is most of the

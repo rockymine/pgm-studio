@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
@@ -75,6 +76,13 @@ public sealed record ReliefReadDto(IReadOnlyList<ReliefIslandReadDto> Islands);
 /// <param name="FaceCount">How many faces the terrain presents in total, since
 /// <paramref name="Faces"/> is cut at twelve.</param>
 /// <param name="AcrossZ">What crossing the island costs along z, measured in both directions.</param>
+/// <param name="Landform">What kind of ground the surface measures as — the range over the square root of the
+/// island's cells, which is elevation for the board's own size. Answered whether or not the island stated
+/// one; where it stated a different word the response carries an <c>RL1</c> complaint.</param>
+/// <param name="Smoothing">How many two-block scrambles the surface keeps per barrier taller than one. Above
+/// two the ground rolls, at or below one it steps, whatever its range: a quarry and a mountainside carry the
+/// same elevation and are not the same ground. <b>Null where the island has no barrier at all</b> — there is
+/// nothing to divide by, and a ratio of infinity is not a number JSON can carry.</param>
 public sealed record ReliefIslandReadDto(
     string Island,
     int Cells, int Low, int High, int Relief,
@@ -85,7 +93,9 @@ public sealed record ReliefIslandReadDto(
     int Cliffs,
     ReliefFordsDto AcrossX,
     ReliefFordsDto AcrossZ,
-    int SymmetryError);
+    int SymmetryError,
+    [property: WordSet(typeof(Landform))] string Landform = Vocabulary.Landform.Plain,
+    double? Smoothing = null);
 
 /// <summary>How a surface reads at one passability threshold: what share a player can cross, how many
 /// <b>places</b> that leaves, how much of the ground the largest holds, and how many <b>ledges</b> are

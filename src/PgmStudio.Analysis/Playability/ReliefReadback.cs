@@ -1,3 +1,5 @@
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Analysis.Playability;
 
 using PgmStudio.Geom.Algorithms;
@@ -74,7 +76,55 @@ public static class ReliefReadback
         IReadOnlyDictionary<string, int> Steps,
         IReadOnlyList<Face> Faces, int Cliffs,
         Fords AcrossX, Fords AcrossZ,
-        int SymmetryError);
+        int SymmetryError,
+        string Landform = Vocabulary.Landform.Plain, double Smoothing = 0);
+
+    // ── what kind of ground this is, and whether it was smoothed ──────────────────────────────────────────
+
+    /// <summary>Where each landform begins, as <b>relief over the square root of the island's cells</b> — the
+    /// elevation a board carries for its own size, which is the comparison an eye makes and a bare range does
+    /// not: twenty-eight blocks of range is a mountain on a board a hundred cells across and a slope on one
+    /// four hundred across.
+    ///
+    /// <para>Calibrated on the boards this repository has built and the author's own reading of them:
+    /// <c>opus5-thornfell</c>, called good rolling hills, measures 0.232; <c>opus5-tarnfell</c>, called
+    /// smooth-ish, 0.402; <c>opus5-whinnymoor</c>, a plain, 0.065 — and a third of Thornfell's, which is what
+    /// the author put a flatter plain at, is 0.077. The bands are the gaps between those readings rather than
+    /// round numbers.</para></summary>
+    public static readonly (string Landform, double From)[] Landforms =
+    [
+        (Vocabulary.Landform.Mountain, 0.50),
+        (Vocabulary.Landform.Hills,    0.35),
+        (Vocabulary.Landform.Rolling,  0.15),
+        (Vocabulary.Landform.Plain,    0.00),
+    ];
+
+    /// <summary>How much of its own scramble a relief has to keep to read as smoothed. The ratio is
+    /// <c>scramble : barrier</c> — two-block steps against everything taller — and it is independent of how
+    /// much ground the relief moves: what it says is whether the elevation was <em>graded</em> or left as
+    /// walls. Thornfell rolls at 7.6, Tarnfell at 3.0; Deepcut's quarry has not one scramble transition on
+    /// it and 7.85% of its steps are barriers.</summary>
+    public const double Smoothed = 2.0;
+    public const double Stepped = 1.0;
+
+    /// <summary>The landform an island of <paramref name="cells"/> cells and <paramref name="relief"/> blocks
+    /// of range reads as. An island with no ground reads as a plain, since there is nothing in it to climb.</summary>
+    public static string LandformOf(int relief, int cells)
+    {
+        if (cells <= 0) return Vocabulary.Landform.Plain;
+        var carried = relief / Math.Sqrt(cells);
+        return Landforms.First(band => carried >= band.From).Landform;
+    }
+
+    /// <summary>How much scramble the relief keeps per barrier — <see cref="Smoothed"/> and above is ground
+    /// that rolls, <see cref="Stepped"/> and below is ground that steps. A relief with no barrier at all
+    /// answers <see cref="double.PositiveInfinity"/>, which is the smoothest a surface gets.</summary>
+    public static double SmoothingOf(IReadOnlyDictionary<string, int> steps)
+    {
+        var barrier = steps.GetValueOrDefault("barrier");
+        var scramble = steps.GetValueOrDefault("scramble");
+        return barrier == 0 ? double.PositiveInfinity : scramble / (double)barrier;
+    }
 
     /// <summary>Reads a solved field. <paramref name="foldCentreX"/>/<paramref name="foldCentreZ"/> and
     /// <paramref name="foldMode"/> are the map's symmetry, so the report can say whether the two halves
@@ -118,7 +168,38 @@ public static class ReliefReadback
         return new Result(land.Count, low, high, high - low, tiers, steps, faces, cliffs,
             FordsAlong(field, footprint, alongX: true),
             FordsAlong(field, footprint, alongX: false),
-            SymmetryError(field, foldMode, foldCentreX, foldCentreZ));
+            SymmetryError(field, foldMode, foldCentreX, foldCentreZ),
+            LandformOf(high - low, land.Count), SmoothingOf(steps));
+    }
+
+    /// <summary>What the measurement says about what the island claimed. Two complaints and never a refusal:
+    /// a relief is authored ground, and the studio's business is to measure it and say where the measurement
+    /// and the statement disagree.
+    ///
+    /// <para><paramref name="declared"/> is the word the island states about itself, or null for one that
+    /// states nothing — in which case there is nothing to disagree with and only the smoothing is read, since
+    /// that one is about how the ground was made rather than about what it was meant to be.</para></summary>
+    public static Findings Check(Result read, string? declared, string island)
+    {
+        var findings = new List<Finding>();
+        if (Vocabulary.Landform.IsKnown(declared) && declared != read.Landform)
+            findings.Add(new Finding(ReliefRules.LandformMismatch,
+                $"island '{island}' says it is {declared} and measures {read.Landform}: {read.Relief} blocks "
+                + $"of range over {read.Cells} cells, which is "
+                + $"{read.Relief / Math.Sqrt(Math.Max(1, read.Cells)):0.00} for the board's own size.",
+                Severity.Complaint, Subjects: [island]));
+
+        // Ground with nothing to grade is not unsmoothed ground: a plain has no elevation to have shaped.
+        if (read.Landform != Vocabulary.Landform.Plain && read.Smoothing <= Stepped)
+            findings.Add(new Finding(ReliefRules.NotSmoothed,
+                $"island '{island}' carries {read.Relief} blocks of range and "
+                + (read.Steps.GetValueOrDefault("scramble") == 0
+                    ? "not one two-block step on it"
+                    : $"{read.Smoothing:0.0} scrambles for every barrier")
+                + $" — {read.Steps.GetValueOrDefault("barrier")} of its steps are taller than a player can "
+                + "scramble. The elevation is there and was never graded.",
+                Severity.Complaint, Subjects: [island]));
+        return findings;
     }
 
     /// <summary>The surface as one tier sees it: cells joined to their neighbours only where the step between

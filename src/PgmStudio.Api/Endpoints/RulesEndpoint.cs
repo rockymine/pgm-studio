@@ -2,6 +2,7 @@ using System.Reflection;
 using FastEndpoints;
 using PgmStudio.Contracts;
 using PgmStudio.Domain;
+using PgmStudio.Analysis.Playability;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Plan;
@@ -45,6 +46,7 @@ public sealed class RulesEndpoint : EndpointWithoutRequest<List<RuleDto>>
         typeof(PlanRules).Assembly,             // Pgm
         typeof(WingJointRules).Assembly,        // Minecraft
         typeof(MapExportComposer).Assembly,     // Export
+        typeof(ReliefRules).Assembly,           // Analysis
         typeof(RulesEndpoint).Assembly,         // Api
     ];
 

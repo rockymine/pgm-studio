@@ -256,3 +256,34 @@ public static class DoorHeadFills
 
     public static string Canonical(string? fill) => All.Any(entry => entry.Id == fill) ? fill! : UpperSlab;
 }
+
+/// <summary>
+/// What kind of ground a relief is meant to be. The word an island states about itself and the word a read
+/// answers back, so the two can be compared: an island that says <c>plain</c> and measures <c>hills</c> is a
+/// board that got away from its author.
+///
+/// <para>It is vocabulary rather than one consumer's constant because three parties spell it — the relief
+/// document states it, the read-back answers it, and the client shows both — and the leaf is where all three
+/// reach. What each word <em>means</em> in blocks is not here: that is a measurement, and it lives with the
+/// read that takes it (<c>ReliefReadback</c>).</para>
+/// </summary>
+public static class Landform
+{
+    /// <summary>Ground a player crosses without thinking about it. A board's default reading.</summary>
+    public const string Plain = "plain";
+
+    /// <summary>Ground that rises and falls enough to break a sight line and shape a route.</summary>
+    public const string Rolling = "rolling";
+
+    /// <summary>Ground with real climbs in it — a route goes round or over, and the choice matters.</summary>
+    public const string Hills = "hills";
+
+    /// <summary>Ground the map is built against rather than on: a range, a rim, a wall of land.</summary>
+    public const string Mountain = "mountain";
+
+    /// <summary>The four in order of how much ground they move, which is the order they are measured in.</summary>
+    public static readonly string[] All = [Plain, Rolling, Hills, Mountain];
+
+    /// <summary>Whether a word is one of the four.</summary>
+    public static bool IsKnown(string? word) => word is { Length: > 0 } && All.Contains(word);
+}

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using PgmStudio.Geom.Relief;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Sketch;
 
@@ -30,6 +31,11 @@ public sealed class SketchReliefJson
     /// <summary>Whether to cut a way up out of ground the block step stranded. Worth asking for whenever the
     /// step is more than one, since that is what turns a riser into a wall.</summary>
     [JsonPropertyName("stairs")] public bool Stairs { get; set; }
+
+    /// <summary>What kind of ground this is meant to be — one of <see cref="Landform"/>'s four words, or
+    /// absent for an island that states nothing. It is read back against the surface the marks actually
+    /// solved (<c>RL1</c>), so it is a claim the studio can check rather than a label.</summary>
+    [JsonPropertyName("landform")] [WordSet(typeof(Landform))] public string? Landform { get; set; }
 
     /// <summary>The noise laid over everything the marks decide, or absent for a surface with none.</summary>
     [JsonPropertyName("grain")]  public ReliefGrainJson? Grain { get; set; }

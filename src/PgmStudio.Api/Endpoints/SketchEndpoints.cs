@@ -595,9 +595,16 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
 
+        // What each island states about itself, to read the measurement back against (RL1).
+        var declared = new Dictionary<string, string?>(StringComparer.Ordinal);
+        foreach (var (island, relief) in state?.Relief ?? [])
+            declared[island] = relief?.Landform;
+
+        var complaints = new List<Finding>();
         var islands = fields.Select(entry =>
         {
             var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
+            complaints.AddRange(ReliefReadback.Check(read, declared.GetValueOrDefault(entry.Key), entry.Key));
             return new ReliefIslandReadDto(
                 entry.Key, read.Cells, read.Low, read.High, read.Relief, read.Steps,
                 [.. read.Tiers.Select(t => new ReliefTierDto(
@@ -610,9 +617,12 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
                 read.Faces.Count, read.Cliffs,
                 new ReliefFordsDto(read.AcrossX.Rows, read.AcrossX.OnFoot, read.AcrossX.WithBlock, read.AcrossX.Descended),
                 new ReliefFordsDto(read.AcrossZ.Rows, read.AcrossZ.OnFoot, read.AcrossZ.WithBlock, read.AcrossZ.Descended),
-                read.SymmetryError);
+                // An island with no barrier divides by nothing, and infinity is not a JSON number.
+                read.SymmetryError, read.Landform,
+                double.IsInfinity(read.Smoothing) ? null : read.Smoothing);
         }).ToList();
 
+        Complaints.Add(HttpContext, complaints);
         await Send.OkAsync(new ReliefReadDto(islands), ct);
     }
 }

@@ -51,7 +51,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | `themes` · `mapTheme` | the terrain-paint registry and the map-wide default |
 | `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
 | `dressing` | every placed prop |
-| `relief` | interior elevation, keyed by island id |
+| `relief` | interior elevation, keyed by island id — and `landform`, the word the island states about what kind of ground it is meant to be |
 
 Four of those are the map's **finish** rather than its shape — `themes`, `mapTheme`, `roomStyles`,
 `dressing` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
@@ -884,7 +884,7 @@ carry — the board an author is looking at is the one place those complaints ar
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
-| `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, and the symmetry error |
+| `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, and the `landform` it measures as beside the `smoothing` it kept. Carries `RL1` where the island states a different word and `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1) |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. The claim is what a keep-out is measured against, and a stroke's is decided by its style, coverage and seed — none of which can be reasoned about from the document | 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `board too large` `SK2` · 404 |

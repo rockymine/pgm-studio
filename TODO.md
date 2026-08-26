@@ -8,7 +8,9 @@ column). The three move left → right: **`BACKLOG.md` → `TODO.md` → `FEATUR
 lands (its message references the id), the task **leaves this file**, and a line is added to `FEATURES.md`.
 Board rules live in `CLAUDE.md` (§ "Status & task board").
 
-**Seven entries, one group, and the order is the point.** They are one review of the built maps
+**Six entries, one group, and the order is the point.** One of them (`WE41`) is parked on a ruling: the
+measurement is done and no candidate predicate reproduces the author's judgement, so nothing is built until
+one is chosen. They are one review of the built maps
 and the order is the point — the house rules are worth nothing until the gate that asks them runs, and the
 mirror read cannot compare material until the pattern folds. The board **takes nothing new until this group
 drains**, and anything found while working goes to `BACKLOG.md`.
@@ -29,33 +31,20 @@ falls — which is the defect rather than a reason to allow it.
 
 ### Colour: one family, and the table that names it
 
-- [ ] **WE41 — A pattern is filled from one family, and nothing says so.** The palette's own docstring states
-  it — "a family is the unit a pattern's stops, bands or patches are filled from" — and `MaterialRecipes`
-  builds a voronoi that way, but an author writing stops by hand is never checked. Raise a `TP` complaint for
-  a pattern whose stops resolve to more than one family, naming them, and a second for a cell size too small
-  for the contrast between them (the contrast is arithmetic over the family colours). The bucket case is the
-  same rule: a bucket named for a colour filled from another family — white stained clay is **186 units** from
-  `bright`, where snow and quartz sit, and `opus5-ravensmere` painted snow with it.
+- [~] **WE41 — A pattern that clashes, and no rule yet that names one.** The three boards the author called
+  out are real and measured; what is not settled is the predicate. **One family per pattern** is what the
+  palette's docstring says a family is for, and it fires on **157 of the 201** scatter patterns in the
+  committed themes, Thornfell's praised moor among them — a flood. **Colour spread** between the families
+  ranks Rimegarth and Deepcut top at 388 but puts `fable-r5-whitebarrow`'s all-grey scar above both at 401.
+  **A neutral family mixed with a warm one** fits the three complaints and still flags 54, including eight on
+  Thornfell and ten on Sandcaster. The measurement is in the commit that opened this; the ruling is the
+  author's, and the entry stays parked until it lands.
   `docs/world-export/terrain-painting.md`.
 
-  *`opus5-ravensmere`: gravel + sand + dirt in one voronoi — cobble, sand and dirt families. `opus5-rimegarth`:
-  snow, dirt, stone and mossy cobble over the whole surface — four. `opus5-deepcut`: white clay, quartz and
-  light grey clay at a small cell — sand, bright and dirt.*
-
-### What the ground is shaped like
-
-- [ ] **WE38 — Nothing says what smooth is, so a quarry and a mountainside read the same.** The relief read
-  answers everything needed and names no target: an island cannot state what landform it is meant to be and
-  nothing measures whether it is one. Two numbers do it, both already in the response. **Elevation for the
-  board's size** — `relief / √cells`: plain ≤ 0.10, rolling 0.15–0.30, hills 0.35–0.50, mountain above.
-  **Whether that elevation was smoothed** — the `steps` histogram's `scramble : barrier` ratio, which is
-  independent of class: at or above 2 : 1 the ground rolls, below 1 : 1 it steps. Let an island declare its
-  class and lint both. `docs/world-export/relief.md`.
-
-  *Measured over 52 islands. `opus5-thornfell` (author: good rolling hills) 0.232 at **7.6 : 1**;
-  `opus5-tarnfell` (smooth-ish) 0.402 at 3.0 : 1; `opus5-whinnymoor` (plains) 0.065; **`opus5-deepcut` 0.407
-  at `0 : 7.85%`** — Tarnfell's elevation class on a board a seventh the size, with **not one** scramble
-  transition on it. `opus5-ravensmere` 0.445 at 1.2 : 1, worst drop 15.*
+  *`opus5-ravensmere`: gravel + sand + dirt — cobble, sand, dirt, spread 293. `opus5-rimegarth`: snow, dirt,
+  stone, mossy cobble — bright + dirt, 388. `opus5-deepcut`: white clay, quartz, light grey clay — bright,
+  dirt, sand, 388, at cell size 6. Against them: `opus5-thornfell`'s `moor` spans dirt, loam and verdant at
+  spread 121 and is a meadow.*
 
 ### The two halves of a mirrored board
 

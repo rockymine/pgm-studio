@@ -1115,6 +1115,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `Findings` and leave the envelope to the layer that speaks HTTP, which is the shape `RP13`'s application
   layer takes when the operations move down. Their home is `Api/Services`, beside `MapExportLoader`.
 
+- **What kind of ground a relief is, and whether it was ever graded (WE38).** The relief read answered
+  everything about a surface and named no target, so a quarry and a mountainside read alike. Two numbers now
+  say it, both off the solved field. **Elevation for the board's own size** — the range over the square root
+  of the island's cells — sorts a `plain` (below 0.10) from `rolling` (0.15), `hills` (0.35) and a `mountain`
+  (0.50); the bands are the gaps between the boards this repository has built, read against the author's own
+  reading of them. **Smoothing** is the `steps` histogram's scramble against barrier, independent of range:
+  above two the ground rolls, at or below one it steps.
+
+  An island **states which it is meant to be** (`relief.landform`, a `Landform` word set) and the read answers
+  what it measured: `RL1` where they disagree, `RL2` where elevation was never graded. Complaints, never
+  refusals — a relief is authored ground, and the studio's business is to measure it.
+
+  *Live, through the studio: `opus5-deepcut` reads **hills at 0.0 smoothing with RL2**, `opus5-thornfell`
+  rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
+  author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
+
 - **A block that surfaces ground is never painted below the course it surfaces (B163).** A bucket carries a
   depth and a material carries none, so a material that is a **pick** — a cell, a voronoi, a noise field —
   writes whichever block it picked into every course the bucket claims. Grass, podzol, mycelium and farmland
