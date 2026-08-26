@@ -9,6 +9,10 @@ namespace PgmStudio.Pgm.Plan;
 /// hole — is void by omission, and nothing in the document says so. This writes it down: every enclosed void
 /// becomes a <see cref="PlanRoles.Buffer"/> piece, the role that already means reserved empty space.
 ///
+/// <para><b>A hole is never scenery.</b> What a body encircles is ground players go round — the middle of a
+/// <c>donut</c> wool room, the yard of a ring hub — and a board's walls are drawn to guard it, so it is stated
+/// as negative space and a later shape may not quietly put ground back in it (<c>SK13</c>).</para>
+///
 /// <para>An author may draw those buffers and need not: the step runs on every compile and adds whatever is
 /// missing, so a hole is declared whether or not anyone declared it. It is <b>idempotent</b> — a plan that
 /// already covers its voids is returned unchanged, and a buffer deleted from a generated plan comes back on
@@ -50,9 +54,11 @@ public static class PlanVoids
         var graph = ContactGraph.Build(plan);
         var cell = graph.Cell;
 
-        // The union outline the compiler emits is per component and per surface, so that is the grain a void
-        // is enclosed at. Everything that generates terrain counts as ground against it, whatever component
-        // or surface it belongs to: a void a stepped plateau seats a piece into is a plateau, not a void.
+        // A void is enclosed by a whole component, whatever height its pieces stand at: a hole ringed by five
+        // pieces at five surfaces is the same hole as one ringed by five pieces at one, and it is players who
+        // walk round it rather than the compiler's shape emission. Everything that generates terrain counts as
+        // ground against it, whatever component it belongs to, so a void a stepped plateau seats a piece into
+        // is a plateau and never reported.
         var ground = graph.Pieces.Select(p => Cells(p.Rect, cell)).ToList();
         var declared = plan.Pieces
             .Where(p => p.Role == PlanRoles.Buffer)
@@ -62,12 +68,9 @@ public static class PlanVoids
         foreach (var component in graph.Components)
         {
             var pieces = component.Select(id => graph.Piece(id)!.Value).ToList();
-            foreach (var group in pieces.GroupBy(p => p.Surface).OrderBy(g => g.Key))
-            {
-                var body = group.Select(p => Cells(p.Rect, cell)).ToList();
-                foreach (var (minX, minZ, maxX, maxZ) in RectilinearUnion.EnclosedVoids(body, [.. ground, .. declared]))
-                    found.Add((CellRect.FromBounds(minX, minZ, maxX, maxZ), group.First().Mirrors));
-            }
+            var body = pieces.Select(piece => Cells(piece.Rect, cell)).ToList();
+            foreach (var (minX, minZ, maxX, maxZ) in RectilinearUnion.EnclosedVoids(body, [.. ground, .. declared]))
+                found.Add((CellRect.FromBounds(minX, minZ, maxX, maxZ), pieces[0].Mirrors));
         }
         return found;
     }

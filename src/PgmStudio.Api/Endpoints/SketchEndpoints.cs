@@ -142,7 +142,7 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         var layout = SketchLayout.Stated(layoutJson);
         Complaints.Unread(HttpContext, layoutJson, layout);
         var document = SketchLayoutCheck.Check(layout);
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
 
         var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
             "sketch layout", bytes, Revisions.Expected(HttpContext), ct);
@@ -220,7 +220,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 SketchMaterialGate.Check(merged), ct)) return;
 
         var document = SketchLayoutCheck.Check(merged);
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
 
         var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
             "sketch layout", Encoding.UTF8.GetBytes(merged), Revisions.Expected(HttpContext), ct);
@@ -251,7 +251,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
                 SketchLayoutCheck.Check(layoutJson), ct)) return;
 
         IReadOnlyList<SurfaceCell> cells;
@@ -302,7 +302,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         try { document = SketchLayoutCheck.Check(layoutJson); }
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
 
         WorldColumnsDto payload;
         try
@@ -374,7 +374,7 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
         try { document = SketchLayoutCheck.Check(layoutJson); }
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large", document, ct)) return;
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
 
         BuiltWorld built;
         try
@@ -466,7 +466,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
                     $"a ring needs three points or more to cover any ground; this one carries {ring.Count}")], ct);
             return;
         }
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
                 SketchLayoutCheck.Check(layoutJson), ct)) return;
 
         FootprintProbe.Result probe;
@@ -520,7 +520,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         // Each island resumes from the surface its last preview settled on. The relaxation stops when the
         // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
         // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
                 SketchLayoutCheck.Check(layoutJson), ct)) return;
 
         Dictionary<string, HeightField> fields;
@@ -574,7 +574,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
-        if (await Refusals.StopAsync(HttpContext, 422, "board too large",
+        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
                 SketchLayoutCheck.Check(layoutJson), ct)) return;
 
         Dictionary<string, HeightField> fields;

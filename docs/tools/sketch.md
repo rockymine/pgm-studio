@@ -794,20 +794,24 @@ by exactly two. A smaller bound calls every stack detached — at one, `opus5-un
 over 7,766 places**, and at two the same board is one. The bound cuts both ways: a cliff a player can only
 drop off does not join its two sides.
 
-**And it complains where a shape is drawn over ground a subtract takes away.** A subtract is how a board
-states its **negative space** — the void a plan's buffer pieces compile to, the hole a composed footprint
-leaves — and a shape drawn over one is silent whichever way it lands. On the same layer a plain add draws
-**nothing at all** there, because the algebra is `((adds − subs) ∪ override-adds) − override-subs` and a
-subtract beats every plain add whatever order the two are written in: the shape is on the canvas and not in
-the world. An override add, or any add on **another layer** — a subtract reaches only the layer it is on —
-puts the ground back instead, and the void the board declared is filled. `SK13` names both shapes, which of
-the two happened, how many columns they contest and the northmost of them.
+**It refuses a shape that fills ground a subtract takes away, and complains where one draws nothing there.**
+A subtract is how a board states its **negative space** — the void a plan's buffer pieces compile to, the hole
+a composed footprint leaves — and **a hole is never scenery**: what a body encircles is ground players go
+round, and a board's walls are drawn to guard it. So the negative space may be *redrawn* — the buffer rounded
+off, narrowed, moved — and never papered over. An override add, or any add on **another layer** (a subtract
+reaches only the layer it is on), puts the ground back and is **refused**, `SK13`, **422**. On the same layer
+a plain add draws **nothing at all** instead, because the algebra is
+`((adds − subs) ∪ override-adds) − override-subs` and a subtract beats every plain add whatever order the two
+are written in — the shape is on the canvas and not in the world, which is the rule's other half and only
+complains. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
+the northmost of them.
 
-**What separates that from a donut is the order.** A body and the hole cut out of it are written in that
-order — an exterior ring then its interior rings, a compiled footprint then the buffers stating its negative
-space — so a subtract *following* an add is that add's own hole and says nothing. The algebra cannot tell the
-two cases apart, being order-independent; the document can, because what the order carries is which shape the
-void belongs to. Without that reading every simplified island with a hole in it would report a fault.
+**What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
+it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
+stating its negative space — so a subtract *following* an add on that add's own layer is its hole and says
+nothing; without that reading every simplified island with a hole in it would report a fault. Across layers
+the order carries nothing of the kind: a layer's place in the stack is a **height**, and a slab written first
+is written `below`. So an add on another layer is a fill wherever it sits in the document.
 
 **And, on a board drawn from a plan, it re-reads the strait.** `CT12` is a plan rule — the direct crossing
 between the two team islands of a two-team wool board wants 15–40 blocks — and the plan measures it over
@@ -842,7 +846,7 @@ rectangles were drawn in; `Plan()` answers null for the same plans, so a stamp g
 The refusal is the prop's own and never the stamper's — a wool cage and a spawn cube go through the same
 `HouseStamper` from a plan piece's geometry, which no dressing limit has any business judging.
 
-**A board too large to realize is refused** (`SK2`, **422** `board too large`). A board costs one walk per
+**A board too large to realize is refused** (`SK2`, **422** `the board cannot be built as drawn`). A board costs one walk per
 column of its **extent**, drawn or not, so a 4000×4000 board does not fail slowly — it takes the machine with
 it. The extent is measured across the symmetry orbit, because a shape far out on one side widens the board by
 twice its distance. **The ceiling itself is not published** — not in the finding, not in the rule's own
@@ -893,9 +897,9 @@ Every endpoint is anonymous and rooted at `/api`.
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `board too large` `SK2` · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `board too large` `SK2` · 400 · 404 |
-| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `board too large` `SK2` · 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `the board cannot be built as drawn` `SK2` or `SK13` · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 400 · 404 |
+| `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
 **Previews over a live layout.** All four take the working document as the body rather than reading the stored
@@ -908,9 +912,9 @@ carry — the board an author is looking at is the one place those complaints ar
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
 | `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
 | `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, and the `landform` it measures as beside the `smoothing` it kept. Carries `RL1` where the island states a different word and `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1) |
-| `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
-| `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. The claim is what a keep-out is measured against, and a stroke's is decided by its style, coverage and seed — none of which can be reasoned about from the document | 422 `board too large` `SK2` · 422 `dressing document invalid` `DR-DOC` · 404 |
-| `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `board too large` `SK2` · 404 |
+| `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. The claim is what a keep-out is measured against, and a stroke's is decided by its style, coverage and seed — none of which can be reasoned about from the document | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 
 **A ring can be asked about before a shape is built on it.** `probe-footprint` measures against the
 **rasterised** footprint — the only coast that decides anything. A model of it rebuilt from the compiled

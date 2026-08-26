@@ -334,15 +334,6 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
-- [ ] **TN9 — A plan's negative space is only named where it is enclosed.** `PlanVoids.Declare` adds a buffer
-  piece for every **enclosed** void, so a hole fully ringed by ground compiles to a `subtract` and `SK13`
-  protects it. A CTW gap is open at both ends, so nothing names it: no buffer, no subtract, and a later shape
-  may fill the void the walls were drawn to guard with nothing said. Declare the gap between two team islands
-  the same way — the strait `CT12` already measures is the shape of it. `docs/tools/plan.md`.
-
-  *`opus5-rimegarth`, `opus5-whinnymoor` and `opus5-aerie` each compile to **zero** subtracts and declare zero
-  undeclared voids. Rimegarth's pool is 750 cells, every one over ground the ground layer does not draw.*
-
 - [ ] **WE45 — `DR-PASS` measures the wrong rectangle and asks the wrong question.** Three faults, one rule.
   It measures the **wall rectangle** rather than the stamped extent, so a roof overhanging the passage is not
   counted: `opus5-rimegarth`'s `hall` has zero clear blocks on all four sides once eaves count and passes
@@ -351,10 +342,13 @@ as an isolated marker into `B99`.
   and passes — which the author has ruled is not a way past.
   `docs/world-export/decoration.md`.
 
-  *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
-  fails 76 — so the floor is a ruling, not a measurement. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
+  The author's number is **ten blocks** of way round a building, and every side is judged rather than the
+  widest. Not urgent while `DR-CROSS` fires on the boards this was found on.
 
-- [ ] **WS17 — A walk reads a building as a hill.** `Walk.Standing` calls any surface with two blocks of air
+  *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
+  fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
+
+- [ ] **WS17 — A walk reads a building as a hill.** *(the author's ruling: a house is not walked over.)* `Walk.Standing` calls any surface with two blocks of air
   over it a place to stand, roofs included, and `Walk` prices a climb rather than refusing it — so
   `traversability` and `coverage`, which walk the finished world, route straight over a house and report a
   board whole that a player cannot cross. Bound the rise the way `Walk.Components` already can, or exclude the

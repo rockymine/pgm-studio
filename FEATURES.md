@@ -1131,6 +1131,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **A hole is declared whatever height its ring stands at, and never papered over (TN9).** `PlanVoids`
+  looked for enclosed voids **per surface**, so a hole ringed by five pieces at five heights was ringed, at
+  each surface, by one rectangle — which encloses nothing. Stating a surface per piece is how a composed board
+  is made paintable, and it was silently how the board's negative space stopped being stated. The reading is
+  now per **component**: it is players who walk round a hole, and a stair round a yard is still a yard.
+  Everything that generates terrain still counts against it, so a void a stepped plateau seats a piece into is
+  a plateau.
+
+  Beside it, `SK13` is now a **refusal** where the add *fills* — a hole is never scenery, so the negative
+  space may be redrawn and never papered over — and stays a complaint where the add draws nothing. Its order
+  exemption is scoped to **one layer**: a subtract following an add on that add's own layer is its hole, while
+  across layers the order is a height and a slab written first is written `below`. Every sketch route's
+  refusal label is now `the board cannot be built as drawn`, since `SK2` is no longer the only one.
+
+  *`opus5-rimegarth` is `GET /compose?players=10&seed=26`, a `donut` wool — five pieces round a hole. As
+  pinned (one surface) the compile emitted a subtract over it; with a surface per piece it emitted none, and
+  the board's pool was laid into the void with nothing said. Both readings now find the same rectangle,
+  blocks `[-15..0]×[70..95]`, which is the pool to the block — and recompiled, the pool answers `SK13`:
+  `'pool1' fills 375 column(s) that 's9' takes away`.*
+
 - **A building may end a road but never stand across one (WE44).** A road runs to a porch, so a building
   taking the ground a road covers is ordinary — the road ends at its wall and the building wins the cell. A
   building the road carries on **past** is the other thing: what was one way through the board becomes two

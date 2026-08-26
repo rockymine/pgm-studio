@@ -5,13 +5,14 @@ namespace PgmStudio.Pgm.Tests.Sketch;
 
 /// <summary>
 /// What a subtract states and what a later add does to it (<c>SK13</c>). A subtract is a board's negative
-/// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and drawing over
-/// one is silent whichever way it lands: on the same layer a plain add draws nothing at all, and an override
-/// add or an add on another layer puts the ground back.
+/// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and a hole is
+/// never scenery, so an add that <b>fills</b> one is refused and an add that draws <b>nothing</b> there
+/// complains.
 ///
-/// <para>What separates that from a donut is the <b>order</b>. A body and the hole cut out of it are written
-/// in that order, so a subtract following an add is that add's own hole and says nothing; the algebra cannot
-/// tell the two apart, because it is order-independent and the document is not.</para>
+/// <para>What separates that from a donut is the <b>order, within one layer</b>. A body and the hole cut out
+/// of it are written in that order, so a subtract following an add on that add's own layer is its hole and
+/// says nothing. Across layers the order is a height rather than a sequence, so an add on another layer is a
+/// fill wherever it sits.</para>
 /// </summary>
 public sealed class SketchSubtractedGroundTests
 {
@@ -57,7 +58,7 @@ public sealed class SketchSubtractedGroundTests
         await Assert.That(over.Cells).IsEqualTo(6 * 6);   // a rectangle is max-exclusive
 
         var finding = SketchLayoutCheck.Check(board).Single(f => f.Rule == SketchRules.DrawnOverSubtraction);
-        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);   // the board builds without it
         await Assert.That(finding.Message).Contains("draws nothing");
         await Assert.That(finding.Subjects).IsEquivalentTo(new[] { "pool", "hole" });
     }
@@ -73,7 +74,9 @@ public sealed class SketchSubtractedGroundTests
         var over = SketchRasterizer.AddsOverSubtracts(board).Single();
         await Assert.That(over.Survives).IsTrue();
 
+        // A hole is never scenery, so putting ground back in one is refused rather than remarked on.
         var finding = SketchLayoutCheck.Check(board).Single(f => f.Rule == SketchRules.DrawnOverSubtraction);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Refusal);
         await Assert.That(finding.Message).Contains("fills");
     }
 
@@ -81,10 +84,11 @@ public sealed class SketchSubtractedGroundTests
     public async Task An_add_on_another_layer_over_a_subtract_puts_the_ground_back_too()
     {
         // A subtract reaches only the layer it is on, so a slab over a composed hole fills it whatever the
-        // override flag says. That is the documented way to fill one, and this is the sentence saying so.
+        // override flag says — and wherever the layer sits in the document, since a layer's place in the stack
+        // is a height and a slab written first is written below.
         var board = Read(Board(
-            Layer("ground", Rect("island", "add", 0, 0, 40, 40), Rect("hole", "subtract", 10, 10, 20, 20)),
-            Layer("pool", Rect("water", "add", 12, 12, 18, 18))));
+            Layer("pool", Rect("water", "add", 12, 12, 18, 18)),
+            Layer("ground", Rect("island", "add", 0, 0, 40, 40), Rect("hole", "subtract", 10, 10, 20, 20))));
 
         var over = SketchRasterizer.AddsOverSubtracts(board).Single();
         await Assert.That(over.Add).IsEqualTo("water");

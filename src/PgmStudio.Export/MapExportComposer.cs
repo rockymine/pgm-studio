@@ -122,7 +122,7 @@ public static class MapExportComposer
         // during it: the cost is paid per column of the extent whether or not ground is drawn there. Asked in
         // the shared leg, so a headless driver is refused by the same measure the HTTP export is.
         if (SketchLayoutCheck.Check(layoutJson) is { Refuses: true } oversized)
-            return Refuse("board too large", [.. oversized.Refusals], 422);
+            return Refuse("the board cannot be built as drawn", [.. oversized.Refusals], 422);
 
         var built = WorldBuilder.Build(layoutJson, intent);
         var goals = built.ResolvedIntent;

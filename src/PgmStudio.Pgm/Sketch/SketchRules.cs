@@ -110,12 +110,13 @@ public static class SketchRules
     public const string MassUnreached = "SK11";
 
     /// <summary>An add covers ground a subtract takes away. A subtract is how a board states its negative
-    /// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and drawing
-    /// over one is silent either way it lands. On the same layer a plain add draws nothing at all there, since
-    /// a subtract beats every plain add whatever order the two are written in, so a shape the author can see
-    /// on the canvas is not in the world. An override add, or any add on another layer, puts the ground back
-    /// instead, and the void the board declared is filled.</summary>
-    /// <remarks>Move the add off the subtracted ground, or drop the subtract if the negative space is no longer meant. Where the fill is deliberate — a slab over a composed hole — this is the sentence that says so out loud, and the board builds either way.</remarks>
+    /// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and a hole
+    /// is never scenery: what a body encircles is ground players go round, and a board's walls are drawn to
+    /// guard it. An add that <b>fills</b> it is therefore refused — an override add, or any add on another
+    /// layer, since a subtract reaches only the layer it is on. An add that draws <b>nothing</b> there is the
+    /// other half: on one layer a subtract beats every plain add whatever order the two are written in, so a
+    /// shape the author can see on the canvas is simply not in the world, and that only complains.</summary>
+    /// <remarks>The negative space is the board's to state and may be redrawn — round the buffer off, narrow it, move it — but never papered over with an add. Move the add off the subtracted ground, or change the subtract to the shape the void is now meant to be. A plain add on the subtract's own layer draws nothing and is the complaint rather than the refusal; the board builds, with that shape absent from it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string DrawnOverSubtraction = "SK13";
 }

@@ -22,11 +22,14 @@ namespace PgmStudio.Pgm.Sketch;
 /// answers: the findings are <b>complaints</b>, because the board did build, and each names the field that
 /// named nothing.</para>
 ///
-/// <para>One thing here refuses. A board's cost is paid per column of its <em>extent</em>, drawn or not, so
-/// an extent past <see cref="SketchRules.MaxBoardColumns"/> does not fail slowly — it takes the machine with
-/// it. That is measured across the symmetry orbit, because a shape far out on one side widens the board by
-/// twice its distance, and it is measured here rather than inside the rasterizer so a caller is refused
-/// before the first column is walked.</para>
+/// <para><b>Two things here refuse.</b> A board's cost is paid per column of its <em>extent</em>, drawn or
+/// not, so an extent past <see cref="SketchRules.MaxBoardColumns"/> does not fail slowly — it takes the
+/// machine with it. That is measured across the symmetry orbit, because a shape far out on one side widens
+/// the board by twice its distance, and it is measured here rather than inside the rasterizer so a caller is
+/// refused before the first column is walked. And a shape that <em>fills</em> ground a subtract takes away is
+/// refused, because a subtract is the board's statement of its own negative space: what a body encircles is
+/// ground players go round and a board's walls are drawn to guard, so it may be redrawn but never papered
+/// over. An add that draws nothing there is the same rule's other half and only complains.</para>
 /// </summary>
 public static class SketchLayoutCheck
 {
@@ -134,7 +137,7 @@ public static class SketchLayoutCheck
                     : $"'{add}' draws nothing over {cells} column(s) — from ({x}, {z}) — because '{subtract}' "
                       + "takes them away, and a subtract beats every plain add on its layer whatever order "
                       + "the two are written in. The shape is on the canvas and not in the world",
-                Severity.Complaint, Subjects: [add, subtract]));
+                survives ? Severity.Refusal : Severity.Complaint, Subjects: [add, subtract]));
 
         var mode = layout.Setup?.MirrorMode ?? "rot_180";
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;

@@ -579,11 +579,13 @@ public static class SketchRasterizer
     /// <c>((adds − subs) ∪ override-adds) − override-subs</c> and a subtract beats every plain add whatever
     /// order they are written in; an override add, or any add on another layer, puts the ground back instead.
     ///
-    /// <para><b>Only an add written after the subtract.</b> A body and the hole cut out of it are drawn in
-    /// that order — an exterior ring then its interior rings, a compiled footprint then the buffers that
-    /// state its negative space — so a subtract following an add is that add's own hole and says nothing.
-    /// The algebra is order-independent and the document is not: what the order carries is which shape the
-    /// void belongs to.</para>
+    /// <para><b>Order exempts a hole, and only within one layer.</b> A body and the hole cut out of it are
+    /// drawn in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
+    /// that state its negative space — so a subtract following an add <em>on that add's own layer</em> is its
+    /// hole and says nothing. The algebra is order-independent and a layer's shape list is not: what the
+    /// order carries there is which shape the void belongs to. Across layers it carries nothing of the kind —
+    /// a layer's place in the stack is a height, and a slab written first is written <c>below</c> — so an add
+    /// on another layer is a fill wherever it lands.</para>
     ///
     /// <para>One entry per contesting pair, carrying which of the two happened. Role-tagged shapes are
     /// annotations and are not in it.</para>
@@ -608,7 +610,7 @@ public static class SketchRasterizer
         foreach (var subtract in subtracts)
             foreach (var add in adds)
             {
-                if (add.Index < subtract.Index) continue;
+                if (add.Layer == subtract.Layer && add.Index < subtract.Index) continue;
                 var shared = add.Cells.Where(subtract.Cells.Contains).ToList();
                 if (shared.Count == 0) continue;
                 // A subtract only reaches the layer it is on, so an add anywhere else is ground of its own

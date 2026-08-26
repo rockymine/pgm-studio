@@ -157,6 +157,19 @@ Enclosed voids do not have to be drawn. `PlanVoids.Declare` runs on every compil
 enclosed void no buffer covers yet, so a ring's hole is declared whether or not the author declared it. The
 step is idempotent, and a buffer deleted from a generated plan comes back on the next compile.
 
+**A void is enclosed by a whole component, whatever height its pieces stand at.** A hole ringed by five pieces
+at five surfaces is the same hole as one ringed by five pieces at one — it is players who walk round it, and a
+stair round a yard is still a yard — so the reading is per component and never per surface. That matters
+because stating a surface per piece is how a composed board is made paintable (*What a compile produces*), and
+it must not be how the board's negative space stops being stated: the `donut` and `clamp` wool rooms the
+composer emits are holes by construction, and the walls a board hangs on them are drawn to guard exactly that
+ground. Everything that generates terrain counts against the reading, so a void a stepped plateau seats a
+piece into is a plateau and is never declared.
+
+**And a hole is never scenery.** What the buffer compiles to is a `subtract`, which the sketch tool then holds
+as the board's own statement of its negative space: it may be *redrawn* — rounded off, narrowed, moved — and
+never papered over with an add (`docs/tools/sketch.md`, `SK13`).
+
 ### Zones
 
 A zone is a rect over the void saying where players may bridge, with optional no-build `holes` in the same

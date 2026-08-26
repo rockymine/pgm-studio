@@ -46,7 +46,7 @@ public static class SketchFinish
         var layoutJson = Encoding.UTF8.GetString(data);
         var stated = SketchLayout.Stated(layoutJson);
         var checkedBoard = SketchLayoutCheck.Check(stated);
-        if (checkedBoard.Refuses) return Refuse(422, "board too large", [.. checkedBoard.Refusals]);
+        if (checkedBoard.Refuses) return Refuse(422, "the board cannot be built as drawn", [.. checkedBoard.Refusals]);
 
         // A board carrying no finish at all is the one thing the earlier gates cannot see: each of them needs
         // something stated to disagree with, and a board that states none of it slips between them.
