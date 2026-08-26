@@ -1131,6 +1131,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   rolling at 7.6 clean, `opus5-tarnfell` hills at 3.0 clean, `opus5-whinnymoor` a plain — which is the
   author's own reading of all four. `opus5-aerie` and both of `opus5-hoarstone`'s islands answer `RL2` too.*
 
+- **The mirror read compares material as well as shape (WS16).** `MirrorReport` compared solid spans and
+  stopped, on the grounds that a pattern falls where its noise falls — which `WE42` made untrue. The read now
+  asks two questions and the picture separates them: a column that does not stand where its image stands
+  draws red, and one that stands right and is **finished wrong** draws amber, with both counts in the verdict
+  line. Material is asked only of the shape-paired columns, since a column with no partner has no material to
+  compare.
+
+  A block's **data is skipped where it carries a team's colour** — wool, stained clay, stained glass and pane,
+  carpet (`BlockRoles.IsTeamColoured`) — so a red wall facing a blue one is the same wall on both sides.
+  Everything else is compared as id and data both. A column's finish is one XOR-folded fingerprint over its
+  blocks' heights and materials, so the sections may arrive in any order.
+
 - **A pattern samples the cell folded into the board's primary image (WE42).** Every terrain pattern is a
   function of position — a voronoi asks which site is nearest, a field asks what the noise reads — so on a
   mirrored board a cell and its image sampled two different places and resolved to two different blocks: a

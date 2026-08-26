@@ -8,6 +8,8 @@ namespace PgmStudio.Minecraft.Tests;
 /// render that draws something is not evidence, and the number is the thing a reader acts on. The invariant
 /// throughout is that a column pairs when the column its orbit lands on holds the same solid spans — so a
 /// world built symmetric reports zero, and one block moved reports exactly the columns that block touched.
+/// Material is the second count and the same discipline: a column that stands where its image stands and is
+/// made of something else is <c>Repainted</c>, and a team's own colour is not that.
 /// </summary>
 public sealed class MirrorReportTests
 {
@@ -68,14 +70,44 @@ public sealed class MirrorReportTests
     }
 
     [Test]
-    public async Task A_column_of_the_same_height_in_a_different_material_still_pairs()
+    public async Task A_column_of_the_same_height_in_a_different_material_pairs_by_shape_and_not_by_material()
     {
-        // Material is not compared on purpose: the two halves of a themed board differ by design, and a
-        // render that called that a fault would paint every map red and be worth nothing.
+        // The two counts are separate answers to separate questions: the ground is the same ground, and the
+        // finish over it is not the same finish.
         var world = new VoxelWorld();
-        for (var y = 0; y <= 8; y++) { world.SetBlock(3, y, 4, 1); world.SetBlock(-4, y, -5, 35, 14); }
+        for (var y = 0; y <= 8; y++) { world.SetBlock(3, y, 4, 1); world.SetBlock(-4, y, -5, 4); }
 
-        await Assert.That(Read(world).Unpaired).IsEqualTo(0);
+        var read = Read(world);
+
+        await Assert.That(read.Unpaired).IsEqualTo(0);
+        await Assert.That(read.Repainted).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task A_team_colour_is_not_a_difference_in_material()
+    {
+        // A red wall facing a blue one is what a team tint is for, so the data of a dyed block is not read.
+        var world = new VoxelWorld();
+        for (var y = 0; y <= 8; y++) { world.SetBlock(3, y, 4, 35, 14); world.SetBlock(-4, y, -5, 35, 11); }
+
+        var read = Read(world);
+
+        await Assert.That(read.Unpaired).IsEqualTo(0);
+        await Assert.That(read.Repainted).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_column_that_does_not_pair_by_shape_is_not_counted_a_second_time_for_its_material()
+    {
+        // One fault, one count: a column standing where its image does not has no material to compare.
+        var world = new VoxelWorld();
+        for (var y = 0; y <= 8; y++) world.SetBlock(3, y, 4, 1);
+        for (var y = 0; y <= 5; y++) world.SetBlock(-4, y, -5, 4);
+
+        var read = Read(world);
+
+        await Assert.That(read.Unpaired).IsEqualTo(2);
+        await Assert.That(read.Repainted).IsEqualTo(0);
     }
 
     [Test]

@@ -46,15 +46,6 @@ falls — which is the defect rather than a reason to allow it.
   dirt, sand, 388, at cell size 6. Against them: `opus5-thornfell`'s `moor` spans dirt, loam and verdant at
   spread 121 and is a meadow.*
 
-### The two halves of a mirrored board
-
-- [ ] **WS16 — The mirror read compares shape and never material, because it could not.**
-  `MirrorReport` states it outright: comparing blocks "would paint the whole map as a fault", since a voronoi
-  cell falls where its noise falls. Once `WE42` folds the sample that stops being true, and the read can
-  answer the other half of what a mirrored board claims — that the two halves are painted alike. Add a
-  material pass over the paired columns, team-tinted materials excluded, answering unpaired-by-material beside
-  the unpaired-by-shape it already counts. `docs/world-scan/read-backs.md`.
-
 ### Where a thing may stand
 
 - [ ] **WE43 — A building may close the only way through and nothing asks.** `DR-ROAD` measures a prop's

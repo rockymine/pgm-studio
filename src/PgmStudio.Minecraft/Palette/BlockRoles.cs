@@ -242,6 +242,17 @@ public static class BlockRoles
     public static bool IsSurfacing(int blockId, int blockData) =>
         IsSurfacing(blockId) || (blockId == 3 && BlockVariants.Normalize(3, blockData) == 2);
 
+    /// <summary>The blocks whose data nibble is a <b>dye colour</b> — the sixteen-shade families a team's own
+    /// colour is written into. What makes them a set is that their id says what the block is and their data
+    /// says only whose it is, so two boards' halves painted in one of these differ by design wherever the
+    /// teams do.</summary>
+    private static readonly HashSet<int> Dyed = [35, 95, 159, 160, 171];
+
+    /// <summary>Whether the block's data carries a team's colour rather than a fact about the material — a
+    /// wool, a stained clay, a stained glass or pane, a carpet. A read comparing two halves of a map compares
+    /// these by id and stops there, since each side is meant to be its own colour.</summary>
+    public static bool IsTeamColoured(int blockId) => Dyed.Contains(blockId);
+
     /// <summary>Whether the block is the terrain itself: not air, not something standing on the ground, not
     /// something built, not a liquid, and not a log — so a pass reading the natural surface steps past a
     /// building's own courses and the water over them to reach the ground underneath.</summary>

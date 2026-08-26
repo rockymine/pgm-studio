@@ -1,6 +1,7 @@
 using PgmStudio.Geom;
 using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Render;
 
@@ -20,20 +21,28 @@ namespace PgmStudio.Minecraft.Render;
 /// mirror could only ever agree with itself. A mode of order four asks all three images, so a column counts
 /// as paired only when the whole orbit closes on it.</para>
 ///
-/// <para><b>Material is deliberately not compared.</b> Two halves of a themed board differ by design — a
-/// voronoi cell falls where its noise falls, and each team's own colour is on its own side — so comparing
-/// blocks would paint the whole map as a fault. What must hold is the <em>shape</em>: a column is solid where
-/// its image is solid, at the same heights. That is the claim a mirrored board makes and the one a player
-/// can be disadvantaged by.</para>
+/// <para><b>Shape and material are two questions and both are asked.</b> The first is the one a player can be
+/// disadvantaged by: a column is solid where its image is solid, at the same heights. The second is the rest
+/// of what a mirrored board claims — that the two halves are made of the same thing — and it is asked only of
+/// the columns that already pair by shape, since a column standing somewhere its image does not has no
+/// material to compare. A block's <b>data is skipped where it carries a team's colour</b>
+/// (<see cref="BlockRoles.IsTeamColoured"/>): a red wool and a blue wool are the same block on the two sides
+/// of a board, which is what a team tint is for. Everything else is compared as id and data both, because a
+/// pattern resolves at the cell folded into the primary image (<c>terrain-painting.md</c> TP21) and therefore
+/// answers alike on both sides.</para>
 /// </summary>
 public static class MirrorReport
 {
     /// <summary>What the read found: the picture, and the count behind it. <see cref="Unpaired"/> is the
     /// number a caller gates or reports on — zero is a board that mirrors exactly.</summary>
-    public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int Columns, int Unpaired);
+    /// <param name="Unpaired">Columns whose solid spans differ from their orbit's.</param>
+    /// <param name="Repainted">Columns that pair by shape and differ in what they are made of. Counted apart
+    /// because they are a different fault: the ground is the same and its finish is not.</param>
+    public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int Columns, int Unpaired,
+                                int Repainted);
 
     private const int Void = 0x0E0E12, PairedLow = 0x23252B, PairedHigh = 0x8E9199;
-    private const int Unpaired = 0xE0483C, Axis = 0x4FC3F7;
+    private const int Unpaired = 0xE0483C, Repainted = 0xE8A33D, Axis = 0x4FC3F7;
 
     /// <summary>Read a built world still in memory and write the picture.</summary>
     /// <summary>The finished symmetry picture as bytes, for a caller that wants the image rather than a
@@ -67,12 +76,17 @@ public static class MirrorReport
         [
             new("MIRRORED (SHADED BY HEIGHT)", PairedHigh),
             new("NOT MIRRORED", Unpaired),
+            new("MIRRORED, PAINTED DIFFERENTLY", Repainted),
             new("SYMMETRY CENTRE", Axis),
             new("VOID", Void),
         ];
-        var verdict = result.Unpaired == 0
-            ? $"{result.Columns} COLUMNS, ALL MIRRORED"
-            : $"{result.Unpaired} OF {result.Columns} COLUMNS NOT MIRRORED";
+        var verdict = (result.Unpaired, result.Repainted) switch
+        {
+            (0, 0) => $"{result.Columns} COLUMNS, ALL MIRRORED",
+            (0, var painted) => $"{result.Columns} COLUMNS MIRRORED, {painted} PAINTED DIFFERENTLY",
+            (var shape, 0) => $"{shape} OF {result.Columns} COLUMNS NOT MIRRORED",
+            var (shape, painted) => $"{shape} OF {result.Columns} COLUMNS NOT MIRRORED, {painted} PAINTED DIFFERENTLY",
+        };
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale, entries,
             out var legendHeight,
             scaleLabel: $"SCALE: 1 BLOCK = {scale} PX - {result.BlocksWide} X {result.BlocksHigh} BLOCKS" +
@@ -93,10 +107,11 @@ public static class MirrorReport
     {
         var spans = new Dictionary<(int X, int Z), ulong[]>();
         var top = new Dictionary<(int X, int Z), int>();
+        var made = new Dictionary<(int X, int Z), ulong>();
         foreach (var chunk in chunks)
         {
             int baseX = chunk.ChunkX * 16, baseZ = chunk.ChunkZ * 16;
-            foreach (var (sectionY, ids, _) in AnvilRegion.Sections(chunk))
+            foreach (var (sectionY, ids, data) in AnvilRegion.Sections(chunk))
                 for (var index = 0; index < 4096; index++)
                 {
                     if (ids[index] == 0) continue;
@@ -105,6 +120,7 @@ public static class MirrorReport
                     if (!spans.TryGetValue(cell, out var bits)) spans[cell] = bits = new ulong[4];
                     bits[y >> 6] |= 1UL << (y & 63);
                     if (!top.TryGetValue(cell, out var have) || y > have) top[cell] = y;
+                    made[cell] = made.GetValueOrDefault(cell) ^ Fingerprint(y, ids[index], data[index]);
                 }
         }
         if (spans.Count == 0) return null;
@@ -119,11 +135,16 @@ public static class MirrorReport
             return left![0] == right![0] && left[1] == right[1] && left[2] == right[2] && left[3] == right[3];
         }
 
+        // A column with nothing in it is made of nothing, and so is its image — the same reading SameShape
+        // gives an empty pair, for the same reason.
+        bool SameMaterial((int X, int Z) a, (int X, int Z) b) =>
+            made.GetValueOrDefault(a) == made.GetValueOrDefault(b);
+
         var order = Symmetry.Order(mode);
-        bool Pairs((int X, int Z) cell)
+        bool Pairs(Func<(int X, int Z), (int X, int Z), bool> same, (int X, int Z) cell)
         {
             for (var k = 1; k < order; k++)
-                if (!SameShape(cell, Symmetry.Cell(cell.X, cell.Z, mode, centerX, centerZ, k))) return false;
+                if (!same(cell, Symmetry.Cell(cell.X, cell.Z, mode, centerX, centerZ, k))) return false;
             return true;
         }
 
@@ -136,25 +157,48 @@ public static class MirrorReport
         var span = Math.Max(1, highest - lowest);
 
         var pixels = new byte[blocksWide * blocksHigh * 3];
-        var unpaired = 0;
+        int unpaired = 0, repainted = 0;
         for (var row = 0; row < blocksHigh; row++)
             for (var col = 0; col < blocksWide; col++)
             {
                 var cell = (minX + col, minZ + row);
                 if (!top.TryGetValue(cell, out var height)) { Raster.Set(pixels, blocksWide, col, row, Void); continue; }
 
-                if (Pairs(cell))
+                if (!Pairs(SameShape, cell))
                 {
-                    Raster.Set(pixels, blocksWide, col, row,
-                               Raster.Lerp(PairedLow, PairedHigh, (height - lowest) / (double)span));
+                    unpaired++;
+                    Raster.Set(pixels, blocksWide, col, row, Unpaired);
                     continue;
                 }
-                unpaired++;
-                Raster.Set(pixels, blocksWide, col, row, Unpaired);
+                // Material is asked only of a column that stands where its image stands: the finish of a
+                // column with no partner is not a second fault, it is the same one seen again.
+                if (!Pairs(SameMaterial, cell))
+                {
+                    repainted++;
+                    Raster.Set(pixels, blocksWide, col, row, Repainted);
+                    continue;
+                }
+                Raster.Set(pixels, blocksWide, col, row,
+                           Raster.Lerp(PairedLow, PairedHigh, (height - lowest) / (double)span));
             }
 
         DrawCentre(pixels, blocksWide, blocksHigh, minX, minZ, mode, centerX, centerZ);
-        return new Result(pixels, blocksWide, blocksHigh, spans.Count, unpaired);
+        return new Result(pixels, blocksWide, blocksHigh, spans.Count, unpaired, repainted);
+    }
+
+    /// <summary>What one block contributes to its column's material fingerprint: its height and what it is
+    /// made of, mixed so that two columns holding the same blocks at the same heights agree and nothing else
+    /// does. A block whose data is a team's colour contributes its id alone
+    /// (<see cref="BlockRoles.IsTeamColoured"/>), which is what lets two sides keep their own colour under one
+    /// comparison. Combined by XOR, so the sections may arrive in any order — every block carries its own
+    /// height, so no two contributions of a column can cancel.</summary>
+    private static ulong Fingerprint(int y, int blockId, int blockData)
+    {
+        var material = BlockRoles.IsTeamColoured(blockId) ? blockId : (blockId << 4) | (blockData & 15);
+        var mixed = ((ulong)(uint)y << 32) ^ (uint)material;
+        mixed = (mixed ^ (mixed >> 33)) * 0xFF51AFD7ED558CCDUL;
+        mixed = (mixed ^ (mixed >> 33)) * 0xC4CEB9FE1A85EC53UL;
+        return mixed ^ (mixed >> 33);
     }
 
     /// <summary>Mark where the turn happens, because "one block off" is only readable against the thing it is

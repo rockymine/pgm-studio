@@ -188,6 +188,18 @@ against a hill as the ruled edge it is. `surface` answers whether a board's pain
 authored from — a whole tone family taken where two members were meant reads as the noise it is. `mirror`
 answers whether a board somebody believes is symmetric actually is.
 
+It asks that as **two** questions, and the picture separates them. The first is shape: a column is solid where
+its image is solid, at the same heights, taken through the build's own transform about the map's stated
+centre, and a mode of order four asks all three images so a column counts as paired only when the whole orbit
+closes on it. That is what a player can be disadvantaged by, and a column failing it draws red. The second is
+material — whether the two halves are made of the same thing — and it is asked only of the columns that
+already pair by shape, since a column standing where its image does not has no material to compare; one that
+stands right and is finished wrong draws amber, and the verdict line carries both counts. A block's **data is
+skipped where it carries a team's colour** (wool, stained clay, stained glass and pane, carpet), so a red wall
+facing a blue one is the same wall on both sides, which is what a team tint is for. Everything else is
+compared as id and data both, because a pattern samples the cell folded into the board's primary image
+(`docs/world-export/terrain-painting.md` TP21) and therefore answers alike wherever the orbit lands.
+
 ## Limits
 
 The build is paid per request; nothing is cached. A large board is the same cost as an export, which is what
