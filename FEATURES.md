@@ -6101,6 +6101,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `data-layer`), which is the graphics term and reads as one; `LayeredMaterial`'s own `layers[]` inside the
   theme JSON; and the `layer.parquet` / `layer_segments.parquet` files on disk, which are the corpus scan
   output's names and not the studio's to change.
+- **Fill ratio measures a wool board and answers for no other kind (`G260`, the author's ruling).** The `G8`
+  band is capture-the-wool geometry stated as one number — a closure with lanes through it, technical voids
+  between them, a strait a raider crosses. A destroy board is squarer, carries no technical voids and has the
+  map's edge where a wool board has a device, so it reads dense on every one and always will: a fact about the
+  mode, not a judgement about the board. `FillRatio.Value` now answers null where a plan states no wool, which
+  is the same silence a wool-spacing term keeps on a single-wool plan, and `SoftTerm` already treats null as
+  "does not apply". The band is unchanged — regenerating the envelopes moved nothing, because every seed that
+  taught it was a wool board already.
 - **A tilted quad is a stair at any gradient (`TS37`).** `SketchRasterizer.Erect` sampled a shape's own
   surface at each cell's centre and rounded it to nearest. A ramp at **one course a cell** — the plainest
   gradient an author writes — puts every one of those samples exactly on the rounding boundary, so the courses
