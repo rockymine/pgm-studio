@@ -25,6 +25,8 @@ import { layerStack, INERT } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { containsPoint, toBounds, translateShape, boundsOfShapes, rotateShape, scaleShape, toRing, snapShape } from "../geometry/shape.js";
 import { pointInRing } from "../geometry/polygon.js";
+import * as Keys from "../shared/keys.js";
+import { resolvePick } from "../shared/pick.js";
 
 // Island scale handles (S21): normalized bbox position (0=min · 0.5=mid · 1=max) + which axes each drives +
 // its cursor. Corners scale both axes, edge midpoints one. Anchored on the opposite corner/edge (or the
@@ -132,6 +134,21 @@ export class SketchCanvas extends CanvasBase {
   #relief        = null;   // the server's traced contours for the relief the layout carries
   #selectOnly    = false;  // Theme phase: pick islands/shapes and pan/zoom, edit nothing
 
+  // The island a click is resolved INSIDE. Null means clicks resolve to whole islands; set, they resolve to
+  // that island's member shapes, and a click outside its footprint leaves. This is what makes entering a
+  // group a state rather than a single click — without it every click after a drill re-selects the island.
+  #scopeIslandId = null;
+
+  // Which level a plain click picks when no island is entered, in `resolvePick`'s words. A phase states it
+  // in its own: an island is what moves in Draw and what a relief is solved over, and a shape is what a
+  // theme is applied to.
+  #pickUnit = "group";
+
+  // The theme a click paints, "" when nothing is armed. Armed, the canvas is a brush: a click paints the
+  // shape under it and alt-click lifts that shape's theme back into the slot, which is what a paint program
+  // means by an eyedropper.
+  #themeBrush = "";
+
   #draw = null;
   #edit = null;
   #callbacks = {};
@@ -197,6 +214,8 @@ export class SketchCanvas extends CanvasBase {
   }
 
   dispose() {
+    Keys.unregister("sketch-canvas");
+    Keys.unregister("sketch-draw");
     this.#painter?.dispose();
     this.#canvasEl?.remove();
     this._disposeCanvasBase();
@@ -422,12 +441,56 @@ export class SketchCanvas extends CanvasBase {
     this.#draw?.onMouseUp();
   }
 
-  // Single-click selects the containing ISLAND (null = deselect); double-click drills to the shape (below).
+  /**
+   * What a plain click picks. The two-level rule is `resolvePick`'s, shared with the plan canvas; what is
+   * this canvas's is the hit testing it answers with and the brush, which only a phase that paints has.
+   */
   _onCanvasClick(e, svgPt) {
     if (this._isoOn) return;
     if (this.#placementClick) { this.#placementClick = false; return; }
-    this.#callbacks.onIslandSelected?.(this.#hitIsland(svgPt.x, svgPt.y));
+    const up = e.altKey;
+    const island = this.#hitIsland(svgPt.x, svgPt.y);
+    const shape = this.#hitTest(svgPt.x, svgPt.y);
+
+    // A brush is armed: paint what is under the pointer, or lift what is on it. Alt is the eyedropper here
+    // rather than select-the-parent — a brush in hand is what the modifier is read against.
+    if (this.#themeBrush && shape) {
+      if (up) this.#callbacks.onThemeLift?.(shape);
+      else this.#callbacks.onThemePaint?.(shape);
+      this.#callbacks.onShapeSelected?.(shape);
+      return;
+    }
+
+    const picked = resolvePick({
+      group: island, member: shape, scope: this.#scopeIslandId, unit: this.#pickUnit,
+      deep: e.ctrlKey || e.metaKey, up,
+    });
+    this.#enterScope(picked.scope);
+    if (picked.pick === "group") this.#callbacks.onIslandSelected?.(picked.id);
+    else if (picked.pick === "member") this.#callbacks.onShapeSelected?.(picked.id);
+    else this.#callbacks.onIslandSelected?.(null);
   }
+
+  /** Enter an island as the scope, or leave whatever is entered. Redraws, because the scope is drawn. */
+  #enterScope(islandId) {
+    const next = islandId ?? null;
+    if (next === this.#scopeIslandId) return;
+    this.#scopeIslandId = next;
+    this.#paintWorld();
+  }
+
+  /** Enter the island of whatever is selected — the keyboard's way in, where a modifier is the pointer's. */
+  enterSelection() {
+    const island = this.#selectedIslandId
+      ?? (this.#selectedId ? this.#islandOfShape(this.#selectedId)?.id : null);
+    if (island) this.#enterScope(island);
+  }
+
+  /** Which unit a plain click picks with no island entered — the phase's word, "island" or "shape". */
+  setPickUnit(unit) { this.#pickUnit = unit === "shape" ? "member" : "group"; }
+
+  /** Arm a theme, so a click paints it; "" puts the brush down. */
+  setThemeBrush(id) { this.#themeBrush = id || ""; }
 
   _onMouseleave() { if (this.#cursorEl) this.#cursorEl.textContent = ""; this.#updateDim(); }
 
@@ -638,10 +701,28 @@ export class SketchCanvas extends CanvasBase {
   /** The painted layer names of the last frame, bottom first — what `data-layer` offered on a group stack. */
   get paintOrder() { return this.#painter?.layers ?? []; }
 
+  /**
+   * The drawn primitives. The chip draws every one of them; without it, the island the pointer is working
+   * in still draws its own — a group shows what it is made of once it is being worked in, which is how a
+   * member becomes reachable without hunting for a toggle first.
+   */
   #paintShapes() {
-    if (!this.#shapesVisible) return;
-    for (const shape of this.#shapes.values())
-      paintSketchShape(this.#painter, shape, { selected: shape.id === this.#selectedId });
+    if (this.#shapesVisible) {
+      for (const shape of this.#shapes.values())
+        paintSketchShape(this.#painter, shape, { selected: shape.id === this.#selectedId });
+      return;
+    }
+    const context = this.#scopeIslandId ?? this.#selectedIslandId;
+    if (!context) return;
+    const island = this.#islands.find(entry => entry.id === context);
+    for (const id of (island?.shapeIds ?? [])) {
+      const shape = this.#shapes.get(id);
+      // Faint where the island is merely selected, plain where it has been entered: entering is the act
+      // that says the members are what is being worked on.
+      if (shape) paintSketchShape(this.#painter, shape, {
+        selected: shape.id === this.#selectedId, alpha: this.#scopeIslandId ? 0.85 : 0.4,
+      });
+    }
   }
 
   /** The locked plan pieces (S25) — follow the Shapes toggle, but are drawn read-only (no selection chrome). */
@@ -661,6 +742,15 @@ export class SketchCanvas extends CanvasBase {
    * everything else on the frame.
    */
   #paintSelectionHighlight() {
+    // The entered island, as the frame clicks resolve inside — dashed, because it is a context rather than
+    // a selection, and drawn under whatever is selected within it.
+    if (this.#scopeIslandId) {
+      const scope = this.#islands.find(entry => entry.id === this.#scopeIslandId);
+      if (scope?.exterior?.length >= 3) {
+        this.#painter.poly({ exterior: scope.exterior, holes: scope.holes ?? [] },
+          { stroke: "var(--accent)", width: 1.5, dash: [6, 4], alpha: 0.75 });
+      }
+    }
     const style = { fill: "var(--accent)", fillAlpha: 0.12, fillRule: "evenodd", stroke: "var(--accent)", width: 2.5 };
     if (this.#selectedId) {
       const shape = this.#shapes.get(this.#selectedId);
@@ -924,39 +1014,42 @@ export class SketchCanvas extends CanvasBase {
 
     this.#renderSetup();
 
-    // Escape cancels an in-progress draw; Delete/Backspace removes the selected shape. (Arrow-nudge is
-    // owned by the host/bridge — the activity layer.) Guarded by visibility + not-typing-in-a-field.
-    document.addEventListener("keydown", (e) => {
-      if (this._wrap?.offsetParent == null) return;
-      if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-      if (e.key === "Escape") {
-        this.#draw.cancel(); this.#clearMeasure(); this.#clearSplit();
-        // Drilled into a member → pop back out to its island; otherwise clear the selection.
-        if (this.#selectedId && !this.#selectedIslandId) {
-          const parent = this.#islandOfShape(this.#selectedId);
-          if (parent) { this.#callbacks.onIslandSelected?.(parent.id); return; }
-        }
-        if (this.#selectedIslandId || this.#selectedId) this.#callbacks.onIslandSelected?.(null);
-      }
-      if ((e.key === "Delete" || e.key === "Backspace") && this.#selectedId) {
-        this.#callbacks.onShapeDeleted?.(this.#selectedId);
-      }
-      if ((e.key === "p" || e.key === "P") && this.#selectedId) this.#callbacks.onShapePromote?.(this.#selectedId);
-    });
-    // Double-click ends a click-by-click draw — closing a polygon, leaving a path open; in select mode it
-    // drills into the member shape under the cursor (Figma group model — single-click picks the island,
-    // double-click enters a member).
-    this._svg.addEventListener("dblclick", (e) => {
-      if (this._activeTool === "polygon" || this._activeTool === "path") {
-        e.stopPropagation();
-        this.#draw.onDblClick();
-        return;
-      }
-      if (this._isoOn || (this._activeTool !== null && this._activeTool !== "select")) return;
-      const p = this._clientToSvg(e.clientX, e.clientY);
-      const shapeId = this.#hitTest(p.x, p.y);
-      if (shapeId) this.#callbacks.onShapeSelected?.(shapeId);   // drill
-    });
+    // What the canvas answers for on the keyboard. Registered rather than listened for, so the chords are
+    // listed by the `?` sheet and dropped with the canvas; `when` keeps a hidden canvas from answering.
+    const live = () => this._wrap?.offsetParent != null && !this._isoOn;
+    Keys.register("sketch-canvas", [
+      { id: "sketch.cancel", keys: "escape", label: "Cancel the draw · leave the group · deselect",
+        group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
+      { id: "sketch.enter", keys: "enter", label: "Enter the selection's group",
+        group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedIslandId),
+        run: () => this.enterSelection() },
+      { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
+        group: "Canvas", when: () => live() && !!this.#selectedId,
+        run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
+      { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own island",
+        group: "Sketch", when: () => live() && !!this.#selectedId,
+        run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },
+    ]);
+
+    // A click-by-click draw ends on Enter or on a click back at its first vertex. Neither is a click count,
+    // so nothing on this canvas is reached by how fast two presses land.
+    Keys.register("sketch-draw", [
+      { id: "sketch.close", keys: "enter", label: "Close the polygon · end the path", group: "Sketch",
+        priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "path"),
+        run: () => this.#draw.onDblClick() },
+    ]);
+  }
+
+  /** Escape, in the order a press means them: an in-progress draw, then the group, then the selection. */
+  #onEscape() {
+    this.#draw.cancel(); this.#clearMeasure(); this.#clearSplit();
+    if (this.#scopeIslandId) {
+      const parent = this.#scopeIslandId;
+      this.#enterScope(null);
+      this.#callbacks.onIslandSelected?.(parent);
+      return;
+    }
+    if (this.#selectedIslandId || this.#selectedId) this.#callbacks.onIslandSelected?.(null);
   }
 
   // The exact block AABB of the drawn content — every shape plus the mirror-preview polygons (the

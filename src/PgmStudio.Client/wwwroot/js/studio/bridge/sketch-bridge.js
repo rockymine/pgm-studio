@@ -12,6 +12,7 @@ import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
 import { isPush, pushAmounts, pushAmountPatch } from "../relief/relief-doc.js";
 import { fireTo } from "./fire.js";
+import * as Keys from "../shared/keys.js";
 
 // Default footprint = 2-team landscape (120×80), framed about the origin. CTW maps fit a ~120-block long
 // axis with 10–15-wide lanes; a tight default keeps the canvas at a scale where those read true.
@@ -68,6 +69,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // footprints; a prop was put somewhere, so the canvas owns the placements and this owns only the load/save.
   // Theme phase: the canvas is a selection surface only. Geometry is the Draw phase's to edit.
   let selectOnly = false;
+  // The theme a click paints while the Apply step is up; "" is no brush. Held here as well as on the canvas
+  // because the assignment is the bridge's and the hit test is the canvas's.
+  let themeBrush = "";
+
+  function setThemeBrush(id) {
+    themeBrush = id || "";
+    canvas.setThemeBrush(themeBrush);
+    fire("OnThemeBrush", themeBrush);
+  }
 
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
   const markDirty = () => fire("OnDirty", islands.length);
@@ -84,9 +94,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // The other layers' island outlines (for the 2-D ghost render).
   const ghostPolys = () => layers.flatMap((L, i) => i === active ? [] : L.islands.map(o => ({ exterior: o.exterior, holes: o.holes })));
 
+  // The canvas's own callbacks are the other way an edit arrives — a draw, a drag, a key. Every one that
+  // changes the document is a step; `history.step` is re-entrant, so the ones that arrive inside a pointer
+  // drag fold into that drag's single step rather than making one each.
+  const edit = (fn) => (...args) => history.step(() => fn(...args));
+
   const canvas = new SketchCanvas(svgEl, wrapEl, {
     cursorEl: coordsEl, zoomEl, dimEl,
-    onShapeCreated: (partial) => {
+    onShapeCreated: edit((partial) => {
       const shape = { ...partial, id: genId(), override: partial.override ?? false, base_height: clampHeight(partial.base_height ?? NEW_SHAPE_HEIGHT), floor: clampFloor(partial.floor) };
       canvas.addShape(shape);
       recompute();
@@ -94,22 +109,29 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       fire("OnToolChanged", "select");
       selectShape(shape.id);
       markDirty();
-    },
-    onShapeUpdated: () => { recompute(); markDirty(); },
+    }),
+    onShapeUpdated: edit(() => { recompute(); markDirty(); }),
     onShapeSelected: (id) => selectShape(id),
+    // A brush in hand paints the shape it is clicked on, and alt-click lifts that shape's theme back into
+    // the slot. Both go through the same assignment the tree's Apply button uses.
+    onThemePaint: edit((id) => { setShapeTheme(id, themeBrush); afterThemeChange(); }),
+    onThemeLift: (id) => {
+      const shape = canvas.getShape(id);
+      setThemeBrush(shape?.theme ?? "");
+    },
     onIslandSelected: (id) => selectIsland(id),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
-    onDressingChanged: () => afterDressingChange(),
+    onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
     onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
     // Relief marks follow exactly the same three rules, for the same reasons.
-    onReliefChanged: () => afterReliefChange(),
+    onReliefChanged: edit(() => afterReliefChange()),
     onMarkSelected:  () => fire("OnRelief", reliefState()),
     onReliefPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
-    onShapeDeleted:  (id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
-    onShapePromote:  (id) => promoteShape(id),
-    onSplit:         (a, b) => splitAt(a, b),
+    onShapeDeleted:  edit((id) => { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); }),
+    onShapePromote:  edit((id) => promoteShape(id)),
+    onSplit:         edit((a, b) => splitAt(a, b)),
     onVertexSelected: (shapeId, idx) => {
       const s = canvas.getShape(shapeId);
       const h = s ? clampHeight(s.anchor_heights?.[idx] ?? s.base_height) : MIN_HEIGHT;
@@ -327,6 +349,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY })) }));
   }
 
+  /** Tell the canvas which storey is being drawn on, so whatever is placed lands on it. */
+  function pushActiveLayer() { canvas.dressing?.setLayer(layers[active]?.id ?? ""); }
+
   // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute. The active layer's
   // locked plan pieces (S25) ride alongside as a render-only overlay — never a drawn/edited shape.
   //
@@ -341,6 +366,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
     canvas.setStructural(layers[active].structural ?? []);
     selectShape(null);
+    pushActiveLayer();
     islands = layers[active].islands ?? [];
     recompute(!islands.length && (layers[active].savedMetas?.length ?? 0) > 0);
   }
@@ -378,16 +404,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
   function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); dropIsoMesh(); markDirty(); }
 
-  // Arrow-key nudge (Shift = 16) of the selected island (all its shapes) or the selected shape.
-  const onKey = (e) => {
-    if (wrapEl?.offsetParent == null) return;
-    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-    if (selectOnly) return;   // Theme phase: the arrows are a move, and moving belongs to Draw
-    const step = e.shiftKey ? 16 : 1;
-    let dx = 0, dz = 0;
-    if (e.key === "ArrowLeft") dx = -step; else if (e.key === "ArrowRight") dx = step;
-    else if (e.key === "ArrowUp") dz = -step; else if (e.key === "ArrowDown") dz = step;
-    else return;
+  // Move the selection by whole blocks. An island moves as its shapes; a drilled shape moves alone.
+  function nudge(dx, dz) {
+    if (selectOnly) return false;   // Theme phase: the arrows are a move, and moving belongs to Draw
+    return history.step(() => nudgeBy(dx, dz));
+  }
+
+  function nudgeBy(dx, dz) {
     let moved = false;
     if (selectedIslandId) {
       const isl = islands.find(i => i.id === selectedIslandId);
@@ -399,12 +422,109 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       const s = canvas.getShape(canvas.selectedId);
       if (s) { canvas.updateShape(translateShape(s, dx, dz)); moved = true; }
     }
-    if (!moved) return;
-    e.preventDefault();
+    if (!moved) return false;
     recompute();
     markDirty();
+    return true;
+  }
+
+  const onCanvas = () => wrapEl?.offsetParent != null;
+  // One binding over the four arrows rather than four: they are one gesture with a direction, and a sheet
+  // that lists them separately says the same sentence four times.
+  const ARROWS = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
+  const step = (e, by) => {
+    const [dx, dz] = ARROWS[e.key.toLowerCase()] ?? [0, 0];
+    return nudge(dx * by, dz * by);
   };
-  document.addEventListener("keydown", onKey);
+  Keys.register("sketch-bridge", [
+    { id: "sketch.nudge", keys: Object.keys(ARROWS), label: "Nudge the selection one block",
+      group: "Canvas", when: onCanvas, run: (e) => step(e, 1) },
+    { id: "sketch.nudge16", keys: Object.keys(ARROWS).map(key => `shift+${key}`),
+      label: "Nudge the selection sixteen blocks", group: "Canvas", when: onCanvas, run: (e) => step(e, 16) },
+    { id: "sketch.undo", keys: "mod+z", label: "Undo", group: "Everywhere",
+      when: onCanvas, inField: true, run: () => history.undo() },
+    { id: "sketch.redo", keys: ["mod+shift+z", "mod+y"], label: "Redo", group: "Everywhere",
+      when: onCanvas, inField: true, run: () => history.redo() },
+    { id: "sketch.duplicate", keys: "mod+d", label: "Duplicate the selected shape", group: "Canvas",
+      when: () => onCanvas() && !selectOnly && !!canvas.selectedId, run: () => duplicateSelected() },
+  ]);
+
+  // ── undo ────────────────────────────────────────────────────────────────────────────────────────
+  // A step is a whole document — the value getState() answers and load() restores — so nothing here has to
+  // know which edit happened, only that one did. A step is opened before an edit and closed after it, and
+  // closing compares the two: a press that changed nothing costs no step, and a drag that fires on every
+  // frame between one open and one close costs exactly one.
+  const HISTORY_DEPTH = 60;
+  const history = {
+    past: [], future: [], pending: null,
+    /** Open a step, unless one is already open. Answers whether this call is the one that opened it — only
+     *  that caller may close it, so an edit arriving mid-drag folds into the drag rather than ending it. */
+    begin() {
+      if (this.pending !== null) return false;
+      this.pending = snapshot();
+      return true;
+    },
+    end() {
+      if (this.pending === null) return;
+      const before = this.pending;
+      this.pending = null;
+      if (snapshot() === before) return;
+      this.past.push(before);
+      if (this.past.length > HISTORY_DEPTH) this.past.shift();
+      this.future.length = 0;
+      pushHistory();
+    },
+    /** Run an edit as one step. Inside an already-open step it folds into that one. */
+    step(fn) {
+      const mine = this.begin();
+      try { return fn(); } finally { if (mine) this.end(); }
+    },
+    undo() { return this.move(this.past, this.future); },
+    redo() { return this.move(this.future, this.past); },
+    move(from, to) {
+      if (!from.length) return false;
+      to.push(snapshot());
+      restore(from.pop());
+      pushHistory();
+      return true;
+    },
+    get canUndo() { return this.past.length > 0; },
+    get canRedo() { return this.future.length > 0; },
+  };
+
+  const snapshot = () => JSON.stringify(handle.getState());
+
+  function restore(text) {
+    let state; try { state = JSON.parse(text); } catch { return; }
+    const wasSelected = canvas.selectedId;
+    handle.load(state, true);
+    // A shape that survived the step keeps its selection; one the step created is gone, so the selection
+    // clears rather than naming nothing.
+    if (wasSelected && canvas.getShape(wasSelected)) selectShape(wasSelected); else selectShape(null);
+    markDirty();
+  }
+
+  const pushHistory = () => fire("OnHistory", history.canUndo, history.canRedo);
+
+  // A press on the canvas opens a step and the release closes it, so a drag — which marks dirty on every
+  // frame — is one step back however many frames it took.
+  wrapEl?.addEventListener("pointerdown", () => history.begin());
+  const endStep = () => history.end();
+  window.addEventListener("pointerup", endStep);
+
+  /** Copy the selected shape clear of its original, and select the copy. */
+  function duplicateSelected() {
+    const source = canvas.getShape(canvas.selectedId);
+    if (!source) return false;
+    return history.step(() => {
+      const copy = { ...structuredClone(source), id: genId() };
+      canvas.addShape(translateShape(copy, 4, 4));
+      recompute();
+      selectShape(copy.id);
+      markDirty();
+      return true;
+    });
+  }
 
   function applySetup(s) {
     setup = { bbox: s.bbox ?? setup.bbox, center: s.center ?? setup.center, mirror_mode: s.mirror_mode ?? setup.mirror_mode };
@@ -766,6 +886,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
       themes[id] = parsed; afterThemeChange(); return null;
     },
+    /** Which unit a plain click picks with no group entered — "island" or "shape". The phase states it. */
+    setPickUnit(unit) { canvas.setPickUnit(unit); },
+    /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
+    setThemeBrush(id) { setThemeBrush(id); },
     setMapTheme(id) { mapTheme = (id && themes[id]) ? id : ""; afterThemeChange(); },
     // Assign (or clear, with an empty themeId) a theme to one shape — a per-shape override.
     assignShape(shapeId, themeId) { setShapeTheme(shapeId, themeId); afterThemeChange(); },
@@ -860,7 +984,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
 
     // Load a persisted layout: setup + the layers[] array. A flat board is a stack of one.
-    load(state) {
+    load(state, keepView) {
       const s = state ?? {};
       if (s.setup) applySetup(s.setup);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
@@ -894,10 +1018,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.clearShapes();
       for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
       canvas.setStructural(layers[active].structural ?? []);
+      pushActiveLayer();
       recompute(true);
       // Frame what was loaded. applySetup's fit above ran before the shapes existed, so on its own it
-      // would open a saved sketch on the blank working area instead of on the drawing.
-      canvas.fitToBbox();
+      // would open a saved sketch on the blank working area instead of on the drawing. An undo passes
+      // keepView, because a step back that also moves the camera reads as a different board.
+      if (!keepView) canvas.fitToBbox();
     },
     // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).
     getState() {
@@ -930,10 +1056,37 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         })),
       };
     },
+    undo() { history.undo(); },
+    redo() { history.redo(); },
     islandCount() { return islands.length; },
     fitToBbox() { canvas.fitToBbox(); },
     resize() { canvas.resize(); },
-    dispose() { clearTimeout(paintTimer); document.removeEventListener("keydown", onKey); canvas.dispose(); },
+    dispose() {
+      clearTimeout(paintTimer);
+      window.removeEventListener("pointerup", endStep);
+      Keys.unregister("sketch-bridge");
+      canvas.dispose();
+    },
   };
+  // Every handle verb that changes the document, wrapped once so a panel edit is a step and no verb has to
+  // remember to be one. A pointer edit is already bracketed by the press and the release, and a step opened
+  // inside an open one folds into it, so the two paths cannot double-count. `load` is not here: opening a
+  // document is not an edit of the one that was open.
+  const MUTATORS = [
+    "setMode", "setCenter", "setBbox",
+    "setHeight", "setVertexHeight", "applySlope", "setPathBand", "setHeightMode", "setSkirt", "setReliefScope",
+    "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
+    "renameIsland",
+    "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
+    "setRoomStyle", "defineTheme", "renameTheme", "deleteTheme", "setThemeJson", "setMapTheme",
+    "assignShape", "assignIsland",
+    "deleteProp", "updateProp", "deleteMark", "updateMark", "updateIslandRelief", "setPushAmount",
+  ];
+  for (const verb of MUTATORS) {
+    const bare = handle[verb];
+    if (typeof bare !== "function") throw new Error(`[sketch-bridge] no verb named ${verb} to make undoable`);
+    handle[verb] = (...args) => history.step(() => bare(...args));
+  }
+
   return handle;
 }

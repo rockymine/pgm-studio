@@ -158,6 +158,11 @@ export class DressingDoc {
   #props = [];
   #nextId = 1;
 
+  // The layer a placement lands on — the storey the board is being drawn on, not a property of the prop
+  // being placed. Empty means the board is flat and the export resolves the top surface, which is what an
+  // unstacked board has always meant.
+  #layer = "";
+
   /** Read a stored document. Anything unrecognised is dropped rather than carried as a shape nothing can
    *  edit — a prop kind the client does not know is a prop the client cannot draw. */
   static from(stored) {
@@ -178,8 +183,16 @@ export class DressingDoc {
 
   byId(id) { return this.#props.find(prop => prop.id === id) ?? null; }
 
+  /** Which layer a prop placed from now on rests on. */
+  setLayer(id) { this.#layer = id || ""; return this; }
+
+  get layer() { return this.#layer; }
+
+  /** Place a prop. It takes the active layer unless it names one already — an edit that carries a layer
+   *  keeps it, and a re-placed prop is not silently moved to whichever storey is being looked at. */
   add(prop) {
     const placed = { ...prop, id: prop.id || this.#mintId() };
+    if (this.#layer && !placed.layer) placed.layer = this.#layer;
     this.#props.push(placed);
     return placed;
   }

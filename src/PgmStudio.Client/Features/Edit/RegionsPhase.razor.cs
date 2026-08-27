@@ -131,9 +131,12 @@ public partial class RegionsPhase
     }
 
     // ── Ctrl+G: group ≥2 into a union, or ungroup a single compound ────────────────
+    /// <summary>A chord this phase registered. One verb either way: two or more selected regions become a
+    /// union, one compound dissolves.</summary>
     [JSInvokable]
-    public async Task OnGroupKey()
+    public async Task OnShortcut(string id)
     {
+        if (id != "regions.group") return;
         if (selection.Count >= 2) await GroupSelection();
         else if (selection.Count == 1) await UngroupOne(selection.First());
     }
@@ -170,18 +173,27 @@ public partial class RegionsPhase
     }
 
     // ── keyboard registration ───────────────────────────────────────────────────────
+    private const string KeyOwner = "edit-regions";
+
+    private static readonly object[] Shortcuts =
+    [
+        new { id = "regions.group", keys = "mod+g", label = "Group the selection · ungroup a compound",
+              group = "Regions" },
+    ];
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             selfRef = DotNetObjectReference.Create(this);
-            await JS.InvokeVoidAsync("studio.registerShortcuts", selfRef);
+            await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
+                System.Text.Json.JsonSerializer.Serialize(Shortcuts));
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        try { await JS.InvokeVoidAsync("studio.clearShortcuts"); } catch { }
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         selfRef?.Dispose();
     }
 }

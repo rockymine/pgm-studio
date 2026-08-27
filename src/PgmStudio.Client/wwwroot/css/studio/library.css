@@ -93,7 +93,9 @@ a.lib-card-fig { text-decoration: none; }
 .lib-choice-fig svg { max-width: 100%; max-height: 100%; }
 .lib-choice-empty { font-size: var(--font-xs); color: var(--text-muted); }
 
-/* ── the editor page: the name, the outline, and the stage the preview stands on ──────────────────── */
+/* ── the editor page: the outline, its fields, and the preview companion ──────────────────────────── */
+/* A node's outline row and the fields that edit it are one thing said twice, so the two columns are
+   adjacent and the picture takes a column of its own on the right. */
 .lib-name { padding: 0 0 var(--space-2); }
 
 .lib-outline { display: flex; flex-direction: column; gap: 1px; }
@@ -115,27 +117,86 @@ a.lib-card-fig { text-decoration: none; }
   border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 0 4px;
 }
 
-/* The preview is what every field is judged by, so it takes the middle and never scrolls with the knobs. Each
-   view states the height it may claim and the picture fills it: a server-drawn SVG carries its own pixel
-   size, which on a stage this wide would leave a house the size of a card. */
-.lib-stage { display: flex; align-items: center; justify-content: center; overflow: auto; padding: var(--space-3); }
+
+/* The fields of the picked node — or of every node, on a document that does not nest. It is the widest
+   column because it is the one being authored; the save bar sits against its foot, out of the scroll. */
+.lib-fields {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  overflow: hidden; background: var(--bg-base);
+}
+.lib-fields-scroll { flex: 1; min-height: 0; overflow-y: auto; scrollbar-gutter: stable; padding: var(--space-4); }
+
+/* A form is read along its labels, so the column stops widening well before the window does. */
+.lib-doc { display: flex; flex-direction: column; gap: var(--space-4); max-width: 780px; }
+
+/* Every section at once, in as many columns as fit — what a flat document is for. */
+.lib-doc--sheet {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  align-items: start; gap: var(--space-3) var(--space-4); max-width: 1120px;
+}
+.lib-doc--sheet .panel-section { margin: 0; }
+/* A section wide enough to hold a row of controls rather than a column of them takes the full width. */
+.lib-doc--sheet .lib-section--wide { grid-column: 1 / -1; }
+
+/* The section an outline row reaches on a flat document — marked while it is the picked one, so a scroll
+   that lands mid-column still says which row was asked for. */
+.lib-section { scroll-margin-top: var(--space-3); border-radius: var(--radius-sm); }
+.lib-section--picked { box-shadow: var(--shadow-ring); }
+
+.lib-foot {
+  flex-shrink: 0; display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--bg-panel); border-top: 1px solid var(--border);
+}
+.lib-foot .panel-actions { margin: 0 0 0 auto; }
+.lib-foot-note { margin: 0; }
+
+/* The picture, as a companion rather than a stage: a fixed column the resize handle can widen, positioned
+   so the view chips and the sample dock hang from it the way they hang from a canvas. */
+.lib-preview {
+  width: 420px; position: relative;
+  background: var(--bg-canvas); border-left: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  overflow: auto; padding: var(--space-3);
+}
 .lib-stage-figure {
   display: flex; flex-direction: column; align-items: stretch; gap: var(--space-3);
-  width: 100%; max-width: 760px;
+  width: 100%; max-width: 560px;
 }
 .lib-stage-figure figure { margin: 0; display: flex; align-items: center; justify-content: center; }
-.lib-stage-figure .lib-fig { min-height: 0; height: 34vh; }
-.lib-stage-figure .lib-fig svg { height: 100%; width: auto; max-width: 100%; }
+/* A companion is narrow and tall, so a picture in it is fitted to the width it has and capped on the
+   height it may claim — the other way round leaves a wide section drawn small in a column of empty. */
+.lib-stage-figure .lib-fig { min-height: 0; padding: var(--space-2); }
+.lib-stage-figure .lib-fig svg { width: 100%; height: auto; max-height: 38vh; }
 
-/* The house views on a stage: the isometric over a row of the three cuts, each claiming the height it may.
-   A view asked for on its own has no sibling, so it takes the whole stage — which is the only size a cut can
-   be read at. */
-.lib-stage-figure .house-views__iso { height: 32vh; }
-.lib-stage-figure .house-views__cuts { display: flex; gap: var(--space-3); justify-content: center; height: 20vh; }
+/* The house views in a companion column: the isometric over the cuts, stacked rather than side by side,
+   because a column this wide fits one picture across and three of them would each be a thumbnail. */
+.lib-stage-figure .house-views__iso { height: 26vh; }
+.lib-stage-figure .house-views__cuts { display: flex; gap: var(--space-2); justify-content: center; height: 16vh; }
 .lib-stage-figure .house-views__cut { height: 100%; min-width: 0; }
 .lib-stage-figure .house-views__iso svg,
 .lib-stage-figure .house-views__cut svg { height: 100%; width: auto; max-width: 100%; }
 
-/* One view, alone: nothing shares the stage with it, so it takes all of it. */
+/* One view, alone: nothing shares the column with it, so it takes all of it. */
 .lib-stage-figure:has(.house-views__iso:only-child) .house-views__iso,
-.lib-stage-figure .house-views__cuts:only-child { height: 58vh; }
+.lib-stage-figure .house-views__cuts:only-child { height: 52vh; }
+
+/* The chrome inside the companion is narrower than a canvas's, so it hugs the edges it hangs from. */
+.lib-preview .canvas-layer-bar { top: 8px; right: 8px; left: 8px; justify-content: flex-end; }
+.lib-preview .canvas-dock { bottom: 10px; }
+.lib-preview .canvas-note { position: absolute; left: 0; right: 0; bottom: 52px; text-align: center; }
+
+/* A bucket is a binding and the swatch of what that binding paints, side by side — the control and its
+   answer, which is the whole reason the fields column has width. */
+.lib-bucket { display: flex; align-items: flex-start; gap: var(--space-3); }
+.lib-bucket-fields { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.lib-bucket-swatch { flex: 0 0 64px; width: 64px; }
+
+/* The geometry knobs read across rather than down: three unrelated questions, none of which is a step. */
+.lib-knobs { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-4); align-items: flex-start; }
+.lib-knobs > .field { flex: 1 1 240px; min-width: 0; max-width: 360px; }
+/* The bedrock floor is a mode and the number it takes: one question, so the two share a row and the mode —
+   which carries a sentence — gets the width, not the count. */
+.lib-knobs .panel-actions { flex-wrap: nowrap; gap: var(--space-2); }
+.lib-knobs .panel-actions > :first-child { flex: 1 1 auto; min-width: 0; }
+.lib-knobs .panel-actions .field-input--slim { flex: 0 0 68px; width: 68px; }

@@ -403,21 +403,37 @@ is one room rather than a stack, and `porch` is null for the same reason.
 
 ## The editor page
 
-Every kind edits in the same three-pane workspace the map tools are laid out in: the document as an
-**outline** on the left, the **preview** across the middle, and the fields of whichever outline row is picked
-in the **inspector**. The name sits above the outline, because it is the document's rather than any one
-part's.
+Every kind opens an entry in the same three-column layout. The **outline** sits on the left, the document's
+name above it. The **fields** of whichever piece the outline has picked sit beside it — the widest column,
+since it is the one being authored — with the save, copy and delete bar against its foot, out of the scroll,
+so a document long enough to scroll is exactly the one whose save should not have to be hunted for. The
+**preview** is a fixed-width companion on the right (`.lib-preview`, `420px`), resizable by the same handle
+every other panel in the studio carries. There is no inspector on the route: the fields column sits directly
+off the outline instead of across a canvas from it.
 
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
 part is *bound* or keeps the *built-in* finish, a stack says how many courses it runs, a theme bucket names
 the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
 stack's layers and a field's stops are each a row, indented by how deep they sit, so a five-entry pattern is
-five rows rather than five boxes inside one another. The inspector then draws that node alone — its kind, its
-scalars, and its own entries as rows the outline is already carrying.
+five rows rather than five boxes inside one another.
+
+**`LibraryEditor` takes one parameter that decides how the outline and the fields meet, `Nests`.** A
+**nesting** document — a style's recursive material tree, a house's parts, a house part — draws the node the
+outline has picked, under a header naming it: its kind, its scalars, its own entries as the rows the outline
+is already carrying. A **flat** document draws every section at once in a responsive grid instead, and the
+outline becomes a way to reach a section rather than a way to choose which one exists. A theme is the one flat
+kind: its whole document is fourteen controls across four buckets plus the geometry that places them, and
+hiding eleven of those behind a click would buy nothing a document that already fits a screen needs. Picking a
+theme's outline row scrolls the fields column to that bucket's section and marks it with a ring, so a scroll
+that lands mid-column still says which row was asked for; each bucket carries the swatch of what it alone
+paints, from the same preview call the composed picture answers.
 
 **What the outline shows, the preview answers.** A style draws its plan and its section, either or both by a
-chip; a house and a part draw the sample building four ways. The picture takes the width of the window and
-never scrolls with the knobs that change it.
+chip; a house and a part draw the sample building four ways, and add a dock beneath the picture for the shell
+size — 6×6, 8×8, 10×15 or 16×16 — the sample stands on. A theme's preview is the single composed picture, the
+plateau its buckets and edges finish. The chips above the picture and the dock beneath it answer different
+questions — which view, and what the view is taken over — so they sit in different chrome rather than one row
+of capsules answering neither clearly.
 
 The draft **is the save request** — for a style, the material's own JSON node; for the rest, the request value
 itself — so the preview re-renders from the same value the save would post, and a picture cannot promise

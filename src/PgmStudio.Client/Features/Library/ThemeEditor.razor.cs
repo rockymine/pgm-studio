@@ -13,6 +13,9 @@ namespace PgmStudio.Client.Features.Library;
 /// <para>An unbound bucket is one the theme does not override: it is left out of the bindings and keeps the
 /// built-in finish. Bound and switched off are different answers, and a bucket gives either without the
 /// other — only an unbound bucket that still paints is dropped, because that one says nothing.</para>
+///
+/// <para>A theme does not nest, so every bucket is drawn at once and the outline reaches a section rather
+/// than choosing which one exists.</para>
 /// </summary>
 public partial class ThemeEditor
 {
@@ -45,9 +48,13 @@ public partial class ThemeEditor
     private ThemeBucketDto Binding(string bucket) =>
         draft!.Buckets.First(binding => binding.Bucket == bucket);
 
-    /// <summary>The bucket the outline has picked, or null on the geometry row.</summary>
-    private ThemeBucketInfo? Bucket =>
-        selected == GroundPart ? null : ThemeBucketInfo.All.FirstOrDefault(info => info.Id == selected);
+    /// <summary>The section a row reaches, marked while that row is the picked one — a scroll that lands
+    /// mid-column still says which row was asked for.</summary>
+    private string SectionCls(string part) => part == selected ? "lib-section lib-section--picked" : "lib-section";
+
+    /// <summary>What one bucket alone paints, from the same preview the picture comes from; empty until the
+    /// first preview lands.</summary>
+    private string Swatch(string bucket) => preview?.Buckets.GetValueOrDefault(bucket) ?? "";
 
     private bool CanSave => draft is not null && !string.IsNullOrWhiteSpace(draftName);
 
@@ -63,8 +70,10 @@ public partial class ThemeEditor
                 return new EditorPart(info.Id, info.Title, "layers",
                     Badge: !binding.Enabled ? "off" : bound?.Name ?? "built-in");
             })];
+            // The row names the section; what the section says is in the section, so the badge is the one
+            // word that tells two themes apart at a glance rather than the whole sentence.
             rows.Add(new EditorPart(GroundPart, "Ground and edges", "mountain",
-                Badge: RimEdgeModes.LabelOf(draft.RimEdges)));
+                Badge: RimEdgeModes.Canonical(draft.RimEdges)));
             return rows;
         }
     }

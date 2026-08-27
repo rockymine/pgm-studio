@@ -20,8 +20,15 @@ public sealed record EditorPart(
     string Id, string Title, string Icon = "dot", string? Badge = null, string? Swatch = null, int Depth = 0);
 
 /// <summary>
-/// The frame every library editor is laid out in. It owns the name, the outline and where the preview sits;
-/// each kind supplies its own outline, picture and fields.
+/// The frame every library editor is laid out in — the outline, the fields beside it and the preview
+/// companion. It owns the name, the outline and where each column sits; each kind supplies its own outline,
+/// picture and fields.
+///
+/// <para><see cref="Nests"/> is the one thing that differs between kinds. A nesting document — a material's
+/// bands inside a stack's layers, a house's parts — draws the node the outline has picked, under a header
+/// naming it. A flat one draws every section at once, and the outline scrolls to one instead of choosing
+/// which exists: hiding eleven of a theme's fourteen controls behind a click buys nothing a document that
+/// fits on a screen needs.</para>
 /// </summary>
 public partial class LibraryEditor
 {
@@ -57,12 +64,30 @@ public partial class LibraryEditor
     /// <summary>What the last save or refusal said.</summary>
     [Parameter] public string? Note { get; set; }
 
+    /// <summary>Whether the document nests. A nesting one is edited a node at a time; a flat one lays every
+    /// section out at once and the outline becomes a way to reach one rather than a way to choose it.</summary>
+    [Parameter] public bool Nests { get; set; } = true;
+
     private EditorPart SelectedPart =>
         Outline.FirstOrDefault(part => part.Id == Selected) ?? Outline.FirstOrDefault() ?? new("", Kind.Title);
+
+    private string DocCls => Nests ? "lib-doc" : "lib-doc lib-doc--sheet";
 
     private Task OnNameInput(ChangeEventArgs e) => NameChanged.InvokeAsync(e.Value as string ?? "");
 
     private static string Indent(EditorPart part) => part.Depth == 0 ? "" : $"padding-left:{8 + part.Depth * 14}px";
+
+    /// <summary>Picking a row selects it either way; on a flat document it also brings the section into view,
+    /// because there the row names something already drawn rather than something to draw instead.</summary>
+    private async Task Choose(string id)
+    {
+        await OnSelect.InvokeAsync(id);
+        if (!Nests) await JS.InvokeVoidAsync("studio.scrollIntoView", SectionAnchor(id));
+    }
+
+    /// <summary>The element id a flat editor gives the section a row reaches — one spelling, so the row and
+    /// the section it scrolls to cannot disagree about it.</summary>
+    public static string SectionAnchor(string partId) => $"lib-section-{partId}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
         => await JS.InvokeVoidAsync("studio.icons");

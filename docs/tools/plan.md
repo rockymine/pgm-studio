@@ -333,7 +333,8 @@ Four families of drawing tool, one armed at a time, each remembering the option 
 draws a piece in the armed role; **technical** draws a build zone, a water lane, or a buffer; **markers** drop a
 spawn, wool, iron, destroyable, core, or cycle a wall; **boxes** draw an envelope in the armed kind. The
 destroyable and core tools are offered only when the symmetry's order is 2, and switching to a symmetry that is
-not order 2 disarms them.
+not order 2 disarms them. `V`, `H`, `R`, `Z`, `G` and `W` arm select, pan, piece, zone, box and wall
+respectively, and `F` fits the plan to the window.
 
 Drawing a piece, zone or box is a click-drag over cells, always at least 1×1; the id is minted from the role
 (`piece`, `spawn`, `wool`, `buffer`, `zone`, `lane`, `<kind>-box`) and the tool reverts to select. A marker is
@@ -341,11 +342,20 @@ placed by clicking a piece — a click over empty grid does nothing — and also
 stays armed, and each click toggles the nearest land interface within one cell between no wall and a wall —
 which face its chests open on is derived from the seam, not chosen here.
 
-Selection is two-level, like the Sketch tool's islands. A single click picks the marker under the cursor first
-(markers paint on top and have a small hit radius), then the smallest containing box, then the piece, then the
-zone; a double-click drills past the box to the piece; Escape pops a drilled piece back out to its box; Delete
-or Backspace removes the selection. Dragging a box carries the pieces it groups, with membership resolved at
-grab time so nothing falls out mid-drag. A selected piece or zone shows eight resize handles, each keeping the
+Selection is two-level, the same scope model the Sketch tool's islands use. A plain click picks the marker
+under the cursor first (markers paint on top and have a small hit radius), then the smallest containing box,
+then the piece, then the zone. `Ctrl`/`⌘`+click reaches the piece past the box, entering the box as the scope
+in the same motion; `Alt`+click leaves any scope and resolves at the box, never drilling into what it groups.
+`Enter` enters a selected box as a scope from the keyboard; once entered, a click reaches the pieces it groups
+and a click outside it leaves the scope before landing normally. `Escape` leaves an entered scope, selecting
+the box itself, and a further press clears the selection; Delete or Backspace removes it outright. Nothing
+here is a double-click. Dragging a box carries the pieces it groups, with membership resolved at
+grab time so nothing falls out mid-drag.
+
+The tools are armed from the keyboard as well as the toolbar — `V` select, `H` pan, `R` piece, `Z` zone, `G`
+box, `W` wall — and `F` fits the plan, `Ctrl`/`⌘`+`S` saves it. `?` lists every chord that is live and
+`Ctrl`/`⌘`+`K` runs one by name; both are drawn from the registry described in
+`docs/client/canvas-interaction.md` §9, so neither can name a chord this tool does not answer. A selected piece or zone shows eight resize handles, each keeping the
 extent at least one cell. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
 markers, its cliff and wall marks, and its name out of any box member list with it.
 

@@ -171,33 +171,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   block count on it. The islands are already computed live in JS (`computeIslands`), so the nearest-point
   pass is the only new geometry.
 
-- [ ] **C56 — An island is a scope, not a click target, and the double-click goes entirely.**
-  `sketch-canvas.js:426` resolves every plain click to the containing island with no condition on what is
-  already selected, and `sketch-bridge.js:158` nulls `selectedIslandId` when a shape is picked — so a drill
-  records *which shape* but never *which island it is inside*, and the next click pops back out. Theming a
-  second shape in one island means drilling again. Add `scopeIslandId`: `Enter` enters the scope of the
-  selection, `Esc` and a click outside leave it, and while it is set a click hit-tests members rather than
-  islands. `Ctrl/⌘+click` deep-selects a shape whatever island holds it; `Alt+click` selects the parent.
-  **The double-click is retired**, from selection here and in `plan-canvas.js:1088`, and from the draw tools,
-  where `Enter` or a click back on the first vertex closes a polygon (`sketch-draw-controller.js:117`) — one
-  verb in both contexts and no click-counting anywhere. Same commit: `canvas-interaction.md` §5 gains the
-  selection model, and `plan.md`'s two-level paragraph is rewritten.
-
-- [ ] **TS43 — The phase states its selection granularity, and Apply becomes a paint bucket.** An island is
-  the right unit in Draw, where a landmass is what moves, and in Relief, where the solve runs per island. It
-  is the wrong one in Theme, where the job is naming one shape and `SketchThemeApplyRail` needs three acts to
-  do it — pick a target, pick a theme in the list, press **Apply**. Let the phase state its unit: Theme's is
-  the shape, with the island reachable by `Alt+click` and from the tree. Then arm a theme in the dock instead
-  of listing it — click a shape to paint it, `Alt+click` to lift a theme off one, `Esc` to disarm — which is
-  one act per shape and reuses the dock the phase already carries. The **Apply** button stays for a tree
-  selection, where a click is not a click on the board. Wants `C56` first.
-
-- [ ] **TS44 — A member outline is contextual, not a global chip.** `shapesOn` defaults to `false`
-  (`SketchTool.razor.cs:27`) and `#paintShapes` draws every shape or none, so the pieces an island is made of
-  are invisible until the chip is found, and then the whole board's shapes appear at once. Draw the selected
-  or scoped island's members automatically at low weight — the way a group outlines its children once
-  entered — and leave the chip meaning "every shape on the board". Wants `C56`'s scope to know what to reveal.
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -274,6 +247,14 @@ so they wait for the frame rather than being built into the one it replaces.
 The shared browser half, serving **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit
 editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's own. Full canvas spec:
 `docs/client/canvas-interaction.md`.
+
+- [ ] **C57 — The plan canvas enters a box without showing it has.** Both authoring canvases hold the same
+  two-level model, and the sketch draws the island it has entered as a dashed outline under the selection —
+  the frame clicks are resolving inside. `PlanCanvas` holds `#scopeBoxId` and honours it in `#selectDown`,
+  but nothing on screen says a box is entered, so the same click means two different things with no way to
+  tell which. The box's own rect is already drawn by the overlay pass; it wants the entered one drawn in the
+  accent, dashed, the way `SketchCanvas.#paintSelectionHighlight` draws its scope. Same file, same pass as
+  the selection box it sits under.
 
 - [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
   edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*

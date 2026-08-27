@@ -371,3 +371,29 @@ test("a prop the canvas cannot read is skipped, and the props beside it still pa
   assert.doesNotThrow(() => paintDressing(painter, [broken, tree]));
   assert.ok(painter.calls.length > 0, "the tree beside the unreadable building still drew");
 });
+
+// ── the storey a placement rests on ───────────────────────────────────────────
+// A layer is the board's, not the prop's: whatever is placed lands on the storey being drawn on, the way a
+// stroke lands on the active layer in any paint program.
+test("a prop placed on a stated layer records it", () => {
+  const doc = new DressingDoc().setLayer("upper");
+  const placed = doc.add(defaultProp("tree", 1));
+  assert.equal(placed.layer, "upper");
+  assert.equal(doc.toJSON().props[0].layer, "upper", "and it is what the layout stores");
+});
+
+test("a flat board names no layer, which is what an unstacked board has always meant", () => {
+  const placed = new DressingDoc().add(defaultProp("tree", 1));
+  assert.equal(placed.layer, undefined);
+});
+
+test("a prop that already names a layer keeps it", () => {
+  const doc = new DressingDoc().setLayer("upper");
+  const placed = doc.add({ ...defaultProp("boulder", 2), layer: "ground" });
+  assert.equal(placed.layer, "ground", "an edit re-placing a prop does not move it to the storey on screen");
+});
+
+test("a stored layer survives a read", () => {
+  const doc = DressingDoc.from({ props: [{ kind: "tree", id: "d1", layer: "upper", x: 0, z: 0 }] });
+  assert.equal(doc.props[0].layer, "upper");
+});

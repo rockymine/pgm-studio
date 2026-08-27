@@ -21,11 +21,14 @@
   }
   else
   {
+    <p class="section-desc">Take one in hand, then click a shape on the board to paint it. Alt-click lifts the
+      theme off a shape; clicking the one in hand puts it down.</p>
     @foreach (var id in Themes)
     {
       <ListRow Compact Selected="@(id == Picked)" @key="id" OnClick="() => Pick(id)">
         <span class="list-label list-label--mono">@id</span>
-        @if (MapTheme == id) { <Badge Kind="neutral">map default</Badge> }
+        @if (id == Picked) { <Badge Kind="neutral">in hand</Badge> }
+        @if (MapTheme == id) { <Badge Kind="dim">map default</Badge> }
       </ListRow>
     }
     @if (Picked is not null)

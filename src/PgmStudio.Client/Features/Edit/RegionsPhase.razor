@@ -14,7 +14,7 @@
   <Sidebar>
       <Section Title="Regions">
         @if (groups is null) { <div class="list-empty">Loading…</div> }
-        else { <RegionTree Groups="groups" SelectedId="primaryId" SelectedSet="selection" OnSelect="OnTreeSelect" OnSelectCtrl="OnTreeSelectCtrl" /> }
+        else { <RegionTree Groups="groups" SelectedId="@primaryId" SelectedSet="selection" OnSelect="OnTreeSelect" OnSelectCtrl="OnTreeSelectCtrl" /> }
       </Section>
   </Sidebar>
 

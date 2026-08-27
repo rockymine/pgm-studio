@@ -1,0 +1,41 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* Which storey is being drawn on, as canvas chrome. A layer is a property of the board rather than of any
+   one phase — the same as the mirror axis and the chunk grid, which is why it hangs off the canvas and is
+   therefore present wherever the canvas is. Whatever is placed lands on the active layer; the others ghost.
+
+   Renaming a layer and setting its base Y are settings rather than a mode, so they stay in the Draw
+   sidebar. This is the switch. *@
+
+@if (Layers.Count > 1 || AllowAdd)
+{
+  <div class="canvas-layer-strip" role="group" aria-label="Storey">
+    <span class="canvas-layer-strip-label">Storey</span>
+    @foreach (var layer in Layers)
+    {
+      <button type="button" class="canvas-layer-tab @(layer.Id == ActiveId ? "canvas-layer-tab--on" : null)"
+              @key="layer.Id" title="@($"Draw on '{layer.Name}', based at y {layer.BaseY}")"
+              aria-pressed="@(layer.Id == ActiveId)" @onclick="() => OnSelect.InvokeAsync(layer.Id)">
+        <span class="canvas-layer-tab-name">@layer.Name</span>
+        <span class="canvas-layer-tab-y">y @layer.BaseY</span>
+      </button>
+    }
+    @if (AllowAdd)
+    {
+      <button type="button" class="canvas-layer-add" title="Add a storey above" @onclick="OnAdd">
+        <i data-lucide="plus" @key="@("plus")"></i>
+      </button>
+    }
+  </div>
+}
+
+@code {
+    [Parameter] public IReadOnlyList<SketchLayerRow> Layers { get; set; } = [];
+    [Parameter] public string? ActiveId { get; set; }
+    [Parameter] public EventCallback<string> OnSelect { get; set; }
+    [Parameter] public EventCallback OnAdd { get; set; }
+
+    /// <summary>Whether a storey can be added from here. Adding one is drawing work, so only Draw offers it;
+    /// every other phase switches between the storeys that exist.</summary>
+    [Parameter] public bool AllowAdd { get; set; }
+}

@@ -23,6 +23,9 @@ public partial class SketchThemeApplyRail
     [Parameter] public string? SelectedShapeId { get; set; }
     /// <summary>The shape ids the current selection covers — for reading back its current theme.</summary>
     [Parameter] public IReadOnlyList<string> TargetShapeIds { get; set; } = [];
+    /// <summary>The theme in hand, held by the tool because the canvas can lift one into it.</summary>
+    [Parameter] public string? Brush { get; set; }
+    [Parameter] public EventCallback<string> BrushChanged { get; set; }
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
@@ -31,7 +34,7 @@ public partial class SketchThemeApplyRail
     private List<string> Themes = [];
     private string MapTheme = "";
     private Dictionary<string, string> ShapeThemes = new();
-    private string? Picked;                                 // the theme selected to apply
+    private string? Picked => string.IsNullOrEmpty(Brush) ? null : Brush;
     private string? previewedFor;                           // the theme the preview currently shows
     private ThemePreviewDto? Preview;
 
@@ -52,7 +55,11 @@ public partial class SketchThemeApplyRail
             ? th.EnumerateObject().Select(p => p.Name).ToList() : [];
         MapTheme = root.TryGetProperty("mapTheme", out var mt) && mt.ValueKind == JsonValueKind.String ? mt.GetString() ?? "" : "";
         ShapeThemes = ReadMap(root, "shapeThemes");
-        if (Picked is null || !Themes.Contains(Picked)) Picked = Themes.FirstOrDefault();
+        // A brush naming a theme the map no longer has falls back to the first one, and an empty registry
+        // leaves it empty. Raised only when the value actually moves — the tool re-renders this component on
+        // every brush change, so asking for one it already holds would never settle.
+        var want = Brush is { Length: > 0 } held && Themes.Contains(held) ? held : Themes.FirstOrDefault() ?? "";
+        if (want != (Brush ?? "")) { await BrushChanged.InvokeAsync(want); return; }
         if (Picked != previewedFor) await LoadPickedPreview();
         StateHasChanged();
     }
@@ -77,7 +84,10 @@ public partial class SketchThemeApplyRail
         return TargetShapeIds.All(id => ShapeThemes.GetValueOrDefault(id, "") == first) ? first : "~mixed~";
     }
 
-    private async Task Pick(string id) { Picked = id; await LoadPickedPreview(); StateHasChanged(); }
+    /// <summary>Take a theme in hand. The canvas paints it on a click, and the Apply button places it on
+    /// whatever the tree has picked — a click on the board and a click in the tree are different targets, so
+    /// both stay.</summary>
+    private Task Pick(string id) => BrushChanged.InvokeAsync(Picked == id ? "" : id);
 
     // The picked theme's preview, through the real materials + palette (the same render the Create step uses),
     // so what the rail shows is the paint that will land.

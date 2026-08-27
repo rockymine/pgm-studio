@@ -1,10 +1,14 @@
 @namespace PgmStudio.Client.Features.Library
 
-@* The editor page every library opens an entry on: the document as an outline, the preview at the width of
-   the window, and the fields of the picked outline row. The preview is what every field is judged by, so it
-   takes the middle and never scrolls with the knobs that change it. *@
+@* The editor page every library opens an entry on: the document as an outline, the fields of that document
+   beside it, and the preview as a companion column. A node's outline row and the fields that edit it are one
+   thing said twice, so they sit next to each other; the picture they are judged by keeps its own column and
+   never scrolls with the knobs that change it.
 
-<Workspace>
+   A document that nests picks one node at a time and the fields draw that node. A flat one lays every section
+   out at once, and the outline scrolls to a section rather than choosing which exists. *@
+
+<Workspace Class="lib-workspace">
   <Sidebar>
     <div class="lib-name">
       <label class="field-label" for="lib-entry-name">Name</label>
@@ -17,7 +21,7 @@
         @foreach (var part in Outline)
         {
           <button class="lib-outline-row @(part.Id == Selected ? "lib-outline-row--picked" : null)"
-                  style="@Indent(part)" @key="part.Id" @onclick="() => OnSelect.InvokeAsync(part.Id)">
+                  style="@Indent(part)" @key="part.Id" @onclick="() => Choose(part.Id)">
             <span class="lib-outline-mark">
               @if (part.Swatch is not null)
               {
@@ -38,23 +42,37 @@
 
   <div class="sidebar-handle"></div>
 
-  <div class="workspace-canvas lib-stage">
+  <div class="lib-fields">
+    <div class="lib-fields-scroll">
+      <div class="@DocCls">
+        @if (Nests)
+        {
+          <DetailHeader Icon="@SelectedPart.Icon" Label="@SelectedPart.Title">
+            @if (SelectedPart.Badge is not null) { <Badge Kind="dim">@SelectedPart.Badge</Badge> }
+          </DetailHeader>
+        }
+        @Fields
+      </div>
+    </div>
+    @* Save, copy and forget sit against the foot of the column they act on, out of the scroll — a document
+       long enough to scroll is exactly the one whose save should not have to be found. *@
+    <div class="lib-foot">
+      @if (Note is not null) { <p class="section-desc lib-foot-note">@Note</p> }
+      <div class="panel-actions">@Actions</div>
+    </div>
+  </div>
+
+  <div class="sidebar-handle"></div>
+
+  @* Not an Inspector component but its class, because panel-resize.js finds a resizable panel by that class
+     and this column owns its own inner structure: the chrome inside it is absolutely positioned, so the
+     column is the frame it hangs from. *@
+  <aside class="workspace-inspector lib-preview">
     @if (Views is not null) { <CanvasLayerBar>@Views</CanvasLayerBar> }
     <div class="lib-stage-figure">@Preview</div>
     @if (Footnote is not null) { <span class="canvas-note">@Footnote</span> }
     @* Two questions, and they are not the same one: the bar above says which view, the dock below says what
        the view is taken over. A row of nine capsules in one corner reads as one long list of neither. *@
     @if (Dock is not null) { <CanvasDock><DockGroup>@Dock</DockGroup></CanvasDock> }
-  </div>
-
-  <div class="sidebar-handle"></div>
-
-  <Inspector>
-    <DetailHeader Icon="@SelectedPart.Icon" Label="@SelectedPart.Title">
-      @if (SelectedPart.Badge is not null) { <Badge Kind="dim">@SelectedPart.Badge</Badge> }
-    </DetailHeader>
-    @Fields
-    @if (Note is not null) { <p class="section-desc">@Note</p> }
-    <div class="panel-actions">@Actions</div>
-  </Inspector>
+  </aside>
 </Workspace>

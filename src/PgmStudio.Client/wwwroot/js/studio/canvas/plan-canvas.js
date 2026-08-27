@@ -18,12 +18,18 @@ import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, BOX_COLORS, ZONE_COLORS, isWaterLane, canonicalZoneKind, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
-  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece, rectContainsCell,
+  pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar } from "../render/canvas-chrome.js";
+import * as Keys from "../shared/keys.js";
+import { resolvePick } from "../shared/pick.js";
 
 const FIT_MARGIN = 0.82;
+
+// What identifies a picked item to the selection rule. A piece and a zone have ids; a marker is a kind and
+// an index, so it is keyed by both — the rule only ever compares these for equality.
+const keyOf = (sel) => (sel.kind === "marker" ? `marker:${sel.markerKind}:${sel.index}` : `${sel.kind}:${sel.id}`);
 
 // How long the lint-finding highlight pulse runs, in ms.
 const PULSE_MS = 1600;
@@ -97,6 +103,11 @@ export class PlanCanvas extends CanvasBase {
   #pieceRole = "piece";             // role armed for the piece tool
   #boxKind = "hub";                 // kind armed for the box tool
   #sel = null;                      // { kind:'piece'|'zone'|'box', id } | { kind:'marker', markerKind, index }
+
+  // The box a click is resolved INSIDE. Null means a click picks whole boxes; set, it reaches the pieces
+  // that box groups, and a click outside it leaves. The same model the sketch canvas holds, because two
+  // tools with two grouping models is two things to learn for one idea.
+  #scopeBoxId = null;
   #zoneKind = "build";              // which kind the zone tool draws — build (open now) | water-lane (opens later)
   #drag = null;                     // { mode:'move'|'draw', ... } live pointer op
   #resize = null;                   // { handle, id, kind } while dragging a resize handle
@@ -867,7 +878,7 @@ export class PlanCanvas extends CanvasBase {
     if (this._isoOn) return;          // iso preview is read-only
     const cell = this.#doc.globals.cell;
     const [cx, cz] = cellOfWorld(svgPt.x, svgPt.y, cell);
-    if (this.#tool === "select") return this.#selectDown(svgPt, cx, cz);
+    if (this.#tool === "select") return this.#selectDown(e, svgPt, cx, cz);
     if (this.#tool === "wall") return this.#toggleWallAt(svgPt.x, svgPt.y);
     if (this.#tool === "piece" || this.#tool === "zone" || this.#tool === "box") { this.#drag = { mode: "draw", kind: this.#tool, a: [cx, cz], b: [cx, cz] }; this.#paintWorld(); return; }
     // Markers snap to the half-cell lattice — feed the fractional cell coordinate, not the floored cell.
@@ -928,16 +939,34 @@ export class PlanCanvas extends CanvasBase {
   // pieces there) and begin a move drag from it. Records whether the click re-hit the already-selected item,
   // so a plain re-click on a selected spawn cycles its facing (the first click only selects).
   //
-  // A piece the author drilled into stays grabbed while the press lands inside it, so drill-then-drag moves
-  // that one piece instead of snapping back to its box — the precedence the sketch tool's `_hitMovable`
-  // applies to a drilled shape under a selected island. Pressing anywhere else re-selects the box.
-  #selectDown(svgPt, cx, cz) {
+  /**
+   * What a press picks. The two-level rule is `resolvePick`'s, shared with the sketch canvas; the geometry
+   * is this one's — a box is the group and a piece, zone or marker the member, all of which `pickAtWorld`
+   * finds, with `drill` skipping the boxes to reach what is under them.
+   */
+  /**
+   * What a press picks. The two-level rule is `resolvePick`'s, shared with the sketch canvas; the geometry
+   * is this one's — a box is the group and a piece, zone or marker the member, all of which `pickAtWorld`
+   * finds, with `drill` skipping the boxes to reach what is under them.
+   */
+  #selectDown(e, svgPt, cx, cz) {
     const prev = this.#sel;
-    let hit = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
-    if (prev?.kind === "piece" && hit?.kind === "box") {
-      const drilled = this.#doc.pieces.find(p => p.id === prev.id);
-      if (drilled && rectContainsCell(drilled.rect, cx, cz)) hit = prev;
-    }
+    const shallow = pickAtWorld(this.#doc, svgPt.x, svgPt.y);
+    const drilled = pickAtWorld(this.#doc, svgPt.x, svgPt.y, { drill: true });
+    const box = shallow?.kind === "box" ? shallow.id : null;
+    // A member here is whatever the drill reaches — the box itself is never one, so a press on a box with
+    // nothing under it stays a press on the box.
+    const member = drilled && drilled.kind !== "box" ? drilled : null;
+
+    const picked = resolvePick({
+      group: box, member: member && keyOf(member), scope: this.#scopeBoxId,
+      unit: "group", deep: e.ctrlKey || e.metaKey, up: e.altKey,
+    });
+    this.#scopeBoxId = picked.scope;
+    let hit = picked.pick === "group" ? (box ? { kind: "box", id: box } : null)
+            : picked.pick === "member" ? member
+            : shallow && shallow.kind !== "box" ? shallow : null;
+
     this.#sel = hit;
     this.#refreshOverlay();
     this.#fireSelect();
@@ -1082,49 +1111,45 @@ export class PlanCanvas extends CanvasBase {
 
     this._observeResize();
 
-    // Double-click drills into the piece under the cursor, past the box that groups it (the group model the
-    // sketch tool sets: single-click picks the group, double-click enters a member). Select tool only — a
-    // draw tool owns its own double-click.
-    this._svg.addEventListener("dblclick", this.#onDblClick);
-    // Delete / Backspace removes the current selection; Escape pops a drilled piece back out to its box
-    // (guarded by visibility + not typing in a field).
-    document.addEventListener("keydown", this.#onKey);
     this.setTool("select");
+
+    // What this canvas answers for on the keyboard. Registered rather than listened for, so the chords are
+    // listed by the `?` sheet and dropped with the canvas.
+    const live = () => this._wrap?.offsetParent != null && !this._isoOn;
+    Keys.register("plan-canvas", [
+      { id: "plan.delete", keys: ["delete", "backspace"], label: "Delete the selection", group: "Canvas",
+        when: () => live() && !!this.#sel, run: () => this.#cb.onDelete?.(this.#sel) },
+      { id: "plan.enter", keys: "enter", label: "Enter the selection's group", group: "Canvas",
+        when: () => live() && this.#sel?.kind === "box", run: () => { this.#scopeBoxId = this.#sel.id; } },
+      { id: "plan.escape", keys: "escape", label: "Leave the group · deselect", group: "Canvas",
+        when: live, run: () => this.#popOut() },
+    ]);
   }
 
-  #onDblClick = (e) => {
-    if (this._isoOn || !this.#doc) return;
-    if (this.#tool !== "select") return;
-    const p = this._clientToSvg(e.clientX, e.clientY);
-    const hit = pickAtWorld(this.#doc, p.x, p.y, { drill: true });
-    if (!hit) return;
-    this.#drag = null;
-    this.#sel = hit;
+  /** Escape walks the group model back out: an entered box is left with its own box selected, a drilled
+   *  piece pops to the box that groups it, and anything else clears. */
+  #popOut() {
+    if (!this.#doc) return;
+    if (this.#scopeBoxId) {
+      this.#sel = { kind: "box", id: this.#scopeBoxId };
+      this.#scopeBoxId = null;
+    } else if (this.#sel?.kind === "piece") {
+      const parent = boxOfPiece(this.#doc, this.#sel.id);
+      this.#sel = parent ? { kind: "box", id: parent.id } : null;
+    } else if (this.#sel) {
+      this.#sel = null;
+    } else {
+      return;
+    }
     this.#refreshOverlay();
     this.#fireSelect();
-  };
-
-  #onKey = (e) => {
-    if (this._wrap?.offsetParent == null) return;
-    if (["INPUT", "TEXTAREA", "SELECT"].includes(document.activeElement?.tagName)) return;
-    if ((e.key === "Delete" || e.key === "Backspace") && this.#sel) { e.preventDefault(); this.#cb.onDelete?.(this.#sel); }
-    // Escape walks the group model back out: a drilled piece pops to the box that groups it, anything else
-    // (including a box, or a piece in no box) clears.
-    if (e.key === "Escape" && this.#sel && this.#doc) {
-      e.preventDefault();
-      const parent = this.#sel.kind === "piece" ? boxOfPiece(this.#doc, this.#sel.id) : null;
-      this.#sel = parent ? { kind: "box", id: parent.id } : null;
-      this.#refreshOverlay();
-      this.#fireSelect();
-    }
-  };
+  }
 
   dispose() {
     if (this.#pulseFrame) { cancelAnimationFrame(this.#pulseFrame); this.#pulseFrame = 0; }
     this.#painter?.dispose();
     this.#canvasEl?.remove();
     this._disposeCanvasBase();
-    this._svg.removeEventListener("dblclick", this.#onDblClick);
-    document.removeEventListener("keydown", this.#onKey);
+    Keys.unregister("plan-canvas");
   }
 }

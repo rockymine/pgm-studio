@@ -242,6 +242,41 @@ public partial class PlanTool
     private static int Num(object? value, int fallback)
         => int.TryParse(value?.ToString(), out var parsed) ? parsed : fallback;
 
+    /// <summary>The name this tool's chords are registered and dropped under.</summary>
+    private const string KeyOwner = "plan-tool";
+
+    /// <summary>Every chord this tool answers. The registry requires the label and the group, which is what
+    /// keeps the `?` sheet and the command palette complete without a second list to maintain.</summary>
+    private static readonly object[] Shortcuts =
+    [
+        new { id = "plan.tool.select", keys = "v", label = "Select", group = "Tools" },
+        new { id = "plan.tool.pan",    keys = "h", label = "Pan",    group = "Tools" },
+        new { id = "plan.tool.piece",  keys = "r", label = "Piece",  group = "Tools" },
+        new { id = "plan.tool.zone",   keys = "z", label = "Zone",   group = "Tools" },
+        new { id = "plan.tool.box",    keys = "g", label = "Box",    group = "Tools" },
+        new { id = "plan.tool.wall",   keys = "w", label = "Wall",   group = "Tools" },
+        new { id = "plan.fit",         keys = "f", label = "Fit the plan", group = "Canvas" },
+        new { id = "plan.save",        keys = "mod+s", label = "Save the plan", group = "Everywhere", inField = true },
+    ];
+
+    /// <summary>A chord this tool registered. The registry holds the words; this holds what the chord does.</summary>
+    [JSInvokable]
+    public async Task OnShortcut(string id)
+    {
+        switch (id)
+        {
+            case "plan.tool.select": await PickTool("select"); break;
+            case "plan.tool.pan":    await PickTool("pan"); break;
+            case "plan.tool.piece":  await PickTool("piece"); break;
+            case "plan.tool.zone":   await PickTool("zone"); break;
+            case "plan.tool.box":    await PickTool("box"); break;
+            case "plan.tool.wall":   await PickTool("wall"); break;
+            case "plan.fit":         await Fit(); break;
+            case "plan.save":        await SavePlan(); break;
+        }
+        StateHasChanged();
+    }
+
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         await JS.InvokeVoidAsync("studio.icons");
@@ -253,6 +288,8 @@ public partial class PlanTool
         try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
         // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
         try { await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation"); } catch { }
+        await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
+            System.Text.Json.JsonSerializer.Serialize(Shortcuts));
         try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
         try { surfaceStep = await handle.InvokeAsync<double>("getSurfaceStep"); } catch { /* keep default 2 */ }
         try
@@ -1156,6 +1193,7 @@ public partial class PlanTool
 
     public async ValueTask DisposeAsync()
     {
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
         {
             try { await handle.InvokeVoidAsync("dispose"); } catch { }

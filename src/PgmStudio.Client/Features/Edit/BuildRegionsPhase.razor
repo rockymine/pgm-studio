@@ -34,7 +34,7 @@
         <Section Title="Build Region">
           <ChildContent>
             @if (groups is null) { <div class="list-empty">Loading…</div> }
-            else { <RegionTree Groups="groups" SelectedId="selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
+            else { <RegionTree Groups="groups" SelectedId="@selRegion" SelectedSet="selSet" OnSelect="OnTreeSelect" /> }
           </ChildContent>
         </Section>
       }

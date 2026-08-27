@@ -99,6 +99,8 @@ canvas layer can then reuse or test it.
 | `controllers/*` | one interaction mode each (§4) |
 | `bridge/*` | one `mount()` per surface (§6) |
 | `shared/panel-resize.js`, `studio.js` | sidebar drag bars; Lucide icons and small interop helpers |
+| `shared/keys.js`, `keys-overlay.js` | the one keyboard registry every owner binds into (§9), and the sheet/palette rendered from it |
+| `shared/pick.js` | the two-level selection rule both authoring canvases resolve a click with (§5) |
 
 ## 3. The shared base
 
@@ -152,6 +154,24 @@ All of them route through the one predicate in `geometry/polygon.js`. That singl
 it looks: two subtly different copies of a point-in-polygon test is how a hit test starts behaving
 differently in one tool than another, which is precisely the bug a duplicate copy in `decompose-cut.js`
 was set up to cause before it was removed.
+
+**Sketch and Plan share one selection model built on top of these hit tests, not two.** Both are two levels: a
+plain click picks the unit its canvas states — an island in `SketchCanvas`, a box in `PlanCanvas` — and two
+modifiers reach past it the same way in both. `Ctrl`/`⌘`+click reaches the member under the cursor directly
+and enters its group as the **scope** in the same motion; `SketchCanvas.#scopeIslandId` and
+`PlanCanvas.#scopeBoxId` are the field each canvas holds it in. `Alt`+click does the opposite: it resolves to
+the group itself, whatever is under the cursor, and leaves any scope that was entered. Once a scope is
+entered, a plain click reaches a member and a click landing outside the group's footprint leaves the scope
+before landing normally; `Enter` enters the current selection's group from the keyboard, and `Escape` leaves
+an entered scope before it goes on to clear the selection. Neither canvas asks for a double-click anywhere in
+this model — the nearest either comes is a sketch polygon closing on a click that lands back at its own first
+vertex, which is a coordinate test against that vertex, not a test of how fast two clicks arrived.
+
+The rule itself is one function, `shared/pick.js`'s `resolvePick`, and each canvas calls it with whatever its
+own hit tests found: a group, a member, the scope currently entered, which level a plain click picks and the
+two modifiers. It answers what to select and what the scope becomes. The geometry stays in each canvas
+because an island is a polygon and a box is a cell rect; what could not differ between them is the rule, so
+it is written once — two tools with two grouping models is two things to learn for one idea.
 
 ## 6. Bridges — the interop seam
 
@@ -245,12 +265,45 @@ line terms — a few hundred at most. It is filed because it costs *consistency*
 - **CV15** — the bridge invoke wrapper: `plan-bridge` and `sketch-bridge` guard `invokeMethodAsync` in a
   `fire()` helper, `world-bridge` calls it unguarded.
 - **CV9** — a point draws as a 1×1 block on Edit and as a fixed-radius dot on Configure. Tracked with the
-  shared helper is `render/primitive-style.js`; §10 below is the four-editor account.
+  shared helper is `render/primitive-style.js`.
 
 One stale reference remains in a module header: `static-renderer.js` cites an `OverviewRenderer` that no
 longer exists.
 
-## 9. Where to look for what
+## 9. The keyboard
+
+One module, `shared/keys.js`, owns every keyboard binding in the studio: a single `keydown` listener on
+`document`, and a single registry every owner adds a named set of entries to. An entry is `{ id, keys, label,
+group, run, when?, priority?, inField?, passive? }`. `label` and `group` are required — `register` throws
+without them, because a binding that cannot be listed is a binding nobody finds — and `run(ev)` is what the
+chord does, prevented from its browser default unless the entry marks itself `passive`. An owner registers its
+whole set under one name and drops it by that name when it unmounts, so a chord can never outlive the
+component that answers it.
+
+A chord is normalised to one spelling, `mod` then `ctrl` then `alt` then `shift` then the key, so
+`shift+mod+z` and `mod+shift+z` match the same entry however the modifiers were written or pressed. `mod` is
+the platform's own command key — ⌘ on Apple, Ctrl elsewhere — and a chord that means the *other* platform's
+Ctrl explicitly is written `ctrl+…`. Where two owners register the same chord, matching prefers the higher
+`priority` first, then whichever owner registered most recently. `when()` gates whether an entry can run at
+all — a hidden canvas or an empty selection answers false — and typing into a text field silences every entry
+except those marked `inField`, so a bare letter in a name box is a letter rather than a tool switch.
+
+The `?` sheet and the `Ctrl`/`⌘`+`K` command palette (`shared/keys-overlay.js`) are both rendered from this
+same registry, so neither can offer a chord the app does not have. The sheet lists every registered binding,
+not only the ones that can run now, grouped as their owners first registered them and dimmed where `when()`
+currently answers false — a chord that needs a selection is still a chord the tool has. The palette lists
+every *live* entry by name, filtered as it is typed, and runs the highlighted one on Enter or a click.
+
+Blazor reaches the registry through two calls rather than the module directly: `studio.registerKeys(ownerId,
+dotnetRef, entriesJson)` imports `keys.js` and registers one entry per `{id, keys, label, group, inField,
+priority}` in `entriesJson`, each wired to call back `dotnetRef.invokeMethodAsync("OnShortcut", entry.id)`;
+`studio.unregisterKeys(ownerId)` drops the set. A component owns what a chord *does*, in its own
+`OnShortcut(id)` switch; the registry owns only whether the chord fires and how it is listed, so a binding's
+words and its effect stay in the language each is written in. The canvases and their bridges register
+directly against `keys.js` instead of through this interop seam, for chords their own JS state has to gate or
+run inline — `sketch-canvas`, `sketch-bridge` and `plan-canvas` are each their own owner.
+
+## 10. Where to look for what
 
 Changing how something *looks* → `render/`, and check `primitive-style.js` first, since it may already own
 the decision. Changing how something *behaves under the pointer* → the relevant `controllers/` module, or

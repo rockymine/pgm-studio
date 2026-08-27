@@ -122,29 +122,35 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, cursorEl, dotnetRef);
   },
 
-  // R1a: a minimal editor keyboard layer — Ctrl/Cmd+G → dotnetRef.OnGroupKey() (group/ungroup the
-  // current selection). One active listener at a time (the visible activity owns it). preventDefault
-  // so the browser's "find next" doesn't fire. Ignored while typing in a field. (Seed of B6's command
-  // system; deliberately just this one binding, no undo stack yet.)
-  _shortcutRef: null,
-  _shortcutHandler: null,
-  registerShortcuts(dotnetRef) {
-    this.clearShortcuts();
-    this._shortcutRef = dotnetRef;
-    this._shortcutHandler = (e) => {
-      const t = e.target;
-      const tag = (t && t.tagName || "").toLowerCase();
-      if (tag === "input" || tag === "textarea" || tag === "select" || (t && t.isContentEditable)) return;
-      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && (e.key === "g" || e.key === "G")) {
-        e.preventDefault();
-        this._shortcutRef && this._shortcutRef.invokeMethodAsync("OnGroupKey");
-      }
-    };
-    document.addEventListener("keydown", this._shortcutHandler);
+  // Bring an element into the scrolling column it sits in. A flat library document draws every section at
+  // once, so its outline reaches a section rather than choosing which one exists.
+  scrollIntoView(id) {
+    document.getElementById(id)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   },
-  clearShortcuts() {
-    if (this._shortcutHandler) { document.removeEventListener("keydown", this._shortcutHandler); this._shortcutHandler = null; }
-    this._shortcutRef = null;
+
+  // ── the keyboard ──────────────────────────────────────────────────────────
+  // One registry owns every binding in the app (shared/keys.js); this is how Blazor reaches it. A host
+  // registers a named set whose entries each call back into .NET, and drops the set by name when it
+  // unmounts, so a chord can never outlive the component that answers it.
+  //
+  // `label` and `group` are required by the registry itself, which is what keeps the `?` sheet and the
+  // Ctrl/Cmd+K palette — both rendered from it — complete without anyone maintaining a list.
+  async registerKeys(ownerId, dotnetRef, entriesJson) {
+    const keys = await import("/js/studio/shared/keys.js");
+    const spec = typeof entriesJson === "string" ? JSON.parse(entriesJson) : entriesJson;
+    keys.register(ownerId, (spec ?? []).map(entry => ({
+      id: entry.id, keys: entry.keys, label: entry.label, group: entry.group,
+      inField: !!entry.inField, priority: entry.priority ?? 0,
+      run: () => dotnetRef.invokeMethodAsync("OnShortcut", entry.id),
+    })));
+  },
+  async unregisterKeys(ownerId) {
+    const keys = await import("/js/studio/shared/keys.js");
+    keys.unregister(ownerId);
+  },
+  async showKeys() {
+    const overlay = await import("/js/studio/shared/keys-overlay.js");
+    overlay.openSheet();
   },
 };
 
@@ -153,6 +159,14 @@ window.studio = {
 // URL) bypasses Blazor's fingerprinting import map, matching the mount* helpers above; the module installs a
 // single document-level listener that serves every editor's panels.
 import("/js/studio/shared/panel-resize.js").catch((e) => console.warn("[studio] panel-resize unavailable:", e?.message ?? e));
+
+// ── The keyboard ────────────────────────────────────────────────────────────
+// The registry installs its one listener on import; the overlay registers the two chords that open the
+// sheet and the palette, so both are listed by the sheet they open. Every other binding is a tool's, and
+// arrives when that tool mounts.
+import("/js/studio/shared/keys-overlay.js")
+  .then((mod) => mod.registerOverlayKeys())
+  .catch((e) => console.warn("[studio] keyboard unavailable:", e?.message ?? e));
 
 // ── Theme (dark default / light) ────────────────────────────────────────────
 // The initial value is set by the inline no-flash script in index.html before any CSS

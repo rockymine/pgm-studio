@@ -301,6 +301,61 @@ What becomes of those columns once Finish runs — the layer scheme the world fo
 
 ## Phases
 
+**Selection is two levels everywhere the canvas draws — Draw, Relief and Theme's Apply step alike.** A plain
+click picks the unit the phase states: an island in Draw and Relief, because a landmass is what moves and one
+relief is solved per island; a shape in Theme, because a theme is assigned to one shape or to everything an
+island holds. `Ctrl`/`⌘`+click reaches the shape under the cursor whichever island holds it, entering that
+island as the scope in the same motion; `Alt`+click leaves any scope and picks the parent island of whatever
+is under the cursor. An island already selected is also entered as a scope from the keyboard, with `Enter`.
+Once entered, a plain click reaches a member shape and a click landing outside the island's footprint leaves
+the scope before landing normally. `Escape` cancels an in-progress draw and leaves an entered
+island, selecting the island that was entered; with nothing entered it clears the selection. Nothing here is a
+double-click: a polygon or a path closes on `Enter`, or on a click landing back at its own first vertex.
+
+**The Shapes chip draws every primitive on the board; without it, the selected or entered island draws its own
+members instead** — faintly where the island is merely selected, plainly where it is entered, so a member
+becomes reachable without hunting for the toggle first.
+
+**Which layer is drawn on is canvas chrome, not any one phase's own state.** The storey strip floats at the
+foot of the canvas beside the dock and is present in every phase that draws the canvas; only Draw offers the
+`+` that adds one, because adding a storey is drawing work. Whatever is placed lands on the active layer — a
+placement takes it unless it already names one — so an author is never asked twice which storey something
+belongs to.
+
+**Undo is one stack for the whole document, sixty steps deep.** `Ctrl`/`⌘`+`Z` steps back and
+`Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) steps forward. A step is the whole layout — the value the canvas can be
+loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
+and a drag that fires on every frame between the press and the release costs exactly one.
+
+**Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
+table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+`K` runs any of them by name.
+`docs/client/canvas-interaction.md` describes the mechanism both draw from.
+
+| Chord | Does | Group |
+|---|---|---|
+| `1`–`5` | Go to Info · Draw · Relief · Theme · Dressing | Phases |
+| `V` | Select | Tools |
+| `H` | Pan | Tools |
+| `R` | Rectangle | Tools |
+| `P` | Polygon | Tools |
+| `L` | Lasso | Tools |
+| `M` | Measure | Tools |
+| `X` | Split | Tools |
+| `B` | Flip build ⇄ carve | Tools |
+| `F` | Fit the working bounds | Canvas |
+| `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its island as the scope | Canvas |
+| `Alt`+click | Pick the parent island and leave any scope | Canvas |
+| `Enter` | Enter the selection's island as a scope, or close the polygon/path in progress | Canvas |
+| `Escape` | Cancel the draw and leave the scope, or clear the selection | Canvas |
+| `Delete` / `Backspace` | Delete the selected shape | Canvas |
+| Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
+| `Shift`+`P` | Promote the shape to its own island | Sketch |
+| `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
+| `Alt`+`1`…`6` | Toggle Shapes · Mirror · Chunks · Blocks · Relief · Snap | Overlays |
+| `Ctrl`/`⌘`+`Z` | Undo | Everywhere |
+| `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
+| `Ctrl`/`⌘`+`S` | Save the sketch | Everywhere |
+
 ### Info
 
 Two steps. **Identity** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
@@ -367,8 +422,8 @@ read the columns back out. Nothing is drawn in 3-D, so the fetch happens on **en
 than on every edit — the view swaps at once and fills in when the columns land. Rotating redraws the mesh
 already in hand, and re-entering an untouched board draws it again rather than rebuilding.
 
-The sidebar carries the layer list and the island→shape tree; the inspector on the right edits whatever is
-selected.
+The sidebar carries the full layer list — where a storey is renamed and its base Y set — and the
+island→shape tree; the inspector on the right edits whatever is selected.
 
 ### Relief
 
@@ -467,12 +522,17 @@ What the painter then does with it is `docs/world-export/terrain-painting.md`: h
 one of the buckets from its neighbours alone, what each bucket claims when two could claim the same cell, how
 a theme resolves per cell through the shape/map scope, and the `TP*` rules the whole pass is written to.
 
-**Apply** turns the canvas into a selection surface: nothing can be drawn or moved, and picking an island or a
-shape assigns a theme to it. A shape carries the assignment (`shape.theme`), an island assignment writes it to
-every member, and a cell that carries none falls to the map default — so the resolution is shape, then map.
-With the Blocks overlay on, this step shows the **real paint**: the live layout is posted to the server, the
-actual painter runs over it, and one colour per footprint cell comes back as a bitmap, so a Voronoi reads as
-its cells and a noise field as its patches rather than as one representative colour.
+**Apply** turns the canvas into a selection surface: nothing can be drawn or moved. A theme is taken **in
+hand** from the list beside the tree, and while one is, the canvas is a brush: a click paints the shape under
+it, `Alt`+click lifts that shape's own theme back into the slot, and picking the theme already in hand puts it
+down again. The **Apply** button stays for a selection made in the tree instead, where a click is not a click
+on the board: it places the picked theme — or, through **Remove**, clears it — on whatever the tree has
+selected, an island writing every member shape at once and a shape only itself. A shape carries the assignment
+(`shape.theme`), an island assignment writes it to every member, and a cell that carries none falls to the map
+default — so the resolution is shape, then map. Leaving the Theme phase puts the brush down. With the Blocks
+overlay on, this step shows the **real paint**: the live layout is posted to the server, the actual painter
+runs over it, and one colour per footprint cell comes back as a bitmap, so a Voronoi reads as its cells and a
+noise field as its patches rather than as one representative colour.
 
 `tools/seeds/ruediger.layout.json` is the worked example of this step. It carries three themes and names
 `ruediger` as the map default; four shapes take `ruediger-steps`, thirteen take `theme`, and the remaining nine

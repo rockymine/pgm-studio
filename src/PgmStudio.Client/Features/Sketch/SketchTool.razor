@@ -19,6 +19,9 @@
       <Right>
         @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
         <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
+        <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
+        <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
+        <Button Variant="icon" Icon="keyboard" Title="Keyboard shortcuts" OnClick="ShowKeys" />
       </Right>
     </Topbar>
   </Bar>
@@ -76,10 +79,11 @@
         <Sidebar>
           @if (ThemeApplyActive)
           {
-            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
             <SketchThemeApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
-                                  TargetShapeIds="ScopeTargetShapeIds" />
+                                  TargetShapeIds="ScopeTargetShapeIds"
+                                  Brush="@themeBrush" BrushChanged="SetThemeBrush" />
           }
           else if (DressingActive)
           {
@@ -92,7 +96,7 @@
             @* Relief needs BOTH: the island tree, because the island is the unit a relief is solved over and
                picking one is how its base and grain are reached; and the list of what is stated, because a
                spot height under a broad bench is a small target on the canvas. *@
-            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
             <SketchReliefList StateJson="@reliefJson" Handle="handle" />
             @* What the stated terrain costs a player. Below the list rather than beside it: the list is what
@@ -104,7 +108,7 @@
           {
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
                           OnDelete="DeleteLayer" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
-            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="selectedShapeId" SelectedIslandId="selectedIslandId"
+            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
           }
         </Sidebar>
@@ -155,6 +159,14 @@
                             Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
                             OnClick="Toggle3D" />
           </CanvasLayerBar>
+
+          @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
+             draws the canvas has it. Adding one is drawing work, so only Draw offers that. *@
+          @if (!threeD)
+          {
+            <SketchLayerStrip Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer"
+                              OnAdd="AddLayer" AllowAdd="@DrawActive" />
+          }
 
           @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
           @if (!threeD)

@@ -33,6 +33,10 @@ public partial class SketchTool
     private bool isoUnavailable = false;   // 3-D preview couldn't be shown (no WebGL, or the build refused)
     private string? isoUnavailableWhy;     // the build's own sentence; null when WebGL itself is missing
     private string islandLabel = "";
+    private bool canUndo, canRedo;
+    /// <summary>The theme in hand while the Apply step is up. The canvas paints it on a click and can lift
+    /// another into it, so the tool holds it and the rail reads it.</summary>
+    private string themeBrush = "";
 
     // ── Phases (rail): Info (Identity + Settings steps) · Draw (the canvas). Draw stays mounted while
     //    Info is up (hidden, not torn down) so the drawing state + zoom survive the trip. ──
@@ -159,6 +163,12 @@ public partial class SketchTool
         // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
         // again — the chip is the author's, and a contour view they asked for should survive a phase change.
         await handle.InvokeVoidAsync("setReliefMode", phase == "relief");
+        // What a plain click picks. An island is the unit in Draw, where a landmass is what moves, and in
+        // Relief, where one relief is solved per island. In Theme the job is naming one shape, so a click
+        // picks the shape and the island is reached with Alt or from the tree.
+        await handle.InvokeVoidAsync("setPickUnit", phase == "theme" ? "shape" : "island");
+        // A brush only exists while the step that hands one out is up.
+        if (phase != "theme") await SetThemeBrush("");
         if (phase == "relief") reliefOn = true;
     }
 
@@ -175,6 +185,92 @@ public partial class SketchTool
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
     private SketchIslandRow? SelectedIsland => islands.FirstOrDefault(i => i.Id == selectedIslandId);
+
+    private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
+    private Task Redo() => handle?.InvokeVoidAsync("redo").AsTask() ?? Task.CompletedTask;
+    private Task ShowKeys() => JS.InvokeVoidAsync("studio.showKeys").AsTask();
+
+    /// <summary>The brush the canvas lifted, or the one it was handed back.</summary>
+    [JSInvokable]
+    public void OnThemeBrush(string id)
+    {
+        themeBrush = id ?? "";
+        StateHasChanged();
+    }
+
+    private async Task SetThemeBrush(string id)
+    {
+        themeBrush = id ?? "";
+        if (handle is not null) await handle.InvokeVoidAsync("setThemeBrush", themeBrush);
+        StateHasChanged();
+    }
+
+    /// <summary>What the undo stack can do now, so the tool can say so.</summary>
+    [JSInvokable]
+    public void OnHistory(bool undo, bool redo)
+    {
+        (canUndo, canRedo) = (undo, redo);
+        StateHasChanged();
+    }
+
+    /// <summary>A chord this tool registered. The registry holds the label and the group; this holds what the
+    /// chord does, so the two halves of a binding sit in the one language each is written in.</summary>
+    [JSInvokable]
+    public async Task OnShortcut(string id)
+    {
+        switch (id)
+        {
+            case "sketch.phase.info": await GoInfo(); break;
+            case "sketch.phase.draw": await GoDraw(); break;
+            case "sketch.phase.relief": await GoRelief(); break;
+            case "sketch.phase.theme": await GoTheme(); break;
+            case "sketch.phase.dressing": await GoDressing(); break;
+            case "sketch.tool.select": await SetTool("select"); break;
+            case "sketch.tool.move": await SetTool("move"); break;
+            case "sketch.tool.rectangle": await SetTool("rectangle"); break;
+            case "sketch.tool.polygon": await SetTool("polygon"); break;
+            case "sketch.tool.lasso": await SetTool("lasso"); break;
+            case "sketch.tool.measure": await SetTool("measure"); break;
+            case "sketch.tool.split": await SetTool("split"); break;
+            case "sketch.op": await ToggleOperation(); break;
+            case "sketch.fit": await OnFit(); break;
+            case "sketch.chip.shapes": await ToggleShapes(); break;
+            case "sketch.chip.mirror": await ToggleMirror(); break;
+            case "sketch.chip.chunks": await ToggleChunks(); break;
+            case "sketch.chip.blocks": await ToggleBlocks(); break;
+            case "sketch.chip.relief": await ToggleRelief(); break;
+            case "sketch.chip.snap": await ToggleSnap(); break;
+            case "sketch.save": await Finish(); break;
+        }
+        StateHasChanged();
+    }
+
+    /// <summary>Every chord this tool answers. `label` and `group` are what the `?` sheet and the command
+    /// palette render, and the registry refuses an entry without them.</summary>
+    private static readonly object[] Shortcuts =
+    [
+        new { id = "sketch.phase.info",      keys = "1", label = "Go to Info",     group = "Phases" },
+        new { id = "sketch.phase.draw",      keys = "2", label = "Go to Draw",     group = "Phases" },
+        new { id = "sketch.phase.relief",    keys = "3", label = "Go to Relief",   group = "Phases" },
+        new { id = "sketch.phase.theme",     keys = "4", label = "Go to Theme",    group = "Phases" },
+        new { id = "sketch.phase.dressing",  keys = "5", label = "Go to Dressing", group = "Phases" },
+        new { id = "sketch.tool.select",     keys = "v", label = "Select",  group = "Tools" },
+        new { id = "sketch.tool.move",       keys = "h", label = "Pan",     group = "Tools" },
+        new { id = "sketch.tool.rectangle",  keys = "r", label = "Rectangle", group = "Tools" },
+        new { id = "sketch.tool.polygon",    keys = "p", label = "Polygon", group = "Tools" },
+        new { id = "sketch.tool.lasso",      keys = "l", label = "Lasso",   group = "Tools" },
+        new { id = "sketch.tool.measure",    keys = "m", label = "Measure", group = "Tools" },
+        new { id = "sketch.tool.split",      keys = "x", label = "Split",   group = "Tools" },
+        new { id = "sketch.op",              keys = "b", label = "Flip build ⇄ carve", group = "Tools" },
+        new { id = "sketch.fit",             keys = "f", label = "Fit the working bounds", group = "Canvas" },
+        new { id = "sketch.chip.shapes",     keys = "alt+1", label = "Show every shape",   group = "Overlays" },
+        new { id = "sketch.chip.mirror",     keys = "alt+2", label = "Show the mirror",    group = "Overlays" },
+        new { id = "sketch.chip.chunks",     keys = "alt+3", label = "Show the chunk grid", group = "Overlays" },
+        new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
+        new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show the contours",  group = "Overlays" },
+        new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Overlays" },
+        new { id = "sketch.save",            keys = "mod+s", label = "Save the sketch", group = "Everywhere", inField = true },
+    ];
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -202,76 +298,93 @@ public partial class SketchTool
             }
         }
         catch { /* no saved layout / map not found — start blank */ }
+        await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
+            System.Text.Json.JsonSerializer.Serialize(Shortcuts));
     }
+
+    /// <summary>The name this tool's chords are registered and dropped under.</summary>
+    private const string KeyOwner = "sketch-tool";
 
     private async Task SetTool(string t)
     {
         tool = t;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setTool", t);
     }
 
     private async Task SetOperation(string o)
     {
         op = o;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setOperation", o);
     }
 
     private async Task OnModeChange(ChangeEventArgs e)
     {
         mode = e.Value?.ToString() ?? "rot_180";
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
     }
 
     private async Task OnCenterX(double v)
     {
         centerX = v;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
 
     private async Task OnCenterZ(double v)
     {
         centerZ = v;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
 
     private async Task ToggleMirror()
     {
         mirrorOn = !mirrorOn;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setMirrorVisible", mirrorOn);
     }
 
     private async Task ToggleShapes()
     {
         shapesOn = !shapesOn;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setShapesVisible", shapesOn);
     }
 
     private async Task ToggleChunks()
     {
         chunksOn = !chunksOn;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setChunkVisible", chunksOn);
     }
 
     private async Task ToggleBlocks()
     {
         blocksOn = !blocksOn;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setBlocksVisible", blocksOn);
     }
 
     private async Task ToggleRelief()
     {
         reliefOn = !reliefOn;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setReliefVisible", reliefOn);
     }
 
     private async Task ToggleSnap()
     {
         snapOn = !snapOn;
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setSnap", snapOn);
     }
 
     private async Task OnFit()
     {
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
 
@@ -296,6 +409,7 @@ public partial class SketchTool
     private async Task ToggleIsoLayer(string id)
     {
         if (!isoHidden.Remove(id)) isoHidden.Add(id);
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
             await handle.InvokeVoidAsync("setIsoLayerShown", id, !isoHidden.Contains(id));
         StateHasChanged();
@@ -535,6 +649,7 @@ public partial class SketchTool
         {
             try { await Http.DeleteAsync($"api/map/{Slug}/sketch/discard-if-empty"); } catch { }
         }
+        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
         {
             try { await handle.InvokeVoidAsync("dispose"); } catch { }

@@ -157,6 +157,38 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **One keyboard, one registry, and the help is generated from it (C53).** `wwwroot/js/studio/shared/keys.js`
+  owns the app's single `keydown` listener and the registry every binding lives in. An entry is
+  `{ id, keys, label, group, run, when?, priority?, inField?, passive? }`, and `label` and `group` are
+  **required** — `register` throws without them — so a chord that cannot be listed cannot exist. An owner
+  registers a named set and drops it by name, which is what keeps a torn-down canvas from answering. A chord
+  is normalised to one spelling, so modifier order does not matter and `mod` is ⌘ on Apple and Ctrl
+  elsewhere; a contested chord goes to the highest priority, then to the most recently registered owner;
+  `when` says whether an entry can run at all; and typing in a field silences everything except the entries
+  marked `inField`. The **`?` sheet** and the **`Ctrl`/`⌘`+K palette** (`keys-overlay.js`) are both rendered
+  from that registry — the sheet lists every registered chord and dims the ones that cannot run now, because
+  a chord hidden until it happens to work is a chord nobody learns. Blazor reaches it through
+  `studio.registerKeys(ownerId, dotnetRef, entriesJson)`, each entry calling back on `OnShortcut(id)`; the
+  sketch tool binds 21 chords, the plan tool 8, and the canvases their own. (C53)
+- **Undo and redo, over the two calls the bridge already answers (C54).** A step is a whole document — the
+  value `getState()` answers and `load(state, keepView)` restores — so nothing has to know which edit
+  happened, only that one did. A step opens before an edit and closes after it, and closing compares the
+  two: a press that changed nothing costs no step, and a drag that fires on every frame between one open and
+  one close costs exactly one. A press on the canvas opens a step and the release closes it; every handle
+  verb that changes the document is wrapped once, in one list, so no verb has to remember to be undoable. A
+  restore keeps the current view, because a step back that also moves the camera reads as a different board,
+  and it keeps the selection where the shape survived the step. Depth 60. (C54)
+- **An island is a scope, not a click target, and no double-click is left (C56).** Both authoring canvases
+  hold the same two-level model in one field — `#scopeIslandId` on the sketch, `#scopeBoxId` on the plan. A
+  plain click picks the unit the phase states; `Ctrl`/`⌘`+click reaches the member under the cursor whatever
+  groups it; `Alt`+click picks the parent. A group is **entered** by `Enter` or by that deep-select click,
+  and while it is entered a click reaches its members and a click outside it leaves — so a second member is
+  one click away rather than another drill. Escape leaves the scope, then walks the selection out. Nothing in
+  either canvas is reached by how fast two presses land: a polygon closes on `Enter` or on a click back at
+  its first vertex. (C56)
+- **A tree that never showed its selection now does.** `SelectedShapeId="selectedShapeId"` binds a Razor
+  **string** parameter to the literal text, not the field, so the sketch island tree and both Edit region
+  trees drew every row unselected however the canvas was clicked. Four call sites take the expression.
 - **The icon set is vendored, not fetched (C30).** `index.html` pulled lucide from `cdn.jsdelivr.net`
   on every page load, pinned to `@latest`. That failed twice over: the CDN is unreachable from any
   egress-restricted environment, so **no icon rendered at all** there (blank nav rail, toolbars and
@@ -496,7 +528,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   duplicated add/sub colour constants collapse to one `OP_COLORS`/`opColors` source (sketch render + draw
   controller). Icons route through `RegionNode.Icon` — `SpawnStep`'s hardcoded `cylinder` and
   `WoolMonuments`' `square` become the canonical `point → dot`. Plan's surface-tint + hatch stay
-  Plan-specific. The shared helper is `render/primitive-style.js`; `canvas-interaction.md` §10. (CV9)
+  Plan-specific. The shared helper is `render/primitive-style.js`. (CV9)
 
 - **The Button variants are painted (C33).** `<Button Variant="primary|danger|warn">` emitted
   `action-btn--primary` / `--danger` / `--warn` and no stylesheet defined any of the three, so 47 buttons
@@ -2253,11 +2285,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   roofs, storeys, porches, houses — which splits the old Parts tab into the three libraries it hid behind a
   select. `/library` chooses between them as cards over live counts; `/library/{kind}` browses one, with a
   name search, the kind's own filters and **New** in a strip over a full-width grid; `/library/{kind}/{id}`
-  (or `/new`) opens one entry as the studio's own three-pane workspace — the document as an outline, the
-  preview across the middle, and the picked row's fields in the inspector. A material's nest **is** the
-  outline, indented by depth, so a five-entry pattern is five rows rather than five boxes inside one another;
+  (or `/new`) opens one entry on the editor page `TL5` lays out. A material's nest **is** the outline,
+  indented by depth, so a five-entry pattern is five rows rather than five boxes inside one another;
   `MaterialEditor` draws one level at a time for it. One browse shell, one editor frame and one load/save
   state machine serve all six where four copies stood.
+- **The library editor is a document beside its picture, and the picture is a column (TL5, TL6).** A node's
+  outline row and the fields that edit it are one thing said twice, so they are adjacent: the outline on the
+  left, its fields beside it, and the preview as a fixed `420px` companion the same handle resizes as every
+  other panel. There is no inspector on the route. Save, copy and delete sit against the foot of the fields
+  column, out of the scroll, so a document long enough to scroll is not the one whose save has to be found.
+  `LibraryEditor` takes one stated parameter, `Nests`: a nesting document — a style's recursive material
+  tree, a house's five parts — draws the node the outline has picked under a header naming it, and a flat one
+  draws every section at once in a responsive grid while the outline scrolls to a section rather than
+  choosing which exists. A theme is fourteen controls, so it is flat, and each bucket carries the swatch of
+  what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
+  from. The fields column has the width for a bucket's three controls on one row and the bound style's own
+  picture under them. (TL5, TL6)
 - **The library is a page you author in, and the sketch draws from it (B44).** `/library` is the studio's
   fourth entry point, on the shape catalog's browse layout (a filter rail, a grid of pictures, a rail for the
   one you picked — now one `lib-*` namespace both pages share). Its **Styles** half filters by kind, starts one
@@ -6031,6 +6074,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A phase says what a click picks, and Theme's answer is a brush (TS43).** An island is the unit in Draw,
+  where a landmass is what moves, and in Relief, where one relief is solved per island; in Theme the job is
+  naming one shape, so a click picks the shape and the island is reached with `Alt` or from the tree —
+  `SketchTool.PushCanvasMode` states it beside everything else a phase states about the canvas. Applying a
+  theme was three acts: pick a target, pick a theme, press **Apply**. A theme is now taken *in hand* from the
+  list and the canvas is a brush — a click paints the shape under it, `Alt`+click lifts that shape's theme
+  back into the slot, and picking the theme in hand again puts it down. Both go through the same assignment
+  the button does, so there is one verb and one undo step per shape. **Apply** stays for a selection made in
+  the tree, where a click is not a click on the board; leaving the phase puts the brush down. (TS43)
+- **An island shows what it is made of once it is being worked in (TS44).** The Shapes chip draws every
+  primitive on the board or none, which is the wrong granularity for reaching one member of one island. The
+  selected or entered island draws its own members without it — faintly while merely selected, plainly once
+  entered — and the chip keeps its meaning for the whole board. (TS44)
+- **The storey being drawn on is canvas chrome (TS45).** A layer is a property of the board, like the mirror
+  axis and the chunk grid, so `SketchLayerStrip` hangs off the canvas beside the dock and every phase that
+  draws the canvas carries it; only Draw offers adding one, because adding a storey is drawing work.
+  Whatever is placed lands on it: `DressingDoc.add` stamps the active layer unless the prop already names
+  one, so a prop re-placed by an edit is not silently moved to whichever storey is on screen. (TS45)
 - **A shape a layer cannot hold is declined by name (TS27, `SK9`).** A layer keeps one span per column and a
   taller add replaces a shorter outright, floor included — so a floor with a roof drawn over it *on the same
   layer* built as the roof alone, over open air, with no finding, no complaint and a board that read as

@@ -1556,3 +1556,102 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 
 /* A rule between two groups of rail buttons — the library's chooser above its six kinds. */
 .nav-rail-div { width: 22px; height: 1px; margin: 2px 0; background: var(--border); flex: 0 0 auto; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+   KEYBOARD — the sheet that lists the keymap and the palette that runs it.
+   Both are drawn by keys-overlay.js from the same registry the dispatcher
+   reads, so what is styled here is whatever the app actually binds.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+.keys-overlay { position: fixed; inset: 0; z-index: 90; display: flex; align-items: flex-start; justify-content: center; }
+.keys-backdrop { position: absolute; inset: 0; background: rgb(0 0 0 / .48); }
+
+.keys-panel {
+  position: relative; z-index: 1; margin-top: 9vh; width: min(760px, calc(100vw - 32px));
+  max-height: 74vh; display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-panel); border: 1px solid var(--border);
+  border-radius: var(--radius-md, 6px); box-shadow: var(--shadow-float);
+}
+.keys-panel--palette { width: min(560px, calc(100vw - 32px)); }
+
+.keys-head {
+  display: flex; align-items: baseline; gap: var(--space-3); flex-shrink: 0;
+  padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--border);
+}
+.keys-head h2 { margin: 0; font-size: var(--font-lg); color: var(--text-bright); font-weight: 600; }
+.keys-hint { margin-left: auto; font-size: var(--font-xs); color: var(--text-muted); }
+
+.keys-groups {
+  overflow-y: auto; padding: var(--space-3) var(--space-4) var(--space-4);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--space-4);
+  align-content: start;
+}
+.keys-group h3 {
+  margin: 0 0 var(--space-2); font-size: var(--font-xs); letter-spacing: .1em; text-transform: uppercase;
+  color: var(--text-muted); font-weight: 600;
+}
+.keys-row { display: flex; align-items: baseline; gap: var(--space-2); padding: 3px 0; font-size: var(--font-base); }
+.keys-row-keys { flex: 0 0 auto; display: flex; gap: 3px; }
+.keys-row-label { color: var(--text-secondary); min-width: 0; }
+.keys-empty { padding: var(--space-4); color: var(--text-muted); font-size: var(--font-sm); text-align: center; }
+
+.keys-chord {
+  font-family: ui-monospace, monospace; font-size: var(--font-xs); color: var(--text-primary);
+  background: var(--bg-base); border: 1px solid var(--border); border-bottom-width: 2px;
+  border-radius: var(--radius-sm); padding: 1px 5px; white-space: nowrap;
+}
+
+.keys-search { flex-shrink: 0; padding: var(--space-2); border-bottom: 1px solid var(--border); }
+.keys-search-input {
+  width: 100%; height: 34px; padding: 0 var(--space-2); font: inherit; font-size: var(--font-md);
+  color: var(--text-bright); background: var(--bg-base); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); outline: none;
+}
+.keys-search-input:focus { border-color: var(--accent); }
+
+.keys-list { overflow-y: auto; padding: var(--space-1); display: flex; flex-direction: column; gap: 1px; }
+.keys-item {
+  display: flex; align-items: center; gap: var(--space-2); width: 100%; text-align: left;
+  padding: 6px 8px; border: 0; border-radius: var(--radius-sm); background: transparent;
+  color: var(--text-primary); font: inherit; font-size: var(--font-base); cursor: pointer;
+}
+.keys-item:hover { background: var(--bg-selected-hover); }
+.keys-item--at { background: var(--bg-selected); color: var(--text-strong); }
+.keys-item-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.keys-item-group { flex: 0 0 auto; font-size: var(--font-xs); color: var(--text-muted); }
+.keys-item-keys { flex: 0 0 auto; display: flex; gap: 3px; }
+
+/* ── the storey strip ──
+   Which layer is being drawn on, floating at the foot of the canvas beside the dock. A layer is the
+   board's, not a phase's, so this is chrome rather than a panel: every phase that draws the canvas has it,
+   and whatever is placed lands on the layer it names. */
+.canvas-layer-strip {
+  position: absolute; left: 10px; bottom: 16px; z-index: 3;
+  display: flex; align-items: stretch; gap: 2px; padding: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+}
+.canvas-layer-strip-label {
+  display: flex; align-items: center; padding: 0 6px;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+.canvas-layer-tab {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 0;
+  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer; text-align: left;
+}
+.canvas-layer-tab:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-tab--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-layer-tab-name { font-size: var(--font-sm); line-height: 1.2; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.canvas-layer-tab-y { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); line-height: 1.2; }
+.canvas-layer-tab--on .canvas-layer-tab-y { color: var(--accent-lighter); }
+.canvas-layer-add {
+  display: grid; place-items: center; width: 26px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.canvas-layer-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* A chord the tool has but cannot run yet — a delete with nothing selected. Listed, because a chord hidden
+   until it works is a chord nobody learns; dimmed, because it will not answer now. */
+.keys-row--off { opacity: .45; }

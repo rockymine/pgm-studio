@@ -21,6 +21,7 @@
 import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { translateBounds } from "../geometry/shape.js";
 import { toScreen } from "../geometry/transform.js";
+import * as Keys from "../shared/keys.js";
 
 const HANDLE_SIZE = 14;
 const HANDLE_DEFS = [
@@ -98,26 +99,21 @@ export class WorldEditController {
 
   // ── internal ─────────────────────────────────────────────────────────────────
 
-  // Arrow keys nudge the selected region by 1 block (Shift = 16). One document listener (this canvas is
-  // shared by every host); guards keep only the visible canvas, with no text field focused, responding.
+  // Arrow keys nudge the selected region by 1 block (Shift = 16), through the one registry every binding in
+  // the app is held in — so this canvas's chords are listed by the `?` sheet like any other's.
   #setupKeyboardNudge() {
-    document.addEventListener("keydown", (e) => {
-      if (!this.#acc.getSelected()?.bounds) return;          // only a single resizable region is selected
-      if (!this.#acc.isVisible()) return;                     // this canvas isn't the visible one
-      const tag = document.activeElement?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;   // typing in a field
-      const step = e.shiftKey ? 16 : 1;
-      let dx = 0, dz = 0;
-      switch (e.key) {
-        case "ArrowLeft":  dx = -step; break;
-        case "ArrowRight": dx =  step; break;
-        case "ArrowUp":    dz = -step; break;
-        case "ArrowDown":  dz =  step; break;
-        default: return;
-      }
-      e.preventDefault();
-      this.moveSelected(dx, dz);
-    });
+    const live = () => !!this.#acc.getSelected()?.bounds && this.#acc.isVisible();
+    const ARROWS = { arrowleft: [-1, 0], arrowright: [1, 0], arrowup: [0, -1], arrowdown: [0, 1] };
+    const step = (e, by) => {
+      const [dx, dz] = ARROWS[e.key.toLowerCase()] ?? [0, 0];
+      this.moveSelected(dx * by, dz * by);
+    };
+    Keys.register("world-edit", [
+      { id: "edit.nudge", keys: Object.keys(ARROWS), label: "Nudge the selected region one block",
+        group: "Canvas", when: live, run: (e) => step(e, 1) },
+      { id: "edit.nudge16", keys: Object.keys(ARROWS).map(key => `shift+${key}`),
+        label: "Nudge the selected region sixteen blocks", group: "Canvas", when: live, run: (e) => step(e, 16) },
+    ]);
   }
 
   #doResize(clientX, clientY) {
