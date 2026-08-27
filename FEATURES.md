@@ -6010,6 +6010,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   board drawn in no layers says that instead. The word is declared once on `WorldRenderEndpoint` and opted
   into by the four, so they cannot describe it four ways — `section` and `column` keep Y and show every storey
   already, and `traversability` and `walk` answer per storey without being asked.
+- **A storey read stops at its own top, and reads the record for the courses it shows (`WS18`).** A
+  `ColumnSegment` is half-open — `[YFloor, YTop)` — and `WorldStorey` compared the next layer's floor against
+  it as a closed range, so a storey whose rock meets the landmass over it with no gap between them found
+  nothing above and was handed the rest of the world: `?layer=under` drew the desert, its houses and its
+  trees under the undercroft's name. The comparison is `>=`, and a layer's last drawn course is `YTop - 1`.
+  The provenance record is narrowed with the world for the same reason: a claim is recorded per column and
+  carries no course, so it describes that column's topmost block and painting it onto a storey under that
+  puts a house on a cellar floor. What replaces it is what the spans already say — at or below the layer's
+  own top a block is the rasterizer's terrain and reads `Ground`; above it the recorded claim is kept only
+  where the storey shows the column's own top; a course that is neither carries no claim, and
+  `TopDownRender.Result.ClaimedColumns` makes the legend say which reading the picture actually used.
 - **A building's site has to be level enough to stand on (WE29).** A building seats on the **lowest** column
   of its footprint and the terrain over that floor is carved out of it, which is what lets a house dig into
   a hillside — and had no limit, so a footprint spanning more relief than the building is tall built a house

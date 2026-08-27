@@ -612,8 +612,11 @@ already answer without ambiguity) and falls back to the material estimate — th
 when no claim was ever recorded for that column. `--topdown`'s `Run(regionDir, …)` overload picks up the
 recorded record automatically; `--material` is unaffected, since a
 material check is asking a different question on purpose. The picture states which reading it used: the
-scale line carries `STRUCTURE READING: RECORDED PROVENANCE` or `MATERIAL ESTIMATE (NO RECORDED PROVENANCE)`,
-because that is exactly the fact a colour alone cannot carry.
+scale line carries `STRUCTURE READING: RECORDED PROVENANCE` where any column took its category from a claim,
+`MATERIAL ESTIMATE (NO RECORDED PROVENANCE)` where no record was given, and
+`MATERIAL ESTIMATE (NO CLAIM DESCRIBES THIS CUT)` where one was given and describes no column this picture
+draws — a storey read of a board whose record only ever named the top of each column. It follows what the
+render read rather than what it was handed, because that is exactly the fact a colour alone cannot carry.
 
 **The split is real and is not papered over.** A world the studio *builds* gets the recorded truth: the
 record is written beside the region files a build writes (`PgmStudio.Minecraft.WorldProvenanceFile`, one

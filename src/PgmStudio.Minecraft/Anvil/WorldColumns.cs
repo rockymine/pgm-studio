@@ -52,6 +52,17 @@ public static class WorldColumns
         }
     }
 
+    /// <summary>The top course of every column holding a solid block — the one number a claim recorded per
+    /// column is a claim about, and what a read narrowed to a storey is compared against
+    /// (<see cref="WorldProvenance.WhereTopShows"/>). A projection of <see cref="Of"/>, so a caller that
+    /// needs the runs themselves takes that instead of calling both.</summary>
+    public static Dictionary<(int X, int Z), int> Tops(VoxelWorld world, BlockBox? within = null)
+    {
+        var tops = new Dictionary<(int X, int Z), int>();
+        foreach (var (x, z, runs) in Of(world, within)) tops[(x, z)] = runs[0].YTop;
+        return tops;
+    }
+
     /// <summary>Two membership sets over a world held in memory: <c>Surface</c> is every column holding a
     /// solid block, <c>Y0</c> every column holding one at Y=0 — the layer PGM's void filter reads, and the
     /// twin of <c>SegmentIndex.Y0Columns</c>. Both are projections of the runs above, so the height is

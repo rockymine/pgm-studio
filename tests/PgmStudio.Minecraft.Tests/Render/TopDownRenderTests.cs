@@ -1,6 +1,7 @@
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Domain;
 
 namespace PgmStudio.Minecraft.Tests.Render;
 
@@ -235,5 +236,24 @@ public sealed class TopDownRenderTests
             await Assert.That(height).IsGreaterThan(6);
         }
         finally { File.Delete(outPng); }
+    }
+
+    [Test]
+    public async Task The_legend_says_which_reading_the_picture_actually_used()
+    {
+        // Whether the Ground/Structure split is a recorded fact or a material guess is baked into the
+        // picture, so it has to follow what the render read rather than whether a record was handed over: a
+        // record describing no column this picture draws is a material estimate however full it is.
+        var world = new VoxelWorld();
+        world.SetBlock(0, 5, 0, Blocks.Stone);
+        var here = new WorldProvenance();
+        here.Claim(0, 0, ProvenancePass.Structure, new StampId("house", "h1", 0));
+        var elsewhere = new WorldProvenance();
+        elsewhere.Claim(40, 40, ProvenancePass.Structure, new StampId("house", "h2", 0));
+
+        await Assert.That(TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
+            provenance: here)!.ClaimedColumns).IsEqualTo(1);
+        await Assert.That(TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null,
+            provenance: elsewhere)!.ClaimedColumns).IsEqualTo(0);
     }
 }
