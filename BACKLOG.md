@@ -171,15 +171,32 @@ what is gathered here is the parked and dormant slices of the same surface.
   block count on it. The islands are already computed live in JS (`computeIslands`), so the nearest-point
   pass is the only new geometry.
 
-- [ ] **S58 — The sketch canvas has no shortcut surface, and its best affordances are secrets.** Escape,
-  Delete, `P` to promote, arrows to nudge (Shift for sixteen), double-click to close a polygon, **Ctrl-drag a
-  vertex handle for a Bézier tangent** and **Alt to bypass snapping** are all live, and they are spread across
-  `sketch-canvas.js`, `sketch-bridge.js` and `sketch-edit-controller.js` with nothing in the UI naming them —
-  a grep for "shortcut" across `Features/Sketch` and `Components` returns nothing. The last two matter most:
-  Bézier editing is the thing that makes an outline stop being rectilinear, and it is reachable only by
-  someone who already knows. A "?" popover on the canvas chrome listing the set, plus tool-contextual hints
-  where a tool has a non-obvious step ("click to add · double-click to close" while the polygon tool is
-  armed), is the whole of it.
+- [ ] **C56 — An island is a scope, not a click target, and the double-click goes entirely.**
+  `sketch-canvas.js:426` resolves every plain click to the containing island with no condition on what is
+  already selected, and `sketch-bridge.js:158` nulls `selectedIslandId` when a shape is picked — so a drill
+  records *which shape* but never *which island it is inside*, and the next click pops back out. Theming a
+  second shape in one island means drilling again. Add `scopeIslandId`: `Enter` enters the scope of the
+  selection, `Esc` and a click outside leave it, and while it is set a click hit-tests members rather than
+  islands. `Ctrl/⌘+click` deep-selects a shape whatever island holds it; `Alt+click` selects the parent.
+  **The double-click is retired**, from selection here and in `plan-canvas.js:1088`, and from the draw tools,
+  where `Enter` or a click back on the first vertex closes a polygon (`sketch-draw-controller.js:117`) — one
+  verb in both contexts and no click-counting anywhere. Same commit: `canvas-interaction.md` §5 gains the
+  selection model, and `plan.md`'s two-level paragraph is rewritten.
+
+- [ ] **TS43 — The phase states its selection granularity, and Apply becomes a paint bucket.** An island is
+  the right unit in Draw, where a landmass is what moves, and in Relief, where the solve runs per island. It
+  is the wrong one in Theme, where the job is naming one shape and `SketchThemeApplyRail` needs three acts to
+  do it — pick a target, pick a theme in the list, press **Apply**. Let the phase state its unit: Theme's is
+  the shape, with the island reachable by `Alt+click` and from the tree. Then arm a theme in the dock instead
+  of listing it — click a shape to paint it, `Alt+click` to lift a theme off one, `Esc` to disarm — which is
+  one act per shape and reuses the dock the phase already carries. The **Apply** button stays for a tree
+  selection, where a click is not a click on the board. Wants `C56` first.
+
+- [ ] **TS44 — A member outline is contextual, not a global chip.** `shapesOn` defaults to `false`
+  (`SketchTool.razor.cs:27`) and `#paintShapes` draws every shape or none, so the pieces an island is made of
+  are invisible until the chip is found, and then the whole board's shapes appear at once. Draw the selected
+  or scoped island's members automatically at low weight — the way a group outlines its children once
+  entered — and leave the chip meaning "every shape on the board". Wants `C56`'s scope to know what to reveal.
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
@@ -190,6 +207,67 @@ what is gathered here is the parked and dormant slices of the same surface.
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
+
+## The library preview: authoring a building where it will stand
+
+Both entries make the preview *heavier*, and both are downstream of `TL5`'s decision about how wide it is —
+so they wait for the frame rather than being built into the one it replaces.
+
+- [ ] **B221 — The style libraries preview a stamped world, and the cut follows the selected row.**
+  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
+  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
+  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
+  rather than a stamp of a fixed sample. Authoring a **part** wants a **section** through that world at the
+  part, and `B254`'s outline is what says which: `RoomStylePreview.Views` takes `Outer(style)`, the entire
+  shell, whichever part is open, and nothing on that path asks which part is being edited.
+
+  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
+  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
+  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
+  isolated part synthesises the context that decides its geometry anyway.
+
+  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
+  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
+  air.*
+
+- [ ] **B258 — The library draws the iso the map draws.** `iso-webgl.js` renders the world the export builds,
+  meshed by `column-mesh.js` from per-column runs — and both routes that answer those runs, `POST
+  /plan/columns` and `POST /map/{slug}/sketch/columns`, are map-scoped, so no library editor can ask for one.
+  Answer columns for a stamped style world and drive the existing bridge from it, so a house can be turned in
+  3-D where it is authored. Supersedes the server-rendered `Iso` SVG in `HouseViews`.
+
+## Looking at a board that was built
+
+- [ ] **B262 — The read-backs have no browser surface, and neither do the ones already taken.**
+  `render/topdown`, `surface`, `walk`, `mirror`, `section`, `structures`, `traversability` and `heightmap`
+  answer a picture each over HTTP and are fetched by nothing in the client. `docs/world-scan/read-backs.md`
+  never claimed a UI, so this is a gap rather than drift — but reviewing what a board looks like is the loop
+  the paint work runs on, and today it runs at in-game speed. A page per map, live off the routes.
+
+  **The larger half is that the pictures already exist.** `pgm-studio-mapgen`'s `tools/drive.py` takes all
+  eleven world reads over HTTP after every build and writes them beside the documents: 64 renders a map in
+  `specs/<name>/renders/`, a `world-surface.png` per board and a `theme-*-surface.png` per theme — which is
+  the palette read `WE41` is parked on — and a `world-layer-*.png` per storey where the board is stacked.
+  Fifty-odd boards' worth of provenance-backed pictures nobody can see side by side. So the second surface is
+  a **contact sheet over a renders directory**: one row per map, one column per view, the view pickable, at a
+  size where a whole run is judged in one screen. That is what makes a preference pass over the built boards
+  affordable, and it needs no new render.
+
+- [ ] **B265 — A disk read cannot be given the provenance sidecar, and this repo's worlds never carry one.**
+  `TopDownRender.Run(regionDir, …)` finds provenance only by `WorldProvenanceFile.TryRead(regionDir)`, and
+  `drive.py` deliberately moves `provenance.json` out to `specs/<name>/` because `maps/<name>/` is uploaded to
+  the PGM server and holds only `region/`, `map.xml` and `level.dat`. So every render taken off a shipped
+  world after the fact degrades to the material estimate — correctly labelled in the legend (`B133`), and on a
+  painted board wrong enough to read terrain as structure across half the map. The HTTP routes are unaffected;
+  they build the world and hold `Built.Provenance`. Wants `--provenance <path>` on the reads that take a
+  region directory, so a sidecar kept beside the documents can be pointed at.
+
+- [ ] **B266 — The read-back help documents a flag the CLI does not parse.** `--help` prints
+  `--topdown --layer …` for every subject, because the text is generated from `WorldReadCatalog`, which is
+  written for the HTTP route — where the query parameter really is `layer`. The CLI parses `--subject`, so
+  the documented form fails as `no region dir: --layer`, naming the wrong argument. One of the two words has
+  to give; the route's is the published one, so the CLI should take `--layer` (keeping `--subject` is a second
+  accepted spelling, which is what rots).
 
 ## The canvas: what every tool draws through
 
@@ -380,7 +458,6 @@ as an isolated marker into `B99`.
 
   *`opus5-whinnymoor` and `opus5-rimegarth` both exported with traversability whole and buildings standing
   across their roads.*
-
 
 - [ ] **G231 — `EL1` measures a piece against the global surface, not against its neighbour, so it
   complains about half a flight of stairs.** `PlanValidator.LintEl1` takes `p.Surface − globals.Surface` and

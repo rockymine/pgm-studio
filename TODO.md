@@ -13,15 +13,41 @@ browser cannot say. The library's entries are a sequence — the client before t
 controls, the controls before the fields they carry — so this board runs over the soft cap on purpose and
 takes nothing new until the shape lands. Anything found while working goes to `BACKLOG.md`.
 
+**The frame comes before the fields it holds.** `TL5` and `TL6` are first because `B261` and `B260` add
+controls and the layout they would land in is the one being replaced; building them into the current
+inspector means building them twice. The keyboard pair follows for the same reason — every entry after it is
+tested by hand, and an editor with no undo is an editor nobody experiments in.
+
 ## The library: a browse page, an editor page, and the rail between them
 
 The shape has landed: the rail carries the six kinds, `/library` chooses between them, and an entry opens a
 page laid out as the studio's own workspace. What is left is what an author can *say* on it, what they can
 *see* while saying it, and what is on the shelf to say it about.
 
+### The frame the fields land in
+
+- [ ] **TL5 — The library editor is a document beside its preview, not a document either side of one.**
+  `LibraryEditor.razor` lays every kind out as `Sidebar · workspace-canvas · Inspector`, so an outline row and
+  the fields that edit it are one node of the document drawn twice — **824 px apart at 1440, 1304 px at
+  1920** — while the picture between them caps at `760px` and leaves 526 px of empty stage at 1920. Reorder to
+  **outline · fields · preview**: the two document panes adjacent, the preview a fixed ~326 px right column
+  that still never scrolls with the knobs it is judged by. `Workspace`, `Sidebar` and `Inspector` keep their
+  meanings; what goes is the right-hand inspector on the library route. The fields column then holds a node's
+  controls on one row rather than stacking them in a 280 px pipe, with room under them for the bound style's
+  own picture.
+
+  *Both panel widths are `--sidebar-width`/`--inspector-width` = 280 (`tokens.css:131`), the rail 56.*
+
+- [ ] **TL6 — A flat document renders open; a nesting one renders as a disclosure tree.** The six kinds are
+  not one shape. A theme is fourteen controls with no nesting, and eleven of them sit behind a selection at
+  any moment; a style is a recursive material tree (`MaterialTree.Walk`, nine nodes on a stack whose top layer
+  is a voronoi); a house composes five parts. One frame with **one stated parameter — whether the document
+  nests** — rather than three editors: a flat document renders every section open in the fields column, a
+  nesting one renders its outline as the tree it already walks, and the picked node draws its own controls
+  plus a stub per list entry (kind · extent · remove) so a band list is edited where it lives. Both sit under
+  `TL5`'s preview companion.
+
 ### What the author can say
-
-
 
 - [ ] **B261 — The theme editor mirrors a schema the API already publishes.** `GET /api/terrain/patterns`
   answers every material kind and field, typed, as the painter's deserializer takes them — and the client
@@ -38,23 +64,6 @@ page laid out as the studio's own workspace. What is left is what an author can 
 
 ### What the author sees while authoring
 
-- [ ] **B221 — The style libraries preview a stamped world, and the cut follows the selected row.**
-  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
-  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
-  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
-  rather than a stamp of a fixed sample. Authoring a **part** wants a **section** through that world at the
-  part, and `B254`'s outline is what says which: `RoomStylePreview.Views` takes `Outer(style)`, the entire
-  shell, whichever part is open, and nothing on that path asks which part is being edited.
-
-  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
-  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
-  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
-  isolated part synthesises the context that decides its geometry anyway.
-
-  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
-  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
-  air.*
-
 - [~] **B70 — The card shows the one view its knobs are invisible in.** A library card carries the section
   alone, and a section projected onto the front wall shows a window as a patch of the same colour as the wall
   around it, a porch as nothing at all. Which view a card should carry instead is a look-and-choose question
@@ -62,12 +71,6 @@ page laid out as the studio's own workspace. What is left is what an author can 
   window; the cutaway reads a window as the opening it is but draws a block as its own shape, which is tens of
   kilobytes per row. The sample is now a parameter, so a card could also be judged at a proportion where more
   reads. Wants the author's eye on which picture picks a house out of a grid.
-
-- [ ] **B258 — The library draws the iso the map draws.** `iso-webgl.js` renders the world the export builds,
-  meshed by `column-mesh.js` from per-column runs — and both routes that answer those runs, `POST
-  /plan/columns` and `POST /map/{slug}/sketch/columns`, are map-scoped, so no library editor can ask for one.
-  Answer columns for a stamped style world and drive the existing bridge from it, so a house can be turned in
-  3-D where it is authored. Supersedes the server-rendered `Iso` SVG in `HouseViews`.
 
 ### What is on the shelf
 
@@ -77,56 +80,56 @@ page laid out as the studio's own workspace. What is left is what an author can 
   copied from, which slots into `B44`'s snapshot record rather than duplicating it. The library's own name
   search shipped with the browse strip.
 
+## The keyboard, and the way back
+
+Six bindings, four files, three copies of the same guard, and no undo anywhere in the client. Both entries are
+tool-agnostic and both make every entry after them cheaper to try.
+
+- [ ] **C53 — One keymap, one owner, and the help is generated from it.** The live set is `Ctrl/⌘+G`
+  (`studio.js:138`), Escape and Delete (`sketch-canvas.js:932`/`941`, `plan-canvas.js:1110`/`1113`), `P` to
+  promote (`sketch-canvas.js:944`) and the arrow nudge, implemented twice (`sketch-bridge.js:388`,
+  `world-edit-controller.js:104`). Build `studio.keys`: one document listener, one registry of
+  `{id, keys, when, run, label, group}` that the active tool fills and drops on dispose. `label` and `group`
+  are **required**, so a binding cannot exist undocumented, and the `?` sheet and the `Ctrl/⌘+K` palette both
+  render from the registry rather than from a hand-written list. Then bind the map: `V`/`H`/`F`,
+  `R`/`P`/`L`/`M`/`X`/`B`, `Shift+P` for promote (freeing `P` for polygon), `1`–`5` for the phases, `Ctrl+D`
+  duplicate, `Alt+1`–`6` for the overlay chips. It names the two affordances reachable today only by knowing
+  them: `Alt` bypasses snapping, and a Ctrl-drag on a vertex handle is a Bézier tangent.
+
+- [ ] **C54 — Undo and redo, over the two calls the bridge already answers.** There is no undo stack anywhere
+  in the client, in a tool whose whole job is drawing. `sketch-bridge` already has both halves —
+  `getState()` (`:903`) returns the document the host persists and `load(state)` (`:863`) restores one — so the
+  stack is a ring buffer of those two. Two details are the cost: `load` ends in `canvas.fitToBbox()`, so it
+  needs a keep-view flag, because an undo that reframes the board is disorienting; and a drag fires
+  `markDirty` on every frame, so the snapshot is taken at `_moveStart` rather than per `_moveBy` — one drag,
+  one entry. `plan-bridge` owns its document the same way, so one stack serves both surfaces. Bound in
+  `C53`'s registry.
 
 ## The storey a placement rests on
 
 `WE24` gave every placement an optional layer and two resolvers that agree about where a floor is. The export
 has read it since the stack landed; nothing in the browser writes it, so a stacked board can only be dressed
-and populated on its top surface.
+and populated on its top surface. The cause is one frame, not two missing fields: `TS45` first, and the two
+entries under it are what is left once it exists.
 
-- [ ] **B263 — The Dressing phase cannot say which storey a prop rests on.** `PlacedProp.Layer` names the
-  layer whose surface a prop sits on, resolved by `DressingContext.GroundFor` and declined as `DR-LAYER` where
-  that layer has no ground. The UI writes it nowhere: `SketchLayers` renders only in the Draw branch of
-  `SketchTool.razor`, and `defaultProp` mints `{kind, id, seed}`, so every prop placed in the browser takes
-  the top surface. An edit preserves a layer set over HTTP — every path spreads `{...prop}` — but neither
-  shows nor changes it, and `dressing-render.js` draws a gallery-floor prop exactly like a roof one. Wants the
-  layer rail in the Dressing sidebar, the field on the prop inspector, and the canvas drawing the storey a
-  prop is on.
+- [ ] **TS45 — The active layer is canvas chrome, and whatever is placed goes on it.** `SketchLayers` renders
+  in exactly one branch of `SketchTool.razor` — the `else` that is Draw — so Relief, Theme and Dressing carry
+  no layer control at all. A layer is a property of the board being looked at, like the mirror axis and the
+  chunk grid, and both of those live in `CanvasLayerBar` and are therefore present in every phase without a
+  phase having to remember them. Move the switcher there: the active layer is the one drawn on, the others
+  ghost, and the 3-D chip row — which already *is* the storey list — becomes the same control in the other
+  view. A placement then stamps the active layer id the way a stroke lands on the active layer in any paint
+  program, which is what `B263` and `B264` are left needing.
 
-- [ ] **B264 — No intent placement can be given a storey either.** The same optional `Layer` is on all six —
-  monument, spawn, wool, iron cube, destroyable, core — and `MapIntent` carries it at six sites. No Configure
-  step sets any of them, and `SpawnStep` states outright that its canvas is base-layer only. So on a stacked
-  board an objective stands on a lower floor only by writing the intent by hand.
+- [ ] **B263 — A placed prop takes no layer, and the canvas draws it as though it had none.** `defaultProp`
+  mints `{kind, id, seed}`, so a prop placed in the browser never carries `PlacedProp.Layer` — which
+  `DressingContext.GroundFor` resolves and declines as `DR-LAYER` where that layer has no ground. An edit
+  preserves a layer set over HTTP (every path spreads `{...prop}`) but neither shows nor changes it. Under
+  `TS45` the mint takes the active layer; what is left is the field on the prop inspector as an override, and
+  `dressing-render.js` drawing a gallery-floor prop differently from a roof one instead of identically.
 
-## Looking at a board that was built
-
-- [ ] **B262 — The read-backs have no browser surface, and neither do the ones already taken.**
-  `render/topdown`, `surface`, `walk`, `mirror`, `section`, `structures`, `traversability` and `heightmap`
-  answer a picture each over HTTP and are fetched by nothing in the client. `docs/world-scan/read-backs.md`
-  never claimed a UI, so this is a gap rather than drift — but reviewing what a board looks like is the loop
-  the paint work runs on, and today it runs at in-game speed. A page per map, live off the routes.
-
-  **The larger half is that the pictures already exist.** `pgm-studio-mapgen`'s `tools/drive.py` takes all
-  eleven world reads over HTTP after every build and writes them beside the documents: 64 renders a map in
-  `specs/<name>/renders/`, a `world-surface.png` per board and a `theme-*-surface.png` per theme — which is
-  the palette read `WE41` is parked on — and a `world-layer-*.png` per storey where the board is stacked.
-  Fifty-odd boards' worth of provenance-backed pictures nobody can see side by side. So the second surface is
-  a **contact sheet over a renders directory**: one row per map, one column per view, the view pickable, at a
-  size where a whole run is judged in one screen. That is what makes a preference pass over the built boards
-  affordable, and it needs no new render.
-
-- [ ] **B265 — A disk read cannot be given the provenance sidecar, and this repo's worlds never carry one.**
-  `TopDownRender.Run(regionDir, …)` finds provenance only by `WorldProvenanceFile.TryRead(regionDir)`, and
-  `drive.py` deliberately moves `provenance.json` out to `specs/<name>/` because `maps/<name>/` is uploaded to
-  the PGM server and holds only `region/`, `map.xml` and `level.dat`. So every render taken off a shipped
-  world after the fact degrades to the material estimate — correctly labelled in the legend (`B133`), and on a
-  painted board wrong enough to read terrain as structure across half the map. The HTTP routes are unaffected;
-  they build the world and hold `Built.Provenance`. Wants `--provenance <path>` on the reads that take a
-  region directory, so a sidecar kept beside the documents can be pointed at.
-
-- [ ] **B266 — The read-back help documents a flag the CLI does not parse.** `--help` prints
-  `--topdown --layer …` for every subject, because the text is generated from `WorldReadCatalog`, which is
-  written for the HTTP route — where the query parameter really is `layer`. The CLI parses `--subject`, so
-  the documented form fails as `no region dir: --layer`, naming the wrong argument. One of the two words has
-  to give; the route's is the published one, so the CLI should take `--layer` (keeping `--subject` is a second
-  accepted spelling, which is what rots).
+- [ ] **B264 — No intent placement takes the active layer either.** The same optional `Layer` is on all six —
+  monument, spawn, wool, iron cube, destroyable, core — and `MapIntent` carries it at six sites, set by no
+  Configure step; `SpawnStep` states outright that its canvas is base-layer only. So on a stacked board an
+  objective stands on a lower floor only by writing the intent by hand. Under `TS45` a placement takes the
+  active layer, and what is left is the six write paths and the field on each inspector.
