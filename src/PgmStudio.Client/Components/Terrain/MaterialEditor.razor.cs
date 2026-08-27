@@ -109,10 +109,9 @@ public partial class MaterialEditor
     // ── edits ──────────────────────────────────────────────────────────────────────────────────────
     // Every one rewrites the node and reports upward; the parent re-serializes the theme and re-previews.
 
-    private async Task ChangeKind(ChangeEventArgs e)
+    private async Task ChangeKind(string kind)
     {
-        var kind = (string?)e.Value;
-        if (kind is null || kind == Kind) return;
+        if (kind.Length == 0 || kind == Kind) return;
         // A kind change replaces the material wholesale rather than keeping fields the new kind cannot read —
         // a leftover `cellSize` on a solid would be silently dropped and reappear on switching back.
         var replacement = ThemeFields.NewMaterial(kind);
@@ -191,6 +190,10 @@ public partial class MaterialEditor
     private IEnumerable<IGrouping<string, PaintBlockDto>> Families =>
         Blocks.Where(block => block.InFamily).GroupBy(block => block.Group);
 
+    /// <summary>The families on offer, each over how many blocks it lays.</summary>
+    private IReadOnlyList<SelectOption> FamilyRows =>
+        [.. Families.Select(family => new SelectOption(family.Key, $"{family.Key} ({family.Count()})"))];
+
     /// <summary>The family a list currently holds, whole and in order, or empty for one that holds anything
     /// else. Read from the entries rather than remembered, so it stays true through a hand edit: it names the
     /// family the moment a list is filled from one, and falls back to the offer the moment an author narrows
@@ -214,9 +217,8 @@ public partial class MaterialEditor
     /// laid into the pattern in the family's own light-to-dark order. It replaces rather than appends because a
     /// family <em>is</em> the palette; entries are then removed one by one to narrow it, which is a shorter road
     /// than adding five and picking each block by hand.</summary>
-    private Task ApplyFamily(string field, ChangeEventArgs e)
+    private Task ApplyFamily(string field, string name)
     {
-        var name = (string?)e.Value;
         var family = Families.FirstOrDefault(group => group.Key == name);
         if (family is null) return Task.CompletedTask;
         var array = JsonEdit.Array(Node, field);

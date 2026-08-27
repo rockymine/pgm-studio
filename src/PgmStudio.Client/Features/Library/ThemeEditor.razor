@@ -33,22 +33,8 @@
       @if (binding.Enabled)
       {
         <Field Label="Made of">
-          <div class="lib-bind">
-            <select class="field-input field-input--slim" value="@binding.StyleId"
-                    @onchange="e => BindStyle(bucket.Id, e)">
-              <option value="0">(built-in default)</option>
-              @foreach (var group in StylesByKind)
-              {
-                <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                  @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-                </optgroup>
-              }
-            </select>
-            @if (StyleOf(binding.StyleId) is { } bound)
-            {
-              <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
-            }
-          </div>
+          <StyleSelect Styles="styles" Value="@binding.StyleId" Unbound="(built-in default)"
+                       ValueChanged="id => BindStyle(bucket.Id, id)" />
         </Field>
         @if (bucket.HasDepth && binding.StyleId != Unbound)
         {
@@ -69,21 +55,14 @@
         capping.</p>
       <Field Label="Bedrock floor">
         <div class="panel-actions">
-          <select class="field-input field-input--slim" value="@BedrockMode" @onchange="SetBedrockMode">
-            <option value="@AbsoluteBedrock">blocks up from the bottom</option>
-            <option value="@RelativeBedrock">everything under the painted depth</option>
-          </select>
+          <Select Options="BedrockModes" Value="@BedrockMode" ValueChanged="SetBedrockMode" />
           <input class="field-input field-input--slim" type="number" min="0" step="1"
                  value="@draft.BedrockValue" @onchange="SetBedrockValue" />
         </div>
       </Field>
       <Field Label="Where the rim runs">
-        <select class="field-input field-input--slim" value="@draft.RimEdges" @onchange="SetRimEdges">
-          @foreach (var mode in RimEdgeModes.All)
-          {
-            <option value="@mode" @key="mode">@RimEdgeModes.LabelOf(mode)</option>
-          }
-        </select>
+        <Select Options="@Select.Words(RimEdgeModes.All, RimEdgeModes.LabelOf)"
+                Value="@draft.RimEdges" ValueChanged="SetRimEdges" />
       </Field>
       <Field Label="Where the wall runs">
         <Chip Active="draft.WallOnTerrainFaces" OnClick="ToggleWallFaces">

@@ -37,8 +37,10 @@ variants, an optional lucide `Icon` name, and an `Href` that switches it to an `
 
 **Forms** — `Field` is the atom the whole system is built from: it owns the label, the required mark, the
 error line and the hint slots, and the input itself is `ChildContent`. `NumberField` and `CoordField` are the
-two inputs with enough shape of their own to be components; `AuthorsEditor` is the shared author/contributor
-block every tool's Identity step uses.
+two inputs with enough shape of their own to be components; `Select` is the dropdown, taking its rows as
+`SelectOption` values — a value, the word it is offered under, the note it carries on hover and the heading it
+sits under — so grouping and labelling are decided once rather than at each site that offers a list; and
+`AuthorsEditor` is the shared author/contributor block every tool's Identity step uses.
 
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
 on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control
@@ -54,8 +56,9 @@ phases; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
 `CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton` and `DockFlyoutGroup`, plus `CanvasRoundButton`
 and `ViewModeToggle`.
 
-**Terrain** — the material vocabulary shared by the Sketch tool's Theme phase and the library: `MaterialEditor`,
-`BlockPicker`, `HouseViews`.
+**Terrain** — the material vocabulary shared by the Sketch tool's Theme phase and the library:
+`MaterialEditor`, `BlockPicker`, `StyleSelect` (binding a saved style — the same question, grouped by kind,
+with the bound style's own picture beside the control) and `HouseViews`.
 
 **Editor** — feature components that are not vocabulary but are shared by more than one tool: `WorldCanvas`,
 `RegionTree`, `SliceView`, `SmartSuggestion`, `BuildHeightSideview`.

@@ -21,11 +21,7 @@ page laid out as the studio's own workspace. What is left is what an author can 
 
 ### What the author can say
 
-- [ ] **B259 — One dropdown, not twenty-four hand-rolled selects.** The authoring surface carries 24
-  `<select class="field-input field-input--slim">` and 51 `<input>` with no shared control behind any of
-  them — 12 selects in `RoomStyleComposer` alone. A `Components/Forms` select taking options, a value and a
-  help blurb, grouped by what the options vary with and carrying a swatch per row where the option names a
-  material. The `Forms` tier of `docs/client/ui-conventions.md` names it when it lands.
+
 
 - [ ] **B261 — The theme editor mirrors a schema the API already publishes.** `GET /api/terrain/patterns`
   answers every material kind and field, typed, as the painter's deserializer takes them — and the client

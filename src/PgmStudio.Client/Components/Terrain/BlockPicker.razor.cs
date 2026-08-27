@@ -54,9 +54,19 @@ public partial class BlockPicker
     private string Hex => Nearest?.Hex ?? "#555555";
     private string Name => Current?.Name ?? (Nearest is null ? $"Block {Id}:{Data}" : $"{Nearest.Name} {Id}:{Data}");
 
-    /// <summary>Whether the chosen pair is one the list does not offer — it gets an option of its own so the
-    /// select still shows what is set instead of silently reading as some other block.</summary>
-    private bool IsOffList => Current is null;
+    /// <summary>Every block on offer, a colour family under one line, with the chosen pair prepended where the
+    /// list does not carry it — so the control shows what is set instead of silently reading as another
+    /// block.</summary>
+    private IReadOnlyList<SelectOption> Offered
+    {
+        get
+        {
+            List<SelectOption> rows = Current is null ? [new(Key(Id, Data), Name)] : [];
+            rows.AddRange(Groups.SelectMany(group => group.Select(block =>
+                new SelectOption(Key(block), OptionLabel(block), Group: group.Key))));
+            return rows;
+        }
+    }
 
     private string SelectedKey => Current is null ? Key(Id, Data) : Key(Current.Id, FamilyBase(Current));
 
@@ -69,9 +79,9 @@ public partial class BlockPicker
     private bool IsFamily(PaintBlockDto block) => Blocks.Count(other => other.Id == block.Id) >= FamilyShades;
     private string OptionLabel(PaintBlockDto block) => IsFamily(block) ? block.Group : block.Name;
 
-    private Task ChooseBlock(ChangeEventArgs e)
+    private Task ChooseBlock(string picked)
     {
-        var parts = ((string?)e.Value ?? "").Split(':');
+        var parts = picked.Split(':');
         if (parts.Length != 2 || !int.TryParse(parts[0], out var id) || !int.TryParse(parts[1], out var data))
             return Task.CompletedTask;
         // A colour family holds the shade already set, so switching clay → wool keeps the colour.

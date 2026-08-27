@@ -12,21 +12,7 @@
      its own label inside the box — the only way two numbers fit beside a name without a heading each. *@
   <div class="block-picker-row">
     <span class="block-chip" style="background:@Hex" title="@Name"></span>
-    <select class="field-input field-input--slim" value="@SelectedKey" @onchange="ChooseBlock">
-      @if (IsOffList)
-      {
-        <option value="@SelectedKey">@Name</option>
-      }
-      @foreach (var group in Groups)
-      {
-        <optgroup label="@group.Key" @key="group.Key">
-          @foreach (var block in group)
-          {
-            <option value="@Key(block)">@OptionLabel(block)</option>
-          }
-        </optgroup>
-      }
-    </select>
+    <Select Options="Offered" Value="@SelectedKey" ValueChanged="ChooseBlock" />
     <CoordField Prefix="id" Type="number" Value="@Id" OnChange="SetId"
                 min="0" step="1" title="The block id this material places" />
     @if (ShowColors)

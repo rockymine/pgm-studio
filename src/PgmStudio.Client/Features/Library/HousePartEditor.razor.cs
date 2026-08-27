@@ -163,6 +163,9 @@ public partial class HousePartEditor
 
     private const string Unreadable = "That part could not be read.";
 
+    /// <summary>What an unbound course says: a part with none keeps the finish the stamper builds in.</summary>
+    private const string Unbound = "Unbound — keeps the built-in finish";
+
     private void Clear() => (roof, storey, porch) = (null, null, null);
 
     private async Task SetName(string name)
@@ -203,11 +206,8 @@ public partial class HousePartEditor
     private Task RemoveCourse(string part, int ordinal)
         => WriteCourses(part, [.. Courses(part).Where(course => course.Ordinal != ordinal)]);
 
-    private Task BindCourse(string part, int ordinal, ChangeEventArgs e)
-        => EditCourse(part, ordinal, course => course with
-        {
-            StyleId = long.TryParse((string?)e.Value, out var id) ? id : course.StyleId,
-        });
+    private Task BindCourse(string part, int ordinal, long styleId)
+        => EditCourse(part, ordinal, course => course with { StyleId = styleId });
 
     private Task SetCourseHeight(string part, int ordinal, ChangeEventArgs e)
         => EditCourse(part, ordinal, course => course with { Height = Math.Max(1, Parse(e, course.Height)) });
@@ -233,17 +233,13 @@ public partial class HousePartEditor
     /// nothing until then, and a knob that decides nothing should say so rather than sit there turning.</summary>
     private bool Bound(string part) => Courses(part).Count > 0;
 
-    private Task BindSingle(string part, ChangeEventArgs e)
-    {
-        var id = long.TryParse((string?)e.Value, out var picked) ? picked : 0;
-        return WriteCourses(part, id <= 0 ? [] : [new RoomCourseDto(part, 0, id, 1)]);
-    }
+    private Task BindSingle(string part, long styleId)
+        => WriteCourses(part, styleId <= 0 ? [] : [new RoomCourseDto(part, 0, styleId, 1)]);
 
     // ── the roof's knobs ───────────────────────────────────────────────────────────────────────────
     private bool Sloped => RoofForms.Canonical(roof?.Form) != RoofForms.Flat;
 
-    private Task SetForm(ChangeEventArgs e)
-        => Roof(r => r with { Form = RoofForms.Canonical((string?)e.Value) });
+    private Task SetForm(string form) => Roof(roof => roof with { Form = RoofForms.Canonical(form) });
 
     private Task SetPitch(ChangeEventArgs e) => Roof(r => r with { Pitch = Math.Clamp(Parse(e, r.Pitch), 1, 4) });
 
@@ -269,9 +265,9 @@ public partial class HousePartEditor
     /// <summary>Switching form brings that form's own default block rather than carrying the last one: a
     /// lattice needs stairs and a band needs slabs, and a pane block turned into a stair facing is a solid
     /// patch of wall.</summary>
-    private Task SetWindowForm(ChangeEventArgs e) => Window(window =>
+    private Task SetWindowForm(string picked) => Window(window =>
     {
-        var form = WindowForms.Canonical((string?)e.Value);
+        var form = WindowForms.Canonical(picked);
         return window with { Form = form, Block = DefaultWindowBlock(form), Data = 0 };
     });
 
@@ -307,11 +303,9 @@ public partial class HousePartEditor
     private Task SetPorchInset(ChangeEventArgs e)
         => Porch(p => p with { Inset = Math.Clamp(Parse(e, p.Inset), 0, 8) });
 
-    private Task SetPorchEdge(ChangeEventArgs e)
-        => Porch(p => p with { Edge = PorchEdges.Canonical((string?)e.Value) });
+    private Task SetPorchEdge(string edge) => Porch(porch => porch with { Edge = PorchEdges.Canonical(edge) });
 
-    private Task SetPorchRoof(ChangeEventArgs e)
-        => Porch(p => p with { Roof = RoofForms.Canonical((string?)e.Value) });
+    private Task SetPorchRoof(string form) => Porch(porch => porch with { Roof = RoofForms.Canonical(form) });
 
     private Task ToggleRail() => Porch(p => p with { RailBlock = p.RailBlock > 0 ? 0 : OakFence });
 

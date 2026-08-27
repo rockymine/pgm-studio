@@ -1,0 +1,15 @@
+@namespace PgmStudio.Client.Components
+
+@* Binding a saved style, wherever one is bound: a theme's bucket, a house's course, a part's trim. The list is
+   grouped by material kind because that is what tells two styles apart at a glance, and the bound style's own
+   picture sits beside the control so the row shows what it resolves to rather than only naming it. *@
+
+<div class="lib-bind">
+  <Select Options="Rows" Value="@Value.ToString()" ValueChanged="Picked"
+          Placeholder="@Unbound" PlaceholderValue="0" Title="@Title" Disabled="Disabled" />
+  @if (Bound is { } style)
+  {
+    <span class="lib-bind-swatch">@((MarkupString)style.Preview)</span>
+  }
+  @Trailing
+</div>

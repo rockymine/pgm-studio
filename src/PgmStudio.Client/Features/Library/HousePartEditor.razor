@@ -32,12 +32,8 @@
           pitch and the ridge cap only mean anything on a sloped roof and the hole only on a flat lid, so
           each is offered under the form rather than as a knob of its own.</p>
           <Field Label="Form">
-            <select class="field-input field-input--slim" value="@roof.Form" @onchange="SetForm">
-              @foreach (var form in RoofForms.All)
-              {
-                <option value="@form" @key="form">@RoofForms.Describe(form)</option>
-              }
-            </select>
+            <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+                    Value="@roof.Form" ValueChanged="SetForm" />
           </Field>
           @if (Sloped)
           {
@@ -112,20 +108,12 @@
                    value="@porch.Inset" @onchange="SetPorchInset" />
           </Field>
           <Field Label="Off which wall">
-            <select class="field-input field-input--slim" value="@porch.Edge" @onchange="SetPorchEdge">
-              @foreach (var edge in PorchEdges.All)
-              {
-                <option value="@edge" @key="edge">@PorchEdges.Describe(edge)</option>
-              }
-            </select>
+            <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Describe)"
+                    Value="@porch.Edge" ValueChanged="SetPorchEdge" />
           </Field>
           <Field Label="Canopy">
-            <select class="field-input field-input--slim" value="@porch.Roof" @onchange="SetPorchRoof">
-              @foreach (var form in RoofForms.All)
-              {
-                <option value="@form" @key="form">@RoofForms.Describe(form)</option>
-              }
-            </select>
+            <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+                    Value="@porch.Roof" ValueChanged="SetPorchRoof" />
           </Field>
           <Field Label="Rail">
             <Chip Active="@(porch.RailBlock > 0)" OnClick="ToggleRail">
@@ -148,12 +136,8 @@
         where the cell sits would turn all four the same way — a solid patch of wall rather than a
         window.</p>
         <Field Label="Form">
-          <select class="field-input field-input--slim" value="@storey.Windows.Form" @onchange="SetWindowForm">
-            @foreach (var form in WindowForms.All)
-            {
-              <option value="@form" @key="form">@WindowForms.Describe(form)</option>
-            }
-          </select>
+          <Select Options="@Select.Words(WindowForms.All, WindowForms.Describe)"
+                  Value="@storey.Windows.Form" ValueChanged="SetWindowForm" />
         </Field>
         @if (Glazing)
         {
@@ -192,25 +176,17 @@
       <p class="section-desc">@stacked.Blurb</p>
       @foreach (var course in Courses(stacked.Id))
       {
-        <div class="lib-bind" @key="@($"{stacked.Id}-{course.Ordinal}")">
-          <select class="field-input field-input--slim" value="@course.StyleId"
-                  @onchange="e => BindCourse(stacked.Id, course.Ordinal, e)">
-            @foreach (var group in StylesByKind)
-            {
-              <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-              </optgroup>
-            }
-          </select>
-          <input class="field-input field-input--slim" type="number" min="1" step="1"
-                 title="How many courses this one runs"
-                 value="@course.Height" @onchange="e => SetCourseHeight(stacked.Id, course.Ordinal, e)" />
-          @if (StyleOf(course.StyleId) is { } bound)
-          {
-            <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
-          }
-          <Button Variant="icon" Icon="trash-2" Title="Remove this course"
-                  OnClick="() => RemoveCourse(stacked.Id, course.Ordinal)" />
+        <div @key="@($"{stacked.Id}-{course.Ordinal}")">
+          <StyleSelect Styles="styles" Value="@course.StyleId" Unbound="Unbound"
+                       ValueChanged="id => BindCourse(stacked.Id, course.Ordinal, id)">
+            <Trailing>
+              <input class="field-input field-input--slim" type="number" min="1" step="1"
+                     title="How many courses this one runs"
+                     value="@course.Height" @onchange="e => SetCourseHeight(stacked.Id, course.Ordinal, e)" />
+              <Button Variant="icon" Icon="trash-2" Title="Remove this course"
+                      OnClick="() => RemoveCourse(stacked.Id, course.Ordinal)" />
+            </Trailing>
+          </StyleSelect>
         </div>
       }
       @if (Courses(stacked.Id).Count == 0)
@@ -227,16 +203,8 @@
          post all the way up, and a ceiling is one slab. *@
       <p class="section-desc">@single.Blurb</p>
       <Field Label="Made of">
-        <select class="field-input field-input--slim" value="@Single(single.Id)"
-                @onchange="e => BindSingle(single.Id, e)">
-          <option value="0">Unbound</option>
-          @foreach (var group in StylesByKind)
-          {
-            <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-              @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-            </optgroup>
-          }
-        </select>
+        <StyleSelect Styles="styles" Value="@Single(single.Id)" Title="@single.Blurb"
+                     ValueChanged="id => BindSingle(single.Id, id)" />
       </Field>
     }
   </Fields>

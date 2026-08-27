@@ -31,18 +31,12 @@
       library and bound here — the level a theme already has over a style. A bound part <em>replaces</em> the outline rows
       that describe the same thing; unbound, this house keeps describing it itself.</p>
       <Field Label="Roof">
-        <select class="field-input field-input--slim" value="@(draft.RoofStyleId ?? 0)"
-                @onchange="BindRoofStyle">
-          <option value="0">Unbound — the Roof row below</option>
-          @foreach (var part in roofs) { <option value="@part.Id" @key="part.Id">@part.Name</option> }
-        </select>
+        <Select Options="@Parts(roofs.Select(part => (part.Id, part.Name)))" Value="@((draft.RoofStyleId ?? 0).ToString())"
+                Placeholder="Unbound — the Roof row below" PlaceholderValue="0" ValueChanged="BindRoofStyle" />
       </Field>
       <Field Label="Porch">
-        <select class="field-input field-input--slim" value="@(draft.PorchStyleId ?? 0)"
-                @onchange="BindPorchStyle">
-          <option value="0">Unbound — the Porch row below</option>
-          @foreach (var part in porches) { <option value="@part.Id" @key="part.Id">@part.Name</option> }
-        </select>
+        <Select Options="@Parts(porches.Select(part => (part.Id, part.Name)))" Value="@((draft.PorchStyleId ?? 0).ToString())"
+                Placeholder="Unbound — the Porch row below" PlaceholderValue="0" ValueChanged="BindPorchStyle" />
       </Field>
 
       @* The stack is an order, so it is a list with the ground at the top and no ordinal to type: moving a
@@ -56,10 +50,8 @@
         var index = at;
         var storey = draft.StoreyStack[index];
         <div class="lib-bind" @key="@($"storey-{index}")">
-          <select class="field-input field-input--slim" value="@storey.StoreyStyleId"
-                  @onchange="e => BindStorey(index, e)">
-            @foreach (var part in storeys) { <option value="@part.Id" @key="part.Id">@part.Name</option> }
-          </select>
+          <Select Options="@Parts(storeys.Select(part => (part.Id, part.Name)))"
+                  Value="@storey.StoreyStyleId.ToString()" ValueChanged="id => BindStorey(index, id)" />
           <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
                  title="The clear this storey takes here. 0 keeps the storey style's own."
                  value="@storey.Clear" @onchange="e => SetStoreyStackClear(index, e)" />
@@ -92,16 +84,8 @@
       @if (!part.Stacked)
       {
         <Field Label="Material">
-          <select class="field-input field-input--slim" title="@part.Blurb"
-                  value="@Single(part.Id)" @onchange="e => BindSingle(part.Id, e)">
-            <option value="0">Unbound — keeps the built-in finish</option>
-            @foreach (var group in StylesByKind)
-            {
-              <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-              </optgroup>
-            }
-          </select>
+          <StyleSelect Styles="styles" Value="@Single(part.Id)" Title="@part.Blurb" Unbound="Unbound — keeps the built-in finish"
+                       ValueChanged="id => BindSingle(part.Id, id)" />
         </Field>
       }
 
@@ -114,27 +98,19 @@
 
       @foreach (var course in Courses(part.Id))
       {
-        <div class="lib-bind" @key="@($"{part.Id}-{course.Ordinal}")">
-          <select class="field-input field-input--slim" value="@course.StyleId"
-                  @onchange="e => BindCourse(part.Id, course.Ordinal, e)">
-            @foreach (var group in StylesByKind)
-            {
-              <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-              </optgroup>
-            }
-          </select>
-          <input class="field-input field-input--slim" type="number" min="1" step="1"
-                 title="How many courses this one runs"
-                 value="@course.Height" @onchange="e => SetCourseHeight(part.Id, course.Ordinal, e)" />
-          @if (StyleOf(course.StyleId) is { } bound)
-          {
-            <span class="lib-bind-swatch">@((MarkupString)bound.Preview)</span>
-          }
-          @* Icon variant: the button carries a glyph and no label, which is what that variant is —
-             as a plain action-btn it kept the text padding and drew a wide box in a row of square ones. *@
-          <Button Variant="icon" Icon="trash-2" Title="Remove this course"
-                  OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
+        <div @key="@($"{part.Id}-{course.Ordinal}")">
+          <StyleSelect Styles="styles" Value="@course.StyleId"
+                       ValueChanged="id => BindCourse(part.Id, course.Ordinal, id)">
+            <Trailing>
+              <input class="field-input field-input--slim" type="number" min="1" step="1"
+                     title="How many courses this one runs"
+                     value="@course.Height" @onchange="e => SetCourseHeight(part.Id, course.Ordinal, e)" />
+              @* Icon variant: the button carries a glyph and no label, which is what that variant is —
+                 as a plain action-btn it kept the text padding and drew a wide box in a row of square ones. *@
+              <Button Variant="icon" Icon="trash-2" Title="Remove this course"
+                      OnClick="() => RemoveCourse(part.Id, course.Ordinal)" />
+            </Trailing>
+          </StyleSelect>
         </div>
       }
 
@@ -157,16 +133,8 @@
         @foreach (var zone in RoomPartInfo.FloorZones)
         {
           <Field Label="@zone.Title" @key="zone.Id">
-            <select class="field-input field-input--slim" title="@zone.Blurb"
-                    value="@Single(zone.Id)" @onchange="e => BindSingle(zone.Id, e)">
-              <option value="0">Unbound — the floor shows through</option>
-              @foreach (var group in StylesByKind)
-              {
-                <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                  @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-                </optgroup>
-              }
-            </select>
+            <StyleSelect Styles="styles" Value="@Single(zone.Id)" Title="@zone.Blurb" Unbound="Unbound — the floor shows through"
+                         ValueChanged="id => BindSingle(zone.Id, id)" />
           </Field>
         }
         <Field Label="Border width">
@@ -185,12 +153,8 @@
       {
         @* Windows are cut out of the wall the courses above just built, so they are the wall's knob. *@
         <Field Label="Windows">
-          <select class="field-input field-input--slim" value="@Windows.Form" @onchange="SetWindowForm">
-            @foreach (var form in WindowForms.All)
-            {
-              <option value="@form" @key="form">@WindowForms.Describe(form)</option>
-            }
-          </select>
+          <Select Options="@Select.Words(WindowForms.All, WindowForms.Describe)"
+                  Value="@Windows.Form" ValueChanged="SetWindowForm" />
         </Field>
         @if (Glazing)
         {
@@ -249,12 +213,8 @@
       @if (part.Id == RoomParts.Roof)
       {
         <Field Label="Shape">
-          <select class="field-input field-input--slim" value="@draft.RoofForm" @onchange="SetForm">
-            @foreach (var form in RoofForms.All)
-            {
-              <option value="@form" @key="form">@RoofForms.Describe(form)</option>
-            }
-          </select>
+          <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+                  Value="@draft.RoofForm" ValueChanged="SetForm" />
         </Field>
         @if (Sloped)
         {
@@ -295,16 +255,8 @@
       @foreach (var trim in RoomPartInfo.Trim)
       {
         <Field Label="@trim.Title" @key="trim.Id">
-          <select class="field-input field-input--slim" title="@trim.Blurb"
-                  value="@Single(trim.Id)" @onchange="e => BindSingle(trim.Id, e)">
-            <option value="0">Unbound</option>
-            @foreach (var group in StylesByKind)
-            {
-              <optgroup label="@MaterialKind.NameOf(group.Key)" @key="group.Key">
-                @foreach (var style in group) { <option value="@style.Id">@style.Name</option> }
-              </optgroup>
-            }
-          </select>
+          <StyleSelect Styles="styles" Value="@Single(trim.Id)" Title="@trim.Blurb" Unbound="Unbound"
+                       ValueChanged="id => BindSingle(trim.Id, id)" />
         </Field>
       }
     }
@@ -331,20 +283,12 @@
                  value="@deck.Inset" @onchange="SetPorchInset" />
         </Field>
         <Field Label="Off which wall">
-          <select class="field-input field-input--slim" value="@deck.Edge" @onchange="SetPorchEdge">
-            @foreach (var edge in PorchEdges.All)
-            {
-              <option value="@edge" @key="edge">@PorchEdges.Describe(edge)</option>
-            }
-          </select>
+          <Select Options="@Select.Words(PorchEdges.All, PorchEdges.Describe)"
+                  Value="@deck.Edge" ValueChanged="SetPorchEdge" />
         </Field>
         <Field Label="Canopy">
-          <select class="field-input field-input--slim" value="@deck.Roof" @onchange="SetPorchRoof">
-            @foreach (var form in RoofForms.All)
-            {
-              <option value="@form" @key="form">@RoofForms.Describe(form)</option>
-            }
-          </select>
+          <Select Options="@Select.Words(RoofForms.All, RoofForms.Describe)"
+                  Value="@deck.Roof" ValueChanged="SetPorchRoof" />
         </Field>
         <Field Label="Rail">
           <Chip Active="@(deck.RailBlock > 0)" OnClick="ToggleRail">
@@ -365,9 +309,7 @@
       <p class="section-desc">A closed set: only these can be broken by an attacker, so only these open a cage. A spawn's door
         is always open, whatever is chosen here.</p>
       <Field Label="Made of">
-        <select class="field-input field-input--slim" value="@draft.Door" @onchange="SetDoor">
-          @foreach (var door in doors) { <option value="@door.Slug" @key="door.Slug">@door.Label</option> }
-        </select>
+        <Select Options="@Doors" Value="@draft.Door" ValueChanged="SetDoor" />
       </Field>
       <Field Label="Courses tall">
         <input class="field-input field-input--slim" type="number" min="1" step="1"

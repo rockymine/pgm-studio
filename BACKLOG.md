@@ -1297,6 +1297,14 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
 
 ### User Experience and Graphical User Interface
 
+- [ ] **C51 — Twenty-nine selects outside the authoring surface are still hand-rolled.** `Select` and
+  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`); the plan tool carries 6
+  raw `<select>`, the sketch tool 9, Edit 6, Configure 5 and the design showcase 1. Each is the same
+  options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
+  re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
+  *Forms* tier already names it.
+
+
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
 `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
 different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;

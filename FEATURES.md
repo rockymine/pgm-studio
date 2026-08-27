@@ -2209,6 +2209,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/themes/{id}/json` reassembles a library theme back into the exact painter JSON, and `POST
   /api/themes/import` lifts a whole theme JSON in as one style per bucket + a theme binding them (400, never 500,
   on malformed JSON). Import-then-compose is byte-for-byte identity, proven end-to-end through the real database.
+- **One dropdown, where the authoring surface had twenty-four (B259).** `Select` takes its rows as
+  `SelectOption` values — a value, the word it is offered under, the note it carries on hover, the heading it
+  sits under — so grouping and labelling are decided once instead of at each site; `Select.Words` turns a
+  closed word set into rows through the set's own `Describe`. `StyleSelect` is the one above it: binding a
+  saved style is the same question everywhere it is asked, so the grouping by material kind, the unbound row
+  and the bound style's own picture beside the control live in one component. Every select in the library and
+  the terrain components goes through them.
 - **A house is judged on four proportions, not one (B70).** `RoomStylePreview`'s sample was a single
   `static readonly` field, so every style in the library was drawn at one rectangle — while `Wing.RidgeAlongX`
   derives the ridge from the rectangle's own proportions, making one style on a square and on a long shell two

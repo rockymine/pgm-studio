@@ -16,12 +16,8 @@
      CoordField, which carries its unit inside the box and so keeps the row one control tall. A labelled
      Field here stacked a label above its input, which left the number sitting lower than the select. *@
   <div class="material-editor-head">
-    <select class="field-input field-input--slim" value="@Kind" @onchange="ChangeKind">
-      @foreach (var kind in MaterialKind.All)
-      {
-        <option value="@kind.Id" @key="kind.Id">@kind.Name</option>
-      }
-    </select>
+    <Select Options="@Select.Words(MaterialKind.All.Select(kind => kind.Id), MaterialKind.NameOf)"
+            Value="@Kind" ValueChanged="ChangeKind" />
     @* What a kind is belongs beside the control that names it, and only where the material itself is being
        authored. A nested layer, band or stop is a reuse of a kind, not a second definition of it — a note
        on each one restated the same paragraph as many times as the stack was deep, which is what made a
@@ -337,15 +333,9 @@
         <Button Icon="plus" OnClick="() => Add(field)">@addLabel</Button>
         @if (Families.Any())
         {
-            <select class="field-input field-input--slim" value="@MatchedFamily(field)"
-                    title="Fill this list with a whole family of blocks, then remove the ones this ground does not use"
-                    @onchange="e => ApplyFamily(field, e)">
-                <option value="">Fill from a family…</option>
-                @foreach (var family in Families)
-                {
-                    <option value="@family.Key" @key="family.Key">@family.Key (@family.Count())</option>
-                }
-            </select>
+            <Select Options="@FamilyRows" Value="@MatchedFamily(field)" Placeholder="Fill from a family…"
+                    Title="Fill this list with a whole family of blocks, then remove the ones this ground does not use"
+                    ValueChanged="family => ApplyFamily(field, family)" />
         }
     </div>;
 }

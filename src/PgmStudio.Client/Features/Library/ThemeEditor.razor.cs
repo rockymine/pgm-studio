@@ -129,11 +129,8 @@ public partial class ThemeEditor
     private void Pick(string part) => selected = part;
 
     // ── bucket bindings ────────────────────────────────────────────────────────────────────────────
-    private Task BindStyle(string bucket, ChangeEventArgs e)
-        => Rebind(bucket, binding => binding with
-        {
-            StyleId = long.TryParse((string?)e.Value, out var id) ? id : Unbound,
-        });
+    private Task BindStyle(string bucket, long styleId)
+        => Rebind(bucket, binding => binding with { StyleId = styleId });
 
     private Task ToggleBucket(string bucket)
         => Rebind(bucket, binding => binding with { Enabled = !binding.Enabled });
@@ -154,14 +151,22 @@ public partial class ThemeEditor
     // ── geometry knobs ─────────────────────────────────────────────────────────────────────────────
     private string BedrockMode => draft!.BedrockRelative ? RelativeBedrock : AbsoluteBedrock;
 
-    private Task SetBedrockMode(ChangeEventArgs e)
-        => Knob(theme => theme with { BedrockRelative = (string?)e.Value == RelativeBedrock });
+    /// <summary>How far down the paint reaches: a count up from the bottom, or everything the buckets did
+    /// not claim.</summary>
+    private static readonly IReadOnlyList<SelectOption> BedrockModes =
+    [
+        new(AbsoluteBedrock, "blocks up from the bottom"),
+        new(RelativeBedrock, "everything under the painted depth"),
+    ];
+
+    private Task SetBedrockMode(string mode)
+        => Knob(theme => theme with { BedrockRelative = mode == RelativeBedrock });
 
     private Task SetBedrockValue(ChangeEventArgs e)
         => Knob(theme => theme with { BedrockValue = Math.Max(0, Parse(e, theme.BedrockValue)) });
 
-    private Task SetRimEdges(ChangeEventArgs e)
-        => Knob(theme => theme with { RimEdges = RimEdgeModes.Canonical((string?)e.Value) });
+    private Task SetRimEdges(string edges)
+        => Knob(theme => theme with { RimEdges = RimEdgeModes.Canonical(edges) });
 
     private Task ToggleWallFaces()
         => Knob(theme => theme with { WallOnTerrainFaces = !theme.WallOnTerrainFaces });
