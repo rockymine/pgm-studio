@@ -122,7 +122,8 @@ public enum KeepOut
     Spawn,
     /// <summary>A wool room, its spawn or one of its monuments.</summary>
     WoolRoom,
-    /// <summary>A structure the plan stated: a room floor, an iron cube, a wall, a redstone line.</summary>
+    /// <summary>A structure the map stated: a room floor, an iron cube, a wall, a redstone line, or a sketch
+    /// shape that marked itself kept clear — a town wall, a crop bed, a well's rim.</summary>
     Structure,
     /// <summary>A column whose surface block is built rather than terrain — a stamp of some kind, whatever
     /// placed it. Read from the finished world rather than from the intent, which is what makes it catch what
@@ -158,45 +159,61 @@ public enum ClaimKind
 /// </summary>
 public sealed class GroundClaims
 {
-    private readonly Dictionary<(int X, int Z), (ClaimKind Kind, string Owner)> cells = [];
+    private readonly Dictionary<(string Storey, int X, int Z), (ClaimKind Kind, string Owner)> cells = [];
 
-    /// <summary>Record that <paramref name="owner"/> — the prop's own id — took this cell as
-    /// <paramref name="kind"/>. The owner rides along so a later prop refused here can name what holds the
-    /// ground rather than only that something does.</summary>
-    public void Claim(int x, int z, ClaimKind kind, string owner) => cells.TryAdd((x, z), (kind, owner));
+    /// <summary>The book as one storey sees it. A stacked board carries a surface per storey and a prop rests
+    /// on the one it names, so a claim is a claim <em>of a layer</em>: a channel cut in the ground holds the
+    /// columns it carved on its own storey and none of the columns above it. A prop naming no layer rests on
+    /// the top surface, which is a storey like any other here, so a board with one layer answers exactly as a
+    /// book with no storeys in it does.</summary>
+    public Storey On(string? layer) => new(this, layer ?? "");
 
-    /// <summary>What holds the cell, or null where nothing does — the half a decline needs to be actionable.</summary>
-    public (ClaimKind Kind, string Owner)? At(int x, int z) =>
-        cells.TryGetValue((x, z), out var held) ? held : null;
-
-    /// <summary>Whether anything at all holds the cell — the occupancy question every prop asks before
-    /// resting on it, and the gate that keeps cover from growing through a road or a wall.</summary>
-    public bool Holds(int x, int z) => cells.ContainsKey((x, z));
-
-    /// <summary>Whether the cell is held by something other than <paramref name="kind"/> — the building's
-    /// question, asked with <see cref="ClaimKind.Route"/>: pavement never blocks a house.</summary>
-    public bool HoldsOtherThan(int x, int z, ClaimKind kind) =>
-        cells.TryGetValue((x, z), out var held) && held.Kind != kind;
-
-    /// <summary>Whether exactly <paramref name="kind"/> holds the cell — the passage check's question, asked
-    /// with <see cref="ClaimKind.Structure"/>: only something built blocks a way past, while a road or a
-    /// channel alongside a wall is still ground a player crosses.</summary>
-    public bool HoldsKind(int x, int z, ClaimKind kind) =>
-        cells.TryGetValue((x, z), out var held) && held.Kind == kind;
-
-    /// <summary>The nearest cell of <paramref name="kind"/> strictly nearer than <paramref name="standoff"/>
-    /// blocks (Chebyshev) of the given cell, or null where the standoff is kept. Walked in growing square
-    /// rings so the cell named in a refusal is the closest offender, deterministically.</summary>
-    public (int X, int Z)? NearerThan(int x, int z, ClaimKind kind, int standoff)
+    /// <summary>One storey's view of the claims — the same verbs, bound to the layer the asking prop rests
+    /// on. Every placement takes one of these rather than the book, so a call site cannot forget which storey
+    /// it is claiming for.</summary>
+    public readonly record struct Storey(GroundClaims Book, string Layer)
     {
-        for (var ring = 0; ring < standoff; ring++)
-            for (var dx = -ring; dx <= ring; dx++)
-                for (var dz = -ring; dz <= ring; dz++)
-                {
-                    if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != ring) continue;
-                    var candidate = (x + dx, z + dz);
-                    if (cells.TryGetValue(candidate, out var held) && held.Kind == kind) return candidate;
-                }
-        return null;
+        /// <summary>Record that <paramref name="owner"/> — the prop's own id — took this cell as
+        /// <paramref name="kind"/>. The owner rides along so a later prop refused here can name what holds
+        /// the ground rather than only that something does.</summary>
+        public void Claim(int x, int z, ClaimKind kind, string owner) =>
+            Book.cells.TryAdd((Layer, x, z), (kind, owner));
+
+        /// <summary>What holds the cell, or null where nothing does — the half a decline needs to be
+        /// actionable.</summary>
+        public (ClaimKind Kind, string Owner)? At(int x, int z) =>
+            Book.cells.TryGetValue((Layer, x, z), out var held) ? held : null;
+
+        /// <summary>Whether anything at all holds the cell — the occupancy question every prop asks before
+        /// resting on it, and the gate that keeps cover from growing through a road or a wall.</summary>
+        public bool Holds(int x, int z) => Book.cells.ContainsKey((Layer, x, z));
+
+        /// <summary>Whether the cell is held by something other than <paramref name="kind"/> — the building's
+        /// question, asked with <see cref="ClaimKind.Route"/>: pavement never blocks a house.</summary>
+        public bool HoldsOtherThan(int x, int z, ClaimKind kind) =>
+            Book.cells.TryGetValue((Layer, x, z), out var held) && held.Kind != kind;
+
+        /// <summary>Whether exactly <paramref name="kind"/> holds the cell — the passage check's question,
+        /// asked with <see cref="ClaimKind.Structure"/>: only something built blocks a way past, while a road
+        /// or a channel alongside a wall is still ground a player crosses.</summary>
+        public bool HoldsKind(int x, int z, ClaimKind kind) =>
+            Book.cells.TryGetValue((Layer, x, z), out var held) && held.Kind == kind;
+
+        /// <summary>The nearest cell of <paramref name="kind"/> strictly nearer than
+        /// <paramref name="standoff"/> blocks (Chebyshev) of the given cell, or null where the standoff is
+        /// kept. Walked in growing square rings so the cell named in a refusal is the closest offender,
+        /// deterministically.</summary>
+        public (int X, int Z)? NearerThan(int x, int z, ClaimKind kind, int standoff)
+        {
+            for (var ring = 0; ring < standoff; ring++)
+                for (var dx = -ring; dx <= ring; dx++)
+                    for (var dz = -ring; dz <= ring; dz++)
+                    {
+                        if (Math.Max(Math.Abs(dx), Math.Abs(dz)) != ring) continue;
+                        if (Book.cells.TryGetValue((Layer, x + dx, z + dz), out var held) && held.Kind == kind)
+                            return (x + dx, z + dz);
+                    }
+            return null;
+        }
     }
 }

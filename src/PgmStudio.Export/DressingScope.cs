@@ -33,12 +33,14 @@ public static class DressingScope
         return new DressingSymmetry(setup?.MirrorMode, setup?.Center?.Cx ?? 0, setup?.Center?.Cz ?? 0);
     }
 
-    /// <summary>What the pass must leave bare, and what each cell is being kept for. Three sources, and each
+    /// <summary>What the pass must leave bare, and what each cell is being kept for. Four sources, and each
     /// matters for its own reason: the <b>intent</b> names what the map is played through — spawns,
     /// objectives, the structures stamped for them — and a prop there would block a route or bury a goal; the
     /// <b>world</b> shows what is already standing, and a column whose surface is not the terrain's own is a
-    /// structure the pass has no business planting on; and the <b>approach</b> in front of every door is the
-    /// lane players walk out through (<see cref="ApproachAt"/>), which is part of what the door is for.
+    /// structure the pass has no business planting on; the <b>layout</b> carries the shapes that say they are
+    /// not ground to dress (<see cref="SketchShape.KeepClear"/>), which is the only way a wall or a crop bed
+    /// drawn as terrain can be told from the terrain beside it; and the <b>approach</b> in front of every door
+    /// is the lane players walk out through (<see cref="ApproachAt"/>), which is part of what the door is for.
     /// <para>Read from the finished world rather than re-derived, which is the same argument that puts the pass
     /// after the painter: the answer is already there to be looked at.</para>
     /// <para>Not the map contract's <c>protection</c>. That is a region rule about what a player may enter and
@@ -46,8 +48,11 @@ public static class DressingScope
     /// inference that a goal must stand somewhere protected. It <em>reads</em> a spawn's protection areas,
     /// because ground a player may not enter is ground a prop has no business standing on — but what it
     /// answers is the other thing.</para></summary>
+    /// <param name="layoutJson">The sketch layout, for the shapes that mark themselves kept clear. Absent
+    /// reads the intent and the world alone, which is every board that marks none.</param>
     public static Func<int, int, KeepOut?> KeptClearAt(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, MapIntent intent, int margin = 2)
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, MapIntent intent,
+        string? layoutJson = null, int margin = 2)
     {
         var blocked = new Dictionary<(int X, int Z), KeepOut>();
 
@@ -91,6 +96,12 @@ public static class DressingScope
             foreach (var wall in structures.Walls) KeepRect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ, KeepOut.Structure);
             foreach (var line in structures.RedstoneLines) KeepRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2), Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), KeepOut.Structure);
         }
+
+        // A shape that says it is not ground to dress, marked exactly and with no margin: the wall a road runs
+        // through a gate of has to keep its own columns and not a two-block verge either side of them.
+        if (layoutJson is { Length: > 0 })
+            foreach (var cell in SketchRasterizer.KeepClearCells(SketchLayout.Parse(layoutJson)))
+                blocked[cell] = KeepOut.Structure;
 
         // A column whose top block is not terrain is a stamp — a room floor, an approach wall, a monument. The
         // painter skips those for the same reason (TP6), and the dressing pass has even less business there.

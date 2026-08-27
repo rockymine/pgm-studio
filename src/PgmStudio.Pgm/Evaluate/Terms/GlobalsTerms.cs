@@ -2,7 +2,16 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 
 /// <summary>The share of the board's footprint that is land — filled land cells over the bounding box of all
 /// land + build. The authored corpus sits in a middle band (roughly a third to three-fifths land); a board far
-/// denser or sparser than the seeds reads wrong. A global scalar, so no single geometry to point at.</summary>
+/// denser or sparser than the seeds reads wrong. A global scalar, so no single geometry to point at.
+///
+/// <para><b>It measures a wool board, and answers for no other kind</b> (the author's ruling). The band is
+/// what capture-the-wool geometry is: a closure with lanes through it, technical voids between them, and a
+/// strait a raider crosses — the ratio is that shape stated as one number. A destroy board is not built that
+/// way. It is squarer, it has no technical voids, and the land it does not fill is the map's edge rather than
+/// a device, so the same number carries no judgement about it — it just reads dense and always will. A plan
+/// with no wool in it therefore measures nothing here, which is the same silence a wool-spacing term keeps on
+/// a single-wool plan, and the same silence keeps the band honest: the envelope generator learns it from the
+/// boards it applies to and from no others.</para></summary>
 public sealed class FillRatio : SoftTerm
 {
     public override string Id => "fill-ratio";
@@ -10,6 +19,7 @@ public sealed class FillRatio : SoftTerm
 
     public override double? Value(EvalContext ctx)
     {
+        if (ctx.Plan.Placements.Wools.Count == 0) return null;
         var board = ctx.Board;
         var cells = board.Filled.Keys.Concat(board.Build).ToList();
         if (cells.Count == 0) return null;

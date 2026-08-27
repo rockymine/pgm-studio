@@ -481,7 +481,7 @@ model — everything else from that pool has moved to the heading its subject ow
 
   *`opus-run2` §1.7 and §5 #7.*
 
-- [ ] **TS35 — The structural spec surfaces no spawn or wool rectangle.** `tests/e2e/structural.mjs` asserts
+- [ ] **TS41 — The structural spec surfaces no spawn or wool rectangle.** `tests/e2e/structural.mjs` asserts
   that a compiled plan's spawn and wool pieces reach the sketch canvas as locked rectangles (`S25`,
   `FEATURES.md`) and finds none, so three of its nine checks fail: *0 spawn rectangles*, *0 wool rectangles*,
   and *0 terrain polygon(s) vs 0 structural pieces*. Either the projection stopped running, the fixture stopped
@@ -491,7 +491,7 @@ model — everything else from that pool has moved to the heading its subject ow
 
   *`./tools/e2e.sh structural` → 6/9, the same three on a clean checkout.*
 
-- [ ] **TS34 — The dressing spec counts five placing tools where the dock offers six.** `tests/e2e/dressing.mjs`
+- [ ] **TS42 — The dressing spec counts five placing tools where the dock offers six.** `tests/e2e/dressing.mjs`
   asserts *"the phase offers its five placing tools"* and the Dressing dock draws `DressingTools.All` —
   stroke, water, ground cover, building, tree, boulder. The count assertion fails and the drive that follows
   clicks a tool by the position it no longer holds, so three of the spec's 22 checks fail on a phase that

@@ -101,6 +101,15 @@ edge). Every shape carries an `operation` — `add` builds ground, `subtract` re
 flag that decides the order the set algebra resolves in: the ordinary pass is adds minus subtracts, then
 override-adds overwrite whatever column they land on, then override-subtracts remove theirs last.
 
+**`keepClear` says the shape is not ground to dress.** A shape drawn to *be* something — a town wall, a crop
+bed, a well's rim, a flight of stairs — is terrain by construction: nothing about its material, its layer or
+its provenance separates it from the ground beside it, so a road repaints its top course and a channel cuts it
+down to the water line. Marking it puts its columns in the dressing pass's keep-out (`KeepOut.Structure`), and
+a prop that lands there is declined as `DR-KEEP` naming the cell. The mark is **exact — no margin** — because
+the wall a road runs through a gate of has to keep its own columns and not a verge either side of them; it is
+the marked shape's own footprint rather than what survives the layer's set algebra, and it travels through the
+symmetry fan with its island, so a marked shape on a mirrored island keeps its images clear too.
+
 **A subtract is a hole, not a dip.** It takes the whole column out at every cell its outline covers, so its
 own height is not read — a one-block-tall subtract carves exactly as deep as a hundred-block one. That is the
 difference from relief, and it is the whole of it: relief moves a surface, a subtract removes it.
@@ -109,6 +118,14 @@ Height is two numbers. `floor` is where the shape's base sits and `base_height` 
 column spans `[floor, floor + base_height]`. A polygon whose `anchor_heights` line up with its vertices varies
 that thickness per vertex, interpolated across the footprint as a TIN. A shape is never thinner than one block
 and never floors below zero; a freshly drawn one starts at height 9.
+
+**That is what makes a tilted quad a stair.** The surface is sampled at each cell's centre and **floored**
+into the column, so a quad rising one course a cell builds a stair of single courses — 24 blocks of run for 24
+courses of rise comes out as twenty-three steps of one. Flooring is what a voxel reading is: a block occupies
+`[y, y + 1)`, so a surface at height *h* fills up to `floor(h)`. Rounding to nearest cannot hold a
+one-to-one ramp — every sample lands exactly on the rounding boundary and the courses come out as a beat of
+noughts and twos, which reads as a stair with a two-block rise in it and costs a placed block to climb. A
+flight is therefore one shape at any gradient, and the shallower ones climb a course at a time too.
 
 Four further fields matter once an island carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
 a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
@@ -268,6 +285,7 @@ so the drawn outline and the built one stay identical only as long as both sides
 | circle resolution | **64** points | `SketchRasterizer.CirclePoints` ⇄ `shape.js CIRCLE_POINTS` |
 | Bézier sampling | **16** samples per curved edge, endpoint excluded | `BezierSamples` ⇄ `BEZIER_SAMPLES` |
 | set-algebra order | adds − subtracts, then override-adds, then override-subtracts | both |
+| `keepClear` footprint | the marked shapes rasterized alone, fanned by island | `SketchRasterizer.KeepClearCells` |
 | `controls` keying | the vertex index as a **string** | `Dictionary<string, SketchControl>` |
 | `rot_270` | `(Δx, Δz) → (Δz, −Δx)` | the internal third image of a `rot_90` orbit — never an authored mode |
 
@@ -817,12 +835,42 @@ are written in — the shape is on the canvas and not in the world, which is the
 complains. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
 the northmost of them.
 
+**Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
+as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
+its own, and this is its top. Each can be taken away by something that raises no other finding.
+
+A **relief** replaces the top of every column of its island, so an override add on a relieved island builds to
+whatever the field solves and its stated top is nowhere in the world. Only a shape naming a `height_mode`
+stands out of that field, and only a `relief_scope` keeps its ground out of the solve; carrying neither is
+`SK14`, a complaint naming the shape, its island and the top it asked for. The board still builds — that is
+exactly the problem, and a twenty-seven-course wall coming out level with the ground beside it is what it
+looks like. A top has to have been stated to be discarded, so an override add carrying no `base_height`,
+`floor` or `anchor_heights` is outside this: such a shape is a footprint holding a theme, and the ground the
+relief solves under it is the ground it was drawn for — a scree apron over a swell is written exactly that
+way.
+
+A **theme** is scoped by area rather than by height, so where two override adds share a column the taller wins
+the ground and the *smaller* wins the paint. Where the smaller is also the shorter, the world holds one
+shape's blocks in another's material: a mound's outer ring crossing a wall leaves the wall standing to its own
+courses and finished in grass over dirt, sides included. That is `SK15`, a complaint naming both shapes, both
+themes, the columns they contest and the northmost. Two shapes at *one* height are a theme scoped to a patch,
+which is what scoping is for, and are not this. **The images count**: a shape in a mirroring island stands on
+the board once per axis of the orbit, and what a patch contests is as often another patch's reflection as the
+patch itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the other.
+
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
 stating its negative space — so a subtract *following* an add on that add's own layer is its hole and says
 nothing; without that reading every simplified island with a hole in it would report a fault. Across layers
 the order carries nothing of the kind: a layer's place in the stack is a **height**, and a slab written first
 is written `below`. So an add on another layer is a fill wherever it sits in the document.
+
+**What separates a fill from a lid is the floor.** A layer holds one span per column, so an override add
+resting *above* the subtract's own floor moves that single span up and records nothing beneath it — the void
+the subtract states is still void, with a deck over it. Only an override add standing at or below the
+subtract's floor puts the negative space back as ground, and `12-underpass` is the worked example of both: a
+deck at `floor: 13` bridges the cut, and the same deck with `floor` left unset refills it bedrock to grass.
+The reading is per layer, since a floor is measured from its own layer's `base_y`.
 
 **And, on a board drawn from a plan, it re-reads the strait.** `CT12` is a plan rule — the direct crossing
 between the two team islands of a two-team wool board wants 15–40 blocks — and the plan measures it over

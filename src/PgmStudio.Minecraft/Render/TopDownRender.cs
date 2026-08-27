@@ -82,8 +82,11 @@ public static class TopDownRender
 
     private sealed record Column(int SurfaceY, RenderCategory Category, int BlockId, int BlockData, int WaterDepth);
 
+    /// <summary><paramref name="ClaimedColumns"/> is how many columns took their category from a recorded
+    /// claim rather than from the material estimate — what tells a picture drawn over a record from one drawn
+    /// beside a record that describes a course this read does not show.</summary>
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int ColumnCount,
-        int LowestY, int HighestY, int OverlayCount, int TreePointCount = 0);
+        int LowestY, int HighestY, int OverlayCount, int TreePointCount = 0, int ClaimedColumns = 0);
 
     /// <summary>Reads a built region directory from disk and renders it — the <c>RoundTrip</c> CLI's entry
     /// point. Picks up <see cref="WorldProvenanceFile"/>'s sidecar automatically when the region carries one;
@@ -145,8 +148,9 @@ public static class TopDownRender
         // swatch cannot say on its own (B133), so it is baked into the picture itself rather than left to a
         // caption an image reader never sees — the same reason the legend exists at all.
         var provenanceState = colorMode != TopDownColorMode.Category ? null
-            : provenance is not null ? "STRUCTURE READING: RECORDED PROVENANCE"
-            : "STRUCTURE READING: MATERIAL ESTIMATE (NO RECORDED PROVENANCE)";
+            : provenance is null ? "STRUCTURE READING: MATERIAL ESTIMATE (NO RECORDED PROVENANCE)"
+            : result.ClaimedColumns > 0 ? "STRUCTURE READING: RECORDED PROVENANCE"
+            : "STRUCTURE READING: MATERIAL ESTIMATE (NO CLAIM DESCRIBES THIS CUT)";
 
         var scaled = Raster.Upscale(result.Pixels, result.BlocksWide, result.BlocksHigh, scale);
         var withLegend = Legend.AppendBelow(scaled, result.BlocksWide * scale, result.BlocksHigh * scale,
@@ -234,7 +238,7 @@ public static class TopDownRender
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownSubject subject = TopDownSubject.Combined,
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
-        var columns = ReadColumns(chunks.ToList(), yMax, provenance);
+        var (columns, claimed) = ReadColumns(chunks.ToList(), yMax, provenance);
         if (columns.Count == 0) return null;
 
         int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
@@ -252,7 +256,7 @@ public static class TopDownRender
         foreach (var overlay in overlays) DrawBox(pixels, blocksWide, blocksHigh, minX, minZ, overlay);
 
         return new Result(pixels, blocksWide, blocksHigh, columns.Count, lowest, highest, overlays.Count,
-            pointMode ? treePoints!.Count : 0);
+            pointMode ? treePoints!.Count : 0, claimed);
     }
 
     /// <summary>Plots every tree as its own circle — filled to its measured crown radius, softly enough that
@@ -292,28 +296,36 @@ public static class TopDownRender
 
     /// <summary>Surface category + height per column, with water resolved to its bed for the depth reading
     /// (the category stays <see cref="RenderCategory.Water"/> regardless of what the bed is made of).
-    /// <paramref name="provenance"/> null reads every column by the material estimate, exactly the pre-B133
-    /// behaviour; non-null lets a recorded Ground claim override a built-looking material's own reading.</summary>
-    private static Dictionary<(int X, int Z), Column> ReadColumns(
+    /// <paramref name="provenance"/> null reads every column by the material estimate; non-null lets a
+    /// recorded Ground claim override a built-looking material's own reading. A claim is recorded per column
+    /// and carries no course, so it is the claim over what a <paramref name="yMax"/> cut leaves standing as
+    /// much as over the column's own top — which is what a cut taken to look under a roof wants, the room
+    /// under it being the same claimed building. A stacked board's storeys are cut by layer instead
+    /// (<c>WorldStorey</c>), which narrows the record with the world.</summary>
+    private static (Dictionary<(int X, int Z), Column> Columns, int Claimed) ReadColumns(
         List<AnvilRegion.Chunk> chunks, int? yMax, WorldProvenance? provenance)
     {
         var surface = SurfaceExtractors.Surface(chunks, maxBuildHeight: yMax).ToList();
         var byCell = new Dictionary<(int X, int Z), Column>(surface.Count);
+        var claimed = 0;
         foreach (var block in surface)
+        {
+            var pass = provenance?.PassAt(block.WorldX, block.WorldZ);
+            if (pass is not null) claimed++;
             byCell[(block.WorldX, block.WorldZ)] = new Column(block.WorldY,
-                RenderCategories.Of(block.BlockId, provenance?.PassAt(block.WorldX, block.WorldZ)),
-                block.BlockId, block.BlockData, 0);
+                RenderCategories.Of(block.BlockId, pass), block.BlockId, block.BlockData, 0);
+        }
 
         // Only the water columns need the second, deeper read, so the bed lookup is built for those alone.
         var waterCells = surface
             .Where(block => block.BlockId is Blocks.Water or Blocks.StationaryWater)
             .Select(block => ((block.WorldX, block.WorldZ), block.WorldY))
             .ToDictionary(entry => entry.Item1, entry => entry.WorldY);
-        if (waterCells.Count == 0) return byCell;
+        if (waterCells.Count == 0) return (byCell, claimed);
 
         foreach (var (cell, bed, depth) in Beds(chunks, waterCells))
             byCell[cell] = new Column(bed.Y, RenderCategory.Water, bed.BlockId, bed.BlockData, depth);
-        return byCell;
+        return (byCell, claimed);
     }
 
     /// <summary>For each flooded column, the first non-liquid block under the water surface and how many

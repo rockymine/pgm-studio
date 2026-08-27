@@ -377,8 +377,17 @@ generator can act on it.
 Starter property terms, grouped by the measurable they read (each ties to a frozen rule id):
 
 - **Global** — symmetry orbit exact; island count = orbit order (CT1); land budget within ±20% (G8); fill
-  ratio in the corpus band (0.32–0.60); **every enclosed void either declared or penalized** (an
-  *undeclared* enclosed void = a suspected accidental hole — one of the highest-value terms).
+  ratio in the corpus band (0.32–0.60), **on a wool board only**; **every enclosed void either declared or
+  penalized** (an *undeclared* enclosed void = a suspected accidental hole — one of the highest-value terms).
+
+**Fill ratio measures capture-the-wool geometry and answers for no other kind** (the author's ruling). The
+band *is* that geometry stated as one number: a closure with lanes through it, technical voids between them,
+and a strait a raider crosses. A destroy board is not built that way — it is squarer, it carries no technical
+voids, and the land it does not fill is the map's edge rather than a device — so the ratio reads dense on
+every one of them and always will, which is a fact about the mode and not a judgement about the board. A plan
+with no wool in it therefore measures nothing here, the same silence a wool-spacing term keeps on a
+single-wool plan. The band stays honest for the same reason: the envelope generator learns it from the boards
+it applies to and from no others.
 - **Mid** — clean band spans the axis (CT1); a hole per side is the default, holelessness the exception
   (CT8); stones inside the band (MD4), two-column grid on wide fronts (MD6); band clears every wool by ≥2
   cells (BZ6).

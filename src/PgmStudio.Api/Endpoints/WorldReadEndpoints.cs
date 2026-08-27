@@ -128,7 +128,7 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
 
         if (Storeyed && Query<string?>("layer", isRequired: false) is { Length: > 0 } asked)
         {
-            var storey = WorldStorey.Of(read.Built.World, read.Built.Columns, asked);
+            var storey = WorldStorey.Of(read.Built.World, read.Built.Columns, asked, read.Built.Provenance);
             if (storey is null)
             {
                 var names = WorldStorey.Names(read.Built.Columns);
@@ -139,7 +139,10 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
                             : $"this board has no layer '{asked}' — it carries {string.Join(", ", names)}")], ct);
                 return;
             }
-            read = read with { Built = read.Built with { World = storey } };
+            read = read with
+            {
+                Built = read.Built with { World = storey.World, Provenance = storey.Provenance },
+            };
         }
 
         byte[]? png;

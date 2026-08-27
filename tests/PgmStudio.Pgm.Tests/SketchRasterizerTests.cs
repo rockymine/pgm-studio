@@ -278,4 +278,55 @@ public sealed class SketchRasterizerTests
         await Assert.That(Math.Abs(room[0] - top[(0, 39)])).IsLessThanOrEqualTo(1);
         await Assert.That(Math.Abs(room[0] - top[(0, 50)])).IsLessThanOrEqualTo(1);
     }
+
+    [Test]
+    public async Task A_shape_that_marks_itself_kept_clear_reports_its_own_columns()
+    {
+        // A wall drawn as terrain is terrain: nothing about its material or its layer separates it from the
+        // ground beside it, so the shape has to say so itself. What comes back is the marked shape's own
+        // footprint, and only that — the ground round it is still ground to dress.
+        var kept = SketchRasterizer.KeepClearCells(SketchLayout.Parse("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+            {"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":10,"min_z":0,"max_z":10},
+            {"id":"w","type":"rectangle","operation":"add","override":true,"keepClear":true,
+             "min_x":2,"max_x":4,"min_z":0,"max_z":10}],
+          "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a","w"]}]} }]}
+        """));
+
+        await Assert.That(kept.Count).IsEqualTo(20);             // 2 wide x 10 long
+        await Assert.That(kept.Contains((2, 5))).IsTrue();
+        await Assert.That(kept.Contains((3, 0))).IsTrue();
+        await Assert.That(kept.Contains((1, 5))).IsFalse();      // the ground beside it is not kept
+        await Assert.That(kept.Contains((4, 5))).IsFalse();      // max is exclusive, as everywhere else
+    }
+
+    [Test]
+    public async Task A_marked_shape_keeps_its_mirror_images_clear_too()
+    {
+        // A prop is fanned through the symmetry frame, so a keep-out that held on one half only would decline
+        // one image of a pair and place the other.
+        var kept = SketchRasterizer.KeepClearCells(SketchLayout.Parse("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+            {"id":"w","type":"rectangle","operation":"add","keepClear":true,
+             "min_x":4,"max_x":6,"min_z":4,"max_z":6}],
+          "islands":[{"id":"i1","name":"A","mirrors":true,"shapeIds":["w"]}]} }]}
+        """));
+
+        await Assert.That(kept.Contains((4, 4))).IsTrue();
+        await Assert.That(kept.Contains((-5, -5))).IsTrue();     // its rot_180 image
+    }
+
+    [Test]
+    public async Task An_unmarked_layout_keeps_nothing_clear()
+    {
+        var kept = SketchRasterizer.KeepClearCells(SketchLayout.Parse("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+            {"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":10,"min_z":0,"max_z":10}],
+          "islands":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["a"]}]} }]}
+        """));
+        await Assert.That(kept).IsEmpty();
+    }
 }

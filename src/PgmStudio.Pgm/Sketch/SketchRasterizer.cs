@@ -35,6 +35,17 @@ public readonly record struct AddOverSubtract(string Add, string AddLayer, strin
 /// lowest-then-northmost of them, so it can be flown to and looked at.</summary>
 public readonly record struct DetachedMass(int Places, int X, int Z, int Y);
 
+/// <summary>An override add whose stated top its island's relief will solve straight through: the shape, the
+/// layer it is on, the island whose relief overrules it, and the top it asked for.</summary>
+public readonly record struct ReliefOverTop(string Shape, string Layer, string Island, int Top);
+
+/// <summary>Two shapes on one layer where one builds the ground and the other paints it: the taller
+/// <see cref="Built"/> wins the column, the smaller <see cref="Painted"/> wins the theme, and the world holds
+/// one shape's blocks in the other's material. <see cref="Cells"/> counts the columns they contest and
+/// <see cref="X"/>/<see cref="Z"/> name the northmost.</summary>
+public readonly record struct PaintedByAnother(string Layer, string Built, string Painted,
+                                               string BuiltTheme, string PaintedTheme, int Cells, int X, int Z);
+
 public static class SketchRasterizer
 {
     /// <summary>How many blocks two layers may share before they are driven into each other rather than
@@ -82,6 +93,34 @@ public static class SketchRasterizer
                                             kv.Value.Floor + by, kv.Value.Top + by, layer.Id!));
         }
         return output;
+    }
+
+    /// <summary>The columns covered by every shape that says it is not ground to dress
+    /// (<see cref="SketchShape.KeepClear"/>), over every layer and through the symmetry fan — what the
+    /// dressing pass takes as a keep-out so a road does not repaint a town wall's top course and a channel
+    /// does not cut one down to its water line.
+    ///
+    /// <para>The marked shapes are rasterized on their own, so what comes back is their footprint rather
+    /// than what survives the set algebra of the whole layer: a shape that says keep off means the ground it
+    /// covers, whatever is later drawn over it. Island membership still decides the fan, so a marked shape on
+    /// a mirrored island keeps its images clear too.</para></summary>
+    public static HashSet<(int X, int Z)> KeepClearCells(SketchLayout? state)
+    {
+        var cx = state?.Setup?.Center?.Cx ?? 0;
+        var cz = state?.Setup?.Center?.Cz ?? 0;
+        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+
+        var kept = new HashSet<(int X, int Z)>();
+        foreach (var layer in ResolveLayers(state))
+        {
+            if (layer.Layout is not { } layout) continue;
+            var marked = layout.Shapes.Where(shape => shape.KeepClear).ToList();
+            if (marked.Count == 0) continue;
+            var only = new SketchShapes { Shapes = marked, Islands = layout.Islands };
+            foreach (var cell in RasterizeLayout(only, cx, cz, axes, state?.Relief, state?.Setup?.MirrorMode).Keys)
+                kept.Add(cell);
+        }
+        return kept;
     }
 
     /// <summary>Every relief-bearing island's solved surface, keyed by island id, with each field's heights
@@ -198,7 +237,7 @@ public static class SketchRasterizer
         var shapes = layout?.Shapes ?? [];
         if (shapes.Count == 0) return [];
 
-        var cells = RasterGroup(shapes);                 // primary
+        var cells = RasterGroup(shapes, out var claimed);        // primary
         var metas = layout?.Islands ?? [];
 
         // Interior elevation, per island, over the cells the set algebra actually left standing — so a relief
@@ -213,7 +252,7 @@ public static class SketchRasterizer
         // Erected shapes go on AFTER the relief, which is the whole of what makes them erected: a shape that
         // declares how its top is decided is one meant to stand OUT of the field rather than be part of it,
         // and it can only stand out of ground that already exists.
-        Erect(cells, shapes);
+        Erect(cells, shapes, claimed);
 
         if (metas.Count == 0)
         {
@@ -236,7 +275,7 @@ public static class SketchRasterizer
                 foreach (var axis in axes)
                 {
                     var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz)).ToList();
-                    var copy = RasterGroup(mirrored);
+                    var copy = RasterGroup(mirrored, out var mirroredClaims);
                     // A mirrored copy of a relief-bearing island takes its heights from the island's own
                     // solved surface, read back through the same transform — exactly symmetric by
                     // construction, rather than symmetric to within a second solve's tolerance.
@@ -252,8 +291,8 @@ public static class SketchRasterizer
                     // shape is settled against the ground under it, so reading its height back through the
                     // mirror would give it the relief's answer instead of its own — one team a mesa and the
                     // other a hillside.
-                    Erect(copy, mirrored);
-                    Merge(cells, copy);
+                    Erect(copy, mirrored, mirroredClaims);
+                    Merge(cells, copy, mirroredClaims, claimed);
                 }
             }
         }
@@ -280,7 +319,8 @@ public static class SketchRasterizer
     /// be a blanket following the hillside, where what the word means is one flat-topped thing standing proud
     /// — which is also what keeps its prominence when it is dragged somewhere else on the map.</para>
     /// </summary>
-    private static void Erect(Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes)
+    private static void Erect(Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes,
+                              HashSet<(int, int)>? claimed = null)
     {
         foreach (var shape in shapes)
         {
@@ -305,8 +345,13 @@ public static class SketchRasterizer
             var datum = mode == "level" ? floor : ground[ground.Count / 2];
             var rise = mode == "sink" ? -1 : 1;
 
+            // Ties go one way, always. The surface is sampled at the cell's centre, so a ramp at one
+            // course a cell — the most natural gradient there is — lands EVERY sample exactly on a half,
+            // and .NET's default rounding is to-even: the courses come out as a beat of noughts and twos
+            // rather than as a stair of ones, and a two-block rise costs a placed block to climb. Rounding
+            // ties away from zero moves only the samples that were on a tie, and moves them all alike.
             int Stated(int x, int z) =>
-                datum + rise * Math.Max(1, (int)Math.Round(surface(x + 0.5, z + 0.5)));
+                datum + rise * Math.Max(1, (int)Math.Floor(surface(x + 0.5, z + 0.5)));
 
             // The skirt: how far in from its own outline the shape eases back into the ground it meets, so it
             // sits IN the terrain rather than on it. Zero is a sheer face, which is right for a plinth and
@@ -327,6 +372,10 @@ public static class SketchRasterizer
                     top = (int)Math.Round(reach.Ground + (top - reach.Ground) * t);
                 }
                 cells[cell] = (Math.Max(column.Floor + 1, top), column.Floor);
+                // A shape that says how its top is decided has claimed the column as surely as an override
+                // add has: the settled top is not the shape's stated one, so a merge that re-reads the
+                // stated top — an island's own reflection, most of all — must not win it back.
+                claimed?.Add(cell);
             }
         }
     }
@@ -525,6 +574,114 @@ public static class SketchRasterizer
         return solved;
     }
 
+    /// <summary>Every override add whose stated top its island's relief discards. An override add says the
+    /// column is its own, floor and all; a relief solves a surface over every column of its island and
+    /// replaces the top of each. Only an <b>erected</b> shape stands out of that field — one naming a
+    /// <c>height_mode</c> — and only a <c>relief_scope</c> keeps a shape's ground out of the solve, so an
+    /// override add carrying neither builds to whatever the field says and not to what it stated.
+    ///
+    /// <para>Judged per island, since a relief is keyed on one: a shape listed in an island the document
+    /// carries no relief for is not in this. Plain adds are not either — a relief shaping ordinary terrain is
+    /// what a relief is for. It is the <em>override</em> that is the statement being overruled.</para>
+    ///
+    /// <para>And a top has to have been <b>stated</b> to be discarded: an override add carrying neither
+    /// <c>base_height</c>, <c>floor</c> nor <c>anchor_heights</c> is a footprint holding a theme, and the
+    /// relief shaping the ground under it is what such a shape is drawn for.</para></summary>
+    public static List<ReliefOverTop> ReliefOverridesStatedTop(SketchLayout? state)
+    {
+        var found = new List<ReliefOverTop>();
+        if (state?.Relief is not { Count: > 0 } relief) return found;
+
+        foreach (var layer in ResolveLayers(state))
+        {
+            var islandOf = new Dictionary<string, string>();
+            foreach (var island in layer.Islands)
+                if (island.Id is { Length: > 0 } id && relief.ContainsKey(id))
+                    foreach (var shapeId in island.ShapeIds)
+                        islandOf[shapeId] = id;
+            if (islandOf.Count == 0) continue;
+
+            foreach (var shape in layer.Shapes)
+            {
+                if (!shape.Override || shape.Operation == "subtract" || shape.Role is not null) continue;
+                if (IsErected(shape) || shape.ReliefScope is "hold" or "exclude") continue;
+                if (shape.BaseHeight is null && shape.Floor is null && shape.AnchorHeights is null) continue;
+                if (!islandOf.TryGetValue(shape.Id, out var islandId)) continue;
+                var floor = Math.Max(0, (int)Math.Round(shape.Floor ?? 0));
+                found.Add(new ReliefOverTop(shape.Id, layer.Id ?? "", islandId,
+                                            floor + Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1))));
+            }
+        }
+        return found;
+    }
+
+    /// <summary>Every pair of override adds on one layer where one shape's blocks come out in another's
+    /// material. Two override adds over a column is not a fault in itself — the taller wins it, which is what
+    /// "the tallest add is the height" means — but a theme is scoped by <b>area</b> rather than by height
+    /// (<see cref="ShapeThemeOwners"/>), so where the smaller of the two is also the shorter, the world holds
+    /// the taller shape's ground painted in the smaller one's theme. A mound's ring crossing a wall leaves the
+    /// wall standing to its own courses and finished in grass over dirt.
+    ///
+    /// <para>Only pairs that differ in <em>both</em> theme and stated top are in it: two shapes at one height
+    /// are a theme scoped to a patch, which is what scoping is for, and two sharing a theme cannot disagree
+    /// about paint. One entry per pair.</para>
+    ///
+    /// <para><b>The images count.</b> A shape in a mirroring island stands on the board once for every axis
+    /// of the orbit, and what a patch contests is as often another patch's <em>reflection</em> as the patch
+    /// itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the
+    /// other. The image carries its shape's theme and top, so it is judged as that shape and reported under
+    /// its id.</para></summary>
+    public static List<PaintedByAnother> PaintedByAnotherShape(SketchLayout? state)
+    {
+        var found = new List<PaintedByAnother>();
+        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        double centerX = state?.Setup?.Center?.Cx ?? 0, centerZ = state?.Setup?.Center?.Cz ?? 0;
+
+        foreach (var layer in ResolveLayers(state))
+        {
+            var fanned = new HashSet<string>(layer.Islands.Where(island => island.Mirrors)
+                                                          .SelectMany(island => island.ShapeIds),
+                                             StringComparer.Ordinal);
+            var adds = layer.Shapes
+                .Where(shape => shape.Override && shape.Operation != "subtract"
+                             && shape.Role is null && shape.Theme is { Length: > 0 })
+                .Select(shape => (shape.Id, shape.Theme!,
+                                  Top: Math.Max(0, (int)Math.Round(shape.Floor ?? 0))
+                                     + Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1)),
+                                  Cells: Placed(shape, fanned.Contains(shape.Id))))
+                .Where(entry => entry.Cells.Count > 0)
+                .ToList();
+
+            HashSet<(int X, int Z)> Placed(SketchShape shape, bool mirrors)
+            {
+                var cells = RasterShape(shape).Select(cell => (cell.X, cell.Z)).ToHashSet();
+                if (!mirrors) return cells;
+                foreach (var axis in axes)
+                    foreach (var (x, z) in cells.ToList())
+                    {
+                        var (imageX, imageZ) = MirrorCell((x, z), axis, centerX, centerZ);
+                        cells.Add((imageX, imageZ));
+                    }
+                return cells;
+            }
+
+            for (var i = 0; i < adds.Count; i++)
+            for (var j = i + 1; j < adds.Count; j++)
+            {
+                var (tall, low) = adds[i].Top >= adds[j].Top ? (adds[i], adds[j]) : (adds[j], adds[i]);
+                if (tall.Top == low.Top || tall.Item2 == low.Item2) continue;
+                // The smaller shape wins the paint. Where that is the taller one, the two agree.
+                if (low.Cells.Count >= tall.Cells.Count) continue;
+                var shared = tall.Cells.Where(low.Cells.Contains).ToList();
+                if (shared.Count == 0) continue;
+                var (x, z) = shared.OrderBy(cell => cell.Z).ThenBy(cell => cell.X).First();
+                found.Add(new PaintedByAnother(layer.Id ?? "", tall.Id, low.Id, tall.Item2, low.Item2,
+                                               shared.Count, x, z));
+            }
+        }
+        return found;
+    }
+
     /// <summary>A shape whose ground the world does not hold, and the one that took its place: two adds on
     /// one layer covering a cell with spans that do not touch, where the taller replaces the shorter outright.
     /// One entry per pair, whatever the number of cells they contest.
@@ -587,13 +744,19 @@ public static class SketchRasterizer
     /// a layer's place in the stack is a height, and a slab written first is written <c>below</c> — so an add
     /// on another layer is a fill wherever it lands.</para>
     ///
+    /// <para><b>A lid is not a fill.</b> A layer holds one span per column, so an override add resting
+    /// <em>above</em> the subtract's own floor moves that single span up and records nothing beneath it — the
+    /// void the subtract states is still void, with a deck over it. Only an override add standing at or below
+    /// the subtract's floor puts the negative space back as ground. Same layer only: a floor is measured from
+    /// its own layer's <c>base_y</c>, so two layers' floors are not one number.</para>
+    ///
     /// <para>One entry per contesting pair, carrying which of the two happened. Role-tagged shapes are
     /// annotations and are not in it.</para>
     /// </summary>
     public static List<AddOverSubtract> AddsOverSubtracts(SketchLayout? state)
     {
-        var subtracts = new List<(string Id, string Layer, bool Override, int Index, HashSet<(int X, int Z)> Cells)>();
-        var adds = new List<(string Id, string Layer, bool Override, int Index, HashSet<(int X, int Z)> Cells)>();
+        var subtracts = new List<(string Id, string Layer, bool Override, int Index, int Floor, HashSet<(int X, int Z)> Cells)>();
+        var adds = new List<(string Id, string Layer, bool Override, int Index, int Floor, HashSet<(int X, int Z)> Cells)>();
         var index = 0;
         foreach (var layer in ResolveLayers(state))
             foreach (var shape in layer.Shapes)
@@ -603,7 +766,8 @@ public static class SketchRasterizer
                 var cells = RasterShape(shape).Select(column => (column.X, column.Z)).ToHashSet();
                 if (cells.Count == 0) continue;
                 (shape.Operation == "subtract" ? subtracts : adds)
-                    .Add((shape.Id, layer.Id!, shape.Override, index, cells));
+                    .Add((shape.Id, layer.Id!, shape.Override, index,
+                          Math.Max(0, (int)Math.Round(shape.Floor ?? 0)), cells));
             }
 
         var found = new List<AddOverSubtract>();
@@ -611,6 +775,8 @@ public static class SketchRasterizer
             foreach (var add in adds)
             {
                 if (add.Layer == subtract.Layer && add.Index < subtract.Index) continue;
+                // A lid: the span moves up and leaves the void under it, so the subtract still holds there.
+                if (add.Layer == subtract.Layer && add.Override && add.Floor > subtract.Floor) continue;
                 var shared = add.Cells.Where(subtract.Cells.Contains).ToList();
                 if (shared.Count == 0) continue;
                 // A subtract only reaches the layer it is on, so an add anywhere else is ground of its own
@@ -720,6 +886,13 @@ public static class SketchRasterizer
 
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────
     private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(IEnumerable<SketchShape> shapes)
+        => RasterGroup(shapes, out _);
+
+    // The cells an override add claimed come back beside the columns, because "the column is its own, floor
+    // and all" has to survive being merged with another group: between two groups the taller column wins,
+    // which is right for two islands meeting and wrong for a claim meeting ordinary ground.
+    private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(
+        IEnumerable<SketchShape> shapes, out HashSet<(int, int)> claimed)
     {
         Dictionary<(int, int), (int Top, int Floor)> add = [], oadd = [];
         HashSet<(int, int)> sub = [], osub = [];
@@ -742,6 +915,7 @@ public static class SketchRasterizer
         foreach (var k in sub) result.Remove(k);
         foreach (var (k, v) in oadd) result[k] = v;        // override-add overwrites the column
         foreach (var k in osub) result.Remove(k);
+        claimed = [.. oadd.Keys.Where(result.ContainsKey)];
         return result;
     }
 
@@ -755,6 +929,23 @@ public static class SketchRasterizer
     private static void Merge(Dictionary<(int, int), (int Top, int Floor)> dst, Dictionary<(int, int), (int Top, int Floor)> src)
     {
         foreach (var (k, v) in src) MergeCell(dst, k, v);
+    }
+
+    /// <summary>Merges an island's mirror image back onto the layer, with the columns each side's override
+    /// adds claimed. An override add overwrites the column it lands on, and an island centred on the mirror
+    /// has its own image lying over it: without this a flight cut into a whole-board island is refilled by
+    /// the reflection of the ground around it, and the flight's own image is buried by the ground it was cut
+    /// out of. Where neither side claimed the column the taller wins, which is what it means between two
+    /// islands meeting.</summary>
+    private static void Merge(Dictionary<(int, int), (int Top, int Floor)> dst,
+                              Dictionary<(int, int), (int Top, int Floor)> src,
+                              HashSet<(int, int)> srcClaimed, HashSet<(int, int)> dstClaimed)
+    {
+        foreach (var (k, v) in src)
+        {
+            if (srcClaimed.Contains(k) == dstClaimed.Contains(k)) { MergeCell(dst, k, v); continue; }
+            if (srcClaimed.Contains(k)) dst[k] = v;
+        }
     }
 
     // ── single shape → cells with column (rasterize its ring by block-centre sampling) ────────────
@@ -828,7 +1019,10 @@ public static class SketchRasterizer
         var floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
         var centreX = ring.Average(point => point[0]);
         var centreZ = ring.Average(point => point[1]);
-        return floor + Math.Max(1, (int)Math.Round(HeightFn(s)(centreX, centreZ)));
+        // Ties away from zero, as an erected shape's own courses take them: a held mark and the shape it
+        // is read off must not differ by a course because one rounded a half up and the other down.
+        return floor + Math.Max(1, (int)Math.Round(HeightFn(s)(centreX, centreZ),
+                                                  MidpointRounding.AwayFromZero));
     }
 
     private static PathEdge ParsePathEdge(string? edge) => edge switch

@@ -140,7 +140,21 @@ drawn in no layers at all says that instead.
 trees and the goal markers, which is most of what a picture of a storey is for. The window runs from the
 layer's floor to the block below the next layer's floor in that same column, and to the world ceiling for the
 topmost. A column the layer never drew contributes nothing, which is what makes a gallery under a deck read as
-its own footprint rather than as the whole board.
+its own footprint rather than as the whole board. A span is **half-open** — `[YFloor, YTop)` — so the layer
+above begins *at* this one's top: a storey whose rock meets the landmass over it with no gap between them
+ends at its own last course and not at the world's.
+
+**The provenance record is narrowed with the world.** A claim is recorded per column and carries no course, so
+it describes that column's *topmost* block; left whole under a storey read it paints the storey over the one
+being drawn — a house onto a cellar floor, a tree into a tunnel. What replaces it is what the spans already
+say about the course the storey shows: at or below the layer's own top the block is the rasterizer's terrain
+and reads `Ground`, above it something is standing on the storey and the recorded claim is kept only where
+this storey shows the column's own top. A course that is neither carries no claim, and the picture's own
+legend says which reading it used — `RECORDED PROVENANCE` where any column took its category from a claim,
+`MATERIAL ESTIMATE` where none did.
+
+`ymax` keeps the whole record, because a cut taken to look under a roof is still inside the claimed building
+and the room under it belongs to the same claim.
 
 `ymax` is the older cut and stays, but it is a single height and separates two storeys only where the upper one
 happens to be flat. On `opus5-mineshaft` the deck roofs all 6,400 cells and `ymax=19` does reach the gallery —

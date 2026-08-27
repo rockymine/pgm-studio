@@ -1715,6 +1715,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   against stays the stamped extent — so the ring is spent once between a pair and two buildings keep one block
   of clear ground between them rather than two. A trunk near enough to drop its crown through a roof is a
   `DR-CLAIM` naming the cell rather than a silent build.
+- **A claim is a claim of one storey (`WE49`).** `GroundClaims` is keyed on the layer as well as the cell and
+  every placement is handed one storey's view of it (`GroundClaims.On(prop.Layer)`), so two props collide only
+  where they share ground. A channel cut into the ground holds the columns it carved on the ground; a tree on
+  a floating island 26 courses over it stands on its own layer's surface and is placed. A prop naming no layer
+  claims on the top surface, so a board with one layer has one book.
 - **A building needs ground under every cell of its footprint (`B187`, `DR-SITE`).** `Decorator.Ground` took
   the *lowest* column its plan covered and answered null only when no cell had ground at all, so a house with
   one column on land and ten over void seated on that one and hung off the rest — and nothing else covered it,
@@ -6039,6 +6044,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   board drawn in no layers says that instead. The word is declared once on `WorldRenderEndpoint` and opted
   into by the four, so they cannot describe it four ways — `section` and `column` keep Y and show every storey
   already, and `traversability` and `walk` answer per storey without being asked.
+- **A storey read stops at its own top, and reads the record for the courses it shows (`WS18`).** A
+  `ColumnSegment` is half-open — `[YFloor, YTop)` — and `WorldStorey` compared the next layer's floor against
+  it as a closed range, so a storey whose rock meets the landmass over it with no gap between them found
+  nothing above and was handed the rest of the world: `?layer=under` drew the desert, its houses and its
+  trees under the undercroft's name. The comparison is `>=`, and a layer's last drawn course is `YTop - 1`.
+  The provenance record is narrowed with the world for the same reason: a claim is recorded per column and
+  carries no course, so it describes that column's topmost block and painting it onto a storey under that
+  puts a house on a cellar floor. What replaces it is what the spans already say — at or below the layer's
+  own top a block is the rasterizer's terrain and reads `Ground`; above it the recorded claim is kept only
+  where the storey shows the column's own top; a course that is neither carries no claim, and
+  `TopDownRender.Result.ClaimedColumns` makes the legend say which reading the picture actually used.
 - **A building's site has to be level enough to stand on (WE29).** A building seats on the **lowest** column
   of its footprint and the terrain over that floor is carved out of it, which is what lets a house dig into
   a hillside — and had no limit, so a footprint spanning more relief than the building is tall built a house
@@ -6119,6 +6135,74 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `data-layer`), which is the graphics term and reads as one; `LayeredMaterial`'s own `layers[]` inside the
   theme JSON; and the `layer.parquet` / `layer_segments.parquet` files on disk, which are the corpus scan
   output's names and not the studio's to change.
+- **Fill ratio measures a wool board and answers for no other kind (`G260`, the author's ruling).** The `G8`
+  band is capture-the-wool geometry stated as one number — a closure with lanes through it, technical voids
+  between them, a strait a raider crosses. A destroy board is squarer, carries no technical voids and has the
+  map's edge where a wool board has a device, so it reads dense on every one and always will: a fact about the
+  mode, not a judgement about the board. `FillRatio.Value` now answers null where a plan states no wool, which
+  is the same silence a wool-spacing term keeps on a single-wool plan, and `SoftTerm` already treats null as
+  "does not apply". The band is unchanged — regenerating the envelopes moved nothing, because every seed that
+  taught it was a wool board already.
+- **An island's own reflection no longer refills what was cut out of it (`TS38`).** A board whose compiled
+  island is centred on the mirror is its own image, so the fan that copies it lands back on the cells it came
+  from — and between two rasterized groups the taller column wins. The copy carries each shape's stated top
+  rather than what the erected and override-lowered ones settled to, so a flight cut into a whole-board island
+  was refilled by the reflection of the ground around it, and the flight's own image was buried by the ground
+  it was cut out of: fourteen courses of descent came out flat at the surface, painted in the stair's own
+  material, with no finding raised. `RasterGroup` now reports the columns an override add **claimed** beside
+  the columns themselves, and the fan's merge honours a claim from either side — the claim wins over ordinary
+  ground, and where neither side claimed the column the taller still wins, which is what it means between two
+  islands meeting. **An erected shape claims the columns it settles too**, for the same reason it names one:
+  a shape that says how its top is decided has a settled top the stated one does not carry, so a `sink`
+  hollowed into a whole-board island was refilled to the flat by the reflection of the ground round it —
+  measured, a five-block delve came out level with the meadow, silently. `SK9` is silent on all of this and
+  correctly so: two adds at one floor are ordinary ground.
+- **A lid over a hole is not a fill (`TS39`, `SK13`).** A subtract states a board's negative space and an
+  override add that puts ground back in one is refused — but a layer holds **one span per column**, so an
+  override add resting *above* the subtract's own floor moves that single span up and records nothing beneath
+  it. The void is still void, with a deck over it. `SketchRasterizer.AddsOverSubtracts` reads both floors and
+  is silent on a lid; only an add standing at or below the subtract's floor puts the negative space back as
+  ground. `showcase/12-underpass` is the worked example of both cases — a deck at `floor: 13` bridges the cut,
+  and the same deck with `floor` left unset refills it bedrock to grass.
+- **`SK14` reads a stated top, not an invented one (`TS40`).** The gate named every override add on a relieved
+  island, filling in `base_height: 1` for a shape that stated no height at all. Such a shape is a footprint
+  carrying a theme — a scree apron over a swell, an apron of paint over a relieved slope — and the ground the
+  relief solves under it is the ground it was drawn for. A top has to have been stated to be discarded, so an
+  override add carrying no `base_height`, `floor` or `anchor_heights` is now outside the rule.
+- **A tilted quad is a stair at any gradient (`TS37`).** `SketchRasterizer.Erect` sampled a shape's own
+  surface at each cell's centre and rounded it to nearest. A ramp at **one course a cell** — the plainest
+  gradient an author writes — puts every one of those samples exactly on the rounding boundary, so the courses
+  came out as a beat of noughts and twos: nine two-block steps in twenty-four, each costing a placed block to
+  climb. It read as a fact about ramps and was a fact about `Math.Round`. Measured before: 1:1 gives
+  `2`×9 · `0`×8 · `1`×6; after flooring the sample, `1`×23. Flooring is the voxel reading — a block occupies
+  `[y, y+1)` — and it is stable where rounding is not, since the interpolation drifts either side of a
+  half. `MidpointRounding.AwayFromZero` is not enough for the same reason. A flight is now one polygon at any
+  gradient rather than one rectangle a course, and the shallower ramps still climb a course at a time.
+- **A relief solving through a made thing is named (`TS35`, `SK14`).** An override add states two things at
+  once — the column is its own, and this is its top — and a relief takes the second away without a word: it
+  replaces the top of every column of its island, so a wall, a flight, a crop bed or a stepped mound carrying
+  no `height_mode` builds to the field instead of to its own number. Nothing else caught it: the board built,
+  every gate passed, and a twenty-seven-course wall came out level with the ground beside it.
+  `SketchRasterizer.ReliefOverridesStatedTop` reads the layer's islands against the document's relief and
+  names the shape, its island and the top it asked for; `relief_scope: "hold"`/`"exclude"` and any
+  `height_mode` are silent, as is a plain add, since a relief shaping ordinary terrain is what a relief is for.
+- **One shape building a column and another painting it is named (`TS36`, `SK15`).** A theme is scoped by
+  **area** and not by height, so where two override adds share a column the taller wins the ground and the
+  smaller wins the paint. Where the smaller is also the shorter, the world holds one shape's blocks in
+  another's material — a mound's outer ring crossing a town wall leaves the wall standing to its own courses
+  and finished in grass over dirt, sides included, visible only in a column read or in the world.
+  `SketchRasterizer.PaintedByAnotherShape` reports the pair, both themes, the columns they contest and the
+  northmost. Two shapes at one height are a theme scoped to a patch and are not in it.
+- **A shape can say it is not ground to dress (`TS34`).** Everything in the dressing pass's keep-out was read
+  off the intent or off the finished world's top block, and neither can see a wall, a crop bed, a well's rim or
+  a flight of stairs drawn as *terrain*: the painter writes them with a theme like any other ground, so
+  `KeepOut.Built` does not fire and the material says nothing. A stroke therefore repainted whatever it
+  crossed, and a channel — whose water line is the **lowest** surface its band crosses — cut every other column
+  in the band down to that line, which on a town wall standing seventeen courses over a river is a hole through
+  the wall. `SketchShape.KeepClear` says so from the layout: `SketchRasterizer.KeepClearCells` rasterizes the
+  marked shapes alone and fans them by island, and `DressingScope.KeptClearAt` marks those columns
+  `KeepOut.Structure` **exactly, with no margin** — the wall a road runs through a gate of keeps its own
+  columns and not a verge either side of them. A prop that lands there is `DR-KEEP` naming the cell.
 - **A stacked board says where its storeys touch and where nothing reaches (TS24).** Two findings, read off
   the rasterized spans rather than off the document, because neither is visible in what a layout says — a
   layer states a `base_y` and a height and the pair reads perfectly either way. `SK10` names two **layers**

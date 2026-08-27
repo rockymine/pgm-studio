@@ -17,23 +17,41 @@ namespace PgmStudio.Minecraft.Anvil;
 /// window runs from the layer's floor up to the block below the next layer's floor in that same column, and
 /// to the world ceiling for the topmost. A column the layer never drew contributes nothing, which is what
 /// makes a gallery under a deck read as the gallery's own footprint rather than as the whole board.</para>
+///
+/// <para><b>The provenance record is narrowed with the world.</b> A claim is recorded per column and carries
+/// no course, so it describes that column's <em>topmost</em> block: left alone under a narrowed read it
+/// paints the storey over it — a house onto a cellar floor, a tree into a tunnel. What replaces it is what
+/// the spans already say about the course this storey actually shows: at or below the layer's own top the
+/// block is the rasterizer's terrain and reads <see cref="ProvenancePass.Ground"/>, above it something is
+/// standing on the storey and the recorded claim is kept only where this storey shows the column's own top.
+/// A claim that describes neither is dropped, so the render falls back to the material estimate and its
+/// legend says so rather than attributing a course nothing recorded.</para>
 /// </summary>
 public static class WorldStorey
 {
+    /// <summary>One storey as a read of it sees it: the narrowed world and the provenance record that
+    /// describes the courses it shows.</summary>
+    public sealed record Storey(VoxelWorld World, WorldProvenance Provenance);
+
     /// <summary>The world narrowed to one layer's storey, or the world itself where the layer is not named.
     /// Null where the spans carry no such layer — the caller's cue to refuse by naming the ones they do.
     /// </summary>
     /// <param name="world">The built world.</param>
     /// <param name="columns">The rasterizer's spans, which carry the layer that drew each.</param>
     /// <param name="layer">The layer id to keep. Null or empty answers <paramref name="world"/> unchanged.</param>
-    public static VoxelWorld? Of(VoxelWorld world, IReadOnlyList<ColumnSegment>? columns, string? layer)
+    /// <param name="provenance">The record the build kept, narrowed with the world.</param>
+    public static Storey? Of(VoxelWorld world, IReadOnlyList<ColumnSegment>? columns, string? layer,
+        WorldProvenance provenance)
     {
-        if (layer is not { Length: > 0 }) return world;
+        if (layer is not { Length: > 0 }) return new Storey(world, provenance);
         if (columns is null || !columns.Any(segment => segment.Layer == layer)) return null;
 
         // Per column: where this layer starts, and where the next one up does. Both are read off the spans
         // rather than off the world, because the world no longer knows which slab any of its blocks came from.
-        var window = new Dictionary<(int X, int Z), (int Floor, int Ceiling)>();
+        // A span is half-open — `[YFloor, YTop)` — so the layer above starts *at* this one's YTop and the
+        // last course this layer drew is YTop - 1. `Drawn` is that course: at or below it a block is the
+        // rasterizer's terrain, above it something is standing on the storey.
+        var window = new Dictionary<(int X, int Z), (int Floor, int Ceiling, int Drawn)>();
         foreach (var group in columns.GroupBy(segment => segment.Cell))
         {
             var ordered = group.OrderBy(segment => segment.YFloor).ToList();
@@ -41,9 +59,9 @@ public static class WorldStorey
             {
                 if (ordered[i].Layer != layer) continue;
                 var above = ordered.Skip(i + 1).Select(segment => segment.YFloor)
-                                   .Where(floor => floor > ordered[i].YTop)
+                                   .Where(floor => floor >= ordered[i].YTop)
                                    .DefaultIfEmpty(VoxelWorld.MaxHeight).Min();
-                window[group.Key] = (ordered[i].YFloor, above - 1);
+                window[group.Key] = (ordered[i].YFloor, above - 1, ordered[i].YTop - 1);
                 break;
             }
         }
@@ -56,7 +74,30 @@ public static class WorldStorey
                 for (var y = Math.Max(run.YBottom, keep.Floor); y <= Math.Min(run.YTop, keep.Ceiling); y++)
                     storey.SetBlock(x, y, z, run.BlockId, run.BlockData);
         }
-        return storey;
+        return new Storey(storey, Narrow(provenance, storey, world, window));
+    }
+
+    /// <summary>The record as this storey's read of it: the claim kept where the storey still shows the
+    /// column's own top, <see cref="ProvenancePass.Ground"/> where the course shown is inside the layer's
+    /// own drawn span, and nothing where it is neither.</summary>
+    private static WorldProvenance Narrow(WorldProvenance provenance, VoxelWorld storey, VoxelWorld world,
+        IReadOnlyDictionary<(int X, int Z), (int Floor, int Ceiling, int Drawn)> window)
+    {
+        var whole = WorldColumns.Tops(world);
+        var narrowed = new WorldProvenance();
+        foreach (var (x, z, runs) in WorldColumns.Of(storey))
+        {
+            var top = runs[0].YTop;
+            if (whole.TryGetValue((x, z), out var over) && top == over)
+            {
+                if (provenance.PassAt(x, z) is { } pass) narrowed.Claim(x, z, pass, provenance.OwnerAt(x, z));
+            }
+            else if (window.TryGetValue((x, z), out var keep) && top <= keep.Drawn)
+            {
+                narrowed.Claim(x, z, ProvenancePass.Ground);
+            }
+        }
+        return narrowed;
     }
 
     /// <summary>The layer ids a board's spans carry, in the order the stack holds them — for the refusal that

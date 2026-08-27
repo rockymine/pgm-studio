@@ -379,6 +379,14 @@ public sealed class SketchShape
     /// <summary>Whether it overrides the shapes under it rather than combining with them.</summary>
     [JsonPropertyName("override")]  public bool Override { get; set; }
 
+    /// <summary>Whether the columns it covers are ground the dressing pass must leave alone. A shape drawn to
+    /// <em>be</em> something — a town wall, a crop bed, a well's rim, a flight of stairs — is terrain by
+    /// construction and indistinguishable from the ground beside it by material or by layer, so a road
+    /// repaints its top course and a channel cuts it down to the water line. Marking it keeps every prop off
+    /// its columns exactly (no margin, so a road still runs to a gate), and a prop that lands there is
+    /// <c>DR-KEEP</c>.</summary>
+    [JsonPropertyName("keepClear")] public bool KeepClear { get; set; }
+
     /// <summary>A rectangle's west edge, in blocks.</summary>
     [JsonPropertyName("min_x")] public double? MinX { get; set; }
 
