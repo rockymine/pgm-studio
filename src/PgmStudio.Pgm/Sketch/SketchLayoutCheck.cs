@@ -122,6 +122,27 @@ public static class SketchLayoutCheck
                 + "island is what this is",
                 Severity.Complaint));
 
+        // SK14 — a relief solves a surface over every column of its island, so an override add that does not
+        // stand out of that field builds to the field rather than to the top it stated.
+        foreach (var (shape, layerId, islandId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
+            findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
+                $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and island "
+                + $"'{islandId}' carries a relief that solves a surface through it — the world builds it to "
+                + "whatever the relief says. Give it \"height_mode\": \"level\" with \"skirt\": 0 to hold "
+                + "the top it states, or \"relief_scope\": \"exclude\" to keep its ground out of the solve",
+                Severity.Complaint, Subjects: [shape]));
+
+        // SK15 — the taller add wins the column and the smaller one wins the paint, so where the smaller is
+        // also the shorter the world holds one shape's ground in another's material.
+        foreach (var (layerId, built, painted, builtTheme, paintedTheme, cells, x, z) in
+                 SketchRasterizer.PaintedByAnotherShape(layout))
+            findings.Add(new Finding(SketchRules.PaintedByAnotherShape,
+                $"'{built}' builds {cells} column(s) on layer '{layerId}' that '{painted}' paints — from "
+                + $"({x}, {z}). The taller shape wins the ground and the smaller wins the theme, so what "
+                + $"stands there is '{built}' finished in '{paintedTheme}' rather than '{builtTheme}'. Cut "
+                + $"'{painted}' out of '{built}'s footprint, or give the two one theme",
+                Severity.Complaint, Subjects: [built, painted]));
+
         // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
         // lands: it draws nothing, or it puts the ground back.
         foreach (var (add, addLayer, subtract, subtractLayer, survives, cells, x, z) in

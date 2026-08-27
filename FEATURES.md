@@ -6101,6 +6101,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `data-layer`), which is the graphics term and reads as one; `LayeredMaterial`'s own `layers[]` inside the
   theme JSON; and the `layer.parquet` / `layer_segments.parquet` files on disk, which are the corpus scan
   output's names and not the studio's to change.
+- **A relief solving through a made thing is named (`TS35`, `SK14`).** An override add states two things at
+  once — the column is its own, and this is its top — and a relief takes the second away without a word: it
+  replaces the top of every column of its island, so a wall, a flight, a crop bed or a stepped mound carrying
+  no `height_mode` builds to the field instead of to its own number. Nothing else caught it: the board built,
+  every gate passed, and a twenty-seven-course wall came out level with the ground beside it.
+  `SketchRasterizer.ReliefOverridesStatedTop` reads the layer's islands against the document's relief and
+  names the shape, its island and the top it asked for; `relief_scope: "hold"`/`"exclude"` and any
+  `height_mode` are silent, as is a plain add, since a relief shaping ordinary terrain is what a relief is for.
+- **One shape building a column and another painting it is named (`TS36`, `SK15`).** A theme is scoped by
+  **area** and not by height, so where two override adds share a column the taller wins the ground and the
+  smaller wins the paint. Where the smaller is also the shorter, the world holds one shape's blocks in
+  another's material — a mound's outer ring crossing a town wall leaves the wall standing to its own courses
+  and finished in grass over dirt, sides included, visible only in a column read or in the world.
+  `SketchRasterizer.PaintedByAnotherShape` reports the pair, both themes, the columns they contest and the
+  northmost. Two shapes at one height are a theme scoped to a patch and are not in it.
 - **A shape can say it is not ground to dress (`TS34`).** Everything in the dressing pass's keep-out was read
   off the intent or off the finished world's top block, and neither can see a wall, a crop bed, a well's rim or
   a flight of stairs drawn as *terrain*: the painter writes them with a theme like any other ground, so

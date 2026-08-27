@@ -827,6 +827,24 @@ are written in — the shape is on the canvas and not in the world, which is the
 complains. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
 the northmost of them.
 
+**Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
+as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
+its own, and this is its top. Each can be taken away by something that raises no other finding.
+
+A **relief** replaces the top of every column of its island, so an override add on a relieved island builds to
+whatever the field solves and its stated top is nowhere in the world. Only a shape naming a `height_mode`
+stands out of that field, and only a `relief_scope` keeps its ground out of the solve; carrying neither is
+`SK14`, a complaint naming the shape, its island and the top it asked for. The board still builds — that is
+exactly the problem, and a twenty-seven-course wall coming out level with the ground beside it is what it
+looks like.
+
+A **theme** is scoped by area rather than by height, so where two override adds share a column the taller wins
+the ground and the *smaller* wins the paint. Where the smaller is also the shorter, the world holds one
+shape's blocks in another's material: a mound's outer ring crossing a wall leaves the wall standing to its own
+courses and finished in grass over dirt, sides included. That is `SK15`, a complaint naming both shapes, both
+themes, the columns they contest and the northmost. Two shapes at *one* height are a theme scoped to a patch,
+which is what scoping is for, and are not this.
+
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
 stating its negative space — so a subtract *following* an add on that add's own layer is its hole and says

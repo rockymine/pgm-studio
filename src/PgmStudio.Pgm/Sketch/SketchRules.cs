@@ -109,6 +109,27 @@ public static class SketchRules
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string MassUnreached = "SK11";
 
+    /// <summary>An override add states a top its island's relief will solve straight through. An override add
+    /// says the column is its own, floor and all — it is what a wall, a flight of stairs, a crop bed or a
+    /// stepped mound is drawn as — and a relief replaces the top of every column of its island. Only a shape
+    /// naming a <c>height_mode</c> stands out of that field, and only a <c>relief_scope</c> keeps its ground
+    /// out of the solve, so a made thing carrying neither is built to whatever the relief says and the
+    /// author's number is nowhere in the world. Nothing else catches it: the board still builds, every gate
+    /// still passes, and a twenty-seven-course wall comes out level with the ground beside it.</summary>
+    /// <remarks>Give the shape `"height_mode": "level"` and `"skirt": 0` — level holds it at the absolute top its own floor and height state, and a zero skirt is a sheer face, which is right for a built thing and wrong for a landform. `"relief_scope": "exclude"` is the stronger form, keeping the shape's ground out of the solve entirely. A shape that was meant to be shaped by the relief wants neither, and should not be an override add.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string ReliefOverStatedTop = "SK14";
+
+    /// <summary>One shape builds a column and another paints it. Two override adds over one column is not a
+    /// fault — the taller wins it, which is what "the tallest add is the height" means — but a theme is scoped
+    /// by <b>area</b> and not by height, so where the smaller of the two is also the shorter, the world holds
+    /// the taller shape's ground in the smaller one's material. A mound's outer ring crossing a town wall
+    /// leaves the wall standing to its own courses and finished in grass over dirt, sides included. It is
+    /// visible only in a column read or in the world.</summary>
+    /// <remarks>Cut the smaller shape out of the taller one's footprint — the two are not meant to share ground, and clipping is what states that. Where the overlap is deliberate, give the two the same theme, or scope the paint with a shape at the same height: two shapes at one height are a theme scoped to a patch, which is what scoping is for and is not this.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
+    public const string PaintedByAnotherShape = "SK15";
+
     /// <summary>An add covers ground a subtract takes away. A subtract is how a board states its negative
     /// space — the void a plan's buffer pieces compile to, the hole a composed footprint leaves — and a hole
     /// is never scenery: what a body encircles is ground players go round, and a board's walls are drawn to

@@ -35,6 +35,17 @@ public readonly record struct AddOverSubtract(string Add, string AddLayer, strin
 /// lowest-then-northmost of them, so it can be flown to and looked at.</summary>
 public readonly record struct DetachedMass(int Places, int X, int Z, int Y);
 
+/// <summary>An override add whose stated top its island's relief will solve straight through: the shape, the
+/// layer it is on, the island whose relief overrules it, and the top it asked for.</summary>
+public readonly record struct ReliefOverTop(string Shape, string Layer, string Island, int Top);
+
+/// <summary>Two shapes on one layer where one builds the ground and the other paints it: the taller
+/// <see cref="Built"/> wins the column, the smaller <see cref="Painted"/> wins the theme, and the world holds
+/// one shape's blocks in the other's material. <see cref="Cells"/> counts the columns they contest and
+/// <see cref="X"/>/<see cref="Z"/> name the northmost.</summary>
+public readonly record struct PaintedByAnother(string Layer, string Built, string Painted,
+                                               string BuiltTheme, string PaintedTheme, int Cells, int X, int Z);
+
 public static class SketchRasterizer
 {
     /// <summary>How many blocks two layers may share before they are driven into each other rather than
@@ -551,6 +562,84 @@ public static class SketchRasterizer
             solved[islandId] = field;
         }
         return solved;
+    }
+
+    /// <summary>Every override add whose stated top its island's relief discards. An override add says the
+    /// column is its own, floor and all; a relief solves a surface over every column of its island and
+    /// replaces the top of each. Only an <b>erected</b> shape stands out of that field — one naming a
+    /// <c>height_mode</c> — and only a <c>relief_scope</c> keeps a shape's ground out of the solve, so an
+    /// override add carrying neither builds to whatever the field says and not to what it stated.
+    ///
+    /// <para>Judged per island, since a relief is keyed on one: a shape listed in an island the document
+    /// carries no relief for is not in this. Plain adds are not either — a relief shaping ordinary terrain is
+    /// what a relief is for. It is the <em>override</em> that is the statement being overruled.</para></summary>
+    public static List<ReliefOverTop> ReliefOverridesStatedTop(SketchLayout? state)
+    {
+        var found = new List<ReliefOverTop>();
+        if (state?.Relief is not { Count: > 0 } relief) return found;
+
+        foreach (var layer in ResolveLayers(state))
+        {
+            var islandOf = new Dictionary<string, string>();
+            foreach (var island in layer.Islands)
+                if (island.Id is { Length: > 0 } id && relief.ContainsKey(id))
+                    foreach (var shapeId in island.ShapeIds)
+                        islandOf[shapeId] = id;
+            if (islandOf.Count == 0) continue;
+
+            foreach (var shape in layer.Shapes)
+            {
+                if (!shape.Override || shape.Operation == "subtract" || shape.Role is not null) continue;
+                if (IsErected(shape) || shape.ReliefScope is "hold" or "exclude") continue;
+                if (!islandOf.TryGetValue(shape.Id, out var islandId)) continue;
+                var floor = Math.Max(0, (int)Math.Round(shape.Floor ?? 0));
+                found.Add(new ReliefOverTop(shape.Id, layer.Id ?? "", islandId,
+                                            floor + Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1))));
+            }
+        }
+        return found;
+    }
+
+    /// <summary>Every pair of override adds on one layer where one shape's blocks come out in another's
+    /// material. Two override adds over a column is not a fault in itself — the taller wins it, which is what
+    /// "the tallest add is the height" means — but a theme is scoped by <b>area</b> rather than by height
+    /// (<see cref="ShapeThemeOwners"/>), so where the smaller of the two is also the shorter, the world holds
+    /// the taller shape's ground painted in the smaller one's theme. A mound's ring crossing a wall leaves the
+    /// wall standing to its own courses and finished in grass over dirt.
+    ///
+    /// <para>Only pairs that differ in <em>both</em> theme and stated top are in it: two shapes at one height
+    /// are a theme scoped to a patch, which is what scoping is for, and two sharing a theme cannot disagree
+    /// about paint. One entry per pair.</para></summary>
+    public static List<PaintedByAnother> PaintedByAnotherShape(SketchLayout? state)
+    {
+        var found = new List<PaintedByAnother>();
+        foreach (var layer in ResolveLayers(state))
+        {
+            var adds = layer.Shapes
+                .Where(shape => shape.Override && shape.Operation != "subtract"
+                             && shape.Role is null && shape.Theme is { Length: > 0 })
+                .Select(shape => (shape.Id, shape.Theme!,
+                                  Top: Math.Max(0, (int)Math.Round(shape.Floor ?? 0))
+                                     + Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1)),
+                                  Cells: RasterShape(shape).Select(cell => (cell.X, cell.Z)).ToHashSet()))
+                .Where(entry => entry.Cells.Count > 0)
+                .ToList();
+
+            for (var i = 0; i < adds.Count; i++)
+            for (var j = i + 1; j < adds.Count; j++)
+            {
+                var (tall, low) = adds[i].Top >= adds[j].Top ? (adds[i], adds[j]) : (adds[j], adds[i]);
+                if (tall.Top == low.Top || tall.Item2 == low.Item2) continue;
+                // The smaller shape wins the paint. Where that is the taller one, the two agree.
+                if (low.Cells.Count >= tall.Cells.Count) continue;
+                var shared = tall.Cells.Where(low.Cells.Contains).ToList();
+                if (shared.Count == 0) continue;
+                var (x, z) = shared.OrderBy(cell => cell.Z).ThenBy(cell => cell.X).First();
+                found.Add(new PaintedByAnother(layer.Id ?? "", tall.Id, low.Id, tall.Item2, low.Item2,
+                                               shared.Count, x, z));
+            }
+        }
+        return found;
     }
 
     /// <summary>A shape whose ground the world does not hold, and the one that took its place: two adds on

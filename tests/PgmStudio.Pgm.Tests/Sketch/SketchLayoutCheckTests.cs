@@ -251,4 +251,98 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(SketchLayoutCheck.Check(Layout(Gallery + "," + wallNorth))
             .Where(finding => finding.Rule == SketchRules.StackedInOneLayer)).IsEmpty();
     }
+
+    // ── SK14: a relief solves through an override add ────────────────────────────────────────────────────
+    private static string Relieved(string shapes, string ids) =>
+        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
+        + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + shapes + "],"
+        + "\"islands\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[" + ids + "]}]}}],"
+        + "\"relief\":{\"i\":{\"base\":8,\"reach\":16,\"step\":1,\"marks\":[]}}}";
+
+    private const string Ground =
+        """{"id":"g","type":"rectangle","operation":"add","min_x":-40,"max_x":40,"min_z":-40,"max_z":40,"floor":0,"base_height":9}""";
+    private const string Wall =
+        """{"id":"wall","type":"rectangle","operation":"add","override":true,"theme":"stone","min_x":-40,"max_x":40,"min_z":10,"max_z":14,"floor":0,"base_height":22}""";
+
+    /// <summary>A made thing is an override add: the column is its own, floor and all. A relief replaces the
+    /// top of every column of its island, so a wall carrying no `height_mode` builds to the field and its
+    /// twenty-two courses are nowhere in the world — with nothing else on the board to say so.</summary>
+    [Test]
+    public async Task An_override_add_a_relief_solves_through_is_named()
+    {
+        var findings = SketchLayoutCheck.Check(Relieved(Ground + "," + Wall, "\"g\",\"wall\""))
+            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop).ToList();
+
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "wall" });
+        await Assert.That(findings[0].Message).Contains("y22");
+        await Assert.That(findings[0].Message).Contains("height_mode");
+    }
+
+    /// <summary>The two words that hold a stated top, and the plain ground that is not this: a relief shaping
+    /// ordinary terrain is what a relief is for, so only the override is the statement being overruled.</summary>
+    [Test]
+    public async Task A_shape_that_stands_out_of_the_field_or_is_not_an_override_is_not_named()
+    {
+        foreach (var held in new[] { "\"height_mode\":\"level\",\"skirt\":0", "\"relief_scope\":\"exclude\"" })
+        {
+            var wall = Wall.Replace("\"override\":true", "\"override\":true," + held);
+            await Assert.That(SketchLayoutCheck.Check(Relieved(Ground + "," + wall, "\"g\",\"wall\""))
+                .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
+        }
+        var plain = Wall.Replace("\"override\":true,", "");
+        await Assert.That(SketchLayoutCheck.Check(Relieved(Ground + "," + plain, "\"g\",\"wall\""))
+            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
+    }
+
+    /// <summary>A relief is keyed on an island, so a board that carries none has nothing to overrule.</summary>
+    [Test]
+    public async Task An_island_with_no_relief_overrules_nothing()
+    {
+        var flat = Relieved(Ground + "," + Wall, "\"g\",\"wall\"")
+            .Replace("\"relief\":{\"i\":{\"base\":8,\"reach\":16,\"step\":1,\"marks\":[]}}", "\"relief\":{}");
+        await Assert.That(SketchLayoutCheck.Check(flat)
+            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
+    }
+
+    // ── SK15: one shape builds the column and another paints it ──────────────────────────────────────────
+    private const string Mound =
+        """{"id":"mound","type":"rectangle","operation":"add","override":true,"theme":"grass","min_x":-8,"max_x":8,"min_z":8,"max_z":16,"floor":0,"base_height":11}""";
+
+    /// <summary>The taller add wins the column and the smaller wins the theme, so a mound's ring crossing a
+    /// wall leaves the wall standing to its own courses and painted in the mound's material.</summary>
+    [Test]
+    public async Task A_shape_built_by_one_and_painted_by_another_is_named()
+    {
+        var findings = SketchLayoutCheck.Check(Layout(Wall + "," + Mound))
+            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape).ToList();
+
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "wall", "mound" });
+        await Assert.That(findings[0].Message).Contains("grass");
+        await Assert.That(findings[0].Message).Contains("stone");
+    }
+
+    /// <summary>Two shapes at one height are a theme scoped to a patch, which is what scoping is for; and two
+    /// sharing a theme cannot disagree about paint. Neither is this.</summary>
+    [Test]
+    public async Task A_theme_scoped_to_a_patch_is_not_this()
+    {
+        var patch = Mound.Replace("\"base_height\":11", "\"base_height\":22");
+        await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + patch))
+            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+
+        var sameTheme = Mound.Replace("\"theme\":\"grass\"", "\"theme\":\"stone\"");
+        await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + sameTheme))
+            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+    }
+
+    /// <summary>And two that do not share a column have nothing to contest.</summary>
+    [Test]
+    public async Task Shapes_that_do_not_meet_are_not_named()
+    {
+        var apart = Mound.Replace("\"min_z\":8,\"max_z\":16", "\"min_z\":24,\"max_z\":32");
+        await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + apart))
+            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+    }
 }
