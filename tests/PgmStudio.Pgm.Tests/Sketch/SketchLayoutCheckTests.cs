@@ -295,6 +295,17 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
     }
 
+    /// <summary>A top has to be stated to be discarded. An override add carrying no height at all is a
+    /// footprint holding a theme, and the ground the relief solves under it is the ground it wanted.</summary>
+    [Test]
+    public async Task An_override_add_that_states_no_top_is_not_named()
+    {
+        var paint =
+            """{"id":"scree","type":"rectangle","operation":"add","override":true,"theme":"scree","min_x":-8,"max_x":8,"min_z":8,"max_z":16}""";
+        await Assert.That(SketchLayoutCheck.Check(Relieved(Ground + "," + paint, "\"g\",\"scree\""))
+            .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
+    }
+
     /// <summary>A relief is keyed on an island, so a board that carries none has nothing to overrule.</summary>
     [Test]
     public async Task An_island_with_no_relief_overrules_nothing()

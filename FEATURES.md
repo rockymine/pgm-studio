@@ -6109,6 +6109,28 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   is the same silence a wool-spacing term keeps on a single-wool plan, and `SoftTerm` already treats null as
   "does not apply". The band is unchanged — regenerating the envelopes moved nothing, because every seed that
   taught it was a wool board already.
+- **An island's own reflection no longer refills what was cut out of it (`TS38`).** A board whose compiled
+  island is centred on the mirror is its own image, so the fan that copies it lands back on the cells it came
+  from — and between two rasterized groups the taller column wins. The copy carries each shape's stated top
+  rather than what the erected and override-lowered ones settled to, so a flight cut into a whole-board island
+  was refilled by the reflection of the ground around it, and the flight's own image was buried by the ground
+  it was cut out of: fourteen courses of descent came out flat at the surface, painted in the stair's own
+  material, with no finding raised. `RasterGroup` now reports the columns an override add **claimed** beside
+  the columns themselves, and the fan's merge honours a claim from either side — the claim wins over ordinary
+  ground, and where neither side claimed the column the taller still wins, which is what it means between two
+  islands meeting. `SK9` is silent here and correctly so: two adds at one floor are ordinary ground.
+- **A lid over a hole is not a fill (`TS39`, `SK13`).** A subtract states a board's negative space and an
+  override add that puts ground back in one is refused — but a layer holds **one span per column**, so an
+  override add resting *above* the subtract's own floor moves that single span up and records nothing beneath
+  it. The void is still void, with a deck over it. `SketchRasterizer.AddsOverSubtracts` reads both floors and
+  is silent on a lid; only an add standing at or below the subtract's floor puts the negative space back as
+  ground. `showcase/12-underpass` is the worked example of both cases — a deck at `floor: 13` bridges the cut,
+  and the same deck with `floor` left unset refills it bedrock to grass.
+- **`SK14` reads a stated top, not an invented one (`TS40`).** The gate named every override add on a relieved
+  island, filling in `base_height: 1` for a shape that stated no height at all. Such a shape is a footprint
+  carrying a theme — a scree apron over a swell, an apron of paint over a relieved slope — and the ground the
+  relief solves under it is the ground it was drawn for. A top has to have been stated to be discarded, so an
+  override add carrying no `base_height`, `floor` or `anchor_heights` is now outside the rule.
 - **A tilted quad is a stair at any gradient (`TS37`).** `SketchRasterizer.Erect` sampled a shape's own
   surface at each cell's centre and rounded it to nearest. A ramp at **one course a cell** — the plainest
   gradient an author writes — puts every one of those samples exactly on the rounding boundary, so the courses

@@ -116,7 +116,7 @@ public static class SketchRules
     /// out of the solve, so a made thing carrying neither is built to whatever the relief says and the
     /// author's number is nowhere in the world. Nothing else catches it: the board still builds, every gate
     /// still passes, and a twenty-seven-course wall comes out level with the ground beside it.</summary>
-    /// <remarks>Give the shape `"height_mode": "level"` and `"skirt": 0` — level holds it at the absolute top its own floor and height state, and a zero skirt is a sheer face, which is right for a built thing and wrong for a landform. `"relief_scope": "exclude"` is the stronger form, keeping the shape's ground out of the solve entirely. A shape that was meant to be shaped by the relief wants neither, and should not be an override add.</remarks>
+    /// <remarks>Give the shape `"height_mode": "level"` and `"skirt": 0` — level holds it at the absolute top its own floor and height state, and a zero skirt is a sheer face, which is right for a built thing and wrong for a landform. `"relief_scope": "exclude"` is the stronger form, keeping the shape's ground out of the solve entirely. A shape meant to be shaped by the relief wants neither: state no `base_height`, `floor` or `anchor_heights` on it and it is a footprint carrying a theme, which this rule does not read.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string ReliefOverStatedTop = "SK14";
 
@@ -136,8 +136,13 @@ public static class SketchRules
     /// guard it. An add that <b>fills</b> it is therefore refused — an override add, or any add on another
     /// layer, since a subtract reaches only the layer it is on. An add that draws <b>nothing</b> there is the
     /// other half: on one layer a subtract beats every plain add whatever order the two are written in, so a
-    /// shape the author can see on the canvas is simply not in the world, and that only complains.</summary>
-    /// <remarks>The negative space is the board's to state and may be redrawn — round the buffer off, narrow it, move it — but never papered over with an add. Move the add off the subtracted ground, or change the subtract to the shape the void is now meant to be. A plain add on the subtract's own layer draws nothing and is the complaint rather than the refusal; the board builds, with that shape absent from it.</remarks>
+    /// shape the author can see on the canvas is simply not in the world, and that only complains.
+    ///
+    /// <para>A <b>lid</b> is neither. A layer holds one span per column, so an override add resting above the
+    /// subtract's own floor moves that span up and records nothing beneath it — a deck over a cut, with the
+    /// void still under it — and only an add standing at or below the subtract's floor puts the negative space
+    /// back as ground.</para></summary>
+    /// <remarks>The negative space is the board's to state and may be redrawn — round the buffer off, narrow it, move it — but never papered over with an add. Move the add off the subtracted ground, or change the subtract to the shape the void is now meant to be. A bridge over the void is written by raising the add's `floor` above the subtract's: the column's one span moves up and the drop stays open under it. A plain add on the subtract's own layer draws nothing and is the complaint rather than the refusal; the board builds, with that shape absent from it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string DrawnOverSubtraction = "SK13";
 }

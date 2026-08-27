@@ -844,7 +844,10 @@ whatever the field solves and its stated top is nowhere in the world. Only a sha
 stands out of that field, and only a `relief_scope` keeps its ground out of the solve; carrying neither is
 `SK14`, a complaint naming the shape, its island and the top it asked for. The board still builds — that is
 exactly the problem, and a twenty-seven-course wall coming out level with the ground beside it is what it
-looks like.
+looks like. A top has to have been stated to be discarded, so an override add carrying no `base_height`,
+`floor` or `anchor_heights` is outside this: such a shape is a footprint holding a theme, and the ground the
+relief solves under it is the ground it was drawn for — a scree apron over a swell is written exactly that
+way.
 
 A **theme** is scoped by area rather than by height, so where two override adds share a column the taller wins
 the ground and the *smaller* wins the paint. Where the smaller is also the shorter, the world holds one
@@ -859,6 +862,13 @@ stating its negative space — so a subtract *following* an add on that add's ow
 nothing; without that reading every simplified island with a hole in it would report a fault. Across layers
 the order carries nothing of the kind: a layer's place in the stack is a **height**, and a slab written first
 is written `below`. So an add on another layer is a fill wherever it sits in the document.
+
+**What separates a fill from a lid is the floor.** A layer holds one span per column, so an override add
+resting *above* the subtract's own floor moves that single span up and records nothing beneath it — the void
+the subtract states is still void, with a deck over it. Only an override add standing at or below the
+subtract's floor puts the negative space back as ground, and `12-underpass` is the worked example of both: a
+deck at `floor: 13` bridges the cut, and the same deck with `floor` left unset refills it bedrock to grass.
+The reading is per layer, since a floor is measured from its own layer's `base_y`.
 
 **And, on a board drawn from a plan, it re-reads the strait.** `CT12` is a plan rule — the direct crossing
 between the two team islands of a two-team wool board wants 15–40 blocks — and the plan measures it over

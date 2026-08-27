@@ -13,15 +13,19 @@ namespace PgmStudio.Pgm.Tests.Sketch;
 /// of it are written in that order, so a subtract following an add on that add's own layer is its hole and
 /// says nothing. Across layers the order is a height rather than a sequence, so an add on another layer is a
 /// fill wherever it sits.</para>
+///
+/// <para>What separates a fill from a <b>lid</b> is the floor. A layer holds one span per column, so an
+/// override add resting above the subtract's floor moves that span up and records nothing under it: a deck
+/// over a cut, with the void still under it.</para>
 /// </summary>
 public sealed class SketchSubtractedGroundTests
 {
     private const string Setup = @"""setup"":{""mirror_mode"":""none"",""center"":{""cx"":0,""cz"":0}}";
 
     private static string Rect(string id, string operation, int minX, int minZ, int maxX, int maxZ,
-                               bool over = false) =>
+                               bool over = false, int floor = 0) =>
         $@"{{""id"":""{id}"",""type"":""rectangle"",""operation"":""{operation}"",""override"":{(over ? "true" : "false")},"
-        + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""base_height"":8}}";
+        + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""floor"":{floor},""base_height"":8}}";
 
     private static string Layer(string id, params string[] shapes) =>
         $@"{{""id"":""{id}"",""base_y"":0,""layout"":{{""shapes"":[{string.Join(",", shapes)}],""islands"":[]}}}}";
@@ -95,6 +99,32 @@ public sealed class SketchSubtractedGroundTests
         await Assert.That(over.AddLayer).IsEqualTo("pool");
         await Assert.That(over.SubtractLayer).IsEqualTo("ground");
         await Assert.That(over.Survives).IsTrue();
+    }
+
+    [Test]
+    public async Task An_override_add_standing_above_the_hole_is_a_lid_and_says_nothing()
+    {
+        // A deck over a cut. The column's one span moves up to the deck and nothing is recorded beneath it,
+        // so the negative space the subtract states is still negative — only the roof over it is new.
+        var board = Read(Board(Layer("ground",
+            Rect("island", "add", 0, 0, 40, 40),
+            Rect("gullet", "subtract", 10, 10, 20, 20),
+            Rect("deck", "add", 12, 12, 18, 18, over: true, floor: 13))));
+
+        await Assert.That(SketchRasterizer.AddsOverSubtracts(board)).IsEmpty();
+    }
+
+    [Test]
+    public async Task An_override_add_resting_at_the_holes_own_floor_fills_it()
+    {
+        // The same deck with its floor left at the bottom: the span runs from the world's floor to its top,
+        // which is the channel refilled as ordinary ground rather than bridged.
+        var board = Read(Board(Layer("ground",
+            Rect("island", "add", 0, 0, 40, 40),
+            Rect("gullet", "subtract", 10, 10, 20, 20),
+            Rect("deck", "add", 12, 12, 18, 18, over: true))));
+
+        await Assert.That(SketchRasterizer.AddsOverSubtracts(board).Single().Survives).IsTrue();
     }
 
     [Test]
