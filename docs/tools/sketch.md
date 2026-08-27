@@ -101,6 +101,15 @@ edge). Every shape carries an `operation` — `add` builds ground, `subtract` re
 flag that decides the order the set algebra resolves in: the ordinary pass is adds minus subtracts, then
 override-adds overwrite whatever column they land on, then override-subtracts remove theirs last.
 
+**`keepClear` says the shape is not ground to dress.** A shape drawn to *be* something — a town wall, a crop
+bed, a well's rim, a flight of stairs — is terrain by construction: nothing about its material, its layer or
+its provenance separates it from the ground beside it, so a road repaints its top course and a channel cuts it
+down to the water line. Marking it puts its columns in the dressing pass's keep-out (`KeepOut.Structure`), and
+a prop that lands there is declined as `DR-KEEP` naming the cell. The mark is **exact — no margin** — because
+the wall a road runs through a gate of has to keep its own columns and not a verge either side of them; it is
+the marked shape's own footprint rather than what survives the layer's set algebra, and it travels through the
+symmetry fan with its island, so a marked shape on a mirrored island keeps its images clear too.
+
 **A subtract is a hole, not a dip.** It takes the whole column out at every cell its outline covers, so its
 own height is not read — a one-block-tall subtract carves exactly as deep as a hundred-block one. That is the
 difference from relief, and it is the whole of it: relief moves a surface, a subtract removes it.
@@ -268,6 +277,7 @@ so the drawn outline and the built one stay identical only as long as both sides
 | circle resolution | **64** points | `SketchRasterizer.CirclePoints` ⇄ `shape.js CIRCLE_POINTS` |
 | Bézier sampling | **16** samples per curved edge, endpoint excluded | `BezierSamples` ⇄ `BEZIER_SAMPLES` |
 | set-algebra order | adds − subtracts, then override-adds, then override-subtracts | both |
+| `keepClear` footprint | the marked shapes rasterized alone, fanned by island | `SketchRasterizer.KeepClearCells` |
 | `controls` keying | the vertex index as a **string** | `Dictionary<string, SketchControl>` |
 | `rot_270` | `(Δx, Δz) → (Δz, −Δx)` | the internal third image of a `rot_90` orbit — never an authored mode |
 

@@ -6101,6 +6101,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `data-layer`), which is the graphics term and reads as one; `LayeredMaterial`'s own `layers[]` inside the
   theme JSON; and the `layer.parquet` / `layer_segments.parquet` files on disk, which are the corpus scan
   output's names and not the studio's to change.
+- **A shape can say it is not ground to dress (`TS34`).** Everything in the dressing pass's keep-out was read
+  off the intent or off the finished world's top block, and neither can see a wall, a crop bed, a well's rim or
+  a flight of stairs drawn as *terrain*: the painter writes them with a theme like any other ground, so
+  `KeepOut.Built` does not fire and the material says nothing. A stroke therefore repainted whatever it
+  crossed, and a channel — whose water line is the **lowest** surface its band crosses — cut every other column
+  in the band down to that line, which on a town wall standing seventeen courses over a river is a hole through
+  the wall. `SketchShape.KeepClear` says so from the layout: `SketchRasterizer.KeepClearCells` rasterizes the
+  marked shapes alone and fans them by island, and `DressingScope.KeptClearAt` marks those columns
+  `KeepOut.Structure` **exactly, with no margin** — the wall a road runs through a gate of keeps its own
+  columns and not a verge either side of them. A prop that lands there is `DR-KEEP` naming the cell.
 - **A stacked board says where its storeys touch and where nothing reaches (TS24).** Two findings, read off
   the rasterized spans rather than off the document, because neither is visible in what a layout says — a
   layer states a `base_y` and a height and the pair reads perfectly either way. `SK10` names two **layers**

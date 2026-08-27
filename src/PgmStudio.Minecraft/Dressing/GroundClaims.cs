@@ -122,7 +122,8 @@ public enum KeepOut
     Spawn,
     /// <summary>A wool room, its spawn or one of its monuments.</summary>
     WoolRoom,
-    /// <summary>A structure the plan stated: a room floor, an iron cube, a wall, a redstone line.</summary>
+    /// <summary>A structure the map stated: a room floor, an iron cube, a wall, a redstone line, or a sketch
+    /// shape that marked itself kept clear — a town wall, a crop bed, a well's rim.</summary>
     Structure,
     /// <summary>A column whose surface block is built rather than terrain — a stamp of some kind, whatever
     /// placed it. Read from the finished world rather than from the intent, which is what makes it catch what

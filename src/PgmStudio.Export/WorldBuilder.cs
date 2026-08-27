@@ -299,7 +299,7 @@ public static class WorldBuilder
         var dressed = Decorator.Decorate(world, new DressingContext(
             terrain.SurfaceTop,
             DressingScope.PropsOf(layoutJson),
-            DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals),
+            DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals, layoutJson),
             symmetry,
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),

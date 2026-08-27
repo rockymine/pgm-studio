@@ -84,6 +84,34 @@ public static class SketchRasterizer
         return output;
     }
 
+    /// <summary>The columns covered by every shape that says it is not ground to dress
+    /// (<see cref="SketchShape.KeepClear"/>), over every layer and through the symmetry fan — what the
+    /// dressing pass takes as a keep-out so a road does not repaint a town wall's top course and a channel
+    /// does not cut one down to its water line.
+    ///
+    /// <para>The marked shapes are rasterized on their own, so what comes back is their footprint rather
+    /// than what survives the set algebra of the whole layer: a shape that says keep off means the ground it
+    /// covers, whatever is later drawn over it. Island membership still decides the fan, so a marked shape on
+    /// a mirrored island keeps its images clear too.</para></summary>
+    public static HashSet<(int X, int Z)> KeepClearCells(SketchLayout? state)
+    {
+        var cx = state?.Setup?.Center?.Cx ?? 0;
+        var cz = state?.Setup?.Center?.Cz ?? 0;
+        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+
+        var kept = new HashSet<(int X, int Z)>();
+        foreach (var layer in ResolveLayers(state))
+        {
+            if (layer.Layout is not { } layout) continue;
+            var marked = layout.Shapes.Where(shape => shape.KeepClear).ToList();
+            if (marked.Count == 0) continue;
+            var only = new SketchShapes { Shapes = marked, Islands = layout.Islands };
+            foreach (var cell in RasterizeLayout(only, cx, cz, axes, state?.Relief, state?.Setup?.MirrorMode).Keys)
+                kept.Add(cell);
+        }
+        return kept;
+    }
+
     /// <summary>Every relief-bearing island's solved surface, keyed by island id, with each field's heights
     /// already shifted into world Y by its layer's <c>base_y</c>. This is the same solve the build runs, from
     /// the same entry point, so a preview drawn from it cannot show a surface the world will not have —

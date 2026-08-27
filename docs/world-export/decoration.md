@@ -72,6 +72,15 @@ is. Naming no layer keeps the top surface, which is where everything already aut
 board has no ground on is **declined** (`DR-LAYER`) rather than seated on the top, because that is exactly
 the storey the author was saying they did not mean.
 
+**A shape can say it is not ground to dress.** Everything else in the keep-out is read off the intent or off
+the finished world's top block, and neither can see a wall or a crop bed drawn as *terrain*: the painter wrote
+it with a theme like any other ground, so `KeepOut.Built` does not fire and its material says nothing. The
+layout carries the answer instead — a shape marked `keepClear` (`docs/tools/sketch.md`) puts its own columns
+in the mask as `KeepOut.Structure`, exactly and with no margin, so a road still runs to a gate while the wall
+either side of it keeps its top course. Without it a stroke repaints whatever it crosses and a channel, whose
+water line is the *lowest* surface its band crosses, cuts every other column in the band down to that line —
+which on a wall standing seventeen courses over a river is a hole through the wall, not a bank.
+
 **The claim book is per storey for the same reason.** `GroundClaims` is keyed on the layer as well as the
 cell, and each placement is handed one storey's view of it — `claims.On(prop.Layer)` — so a channel carved
 into the ground holds the columns it cut on the ground and none of the columns above them. Two props share a
@@ -96,8 +105,8 @@ one stage rather than four:
   and trees into groves; a per-cell `Unit` is the dice a worn stroke rolls. Deterministic hash-from-cell,
   **never RNG** — the discipline `terrain-painting.md` §5 already holds, so a map re-exports identically.
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
-  **keep-out** `DressingScope.KeptClearAt` builds: spawns, wool rooms, stated structures, built columns and
-  every door's approach. Nothing lands where it would break play or read wrong, and the mask answers *which*
+  **keep-out** `DressingScope.KeptClearAt` builds: spawns, wool rooms, stated structures, built columns,
+  the sketch shapes that marked themselves `keepClear`, and every door's approach. Nothing lands where it would break play or read wrong, and the mask answers *which*
   of those held a cell (`KeepOut`), because a decline that cannot name what stopped it is one nobody can act
   on. This is not the map contract's `protection`, which is a region rule about what a player may enter and
   break; it reads a spawn's protection areas but what it answers is the other thing. A route's own cells join the mask as it is laid, so nothing grows through a road; a stroke that is paint claims nothing and is planted over.
