@@ -127,12 +127,15 @@ a.lib-card-fig { text-decoration: none; }
 .lib-stage-figure .lib-fig { min-height: 0; height: 34vh; }
 .lib-stage-figure .lib-fig svg { height: 100%; width: auto; max-width: 100%; }
 
-/* The four house views laid out for a stage rather than a column: the isometric leads, the plan and the
-   section sit beside each other under it, and the cutaway closes. */
+/* The house views on a stage: the isometric over a row of the three cuts, each claiming the height it may.
+   A view asked for on its own has no sibling, so it takes the whole stage — which is the only size a cut can
+   be read at. */
 .lib-stage-figure .house-views__iso { height: 32vh; }
-.lib-stage-figure .house-views__cut { height: 16vh; }
+.lib-stage-figure .house-views__cuts { display: flex; gap: var(--space-3); justify-content: center; height: 20vh; }
+.lib-stage-figure .house-views__cut { height: 100%; min-width: 0; }
 .lib-stage-figure .house-views__iso svg,
 .lib-stage-figure .house-views__cut svg { height: 100%; width: auto; max-width: 100%; }
-.lib-stage-figure .dressing-views { display: flex; gap: var(--space-3); justify-content: center; height: 18vh; }
-.lib-stage-figure .theme-section-figure { height: 100%; }
-.lib-stage-figure .theme-section-figure svg { height: 100%; width: auto; max-width: 100%; }
+
+/* One view, alone: nothing shares the stage with it, so it takes all of it. */
+.lib-stage-figure:has(.house-views__iso:only-child) .house-views__iso,
+.lib-stage-figure .house-views__cuts:only-child { height: 58vh; }

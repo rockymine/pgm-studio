@@ -1,0 +1,19 @@
+@namespace PgmStudio.Client.Components
+
+@* One option of a set the dock picks between — a word, marked when it is the one that holds. Distinct from
+   DockModeButton, which flips a two-state mode and so needs no marking beyond its own colour: a choice among
+   several has to say which of them is current, and the row of words is the whole control. *@
+
+@* data-tip, not title — see DockButton: a native tooltip on a control this close to the bottom of the canvas
+   opens downward, off the edge. *@
+<button class="@Cls" type="button" data-tip="@Title" aria-pressed="@Active" @onclick="OnClick">@ChildContent</button>
+
+@code {
+    /// <summary>Whether this is the option that holds.</summary>
+    [Parameter] public bool Active { get; set; }
+    [Parameter] public string? Title { get; set; }
+    [Parameter] public EventCallback OnClick { get; set; }
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+
+    private string Cls => Active ? "canvas-dock-choice canvas-dock-choice--on" : "canvas-dock-choice";
+}

@@ -41,6 +41,10 @@ public partial class LibraryEditor
     /// <summary>The views the preview offers, as chips over it.</summary>
     [Parameter] public RenderFragment? Views { get; set; }
 
+    /// <summary>What the view is taken over, in the dock at the foot of the stage — the sample a building is
+    /// drawn on. A different question from which view, so a different bar.</summary>
+    [Parameter] public RenderFragment? Dock { get; set; }
+
     /// <summary>What the picture is showing, under it.</summary>
     [Parameter] public string? Footnote { get; set; }
 

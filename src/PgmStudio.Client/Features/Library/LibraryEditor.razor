@@ -42,6 +42,9 @@
     @if (Views is not null) { <CanvasLayerBar>@Views</CanvasLayerBar> }
     <div class="lib-stage-figure">@Preview</div>
     @if (Footnote is not null) { <span class="canvas-note">@Footnote</span> }
+    @* Two questions, and they are not the same one: the bar above says which view, the dock below says what
+       the view is taken over. A row of nine capsules in one corner reads as one long list of neither. *@
+    @if (Dock is not null) { <CanvasDock><DockGroup>@Dock</DockGroup></CanvasDock> }
   </div>
 
   <div class="sidebar-handle"></div>

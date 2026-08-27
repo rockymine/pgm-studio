@@ -838,6 +838,30 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
 }
 .canvas-dock-mode:hover { background: color-mix(in oklch, var(--dock-accent, var(--text-muted)) 28%, transparent); }
 
+/* One option of a set the dock picks between. It shares the mode pill's shape — a word among glyphs — and
+   differs in what it has to say: which of several holds, so the one that does takes the fill and the rest sit
+   quiet beside it. */
+.canvas-dock-choice {
+  flex: none;
+  height: 30px;
+  padding: 0 11px;
+  border-radius: var(--radius-md);
+  font-size: var(--font-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  color: var(--text-muted);
+  background: transparent;
+  border: 1px solid transparent;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.canvas-dock-choice:hover { color: var(--text-bright); background: color-mix(in oklch, var(--text-muted) 16%, transparent); }
+.canvas-dock-choice--on {
+  color: var(--text-strong);
+  font-weight: 700;
+  background: var(--bg-selected);
+  border-color: var(--accent);
+}
+
 /* Layers panel (S7b) — active row highlight + inline delete. */
 .list-row--active { background: var(--accent-light); border-left: 2px solid var(--accent); }
 .list-row-btn { margin-left: auto; display: inline-flex; align-items: center; background: none; border: none;

@@ -329,10 +329,16 @@ meant. Leave the `sill` part unbound to reach the same choice from the library.
 where the cell sits, which would turn every stair in a wall the same way. A window's `hostBlock` names the
 block it may be cut into, so a seat chosen by spacing on a banded wall does not land half in one band.
 
-A room style previews in four views — plan, section, isometric and cutaway — but a library card carries the
-section alone, since an isometric is tens of kilobytes for one style and megabytes for a grid of them. All
-four are drawn on the shell the `footprint` word names, which is a **view** rather than a field of the style:
-it changes what the picture is taken over and nothing about what a save would store.
+A room style previews in four views — isometric, plan, section and cutaway — and the editor shows them as the
+isometric over a row of the three cuts, because the isometric is what a building looks like and the cuts are
+how it is made. Any one can be asked for alone, which is the only way to read a cut at the size the stage can
+give it; the chips over the picture say which. A library card carries the section alone, since an isometric is
+tens of kilobytes for one style and megabytes for a grid of them.
+
+All four are drawn on the shell the `footprint` word names, asked in the dock at the foot of the stage rather
+than among the views: which view and at what proportion are two questions, and a row of nine capsules in one
+corner reads as one long list of neither. Neither is a field of the style — both change what the picture is
+taken over and nothing about what a save would store.
 
 ### A seeded house, written out
 

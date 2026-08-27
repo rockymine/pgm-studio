@@ -176,8 +176,14 @@ public partial class HousePartEditor
 
     private void Pick(string part) => selected = part;
 
-    /// <summary>The sample piece the preview is drawn on. A view rather than a field of the draft: it changes
-    /// what the picture is taken over and nothing about what would be saved.</summary>
+    /// <summary>Which picture is showing. The isometric and the three cuts answer different questions, so
+    /// asking for one alone is the only way to read it at the size the stage can give it.</summary>
+    private string view = HouseViews.All;
+
+    private void SetView(string picked) => view = picked;
+
+    /// <summary>The sample the preview is drawn on. It changes what the picture is taken over and nothing
+    /// about what would be saved.</summary>
     private string footprint = HouseFootprints.Default;
 
     private Task SetFootprint(string id)

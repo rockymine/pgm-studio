@@ -11,17 +11,24 @@
                Outline="Outline" Selected="@selected" OnSelect="Pick"
                Footnote="@Part.FigureNote" Note="@note">
   <Views>
-    @* A style states nothing about the rectangle it is stamped over, and a ridge follows that rectangle, so
-       the proportion the sample is judged at is a view rather than a setting. *@
-    @foreach (var (id, width, depth) in HouseFootprints.All)
+    @foreach (var (id, label, icon, note) in HouseViews.Offered)
     {
-      <LayerChip Icon="scan" Active="@(id == footprint)" @key="id"
-                 Title="@($"Draw the sample on a {width} × {depth} piece")"
-                 OnClick="() => SetFootprint(id)">@width × @depth</LayerChip>
+      <LayerChip Icon="@icon" Active="@(id == view)" @key="id" Title="@note"
+                 OnClick="() => SetView(id)">@label</LayerChip>
     }
   </Views>
+  <Dock>
+    @* A style states nothing about the rectangle it is stamped over, and a ridge follows that rectangle, so
+       the proportion the sample is judged at is asked here rather than set on the style. *@
+    @foreach (var (id, width, depth) in HouseFootprints.All)
+    {
+      <DockChoice Active="@(id == footprint)" @key="id"
+                  Title="@($"Draw the sample on a {width} × {depth} shell")"
+                  OnClick="() => SetFootprint(id)">@width × @depth</DockChoice>
+    }
+  </Dock>
   <Preview>
-    <HouseViews Preview="preview" />
+    <HouseViews Preview="preview" View="@view" />
   </Preview>
   <Fields>
     @if (selected == KnobsPart)

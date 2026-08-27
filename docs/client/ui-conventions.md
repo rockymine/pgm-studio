@@ -53,7 +53,8 @@ arranges itself from; `FlowBar` is the phase/step nav shared by the Configure wi
 phases; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
 
 **Canvas** — the floating chrome over a `WorldCanvas`: `CanvasReadout`, `CanvasLayerBar` with `LayerChip`,
-`CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton` and `DockFlyoutGroup`, plus `CanvasRoundButton`
+`CanvasDock` with `DockGroup`, `DockButton`, `DockModeButton`, `DockChoice` (one option of a set the dock
+picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGroup`, plus `CanvasRoundButton`
 and `ViewModeToggle`.
 
 **Terrain** — the material vocabulary shared by the Sketch tool's Theme phase and the library:
