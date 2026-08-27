@@ -619,21 +619,46 @@ public static class SketchRasterizer
     ///
     /// <para>Only pairs that differ in <em>both</em> theme and stated top are in it: two shapes at one height
     /// are a theme scoped to a patch, which is what scoping is for, and two sharing a theme cannot disagree
-    /// about paint. One entry per pair.</para></summary>
+    /// about paint. One entry per pair.</para>
+    ///
+    /// <para><b>The images count.</b> A shape in a mirroring island stands on the board once for every axis
+    /// of the orbit, and what a patch contests is as often another patch's <em>reflection</em> as the patch
+    /// itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the
+    /// other. The image carries its shape's theme and top, so it is judged as that shape and reported under
+    /// its id.</para></summary>
     public static List<PaintedByAnother> PaintedByAnotherShape(SketchLayout? state)
     {
         var found = new List<PaintedByAnother>();
+        var axes = Symmetry.OrbitAxes(state?.Setup?.MirrorMode ?? "rot_180");
+        double centerX = state?.Setup?.Center?.Cx ?? 0, centerZ = state?.Setup?.Center?.Cz ?? 0;
+
         foreach (var layer in ResolveLayers(state))
         {
+            var fanned = new HashSet<string>(layer.Islands.Where(island => island.Mirrors)
+                                                          .SelectMany(island => island.ShapeIds),
+                                             StringComparer.Ordinal);
             var adds = layer.Shapes
                 .Where(shape => shape.Override && shape.Operation != "subtract"
                              && shape.Role is null && shape.Theme is { Length: > 0 })
                 .Select(shape => (shape.Id, shape.Theme!,
                                   Top: Math.Max(0, (int)Math.Round(shape.Floor ?? 0))
                                      + Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1)),
-                                  Cells: RasterShape(shape).Select(cell => (cell.X, cell.Z)).ToHashSet()))
+                                  Cells: Placed(shape, fanned.Contains(shape.Id))))
                 .Where(entry => entry.Cells.Count > 0)
                 .ToList();
+
+            HashSet<(int X, int Z)> Placed(SketchShape shape, bool mirrors)
+            {
+                var cells = RasterShape(shape).Select(cell => (cell.X, cell.Z)).ToHashSet();
+                if (!mirrors) return cells;
+                foreach (var axis in axes)
+                    foreach (var (x, z) in cells.ToList())
+                    {
+                        var (imageX, imageZ) = MirrorCell((x, z), axis, centerX, centerZ);
+                        cells.Add((imageX, imageZ));
+                    }
+                return cells;
+            }
 
             for (var i = 0; i < adds.Count; i++)
             for (var j = i + 1; j < adds.Count; j++)

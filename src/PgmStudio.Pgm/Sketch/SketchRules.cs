@@ -125,7 +125,8 @@ public static class SketchRules
     /// by <b>area</b> and not by height, so where the smaller of the two is also the shorter, the world holds
     /// the taller shape's ground in the smaller one's material. A mound's outer ring crossing a town wall
     /// leaves the wall standing to its own courses and finished in grass over dirt, sides included. It is
-    /// visible only in a column read or in the world.</summary>
+    /// visible only in a column read or in the world. A shape in a mirroring island is judged at every image
+    /// of its orbit: what a patch contests is as often another patch's reflection as the patch itself.</summary>
     /// <remarks>Cut the smaller shape out of the taller one's footprint — the two are not meant to share ground, and clipping is what states that. Where the overlap is deliberate, give the two the same theme, or scope the paint with a shape at the same height: two shapes at one height are a theme scoped to a patch, which is what scoping is for and is not this.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
     public const string PaintedByAnotherShape = "SK15";

@@ -316,6 +316,30 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
     }
 
+    /// <summary>A shape in a mirroring island stands on the board once per axis of the orbit, so what a patch
+    /// contests is as often another patch's reflection as the patch itself.</summary>
+    [Test]
+    public async Task A_shape_painted_by_another_shapes_image_is_named()
+    {
+        // A mound laid clear of the raised court on the half it is drawn on, whose rot_180 image lands in it:
+        // smaller, so it wins the paint, and shorter, so the court's own ground is what stands there.
+        var court = """{"id":"court","type":"rectangle","operation":"add","override":true,"theme":"flags","min_x":-16,"max_x":16,"min_z":4,"max_z":20,"floor":0,"base_height":13}""";
+        var mound = """{"id":"mound","type":"rectangle","operation":"add","override":true,"theme":"turf","min_x":-14,"max_x":-6,"min_z":-18,"max_z":-10,"floor":0,"base_height":10}""";
+        var board = "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
+                  + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + court + "," + mound + "],"
+                  + "\"islands\":[{\"id\":\"i\",\"name\":\"I\",\"mirrors\":true,\"shapeIds\":[\"court\",\"mound\"]}]}}]}";
+
+        var findings = SketchLayoutCheck.Check(board)
+            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape).ToList();
+
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "court", "mound" });
+
+        // The same two on an island that is not fanned contest nothing: the image is what they meet in.
+        await Assert.That(SketchLayoutCheck.Check(board.Replace("\"mirrors\":true", "\"mirrors\":false"))
+            .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
+    }
+
     // ── SK15: one shape builds the column and another paints it ──────────────────────────────────────────
     private const string Mound =
         """{"id":"mound","type":"rectangle","operation":"add","override":true,"theme":"grass","min_x":-8,"max_x":8,"min_z":8,"max_z":16,"floor":0,"base_height":11}""";

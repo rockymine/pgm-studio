@@ -854,7 +854,9 @@ the ground and the *smaller* wins the paint. Where the smaller is also the short
 shape's blocks in another's material: a mound's outer ring crossing a wall leaves the wall standing to its own
 courses and finished in grass over dirt, sides included. That is `SK15`, a complaint naming both shapes, both
 themes, the columns they contest and the northmost. Two shapes at *one* height are a theme scoped to a patch,
-which is what scoping is for, and are not this.
+which is what scoping is for, and are not this. **The images count**: a shape in a mirroring island stands on
+the board once per axis of the orbit, and what a patch contests is as often another patch's reflection as the
+patch itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the other.
 
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
