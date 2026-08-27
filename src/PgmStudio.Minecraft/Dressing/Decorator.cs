@@ -194,7 +194,7 @@ public static class Decorator
 
         foreach (var prop in context.Props.OfType<WaterProp>())
         {
-            var result = PlaceWater(world, context, prop, claims);
+            var result = PlaceWater(world, context, prop, claims.On(prop.Layer));
             Cover(result, "water", prop.Id);
             placed = placed with { WaterCells = placed.WaterCells + result.Count };
             propIndex++;
@@ -205,7 +205,7 @@ public static class Decorator
         var roads = new List<(string Id, IReadOnlyList<(int X, int Z)> Cells)>();
         foreach (var prop in context.Props.OfType<StrokeProp>())
         {
-            var result = PlaceStroke(world, context, prop, claims);
+            var result = PlaceStroke(world, context, prop, claims.On(prop.Layer));
             Cover(result, "stroke", prop.Id);
             if (prop.Route)
                 foreach (var image in result.Images.Where(cells => cells.Count > 0))
@@ -219,27 +219,27 @@ public static class Decorator
         var ways = houses.Count > 0 ? context.Ways() : null;
         foreach (var prop in houses)
         {
-            var raised = PlaceHouse(world, context, prop, claims, declined, ways, roads);
+            var raised = PlaceHouse(world, context, prop, claims.On(prop.Layer), declined, ways, roads);
             structures.AddRange(raised);
             placed = placed with { Houses = placed.Houses + raised.Count };
         }
         foreach (var prop in context.Props.OfType<BoulderProp>())
         {
-            var result = PlaceBoulder(world, context, prop, claims, declined);
+            var result = PlaceBoulder(world, context, prop, claims.On(prop.Layer), declined);
             Cover(result, "boulder", prop.Id);
             placed = placed with { Boulders = placed.Boulders + result.Count };
             propIndex++;
         }
         foreach (var prop in context.Props.OfType<TreeProp>())
         {
-            var result = PlaceTree(world, context, prop, claims, declined);
+            var result = PlaceTree(world, context, prop, claims.On(prop.Layer), declined);
             Cover(result, "tree", prop.Id);
             placed = placed with { Trees = placed.Trees + result.Count };
             propIndex++;
         }
         foreach (var prop in context.Props.OfType<FloraProp>())
         {
-            var result = PlaceFlora(world, context, prop, claims);
+            var result = PlaceFlora(world, context, prop, claims.On(prop.Layer));
             Cover(result, "flora", prop.Id);
             placed = placed with { Plants = placed.Plants + result.Count };
             propIndex++;
@@ -278,7 +278,7 @@ public static class Decorator
     /// <para>Only a <see cref="StrokeProp.Route"/> claims what it covers. A claim is what later props keep
     /// clear of, and paint is ground rather than a thing standing on it — so a painted forest floor is
     /// planted over and a road is not.</para></summary>
-    private static Placed PlaceStroke(VoxelWorld world, DressingContext context, StrokeProp path, GroundClaims claims)
+    private static Placed PlaceStroke(VoxelWorld world, DressingContext context, StrokeProp path, GroundClaims.Storey claims)
     {
         var ground = context.GroundFor(path);
         if (path.Points.Count < 2) return Placed.None;
@@ -322,7 +322,7 @@ public static class Decorator
     /// a hollow keeps the hollow. The water line is the lowest surface the channel crosses, which is what keeps
     /// the fill from floating above ground it did not cut: every column's surface is at or above the line, so
     /// every block written sits at or below terrain that was there before.</para></summary>
-    private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims claims)
+    private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims.Storey claims)
     {
         var ground = context.GroundFor(water);
         if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return Placed.None;
@@ -400,7 +400,7 @@ public static class Decorator
     /// <summary>Grow cover inside a drawn area. One block per cell, in the air above the surface, and only
     /// where the paint beneath accepts it — a plant occupies its own cell and nothing around it, so it needs no
     /// local frame and no turning.</summary>
-    private static Placed PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, GroundClaims claims)
+    private static Placed PlaceFlora(VoxelWorld world, DressingContext context, FloraProp area, GroundClaims.Storey claims)
     {
         var ground = context.GroundFor(area);
         if (area.Points.Count < 3) return Placed.None;
@@ -514,7 +514,7 @@ public static class Decorator
     /// should be.</para>
     /// </summary>
     private static List<PlacementClaim> PlaceHouse(
-        VoxelWorld world, DressingContext context, HouseProp house, GroundClaims claims,
+        VoxelWorld world, DressingContext context, HouseProp house, GroundClaims.Storey claims,
         List<Finding> declined, WayThrough? ways,
         IReadOnlyList<(string Id, IReadOnlyList<(int X, int Z)> Cells)> roads)
     {
@@ -756,7 +756,7 @@ public static class Decorator
     /// every column of it. The <em>stamped</em> extent and not the ground it holds
     /// (<see cref="HeldCells"/>): the ring is what makes the clearance, and testing it too would spend the
     /// ring twice and hold two buildings two blocks apart.</summary>
-    private static (int X, int Z)? FirstOverlap(IEnumerable<(int X, int Z)> cells, GroundClaims claims)
+    private static (int X, int Z)? FirstOverlap(IEnumerable<(int X, int Z)> cells, GroundClaims.Storey claims)
     {
         foreach (var (x, z) in cells)
             if (claims.HoldsOtherThan(x, z, ClaimKind.Route)) return (x, z);
@@ -789,7 +789,7 @@ public static class Decorator
     /// Passable is terrain with nothing <em>built</em> on it — a road or a channel alongside the wall is
     /// still a way past, an earlier building is not. Measured over the plan's bounding box: the notch of an L
     /// is the building's own ground, not a public route through it.</summary>
-    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims claims, BuildingPlan plan)
+    private static bool HasPassage(DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, GroundClaims.Storey claims, BuildingPlan plan)
     {
         int minX = plan.MinX, minZ = plan.MinZ, maxX = plan.MaxX, maxZ = plan.MaxZ;
         var depth = DressingRules.PassAroundWidth;
@@ -879,7 +879,7 @@ public static class Decorator
     }
 
     private static Placed PlaceBoulder(
-        VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims claims,
+        VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims.Storey claims,
         List<Finding> declined)
     {
         var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
@@ -924,7 +924,7 @@ public static class Decorator
 
     // ── trees (DR-TR) ───────────────────────────────────────────────────────────
     private static Placed PlaceTree(
-        VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims claims,
+        VoxelWorld world, DressingContext context, TreeProp tree, GroundClaims.Storey claims,
         List<Finding> declined)
         => Fan(world, context, context.GroundFor(tree), (tree.X, tree.Z), TreeCells(tree), claims, tree.RouteStandoff, tree.Id, "tree", declined);
 
@@ -1013,7 +1013,7 @@ public static class Decorator
     /// one side of a mirrored board and vanish from the other — the difference a player would actually notice
     /// is not "the edges are a little thinner", it is "the two halves disagree".</summary>
     private static Placed Fan(VoxelWorld world, DressingContext context, IReadOnlyDictionary<(int X, int Z), int> ground, (int X, int Z) site,
-        List<PropCell> prop, GroundClaims claims, int routeStandoff, string id, string kind, List<Finding> declined)
+        List<PropCell> prop, GroundClaims.Storey claims, int routeStandoff, string id, string kind, List<Finding> declined)
     {
         if (prop.Count == 0) return Placed.None;
 
@@ -1080,7 +1080,7 @@ public static class Decorator
     /// monument at y+15 is not a trunk grown through it — a hand-built map's trees overhang its structures
     /// too — so the crown is free to reach wherever it would over open ground.</para></summary>
     private static bool Seats(
-        DressingContext context, IReadOnlyDictionary<(int X, int Z), int> tops, (int X, int Z) anchor, List<PropCell> prop, GroundClaims claims,
+        DressingContext context, IReadOnlyDictionary<(int X, int Z), int> tops, (int X, int Z) anchor, List<PropCell> prop, GroundClaims.Storey claims,
         int routeStandoff, string id, string kind, out int baseY, out Finding? decline)
     {
         baseY = int.MaxValue;

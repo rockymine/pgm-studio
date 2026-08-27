@@ -1715,6 +1715,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   against stays the stamped extent — so the ring is spent once between a pair and two buildings keep one block
   of clear ground between them rather than two. A trunk near enough to drop its crown through a roof is a
   `DR-CLAIM` naming the cell rather than a silent build.
+- **A claim is a claim of one storey (`WE49`).** `GroundClaims` is keyed on the layer as well as the cell and
+  every placement is handed one storey's view of it (`GroundClaims.On(prop.Layer)`), so two props collide only
+  where they share ground. A channel cut into the ground holds the columns it carved on the ground; a tree on
+  a floating island 26 courses over it stands on its own layer's surface and is placed. A prop naming no layer
+  claims on the top surface, so a board with one layer has one book.
 - **A building needs ground under every cell of its footprint (`B187`, `DR-SITE`).** `Decorator.Ground` took
   the *lowest* column its plan covered and answered null only when no cell had ground at all, so a house with
   one column on land and ten over void seated on that one and hung off the rest — and nothing else covered it,
