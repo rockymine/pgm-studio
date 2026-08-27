@@ -6118,7 +6118,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   material, with no finding raised. `RasterGroup` now reports the columns an override add **claimed** beside
   the columns themselves, and the fan's merge honours a claim from either side — the claim wins over ordinary
   ground, and where neither side claimed the column the taller still wins, which is what it means between two
-  islands meeting. `SK9` is silent here and correctly so: two adds at one floor are ordinary ground.
+  islands meeting. **An erected shape claims the columns it settles too**, for the same reason it names one:
+  a shape that says how its top is decided has a settled top the stated one does not carry, so a `sink`
+  hollowed into a whole-board island was refilled to the flat by the reflection of the ground round it —
+  measured, a five-block delve came out level with the meadow, silently. `SK9` is silent on all of this and
+  correctly so: two adds at one floor are ordinary ground.
 - **A lid over a hole is not a fill (`TS39`, `SK13`).** A subtract states a board's negative space and an
   override add that puts ground back in one is refused — but a layer holds **one span per column**, so an
   override add resting *above* the subtract's own floor moves that single span up and records nothing beneath

@@ -252,7 +252,7 @@ public static class SketchRasterizer
         // Erected shapes go on AFTER the relief, which is the whole of what makes them erected: a shape that
         // declares how its top is decided is one meant to stand OUT of the field rather than be part of it,
         // and it can only stand out of ground that already exists.
-        Erect(cells, shapes);
+        Erect(cells, shapes, claimed);
 
         if (metas.Count == 0)
         {
@@ -291,7 +291,7 @@ public static class SketchRasterizer
                     // shape is settled against the ground under it, so reading its height back through the
                     // mirror would give it the relief's answer instead of its own — one team a mesa and the
                     // other a hillside.
-                    Erect(copy, mirrored);
+                    Erect(copy, mirrored, mirroredClaims);
                     Merge(cells, copy, mirroredClaims, claimed);
                 }
             }
@@ -319,7 +319,8 @@ public static class SketchRasterizer
     /// be a blanket following the hillside, where what the word means is one flat-topped thing standing proud
     /// — which is also what keeps its prominence when it is dragged somewhere else on the map.</para>
     /// </summary>
-    private static void Erect(Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes)
+    private static void Erect(Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes,
+                              HashSet<(int, int)>? claimed = null)
     {
         foreach (var shape in shapes)
         {
@@ -371,6 +372,10 @@ public static class SketchRasterizer
                     top = (int)Math.Round(reach.Ground + (top - reach.Ground) * t);
                 }
                 cells[cell] = (Math.Max(column.Floor + 1, top), column.Floor);
+                // A shape that says how its top is decided has claimed the column as surely as an override
+                // add has: the settled top is not the shape's stated one, so a merge that re-reads the
+                // stated top — an island's own reflection, most of all — must not win it back.
+                claimed?.Add(cell);
             }
         }
     }

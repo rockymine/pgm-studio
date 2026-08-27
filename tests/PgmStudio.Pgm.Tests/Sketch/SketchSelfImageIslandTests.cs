@@ -57,6 +57,32 @@ public sealed class SketchSelfImageIslandTests
     }
 
     [Test]
+    public async Task A_sunk_landform_in_a_whole_board_island_survives_the_fan()
+    {
+        // A `sink` is a plain add whose top is settled after the raster, so the reflection of the ground
+        // around it carries a taller column than the hollow does. The settled top is a claim as much as an
+        // override add's is.
+        const string board = """
+        {
+          "setup": { "mirror_mode": "rot_180", "center": { "cx": 0, "cz": 0 } },
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
+            "shapes": [
+              { "id": "land", "type": "rectangle", "operation": "add",
+                "min_x": -40, "min_z": -40, "max_x": 40, "max_z": 40, "floor": 0, "base_height": 9 },
+              { "id": "delve", "type": "rectangle", "operation": "add", "floor": 0, "base_height": 5,
+                "height_mode": "sink", "skirt": 0,
+                "min_x": -30, "min_z": 10, "max_x": -20, "max_z": 30 }
+            ],
+            "islands": [ { "id": "team", "mirrors": true, "shapeIds": ["land", "delve"] } ]
+          } }]
+        }
+        """;
+        var tops = Tops(board);
+        await Assert.That(tops[(-25, 20)]).IsLessThan(tops[(0, 0)]);    // the hollow is a hollow
+        await Assert.That(tops[(24, -21)]).IsEqualTo(tops[(-25, 20)]);  // and so is its image
+    }
+
+    [Test]
     public async Task An_island_that_is_not_its_own_image_is_still_fanned()
     {
         // Half a board, off the mirror centre: the copy lands on cells the primary never had, which is what
