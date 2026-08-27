@@ -86,14 +86,15 @@ all. Nothing extra needs installing: **Playwright is already global** (`/opt/nod
 — never run `playwright install`. The only prerequisite is the database section above, since the script
 resets its own schema through `sudo -n mariadb` (its default admin path, which works once
 `sudo service mariadb start` has run). It uses its own port (7895) and database (`pgm_studio_e2e`), so a run
-cannot touch dev data. Expect `22/22` plan refusals and `33/33` smoke.
+cannot touch dev data. Every spec passes here: the run ends `e2e: PASS`.
 
-**The browser has no egress, and two checks depend on one.** `configure-objectives` ends 8/10 here on two
-`net::ERR_CONNECTION_RESET`s fetching a player avatar from `mc-heads.net` — the client renders one per author
-(`AuthorsEditor.razor`). A foreground `curl` reaches that host through the agent proxy, so the host is not
-blocked; headless Chromium is simply not proxied. Nothing in the container fixes it, and the two checks are
-about a phase raising no faults rather than about avatars, so read the suite as green at 8/10 unless one of
-the other eight moves.
+**The browser has no egress, and the author avatars need one.** The client renders a player head per author
+(`AuthorsEditor.razor`), fetched by UUID from `mc-heads.net`, and headless Chromium is not proxied — a
+foreground `curl` reaches that host through the agent proxy, so the host is not blocked, the browser simply
+has no route to it. The fetch fails with `net::ERR_CONNECTION_RESET` on every page carrying the author rail.
+That is a fact about the network rather than about the studio, so `ALLOWED_FAULTS` in
+`tests/e2e/lib/harness.mjs` tolerates it for that one host: the pages still fail the sweep on a request of
+their own, and an avatar answering 4xx is still a fault.
 
 The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
 — which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays

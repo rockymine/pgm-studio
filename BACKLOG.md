@@ -481,25 +481,6 @@ model — everything else from that pool has moved to the heading its subject ow
 
   *`opus-run2` §1.7 and §5 #7.*
 
-- [ ] **TS41 — The structural spec surfaces no spawn or wool rectangle.** `tests/e2e/structural.mjs` asserts
-  that a compiled plan's spawn and wool pieces reach the sketch canvas as locked rectangles (`S25`,
-  `FEATURES.md`) and finds none, so three of its nine checks fail: *0 spawn rectangles*, *0 wool rectangles*,
-  and *0 terrain polygon(s) vs 0 structural pieces*. Either the projection stopped running, the fixture stopped
-  carrying an intent the projection can read, or the spec is looking for a shape the canvas no longer draws
-  under that name — and which it is decides whether this is a bug in `PlanCompiler`'s projection or drift in
-  the spec.
-
-  *`./tools/e2e.sh structural` → 6/9, the same three on a clean checkout.*
-
-- [ ] **TS42 — The dressing spec counts five placing tools where the dock offers six.** `tests/e2e/dressing.mjs`
-  asserts *"the phase offers its five placing tools"* and the Dressing dock draws `DressingTools.All` —
-  stroke, water, ground cover, building, tree, boulder. The count assertion fails and the drive that follows
-  clicks a tool by the position it no longer holds, so three of the spec's 22 checks fail on a phase that
-  works. Count the tools off `DressingTools.All` rather than restating the number, and re-point the drive.
-
-  *`./tools/e2e.sh dressing` → 19/22, with the same three failures on a clean checkout: "the phase offers its
-  five placing tools — Select | Move | Stroke | Water | Ground cover | Building | Tree | Boulder".*
-
 ### Painting: the theme a document states is not what lands
 
 Four places the paint and the document disagree — an overlap resolved by opposite rules, a shape whose
@@ -1303,7 +1284,6 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
   options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
   re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
   *Forms* tier already names it.
-
 
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
 `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as

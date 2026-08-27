@@ -5,7 +5,7 @@
  *      PUT → GET through the real sketch endpoint, each read back as the kind it was written as.
  *   2. Pickers + preview — the option cards are drawn by the pass itself, and the preview's counts move with
  *      the knobs, which is the only thing that makes "the picture is the real pass" worth claiming.
- *   3. UI — the phase renders with its four placing tools, and dragging on the canvas actually places a prop.
+ *   3. UI — the phase renders its placing tools, and dragging on the canvas actually places a prop.
  */
 
 import { openBrowser, newPage, clearFaults, Checks, readSeed, api, BASE, TMP_DIR }
@@ -103,6 +103,10 @@ checks.add("both views are drawn", (tree.plan?.length ?? 0) > 100 && (tree.secti
 // ── 3. the phase places on the canvas ─────────────────────────────────────────────────────────────────
 checks.section("the sketch Dressing phase places things");
 
+// The placing tools this spec drives, named once: the dock check asserts they are offered and the drive
+// clicks them, so a renamed tool fails both together rather than passing one and timing out in the other.
+const DRIVEN = { stroke: "Stroke", water: "Water", tree: "Tree" };
+
 const browser = await openBrowser();
 const page = await newPage(browser, { width: 1600, height: 1000 });
 async function shot(file) { await page.screenshot({ path: `${OUT}${file}`, fullPage: false }); }
@@ -117,10 +121,18 @@ try {
   await page.click('button[title="Dressing"]', { timeout: 8000 });
   await page.waitForTimeout(1500);
 
-  tools = await page.locator(".canvas-dock .canvas-dock-btn").evaluateAll(
-    els => els.map(el => el.getAttribute("aria-label")));
-  const placing = tools.filter(t => /^(Path|Water|Ground cover|Tree|Boulder)/.test(t ?? ""));
-  checks.add("the phase offers its five placing tools", placing.length === 5, tools.join(" | "));
+  const groups = await page.locator(".canvas-dock .canvas-dock-group").evaluateAll(
+    els => els.map(group => [...group.querySelectorAll(".canvas-dock-btn")]
+      .map(btn => btn.getAttribute("aria-label"))));
+  tools = groups.flat();
+  // The dock leads with getting around the canvas (Select · Move) and every group after it places
+  // something — `DressingTools.All`, one button each. Reading the count off the dock rather than
+  // restating it means a tool added to that list does not fail a phase that works; what this spec
+  // needs is that the tools it drives below are the ones on offer.
+  const placing = groups.slice(1).flat();
+  checks.add("the phase offers the placing tools this spec drives",
+    placing.length > 0 && Object.values(DRIVEN).every(name => placing.includes(name)),
+    placing.join(" | "));
   // The draw tools are Draw's: dressing places props, it does not author geometry.
   checks.add("and none of the shape tools", !tools.some(t => /^(Rectangle|Polygon|Lasso)/.test(t ?? "")),
     tools.join(" | "));
@@ -129,7 +141,7 @@ try {
 
   // Drop a tree by clicking, which is the whole interaction.
   const box = await page.locator("svg.map-canvas-svg").boundingBox();
-  await page.click('button[aria-label^="Tree"]');
+  await page.click(`button[aria-label^="${DRIVEN.tree}"]`);
   await page.mouse.click(box.x + box.width * 0.45, box.y + box.height * 0.45);
   await page.waitForTimeout(1500);
   checks.add("a click places a tree", await page.locator("text=Species").count() > 0);
@@ -147,7 +159,7 @@ try {
     await page.locator("text=Species").count() > 0 && await page.locator("text=Branch angle").count() === 0);
 
   // Drag a route: press, trace, release — no separate way to finish, which is the bug the rework fixes.
-  await page.click('button[aria-label^="Path"]');
+  await page.click(`button[aria-label^="${DRIVEN.stroke}"]`);
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.65);
   await page.mouse.down();
   for (const step of [0.35, 0.45, 0.55, 0.65]) {
@@ -161,7 +173,7 @@ try {
 
   // Drag a water channel: the same press-trace-release, but its inspector is the water one — a depth and a
   // form, the knobs a channel has and a path does not.
-  await page.click('button[aria-label^="Water"]');
+  await page.click(`button[aria-label^="${DRIVEN.water}"]`);
   await page.mouse.move(box.x + box.width * 0.25, box.y + box.height * 0.35);
   await page.mouse.down();
   for (const step of [0.35, 0.45, 0.55, 0.65, 0.75]) {

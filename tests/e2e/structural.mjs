@@ -23,7 +23,9 @@ await mkdir(OUT, { recursive: true });
 checks.section("compiled layout surfaces the plan's structural pieces");
 
 const compiled = await api("/plan/compile", { method: "POST", body: seed.planJson });
-const shapes = compiled.layout?.layout?.shapes ?? [];
+// The layout is a stack of layers and a layer holds its own drawing, so the shapes are read per layer.
+// A compiled plan is the flat case — a stack of one, called `ground`.
+const shapes = (compiled.layout?.layers ?? []).flatMap(layer => layer.layout?.shapes ?? []);
 const spawns  = shapes.filter(s => s.role === "spawn");
 const wools   = shapes.filter(s => s.role === "woolRoom");
 const terrain = shapes.filter(s => !s.role);

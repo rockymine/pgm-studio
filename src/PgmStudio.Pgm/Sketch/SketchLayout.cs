@@ -5,7 +5,8 @@ using System.Text.Json.Serialization;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
-/// The sketch layout wire model — the authoring blob (<c>{setup, layout:{shapes, islands}}</c>) shared by
+/// The sketch layout wire model — the authoring blob (<c>{setup, layers:[{id, name, base_y,
+/// layout:{shapes, islands}}]}</c>) shared by
 /// the rasterizer that reads it and the generators that write it. camelCase by default (Web options);
 /// snake_case and reserved-word fields carry an explicit name. Kept as the single definition so a
 /// generated layout and a hand-drawn one parse through exactly the same shape.

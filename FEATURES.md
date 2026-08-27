@@ -199,6 +199,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   an incomplete plan compiling** (B38, gated below) — asserted as the behaviour of the day so the suite
   stayed a signal, and written to fail loudly when a gate landed, which is how it did. 31/31 smoke,
   22/22 refusals. (C31)
+- **The suite measures what its names claim (TS41, TS42, C52).** `tests/e2e/structural.mjs` reads the
+  compiled layout one layer at a time — `layers[].layout.shapes`, where a sketch layout keeps its drawing —
+  so `S25`'s two spawn and two wool rectangles are counted beside the terrain they surface over, and the
+  two checks that carry weight only on a non-empty set (the rectangle footprints, the `intentRef` link and
+  its colour) are the ones reporting them. `tests/e2e/dressing.mjs` takes its placing tools from the dock's
+  placing group rather than from a stated number, so a tool added to `DressingTools.All` leaves a working
+  phase green, and names the three it drives — `Stroke`, `Water`, `Tree` — once, so the offer check and the
+  clicks cannot disagree about what a tool is called: the drive reaches the path and channel drags past its
+  first click. `ALLOWED_FAULTS` tolerates the author avatars' third-party host: whether a run reaches it is
+  a fact about that run's network, while a failed request of the page's own still fails the sweep.
 - **The canvases share their machinery instead of re-deriving it (CV13 + CV14).** Two shapes of
   duplication, both of which had already cost something:
   - **The layer z-stack was stated twice per canvas** — once by the `#…Layer` field declarations, once by

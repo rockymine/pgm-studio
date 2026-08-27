@@ -112,7 +112,7 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 27 | 1,756 | `Migrations/` 26 · 1 at root |
 | `Minecraft` | 85 | 16,595 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 12 · `Houses/` 10 · `Painting/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 150 | 24,255 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 7 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Pgm` | 150 | 24,256 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 7 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 7 | 748 | flat |
 <!-- /census -->
 

@@ -70,6 +70,15 @@ const ALLOWED_FAULTS = [
     match: /request failed \(net::ERR_ABORTED\)/,
     why: "a fetch cancelled by navigating on — an artifact of the sweep, not a page fault",
   },
+  {
+    // The author rail draws Minecraft player heads, which are fetched by UUID from a third-party service.
+    // Whether a run can reach it is a fact about the network the run is on — a firewalled container, an
+    // offline laptop, the service down — and none of those is the studio at fault. Scoped to that one
+    // host and to a connection failure, so an avatar answering 4xx, or any other request failing, is
+    // still the sweep's business.
+    match: /request failed \([^)]*\): https:\/\/mc-heads\.net\//,
+    why: "the third-party avatar service, unreachable from this network — not a fault of the page (C52)",
+  },
 ];
 
 const isAllowed = (text) => ALLOWED_FAULTS.some(a => a.match.test(text));
