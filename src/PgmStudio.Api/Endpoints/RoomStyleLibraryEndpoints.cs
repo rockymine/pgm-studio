@@ -2,6 +2,7 @@ using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Domain;
@@ -22,9 +23,20 @@ internal static class StylePngAnswer
         this TEndpoint endpoint, HouseStyle style, CancellationToken ct)
         where TEndpoint : IEndpoint
     {
+        var footprint = endpoint.HttpContext.Footprint();
         return await PngAnswer.AnsweredAsync(endpoint.HttpContext, RoomStylePreview.PngViews,
-            (view, scale) => RoomStylePreview.Png(style, view, scale), ct);
+            (view, scale) => RoomStylePreview.Png(style, view, scale, footprint), ct);
     }
+}
+
+/// <summary>The sample footprint a house preview is drawn on, off the request. A style states nothing about
+/// the rectangle it is stamped over and a ridge follows that rectangle, so the proportion is the caller's to
+/// pick; a word outside the set folds onto the default rather than refusing, since a picture is how a style
+/// is looked at rather than part of the question.</summary>
+internal static class FootprintQuery
+{
+    public static string Footprint(this HttpContext http)
+        => HouseFootprints.Canonical(http.Request.Query["footprint"].FirstOrDefault());
 }
 
 /// <summary>Row ↔ wire-DTO mapping for the room-style library (G34b), the sibling of
@@ -155,7 +167,7 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
     {
         var style = await library.ComposeDraftAsync(req, ct);
         if (await this.SendStylePngAsync(style, ct)) return;
-        await Send.OkAsync(RoomStylePreview.Views(style), ct);
+        await Send.OkAsync(RoomStylePreview.Views(style, footprint: HttpContext.Footprint()), ct);
     }
 }
 
@@ -194,7 +206,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
             var style = HouseStyleJson.Deserialize(json, out var unread);
             Complaints.Unread(HttpContext, unread);
             if (await this.SendStylePngAsync(style, ct)) return;
-            await Send.OkAsync(RoomStylePreview.Views(style), ct);
+            await Send.OkAsync(RoomStylePreview.Views(style, footprint: HttpContext.Footprint()), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid room style JSON", ex, ct); }
     }

@@ -59,15 +59,13 @@ page laid out as the studio's own workspace. What is left is what an author can 
   sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
   air.*
 
-- [~] **B70 — One footprint is the wrong number, and the card shows the one view its knobs are invisible in.**
-  `RoomStylePreview.Sample` is a single `static readonly` field, so every style in the library is judged at
-  10×10 and at no other proportion — while a style states nothing about the footprint it will be stamped
-  over, only storey heights and a roof's pitch. `Wing.RidgeAlongX` derives the ridge from the rectangle's own
-  proportions, so one style on 10×10 and on 5×10 is two different roofs rather than one roof stretched.
-  Make the sample a parameter over four **piece** footprints — **6×6, 8×8, 10×15, 16×16** (author; the frame
-  insets each to its shell) — offered as canvas chips on the editor. And give the card a view its knobs
-  change: a section projected onto the front wall shows a window as a patch of the same colour as the wall
-  around it.
+- [~] **B70 — The card shows the one view its knobs are invisible in.** A library card carries the section
+  alone, and a section projected onto the front wall shows a window as a patch of the same colour as the wall
+  around it, a porch as nothing at all. Which view a card should carry instead is a look-and-choose question
+  rather than a derivable one: the plan reads the roof form, its hole, its overhang and a porch's notch but no
+  window; the cutaway reads a window as the opening it is but draws a block as its own shape, which is tens of
+  kilobytes per row. The sample is now a parameter, so a card could also be judged at a proportion where more
+  reads. Wants the author's eye on which picture picks a house out of a grid.
 
 - [ ] **B258 — The library draws the iso the map draws.** `iso-webgl.js` renders the world the export builds,
   meshed by `column-mesh.js` from per-column runs — and both routes that answer those runs, `POST

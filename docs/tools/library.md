@@ -330,7 +330,9 @@ where the cell sits, which would turn every stair in a wall the same way. A wind
 block it may be cut into, so a seat chosen by spacing on a banded wall does not land half in one band.
 
 A room style previews in four views — plan, section, isometric and cutaway — but a library card carries the
-section alone, since an isometric is tens of kilobytes for one style and megabytes for a grid of them.
+section alone, since an isometric is tens of kilobytes for one style and megabytes for a grid of them. All
+four are drawn on the shell the `footprint` word names, which is a **view** rather than a field of the style:
+it changes what the picture is taken over and nothing about what a save would store.
 
 ### A seeded house, written out
 
@@ -527,6 +529,7 @@ instead, which is the form an agent saves and looks at.
 | `format` | `png`. Absent answers the JSON |
 | `view` | which view to draw, out of that route's own closed set — the first is what it draws unasked. A name outside the set is a **400** listing the ones it has. A route with one picture and nothing to choose declares no `view` at all |
 | `scale` | 1 to 8, absent is 1. A magnification rather than a redraw: the same view at more pixels, because a house section is 72 × 108 unasked and a roof idiom cannot be read off that. Anything outside the range, or not a number, draws at 1 — a scale is how the answer is looked at rather than part of the question, so a bad one costs a bigger picture and never the picture |
+| `footprint` | the shell a **house or a part** is drawn on: `6x6`, `8x8`, `10x15` or `16x16`, absent being `8x8`. A style states nothing about the rectangle it is stamped over while a ridge follows that rectangle's own proportions, so the same style on a square and on a long shell is two different roofs. 6×6 is the least a room may be (`WX2`), and the piece each is resolved out of is two blocks larger on each axis. A word outside the set draws the default, for the same reason a bad `scale` does |
 
 The view sets, each stated once in the code and published as the `view` parameter's enum, so what the schema
 names and what a refusal lists are the same list: **`material-preview`** and **`prop-preview`** draw

@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using PgmStudio.Contracts;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Components;
 
@@ -81,9 +82,14 @@ public sealed class TerrainLibraryClient(HttpClient http)
 
     /// <summary>What a draft composes to, saving nothing. The body is the save request itself, so the picture
     /// cannot promise something the save would not build. Every kind but <see cref="LibraryKinds.Styles"/>
-    /// answers it — a style draws through <see cref="MaterialPreviewAsync"/> instead.</summary>
-    public Task<TPreview?> DraftPreviewAsync<TPreview>(LibraryKind kind, object draft)
-        => PostOrNull<TPreview>($"api/{kind.Route}/preview", draft);
+    /// answers it — a style draws through <see cref="MaterialPreviewAsync"/> instead.
+    ///
+    /// <para><paramref name="footprint"/> is the sample piece a building is drawn on, one of
+    /// <see cref="HouseFootprints"/>; absent draws it on the default.</para></summary>
+    public Task<TPreview?> DraftPreviewAsync<TPreview>(LibraryKind kind, object draft, string? footprint = null)
+        => PostOrNull<TPreview>(
+            footprint is null ? $"api/{kind.Route}/preview" : $"api/{kind.Route}/preview?footprint={footprint}",
+            draft);
 
     public Task<TDetail?> CreateAsync<TDetail>(LibraryKind kind, object request)
         => PostOrNull<TDetail>($"api/{kind.Route}", request);

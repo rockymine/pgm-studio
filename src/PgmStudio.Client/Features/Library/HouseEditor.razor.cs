@@ -140,6 +140,17 @@ public partial class HouseEditor
 
     private void Pick(string part) => selected = part;
 
+    /// <summary>The sample piece the preview is drawn on. A view rather than a field of the draft: it changes
+    /// what the picture is taken over and nothing about what would be saved.</summary>
+    private string footprint = HouseFootprints.Default;
+
+    private Task SetFootprint(string id)
+    {
+        footprint = id;
+        return Preview();
+    }
+
+
     // ── the draft ──────────────────────────────────────────────────────────────────────────────────
     /// <summary>What a new house starts as: the shipped shell — a flat lid with a hole in it, no windows and
     /// no porch — so the first thing an author sees is what the export builds today and every knob turned from
@@ -435,7 +446,7 @@ public partial class HouseEditor
     {
         preview = draft is null
             ? null
-            : await Library.DraftPreviewAsync<RoomStylePreviewDto>(LibraryKinds.Houses, Saveable(draft));
+            : await Library.DraftPreviewAsync<RoomStylePreviewDto>(LibraryKinds.Houses, Saveable(draft), footprint);
         StateHasChanged();
     }
 

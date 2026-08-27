@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Contracts;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
@@ -28,11 +29,19 @@ namespace PgmStudio.Api.Services;
 /// </summary>
 public static class RoomStylePreview
 {
-    /// <summary>The room every preview is stamped into: the shipped 10×10 piece, whose frame resolves to the
-    /// 8×8 shell (WX1). One door on the −z wall, so a section taken from the front shows a doorway and the
-    /// courses around it; the marker at the piece centre gives the 2×2 pad.</summary>
-    private static readonly RoomFrame Sample =
-        RoomFrames.Resolve(0, 0, 10, 10, 5, 5, [(0, 0, 10, 0)], null, out _)!;
+    /// <summary>The room a preview is stamped into, at the piece one of the four
+    /// <see cref="HouseFootprints"/> names — whose frame resolves to the shell inside it (WX1). One door on
+    /// the −z wall, so a section taken from the front shows a doorway and the courses around it; the marker
+    /// at the piece centre gives the 2×2 pad.</summary>
+    private static RoomFrame SampleOf(string? footprint)
+    {
+        var (width, depth) = HouseFootprints.PieceOf(footprint);
+        // A whole-number marker in both axes: the pad is square, so a piece whose axes differ in parity is
+        // refused outright where the marker is taken as the piece centre (WX3).
+        return RoomFrames.Resolve(0, 0, width, depth, width / 2, depth / 2, [(0, 0, width, 0)], null, out _)
+            ?? throw new InvalidOperationException(
+                $"the {footprint} sample piece ({width}×{depth}) does not resolve to a shell");
+    }
 
     /// <summary>Red, on the 0–15 damage scale a room's tint reads — the same sample colour the theme cards
     /// use.</summary>
@@ -46,19 +55,24 @@ public static class RoomStylePreview
 
     /// <summary>The one picture a library card carries. Kept apart from <see cref="Views"/> so listing the
     /// library does not draw an isometric per row.</summary>
-    public static string Card(HouseStyle style, int cell = 6)
-        => WorldViews.Section(Stamped(style), Outer(style), cell);
+    public static string Card(HouseStyle style, int cell = 6, string? footprint = null)
+    {
+        var sample = SampleOf(footprint);
+        return WorldViews.Section(Stamped(style, sample), Outer(style, sample), cell);
+    }
 
     /// <summary>Every view of the sample room, for the one style an editor has open.</summary>
-    public static RoomStylePreviewDto Views(HouseStyle style, int cell = 6)
+    public static RoomStylePreviewDto Views(HouseStyle style, int cell = 6, string? footprint = null)
     {
-        var world = Stamped(style);
-        var box = Outer(style);
+        var sample = SampleOf(footprint);
+        var world = Stamped(style, sample);
+        var box = Outer(style, sample);
+        var inner = Inner(style, sample);
         return new RoomStylePreviewDto(
             WorldViews.Plan(world, box, cell),
             WorldViews.Section(world, box, cell),
             WorldViews.Isometric(world, box, Math.Max(4, cell)),
-            WorldViews.Elevation(world, Inner(style), CutawayPlane(world, Inner(style)), Math.Max(8, cell * 2)));
+            WorldViews.Elevation(world, inner, CutawayPlane(world, inner, sample), Math.Max(8, cell * 2)));
     }
 
     /// <summary>One view of the sample room as PNG bytes, or null for a view name this endpoint does not
@@ -67,10 +81,11 @@ public static class RoomStylePreview
     /// lattice's whole trick is the quarter each stair is missing — so they have no raster to encode and stay
     /// SVG. Every other preview in the studio answers <c>?format=png</c>, and a building is the one picture
     /// the reviewer's checklist asks to be looked at, so the two that can are offered.</summary>
-    public static byte[]? Png(HouseStyle style, string view, int scale = 1)
+    public static byte[]? Png(HouseStyle style, string view, int scale = 1, string? footprint = null)
     {
-        var world = Stamped(style);
-        var box = Outer(style);
+        var sample = SampleOf(footprint);
+        var world = Stamped(style, sample);
+        var box = Outer(style, sample);
         return view switch
         {
             "plan" => WorldViews.PlanRaster(world, box, Cell).Scaled(scale).Png(),
@@ -89,44 +104,44 @@ public static class RoomStylePreview
 
     /// <summary>The sample room stamped with <paramref name="style"/>, over ground that reaches the shell's
     /// footprint — so the floor has something to sit on and a deep one has something to sink into.</summary>
-    private static VoxelWorld Stamped(HouseStyle style)
+    private static VoxelWorld Stamped(HouseStyle style, RoomFrame sample)
     {
         var world = new VoxelWorld();
-        for (var x = Sample.MinX - Margin; x < Sample.MaxX + Margin; x++)
-        for (var z = Sample.MinZ - Margin; z < Sample.MaxZ + Margin; z++)
+        for (var x = sample.MinX - Margin; x < sample.MaxX + Margin; x++)
+        for (var z = sample.MinZ - Margin; z < sample.MaxZ + Margin; z++)
         for (var y = 1; y < FloorY; y++)
             world.SetBlock(x, y, z, Blocks.Stone);
 
-        HouseStamper.Stamp(world, Sample, FloorY, style, SampleColor);
+        HouseStamper.Stamp(world, sample, FloorY, style, SampleColor);
         // The pad belongs to the structure stampers rather than the shell, but a preview is of the room and
         // not of the shell alone — and it is what a plan view sees through the roof hole, so without it a
         // holed roof and a sealed one draw the same picture.
-        PadStamp.Lay(world, Sample.Pad, FloorY, SampleColor);
+        PadStamp.Lay(world, sample.Pad, FloorY, SampleColor);
         return world;
     }
 
     /// <summary>The box the outward views are taken over: the shell plus its margin of ground, from under the
     /// deepest floor to over the highest course of roof.</summary>
-    private static BlockBox Outer(HouseStyle style) => new(
-        Sample.MinX - Margin, FloorY - style.Foundation.Plate.Extent, Sample.MinZ - Margin,
-        Sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ + Margin - 1);
+    private static BlockBox Outer(HouseStyle style, RoomFrame sample) => new(
+        sample.MinX - Margin, FloorY - style.Foundation.Plate.Extent, sample.MinZ - Margin,
+        sample.MaxX + Margin - 1, FloorY + style.TopLayerOver(sample.Width, sample.Depth, sample.Doors[0].Edge), sample.MaxZ + Margin - 1);
 
     /// <summary>The box the cutaway is drawn over — the shell itself, since a slice through the ground beside
     /// it is a slice through stone.</summary>
-    private static BlockBox Inner(HouseStyle style) => new(
-        Sample.MinX, FloorY - 1, Sample.MinZ,
-        Sample.MaxX, FloorY + style.TopLayerOver(Sample.Width, Sample.Depth, Sample.Doors[0].Edge), Sample.MaxZ);
+    private static BlockBox Inner(HouseStyle style, RoomFrame sample) => new(
+        sample.MinX, FloorY - 1, sample.MinZ,
+        sample.MaxX, FloorY + style.TopLayerOver(sample.Width, sample.Depth, sample.Doors[0].Edge), sample.MaxZ);
 
     /// <summary>The plane the cutaway is taken on: the one the ladder stands in where the building has
     /// storeys, since that is where the slab, the clear under it and the way through it are all visible at
     /// once — else one block inside the front wall, the busiest plane a single-storey shell has. Found by
     /// looking for the ladder rather than by working out where it ought to be.</summary>
-    private static int CutawayPlane(VoxelWorld world, BlockBox box)
+    private static int CutawayPlane(VoxelWorld world, BlockBox box, RoomFrame sample)
     {
         for (var z = box.MinZ; z <= box.MaxZ; z++)
             for (var x = box.MinX; x <= box.MaxX; x++)
                 for (var y = box.MinY; y <= box.MaxY; y++)
                     if (world.GetBlock(x, y, z).Id == Blocks.Ladder) return z;
-        return Sample.MinZ + 1;
+        return sample.MinZ + 1;
     }
 }

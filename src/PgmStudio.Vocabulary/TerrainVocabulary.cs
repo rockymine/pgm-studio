@@ -138,6 +138,44 @@ public static class RoomParts
         [Floor, Field, Border, Inlay, Wall, Deck, Gable, Roof, Post, Sill, Verge];
 }
 
+/// <summary>
+/// The sample footprints a house style is previewed on, by the <b>shell</b> each names — the room a player
+/// stands in, which is what an author reads a building at. A style states nothing about the rectangle it will
+/// be stamped over, only storey heights and a roof's pitch, while a ridge follows that rectangle's own
+/// proportions: one style on a square and on a long shell is two different roofs rather than one roof
+/// stretched.
+///
+/// <para>The piece a shell is resolved from is two blocks larger on each axis (<c>WX1</c>), and 6×6 is the
+/// least shell a room may be (<c>WX2</c>) — which is why the smallest offered is exactly that.</para>
+/// </summary>
+public static class HouseFootprints
+{
+    public const string Small = "6x6";
+    public const string Square = "8x8";
+    public const string Long = "10x15";
+    public const string Large = "16x16";
+
+    /// <summary>The four, smallest first, each as the shell it draws.</summary>
+    public static readonly (string Id, int Width, int Depth)[] All =
+        [(Small, 6, 6), (Square, 8, 8), (Long, 10, 15), (Large, 16, 16)];
+
+    /// <summary>The shell a card is judged at, and what a caller naming none is answered on.</summary>
+    public const string Default = Square;
+
+    /// <summary>The shell a word names, folding anything outside the set onto <see cref="Default"/> — a
+    /// picture is how a style is looked at rather than part of the question, so a bad word costs the wrong
+    /// proportion and never the picture.</summary>
+    public static string Canonical(string? id)
+        => All.FirstOrDefault(one => string.Equals(one.Id, id, StringComparison.OrdinalIgnoreCase)).Id ?? Default;
+
+    /// <summary>The piece a footprint's shell resolves out of: two blocks larger on each axis.</summary>
+    public static (int Width, int Depth) PieceOf(string? id)
+    {
+        var found = All.First(one => one.Id == Canonical(id));
+        return (found.Width + 2, found.Depth + 2);
+    }
+}
+
 /// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. Every one of them is a
 /// height field over the same plan, so the list grows without the stamper branching.</summary>
 public static class RoofForms

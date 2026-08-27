@@ -2209,6 +2209,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/themes/{id}/json` reassembles a library theme back into the exact painter JSON, and `POST
   /api/themes/import` lifts a whole theme JSON in as one style per bucket + a theme binding them (400, never 500,
   on malformed JSON). Import-then-compose is byte-for-byte identity, proven end-to-end through the real database.
+- **A house is judged on four proportions, not one (B70).** `RoomStylePreview`'s sample was a single
+  `static readonly` field, so every style in the library was drawn at one rectangle — while `Wing.RidgeAlongX`
+  derives the ridge from the rectangle's own proportions, making one style on a square and on a long shell two
+  different roofs an author could only ever see one of. The sample is a parameter over four shells — **6×6**
+  (the least a room may be, `WX2`), **8×8**, **10×15**, **16×16** — offered as canvas chips on the house and
+  part editors and as a `?footprint=` word on every house preview route. A word outside the set draws the
+  default, the way a bad `scale` does.
 - **Every library is searched by name (B47).** The browse strip carries a name search on all six kinds, where
   only styles could be narrowed at all and only by kind.
 - **A studio nobody has seeded is not a state the app can be in, and it ships with six finishes (TL4, G158).**

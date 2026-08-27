@@ -123,7 +123,8 @@ public sealed class RoofStyleDraftPreviewEndpoint(HousePartLibrary library)
     public override void Configure() { Post("/roof-styles/preview"); AllowAnonymous(); }
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(RoomStylePreview.Views(await library.ComposeRoofDraftAsync(req, ct)), ct);
+        => await Send.OkAsync(
+            RoomStylePreview.Views(await library.ComposeRoofDraftAsync(req, ct), footprint: HttpContext.Footprint()), ct);
 }
 
 /// <summary>DELETE /api/roof-styles/{id} — forget a roof, unless a house still wears it. A part bound by a
@@ -218,7 +219,8 @@ public sealed class StoreyStyleDraftPreviewEndpoint(HousePartLibrary library)
     public override void Configure() { Post("/storey-styles/preview"); AllowAnonymous(); }
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(RoomStylePreview.Views(await library.ComposeStoreyDraftAsync(req, ct)), ct);
+        => await Send.OkAsync(
+            RoomStylePreview.Views(await library.ComposeStoreyDraftAsync(req, ct), footprint: HttpContext.Footprint()), ct);
 }
 
 public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
@@ -293,7 +295,8 @@ public sealed class PorchStyleDraftPreviewEndpoint : Endpoint<PorchStyleSaveRequ
     public override void Configure() { Post("/porch-styles/preview"); AllowAnonymous(); }
 
     public override async Task HandleAsync(PorchStyleSaveRequest req, CancellationToken ct)
-        => await Send.OkAsync(RoomStylePreview.Views(HousePartLibrary.ComposePorchDraft(req)), ct);
+        => await Send.OkAsync(
+            RoomStylePreview.Views(HousePartLibrary.ComposePorchDraft(req), footprint: HttpContext.Footprint()), ct);
 }
 
 public sealed class PorchStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest

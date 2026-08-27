@@ -10,6 +10,16 @@
 <LibraryEditor Kind="LibraryKinds.Houses" Name="@draftName" NameChanged="SetName"
                Outline="Outline" Selected="@selected" OnSelect="Pick"
                Footnote="@Footnote" Note="@note">
+  <Views>
+    @* A style states nothing about the rectangle it is stamped over, and a ridge follows that rectangle, so
+       the proportion the sample is judged at is a view rather than a setting. *@
+    @foreach (var (id, width, depth) in HouseFootprints.All)
+    {
+      <LayerChip Icon="scan" Active="@(id == footprint)" @key="id"
+                 Title="@($"Draw the sample on a {width} × {depth} piece")"
+                 OnClick="() => SetFootprint(id)">@width × @depth</LayerChip>
+    }
+  </Views>
   <Preview>
     <HouseViews Preview="preview" />
   </Preview>

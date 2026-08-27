@@ -173,6 +173,17 @@ public partial class HousePartEditor
 
     private void Pick(string part) => selected = part;
 
+    /// <summary>The sample piece the preview is drawn on. A view rather than a field of the draft: it changes
+    /// what the picture is taken over and nothing about what would be saved.</summary>
+    private string footprint = HouseFootprints.Default;
+
+    private Task SetFootprint(string id)
+    {
+        footprint = id;
+        return Preview();
+    }
+
+
     // ── the course stacks ──────────────────────────────────────────────────────────────────────────
     /// <summary>The courses the open draft carries, whichever kind it is. A porch has none, so it answers
     /// empty and the markup that would list them never renders.</summary>
@@ -333,7 +344,7 @@ public partial class HousePartEditor
     private async Task Preview()
     {
         preview = Draft() is { } draft
-            ? await Library.DraftPreviewAsync<RoomStylePreviewDto>(Part.Kind, draft)
+            ? await Library.DraftPreviewAsync<RoomStylePreviewDto>(Part.Kind, draft, footprint)
             : null;
         StateHasChanged();
     }
