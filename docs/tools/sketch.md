@@ -119,6 +119,14 @@ column spans `[floor, floor + base_height]`. A polygon whose `anchor_heights` li
 that thickness per vertex, interpolated across the footprint as a TIN. A shape is never thinner than one block
 and never floors below zero; a freshly drawn one starts at height 9.
 
+**That is what makes a tilted quad a stair.** The surface is sampled at each cell's centre and **floored**
+into the column, so a quad rising one course a cell builds a stair of single courses — 24 blocks of run for 24
+courses of rise comes out as twenty-three steps of one. Flooring is what a voxel reading is: a block occupies
+`[y, y + 1)`, so a surface at height *h* fills up to `floor(h)`. Rounding to nearest cannot hold a
+one-to-one ramp — every sample lands exactly on the rounding boundary and the courses come out as a beat of
+noughts and twos, which reads as a stair with a two-block rise in it and costs a placed block to climb. A
+flight is therefore one shape at any gradient, and the shallower ones climb a course at a time too.
+
 Four further fields matter once an island carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
 a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
 plinth held a fixed amount above whatever ground it sits on, a quarry the same downward. `skirt` is how far in

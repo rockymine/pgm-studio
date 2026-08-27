@@ -6101,6 +6101,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `data-layer`), which is the graphics term and reads as one; `LayeredMaterial`'s own `layers[]` inside the
   theme JSON; and the `layer.parquet` / `layer_segments.parquet` files on disk, which are the corpus scan
   output's names and not the studio's to change.
+- **A tilted quad is a stair at any gradient (`TS37`).** `SketchRasterizer.Erect` sampled a shape's own
+  surface at each cell's centre and rounded it to nearest. A ramp at **one course a cell** — the plainest
+  gradient an author writes — puts every one of those samples exactly on the rounding boundary, so the courses
+  came out as a beat of noughts and twos: nine two-block steps in twenty-four, each costing a placed block to
+  climb. It read as a fact about ramps and was a fact about `Math.Round`. Measured before: 1:1 gives
+  `2`×9 · `0`×8 · `1`×6; after flooring the sample, `1`×23. Flooring is the voxel reading — a block occupies
+  `[y, y+1)` — and it is stable where rounding is not, since the interpolation drifts either side of a
+  half. `MidpointRounding.AwayFromZero` is not enough for the same reason. A flight is now one polygon at any
+  gradient rather than one rectangle a course, and the shallower ramps still climb a course at a time.
 - **A relief solving through a made thing is named (`TS35`, `SK14`).** An override add states two things at
   once — the column is its own, and this is its top — and a relief takes the second away without a word: it
   replaces the top of every column of its island, so a wall, a flight, a crop bed or a stepped mound carrying

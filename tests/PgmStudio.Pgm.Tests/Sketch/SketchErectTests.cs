@@ -263,4 +263,55 @@ public sealed class SketchErectTests
         await Assert.That(tops[(2, 2)]).IsEqualTo(5);
         await Assert.That(tops[(14, 14)]).IsEqualTo(14);   // nine above the five under it
     }
+
+    // ── a flight is a tilted quad, and the gradient is the whole of whether it walks ──────────────────────
+    /// <summary>A ramp at one course a cell: the plainest thing an author writes, and the one a surface
+    /// sampled at the cell's centre and rounded to nearest cannot hold — every sample lands on the rounding
+    /// boundary and the courses come out as a beat of noughts and twos. Flooring the sample is stable there,
+    /// so what a one-to-one quad builds is a stair of single courses.</summary>
+    [Test]
+    public async Task A_quad_tilted_one_course_a_cell_builds_single_course_steps()
+    {
+        var cells = SketchRasterizer.RasterizeColumns("""
+        { "setup": { "mirror_mode": "rot_180", "center": { "cx": 1000, "cz": 0 } },
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
+            "shapes": [
+              { "id": "g", "type": "rectangle", "operation": "add",
+                "min_x": -4, "min_z": -4, "max_x": 28, "max_z": 12, "floor": 0, "base_height": 4 },
+              { "id": "ramp", "type": "polygon", "operation": "add", "override": true,
+                "height_mode": "level", "skirt": 0,
+                "vertices": [[0,0],[24,0],[24,8],[0,8]],
+                "anchor_heights": [4, 28, 28, 4], "floor": 0, "base_height": 29 }],
+            "islands": [{ "id": "i", "mirrors": false, "shapeIds": ["g", "ramp"] }] } }] }
+        """).Where(cell => cell.Z == 4 && cell.X >= 0 && cell.X < 24)
+            .OrderBy(cell => cell.X).Select(cell => cell.YTop).ToList();
+
+        await Assert.That(cells.Count).IsEqualTo(24);
+        var steps = cells.Zip(cells.Skip(1), (low, high) => high - low).ToList();
+        await Assert.That(steps.All(step => step == 1)).IsTrue();
+        await Assert.That(cells[^1] - cells[0]).IsEqualTo(23);
+    }
+
+    /// <summary>And a gentler one still climbs a course at a time — the shallower gradient was never the
+    /// problem, and must not become one.</summary>
+    [Test]
+    public async Task A_gentler_quad_climbs_a_course_at_a_time_too()
+    {
+        var cells = SketchRasterizer.RasterizeColumns("""
+        { "setup": { "mirror_mode": "rot_180", "center": { "cx": 1000, "cz": 0 } },
+          "layers": [{ "id": "ground", "base_y": 0, "layout": {
+            "shapes": [
+              { "id": "g", "type": "rectangle", "operation": "add",
+                "min_x": -4, "min_z": -4, "max_x": 28, "max_z": 12, "floor": 0, "base_height": 4 },
+              { "id": "ramp", "type": "polygon", "operation": "add", "override": true,
+                "height_mode": "level", "skirt": 0,
+                "vertices": [[0,0],[24,0],[24,8],[0,8]],
+                "anchor_heights": [4, 16, 16, 4], "floor": 0, "base_height": 17 }],
+            "islands": [{ "id": "i", "mirrors": false, "shapeIds": ["g", "ramp"] }] } }] }
+        """).Where(cell => cell.Z == 4 && cell.X >= 0 && cell.X < 24)
+            .OrderBy(cell => cell.X).Select(cell => cell.YTop).ToList();
+
+        var steps = cells.Zip(cells.Skip(1), (low, high) => high - low).ToList();
+        await Assert.That(steps.All(step => step is 0 or 1)).IsTrue();
+    }
 }

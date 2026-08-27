@@ -344,8 +344,13 @@ public static class SketchRasterizer
             var datum = mode == "level" ? floor : ground[ground.Count / 2];
             var rise = mode == "sink" ? -1 : 1;
 
+            // Ties go one way, always. The surface is sampled at the cell's centre, so a ramp at one
+            // course a cell — the most natural gradient there is — lands EVERY sample exactly on a half,
+            // and .NET's default rounding is to-even: the courses come out as a beat of noughts and twos
+            // rather than as a stair of ones, and a two-block rise costs a placed block to climb. Rounding
+            // ties away from zero moves only the samples that were on a tie, and moves them all alike.
             int Stated(int x, int z) =>
-                datum + rise * Math.Max(1, (int)Math.Round(surface(x + 0.5, z + 0.5)));
+                datum + rise * Math.Max(1, (int)Math.Floor(surface(x + 0.5, z + 0.5)));
 
             // The skirt: how far in from its own outline the shape eases back into the ground it meets, so it
             // sits IN the terrain rather than on it. Zero is a sheer face, which is right for a plinth and
@@ -945,7 +950,10 @@ public static class SketchRasterizer
         var floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
         var centreX = ring.Average(point => point[0]);
         var centreZ = ring.Average(point => point[1]);
-        return floor + Math.Max(1, (int)Math.Round(HeightFn(s)(centreX, centreZ)));
+        // Ties away from zero, as an erected shape's own courses take them: a held mark and the shape it
+        // is read off must not differ by a course because one rounded a half up and the other down.
+        return floor + Math.Max(1, (int)Math.Round(HeightFn(s)(centreX, centreZ),
+                                                  MidpointRounding.AwayFromZero));
     }
 
     private static PathEdge ParsePathEdge(string? edge) => edge switch
