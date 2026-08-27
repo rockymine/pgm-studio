@@ -124,7 +124,7 @@ public sealed class ThemeLibrary(ThemeStore store)
         _ => TerrainBucket.Fill,
     };
 
-    private static string FromBucket(TerrainBucket bucket) => bucket switch
+    internal static string FromBucket(TerrainBucket bucket) => bucket switch
     {
         TerrainBucket.Rim => ThemeBuckets.Rim,
         TerrainBucket.Surface => ThemeBuckets.Surface,

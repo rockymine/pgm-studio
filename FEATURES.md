@@ -2209,6 +2209,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   /api/themes/{id}/json` reassembles a library theme back into the exact painter JSON, and `POST
   /api/themes/import` lifts a whole theme JSON in as one style per bucket + a theme binding them (400, never 500,
   on malformed JSON). Import-then-compose is byte-for-byte identity, proven end-to-end through the real database.
+- **Every library is searched by name (B47).** The browse strip carries a name search on all six kinds, where
+  only styles could be narrowed at all and only by kind.
+- **A studio nobody has seeded is not a state the app can be in, and it ships with six finishes (TL4, G158).**
+  `LibrarySeed` runs as the API comes up rather than only from a CLI script, and it now writes five of the six
+  libraries: the preset materials, the storeys, the **roofs and porches** decomposed out of the houses that
+  wear them, the houses, and six **themes** — `meadow`, `dunes`, `ashfall`, `firnline`, `claybed`, `oldstone`,
+  one green, one desert, one ashen, one snow, one clay and one overgrown stone. Each is written to `ThemePresets`
+  as a `TerrainTheme` and decomposed into one style per bucket plus a theme binding them, so a preset is a
+  library theme and not a second mechanism. Idempotent and keyed by name — a second run adds nothing and a row
+  already there keeps the id maps depend on — and a seed that fails is logged rather than fatal.
 - **The library is a tool, so it is shaped like one — a rail, a chooser, a browse page and an editor page
   (TL3, B254, B255, B256).** Six kinds on the activity rail every other tool already carries — styles, themes,
   roofs, storeys, porches, houses — which splits the old Parts tab into the three libraries it hid behind a

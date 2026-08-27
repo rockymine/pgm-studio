@@ -27,14 +27,148 @@ namespace PgmStudio.Api.Services;
 public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePartStore parts)
 {
     /// <summary>What one run did, so a caller can say so rather than guessing from silence.</summary>
-    public readonly record struct Tally(int StylesAdded, int StylesUpdated, int RoomsAdded, int RoomsUpdated);
+    public readonly record struct Tally(
+        int StylesAdded, int StylesUpdated, int RoomsAdded, int RoomsUpdated, int ThemesAdded, int ThemesUpdated);
 
     /// <summary>Seed everything: the materials first, since a room style's courses bind them by id.</summary>
     public async Task<Tally> SeedAsync(CancellationToken ct = default)
     {
         var bound = await SeedStylesAsync(ct);
         var (added, updated) = await SeedHousesAsync(bound, ct);
-        return new Tally(bound.Added, bound.Updated, added, updated);
+        var built = await SeedPartsAsync(bound, ct);
+        var themes = await SeedThemesAsync(ct);
+        return new Tally(
+            bound.Added, bound.Updated, added + built.Added, updated + built.Updated,
+            themes.Added, themes.Updated);
+    }
+
+    // ── the roofs and the porches ─────────────────────────────────────────────────────────────────────
+    /// <summary>Each preset's roof and porch as rows of their own, keyed by name. Without them a studio opens
+    /// two of its six libraries on nothing, though every preset in the house library is wearing one.</summary>
+    private async Task<(int Added, int Updated)> SeedPartsAsync(StyleIds bound, CancellationToken ct)
+    {
+        var roofs = (await parts.ListRoofsAsync(ct))
+            .GroupBy(row => row.Name)
+            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
+        var porches = (await parts.ListPorchesAsync(ct))
+            .GroupBy(row => row.Name)
+            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
+
+        int added = 0, updated = 0;
+        foreach (var house in HousePresets.All)
+        {
+            var roofName = $"{house.Name} · roof";
+            var roofRequest = RoofRequestFor(house, roofName, bound.ByName);
+            var roofRow = HousePartLibrary.RowOf(roofRequest);
+            var roofCourses = HousePartLibrary.RoofCourseRowsOf(roofRequest);
+            if (roofs.TryGetValue(roofName, out var roofId))
+            {
+                await parts.UpdateRoofAsync(roofId, roofRow, roofCourses, ct);
+                updated++;
+            }
+            else
+            {
+                await parts.CreateRoofAsync(roofRow, roofCourses, ct);
+                added++;
+            }
+
+            if (house.Style.Porch is not { } porch) continue;
+            var porchName = $"{house.Name} · porch";
+            var porchRow = HousePartLibrary.RowOf(new PorchStyleSaveRequest(
+                porchName, porch.Depth, porch.Inset, PorchEdges.Canonical(NameOf(porch.Edge)),
+                RoofForms.Canonical(NameOf(porch.Roof)), porch.RailBlock));
+            if (porches.TryGetValue(porchName, out var porchId))
+            {
+                await parts.UpdatePorchAsync(porchId, porchRow, ct);
+                updated++;
+            }
+            else
+            {
+                await parts.CreatePorchAsync(porchRow, ct);
+                added++;
+            }
+        }
+        return (added, updated);
+    }
+
+    /// <summary>One roof as the request the library stores, binding the materials seeded under its own names.</summary>
+    private static RoofStyleSaveRequest RoofRequestFor(
+        HousePresets.House house, string name, IReadOnlyDictionary<string, long> ids)
+    {
+        var roof = house.Style.Roof;
+        var courses = new List<RoomCourseDto>();
+        foreach (var part in new[] { RoomParts.Roof, RoomParts.Verge, RoomParts.Gable })
+            if (ids.TryGetValue($"{house.Name} · {part}", out var id))
+                courses.Add(new RoomCourseDto(part, 0, id, 1));
+
+        return new RoofStyleSaveRequest(
+            Name: name, Form: RoofForms.Canonical(NameOf(roof.Form)), Pitch: roof.Pitch, Overhang: roof.Overhang,
+            RoofHole: roof.Hole, RidgeCap: roof.RidgeCap, Courses: courses,
+            RoofSlab: roof.Slab, RoofSlabData: roof.SlabData);
+    }
+
+    // ── the finishes ──────────────────────────────────────────────────────────────────────────────────
+    /// <summary>Each preset finish as a theme row binding one style per bucket, both keyed by name. A theme
+    /// composed of nothing is a tab that opens on a sentence telling an author to start one, which is the
+    /// hardest thing in the library to start from nothing.</summary>
+    private async Task<(int Added, int Updated)> SeedThemesAsync(CancellationToken ct)
+    {
+        var existingStyles = (await styles.ListStylesAsync(ct: ct))
+            .GroupBy(style => style.Name)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+        var existingThemes = (await styles.ListThemesAsync(ct))
+            .GroupBy(theme => theme.Name)
+            .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
+
+        int added = 0, updated = 0;
+        foreach (var (name, theme) in ThemePresets.All)
+        {
+            var decomposed = TerrainThemeComposer.Decompose(theme);
+            var buckets = new List<ThemeBucketRow>();
+            foreach (var binding in decomposed.Buckets)
+            {
+                var bucket = ThemeLibrary.FromBucket(binding.Bucket);
+                long? styleId = null;
+                if (binding is { Kind: { } kind, MaterialJson: { } material })
+                {
+                    var styleName = $"{name} · {bucket}";
+                    styleId = existingStyles.TryGetValue(styleName, out var stored)
+                        ? await Rewritten(stored, styleName, kind, material, ct)
+                        : await styles.CreateStyleAsync(
+                            new StyleRow { Name = styleName, Kind = kind, Params = material }, ct);
+                }
+                buckets.Add(new ThemeBucketRow
+                {
+                    Bucket = bucket, StyleId = styleId, Depth = binding.Depth, Enabled = binding.Enabled,
+                });
+            }
+
+            var themeRow = new ThemeRow
+            {
+                Name = name,
+                BedrockRelative = decomposed.BedrockRelative, BedrockValue = decomposed.BedrockValue,
+                RimEdges = ThemeLibrary.FromRimEdges(decomposed.RimEdges),
+                WallOnTerrainFaces = decomposed.WallOnTerrainFaces,
+            };
+            if (existingThemes.TryGetValue(name, out var themeId))
+            {
+                await styles.UpdateThemeAsync(themeId, themeRow, buckets, ct);
+                updated++;
+            }
+            else
+            {
+                await styles.CreateThemeAsync(themeRow, buckets, ct);
+                added++;
+            }
+        }
+        return (added, updated);
+    }
+
+    /// <summary>A bucket's style, rewritten in place where the preset has moved on from what is stored.</summary>
+    private async Task<long> Rewritten(StyleRow row, string name, string kind, string material, CancellationToken ct)
+    {
+        if (row.Kind != kind || row.Params != material) await styles.UpdateStyleAsync(row.Id, name, kind, material, ct);
+        return row.Id;
     }
 
     // ── the materials ─────────────────────────────────────────────────────────────────────────────────

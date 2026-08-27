@@ -11,8 +11,14 @@ namespace PgmStudio.Client.Components;
 /// <param name="One">The kind in the singular — a New button, a count and an empty state read it.</param>
 /// <param name="Icon">The lucide glyph.</param>
 /// <param name="Blurb">What the kind is, on the chooser card.</param>
+/// <param name="DraftPreview">Whether a draft draws at <c>{route}/preview</c>. A style does not: a style
+/// <em>is</em> a material, so it draws as a bare one at <c>terrain/material-preview</c> with no row involved.</param>
+/// <param name="Composed">Whether the kind answers its own composed document at <c>{route}/{id}/json</c> —
+/// the form a map snapshots. Only a theme and a house compose to one; a style is already a document, and a
+/// part is only ever part of one.</param>
 public sealed record LibraryKind(
-    string Slug, string Route, string Title, string One, string Icon, string Blurb);
+    string Slug, string Route, string Title, string One, string Icon, string Blurb,
+    bool DraftPreview = true, bool Composed = false);
 
 /// <summary>The six libraries, in the order they compose: a style is one material, a theme is a finish made of
 /// styles, a roof, a storey and a porch are the parts a house binds, and a house is the whole building.</summary>
@@ -29,12 +35,14 @@ public static class LibraryKinds
     public static readonly LibraryKind Styles = new(
         StylesSlug, "styles", "Styles", "style", "paintbrush",
         "One named material recipe — a solid block, a layer stack, a team tint or one of the patterns. It "
-        + "is the unit a theme and a house course both reuse.");
+        + "is the unit a theme and a house course both reuse.",
+        DraftPreview: false);
 
     public static readonly LibraryKind Themes = new(
         ThemesSlug, "themes", "Themes", "theme", "layers",
         "The whole finish: one style per bucket — the rim capping every edge, the wall on the riser under "
-        + "it, the surface band, the fill body — plus how deep the paint reaches.");
+        + "it, the surface band, the fill body — plus how deep the paint reaches.",
+        Composed: true);
 
     public static readonly LibraryKind Roofs = new(
         RoofsSlug, "roof-styles", "Roofs", "roof", "triangle",
@@ -56,7 +64,8 @@ public static class LibraryKinds
     public static readonly LibraryKind Houses = new(
         HousesSlug, "room-styles", "Houses", "house", "house",
         "A whole building: a stack of storeys under a roof, with a porch, openings and the foundation it "
-        + "stands on. It finishes a wool cage or a spawn cube without touching its size.");
+        + "stands on. It finishes a wool cage or a spawn cube without touching its size.",
+        Composed: true);
 
     public static readonly IReadOnlyList<LibraryKind> All = [Styles, Themes, Roofs, Storeys, Porches, Houses];
 

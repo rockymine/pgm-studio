@@ -77,21 +77,12 @@ page laid out as the studio's own workspace. What is left is what an author can 
 
 ### What is on the shelf
 
-- [ ] **TL4 — The library is seeded at startup, and it has never held a theme.** `Program.cs` wires the
-  stores and never calls `LibrarySeed`, so a studio nobody has run `dotnet run tools/seed-library.cs` against
-  is empty — and the seeder has no theme path at all, only materials, storeys and houses. Call it after the
-  schema guard, and give it six themes: one green, one desert, one ashen, one snow, one clay, one
-  stone-and-grass (author), lifted the way `POST /themes/import` lifts one. `pgm-studio-mapgen`'s specs carry
-  101 documents with a theme registry to draw them from. Decompose the presets' distinct roofs and porches
-  into rows while it is there, so those two libraries stop opening empty as well.
-  `docs/tools/library.md`'s *Limits* states that the theme half starts empty.
+- [ ] **B47 — A theme pulled into a sketch loses where it came from.** The pull takes the library's name as
+  the sketch-side id, which the bridge uniquifies — pull the same theme twice and the second is `meadow-2`
+  with nothing saying they are the same theme. Wants a note on the pulled theme recording the row it was
+  copied from, which slots into `B44`'s snapshot record rather than duplicating it. The library's own name
+  search shipped with the browse strip.
 
-- [ ] **B47 — The library has no search, and the sketch's theme names are its own.** The style browser
-  filters by kind but not by name, so a library of forty styles is a scroll, and the other five halves have
-  no filter at all — a name search box on each, in `B255`'s strip. And a theme pulled into a sketch takes the
-  library's name as its sketch-side id, which the bridge uniquifies — pull the same theme twice and the
-  second is `meadow-2` with nothing saying they are the same theme. A note on the pulled theme recording
-  where it came from, which slots into `B44`'s snapshot record rather than duplicating it.
 
 ## The storey a placement rests on
 

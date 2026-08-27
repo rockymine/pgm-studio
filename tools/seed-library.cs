@@ -41,7 +41,8 @@ var seed = new LibrarySeed(styles, rooms, parts);
 var tally = await seed.SeedAsync();
 
 Console.WriteLine($"\nmaterials  {tally.StylesAdded} added, {tally.StylesUpdated} updated");
-Console.WriteLine($"houses     {tally.RoomsAdded} added, {tally.RoomsUpdated} updated");
+Console.WriteLine($"buildings  {tally.RoomsAdded} added, {tally.RoomsUpdated} updated");
+Console.WriteLine($"themes     {tally.ThemesAdded} added, {tally.ThemesUpdated} updated");
 
 // ── did they survive? ─────────────────────────────────────────────────────────────────────────────────
 var report = await seed.VerifyAsync();

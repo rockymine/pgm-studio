@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using PgmStudio.Client.Components;
 
 namespace PgmStudio.Api.Tests;
 
@@ -16,6 +17,11 @@ namespace PgmStudio.Api.Tests;
 /// <para>Only a string naming a <b>whole</b> route is checked, and every route the client calls is written
 /// as one: the Edit tool's writes are named operations on <c>MapEdits</c>, each carrying its own literal, so
 /// there is no half-route for this to be blind to.</para>
+///
+/// <para>One route is written per <b>kind</b> rather than per path — the six libraries differ only in a stem,
+/// and <c>TerrainLibraryClient</c> hangs one verb off <see cref="LibraryKind.Route"/> rather than repeating
+/// itself six times. A template naming that stem is expanded against every kind, so consolidating the client
+/// costs the check nothing: all six paths are still asserted, one per library.</para>
 /// </summary>
 [NotInParallel("api-db")]
 public sealed class ClientRouteTests
@@ -81,11 +87,28 @@ public sealed class ClientRouteTests
                     var route = raw.StartsWith('/') ? raw : '/' + raw;
                     var query = route.IndexOf('?');
                     if (query >= 0) route = route[..query];
-                    calls.Add(new Call(Hollow(route), raw, $"{Path.GetFileName(path)}:{i + 1}"));
+                    var where = $"{Path.GetFileName(path)}:{i + 1}";
+                    foreach (var one in PerKind(route))
+                        calls.Add(new Call(Hollow(one), raw, where));
                 }
         }
         return calls;
     }
+
+    /// <summary>A route written against a library kind's stem, once per kind that serves it; anything else,
+    /// once as itself. Two verbs are not every kind's — a style previews as a bare material rather than as a
+    /// row, and only a theme and a house compose to a document — so the descriptor says which, and expanding
+    /// over the rest would assert routes the API is right not to serve.</summary>
+    private static IEnumerable<string> PerKind(string route)
+    {
+        if (!route.Contains(KindStem)) return [route];
+        var kinds = route.EndsWith("/preview") ? LibraryKinds.All.Where(kind => kind.DraftPreview)
+            : route.EndsWith("/json") ? LibraryKinds.All.Where(kind => kind.Composed)
+            : LibraryKinds.All;
+        return kinds.Select(kind => route.Replace(KindStem, kind.Route));
+    }
+
+    private const string KindStem = "{kind.Route}";
 
     private static string Hollow(string route) =>
         Regex.Replace(route.ToLowerInvariant().TrimEnd('/'), @"\{[^}]*\}", "{}");

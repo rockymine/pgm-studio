@@ -181,13 +181,6 @@ landed, the rest is the idea.
 
 ## Layout generation (G)
 
-- [ ] **G158 — seed the library with a curated set.** An author can now build a style once and reuse it, and a
-  theme that binds only the buckets it changes (`FEATURES.md`), but a fresh install's library is empty — so the
-  first desert or snowfield is still built by hand. Ship a curated set of styles and themes as seed rows: the
-  shipping finish decomposed, plus a handful of biomes (desert, tundra, mesa, nether) each reusing the same rim
-  and fill. A preset is just a library theme, so this is a seeding step, not a second mechanism — the open
-  question is only *when* it seeds (a migration, or a "restore the starter set" action that cannot clobber
-  edits).
 
 - [ ] **G150 — stamp a catalog shape into a drawn box.** The plan editor can draw a typed box and then ask
   whether the composer could have produced what is in it (G125's feasibility panel), but there is no way to

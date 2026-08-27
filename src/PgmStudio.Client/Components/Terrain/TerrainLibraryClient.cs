@@ -80,7 +80,8 @@ public sealed class TerrainLibraryClient(HttpClient http)
         => GetOrDefault<TDetail>($"api/{kind.Route}/{id}");
 
     /// <summary>What a draft composes to, saving nothing. The body is the save request itself, so the picture
-    /// cannot promise something the save would not build.</summary>
+    /// cannot promise something the save would not build. Every kind but <see cref="LibraryKinds.Styles"/>
+    /// answers it — a style draws through <see cref="MaterialPreviewAsync"/> instead.</summary>
     public Task<TPreview?> DraftPreviewAsync<TPreview>(LibraryKind kind, object draft)
         => PostOrNull<TPreview>($"api/{kind.Route}/preview", draft);
 
@@ -104,8 +105,9 @@ public sealed class TerrainLibraryClient(HttpClient http)
     }
 
     /// <summary>The document form of a row — the painter's theme JSON, or the stamper's house JSON — which is
-    /// what a map snapshots when it binds one. Both routes wrap it in a one-field envelope, so the field is
-    /// taken by shape rather than by name.</summary>
+    /// what a map snapshots when it binds one. Only the two kinds that <see cref="LibraryKind.Composed"/>
+    /// marks answer it, and both wrap it in a one-field envelope, so the field is taken by shape rather than
+    /// by name.</summary>
     public async Task<string?> DocumentAsync(LibraryKind kind, long id)
     {
         var envelope = await GetOrDefault<Dictionary<string, string>>($"api/{kind.Route}/{id}/json");

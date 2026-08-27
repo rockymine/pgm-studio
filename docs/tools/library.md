@@ -569,12 +569,18 @@ snapshot, or a placed building carries as its `style`.
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and
 `{styleJson: "…"}` — so what a sketch stores is the parse of that string, not the response.
 
-**The built-in presets are put in by a tool, not by a migration.** `dotnet run tools/seed-library.cs` writes
-the materials the house presets are made of and the room styles that bind them. It is idempotent and keyed by
-name — a row already there is updated in place and keeps the id that maps and themes depend on — and it never
-deletes, so a preset retired from the code stays as a row the author now owns. It finishes by composing each
-seeded room style back out of the library and reporting any field that came back different, which is the only
-honest way to say whether a preset survived being stored.
+**The built-in presets are put in at startup, not by a migration.** `LibrarySeed` runs as the API comes up and
+writes five of the six libraries: the materials the house presets are made of, the storeys, roofs and porches
+they are built from, the houses that bind those, and six terrain finishes — `meadow`, `dunes`, `ashfall`,
+`firnline`, `claybed`, `oldstone` — decomposed out of `ThemePresets` into one style per bucket plus a theme
+binding them. It is idempotent and keyed by name: a row already there is updated in place and keeps the id
+that maps and themes depend on, and nothing is ever deleted, so a preset retired from the code stays as a row
+the author now owns. A studio nobody has seeded is not a state the app can be in, and a seed that fails is
+logged rather than fatal — an empty library is a usable studio and refusing to serve over one would be worse.
+
+`dotnet run tools/seed-library.cs` runs the same seeder against a database of the caller's choosing, and
+finishes by composing each seeded room style back out of the library and reporting any field that came back
+different — the only honest way to say whether a preset survived being stored.
 
 ## Limits
 
@@ -590,9 +596,10 @@ thing (Refusals, above): whether each block a form needs a particular kind of is
 clears the least height one may, and whether a roof's own materials fit its pitch and its family — not whether
 the composition as a whole reads well.
 
-The theme half starts empty. The seed puts in materials and room styles — the presets are buildings — so a
-studio that has never composed one has fifty-odd styles and no themes, and a sketch's themes live in the sketch
-until someone pushes one out to the library.
+**The six shipped themes are a spread rather than a survey.** They are one green, one desert, one ashen, one
+snow, one clay and one overgrown stone, written to show what a rim, a wall, a surface and a fill each do to a
+plateau — not to cover what a board can be finished in. A sketch's themes still live in the sketch until
+someone pushes one out to the library, and the library never reaches back into a map that took a copy.
 
 Windows and rails are chosen as blocks rather than as styles, which means the patterns a style can hold are not
 available to them. That is deliberate — their metadata is geometry, not material — but it does mean a window

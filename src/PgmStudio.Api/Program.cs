@@ -295,6 +295,29 @@ app.UseSwaggerGen(
 // SPA fallback: anything not matched by an API route or a static file serves the Blazor host page.
 app.MapFallbackToFile("index.html");
 
+// The library's built-in presets. Idempotent and keyed by name — a row already there is updated in place and
+// keeps the id maps and themes depend on, and nothing is ever deleted — so a studio nobody has run the seeder
+// against stops being a state the app can be in. A failure here is reported and never fatal: an empty library
+// is a usable studio, and refusing to serve over one would be worse than opening on it.
+await using (var seeding = app.Services.CreateAsyncScope())
+{
+    var seed = new PgmStudio.Api.Services.LibrarySeed(
+        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.ThemeStore>(),
+        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.RoomStyleStore>(),
+        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>());
+    try
+    {
+        var tally = await seed.SeedAsync();
+        app.Logger.LogInformation(
+            "library seeded: {StylesAdded} style(s), {RoomsAdded} part(s) and house(s), {ThemesAdded} theme(s) added",
+            tally.StylesAdded, tally.RoomsAdded, tally.ThemesAdded);
+    }
+    catch (Exception fault)
+    {
+        app.Logger.LogWarning(fault, "the library could not be seeded; it opens on whatever is stored");
+    }
+}
+
 app.Run();
 
 public partial class Program; // exposed for WebApplicationFactory in tests
