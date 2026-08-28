@@ -1361,6 +1361,18 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
   keys and collide as one: `ArgumentException` out of `ToDictionary`, on every app start, since the seed runs
   at startup. Dormant only because nothing shipped collides. The fix is the comparer on the `GroupBy`.
 
+- [ ] **RP63 — The e2e sweep cannot pass where the container has no egress, and the decision is the
+  author's.** `./tools/e2e.sh all` ends `e2e: FAIL` on one check — smoke's *edit tool is clean*, from
+  `HTTP 404: /api/minecraft/player?name=Notch`. The endpoint resolves a username through Mojang, and
+  `curl -m 10 https://api.mojang.com/...` answers nothing at all in the cloud container, so the 404 is the
+  studio being honest about a host it cannot reach. `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` already
+  tolerates the browser half of the same fact (the `mc-heads.net` avatars) and deliberately refuses to wave
+  through a 4xx, which is what makes this a decision rather than a bug: either the allowlist gains a
+  **route-scoped** entry (a 404 from `/api/minecraft/player` only, so every other endpoint's 404 still
+  fails), or the author rail stops reaching for a network the gate cannot assume. Evidence: 269 checks pass
+  and this one fails, on a branch touching nothing in `Api/Endpoints/MinecraftEndpoints.cs` or
+  `Components/Forms/AuthorsEditor.razor`. `docs/cloud-setup.md` states the symptom.
+
 - [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
   grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective
   point(s) are not reachable from the rest*, naming `spawn red-team`, `wool red` and `wool blue`. It is the

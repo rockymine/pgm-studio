@@ -6118,7 +6118,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   growing as the board was zoomed into, while the halo around the same glyph and every stroke beside it went
   through `screenPx`. Both are screen-sized now, and a mark under about eighteen pixels of its own extent
   wears no number at all: at that zoom it is a dot, and a number wider than the thing it labels names
-  nothing. (`render/relief-render.js`, `render/sketch-render.js`, `docs/client/canvas-interaction.md`,
+  nothing. A spot's number rides clear of its own disc, since its anchor is also where its point grip sits.
+  (`render/relief-render.js`, `render/sketch-render.js`, `docs/client/canvas-interaction.md`,
   `docs/world-export/relief.md`, `tests/js/relief-doc.test.js`)
 - **The block step's repair and the ground's own word are settable (TS58).** `stairs` cuts a way up out of
   ground a step of two stranded, and `landform` is the claim the readback measures the solved surface

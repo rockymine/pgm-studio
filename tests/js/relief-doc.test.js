@@ -344,6 +344,19 @@ test("a label holds its size as the board is zoomed", () => {
   assert.equal(sizeAt(2), sizeAt(16));
 });
 
+test("a spot's number rides clear of its own grip", () => {
+  // A spot's anchor is where its point grip sits, so a label centred on it is drawn under the grip. Every
+  // other kind is anchored on ground it covers and reads centred.
+  const painter = recordingPainter({ scale: 8 });
+  paintReliefMarks(painter, [
+    { id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 22, r: 4 },
+    { id: "r2", islandId: "i1", kind: "area", ring: [[0, 0], [40, 0], [40, 40], [0, 40]], h: 22 },
+  ], { baseOf: () => 20 });
+  const [spot, bench] = painter.of("text").map(call => call[call.length - 1]);
+  assert.ok(spot.dy < -4, `a spot lifts its label, got dy ${spot.dy}`);
+  assert.ok(!bench.dy, `a bench centres its label, got dy ${bench.dy}`);
+});
+
 test("a mark drawn smaller than its own number wears none", () => {
   // At a zoom where a mark is a dot, a number over it is wider than the thing it labels.
   const painter = recordingPainter({ scale: 0.5 });

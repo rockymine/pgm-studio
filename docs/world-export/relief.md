@@ -776,7 +776,8 @@ shape already says. Each mark also wears its own number, and the two kinds that 
 falling ridgeline shows its ends, a scarp shows its drop. The number is **chrome, not ground**: it is sized in
 screen pixels, like the hairlines and the contour labels beside it, because what a mark states does not get
 bigger as the board is zoomed into — and it is dropped entirely below about eighteen pixels of the mark's own
-extent, where a number would be wider than the thing it labels.
+extent, where a number would be wider than the thing it labels. A spot's rides just clear of its disc, since
+a spot's anchor is also where its point grip sits.
 
 **A contour is grabbed and moved to state a height.** A press near a contour grabs it, and moving it writes a
 `line` mark at that contour's own level along its new position: a contour is a line of constant height, so

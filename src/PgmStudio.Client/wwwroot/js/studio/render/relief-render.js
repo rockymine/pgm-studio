@@ -106,10 +106,14 @@ export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoin
     // The height, at the mark's own anchor. A relief is a set of numbers before it is a set of shapes, and a
     // board of unlabelled patches says only that something was stated somewhere — but a mark drawn smaller
     // than its own number is better read from its colour and the list.
-    if (markReach(mark) >= painter.screenPx(LABEL_MIN_PX)) {
+    const reach = markReach(mark);
+    if (reach >= painter.screenPx(LABEL_MIN_PX)) {
       const [ax, az] = markAnchor(mark);
+      // A spot's anchor is also where its point grip sits, so its number rides just clear of the disc
+      // rather than under the grip. Every other kind is anchored on ground it covers, and reads centred.
+      const lift = isSpot(mark) ? reach + painter.screenPx(LABEL_SIZE_PX) : 0;
       painter.text(label(mark), ax, az, {
-        size: painter.screenPx(LABEL_SIZE_PX), weight: 600, fill: colour,
+        dy: -lift, size: painter.screenPx(LABEL_SIZE_PX), weight: 600, fill: colour,
         halo: "var(--canvas-bg)", haloWidth: 3,
       });
     }

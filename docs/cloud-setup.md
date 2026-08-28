@@ -86,7 +86,16 @@ all. Nothing extra needs installing: **Playwright is already global** (`/opt/nod
 — never run `playwright install`. The only prerequisite is the database section above, since the script
 resets its own schema through `sudo -n mariadb` (its default admin path, which works once
 `sudo service mariadb start` has run). It uses its own port (7895) and database (`pgm_studio_e2e`), so a run
-cannot touch dev data. Every spec passes here: the run ends `e2e: PASS`.
+cannot touch dev data. A full sweep takes roughly forty minutes here, most of it the WASM build and the
+per-page boot.
+
+**One check fails where the container cannot reach Mojang.** The smoke sweep's *edit tool is clean* reads a
+404 from `/api/minecraft/player`, which is the studio answering honestly: the endpoint resolves a username
+through Mojang, and where `api.mojang.com` is unreachable the lookup cannot answer a player. It is the
+server-side half of the same network fact `ALLOWED_FAULTS` already tolerates for the avatar images, and it
+is not tolerated — a 404 from our own API is exactly what that allowlist refuses to wave through. Check
+`curl -m 10 https://api.mojang.com/users/profiles/minecraft/Notch` before reading it as a defect: no answer
+at all means the run is on a network without egress, and every other spec passing is the real result.
 
 **The browser has no egress, and the author avatars need one.** The client renders a player head per author
 (`AuthorsEditor.razor`), fetched by UUID from `mc-heads.net`, and headless Chromium is not proxied — a
