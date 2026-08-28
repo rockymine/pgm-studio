@@ -41,6 +41,75 @@ public sealed class RoomStyleLibraryEndpointsTests
 
     private static int Height(string svg) => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
 
+    /// <summary>
+    /// Every field the row stores comes back on the wire. The five under test here were added to the request
+    /// as trailing defaulted parameters, which is exactly why they could go missing from the mapping without
+    /// anything failing to compile: the building stamped off the row kept them and the DTO the editor loads
+    /// and saves back did not, so opening a house and pressing save was enough to lose its door head.
+    /// </summary>
+    [Test]
+    public async Task A_room_style_answers_back_the_parts_a_later_field_added()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        // Every pairing here is one the gates accept, because a refusal would prove nothing about the
+        // mapping: a window cut from the same material as its host (HS4), a beam that is a log (HS1), and a
+        // half-course slab in the material the roof body is laid in (HS3).
+        const int StoneBricks = 98, StoneBrickStairs = 109, StoneBrickSlabData = 5;
+        var brick = await StyleAsync(client, "stone bricks", StoneBricks);
+        var draft = Draft("full house", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
+        {
+            RoofForm = RoofForms.Gable,
+            Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.CobblestoneStairs, 0, 2, 2, 2, 3,
+                HostBlock: Blocks.Cobblestone, HostData: 0),
+            Beams = new RoomBeamDto(Blocks.Log, 2, 3),
+            RoofSlab = Blocks.StoneSlab, RoofSlabData = StoneBrickSlabData,
+            GableWindows = new RoomWindowDto(WindowForms.Open, 102, 0, 1, 2, 2, 3),
+            DoorHead = new RoomDoorHeadDto(DoorHeadForms.Arched, StoneBrickStairs,
+                DoorHeadFills.UpperSlab, Blocks.StoneSlab, StoneBrickSlabData),
+        };
+
+        var response = await client.PostAsJsonAsync("/api/room-styles", draft);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var saved = await response.Content.ReadFromJsonAsync<RoomStyleDetail>();
+        var read = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved!.Id}");
+
+        foreach (var answer in new[] { saved, read! })
+        {
+            await Assert.That(answer.Windows.HostBlock).IsEqualTo(Blocks.Cobblestone);
+            await Assert.That(answer.Beams).IsNotNull();
+            await Assert.That(answer.Beams!.Block).IsEqualTo(Blocks.Log);
+            await Assert.That(answer.Beams.Reach).IsEqualTo(3);
+            await Assert.That(answer.RoofSlab).IsEqualTo(Blocks.StoneSlab);
+            await Assert.That(answer.RoofSlabData).IsEqualTo(5);
+            await Assert.That(answer.GableWindows).IsNotNull();
+            await Assert.That(answer.GableWindows!.Form).IsEqualTo(WindowForms.Open);
+            await Assert.That(answer.DoorHead).IsNotNull();
+            await Assert.That(answer.DoorHead!.Form).IsEqualTo(DoorHeadForms.Arched);
+            await Assert.That(answer.DoorHead.FillBlock).IsEqualTo(Blocks.StoneSlab);
+            await Assert.That(answer.DoorHead.FillData).IsEqualTo(StoneBrickSlabData);
+        }
+    }
+
+    /// <summary>A house that states none of them answers absent rather than a shape meaning none, so the
+    /// editor reads the absence — and saving what it read stores the same nothing back.</summary>
+    [Test]
+    public async Task A_room_style_stating_none_of_them_answers_absent()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var saved = await (await client.PostAsJsonAsync("/api/room-styles", Draft("plain house")))
+            .Content.ReadFromJsonAsync<RoomStyleDetail>();
+        var read = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved!.Id}");
+
+        await Assert.That(read!.Beams).IsNull();
+        await Assert.That(read.GableWindows).IsNull();
+        await Assert.That(read.DoorHead).IsNull();
+        await Assert.That(read.Windows.HostBlock).IsEqualTo(-1);
+    }
+
     [Test]
     public async Task A_room_style_round_trips_with_its_stacks_in_order()
     {

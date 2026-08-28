@@ -2304,6 +2304,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A house answers back every part it stores (TL9).** `RoomStyleDetail` was built with 21 of its 26
+  arguments, so a house's **door head, gable windows, beams, roof slab and window host** were stored, stamped
+  correctly into the building — and never put on the wire. The editor loads that answer and saves what it
+  loaded, so opening a house and pressing save was enough to lose its door head. A storey had the same hole
+  for its window host, the field that keeps an opening out of the wrong band of a banded wall. All five are
+  the request's **trailing defaulted** parameters, which is exactly how the mapping could miss them without
+  failing to compile; each now reads its absence off the row the way the porch already did, so a save maps
+  the absence back to the same stored value and the pair round-trips.
+  (`Api/Endpoints/{RoomStyle,HousePart}LibraryEndpoints.cs`; 3 tests)
+- **An entry being read says so (TL10).** The house and theme editors worded a failure — "That house could
+  not be read" — into the gap before the document arrived, which on a cold client is the seconds the whole
+  WASM app takes to boot. The fields column now says only what the header cannot, that the document is still
+  coming; a row that genuinely will not read sets the header's note and the column stays quiet rather than
+  repeating it. (`Features/Library/{House,Theme}Editor.razor`, `docs/tools/library.md`)
 - **A slot is filled from a saved style, wherever a material is edited (TL8).** A style *is* a material and
   materials nest, so a style inside a layer, a band, a patch, a tint's fallback or a frame's panel is nesting
   rather than a new kind of thing — and combining small styles into a large one was the reason the level

@@ -50,7 +50,8 @@ internal static class RoomStyleMapping
             row.RoofForm, row.Pitch, row.Overhang, row.RoofHole, row.RidgeCap,
             row.BorderWidth, row.InlayInset, row.Storeys, row.StoreyClear,
             new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
-                row.WindowWidth, row.WindowHeight, row.WindowSpacing),
+                row.WindowWidth, row.WindowHeight, row.WindowSpacing,
+                row.WindowHostBlock, row.WindowHostData),
             // A depth of nothing is the row's way of saying no porch, so it comes back as an absent one rather
             // than as a porch nought blocks deep — the editor reads the absence, not the number.
             row.PorchDepth <= 0
@@ -60,7 +61,25 @@ internal static class RoomStyleMapping
             row.RoofStyleId, row.PorchStyleId,
             [.. (stack ?? []).OrderBy(s => s.Ordinal)
                 .Select(s => new RoomStoreyDto(s.StoreyStyleId, s.Clear))],
-            courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height)).ToList());
+            courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height)).ToList(),
+            // Each of the four below reads its absence off the row the way the porch does, because each has a
+            // stored value that MEANS absent: no block to cut a beam from, a gable told to carry no windows, a
+            // doorway with a square top. A save maps the absence back to that same value, so the pair round
+            // trips.
+            row.BeamBlock < 0 ? null : new RoomBeamDto(row.BeamBlock, row.BeamData, row.BeamReach),
+            row.RoofSlab, row.RoofSlabData,
+            row.GableWindowForm == WindowForms.None
+                ? null
+                // A gable's openings have no spacing column, because a gable is a triangle and the run they
+                // would space along is a different length on every course. The composed window takes
+                // WindowStyle's own 3, so that is the number answered back rather than a nought that would
+                // read as "touching".
+                : new RoomWindowDto(row.GableWindowForm, row.GableWindowBlock, row.GableWindowData,
+                    row.GableWindowSill, row.GableWindowWidth, row.GableWindowHeight, Spacing: 3),
+            row.DoorHeadForm == DoorHeadForms.None
+                ? null
+                : new RoomDoorHeadDto(row.DoorHeadForm, row.DoorHeadBlock, row.DoorHeadFill,
+                    row.DoorHeadFillBlock, row.DoorHeadFillData));
 
     /// <summary>What a saved request comes back as — read off the <em>row</em> it composes to rather than off
     /// the request, so the clamps the row applies are the numbers the editor is handed back.</summary>

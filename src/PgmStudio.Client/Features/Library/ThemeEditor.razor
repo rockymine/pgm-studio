@@ -15,7 +15,8 @@
     else { <figure class="lib-fig lib-fig--section">@((MarkupString)preview.Section)</figure> }
   </Preview>
   <Fields>
-    @if (draft is null) { <p class="section-desc">That theme could not be read.</p> }
+    @* Reading, not refused: the refusal is `note`'s and shows in the header. See HouseEditor. *@
+    @if (draft is null && note is null) { <p class="section-desc">Reading the theme…</p> }
     else
     {
       @foreach (var bucket in ThemeBucketInfo.All)

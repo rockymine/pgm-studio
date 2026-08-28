@@ -57,6 +57,29 @@ public sealed class HousePartLibraryEndpointsTests
             .Content.ReadFromJsonAsync<RoomStylePreviewDto>())!;
 
     // ── the parts themselves ───────────────────────────────────────────────────────────────────────
+    /// <summary>A storey's window host comes back on the wire. It is what keeps an opening out of the wrong
+    /// band of a banded wall, so a read that dropped it handed the editor "cut anywhere" for a storey stored
+    /// as "cut only into stone" — and saving what was read stored that answer.</summary>
+    [Test]
+    public async Task A_storey_answers_back_the_block_its_windows_are_cut_into()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var draft = Storey("banded", 5) with
+        {
+            Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.OakStairs, 0, 2, 2, 2, 3,
+                HostBlock: Blocks.Stone, HostData: 0),
+        };
+
+        var saved = await (await client.PostAsJsonAsync("/api/storey-styles", draft))
+            .Content.ReadFromJsonAsync<StoreyStyleDetail>();
+        var read = await client.GetFromJsonAsync<StoreyStyleDetail>($"/api/storey-styles/{saved!.Id}");
+
+        await Assert.That(saved.Windows.HostBlock).IsEqualTo(Blocks.Stone);
+        await Assert.That(read!.Windows.HostBlock).IsEqualTo(Blocks.Stone);
+    }
+
     [Test]
     public async Task A_roof_round_trips_with_its_courses_and_lists_with_a_picture()
     {

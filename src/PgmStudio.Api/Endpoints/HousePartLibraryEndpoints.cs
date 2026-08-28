@@ -29,7 +29,8 @@ internal static class HousePartMapping
     public static StoreyStyleDetail ToDetail(StoreyStyleRow row, IReadOnlyList<StoreyStyleCourseRow> courses) =>
         new(row.Id, row.Name, row.Clear, row.BorderWidth, row.InlayInset,
             new RoomWindowDto(row.WindowForm, row.WindowBlock, row.WindowData, row.WindowSill,
-                row.WindowWidth, row.WindowHeight, row.WindowSpacing),
+                row.WindowWidth, row.WindowHeight, row.WindowSpacing,
+                row.WindowHostBlock, row.WindowHostData),
             [.. courses.Select(c => new RoomCourseDto(c.Part, c.Ordinal, c.StyleId, c.Height))]);
 
     public static StoreyStyleDetail ToDetail(long id, StoreyStyleSaveRequest req)

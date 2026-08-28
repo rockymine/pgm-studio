@@ -429,6 +429,14 @@ so a document long enough to scroll is exactly the one whose save should not hav
 every other panel in the studio carries. There is no inspector on the route: the fields column sits directly
 off the outline instead of across a canvas from it.
 
+**An entry that has not arrived says it is being read, and a refusal is the header's.** The two states look
+alike from the fields column — there is nothing to draw either way — and they are not alike at all, so the
+column says only the one the header cannot: that the document is still coming. A row that genuinely will not
+read sets the header's note and the fields column then says nothing, rather than repeating it. Worth stating
+because the client boots cold: the first entry opened after a page load waits on the whole WASM app, which is
+seconds, and a failure worded into that gap accuses the library of losing a document it is in the middle of
+handing over.
+
 **The outline is the document, not a menu.** Each row carries what its piece states without being opened — a
 part is *bound* or keeps the *built-in* finish, a stack says how many courses it runs, a theme bucket names
 the style it resolves through or says it is *off*. A material's outline is its own nest: a voronoi's bands, a
