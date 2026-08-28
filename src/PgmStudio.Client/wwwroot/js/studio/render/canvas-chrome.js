@@ -10,9 +10,13 @@
  *     a blank canvas reads as "a map is about this big" instead of an open field.
  *   • `renderScaleBar`    — a screen-space "N blocks" bar, so absolute size is legible at any zoom
  *     (the working area's edge moves as the drawing grows, so it can't serve as the scale reference).
+ *   • `renderTransformBox` — the box a selection is scaled and rotated by: four corner anchors and four
+ *     edge grab bands. One emission for every surface that offers a transform, so a region, a piece and a
+ *     shape wear the same box in the same place and a reader learns one set of grips.
  *
- * The split between the two is the hybrid surface itself: the working area is world content and is
- * painted, the scale bar is screen chrome and stays an SVG layer. Both are stateless — data in, drawn out.
+ * The split between the two dialects is the hybrid surface itself: the working area is world content and
+ * is painted, the scale bar and the transform box are screen chrome and stay SVG layers. All are
+ * stateless — data in, drawn out.
  */
 
 import { svgEl } from "./svg.js";
@@ -131,4 +135,117 @@ export function renderScaleBar(layer, { w, h, scale }) {
   });
   t.textContent = `${blocks} blocks`;
   layer.appendChild(t);
+}
+
+/**
+ * A transform box has **four** anchors, one per corner, and its four edges are grab zones rather than
+ * things drawn. A corner pushes and pulls both axes at once; hovering an edge shows the one-dimensional
+ * double-headed arrow and dragging it stretches or squashes along that axis alone.
+ *
+ * That is the whole reason the box can sit ON the selection's bounds with no offset. A ninth grip at an
+ * edge midpoint is the one that has nowhere to go: on a rectangular outline it lands on the midpoint-insert
+ * ghost, and one of the two always loses. An edge with no anchor on it has nothing to collide with, so the
+ * insert ghost and the stretch share the edge — the ghost is a target on the outline, the stretch a band on
+ * the box, and the pointer is never over both meaning two things.
+ *
+ * `nx`/`nz` are normalized positions on the box (0 = min · 0.5 = mid · 1 = max) and are the vocabulary every
+ * caller reads through `gripSideX`/`gripSideZ`; `key` names the grip for callers that map it to fields.
+ */
+export const TRANSFORM_CORNERS = [
+  { key: "nw", nx: 0, nz: 0, cursor: "nwse-resize" },
+  { key: "ne", nx: 1, nz: 0, cursor: "nesw-resize" },
+  { key: "se", nx: 1, nz: 1, cursor: "nwse-resize" },
+  { key: "sw", nx: 0, nz: 1, cursor: "nesw-resize" },
+];
+
+export const TRANSFORM_EDGES = [
+  { key: "n", nx: 0.5, nz: 0,   cursor: "ns-resize" },
+  { key: "e", nx: 1,   nz: 0.5, cursor: "ew-resize" },
+  { key: "s", nx: 0.5, nz: 1,   cursor: "ns-resize" },
+  { key: "w", nx: 0,   nz: 0.5, cursor: "ew-resize" },
+];
+
+/** Which side of the box a grip drags on each axis — −1 the min side, 1 the max, 0 neither. The anchor a
+ *  scale works from is the opposite side. Each caller maps this to what it states: a bound, a cell edge or
+ *  a field name. */
+export const gripSideX = (grip) => (grip.nx === 0.5 ? 0 : grip.nx === 0 ? -1 : 1);
+export const gripSideZ = (grip) => (grip.nz === 0.5 ? 0 : grip.nz === 0 ? -1 : 1);
+
+const ROTATE_HALF = 9;
+// How far outside the box a rotate zone sits. The corner anchors are drawn ON the box, so a zone at the
+// corner would take the press that scales; it starts past the anchor it flanks instead.
+const ROTATE_PAD  = 14;
+// An edge grab band straddles its edge by this much either way, and stops this far short of each corner so
+// the corner anchor owns the corner. An edge with no room left for a band between them gets none.
+const EDGE_GRAB   = 5;
+const EDGE_INSET  = 9;
+
+// A rotate cursor (circular arrow, white halo so it reads on both themes).
+const ROTATE_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g><g stroke='black' stroke-width='2'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g></svg>";
+export const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_ICON)}") 13 13, crosshair`;
+
+/**
+ * Draw the box a selection is transformed by into a screen-space layer: four corner anchors on the
+ * selection's own bounds, an invisible grab band along each edge, and — where a caller offers one — four
+ * rotate zones outside the corners. Every authoring surface draws this one box, so a reader who has learnt
+ * the corners of a region has learnt a piece's and a shape's.
+ *
+ * `box` is the selection's screen rect `{ l, t, r, b }`. `onScale(grip, event)` opens a scale drag and
+ * `onRotate(event)` a rotation; omitting either leaves that affordance undrawn, which is how a read-only
+ * surface shows what is selected and offers no hold on it. `outline` draws the dashed box itself — off for
+ * a caller that has already drawn its own selection outline.
+ */
+export function renderTransformBox(layer, box, {
+  onScale, onRotate, outline = true, gripHalf = 5,
+  fill = "var(--bg-deep)", stroke = "var(--accent)",
+} = {}) {
+  if (!layer || !box || !isFinite(box.l) || !isFinite(box.t) || !isFinite(box.r) || !isFinite(box.b)) return;
+  const { l, t, r, b } = box;
+  if (outline) layer.appendChild(svgEl("rect", {
+    x: l, y: t, width: r - l, height: b - t, fill: "none",
+    stroke, "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
+  }));
+  if (!onScale) return;
+
+  // Edge bands first, then the rotate zones, then the corner anchors — so where two targets meet, the one
+  // drawn later takes the press, and a corner always beats the edge running up to it.
+  const spanX = r - l, spanZ = b - t;
+  for (const grip of TRANSFORM_EDGES) {
+    const horizontal = grip.nz !== 0.5;
+    const along = horizontal ? spanX : spanZ;
+    if (along < EDGE_INSET * 2 + 6) continue;   // nothing left between the corners to grab
+    const zone = svgEl("rect", horizontal
+      ? { x: l + EDGE_INSET, y: t + grip.nz * spanZ - EDGE_GRAB, width: along - EDGE_INSET * 2, height: EDGE_GRAB * 2 }
+      : { x: l + grip.nx * spanX - EDGE_GRAB, y: t + EDGE_INSET, width: EDGE_GRAB * 2, height: along - EDGE_INSET * 2 });
+    zone.setAttribute("fill", "transparent");
+    zone.style.cursor = grip.cursor;
+    zone.addEventListener("mousedown", (e) => onScale(grip, e));
+    zone.addEventListener("click", (e) => e.stopPropagation());
+    layer.appendChild(zone);
+  }
+
+  if (onRotate) {
+    for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, b, 1, 1], [l, b, -1, 1]]) {
+      const zone = svgEl("rect", {
+        x: ax + sx * ROTATE_PAD - ROTATE_HALF, y: ay + sy * ROTATE_PAD - ROTATE_HALF,
+        width: ROTATE_HALF * 2, height: ROTATE_HALF * 2, fill: "transparent",
+      });
+      zone.style.cursor = ROTATE_CURSOR;
+      zone.addEventListener("mousedown", (e) => onRotate(e));
+      zone.addEventListener("click", (e) => e.stopPropagation());
+      layer.appendChild(zone);
+    }
+  }
+
+  for (const grip of TRANSFORM_CORNERS) {
+    const hx = l + grip.nx * spanX, hy = t + grip.nz * spanZ;
+    const el = svgEl("rect", {
+      x: hx - gripHalf, y: hy - gripHalf, width: gripHalf * 2, height: gripHalf * 2, rx: 1,
+      fill, stroke, "stroke-width": "1.5",
+    });
+    el.style.cursor = grip.cursor;
+    el.addEventListener("mousedown", (e) => onScale(grip, e));
+    el.addEventListener("click", (e) => e.stopPropagation());
+    layer.appendChild(el);
+  }
 }

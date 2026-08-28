@@ -68,6 +68,11 @@ export class CanvasBase {
   /** Called on canvas click when null or move tool, after drag suppression check. */
   _onCanvasClick(e, svgPt) {}
 
+  /** Called on a double-click under the same conditions as `_onCanvasClick`. The two clicks that make it up
+   *  have each already been delivered, so a surface that answers this one goes DOWN from whatever they
+   *  selected rather than re-resolving the press. */
+  _onCanvasDblClick(e, svgPt) {}
+
   /** Called on mouseleave. */
   _onMouseleave() {}
 
@@ -413,6 +418,12 @@ export class CanvasBase {
       if (this.#clickWasDrag) { this.#clickWasDrag = false; return; }
       if (this._activeTool !== null && this._activeTool !== "select") return;
       this._onCanvasClick(e, this._clientToSvg(e.clientX, e.clientY));
+    });
+
+    // Double-click (go one level deeper into what is selected)
+    this._svg.addEventListener("dblclick", (e) => {
+      if (this._activeTool !== null && this._activeTool !== "select") return;
+      this._onCanvasDblClick(e, this._clientToSvg(e.clientX, e.clientY));
     });
 
     // Mouseleave

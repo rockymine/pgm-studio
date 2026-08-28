@@ -1,7 +1,10 @@
 /**
- * SketchEditController — 8-point rectangle resize, vertex drag for every shape stored as vertices
- * (polygon/lasso, and a path's centerline), cubic-Bézier tangent handles, and midpoint-insert for
- * SketchCanvas. Mirrors the editor edit controller's contract
+ * SketchEditController — the chrome for the shape levels of the sketch's selection ladder, and the drags it
+ * opens. At the **shape** level it draws one transform box on the shape's own bounds: a rectangle moves the
+ * bound a grip names, with snapping; anything stored as vertices (polygon/lasso, and a path's centerline)
+ * has every point and Bézier handle scaled proportionally. At the **points** level it draws a handle per
+ * vertex, the cubic-Bézier tangent handles, and the midpoint-insert ghost — and no box, because the box's
+ * grips and the points would land on each other. Mirrors the editor edit controller's contract
  * (onResizeMove/onResizeUp consume hooks + onPointerMove for the edge-ghost). Mutates the shape and
  * reports via onShapeUpdated; the host triggers the island recompute.
  *
@@ -9,24 +12,23 @@
  *   handlesLayer  SVGGElement              — screen-space handle layer
  *   getViewport   () => { scale, panX, panY }
  *   getShape      (id) => shape | undefined
- *   callbacks     { onShapeUpdated, onVertexSelected, snapEdges }
+ *   callbacks     { onShapeUpdated, onVertexSelected, onSlopeControls, onRotateStart, snapEdges }
  *     snapEdges(id, {x,z}, alt) → {x,z}    — snap the dragged resize edge(s) to canvas targets + draw a
  *                                            guide (the resize counterpart of the canvas's move snapping)
+ *     onRotateStart(event)                 — a press on a rotate zone; the canvas owns rotation, because it
+ *                                            holds the snapshots and applies the same turn to a whole island
  */
 
-import { svgEl, handleRectAttrs } from "../render/svg.js";
+import { svgEl } from "../render/svg.js";
+import { renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { toScreen } from "../geometry/transform.js";
+import { toBounds } from "../geometry/shape.js";
 
-const HANDLE_HALF        = 5;
-const VERTEX_HALF        = 4;
+const VERTEX_R           = 4;   // a point of an outline, drawn as a disc the size of the insert ghost
 const GHOST_R            = 4;
 const EDGE_THRESHOLD     = 10;  // screen px — hover distance to show midpoint ghost
 const BEZIER_R           = 3;   // bezier tangent handle radius (px)
 const BEZIER_COLLAPSE_PX = 5;   // screen px — collapse the handle when this close to the vertex
-// How far outside an outline its scale box sits, in screen px. The box has to clear the vertex handles it
-// surrounds: on a rectangular polygon every corner of the box would otherwise land exactly on a vertex, and
-// the handle that stretches the shape would sit under the handle that moves one point of it.
-const SCALE_BOX_PAD      = 12;
 const MIN_SPAN           = 1;   // blocks — an outline is never scaled thinner than this on either axis
 
 // The shapes an author edits point by point. A path joins them because it is stored as the line it was
@@ -43,17 +45,6 @@ function distToSegment(px, py, ax, ay, bx, by) {
   return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
 }
 
-const HANDLE_DEFS = [
-  { key: "nw", pos: b => [b.l,  b.t],  cursor: "nw-resize", xf: "min_x", zf: "min_z" },
-  { key: "n",  pos: b => [b.mx, b.t],  cursor: "n-resize",  xf: null,    zf: "min_z" },
-  { key: "ne", pos: b => [b.r,  b.t],  cursor: "ne-resize", xf: "max_x", zf: "min_z" },
-  { key: "w",  pos: b => [b.l,  b.my], cursor: "w-resize",  xf: "min_x", zf: null    },
-  { key: "e",  pos: b => [b.r,  b.my], cursor: "e-resize",  xf: "max_x", zf: null    },
-  { key: "sw", pos: b => [b.l,  b.b],  cursor: "sw-resize", xf: "min_x", zf: "max_z" },
-  { key: "s",  pos: b => [b.mx, b.b],  cursor: "s-resize",  xf: null,    zf: "max_z" },
-  { key: "se", pos: b => [b.r,  b.b],  cursor: "se-resize", xf: "max_x", zf: "max_z" },
-];
-
 export class SketchEditController {
   #handlesLayer;
   #getViewport;
@@ -63,6 +54,11 @@ export class SketchEditController {
   #polyScaleState  = null;   // { shapeId, xf, zf, from } — an outline being stretched by its box
   #enabled         = true;   // off in the Theme phase: selection only, no editing affordance at all
   #selectedId      = null;
+  // Which rung of the selection ladder the selected shape is on, and the only thing that decides what is
+  // drawn: "island" means a whole landmass is selected and the canvas draws its box, so a member draws
+  // nothing under it; "shape" draws the transform box; "points" draws the vertices. Exactly one of them
+  // draws, which is what keeps two grips off one spot.
+  #level           = "island";
   #selectedVertex  = -1;     // index of the click-selected vertex (for per-anchor height editing, S5b)
   #slopeControls   = [];     // vertex indices shift-clicked as surface-slope controls (2–3), insertion order
   #rectResizeState = null;
@@ -71,21 +67,29 @@ export class SketchEditController {
   #ghostEl         = null;
   #hoveredEdgeIdx  = -1;
 
-  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected, onSlopeControls, snapEdges } = {}) {
+  constructor(handlesLayer, getViewport, getShape, { onShapeUpdated, onVertexSelected, onSlopeControls, onRotateStart, snapEdges } = {}) {
     this.#handlesLayer = handlesLayer;
     this.#getViewport  = getViewport;
     this.#getShape     = getShape;
-    this.#callbacks    = { onShapeUpdated, onVertexSelected, onSlopeControls, snapEdges };
+    this.#callbacks    = { onShapeUpdated, onVertexSelected, onSlopeControls, onRotateStart, snapEdges };
   }
 
-  setSelected(id) {
+  /**
+   * The shape being edited and the rung it is on, in one call — the two are one fact, and a controller told
+   * them separately can draw a level's chrome for the wrong shape between the two.
+   *
+   * Any (re)selection or level change drops the slope-control marks and tells the host, so clicking out,
+   * stepping back up a rung or hitting Esc clears them just like it clears the shape selection.
+   */
+  setSelected(id, level = "shape") {
     if (id !== this.#selectedId) this.#selectedVertex = -1;
-    // Any (re)selection or deselection drops the slope-control marks and tells the host, so clicking out or
-    // hitting Esc clears them just like it clears the shape selection — even when the pop lands on the same
-    // shape (drilling out of a single-member island). setSelected is only ever called on a selection change.
     this.#clearSlopeControls(id);
     this.#selectedId = id;
+    this.#level = id ? level : "island";
   }
+
+  /** Which rung the controller is drawing — the canvas asks before deciding whether to draw its own box. */
+  get level() { return this.#level; }
 
   // Toggle a vertex in the surface-slope control set (shift-click), capped at 3 — the plane fit needs 2 or 3
   // points. Clears the single-vertex height selection so the two modes don't fight, and reports the set up so
@@ -122,18 +126,18 @@ export class SketchEditController {
     this.refresh();
   }
 
-  /** Redraw handles for the selected shape (call after viewport changes too). */
+  /** Redraw the selected shape's chrome for the rung it is on (call after viewport changes too). */
   refresh() {
     if (!this.#handlesLayer) return;
     while (this.#handlesLayer.firstChild) this.#handlesLayer.removeChild(this.#handlesLayer.firstChild);
     this.#ghostEl = null;
     this.#hoveredEdgeIdx = -1;
     if (!this.#enabled) return;
-    if (!this.#selectedId) return;
+    if (this.#level === "island" || !this.#selectedId) return;
     const shape = this.#getShape(this.#selectedId);
     if (!shape) return;
-    if (shape.type === "rectangle") this.#renderRectHandles(shape);
-    else if (vertexEdited(shape)) { this.#renderScaleHandles(shape); this.#renderVertexHandles(shape); }
+    if (this.#level === "points" && vertexEdited(shape)) this.#renderVertexHandles(shape);
+    else this.#renderShapeBox(shape);
   }
 
   /** Document mousemove during a resize / vertex / bezier drag. Returns true if consumed. */
@@ -212,9 +216,10 @@ export class SketchEditController {
     return false;
   }
 
-  /** Canvas mousemove (select/move mode only): show a midpoint ghost near a polygon edge. */
+  /** Canvas mousemove: show a midpoint ghost near an edge — only where points are being edited, since that
+   *  is the only rung whose gesture inserts one. */
   onPointerMove(wx, wz, activeTool) {
-    const isEditMode = this.#enabled && (!activeTool || activeTool === "select");
+    const isEditMode = this.#enabled && this.#level === "points" && (!activeTool || activeTool === "select");
     if (!isEditMode || this.#vertexDragState || this.#bezierDragState || this.#rectResizeState || !this.#selectedId) {
       this.#clearGhost();
       return;
@@ -277,9 +282,9 @@ export class SketchEditController {
     this.#hoveredEdgeIdx = edgeIdx;
     if (!this.#ghostEl) {
       const el = svgEl("circle", {
-        r: String(GHOST_R), fill: "var(--bg-deep)", stroke: "var(--accent-light)",
-        "stroke-width": "1.5", style: "cursor:copy",
+        r: String(GHOST_R), fill: "var(--bg-deep)", stroke: "var(--accent-light)", "stroke-width": "1.5",
       });
+      el.style.cursor = "copy";
       el.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
         e.stopPropagation();
@@ -325,60 +330,47 @@ export class SketchEditController {
     this.refresh();
   }
 
-  /** The world box an outline draws inside — its vertices and whatever its Bézier handles pull the curve out
-   *  to, so a bulging edge is inside the box that scales it. */
-  static #outlineBounds(shape) {
-    const points = [...shape.vertices];
-    for (const ctrl of Object.values(shape.controls ?? {}))
-      for (const side of ["in", "out"]) if (ctrl[side]) points.push(ctrl[side]);
-    const xs = points.map(pt => pt[0]), zs = points.map(pt => pt[1]);
-    return { min_x: Math.min(...xs), max_x: Math.max(...xs), min_z: Math.min(...zs), max_z: Math.max(...zs) };
-  }
-
   /**
-   * The box that stretches an outline, drawn a fixed margin OUTSIDE it. A polygon is edited point by point,
-   * which is the wrong unit for "make this the same shape but bigger" — and on a rectangular one every
-   * corner of its own bounds is also a vertex, so a box drawn on them would bury the stretch handle under
-   * the one that drags a single point. The margin is what keeps the two reachable.
+   * The box that transforms one shape — the same eight grips and four rotate zones a whole island wears,
+   * on the shape's own bounds. Where a grip sits is not the shape's business and is drawn by the one
+   * emission both levels call; what a grip *does* is, and the two differ: a rectangle states bounds, so it
+   * moves the bound the grip names and snaps it to the other shapes' edges, while anything stored as
+   * vertices has every point and Bézier handle scaled proportionally.
    */
-  #renderScaleHandles(shape) {
-    if ((shape.vertices?.length ?? 0) < 3) return;   // a path's open line has no area to stretch
-    const world = SketchEditController.#outlineBounds(shape);
+  #renderShapeBox(shape) {
+    const world = toBounds(shape);
+    if (!world) return;
     const tl = this.#toScreen(world.min_x, world.min_z);
     const br = this.#toScreen(world.max_x, world.max_z);
-    const b = {
-      l: Math.min(tl.x, br.x) - SCALE_BOX_PAD, r: Math.max(tl.x, br.x) + SCALE_BOX_PAD,
-      t: Math.min(tl.y, br.y) - SCALE_BOX_PAD, b: Math.max(tl.y, br.y) + SCALE_BOX_PAD,
+    const box = {
+      l: Math.min(tl.x, br.x), r: Math.max(tl.x, br.x),
+      t: Math.min(tl.y, br.y), b: Math.max(tl.y, br.y),
     };
-    b.mx = (b.l + b.r) / 2;
-    b.my = (b.t + b.b) / 2;
-
-    this.#handlesLayer.appendChild(svgEl("rect", {
-      x: b.l, y: b.t, width: b.r - b.l, height: b.b - b.t, fill: "none",
-      stroke: "var(--text-muted)", "stroke-width": "1", "stroke-dasharray": "4 3",
-      opacity: "0.7", "pointer-events": "none",
-    }));
-
-    for (const hd of HANDLE_DEFS) {
-      const [hx, hy] = hd.pos(b);
-      const handle = svgEl("rect", {
-        ...handleRectAttrs(hx, hy, HANDLE_HALF),
-        fill: "var(--bg-deep)", stroke: "var(--text-muted)", "stroke-width": "1", style: `cursor:${hd.cursor}`,
-      });
-      handle.addEventListener("mousedown", (e) => {
+    const scalable = shape.type === "rectangle" || (vertexEdited(shape) && (shape.vertices?.length ?? 0) >= 2);
+    renderTransformBox(this.#handlesLayer, box, {
+      onScale: scalable ? (grip, e) => {
         if (e.button !== 0) return;
         e.stopPropagation();
-        // The outline as it stood when the drag opened. Every frame scales from this rather than from the
-        // last one, so a drag back and forth lands where it started instead of compounding.
-        this.#polyScaleState = {
-          shapeId: shape.id, xf: hd.xf, zf: hd.zf, from: world,
-          vertices: shape.vertices.map(([x, z]) => [x, z]),
-          controls: JSON.parse(JSON.stringify(shape.controls ?? {})),
-        };
-      });
-      handle.addEventListener("click", (e) => e.stopPropagation());
-      this.#handlesLayer.appendChild(handle);
-    }
+        this.#beginScale(shape, grip, world);
+      } : null,
+      onRotate: (e) => this.#callbacks.onRotateStart?.(e),
+    });
+  }
+
+  /** Open a scale drag on one grip. The outline path freezes the shape as it stood when the drag opened, so
+   *  every frame scales from that rather than from the last one and a drag back and forth lands where it
+   *  started instead of compounding. */
+  #beginScale(shape, grip, world) {
+    // Which bound the grip drags: a corner names one on each axis, an edge band one on its own axis only.
+    const side = (s, min, max) => (s === 0 ? null : s < 0 ? min : max);
+    const xf = side(gripSideX(grip), "min_x", "max_x");
+    const zf = side(gripSideZ(grip), "min_z", "max_z");
+    if (shape.type === "rectangle") { this.#rectResizeState = { shapeId: shape.id, xf, zf }; return; }
+    this.#polyScaleState = {
+      shapeId: shape.id, xf, zf, from: world,
+      vertices: (shape.vertices ?? []).map(([x, z]) => [x, z]),
+      controls: JSON.parse(JSON.stringify(shape.controls ?? {})),
+    };
   }
 
   /** Scale the outline so the dragged edge of its box lands under the pointer, every point moving with it. */
@@ -414,27 +406,6 @@ export class SketchEditController {
     this.refresh();
   }
 
-  #renderRectHandles(shape) {
-    const tl = this.#toScreen(shape.min_x, shape.min_z);
-    const br = this.#toScreen(shape.max_x, shape.max_z);
-    const b  = { l: Math.min(tl.x, br.x), r: Math.max(tl.x, br.x), t: Math.min(tl.y, br.y), b: Math.max(tl.y, br.y) };
-    b.mx = (b.l + b.r) / 2;
-    b.my = (b.t + b.b) / 2;
-    for (const hd of HANDLE_DEFS) {
-      const [hx, hy] = hd.pos(b);
-      const h = svgEl("rect", {
-        ...handleRectAttrs(hx, hy, HANDLE_HALF),
-        fill: "var(--bg-deep)", stroke: "var(--text-muted)", "stroke-width": "1", style: `cursor:${hd.cursor}`,
-      });
-      h.addEventListener("mousedown", (e) => {
-        if (e.button !== 0) return;
-        e.stopPropagation();
-        this.#rectResizeState = { shapeId: shape.id, xf: hd.xf, zf: hd.zf };
-      });
-      this.#handlesLayer.appendChild(h);
-    }
-  }
-
   #renderVertexHandles(shape) {
     if (!shape.vertices?.length) return;
     const controls = shape.controls || {};
@@ -453,8 +424,9 @@ export class SketchEditController {
         }));
         const circle = svgEl("circle", {
           cx: cp.x, cy: cp.y, r: BEZIER_R,
-          fill: "var(--accent-light)", stroke: "var(--bg-deep)", "stroke-width": "1", style: "cursor:move",
+          fill: "var(--accent-light)", stroke: "var(--bg-deep)", "stroke-width": "1",
         });
+        circle.style.cursor = "move";
         circle.addEventListener("mousedown", (e) => {
           if (e.button !== 0) return;
           e.stopPropagation();
@@ -478,18 +450,22 @@ export class SketchEditController {
       this.#handlesLayer.appendChild(label);
     });
 
-    // Vertex handles on top.
+    // Vertex handles on top — **round**, where the transform box's anchors are square. The shape of a grip
+    // says which rung the ladder is on: a square scales the whole thing, a circle is one point of it, and
+    // the midpoint-insert ghost is round because what it adds is another point. Colour is left to say what
+    // a point IS — plain, picked for its own height, or shift-marked as a slope control — so the two
+    // questions never share an answer.
     shape.vertices.forEach(([wx, wz], idx) => {
       const sp = this.#toScreen(wx, wz);
       const selected = idx === this.#selectedVertex;
       const control = this.#slopeControls.includes(idx);   // a shift-marked surface-slope control
-      const half = control ? VERTEX_HALF + 1 : VERTEX_HALF;
-      const h = svgEl("rect", {
-        ...handleRectAttrs(sp.x, sp.y, half),
+      const h = svgEl("circle", {
+        cx: sp.x, cy: sp.y, r: control ? VERTEX_R + 1 : VERTEX_R,
         fill: control ? "var(--warning)" : (selected ? "var(--accent)" : "var(--bg-deep)"),
-        stroke: control ? "var(--warning)" : (selected ? "var(--accent)" : "var(--text-muted)"),
-        "stroke-width": control ? "2" : "1", style: "cursor:move",
+        stroke: control ? "var(--warning)" : "var(--accent)",
+        "stroke-width": control ? "2" : "1.5",
       });
+      h.style.cursor = "move";
       h.addEventListener("mousedown", (e) => {
         if (e.button !== 0) return;
         e.stopPropagation();

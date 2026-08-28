@@ -21,7 +21,7 @@ import {
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
-import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar, renderDimensionPill } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { OBJECTIVE_COLORS } from "../render/primitive-style.js";
 import * as Keys from "../shared/keys.js";
 import { resolvePick } from "../shared/pick.js";
@@ -52,18 +52,6 @@ const GRID_SNAP_CELLS = 4;
 // inside a visible margin of grid rather than filling the surface edge to edge.
 const FIT_PAD_FRACTION = 0.2;
 
-// The 8 resize handles of a rect: ex/ez pick which cell edge each drags (−1 = min side, 1 = max, 0 = none);
-// nx/nz are the handle's normalised position on the block-bounds box (for placing it in screen space).
-const HANDLES = [
-  { ex: -1, ez: -1, nx: 0, nz: 0, cur: "nwse-resize" },
-  { ex: 1, ez: -1, nx: 1, nz: 0, cur: "nesw-resize" },
-  { ex: 1, ez: 1, nx: 1, nz: 1, cur: "nwse-resize" },
-  { ex: -1, ez: 1, nx: 0, nz: 1, cur: "nesw-resize" },
-  { ex: 0, ez: -1, nx: 0.5, nz: 0, cur: "ns-resize" },
-  { ex: 1, ez: 0, nx: 1, nz: 0.5, cur: "ew-resize" },
-  { ex: 0, ez: 1, nx: 0.5, nz: 1, cur: "ns-resize" },
-  { ex: -1, ez: 0, nx: 0, nz: 0.5, cur: "ew-resize" },
-];
 
 // Lerp a #rrggbb colour toward white by t∈[0,1] — a higher surface tints the fill lighter.
 function tint(hex, t) {
@@ -826,14 +814,12 @@ export class PlanCanvas extends CanvasBase {
       left: l, right: r, bottom: bot, width: b.max_x - b.min_x, depth: b.max_z - b.min_z,
     });
     if (!handles) return;
-    const HALF = 4;
-    for (const hd of HANDLES) {
-      const hx = l + hd.nx * (r - l), hy = t + hd.nz * (bot - t);
-      const el = svgEl("rect", { x: hx - HALF, y: hy - HALF, width: HALF * 2, height: HALF * 2, rx: 1, fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5" });
-      el.style.cursor = hd.cur;
-      el.addEventListener("mousedown", (e) => this.#startResize(e, hd));
-      layer.appendChild(el);
-    }
+    // The same box every authoring surface wears: four corner anchors, and each edge a grab band that
+    // stretches one axis. The dashed outline is already drawn above, so the box is asked for its grips only.
+    renderTransformBox(layer, { l, t, r, b: bot }, {
+      outline: false, gripHalf: 4,
+      onScale: (grip, e) => this.#startResize(e, grip),
+    });
   }
 
   #selItem() { return this.#itemOf(this.#sel); }
@@ -1080,10 +1066,12 @@ export class PlanCanvas extends CanvasBase {
     const h = this.#resize.handle;
     let [x, z, w, hh] = item.rect;
     let minX = x, maxX = x + w - 1, minZ = z, maxZ = z + hh - 1;   // inclusive cell edges
-    if (h.ex === -1) minX = Math.min(cx, maxX);
-    else if (h.ex === 1) maxX = Math.max(cx, minX);
-    if (h.ez === -1) minZ = Math.min(cz, maxZ);
-    else if (h.ez === 1) maxZ = Math.max(cz, minZ);
+    // Which cell edge the grip drags: a corner names one on each axis, an edge band one on its own axis.
+    const ex = gripSideX(h), ez = gripSideZ(h);
+    if (ex === -1) minX = Math.min(cx, maxX);
+    else if (ex === 1) maxX = Math.max(cx, minX);
+    if (ez === -1) minZ = Math.min(cz, maxZ);
+    else if (ez === 1) maxZ = Math.max(cz, minZ);
     item.rect = [minX, minZ, maxX - minX + 1, maxZ - minZ + 1];
     this.render();
   }

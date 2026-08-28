@@ -87,7 +87,7 @@ canvas layer can then reuse or test it.
 | `render/svg.js` | the retained dialect: the element factory for the screen-space overlays and the fixed-fit previews, plus the path builders both dialects share |
 | `render/layer-stack.js` | the z-ordered **screen-space** layer groups, declared once per canvas (key order = paint order, bottom first); each group carries `data-layer="<name>"`, plus `showLayers`/`clearLayer` |
 | `render/canvas-painter.js` | the painted dialect, and the whole of it: a DPR-aware 2-D surface — `begin(scale, pan)` applies the viewport so draws are in world units, `layer(name, paint)` brackets each phase in save/restore and records its name (`painter.layers` is the queryable paint order), `screenPx` holds a constant screen size — a stroke width, and equally a label's `size`, since text asked for in world units grows with the map and a label states what a thing *is* rather than how big it is, `token`/`color` resolve and cache CSS custom properties (demoting any value the context won't parse), `toSurface` carries the world→surface fit, and the primitives (`rect`/`line`/`segments`/`circle`/`dot`/`ellipse`/`path`/`ring`/`poly`/`text`/`image`) take world coordinates and one style vocabulary |
-| `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar |
+| `render/canvas-chrome.js` | viewport-derived chrome shared by the drawing canvases: the visible-world rect, the grid-step ladder, the painted working area, the scale bar, the dimension pill, and the **transform box** every surface scales a selection by (§5) |
 | `render/shape-render.js`, `sketch-render.js`, `symmetry-render.js`, `block-render.js` | shared stateless painting for primitives, sketch overlays, symmetry axes, block PNGs |
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
@@ -133,7 +133,7 @@ opposite case and emits elements: its handles are screen-space, where a fixed pi
 
 There are two pairs — `world-draw`/`sketch-draw` and `world-edit`/`sketch-edit` — and **they are
 deliberately not merged.** They share a protocol, not an implementation: the world canvas draws region
-primitives (rectangle drag, two-click cylinder) and resizes bounds with an 8-handle box plus keyboard
+primitives (rectangle drag, two-click cylinder) and resizes bounds with the shared transform box plus keyboard
 nudge, while the sketch tool draws four shape types under a boolean operation and edits individual
 vertices, Bézier tangents and snapped edges. Unifying them would mean one class with two disjoint halves.
 The protocol is the abstraction; the bodies are the domain.
@@ -162,10 +162,18 @@ and enters its group as the **scope** in the same motion; `SketchCanvas.#scopeIs
 `PlanCanvas.#scopeBoxId` are the field each canvas holds it in. `Alt`+click does the opposite: it resolves to
 the group itself, whatever is under the cursor, and leaves any scope that was entered. Once a scope is
 entered, a plain click reaches a member and a click landing outside the group's footprint leaves the scope
-before landing normally; `Enter` enters the current selection's group from the keyboard, and `Escape` leaves
-an entered scope before it goes on to clear the selection. Neither canvas asks for a double-click anywhere in
-this model — the nearest either comes is a sketch polygon closing on a click that lands back at its own first
-vertex, which is a coordinate test against that vertex, not a test of how fast two clicks arrived.
+before landing normally.
+
+**Going deeper is a gesture, and coming back is the same gesture reversed.** A double-click steps one level
+in and `Escape` steps one out; `Enter` is the keyboard's way in, where the double-click is the pointer's. The
+sketch has one level more than the plan, because a shape is made of points and a cell rect is not, so its
+ladder runs island → shape → points where the plan's stops at the box. The rung the ladder is on is what
+decides which chrome is drawn (§5), and a double-click only ever goes *down* from what the two clicks that
+made it up have already selected — nothing re-resolves the press, so the gesture cannot land somewhere the
+single click would not have. `CanvasBase._onCanvasDblClick` is the hook, gated exactly as `_onCanvasClick`
+is, and a surface that does not answer it keeps two levels. Closing a drawn polygon remains no part of this:
+it ends on `Enter`, or on a click landing back at its own first vertex, which is a coordinate test against
+that vertex rather than a test of how fast two clicks arrived.
 
 The rule itself is one function, `shared/pick.js`'s `resolvePick`, and each canvas calls it with whatever its
 own hit tests found: a group, a member, the scope currently entered, which level a plain click picks and the
@@ -189,11 +197,35 @@ piece and a shape answer the same question in the same words in the same place. 
 same story: `render/primitive-style.js`'s `OBJECTIVE_COLORS` is what the plan draws a marker in and what the
 sketch shows a destroyable or a core in, so the two tools cannot drift into two conventions for one thing.
 
-**A handle ring sits outside what it resizes.** Drawn on the selection's own box, a corner handle lands
-exactly on a rectangular polygon's corner vertex and an edge handle lands on the midpoint-insert ghost — three
-targets at one point, and the stretch is the one that loses. So the sketch's scale rings are offset outward:
-`SCALE_RING_PAD` for an island's, `SCALE_BOX_PAD` for a shape outline's, with the island's rotate zones past
-both. The resize maths still reads the selection's true bounds; only the grab point moves.
+**One transform box, four anchors, and the edges are bands rather than things.** `renderTransformBox` is the
+box a selection is scaled by, and every authoring surface draws that one: the sketch at each rung of its
+ladder, the plan for a piece or a zone, and `WorldEditController` for a region — which is Edit and all eleven
+Configure steps at once. A reader who has learnt the corners of a region has learnt a piece's and a shape's,
+which is the whole reason it is one emission and not three tables of eight.
+
+It carries **four** anchors, one per corner, drawn ON the selection's own bounds. Each edge is an invisible
+grab band instead: hovering it shows the one-dimensional double-headed arrow and dragging it stretches or
+squashes that axis alone. A band stops short of both corners so the anchor there always wins the press, and
+an edge with no room left between them gets no band at all.
+
+**That is what lets the box sit on the bounds with no offset.** A ninth grip at an edge midpoint is the one
+with nowhere to go: on a rectangular outline it lands on the midpoint-insert ghost, and one of the two always
+loses. An edge carrying no anchor has nothing to collide with, so the ghost and the stretch share the edge —
+the ghost is a target on the outline, the stretch a band on the box, and the pointer is never over both
+meaning two things. The corner is safe for the same reason the levels are separate: point handles are drawn
+only at the points rung, where no box is drawn.
+
+**The grips say which rung they are, by shape rather than by colour.** A box anchor is a square and a point
+of an outline is a disc, drawn the size of the midpoint-insert ghost because what the ghost offers is another
+point of the same kind. They share the accent deliberately: a colour that changed with depth would make the
+reader learn a second signal for something the shape already says, and would spend the one channel that is
+carrying state — a picked vertex fills accent, a shift-marked slope control goes `--warning`.
+
+Rotate zones are the one thing still outside the box, past the anchors they flank, and are drawn only where a
+caller offers a turn — the sketch does at both its box rungs, the plan and the world canvas do not. `nx`/`nz`
+are the shared vocabulary a grip is read through (`gripSideX`/`gripSideZ` answer which side it drags, −1, 0
+or 1), and each caller maps that to what it states: a bound, a cell edge, or a field name that depends on
+which way its transform is flipped.
 
 ## 6. Bridges — the interop seam
 

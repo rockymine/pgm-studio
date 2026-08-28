@@ -355,9 +355,10 @@ grab time so nothing falls out mid-drag.
 The tools are armed from the keyboard as well as the toolbar — `V` select, `H` pan, `R` piece, `Z` zone, `G`
 box, `W` wall — and `F` fits the plan, `Ctrl`/`⌘`+`S` saves it. `?` lists every chord that is live and
 `Ctrl`/`⌘`+`K` runs one by name; both are drawn from the registry described in
-`docs/client/canvas-interaction.md` §9, so neither can name a chord this tool does not answer. A selected piece or zone shows eight resize handles, each keeping the
-extent at least one cell, and how big it is as a pill under it — the same pill Configure draws under a region
-and the sketch under a shape. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
+`docs/client/canvas-interaction.md` §9, so neither can name a chord this tool does not answer. A selected piece or zone wears the transform
+box every authoring surface uses (`docs/client/canvas-interaction.md` §5) — an anchor on each corner and a
+grab band along each edge that stretches that one axis — each keeping the extent at least one cell, and how
+big it is as a pill under it, the same pill Configure draws under a region and the sketch under a shape. Clicking an already-selected spawn cycles its facing. Deleting a piece takes its
 markers, its cliff and wall marks, and its name out of any box member list with it.
 
 The inspector edits the selection: a piece's id, role, surface (stepped by the surface-step preference) and

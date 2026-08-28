@@ -3,7 +3,7 @@
  * wizard (/maps/{id}/configure). Extends CanvasBase for pan/zoom/transform + the drag FSM (via the
  * _on* hooks below), and delegates every interaction mode to a plain controller:
  *   WorldDrawController     new-region drawing (the draw tools)
- *   WorldEditController     8-handle resize + arrow-key move of the selected region
+ *   WorldEditController     transform-box resize + arrow-key move of the selected region
  *   SelectController        click-select modes (region / island) — one registered picker each
  *
  * A hybrid surface: the world layers are **painted** to a 2-D `<canvas>` under the svg and redrawn each
@@ -27,7 +27,7 @@
  *     setSelectedRegions(ids)          highlight the id set; shows resize anchors when exactly one
  *                                      resizable region is selected
  *     updateRegionBounds(node, bounds) live footprint update during a drag/resize (edit controller)
- *     showAnchors(node) / clearAnchors()  8-handle resize anchors for the focused region
+ *     showAnchors(node) / clearAnchors()  the focused region's transform box (corner anchors + edge bands)
  *     setActiveTool(tool)              null | "move" | "rectangle" | "cylinder" | "circle" | "point" | "block"
  *     addRegion(node) / removeRegion(id) / renameNode(old,new)  mutate the region set
  *     setRegionVisible(id, v)          per-region show/hide
@@ -106,7 +106,7 @@ export class WorldCanvas extends CanvasBase {
   // draw controller (instantiated in constructor)
   #drawCtrl = null;
 
-  // resize (8-handle drag) + arrow-key move, extracted into a controller
+  // resize (corner anchors + edge stretch bands) + arrow-key move, extracted into a controller
   #editCtrl = null;
   // click-select modes (region / island / spawn), extracted into a controller
   #selectCtrl = null;

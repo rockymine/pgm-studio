@@ -28,30 +28,9 @@ import { pointInRing } from "../geometry/polygon.js";
 import * as Keys from "../shared/keys.js";
 import { resolvePick } from "../shared/pick.js";
 
-// Island scale handles (S21): normalized bbox position (0=min · 0.5=mid · 1=max) + which axes each drives +
-// its cursor. Corners scale both axes, edge midpoints one. Anchored on the opposite corner/edge (or the
-// centre with Alt); Shift locks a corner to a uniform (aspect-preserving) scale.
-// How far outside the island's box its scale handles sit, in screen px, and how far past those the rotate
-// zones start. A ring drawn ON the box lands on the shape's own corners: where the sole member is a
-// rectangular polygon, every scale handle sits under the vertex handle at the same point and under the
-// midpoint-insert ghost on the same edge. The offset is what keeps the three reachable.
-const SCALE_RING_PAD = 10;
-const ROTATE_RING_PAD = SCALE_RING_PAD + 14;
-
-const SCALE_HANDLES = [
-  { nx: 0,   nz: 0,   axX: 1, axZ: 1, cur: "nwse-resize" },
-  { nx: 1,   nz: 0,   axX: 1, axZ: 1, cur: "nesw-resize" },
-  { nx: 1,   nz: 1,   axX: 1, axZ: 1, cur: "nwse-resize" },
-  { nx: 0,   nz: 1,   axX: 1, axZ: 1, cur: "nesw-resize" },
-  { nx: 0.5, nz: 0,   axX: 0, axZ: 1, cur: "ns-resize" },
-  { nx: 1,   nz: 0.5, axX: 1, axZ: 0, cur: "ew-resize" },
-  { nx: 0.5, nz: 1,   axX: 0, axZ: 1, cur: "ns-resize" },
-  { nx: 0,   nz: 0.5, axX: 1, axZ: 0, cur: "ew-resize" },
-];
-
-// A rotate cursor (circular arrow, white halo so it reads on both themes) for the island corner zones (S13).
-const ROTATE_ICON = "<svg xmlns='http://www.w3.org/2000/svg' width='26' height='26' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g><g stroke='black' stroke-width='2'><path d='M21 12a9 9 0 1 1-3-6.7'/><path d='M21 3v5h-5'/></g></svg>";
-const ROTATE_CURSOR = `url("data:image/svg+xml,${encodeURIComponent(ROTATE_ICON)}") 13 13, crosshair`;
+// How far below the selection's bounds its size pill sits, clear of the bottom edge's grab band and of the
+// corner anchors drawn on the bounds themselves.
+const PILL_CLEARANCE = 9;
 import { SketchDrawController } from "../controllers/sketch-draw-controller.js";
 import { DressingController } from "../controllers/dressing-controller.js";
 import { DressingDoc } from "../dressing/dressing-doc.js";
@@ -68,7 +47,7 @@ import {
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
-import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
@@ -112,6 +91,11 @@ export class SketchCanvas extends CanvasBase {
   #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedIslandId = null;   // selected island (drives the island bbox chrome + whole-island drag)
+  // Which rung of the selection ladder the pointer is working at, and the ONE thing that decides which
+  // chrome is drawn: "island" transforms a whole landmass, "shape" transforms one member, "points" edits
+  // that member's vertices. Exactly one rung draws, which is what lets every box sit on its own bounds
+  // with no offset — nothing else is there for an anchor to bury.
+  #level       = "island";
   #islands     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
   #mirrorPolys = [];
   #ghostPolys  = [];          // other layers' island outlines (S7)
@@ -257,34 +241,46 @@ export class SketchCanvas extends CanvasBase {
 
   removeShape(id) {
     this.#shapes.delete(id);
-    if (this.#selectedId === id) { this.#selectedId = null; this.#edit?.setSelected(null); this.#edit?.refresh(); }
+    if (this.#selectedId === id) { this.#selectedId = null; this.#level = "island"; this.#edit?.setSelected(null); this.#edit?.refresh(); }
     this.#renderSetup();   // shrink back when content is removed
   }
 
   clearShapes() { for (const id of [...this.#shapes.keys()]) this.removeShape(id); }
 
-  // Select a shape (the drill / panel-shape path): shows its edit handles, clears any island bbox chrome.
+  // Select a shape (the drill / panel-shape path): the ladder drops to the shape rung — or stays on points
+  // when the same shape is picked again, so clicking a shape you are already editing point by point does not
+  // throw you back out of it.
   selectShape(id) {
     this.#selectedIslandId = null;
+    const same = id && id === this.#selectedId;
     this.#selectedId = id;
-    this.#edit?.setSelected(id);
+    this.#setLevel(id ? (same && this.#level === "points" ? "points" : "shape") : "island");
+  }
+
+  // Select an island (single-click / panel-island): draws its bbox chrome. A single-member island keeps its
+  // member as the selection so the inspector, Delete and the arrow-nudge all reach it — but the ladder stays
+  // on the island rung, because the island's box and its lone member's ARE the same box and drawing both is
+  // what put two anchors on every corner. Setter only — the click path fires the callback.
+  selectIsland(id) {
+    this.#selectedIslandId = id ?? null;
+    this.#selectedId = this.#soleMemberOf(this.#selectedIslandId);
+    this.#setLevel("island");
+  }
+
+  /** Move the ladder to `level` and redraw. Both halves of the chrome are asked; one of them draws nothing. */
+  #setLevel(level) {
+    this.#level = level;
+    this.#edit?.setSelected(this.#selectedId, level);
     this.#edit?.refresh();
-    this.#renderIslandChrome();
+    this.#renderTransformChrome();
     this.#paintWorld();
     this.#updateDim();
   }
 
-  // Select an island (single-click / panel-island): draws its bbox chrome; a single-member island also
-  // shows that member's edit handles (nothing to drill into). Setter only — the click path fires the callback.
-  selectIsland(id) {
-    this.#selectedIslandId = id ?? null;
-    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
-    this.#selectedId = (isl && isl.shapeIds?.length === 1) ? isl.shapeIds[0] : null;
-    this.#edit?.setSelected(this.#selectedId);
-    this.#edit?.refresh();
-    this.#renderIslandChrome();
-    this.#paintWorld();
-    this.#updateDim();
+  /** The lone member of a single-shape island, or null — the case where two rungs of the ladder are one. */
+  #soleMemberOf(islandId) {
+    const isl = islandId ? this.#islands.find(i => i.id === islandId) : null;
+    return isl && isl.shapeIds?.length === 1 ? isl.shapeIds[0] : null;
   }
 
   getShape(id)  { return this.#shapes.get(id); }
@@ -329,7 +325,7 @@ export class SketchCanvas extends CanvasBase {
     return best?.top ?? null;
   }
 
-  setIslands(islands)        { this.#islands = islands ?? []; this.#paintWorld(); this.#renderIslandChrome(); }
+  setIslands(islands)        { this.#islands = islands ?? []; this.#paintWorld(); this.#renderTransformChrome(); }
   setGhostIslands(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
@@ -378,13 +374,14 @@ export class SketchCanvas extends CanvasBase {
    * that reshapes it, from a rail with no undo, no snapping and no height controls to make sense of it.
    *
    * Restricted at the source rather than by ignoring the results: the edit controller draws no handles, the
-   * island chrome draws no rotate/scale grips, and `_hitMovable` reports nothing draggable — so a drag has
-   * nothing to begin on, instead of beginning and being discarded.
+   * transform box draws no anchors, bands or rotate zones, the ladder cannot be walked down, and
+   * `_hitMovable` reports nothing draggable — so a drag has nothing to begin on, instead of beginning and
+   * being discarded.
    */
   setSelectOnly(on) {
     this.#selectOnly = !!on;
     this.#edit?.setEnabled(!this.#selectOnly);
-    this.#renderIslandChrome();
+    this.#renderTransformChrome();
   }
 
   /**
@@ -439,7 +436,7 @@ export class SketchCanvas extends CanvasBase {
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
 
-  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderIslandChrome(); }
+  _onViewportChanged() { this.#paintWorld(); this.#edit?.refresh(); this.#dressing?.refreshHandles(); this.#reliefTools?.refreshHandles(); this.#refreshCenter(); this.#draw?.refreshDrawHandles(); this.#renderMeasureLabel(); this.#renderTransformChrome(); }
   _onZoom(scale)       { if (this.#zoomEl) this.#zoomEl.textContent = `${Math.round(scale * 100)}%`; }
 
   _onToolMousedown(e, svgPt) {
@@ -518,11 +515,42 @@ export class SketchCanvas extends CanvasBase {
     this.#paintWorld();
   }
 
-  /** Enter the island of whatever is selected — the keyboard's way in, where a modifier is the pointer's. */
-  enterSelection() {
-    const island = this.#selectedIslandId
-      ?? (this.#selectedId ? this.#islandOfShape(this.#selectedId)?.id : null);
-    if (island) this.#enterScope(island);
+  /**
+   * One rung down the selection ladder. From an island it reaches the member under the cursor and enters the
+   * island as the scope in the same motion; from a shape it opens that shape's points, where the vertices,
+   * the Bézier tangents and the midpoint-insert ghost live and the box does not.
+   *
+   * A single-member island is one rung and not two — its box and its member's box are the same box, so
+   * there is nothing for the shape rung to say — and drilling it opens the points directly.
+   *
+   * `wx`/`wz` are the cursor; null means the keyboard asked, which has no cursor to read a member from and
+   * therefore enters the island instead.
+   */
+  #deeper(wx = null, wz = null) {
+    if (this.#selectOnly || this._isoOn || this.#level === "points") return;
+    if (this.#level === "shape") { this.#setLevel("points"); return; }
+    const island = this.#selectedIslandId;
+    const sole = this.#soleMemberOf(island);
+    if (sole) {
+      this.#enterScope(island);
+      this.#callbacks.onShapeSelected?.(sole);
+      this.#setLevel("points");
+      return;
+    }
+    const shape = wx == null ? null : this.#hitTest(wx, wz);
+    if (!shape) { if (wx == null && island) this.#enterScope(island); return; }
+    this.#enterScope(this.#islandOfShape(shape)?.id ?? null);
+    this.#callbacks.onShapeSelected?.(shape);
+  }
+
+  /** Enter the selection — the keyboard's way down the ladder, where the double-click is the pointer's. */
+  enterSelection() { this.#deeper(); }
+
+  /** A double-click reaches one rung deeper into whatever it lands on. The two clicks that precede it have
+   *  already made their own selection, so this only ever has to go down from where they left off. */
+  _onCanvasDblClick(e, svgPt) {
+    if (this.#themeBrush) return;   // a brush in hand paints; it does not walk the ladder
+    this.#deeper(svgPt.x, svgPt.y);
   }
 
   /** Which unit a plain click picks with no island entered — the phase's word, "island" or "shape". */
@@ -579,7 +607,7 @@ export class SketchCanvas extends CanvasBase {
     if (this.#isIslandHandle(handle)) {
       const isl = this.#islands.find(i => i.id === handle.islandId);
       for (const id of (isl?.shapeIds ?? [])) { const s = this.#shapes.get(id); if (s) this.updateShape(translateShape(s, dx, dz)); }
-      this.#renderIslandChrome();
+      this.#renderTransformChrome();
       this.#callbacks.onShapeUpdated?.();
       return;
     }
@@ -646,7 +674,7 @@ export class SketchCanvas extends CanvasBase {
     this.#setGuides(gx, gz);
     const rdx = Math.round(sdx), rdz = Math.round(sdz);
     for (const [, start] of starts) this.updateShape(translateShape(start, rdx, rdz));
-    this.#renderIslandChrome();
+    this.#renderTransformChrome();
     this.#callbacks.onShapeUpdated?.();   // one island recompute for the whole move
     return true;
   }
@@ -861,128 +889,101 @@ export class SketchCanvas extends CanvasBase {
 
   // ── screen-space chrome ────────────────────────────────────────────────────────
 
-  // Draw the selected island's bounding box + corner anchors (screen-space, so legible at any zoom), plus
-  // the four rotate zones just OUTSIDE the corners (S13 — hover shows the rotate cursor, drag rotates the
-  // island). The edges are reserved for scale (S21). Re-rendered on selection + every viewport change.
-  #renderIslandChrome() {
+  // The transform box for the top rung of the ladder — a whole island, over its members' bounds, with four
+  // corner anchors, an edge grab band per side and the rotate zones outside the corners. Below that rung the
+  // box belongs to one shape and the edit controller draws it, so this draws only the size pill: exactly one
+  // box is on screen at a time, which is what lets it sit ON the bounds. Re-rendered on selection, on every
+  // viewport change and on every frame of a transform.
+  #renderTransformChrome() {
     const layer = this.#screen.islandChrome;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     this.#renderSizePill(layer);
-    if (!this.#selectedIslandId) return;
-    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
-    if (!isl) return;
-    const members = (isl.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
-    const b = boundsOfShapes(members);
+    if (this.#level !== "island" || !this.#selectedIslandId) return;
+    const b = boundsOfShapes(this.#transformSubject());
     if (!b) return;
     const p0 = this._toScreen(b.min_x, b.min_z), p1 = this._toScreen(b.max_x, b.max_z);
-    const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x);
-    const t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
-    layer.appendChild(svgEl("rect", {
-      x: l, y: t, width: r - l, height: bot - t,
-      fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
-    }));
-    // In select-only mode the dashed box is the whole chrome: it says what is selected, which is all a
-    // phase that picks needs, while every grabbable part below it — rotate zones, scale handles — is an
-    // edit affordance and is not drawn at all, so there is nothing to take hold of.
-    if (this.#selectOnly) return;
-
-    const HALF = 4, ZONE = 9;   // anchor half-size · rotate-zone half
-    // Rotate zones outside the four corners, past the scale ring (all islands; transparent fill so they
-    // still hit-test).
-    for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]]) {
-      const zone = svgEl("rect", { x: ax + sx * ROTATE_RING_PAD - ZONE, y: ay + sy * ROTATE_RING_PAD - ZONE, width: ZONE * 2, height: ZONE * 2, fill: "transparent" });
-      zone.style.cursor = ROTATE_CURSOR;
-      zone.addEventListener("mousedown", (e) => this.#startRotate(e));
-      layer.appendChild(zone);
-    }
-    // Scale handles (corner + edge, S21) show for a multi-shape island and for a single non-rectangle
-    // member (a lone rectangle already squashes via its own 8-handle resize, so it just gets inert corner
-    // markers). A single polygon/lasso keeps its vertex handles on top for point editing.
-    const soleRect = members.length === 1 && members[0]?.type === "rectangle";
-    if (!soleRect) {
-      for (const hd of SCALE_HANDLES) {
-        // Outward along the handle's own normal: a corner moves diagonally, an edge midpoint straight out,
-        // so the ring stays a box around the selection rather than a box drawn on it.
-        const hx = l + hd.nx * (r - l) + Math.sign(hd.nx - 0.5) * SCALE_RING_PAD;
-        const hy = t + hd.nz * (bot - t) + Math.sign(hd.nz - 0.5) * SCALE_RING_PAD;
-        const h = svgEl("rect", {
-          x: hx - HALF, y: hy - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
-          fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5",
-        });
-        h.style.cursor = hd.cur;
-        h.addEventListener("mousedown", (e) => this.#startScale(e, hd));
-        layer.appendChild(h);
-      }
-    } else {
-      for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]]) {
-        layer.appendChild(svgEl("rect", {
-          x: ax + sx * SCALE_RING_PAD - HALF, y: ay + sy * SCALE_RING_PAD - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
-          fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", "pointer-events": "none",
-        }));
-      }
-    }
+    const box = {
+      l: Math.min(p0.x, p1.x), r: Math.max(p0.x, p1.x),
+      t: Math.min(p0.y, p1.y), b: Math.max(p0.y, p1.y),
+    };
+    // In select-only mode the dashed box is the whole chrome: it says what is selected, which is all a phase
+    // that picks needs, while every grabbable part of it is an edit affordance and is not drawn at all.
+    const editable = !this.#selectOnly;
+    renderTransformBox(layer, box, {
+      onScale: editable ? (grip, e) => this.#startScale(e, grip) : null,
+      onRotate: editable ? (e) => this.#startRotate(e) : null,
+    });
   }
 
-  /** How big the selection is, under it — the shape when one is picked, else the island. The same pill the
-   *  plan and Configure draw, in the same place, because it answers the same question. */
-  #renderSizePill(layer) {
+  /** The shapes a transform acts on: an island's members at the top rung, the selected shape below it. One
+   *  answer, so a scale, a rotation and the size pill can never disagree about what is being transformed. */
+  #transformSubject() {
+    if (this.#level === "island") {
+      const isl = this.#islands.find(entry => entry.id === this.#selectedIslandId);
+      return (isl?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
+    }
     const shape = this.#selectedId ? this.#shapes.get(this.#selectedId) : null;
-    const island = !shape && this.#selectedIslandId
-      ? this.#islands.find(entry => entry.id === this.#selectedIslandId) : null;
-    const bounds = shape
-      ? toBounds(shape)
-      : boundsOfShapes((island?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean));
+    return shape ? [shape] : [];
+  }
+
+  /** How big the selection is, under it — the same pill the plan and Configure draw, in the same place,
+   *  because it answers the same question. */
+  #renderSizePill(layer) {
+    const bounds = boundsOfShapes(this.#transformSubject());
     if (!bounds) return;
     const p0 = this._toScreen(bounds.min_x, bounds.min_z), p1 = this._toScreen(bounds.max_x, bounds.max_z);
     renderDimensionPill(layer, {
       left: Math.min(p0.x, p1.x), right: Math.max(p0.x, p1.x),
-      // Below the handle ring rather than on the box, so the number never sits under a grab target.
-      bottom: Math.max(p0.y, p1.y) + SCALE_RING_PAD + 4,
+      // Clear of the bottom edge's grab band, so the number never sits under a grab target.
+      bottom: Math.max(p0.y, p1.y) + PILL_CLEARANCE,
       width: Math.round(bounds.max_x - bounds.min_x), depth: Math.round(bounds.max_z - bounds.min_z),
     });
   }
 
-  // Begin scaling the selected island via a bbox handle: freeze its original bbox + snapshot every member;
+  // Begin scaling the transform subject from one grip: freeze its original bbox + snapshot every member;
   // #scaleMove then derives the per-axis factors from the cursor and re-applies from those snapshots.
-  #startScale(e, hd) {
-    if (e.button !== 0 || !this.#selectedIslandId) return;
+  #startScale(e, grip) {
+    if (e.button !== 0) return;
     e.stopPropagation();
-    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
-    const members = (isl?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
+    const members = this.#transformSubject();
     const b = boundsOfShapes(members);
     if (!b) return;
-    this.#scaleState = { snapshots: new Map(members.map(s => [s.id, structuredClone(s)])), orig: b, h: hd };
+    this.#scaleState = { snapshots: new Map(members.map(s => [s.id, structuredClone(s)])), orig: b, h: grip };
   }
 
-  // Scale the island: per axis, factor = (cursor − anchor) / (originalHandle − anchor), anchored on the
-  // opposite corner/edge (or the centre with Alt). Shift locks a corner to a uniform scale. Clamped so the
-  // island can't collapse or flip (each axis stays >= 1 block).
+  // Scale the subject: per axis, factor = (cursor − anchor) / (originalGrip − anchor), anchored on the
+  // opposite side (or the centre with Alt). An edge band drives one axis and leaves the other alone, which
+  // is the stretch-and-squash; a corner drives both, and Shift locks it to a uniform scale. Clamped so the
+  // selection can't collapse or flip (each axis stays >= 1 block).
   #scaleMove(wx, wz, shift, alt) {
     const st = this.#scaleState; if (!st) return;
     const o = st.orig, h = st.h;
+    const axX = gripSideX(h) !== 0, axZ = gripSideZ(h) !== 0;
     const cx = (o.min_x + o.max_x) / 2, cz = (o.min_z + o.max_z) / 2;
     const anchorX = alt ? cx : (h.nx === 1 ? o.min_x : o.max_x);
     const anchorZ = alt ? cz : (h.nz === 1 ? o.min_z : o.max_z);
-    const handleX = h.nx === 1 ? o.max_x : o.min_x, handleZ = h.nz === 1 ? o.max_z : o.min_z;
+    const gripX = h.nx === 1 ? o.max_x : o.min_x, gripZ = h.nz === 1 ? o.max_z : o.min_z;
     const div = (a, b) => Math.abs(b) < 1e-9 ? 1 : a / b;
-    let sx = h.axX ? div(wx - anchorX, handleX - anchorX) : 1;
-    let sz = h.axZ ? div(wz - anchorZ, handleZ - anchorZ) : 1;
-    if (shift && h.axX && h.axZ) { const s = Math.abs(sx - 1) >= Math.abs(sz - 1) ? sx : sz; sx = s; sz = s; }
+    let sx = axX ? div(wx - anchorX, gripX - anchorX) : 1;
+    let sz = axZ ? div(wz - anchorZ, gripZ - anchorZ) : 1;
+    if (shift && axX && axZ) { const s = Math.abs(sx - 1) >= Math.abs(sz - 1) ? sx : sz; sx = s; sz = s; }
     sx = Math.max(sx, 1 / Math.max(o.max_x - o.min_x, 1));   // no collapse / flip (extent stays >= 1 block)
     sz = Math.max(sz, 1 / Math.max(o.max_z - o.min_z, 1));
     for (const [, snap] of st.snapshots) this.updateShape(scaleShape(snap, sx, sz, [anchorX, anchorZ]));
-    this.#renderIslandChrome();
+    this.#renderTransformChrome();
+    this.#edit?.refresh();
     this.#callbacks.onShapeUpdated?.();
   }
 
-  // Begin rotating the selected island (Figma model): freeze the pivot = its bbox centre + snapshot every
-  // member, then #rotateMove re-applies the accumulated angle from those snapshots each drag step.
+  // Begin rotating the transform subject: freeze the pivot = its bbox centre + snapshot every member, then
+  // #rotateMove re-applies the accumulated angle from those snapshots each drag step. Reached from the
+  // island's own rotate zones and from the shape box's, which is why it reads the subject rather than the
+  // island — one turn, whichever rung asked for it.
   #startRotate(e) {
-    if (e.button !== 0 || !this.#selectedIslandId) return;
+    if (e.button !== 0) return;
     e.stopPropagation();
-    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
-    const members = (isl?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
+    const members = this.#transformSubject();
     const b = boundsOfShapes(members);
     if (!b) return;
     const pivot = [(b.min_x + b.max_x) / 2, (b.min_z + b.max_z) / 2];
@@ -1007,7 +1008,8 @@ export class SketchCanvas extends CanvasBase {
     let angle = st.total;
     if (shift) { const step = Math.PI / 12; angle = Math.round(angle / step) * step; }   // 15°
     for (const [, snap] of st.snapshots) this.updateShape(rotateShape(snap, angle, st.pivot));
-    this.#renderIslandChrome();
+    this.#renderTransformChrome();
+    this.#edit?.refresh();
     this.#callbacks.onShapeUpdated?.();
   }
 
@@ -1083,6 +1085,9 @@ export class SketchCanvas extends CanvasBase {
       onVertexSelected: (shapeId, idx) => this.#callbacks.onVertexSelected?.(shapeId, idx),
       onSlopeControls: (shapeId, indices) => this.#callbacks.onSlopeControls?.(shapeId, indices),
       snapEdges: (id, edges, alt) => this.#snapResize(id, edges, alt),
+      // The shape box's rotate zones; the canvas turns them, because it holds the snapshots and applies one
+      // turn to whatever the subject is.
+      onRotateStart: (e) => this.#startRotate(e),
     });
 
     this.#renderSetup();
@@ -1091,9 +1096,9 @@ export class SketchCanvas extends CanvasBase {
     // listed by the `?` sheet and dropped with the canvas; `when` keeps a hidden canvas from answering.
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("sketch-canvas", [
-      { id: "sketch.cancel", keys: "escape", label: "Put the brush down · cancel the draw · leave the group · deselect",
+      { id: "sketch.cancel", keys: "escape", label: "Put the brush down · cancel the draw · step back up a level · deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
-      { id: "sketch.enter", keys: "enter", label: "Enter the selection's group",
+      { id: "sketch.enter", keys: "enter", label: "Go one level deeper — into an island, then into a shape's points",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedIslandId),
         run: () => this.enterSelection() },
       { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
@@ -1113,12 +1118,14 @@ export class SketchCanvas extends CanvasBase {
     ]);
   }
 
-  /** Escape, in the order a press means them: an in-progress draw, then the group, then the selection. */
+  /** Escape, in the order a press means them: an in-progress draw, then one rung back up the ladder — the
+   *  points of a shape, then the group that was entered — then the selection itself. */
   #onEscape() {
     this.#draw.cancel(); this.#clearMeasure(); this.#clearSplit();
     // A thing in hand is the first thing Escape lets go of: with a brush armed every click paints, so
     // putting it down is what "never mind" means before anything about the selection does.
     if (this.#themeBrush) { this.#callbacks.onThemeDrop?.(); return; }
+    if (this.#level === "points") { this.#setLevel("shape"); return; }
     if (this.#scopeIslandId) {
       const parent = this.#scopeIslandId;
       this.#enterScope(null);

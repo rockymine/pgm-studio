@@ -6107,6 +6107,38 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   box and stopped there. `reliefIsland()` is now the one expression both the read and the write ask, and the
   inspector calls through `InvokeAsync<string?>` and shows what came back on the field. (`bridge/sketch-bridge.js`,
   `Client/Features/Sketch/SketchReliefInspector.razor(.cs)`, `docs/tools/sketch.md`)
+- **One transform box, four anchors, and the edges are bands (C60).** `renderTransformBox` in
+  `render/canvas-chrome.js` is the box every authoring surface scales a selection by — the sketch at each rung
+  of its ladder, the plan for a piece or a zone, and `WorldEditController` for a region, which is Edit and all
+  eleven Configure steps at once. Four anchors, one per corner, drawn ON the selection's own bounds; each edge
+  an invisible grab band that shows the one-dimensional arrow and stretches that axis alone, stopping short of
+  both corners so the anchor there wins the press. An edge midpoint carrying no anchor is what leaves the
+  midpoint-insert ghost a clear target and lets the box sit on the bounds with no offset at all. `nx`/`nz` are
+  the shared vocabulary, read through `gripSideX`/`gripSideZ`; each caller maps a side to what it states — a
+  bound, a cell edge, or a field name that depends on which way its transform is flipped. Rotate zones are
+  drawn only where a caller turns. (`render/canvas-chrome.js`, `controllers/{sketch,world}-edit-controller.js`,
+  `canvas/{sketch,plan}-canvas.js`, `canvas/canvas-base.js`, `docs/client/canvas-interaction.md`,
+  `docs/tools/{sketch,plan}.md`; 8 JS tests)
+- **The sketch's selection is a ladder, and one rung draws at a time (TS59).** Island → shape → points, with a
+  double-click one rung down and `Escape` one back up; `Enter` is the keyboard's way in. A single-member island
+  is one rung and not two, so drilling it opens the points directly. The island box and the shape box are the
+  same box, and drawing both is what put two anchors within three pixels of each other on every corner and four
+  `pointer-events:none` squares beside a lone rectangle's eight live ones. `SketchCanvas.#level` is the one
+  thing that decides what is drawn and `#transformSubject` the one answer for what a scale, a rotation and the
+  size pill act on, so the three cannot disagree. The points rung draws vertices, tangents and the insert ghost
+  and no box; the box rungs draw no points. A click on the shape whose points are open leaves them open.
+  **A grip says which rung it is by its shape**: a box anchor is a square and a point of an outline is a disc,
+  the size of the midpoint-insert ghost because what the ghost offers is another point of the same kind. Both
+  wear the accent, so depth is never read off the colour — colour is left carrying state, a picked vertex
+  filled accent and a shift-marked slope control in `--warning`.
+  (`canvas/sketch-canvas.js`, `controllers/sketch-edit-controller.js`, `canvas/canvas-base.js`,
+  `docs/tools/sketch.md`, `docs/client/canvas-interaction.md`)
+- **A storey is deleted where it is switched (TS60).** The canvas storey strip owns the set — switch, `+` and
+  `×`, the last storey keeping no `×` because a board always stands on one — and only Draw offers the two that
+  change it, since both are drawing work. The Draw sidebar keeps the active storey's name and base Y, which is
+  what it was always for: a second list offering the same three verbs is two places to keep in step.
+  (`Features/Sketch/{SketchLayerStrip,SketchLayers}.razor`, `SketchTool.razor`, `css/studio/components.css`,
+  `docs/tools/sketch.md`)
 - **The Relief phase picks an island and cannot reshape it (TS57).** Picking an island is how its base,
   reach, step, grain and rim are reached, and picking one also armed Draw's vertex grips, Bézier handles,
   rotate and scale chrome and arrow-nudge — so the gesture the phase requires was the gesture it should

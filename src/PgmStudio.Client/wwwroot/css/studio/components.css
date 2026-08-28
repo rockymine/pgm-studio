@@ -1636,16 +1636,35 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   display: flex; align-items: center; padding: 0 6px;
   font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
 }
+/* A tab and its delete are one pill, so the wrap carries the state and the two buttons inside it stay
+   transparent — a delete nested in the tab button would be a button inside a button. */
+.canvas-layer-tab-wrap {
+  display: flex; align-items: stretch; border-radius: var(--radius-sm); color: var(--text-secondary);
+}
+.canvas-layer-tab-wrap:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-layer-tab-wrap--on { background: var(--bg-selected); color: var(--text-strong); }
 .canvas-layer-tab {
   display: flex; flex-direction: column; align-items: flex-start; gap: 0;
   padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
-  background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer; text-align: left;
+  background: transparent; color: inherit; font: inherit; cursor: pointer; text-align: left;
 }
-.canvas-layer-tab:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
-.canvas-layer-tab--on { background: var(--bg-selected); color: var(--text-strong); }
 .canvas-layer-tab-name { font-size: var(--font-sm); line-height: 1.2; max-width: 12ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .canvas-layer-tab-y { font-family: ui-monospace, monospace; font-size: 10px; color: var(--text-muted); line-height: 1.2; }
-.canvas-layer-tab--on .canvas-layer-tab-y { color: var(--accent-lighter); }
+.canvas-layer-tab-wrap--on .canvas-layer-tab-y { color: var(--accent-lighter); }
+/* Shown only on the hovered or active tab — a strip of storeys reads as a switch, and a delete on every one
+   of them reads as a list of deletes. Faded rather than hidden, and its slot held either way: a strip that
+   reflows as the pointer crosses it moves the target out from under the press that was aiming for it, and a
+   `visibility: hidden` button cannot be pressed at all until the hover it needs has already resolved. Nobody
+   presses one they cannot see — reaching it puts the pointer inside the tab, which is what fades it in. */
+.canvas-layer-del {
+  display: grid; place-items: center; width: 18px; padding: 0; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+  opacity: 0; transition: opacity 90ms linear;
+}
+.canvas-layer-tab-wrap:hover .canvas-layer-del,
+.canvas-layer-tab-wrap--on .canvas-layer-del { opacity: 1; }
+.canvas-layer-del:hover { color: var(--color-error); }
+.canvas-layer-del svg { width: var(--icon-xs); height: var(--icon-xs); }
 .canvas-layer-add {
   display: grid; place-items: center; width: 26px; border: 0; border-radius: var(--radius-sm);
   background: transparent; color: var(--text-muted); cursor: pointer;

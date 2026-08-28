@@ -96,8 +96,8 @@
           }
           else
           {
-            <SketchLayers Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer" OnAdd="AddLayer"
-                          OnDelete="DeleteLayer" OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
+            <SketchLayers Layers="layerRows" ActiveId="@activeLayerId"
+                          OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
           }
@@ -164,11 +164,11 @@
           </CanvasLayerBar>
 
           @* A layer is the board's rather than a phase's, so the switch is chrome and every phase that
-             draws the canvas has it. Adding one is drawing work, so only Draw offers that. *@
+             draws the canvas has it. Adding and removing one is drawing work, so only Draw offers those. *@
           @if (!threeD)
           {
             <SketchLayerStrip Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer"
-                              OnAdd="AddLayer" AllowAdd="@DrawActive" />
+                              OnAdd="AddLayer" OnDelete="DeleteLayer" AllowEdit="@DrawActive" />
           }
 
           @* What is in hand, where a thing in hand belongs. The Theme phase's every click is addressed to it. *@

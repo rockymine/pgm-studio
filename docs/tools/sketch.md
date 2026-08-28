@@ -302,27 +302,38 @@ What becomes of those columns once Finish runs — the layer scheme the world fo
 
 ## Phases
 
-**Selection is two levels everywhere the canvas draws — Draw, Relief and Theme alike.** A plain
-click picks the unit the phase states: an island in Draw and Relief, because a landmass is what moves and one
-relief is solved per island; a shape in Theme, because a theme is assigned to one shape or to everything an
-island holds. `Ctrl`/`⌘`+click reaches the shape under the cursor whichever island holds it, entering that
-island as the scope in the same motion; `Alt`+click leaves any scope and picks the parent island of whatever
-is under the cursor. An island already selected is also entered as a scope from the keyboard, with `Enter`.
-Once entered, a plain click reaches a member shape and a click landing outside the island's footprint leaves
-the scope before landing normally. `Escape` cancels an in-progress draw and leaves an entered
-island, selecting the island that was entered; with nothing entered it clears the selection. With a theme in
-hand it does none of that and puts the theme down instead. Nothing here is a
-double-click: a polygon or a path closes on `Enter`, or on a click landing back at its own first vertex.
+**Selection is a ladder of three rungs, and exactly one of them is on screen.** A plain click picks the unit
+the phase states: an island in Draw and Relief, because a landmass is what moves and one relief is solved per
+island; a shape in Theme, because a theme is assigned to one shape or to everything an island holds. A
+**double-click goes one rung down** — from an island to the member under the cursor, from a shape to that
+shape's points — and `Escape` comes back up one, so the two are the same gesture reversed. `Enter` is the
+keyboard's way down, where the double-click is the pointer's.
+
+**A single-member island is one rung and not two**, because its box and its lone member's box are the same
+box and there is nothing for the shape rung to say; drilling it opens the points directly. Reaching a rung
+across islands stays a modifier: `Ctrl`/`⌘`+click reaches the shape under the cursor whichever island holds
+it, entering that island as the scope in the same motion, and `Alt`+click leaves any scope and picks the
+parent island of whatever is under the cursor. Once an island is entered, a plain click reaches a member
+shape and a click landing outside its footprint leaves the scope before landing normally — and a click on the
+shape whose points are already open leaves them open, so working point by point is not interrupted by
+touching what is being worked on.
+
+`Escape` walks the whole way out in the order a press means it: an in-progress draw, then the points, then
+the entered island, then the selection itself. With a theme in hand it does none of that and puts the theme
+down instead. Closing a drawn polygon is no part of the ladder: a polygon or a path closes on `Enter`, or on
+a click landing back at its own first vertex.
 
 **The Shapes chip draws every primitive on the board; without it, the selected or entered island draws its own
 members instead** — faintly where the island is merely selected, plainly where it is entered, so a member
 becomes reachable without hunting for the toggle first.
 
 **Which layer is drawn on is canvas chrome, not any one phase's own state.** The storey strip floats at the
-foot of the canvas beside the dock and is present in every phase that draws the canvas; only Draw offers the
-`+` that adds one, because adding a storey is drawing work. Whatever is placed lands on the active layer — a
-placement takes it unless it already names one — so an author is never asked twice which storey something
-belongs to. The Theme phase's swatch strip is chrome for the same reason and floats above the dock beside it.
+foot of the canvas beside the dock and is present in every phase that draws the canvas. It is where the set
+of storeys is *changed* as well as switched: only Draw offers the `+` that adds one and the `×` that removes
+one, because both are drawing work, and the last storey has no `×` at all — a board always stands on one.
+Whatever is placed lands on the active layer — a placement takes it unless it already names one — so an
+author is never asked twice which storey something belongs to. The Theme phase's swatch strip is chrome for
+the same reason and floats above the dock beside it.
 
 **A phase offers the overlays it can use, and switches on the ones it works with.** The layer bar is not a
 fixed six: a phase shows the layer it works on and the layer it works against, and an overlay that would draw
@@ -367,10 +378,11 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `X` | Split | Tools |
 | `B` | Flip build ⇄ carve | Tools |
 | `F` | Fit the working bounds | Canvas |
+| Double-click | Go one level deeper — into an island's member, then into that shape's points | Canvas |
 | `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its island as the scope | Canvas |
 | `Alt`+click | Pick the parent island and leave any scope | Canvas |
-| `Enter` | Enter the selection's island as a scope, or close the polygon/path in progress | Canvas |
-| `Escape` | Put the brush down, else cancel the draw and leave the scope, else clear the selection | Canvas |
+| `Enter` | Go one level deeper, or close the polygon/path in progress | Canvas |
+| `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
 | `Delete` / `Backspace` | Delete the selected shape | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
 | `Shift`+`P` | Promote the shape to its own island | Sketch |
@@ -405,18 +417,33 @@ two points, the usual question being how wide a void gap is, and **split** slice
 into two independent shapes. Every draw and every split drops the
 tool back to select when it completes.
 
-**Editing is per point, and per outline.** A rectangle shows eight resize handles. A polygon (and a path's
-centreline) shows a handle per vertex, a midpoint ghost on edge hover that inserts a vertex where it is
-clicked, and a pair of Bézier tangent handles per vertex that round the edges leaving and arriving — which is
-how an outline stops being rectilinear. Beyond the points, a polygon shows an eight-handle **scale box**: the
-same stretch a rectangle gets, moving every vertex and every Bézier handle proportionally, because "the same
-shape but bigger" is not something point-by-point editing can say. The box is drawn a margin outside the
-outline — on a rectangular polygon its corners are the polygon's own vertices, and a handle drawn there would
-bury the stretch under the point-drag and the midpoint-insert at the same spot. The island's own scale ring is
-offset for the same reason, with its rotate zones past it. A rectangle can be **promoted** to a polygon in
-place, keeping its id and therefore its island membership. Selection can be rotated by a stated number of degrees about its own bounding-box centre,
-nudged a block at a time with the arrow keys (sixteen with Shift), moved with snapping to other shapes' edges
-(Alt bypasses), have its operation or its override flipped, or be deleted.
+**The top two rungs wear the same box, and the third wears none.** An island and a shape are each drawn with
+the **transform box** every surface in the studio uses (`docs/client/canvas-interaction.md` §5): four corner
+anchors on the selection's own bounds, an invisible grab band along each edge that stretches or squashes that
+one axis, and four rotate zones outside the corners. What a grip *does* differs with what it holds — an
+island scales all its members proportionally, a rectangle moves the bound the grip names and snaps it to the
+other shapes' edges, an outline moves every vertex and every Bézier handle proportionally, because "the same
+shape but bigger" is not something point-by-point editing can say — but where the grips sit does not, so an
+author learns one box.
+
+**The points rung draws the points and nothing else**: a handle per vertex, a midpoint ghost on edge hover
+that inserts a vertex where it is clicked, and a pair of Bézier tangent handles per vertex that round the
+edges leaving and arriving — which is how an outline stops being rectilinear. No box, no anchors, no rotate.
+That separation is what lets every box sit ON its bounds rather than offset outside it: an edge midpoint
+carries no anchor, so the insert ghost has the spot to itself, and a corner carries no vertex handle, because
+the rung that draws vertex handles draws no corners.
+
+**A grip's shape says which rung it belongs to, and its colour says what it is.** A square scales a whole
+outline; a **disc is one point of it**, the size of the midpoint-insert ghost, because what that ghost offers
+is another point of the same kind — the only difference between them is that the ghost is drawn in the
+lighter accent, being a point proposed rather than a point placed. Both wear the accent, so nothing about
+being drilled in is read off the colour: colour is left to say what a point IS — plain, picked for its own
+height, or shift-marked in `--warning` as a surface-slope control.
+
+A rectangle can be **promoted** to a polygon in place, keeping its id and therefore its island membership.
+Selection can be rotated by a stated number of degrees about its own bounding-box centre, nudged a block at a
+time with the arrow keys (sixteen with Shift), moved with snapping to other shapes' edges (Alt bypasses),
+have its operation or its override flipped, or be deleted.
 
 **Height is edited three ways.** The whole shape takes a floor and a thickness. A single selected vertex takes
 its own height, which materialises the per-vertex array on first use. And two or three vertices shift-marked as
@@ -455,8 +482,10 @@ read the columns back out. Nothing is drawn in 3-D, so the fetch happens on **en
 than on every edit — the view swaps at once and fills in when the columns land. Rotating redraws the mesh
 already in hand, and re-entering an untouched board draws it again rather than rebuilding.
 
-The sidebar carries the full layer list — where a storey is renamed and its base Y set — and the
-island→shape tree; the inspector on the right edits whatever is selected.
+The sidebar carries the active storey's settings — its name and its base Y — and the island→shape tree; the
+inspector on the right edits whatever is selected. Which storey is active, and which storeys there are, is
+the strip's alone: a storey is switched where it is drawn on, so the sidebar states what the storey **is**
+rather than offering a second list of the same rows.
 
 ### Relief
 

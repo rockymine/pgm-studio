@@ -6,9 +6,6 @@ public partial class SketchLayers
 {
     [Parameter] public IReadOnlyList<SketchLayerRow> Layers { get; set; } = [];
     [Parameter] public string? ActiveId { get; set; }
-    [Parameter] public EventCallback<string> OnSelect { get; set; }
-    [Parameter] public EventCallback OnAdd { get; set; }
-    [Parameter] public EventCallback<string> OnDelete { get; set; }
     [Parameter] public EventCallback<(string Id, string Name)> OnRename { get; set; }
     [Parameter] public EventCallback<(string Id, double BaseY)> OnSetBaseY { get; set; }
 

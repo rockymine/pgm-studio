@@ -1,5 +1,6 @@
 /**
- * WorldEditController — region resize (8-handle drag) + arrow-key move for WorldCanvas. Extracted
+ * WorldEditController — region resize (corner anchors + edge stretch bands) + arrow-key move for
+ * WorldCanvas. Extracted
  * from world-canvas.js; mirrors WorldDrawController (state accessors + callbacks; the canvas forwards
  * its CanvasBase hooks into this controller).
  *
@@ -18,22 +19,12 @@
  *   afterResize ()             refresh cursor + overlay once a resize drag ends
  */
 
-import { svgEl, handleRectAttrs } from "../render/svg.js";
+import { renderTransformBox } from "../render/canvas-chrome.js";
 import { translateBounds } from "../geometry/shape.js";
 import { toScreen } from "../geometry/transform.js";
 import * as Keys from "../shared/keys.js";
 
 const HANDLE_SIZE = 14;
-const HANDLE_DEFS = [
-  { key: "nw", pos: sb => [sb.left,  sb.top   ], cursor: "nw-resize" },
-  { key: "n",  pos: sb => [sb.midX,  sb.top   ], cursor: "n-resize"  },
-  { key: "ne", pos: sb => [sb.right, sb.top   ], cursor: "ne-resize" },
-  { key: "w",  pos: sb => [sb.left,  sb.midY  ], cursor: "w-resize"  },
-  { key: "e",  pos: sb => [sb.right, sb.midY  ], cursor: "e-resize"  },
-  { key: "sw", pos: sb => [sb.left,  sb.bottom], cursor: "sw-resize" },
-  { key: "s",  pos: sb => [sb.midX,  sb.bottom], cursor: "s-resize"  },
-  { key: "se", pos: sb => [sb.right, sb.bottom], cursor: "se-resize" },
-];
 
 export const RESIZABLE_TYPES = new Set(["rectangle", "cuboid"]);
 
@@ -49,27 +40,27 @@ export class WorldEditController {
     this.#setupKeyboardNudge();
   }
 
-  /** Draw the 8 resize handles for a resizable node into the overlay layer. */
+  /**
+   * Draw the resize box for a resizable node into the overlay layer — four corner anchors on the node's own
+   * bounds and a grab band along each edge, the same box the plan and the sketch wear. A grip names the
+   * screen side it drags, which is what `#handleFields` maps to bounds: the world transform may flip either
+   * axis, so the screen side and the world bound are not the same question.
+   */
   renderHandles(node) {
     const overlay = this.#acc.getOverlay();
     const sb = this.#screenBounds(node);
     if (!overlay || !sb) return;
-    const hs = HANDLE_SIZE / 2;
-    for (const h of HANDLE_DEFS) {
-      const [cx, cy] = h.pos(sb);
-      const el = svgEl("rect", {
-        ...handleRectAttrs(cx, cy, hs), rx: 1,
-        fill: "var(--canvas-handle-fill)", stroke: "var(--canvas-handle-stroke)", "stroke-width": "1.5", cursor: h.cursor,
-      });
-      el.addEventListener("mousedown", (e) => {
+    renderTransformBox(overlay, { l: sb.left, t: sb.top, r: sb.right, b: sb.bottom }, {
+      outline: false, gripHalf: HANDLE_SIZE / 2,
+      fill: "var(--canvas-handle-fill)", stroke: "var(--canvas-handle-stroke)",
+      onScale: (grip, e) => {
         if (e.button !== 0) return;
         e.stopPropagation(); e.preventDefault();
-        const fields = this.#handleFields(h.key, this.#screenBounds(node));
-        this.#resizeState = { node, ...fields, cursor: h.cursor };
-        this.#cb.setCursor?.(h.cursor);
-      });
-      overlay.appendChild(el);
-    }
+        const fields = this.#handleFields(grip.key, this.#screenBounds(node));
+        this.#resizeState = { node, ...fields, cursor: grip.cursor };
+        this.#cb.setCursor?.(grip.cursor);
+      },
+    });
   }
 
   /** Intercept mousemove during a handle drag — return true to consume the event (before pan logic). */
