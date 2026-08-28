@@ -209,6 +209,59 @@ below are what that would cost. Each names the question that has to be answered 
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
 
+## Props that are not terrain: a structure drawn out of layers
+
+A layer is one arbitrary height field — `(floor, top)` per column, because the taller add wins a contested
+column outright and carries its own floor — so the shapes an author already has draw a dome, a ring wall, a
+tapered tower or an arch, one layer each. `pgm-studio-mapgen/SCULPTING-WITH-LAYERS.md` is the measurement:
+nine parametric forms, eight of them a single layer, and four compiled solids on a played board
+(`maps/opus5-automaton`) that scores 0 with no violation and no lint. What the four entries below name is what
+that board could not do, and every one of them is a fact about the layer *system* rather than about the
+shapes drawn on it.
+
+- [ ] **TS61 — A layer seats itself on the ground under it.** A shape states an absolute `floor`, and a
+  relief moves the ground beneath it, so a prop on rolling terrain floats or is buried and there is no word
+  that says otherwise: `height_mode` reaches a shape inside its own island's relief and never a shape on
+  another layer. Measured: `opus5-automaton`'s first build put nine props into the ground, the deepest seven
+  courses, and the board is flat only because of it. Add `seat` to `SketchLayer` (`SketchLayout.cs`) —
+  absent is today's absolute floor, `raise` takes each shape's floor from the top of the ground standing
+  under its own footprint, read off the same solve `SketchRasterizer.ReliefFields` already produces. It runs
+  where the erected shapes run, after the relief and before the mirror fan.
+
+- [ ] **TS62 — `SK10` and `SK11` read a prop as a storey, and both are wrong about it.** A solid sculpture
+  standing on a hill *should* sink into the hill: there is no gap to lose, and `SK10`'s sentence ("the gap
+  between the two storeys is not in the world there") describes a gallery under a deck. `SK11` fires on
+  every overhang a prop has — a dome on columns, a raised arm, an antenna — and `sculpture/models` raises
+  twenty-two of them, all true and none a fault. Give `SketchLayer` a `kind` (`ground` · `prop`), take a
+  `prop` layer out of `OverlappingLayerSpans`' pair walk and out of `DetachedMasses`, and say so in
+  `SketchRules`' two docstrings. The rules stay exactly as strict about the storeys they were written for.
+
+- [ ] **TS63 — A form library: the round structures a layer already draws.** `ring_wall`, `ellipse_wall`,
+  `dome`, `spire`, `ziggurat`, `arch`, `colonnade`, `tapered_tower`, `bowl` — a footprint and a few numbers
+  each, emitting circles and polygons with a floor and a height, so what lands in the document stays
+  draggable in Draw. Costs measured on `sculpture/forms`: a hollow dome of radius 13 is 13 circles on one
+  layer, a hollow ellipse is 2 polygons, a thirty-course tapered tower is 6. Two mechanisms are load-bearing
+  and neither is documented in `docs/tools/sketch.md`: an **annulus is one polygon** (outer ring, slit
+  inward, inner ring reversed — even-odd fill does the rest), because `SK13` refuses a subtract with
+  anything over or under it; and an **override add** lays a floor inside a wall whatever their heights.
+
+- [ ] **TS64 — A stack of thirty-one layers is not a storey strip.** `opus5-automaton` carries 31 layers, 24
+  of them `colossus-L0…sentinel-L7`, and `GET …/render/topdown?layer=` prints all 31 in its `RQ4` refusal.
+  A prop is one thing to an author and *n* layers to the rasterizer. Give a layer an optional `group` and
+  render the strip and the layer list by group, one row per prop with its layers folded under it. Downstream
+  of `TS62`, which is where `kind` arrives.
+
+- [ ] **WE52 — The painter's buckets are a model of ground, and a sculpture is not ground.** `rim` caps every
+  plateau boundary and `wall` covers every exposed riser, so on a curved voxel form — which is nothing but
+  plateau boundaries — a three-tone theme speckles the whole surface; every piece in `pgm-studio-mapgen/sculpture`
+  states a **solid** theme for that reason. Two smaller edges belong with it: a theme whose material *is*
+  stone writes nothing (the stone-only invariant) and its cells stay overwritable by the next layer's pass,
+  which reads as one shape's material flooding another's column; and `BedrockSpec.PaintFloor` clamps to at
+  least one course, so y=0 is bedrock wherever a column has ground. Decide whether a theme states that it
+  paints a made thing rather than terrain — a `flat` bucket policy — and write the three facts into
+  `docs/world-export/terrain-painting.md` either way.
+
+
 ## The library preview: authoring a building where it will stand
 
 Both entries make the preview *heavier*, and both are downstream of `TL5`'s decision about how wide it is —
