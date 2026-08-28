@@ -223,6 +223,17 @@ app.Use(async (ctx, next) =>
     }
     catch (Exception ex) when (ctx.Request.Path.StartsWithSegments("/api") && !ctx.Response.HasStarted)
     {
+        // A caller that hung up is not a fault: there is nothing to report and nobody to answer. Reported as
+        // one it would be a stack trace per abandoned request — and the sketch tool abandons one on every
+        // edit that outruns its autosave — burying the faults this envelope exists for.
+        if (PgmStudio.Api.Http.ClientDisconnect.Explains(ctx, ex))
+        {
+            ctx.RequestServices.GetRequiredService<ILoggerFactory>()
+               .CreateLogger("PgmStudio.Api.Unhandled")
+               .LogDebug("{Method} {Path} was abandoned by its caller", ctx.Request.Method, ctx.Request.Path);
+            return;
+        }
+
         var document = ex is JsonException;
         if (!document)
             ctx.RequestServices.GetRequiredService<ILoggerFactory>()

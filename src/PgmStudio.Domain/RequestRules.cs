@@ -29,7 +29,7 @@ public static class RequestRules
     /// author looking for a mistake they did not make. What it buys is that the caller gets the one envelope
     /// every other refusal arrives in rather than a .NET stack trace, and the trace goes to the log where it
     /// belongs.</summary>
-    /// <remarks>Nothing an author can do: this is a defect in the studio, and seeing one is a bug report rather than an authoring problem. The stack trace is in the server log.</remarks>
+    /// <remarks>Nothing an author can do: this is a defect in the studio, and seeing one is a bug report rather than an authoring problem. The stack trace is in the server log. A request the caller abandoned is not one of these and is never answered — there is nobody left to answer.</remarks>
     [Rule(RuleCategory.Internal, RuleConcern.Studio)]
     public const string Unhandled = "RQ2";
 

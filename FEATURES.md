@@ -5737,6 +5737,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `RequiredFields` refuses anything a DTO declares non-nullable and the body omitted, naming every missing
   field at once; and a backstop guarantees the envelope for all 159 endpoint classes, a parse fault answering
   400 and anything else staying 500 with the trace logged rather than sent. `RQ1`/`RQ2` in `docs/refusals.md`.
+- **A caller hanging up is not a fault the backstop reports (RP62).** A request the client abandons cancels
+  `RequestAborted`, so the exception reaches that backstop wearing a defect's clothes; it was logged as `RQ2`
+  with a full trace and answered into a socket that had gone. The sketch tool produces them by design — its
+  autosave cancels the previous in-flight write on every edit, and a relief drag outruns one easily — so a
+  page of stack trace per abandoned save was burying the faults the envelope exists for. `Api/Http/
+  ClientDisconnect` takes the exception **and** the token, because a server-side timeout throws the same type
+  while the caller still waits and a defect that merely coincides with a disconnect is still a defect. The
+  abandoned write never commits, so the document is untouched and the next save carries the newer state. (RP62)
   Beside it the tool documents gained the body shapes they never carried — twenty-five endpoints take a
   document unwrapped and the rest a record, and nothing had said which — with the rule in `flow.md` and eight
   worked bodies posted straight out of the markdown by `DocumentedBodyTests`, including `plan.md`'s worked

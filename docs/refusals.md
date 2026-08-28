@@ -395,6 +395,16 @@ it — an agent told its own posted document is unreadable looks in the wrong pl
 it buys is that the caller gets this envelope instead of a .NET stack trace, and the trace goes to the log. It
 should never be seen, and one appearing is a bug report rather than an authoring problem.
 
+**A caller that hangs up is not `RQ2`, and is not answered at all.** A request the client abandons cancels
+`RequestAborted`, every endpoint takes that token, and whatever it was awaiting throws — so a disconnect
+reaches the middleware wearing the same clothes as a defect. It is neither logged nor answered: there is
+nothing to report and nobody to answer, and the envelope would be written to a socket that has gone. What
+separates the two is the token rather than the exception, because a server-side timeout throws the same type
+while the caller is still waiting and *is* worth reporting; `Api/Http/ClientDisconnect` takes both halves, so
+a defect that merely coincides with a disconnect stays a defect. The sketch tool produces these deliberately —
+its autosave cancels the previous in-flight write on every edit — and the abandoned write is inside a
+transaction that never commits, so the document is untouched and the next save carries the newer state.
+
 **A `catch` around a build or a solve names the faults a document can cause, and nothing else.** Catching
 everything and answering 400 dresses a defect as the author's mistake: a null dereference in the rasterizer
 reaches them as a fault in their board, and the exception's own sentence goes nowhere. So each of the five
