@@ -1,9 +1,10 @@
 # Decoration — flora, paths, scatter, canopy (G34, slice G161)
 
 A third pass over the **realized world**, sibling to the structure stamping of `structures.md` and the
-terrain painting of `terrain-painting.md`. Where the painter dresses the terrain's *material* — grass over
-stone, quartz on the rim — this pass adds the terrain's *life*: tall grass and flowers scattered on the
-soil, a worn stroke dragged across it, boulders and trees seated on top. It is the second half of the
+terrain painting of `terrain-painting.md`. Where the painter dresses the terrain's *material* — stone
+unless a theme states otherwise, grass over stone and quartz on the rim in the seeded Meadow finish — this
+pass adds the terrain's *life*: tall grass and flowers scattered on the soil, a worn stroke dragged across
+it, boulders and trees seated on top. It is the second half of the
 theming work parked as G34: G157 carved out the terrain slice ("no new geometry, only materials"); this is
 the **prop-stamps** slice, and it is the opposite by construction — it exists to add geometry.
 

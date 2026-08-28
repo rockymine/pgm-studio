@@ -22,12 +22,19 @@ public sealed class DressingPreviewTests
     private static int Height(string svg)
         => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
 
+    // A theme whose surface is grass — what flora needs underfoot to place at all, since the built-in default
+    // no longer paints anything organic.
+    private static readonly TerrainTheme Grassed = TerrainTheme.Default with
+    {
+        Surface = new TopBand(new SolidMaterial(Blocks.Grass), 1),
+    };
+
     [Test]
     public async Task The_preview_places_the_prop_rather_than_drawing_an_impression_of_it()
     {
         var views = DressingPreview.Views(
             new FloraProp { Points = [[0, 0], [40, 0], [40, 40], [0, 40]], Spec = new FloraSpec(Coverage: 0.9, FlowerShare: 0.5), Seed = 7 },
-            TerrainTheme.Default);
+            Grassed);
 
         await Assert.That(views.Counts.Plants).IsGreaterThan(100);
         await Assert.That(views.Counts.Trees).IsEqualTo(0);
@@ -150,7 +157,7 @@ public sealed class DressingPreviewTests
         var meadow = new FloraProp { Points = [[0, 0], [40, 0], [40, 40], [0, 40]], Spec = new FloraSpec(Coverage: 0.8), Seed = 7 };
         var paved = TerrainTheme.Default with { Surface = new TopBand(new SolidMaterial(Blocks.QuartzBlock), 1) };
 
-        await Assert.That(DressingPreview.Views(meadow, TerrainTheme.Default).Counts.Plants).IsGreaterThan(0);
+        await Assert.That(DressingPreview.Views(meadow, Grassed).Counts.Plants).IsGreaterThan(0);
         await Assert.That(DressingPreview.Views(meadow, paved).Counts.Plants).IsEqualTo(0);
     }
 
@@ -218,7 +225,7 @@ public sealed class DressingPreviewTests
         // outermost ring is its own boundary, not ground. Seen from the side that ring is the entire front
         // face, and a preview that included it showed a tree standing behind a wall instead of in the grass
         // the plan view plainly draws under it. Both views carry the same ground.
-        var tree = DressingPreview.Views(new TreeProp { Species = "oak", Height = 20, Seed = 5 }, TerrainTheme.Default);
+        var tree = DressingPreview.Views(new TreeProp { Species = "oak", Height = 20, Seed = 5 }, Grassed);
 
         var ground = BlockPalette.Hex(Blocks.Grass, 0);
         await Assert.That(Fills(tree.Plan)).Contains(ground);

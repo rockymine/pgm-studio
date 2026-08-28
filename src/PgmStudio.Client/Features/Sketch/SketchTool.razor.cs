@@ -47,35 +47,61 @@ public partial class SketchTool
     private Task GoInfo() => SetPhase("info");
     private Task GoDraw() => SetPhase("draw");
 
-    // ── Theme phase: the map's whole finish, in three steps. Create (author terrain themes) and Apply (assign
-    //    them on the island tree) are the paint; Rooms binds the shells the stamped wool cages and spawn cubes
-    //    take (structures.md §9). Apply reuses the live canvas, so its body stays mounted like Draw; the other
-    //    two are their own bodies. ──
-    private string themeStep = "create";
-    private bool ThemeCreateActive => active == "theme" && themeStep == "create";
-    private bool ThemeApplyActive => active == "theme" && themeStep == "apply";
-    private bool ThemeRoomsActive => active == "theme" && themeStep == "rooms";
-    private static readonly string[] ThemeSteps = ["Create", "Apply", "Rooms"];
-    private Task GoTheme() { themeStep = "create"; return SetPhase("theme"); }
-    private Task GoThemeRooms() { themeStep = "rooms"; StateHasChanged(); return Task.CompletedTask; }
-    /// <summary>A step click from a body other than the one it names: 1 is the canvas mode, 2 the rooms body,
-    /// anything else Create.</summary>
-    private Task GoThemeStep(int step) => step switch
+    // ── Theme phase: the map's whole finish, in one step on the live canvas. A theme is taken in hand from the
+    //    strip and put on a shape by clicking it; the inspector shows what is in hand, what the selection
+    //    carries, and — with nothing selected — what the board falls back to, the room shells among it.
+    //    Authoring a theme is the library's, so the phase picks and places rather than defining. ──
+    private bool ThemeActive => active == "theme";
+    private Task GoTheme() { tool = "select"; return SetPhase("theme"); }
+
+    /// <summary>The board's theme ids in registry order, its map default, and which shape carries which — read
+    /// from the bridge once per change and handed to the strip and the inspector, so the two views of one
+    /// registry cannot disagree about it.</summary>
+    private List<string> themeIds = [];
+    private string mapThemeId = "";
+    private Dictionary<string, string> shapeThemes = [];
+    /// <summary>Bumped on every registry change, so a view keyed on a theme's name refreshes when the theme
+    /// under that name is replaced.</summary>
+    private int themeRevision;
+    /// <summary>How many shapes the whole board carries, over every storey — the denominator the themed count
+    /// is read against, and counted where that count is, so the two cannot be over different sets.</summary>
+    private int themedShapeTotal;
+    /// <summary>Whether the inspector is showing the add-from-library panel; the strip's + toggles it.</summary>
+    private bool themeAddOpen;
+
+    private async Task ReadThemes()
     {
-        1 => EnterThemeApply(),
-        2 => GoThemeRooms(),
-        _ => BackToThemeCreate(),
-    };
-    private async Task EnterThemeApply()
-    {
-        themeStep = "apply";
-        tool = "select";
-        StateHasChanged();
-        // Redundant with SetPhase's own call — kept because this step is the one that shows the canvas, and
-        // it must be in the right mode by the time it does, however it was reached.
-        await PushCanvasMode("theme");
+        if (handle is null) return;
+        ApplyThemes(await handle.InvokeAsync<string>("getThemes"));
     }
-    private Task BackToThemeCreate() { themeStep = "create"; StateHasChanged(); return Task.CompletedTask; }
+
+    private void ApplyThemes(string json)
+    {
+        using var doc = JsonDocument.Parse(json);
+        var root = doc.RootElement;
+        themeIds = root.TryGetProperty("themes", out var themes) && themes.ValueKind == JsonValueKind.Object
+            ? [.. themes.EnumerateObject().Select(p => p.Name)] : [];
+        mapThemeId = root.TryGetProperty("mapTheme", out var mt) && mt.ValueKind == JsonValueKind.String
+            ? mt.GetString() ?? "" : "";
+        shapeThemes = [];
+        if (root.TryGetProperty("shapeThemes", out var assigned) && assigned.ValueKind == JsonValueKind.Object)
+            foreach (var p in assigned.EnumerateObject())
+                if (p.Value.ValueKind == JsonValueKind.String) shapeThemes[p.Name] = p.Value.GetString() ?? "";
+        themedShapeTotal = root.TryGetProperty("shapeCount", out var count) && count.ValueKind == JsonValueKind.Number
+            ? count.GetInt32() : 0;
+    }
+
+    /// <summary>Step the theme in hand through the registry, empty hand included — so one pair of keys reaches
+    /// every theme however many there are, and putting one down is a step like any other. Answers only in the
+    /// phase that hands a brush out: a brush armed anywhere else would make a click paint where it selects.</summary>
+    private Task CycleTheme(int by)
+    {
+        if (!ThemeActive || themeIds.Count == 0) return Task.CompletedTask;
+        var ring = themeIds.Count + 1;                       // the registry, plus the empty hand
+        var at = themeBrush.Length == 0 ? 0 : themeIds.IndexOf(themeBrush) + 1;
+        var next = ((at + by) % ring + ring) % ring;
+        return SetThemeBrush(next == 0 ? "" : themeIds[next - 1]);
+    }
 
     // ── Dressing phase (decoration.md) ──
     // One step, not two. Dressing has nothing to define up front: every part of it is a thing put somewhere,
@@ -97,9 +123,9 @@ public partial class SketchTool
     private int reliefRevision;
     private Task GoRelief() { tool = ReliefTools.Point; return SetPhase("relief"); }
 
-    /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme's
-    /// apply step, which selects shapes it does not edit.</summary>
-    private bool ScopeApplyActive => ThemeApplyActive;
+    /// <summary>Whether the canvas is being used to place a scope rather than to draw — today only Theme,
+    /// which selects shapes it does not edit.</summary>
+    private bool ScopeApplyActive => ThemeActive;
 
     /// <summary>The tools that make a shape, and so the only ones the operation decides anything for. Measure
     /// reads, split cuts what is already there, and move/select do not draw at all — with one of those armed
@@ -167,9 +193,51 @@ public partial class SketchTool
         // Relief, where one relief is solved per island. In Theme the job is naming one shape, so a click
         // picks the shape and the island is reached with Alt or from the tree.
         await handle.InvokeVoidAsync("setPickUnit", phase == "theme" ? "shape" : "island");
-        // A brush only exists while the step that hands one out is up.
-        if (phase != "theme") await SetThemeBrush("");
+        // A brush and the panel that fills it only exist while the phase that hands one out is up.
+        if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
+        if (phase == "theme") await ReadThemes();
+        await PushPhaseOverlays(phase);
+    }
+
+    // ── the overlays a phase offers, and which of them it turns on as it is entered ──
+    // A phase shows the layer it works on and the layer it works against. An overlay that would draw a fact
+    // another shown layer already carries is not offered at all: the contour layer is the relief without the
+    // blocks, so wherever the blocks are shown it states the same thing twice. Snap is not among these — it
+    // modifies a drag rather than showing anything, so it sits in the dock beside the tools that drag.
+    private const string ChipShapes = "shapes";
+    private const string ChipMirror = "mirror";
+    private const string ChipChunks = "chunks";
+    private const string ChipBlocks = "blocks";
+    private const string ChipRelief = "relief";
+
+    /// <summary>What a phase puts in the layer bar, and which of those it switches on as it is entered.</summary>
+    private sealed record PhaseOverlay(string[] Offered, string[] On);
+
+    private static readonly Dictionary<string, PhaseOverlay> Overlays = new()
+    {
+        ["info"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], []),
+        ["draw"]     = new([ChipShapes, ChipMirror, ChipChunks, ChipBlocks], []),
+        // The contour layer comes on with the phase's canvas mode, so it is offered here but not pushed again.
+        ["relief"]   = new([ChipRelief, ChipShapes, ChipMirror, ChipChunks, ChipBlocks], [ChipShapes]),
+        ["theme"]    = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
+        ["dressing"] = new([ChipBlocks, ChipShapes, ChipMirror, ChipChunks], [ChipBlocks, ChipShapes]),
+    };
+
+    private static PhaseOverlay OverlaysOf(string phase) => Overlays.GetValueOrDefault(phase, Overlays["draw"]);
+
+    /// <summary>Whether this phase puts a chip in the layer bar at all.</summary>
+    private bool ChipOffered(string chip) => OverlaysOf(active).Offered.Contains(chip);
+
+    /// <summary>Switch on what the phase being entered works on. What it does not name is left as the author
+    /// had it: a chip they switched by hand answers a question they asked, and arriving in a phase is not a
+    /// reason to forget the answer.</summary>
+    private async Task PushPhaseOverlays(string phase)
+    {
+        if (handle is null) return;
+        var on = OverlaysOf(phase).On;
+        if (on.Contains(ChipShapes) && !shapesOn) { shapesOn = true; await handle.InvokeVoidAsync("setShapesVisible", true); }
+        if (on.Contains(ChipBlocks) && !blocksOn) { blocksOn = true; await handle.InvokeVoidAsync("setBlocksVisible", true); }
     }
 
     // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
@@ -197,6 +265,9 @@ public partial class SketchTool
         themeBrush = id ?? "";
         StateHasChanged();
     }
+
+    /// <summary>Take a theme in hand from the strip, or put down the one already held by taking it again.</summary>
+    private Task TakeTheme(string id) => SetThemeBrush(id == themeBrush ? "" : id);
 
     private async Task SetThemeBrush(string id)
     {
@@ -240,6 +311,9 @@ public partial class SketchTool
             case "sketch.chip.blocks": await ToggleBlocks(); break;
             case "sketch.chip.relief": await ToggleRelief(); break;
             case "sketch.chip.snap": await ToggleSnap(); break;
+            case "sketch.theme.next": await CycleTheme(1); break;
+            case "sketch.theme.prev": await CycleTheme(-1); break;
+
             case "sketch.save": await Finish(); break;
         }
         StateHasChanged();
@@ -268,7 +342,9 @@ public partial class SketchTool
         new { id = "sketch.chip.chunks",     keys = "alt+3", label = "Show the chunk grid", group = "Overlays" },
         new { id = "sketch.chip.blocks",     keys = "alt+4", label = "Show the blocks",    group = "Overlays" },
         new { id = "sketch.chip.relief",     keys = "alt+5", label = "Show the contours",  group = "Overlays" },
-        new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Overlays" },
+        new { id = "sketch.chip.snap",       keys = "alt+6", label = "Snap while dragging", group = "Tools" },
+        new { id = "sketch.theme.next",      keys = "]", label = "Take the next theme in hand",     group = "Theme" },
+        new { id = "sketch.theme.prev",      keys = "[", label = "Take the previous theme in hand", group = "Theme" },
         new { id = "sketch.save",            keys = "mod+s", label = "Save the sketch", group = "Everywhere", inField = true },
     ];
 
@@ -490,9 +566,17 @@ public partial class SketchTool
     [JSInvokable]
     public void OnIslandSelected(string? id) { selectedIslandId = id; StateHasChanged(); }
 
-    /// <summary>The theme registry / assignments changed on the bridge — re-render so the Apply rail refreshes.</summary>
+    /// <summary>The theme registry or an assignment changed on the bridge — the strip and the inspector are
+    /// both drawn from what this reads.</summary>
     [JSInvokable]
-    public void OnThemes(string json) => StateHasChanged();
+    public void OnThemes(string json)
+    {
+        ApplyThemes(json);
+        themeRevision++;
+        // A brush naming a theme the board no longer has is an empty hand, not a stale one.
+        if (themeBrush.Length > 0 && !themeIds.Contains(themeBrush)) themeBrush = "";
+        StateHasChanged();
+    }
 
     /// <summary>The placed dressing or its selection changed on the canvas — the props, the selected id, and
     /// the selected prop itself, which is what the inspector and the list both read.</summary>

@@ -24,7 +24,7 @@ public sealed class SketchLayout
 
     /// <summary>The terrain themes this map paints with, id → the theme JSON the painter deserializes. Held
     /// as snapshots rather than library ids, so editing a library row never repaints a shipped map. Absent on
-    /// a sketch that never picked one, which paints the built-in default.</summary>
+    /// a sketch that never picked one, which paints unthemed stone.</summary>
     [JsonPropertyName("themes")]   public Dictionary<string, JsonElement>? Themes { get; set; }
 
     /// <summary>Which of <see cref="Themes"/> covers every cell no shape's own theme scope claims.</summary>

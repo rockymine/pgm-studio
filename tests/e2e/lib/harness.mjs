@@ -176,3 +176,54 @@ export async function apiRaw(path, { method = "GET", body } = {}) {
   try { json = text ? JSON.parse(text) : null; } catch { /* not json */ }
   return { status: res.status, text, json };
 }
+
+/** World points a click stands a good chance of landing inside `shape`, best first. A shape's middle is not
+ *  always inside it — a board fused across its own symmetry is a dumbbell whose centroid sits in the gap
+ *  between the two halves — so a rectangle offers its centre and a polygon offers the centroid of each run of
+ *  three consecutive vertices, which is inside the outline wherever that corner is convex. */
+export function shapeAimPoints(shape, limit = 8) {
+  if (shape.min_x != null && shape.max_x != null)
+    return [{ x: (shape.min_x + shape.max_x) / 2, z: (shape.min_z + shape.max_z) / 2 }];
+
+  const vertices = shape.vertices ?? [];
+  if (vertices.length < 3) return [];
+  const points = [];
+  for (let i = 0; i < vertices.length && points.length < limit; i++) {
+    const [ax, az] = vertices[i];
+    const [bx, bz] = vertices[(i + 1) % vertices.length];
+    const [cx, cz] = vertices[(i + 2) % vertices.length];
+    points.push({ x: (ax + bx + cx) / 3, z: (az + bz + cz) / 3 });
+  }
+  return points;
+}
+
+/** A world → client mapper for the canvas as it currently sits, solved rather than guessed. Where a board is
+ *  on screen depends on the fit, so a click at a fixed fraction of the viewport lands wherever it happens to;
+ *  two probes of the cursor readout fix the scale and the offset once, and the mapper it answers with turns
+ *  any world block into the point to click. Null when the readout says nothing (no canvas, or a view that
+ *  reports no world position). */
+export async function worldAimer(page) {
+  const box = await page.locator("canvas").boundingBox();
+  if (!box) return null;
+
+  const cursor = page.locator(".canvas-readout .canvas-readout-item").first();
+  const probe = async (clientX, clientY) => {
+    await page.mouse.move(clientX, clientY);
+    await page.waitForTimeout(120);
+    const match = (await cursor.innerText()).match(/X\s*(-?[\d.]+)\s*Z\s*(-?[\d.]+)/i);
+    return match ? { x: Number(match[1]), z: Number(match[2]) } : null;
+  };
+
+  const first = { x: box.x + box.width * 0.25, y: box.y + box.height * 0.25 };
+  const second = { x: box.x + box.width * 0.75, y: box.y + box.height * 0.75 };
+  const atFirst = await probe(first.x, first.y);
+  const atSecond = await probe(second.x, second.y);
+  if (!atFirst || !atSecond || atSecond.x === atFirst.x || atSecond.z === atFirst.z) return null;
+
+  const pixelsPerBlockX = (second.x - first.x) / (atSecond.x - atFirst.x);
+  const pixelsPerBlockZ = (second.y - first.y) / (atSecond.z - atFirst.z);
+  return (worldX, worldZ) => ({
+    x: first.x + (worldX - atFirst.x) * pixelsPerBlockX,
+    y: first.y + (worldZ - atFirst.z) * pixelsPerBlockZ,
+  });
+}

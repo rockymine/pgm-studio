@@ -1,0 +1,54 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The board's theme registry, as canvas chrome beside the storey strip. A theme belongs to the board rather
+   than to a phase, and every click in the Theme phase is addressed to whichever one is in hand — so it hangs
+   off the canvas where a thing in hand belongs, rather than in a column the eye has to leave the board to
+   read.
+
+   Clicking a swatch takes it in hand; clicking the one in hand puts it down, and `[`/`]` step through the
+   registry with the empty hand as one of the stops. What a theme paints is drawn in the inspector rather than
+   on the chip: a bucket swatch is a server render of a sample plateau, so a strip of them would be one
+   round-trip per theme on every entry to the phase. *@
+
+<div class="canvas-theme-strip" role="group" aria-label="Themes">
+  <span class="canvas-theme-strip-label">Paint</span>
+  @if (Themes.Count == 0)
+  {
+    <span class="canvas-theme-strip-empty">No themes on this board yet</span>
+  }
+  else
+  {
+    <div class="canvas-theme-swatches">
+      @foreach (var id in Themes)
+      {
+        <button type="button" @key="id" aria-pressed="@(id == Brush)"
+                class="canvas-theme-swatch @(id == Brush ? "canvas-theme-swatch--on" : null)"
+                title="@Title(id)" @onclick="() => OnTake.InvokeAsync(id)">
+          <span class="canvas-theme-swatch-name">@id</span>
+          @if (id == MapTheme) { <span class="canvas-theme-swatch-tag" title="Paints every cell no shape claims">def</span> }
+        </button>
+      }
+    </div>
+  }
+  <button type="button" class="canvas-theme-add @(AddOpen ? "canvas-theme-add--on" : null)"
+          title="Add a theme from the library" aria-pressed="@AddOpen" @onclick="OnAdd">
+    <i data-lucide="plus" @key="@("theme-plus")"></i>
+  </button>
+</div>
+
+@code {
+    /// <summary>The board's theme ids, in registry order — the order `[` and `]` step through.</summary>
+    [Parameter] public IReadOnlyList<string> Themes { get; set; } = [];
+    /// <summary>The theme in hand, or empty.</summary>
+    [Parameter] public string? Brush { get; set; }
+    /// <summary>The board's map default, badged so the one theme that paints without being placed is visible.</summary>
+    [Parameter] public string? MapTheme { get; set; }
+    /// <summary>Whether the inspector's add-from-library panel is open — the button reads as pressed while it is.</summary>
+    [Parameter] public bool AddOpen { get; set; }
+    [Parameter] public EventCallback<string> OnTake { get; set; }
+    [Parameter] public EventCallback OnAdd { get; set; }
+
+    private string Title(string id) => id == Brush
+        ? $"Put “{id}” down"
+        : $"Take “{id}” in hand, then click a shape to paint it (Shift-click paints a whole island)";
+}

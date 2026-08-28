@@ -50,11 +50,11 @@ it, what they can *see* while saying it, and what is on the shelf to say it abou
 
 ### What is on the shelf
 
-- [ ] **B47 — A theme pulled into a sketch loses where it came from.** The pull takes the library's name as
-  the sketch-side id, which the bridge uniquifies — pull the same theme twice and the second is `meadow-2`
-  with nothing saying they are the same theme. Wants a note on the pulled theme recording the row it was
-  copied from, which slots into `B44`'s snapshot record rather than duplicating it. The library's own name
-  search shipped with the browse strip.
+- [ ] **B47 — A theme copied onto a board loses where it came from.** Copying in matches by name, so the same
+  library theme copied twice replaces its own snapshot rather than growing a `meadow-2` — but a board theme
+  renamed on either side is two rows with nothing saying they are one theme, and nothing can say whether a
+  snapshot is behind the row it came from. Wants a note on the copied theme recording the library row, which
+  slots into `B44`'s snapshot record rather than duplicating it.
 
 ## The storey a placement rests on
 

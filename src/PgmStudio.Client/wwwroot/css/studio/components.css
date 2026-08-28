@@ -1652,6 +1652,53 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
 }
 .canvas-layer-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
 .canvas-layer-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+/* ── the theme strip ──
+   The board's themes, floating above the dock: what is in hand, and what a click will paint. A theme is the
+   board's rather than a phase's, so like the storey strip this is chrome. It scrolls sideways, which is the
+   axis with room — a board carries anything from one theme to a couple of dozen. */
+.canvas-theme-strip {
+  position: absolute; left: 50%; bottom: 62px; transform: translateX(-50%); z-index: 3;
+  display: flex; align-items: center; gap: 4px; padding: 3px 3px 3px 4px;
+  max-width: calc(100% - 20px);
+  border-radius: var(--radius-sm);
+  background: var(--canvas-float-bg); backdrop-filter: blur(6px);
+  border: 1px solid var(--canvas-float-border); box-shadow: var(--canvas-float-shadow);
+}
+.canvas-theme-strip-label {
+  flex: 0 0 auto; padding: 0 4px;
+  font-size: var(--font-xs); letter-spacing: .08em; text-transform: uppercase; color: var(--text-muted);
+}
+.canvas-theme-strip-empty { padding: 3px 6px; font-size: var(--font-sm); color: var(--text-muted); }
+.canvas-theme-swatches { display: flex; align-items: center; gap: 2px; overflow-x: auto; scrollbar-width: thin; }
+.canvas-theme-swatch {
+  display: flex; align-items: center; gap: 5px; flex: 0 0 auto;
+  padding: 3px 8px; border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-secondary); font: inherit; cursor: pointer;
+}
+.canvas-theme-swatch:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-swatch--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-swatch-name {
+  font-size: var(--font-sm); line-height: 1.2; max-width: 14ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* The one theme that paints without being placed. */
+.canvas-theme-swatch-tag {
+  font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent-light);
+}
+.canvas-theme-add {
+  display: grid; place-items: center; flex: 0 0 auto; width: 26px; height: 24px;
+  border: 0; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-muted); cursor: pointer;
+}
+.canvas-theme-add:hover { background: var(--bg-vis-hover); color: var(--text-primary); }
+.canvas-theme-add--on { background: var(--bg-selected); color: var(--text-strong); }
+.canvas-theme-add svg { width: var(--icon-xs); height: var(--icon-xs); }
+
+/* The library rows the add panel offers, as a plain list rather than a select: a theme is picked by
+   recognising its name, and a dropdown hides every name but one. The panel it sits in scrolls, so this does
+   not — two nested scrolls over one list is one too many. */
+.lib-picklist { display: flex; flex-direction: column; gap: 2px; }
+
 /* A chord the tool has but cannot run yet — a delete with nothing selected. Listed, because a chord hidden
    until it works is a chord nobody learns; dimmed, because it will not answer now. */
 .keys-row--off { opacity: .45; }

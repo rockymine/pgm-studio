@@ -18,7 +18,7 @@ whatever else the kind filters by, and **New**, over a grid of cards. `/library/
 `/library/{kind}/new`, opens one entry on a page of its own.
 
 Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, and its
-Rooms step binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase's
+Theme phase binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase's
 building prop takes a room style as its own. Nothing else reads it.
 
 ## What it writes
@@ -33,7 +33,7 @@ parts it is built from. So editing a style reaches every theme and every room st
 says so when it saves — and deleting one is refused rather than allowed to break them.
 
 *Out of* the library, everything is **copied**. A theme applied to a sketch is stored as the painter's own JSON
-in that sketch's registry; the room shells bound in the Rooms step are snapshots; a placed building carries its
+in that sketch's registry; the room shells bound in the Theme phase are snapshots; a placed building carries its
 style rather than a library id. So a library edit can never rebuild a map that already shipped, and there is no
 mechanism by which it could — which is the guarantee, not an omission.
 
@@ -262,13 +262,15 @@ a sketch stores in its `themes` registry, and the form the export consumes:
 
 Note the shape: the rim and the surface are **band objects** — a material plus a depth plus a toggle — while
 the wall and the fill are **bare materials**, the wall's toggle riding beside it as `wallEnabled`. That is the
-built-in default, near enough: a quartz rim, grass over two dirt, a team-tinted clay wall, a stone body.
+seeded `meadow` finish, near enough: a quartz rim, grass over two dirt, a team-tinted clay wall, a stone
+body.
 
 In the library the same theme is a row of bindings rather than a document — each bucket naming a style id, a
 depth and a toggle — and `GET /themes/{id}/json` is what assembles the row into the above.
 
-**Unbound is a real answer, and so is switched off.** A bucket with no style (id 0) keeps the built-in finish
-and is stored by being left out, which is what makes the library worth having for the case it was built for —
+**Unbound is a real answer, and so is switched off.** A bucket with no style (id 0) resolves to stone — what
+`TerrainTheme.Default` states for every bucket, and what unpainted ground already is — and is stored by being
+left out, which is what makes the library worth having for the case it was built for —
 a rim and a fill bound once and reused, with only the surface and the wall differing between themes. A theme
 needs neither a rim nor a wall, so the toggle is offered whether or not a style is bound: an unbound bucket
 that is **off** keeps its binding, because it says a great deal, and only an unbound bucket that still paints
@@ -277,7 +279,10 @@ is dropped on save, because that one says nothing.
 The preview is a sample plateau painted and cut open, plus a top-down swatch per bucket.
 `GET /themes/{id}/json` assembles the row into the painter's own theme JSON — the form the export consumes and
 a map snapshots — and `POST /themes/import` runs the other way, lifting a whole theme JSON into the library as
-one style per bucket plus a theme binding them.
+one style per bucket plus a theme binding them. That import is also what the editor's **Start from JSON**
+offers while a theme is being started: a whole painter theme pasted in — what an agent writes over the API,
+what a board saves out — lands as an editable row rather than a stored blob. It creates a row, so it is
+offered on a new theme and not on one that already exists.
 
 ### A part is a roof, a storey or a porch
 
@@ -351,7 +356,7 @@ first preset to wear a door head: birch stairs in the two corners of the opening
 loses its square top.
 
 This is what `GET /api/room-styles/3/json` answers with, unwrapped from its `styleJson` string — the form the
-stamper takes, a sketch's Rooms step stores, and a placed building carries:
+stamper takes, a sketch's Theme phase stores, and a placed building carries:
 
 ```json
 {
@@ -588,7 +593,7 @@ shape's `theme` pointing at it. `POST /themes/import` collapses the first two wh
 
 A building is the same shape one level up: `POST /roof-styles`, `/storey-styles` and `/porch-styles` for the
 parts, `POST /room-styles` binding them with the shell's own knobs and courses, then `GET
-/room-styles/{id}/json` for the stamper's form — which a sketch's Rooms step stores as its `cage` or `spawn`
+/room-styles/{id}/json` for the stamper's form — which a sketch's Theme phase stores as its `cage` or `spawn`
 snapshot, or a placed building carries as its `style`.
 
 Both `/json` endpoints answer a **string in a field** rather than the document — `{themeJson: "…"}` and
@@ -624,7 +629,8 @@ the composition as a whole reads well.
 **The six shipped themes are a spread rather than a survey.** They are one green, one desert, one ashen, one
 snow, one clay and one overgrown stone, written to show what a rim, a wall, a surface and a fill each do to a
 plateau — not to cover what a board can be finished in. A sketch's themes still live in the sketch until
-someone pushes one out to the library, and the library never reaches back into a map that took a copy.
+someone saves one out to the library, and the library never reaches back into a map that took a copy: bringing
+a board's copy up to date is copying the library's in again over the same name.
 
 Windows and rails are chosen as blocks rather than as styles, which means the patterns a style can hold are not
 available to them. That is deliberate — their metadata is geometry, not material — but it does mean a window

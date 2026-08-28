@@ -75,6 +75,34 @@ the focus-integration polish remains.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
+**Three decisions are parked here, not tasks.** The Theme phase's shape — a strip of what can be placed, a
+list of what exists, an inspector for the selection — reads as the shape Dressing wants too, and the entries
+below are what that would cost. Each names the question that has to be answered before it is work.
+
+- [ ] **TS49 — Should a prop recipe be library material? (blocking question: which kinds, if any.)** A tree
+  placement carries `species` (6 distinct), `form` (3) and `height` (12) over 618 placements in the 83
+  `pgm-studio-mapgen` boards — 75 distinct recipes corpus-wide, the top eight covering 45% of every tree, and
+  `oak · template · 10` used fifty times. Boulders (`form`/`size`/`rock`, 247 placements), paths
+  (`style`/`radius`/`coverage`/`pave`, 184) and water (`form`/`depth`/`shore`/`bank`, 28) split the same way,
+  and the house prop already does it: 192 placements reference 14 library styles and carry only footprint,
+  door edge and seed. Making the rest match means new library kinds beside styles, themes, roofs, storeys,
+  porches and houses, and a placement that is a recipe reference plus a position.
+
+- [ ] **TS50 — Should the dressing inspector hold an editor at all? (blocking question: what a placement may
+  say on its own.)** The sidebar is 22 words and no controls; the inspector is 291 words and 54, and embeds
+  three full `MaterialEditor`s (paving, bank, rock) plus the grown-tree parameter block —
+  `wood`, `stems`, `leader`, `flow`, `branchAngle`, `levels`, `whorled`, `leafSize` — which **7 of 618** trees
+  set. Under `TS49` the columns invert: the recipes become a strip, the placements the left list, and the
+  inspector holds the handful of fields that are genuinely per-instance. Depends on `TS49`.
+
+- [ ] **TS51 — Scoping the paint repaint, and the preview it would pay for.** A full board paint is ~2.0s and
+  the column read ~2.9s / 2.6MB on a real agent board, tracking board *area* rather than shape count — a
+  112-shape board and a 534-shape board of the same size cost the same. So the Blocks overlay refreshes on
+  entering a phase and not per edit. A bbox or shape filter on `POST /map/{slug}/sketch/paint` would make a
+  one-shape repaint proportional (tens of milliseconds for a shape covering a fortieth of the board), which is
+  what the brush actually edits, and would also buy a scoped isometric preview of the selection in the
+  inspector — the affordable half of a live preview of the built world.
+
 - [ ] **WE28 — A relief is keyed by island id, and on a stacked board two storeys hold the same island.**
   `SketchReliefJson` rides top-level on the layout keyed by island, which is right when an island is a
   landmass: it is the unit the solve runs over, and a recompile that re-fuses the board genuinely produces a
@@ -1325,6 +1353,13 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
   `terrain-painting.md` and the endpoint tables inside them — the split this entry proposes, observed.*
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **RP61 — The library seeder throws on two rows whose names differ only by case.** Five sites in
+  `src/PgmStudio.Api/Services/LibrarySeed.cs` (`SeedThemesAsync`, `SeedStylesAsync` and their siblings) build
+  their idempotency map as `.GroupBy(row => row.Name)` — ordinal — feeding
+  `.ToDictionary(…, StringComparer.OrdinalIgnoreCase)`, so two rows named `meadow` and `Meadow` group as two
+  keys and collide as one: `ArgumentException` out of `ToDictionary`, on every app start, since the seed runs
+  at startup. Dormant only because nothing shipped collides. The fix is the comparer on the `GroupBy`.
 
 - [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
   grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective

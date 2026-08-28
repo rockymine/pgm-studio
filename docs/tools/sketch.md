@@ -12,9 +12,10 @@ no objective until Configure gives it one. Opened on a map that came from a plan
 layout — the plan's abutting same-height pieces already fused into single polygons — and refines it.
 
 The route is `/maps/{slug}/sketch`. Five phases sit on the rail in the order the work is done: **Info**,
-**Draw**, **Relief**, **Theme** and **Dressing**. Only Draw and Theme's Apply step share the live canvas; the
-rest are their own bodies, and Draw stays mounted while another is up so the drawing state and the zoom
-survive the trip.
+**Draw**, **Relief**, **Theme** and **Dressing**. Info states what the board is and is its own body; the
+other four share the one live canvas, which stays mounted while Info is up so the drawing state and the zoom
+survive the trip. None of the four has steps: each swaps what the columns hold and which overlays the layer
+bar offers, and the canvas is reused as it stands.
 
 The tool saves continuously — every change schedules a debounced write 800 ms later — and leaves by
 **Finish**, which flushes the layout, rasterizes it server-side into world geometry, and moves the map to
@@ -24,7 +25,7 @@ The tool saves continuously — every change schedules a debounced write 800 ms 
 document is the tool: what each phase authors, what it writes, and what refuses. Beside it sit five that each
 take one of those statements through to the blocks it becomes — `relief.md` (the elevation solver behind the
 Relief phase, with the measured terrain law), `terrain-painting.md` (what the painter makes of a theme, cell by
-cell), `structures.md` (the shells the Rooms step binds and the house the Dressing phase stamps),
+cell), `structures.md` (the shells the Theme phase binds and the house the Dressing phase stamps),
 `decoration.md` (the dressing pass itself) and `tree-corpus.md` (the hand-built ground truth a grown tree is
 scored against). `docs/world-export/sketch-world-export.md` is the world folder Finish writes into. Each is cited
 below from the phase that feeds it.
@@ -301,7 +302,7 @@ What becomes of those columns once Finish runs — the layer scheme the world fo
 
 ## Phases
 
-**Selection is two levels everywhere the canvas draws — Draw, Relief and Theme's Apply step alike.** A plain
+**Selection is two levels everywhere the canvas draws — Draw, Relief and Theme alike.** A plain
 click picks the unit the phase states: an island in Draw and Relief, because a landmass is what moves and one
 relief is solved per island; a shape in Theme, because a theme is assigned to one shape or to everything an
 island holds. `Ctrl`/`⌘`+click reaches the shape under the cursor whichever island holds it, entering that
@@ -309,7 +310,8 @@ island as the scope in the same motion; `Alt`+click leaves any scope and picks t
 is under the cursor. An island already selected is also entered as a scope from the keyboard, with `Enter`.
 Once entered, a plain click reaches a member shape and a click landing outside the island's footprint leaves
 the scope before landing normally. `Escape` cancels an in-progress draw and leaves an entered
-island, selecting the island that was entered; with nothing entered it clears the selection. Nothing here is a
+island, selecting the island that was entered; with nothing entered it clears the selection. With a theme in
+hand it does none of that and puts the theme down instead. Nothing here is a
 double-click: a polygon or a path closes on `Enter`, or on a click landing back at its own first vertex.
 
 **The Shapes chip draws every primitive on the board; without it, the selected or entered island draws its own
@@ -320,7 +322,18 @@ becomes reachable without hunting for the toggle first.
 foot of the canvas beside the dock and is present in every phase that draws the canvas; only Draw offers the
 `+` that adds one, because adding a storey is drawing work. Whatever is placed lands on the active layer — a
 placement takes it unless it already names one — so an author is never asked twice which storey something
-belongs to.
+belongs to. The Theme phase's swatch strip is chrome for the same reason and floats above the dock beside it.
+
+**A phase offers the overlays it can use, and switches on the ones it works with.** The layer bar is not a
+fixed six: a phase shows the layer it works on and the layer it works against, and an overlay that would draw
+a fact another shown layer already carries is not offered at all. Draw and Relief keep the shapes, the mirror,
+the chunk grid and the blocks; Relief adds the contours and leads with them, because the paint has not run
+yet and the contours are the only view of what is being stated. Theme and Dressing open with **Blocks and
+Shapes on** — the paint is what they act on and the outlines say what carries it — and offer no contour chip,
+because the painted ground already carries the height. Snap is in none of them: it changes what a drag does
+rather than what is drawn, so it sits in the dock beside the shape tools, in Draw, the one phase that drags a
+shape edge onto another. Entering a phase switches on what that phase works with and never switches anything
+off, so an overlay asked for by hand is not taken away by walking through the phases.
 
 **Undo is one stack for the whole document, sixty steps deep.** `Ctrl`/`⌘`+`Z` steps back and
 `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) steps forward. A step is the whole layout — the value the canvas can be
@@ -346,12 +359,16 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its island as the scope | Canvas |
 | `Alt`+click | Pick the parent island and leave any scope | Canvas |
 | `Enter` | Enter the selection's island as a scope, or close the polygon/path in progress | Canvas |
-| `Escape` | Cancel the draw and leave the scope, or clear the selection | Canvas |
+| `Escape` | Put the brush down, else cancel the draw and leave the scope, else clear the selection | Canvas |
 | `Delete` / `Backspace` | Delete the selected shape | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
 | `Shift`+`P` | Promote the shape to its own island | Sketch |
 | `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
-| `Alt`+`1`…`6` | Toggle Shapes · Mirror · Chunks · Blocks · Relief · Snap | Overlays |
+| `Alt`+`1`…`5` | Toggle Shapes · Mirror · Chunks · Blocks · Relief, where the phase offers it | Overlays |
+| `Alt`+`6` | Snap while dragging | Tools |
+| `[` / `]` | Take the previous / next theme in hand — answers only in Theme | Theme |
+| `Shift`+click | Paint every shape the island holds, with a theme in hand | Theme |
+| `Alt`+click | Lift a shape's theme into the hand, with a theme in hand | Theme |
 | `Ctrl`/`⌘`+`Z` | Undo | Everywhere |
 | `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
 | `Ctrl`/`⌘`+`S` | Save the sketch | Everywhere |
@@ -505,51 +522,49 @@ corpus reading the whole model is calibrated against.
 
 ### Theme
 
-Three steps, and together they are the map's paint.
+One step: the map's paint, picked and placed. A theme is not authored here — that is the library's, and
+`library.md` is where a bucket, a material and the fourteen material kinds are written out. This phase takes
+one of the board's themes in hand and puts it on the ground.
 
-**Create** is the theme editor. A theme is a recipe read top-down, with one section per paintable bucket —
-**rim**, **surface**, **wall**, **fill** — each carrying a material and, for the rim and the surface, a depth,
-plus the theme-wide knobs beside them: the bedrock course, `rimEdges`, and whether walls are painted on terrain
-faces. What each bucket claims, how they fall through to one another, and the fourteen material kinds a bucket
-can be filled with are `library.md`'s subject, written out there with a JSON example each; this step is where
-they are edited for one map.
+**The board's themes are a strip at the foot of the canvas**, above the dock and beside the storey strip,
+because a theme belongs to the board rather than to the phase and every click in the phase is addressed to
+whichever one is in hand. Clicking a swatch takes it in hand; clicking it again puts it down; `[` and `]` step
+through the registry with the empty hand as one of the stops, so one pair of keys reaches every theme however
+many there are. The map
+default is badged on its own swatch. The trailing `+` opens the inspector's **Add from the library** panel,
+which takes the column while it is up: a library theme copied in lands as a snapshot under its library name,
+and copying one in again under the same name replaces it, which is how a theme edited in the library is
+brought up to date.
 
-A new theme is a clone of the built-in default — a quartz rim, a team-tinted clay wall, grass over dirt — and
-the thing being edited is the painter's own wire JSON, so there is no second model of a theme to fall out of
-step. A theme can be pulled in from the shared library and pushed back out to it.
+**With a theme in hand the canvas is a brush**, and the modifiers are read against what is held rather than
+against the grouping. A click paints the shape under it; `Shift`+click widens the stroke to every shape the
+island holds; `Alt`+click lifts that shape's own theme back into the hand. There is no apply button and no
+scope control — with an empty hand the usual selection rule applies unchanged, and the tree reaches an island
+either way. A shape carries the assignment (`shape.theme`), an island stroke writes it to every member, and a
+cell that carries none falls to the map default, so the resolution is shape, then map. `Escape` puts the brush
+down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
-What the painter then does with it is `docs/world-export/terrain-painting.md`: how a column is classified into
-one of the buckets from its neighbours alone, what each bucket claims when two could claim the same cell, how
-a theme resolves per cell through the shape/map scope, and the `TP*` rules the whole pass is written to.
+**The inspector says what is in hand, what the selection carries, and — with nothing selected — what the board
+falls back to.** In hand: the sample plateau the theme finishes, a swatch per bucket, and the two acts that
+change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
+bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
+island is painted with, `mixed` where an island's shapes disagree, and **Unpaint**. Board defaults, when
+nothing is selected: the map default, how many shapes are still falling through to it, and the room shells.
 
-**Apply** turns the canvas into a selection surface: nothing can be drawn or moved. A theme is taken **in
-hand** from the list beside the tree, and while one is, the canvas is a brush: a click paints the shape under
-it, `Alt`+click lifts that shape's own theme back into the slot, and picking the theme already in hand puts it
-down again. The **Apply** button stays for a selection made in the tree instead, where a click is not a click
-on the board: it places the picked theme — or, through **Remove**, clears it — on whatever the tree has
-selected, an island writing every member shape at once and a shape only itself. A shape carries the assignment
-(`shape.theme`), an island assignment writes it to every member, and a cell that carries none falls to the map
-default — so the resolution is shape, then map. Leaving the Theme phase puts the brush down. With the Blocks
-overlay on, this step shows the **real paint**: the live layout is posted to the server, the actual painter
-runs over it, and one colour per footprint cell comes back as a bitmap, so a Voronoi reads as its cells and a
-noise field as its patches rather than as one representative colour.
+**The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
+what unpainted ground already is — so a board that names no theme exports as a board that names no theme, and
+a bucket a theme leaves unbound resolves to stone rather than borrowing a finish it never asked for. The
+finishes worth starting from are named themes: `ThemePresets` holds six — `meadow`, `dunes`, `ashfall`,
+`firnline`, `claybed`, `oldstone` — and `LibrarySeed` puts them in the library, where they are picked like any
+other.
 
-`tools/seeds/ruediger.layout.json` is the worked example of this step. It carries three themes and names
-`ruediger` as the map default; four shapes take `ruediger-steps`, thirteen take `theme`, and the remaining nine
-inherit the default. That is the pattern the step exists for — the stepped area reads as built and the ground
-around it reads as ground, which a single blanket theme cannot do. The same file is the reference for two Draw
-features: five of its outlines carry Bézier `controls`, and its one negative shape is a `subtract` rectangle
-standing a hundred blocks tall over a floor of zero, which cuts a channel clean through the board and
-demonstrates that a subtract's height is a statement of intent rather than a depth.
-
-**Rooms** binds the shells the map's stamped structures take: one for every wool cage and one for every spawn
-cube. Two bindings and no more — rooms are fanned across the symmetry orbit so both sides face the same
-building, and a per-room shell would be a sightline that differed between teams. What is stored is the composed
-style's **JSON snapshot**, not the library id it came from, so editing the library afterwards cannot rebuild a
-shipped map's rooms. Each binding has three states, and they are genuinely distinct: absent stamps that kind's
-built-in shell, an object stamps the bound style, and an explicit null means no building at all — a pad on open
-ground. What a room style is made of — its parts, its course stacks and its storey stack — is `library.md`'s,
-with a seeded house written out there in full.
+**Room shells** sit under the board defaults, because they are a fallback in the same sense the map default
+is: one shell for every wool cage and one for every spawn cube. Two bindings and no more — rooms are fanned
+across the symmetry orbit so both sides face the same building, and a per-room shell would be a sightline that
+differed between teams. What is stored is the composed style's **JSON snapshot**, not the library id it came
+from, so editing the library afterwards cannot rebuild a shipped map's rooms. Each binding has three states,
+and they are genuinely distinct: absent stamps that kind's built-in shell, an object stamps the bound style,
+and an explicit null means no building at all — a pad on open ground.
 
 ```json
 { "roomStyles": { "cage": { "form": "gable", "pitch": 1 }, "spawn": null } }
@@ -558,11 +573,26 @@ with a seeded house written out there in full.
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
 out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell.
 
-The stamp itself is `docs/world-export/structures.md`: how one `RoomFrame` is resolved from the piece rect,
-the marker and the entry interfaces so the drawn box and the built shell cannot disagree, what the pad and the
-doors are for, and the `WX*` rules that size everything. Its §7 is also where a room style's own anatomy is
-written out — the roof as a height field, the storey stack, the porch taken out of the footprint — which is
-what the Dressing phase's building prop stamps too.
+**The Blocks overlay is on when the phase opens**, so the phase shows the real paint: the live layout is
+posted to the server, the actual painter runs over it, and one colour per footprint cell comes back as a
+bitmap, so a Voronoi reads as its cells and a noise field as its patches rather than as one representative
+colour. The contour overlay is not offered here — the painted ground already carries the height, and contours
+over it draw the same fact twice.
+
+`tools/seeds/ruediger.layout.json` is the worked example. It carries three themes and names `ruediger` as the
+map default; four shapes take `ruediger-steps`, thirteen take `theme`, and the remaining nine inherit the
+default. That is the pattern the phase exists for — the stepped area reads as built and the ground around it
+reads as ground, which a single blanket theme cannot do. The same file is the reference for two Draw features:
+five of its outlines carry Bézier `controls`, and its one negative shape is a `subtract` rectangle standing a
+hundred blocks tall over a floor of zero, which cuts a channel clean through the board and demonstrates that a
+subtract's height is a statement of intent rather than a depth.
+
+What the painter does with a theme is `docs/world-export/terrain-painting.md`: how a column is classified into
+one of the buckets from its neighbours alone, what each bucket claims when two could claim the same cell, how
+a theme resolves per cell through the shape/map scope, and the `TP*` rules the whole pass is written to. The
+stamp a room shell produces is `docs/world-export/structures.md`, whose §7 is also where a room style's own
+anatomy is written out — the roof as a height field, the storey stack, the porch taken out of the footprint —
+which is what the Dressing phase's building prop stamps too.
 
 ### Dressing
 
@@ -912,7 +942,7 @@ way.
 A **theme** is scoped by area rather than by height, so where two override adds share a column the taller wins
 the ground and the *smaller* wins the paint. Where the smaller is also the shorter, the world holds one
 shape's blocks in another's material: a mound's outer ring crossing a wall leaves the wall standing to its own
-courses and finished in grass over dirt, sides included. That is `SK15`, a complaint naming both shapes, both
+courses and finished in the mound's paint, sides included. That is `SK15`, a complaint naming both shapes, both
 themes, the columns they contest and the northmost. Two shapes at *one* height are a theme scoped to a patch,
 which is what scoping is for, and are not this. **The images count**: a shape in a mirroring island stands on
 the board once per axis of the orbit, and what a patch contests is as often another patch's reflection as the
@@ -984,8 +1014,8 @@ merge is the road a headless driver takes: `SK3` for a name that matches nothing
 shape kind nobody has, a **mirror mode** nobody has (which fans the board onto itself, so a map stating two
 halves stands on one), an island listing a shape id the layout does not carry, a relief keyed to an island
 that does not exist, and a **theme** the registry does not carry, on a shape or as the map default (which
-paints those cells with whatever the default happens to be and is otherwise the quietest fault a finish has —
-one reported per name rather than one per shape) — `SK4` for a shape that
+paints those cells unthemed stone and is otherwise the quietest fault a finish has — one reported per name
+rather than one per shape) — `SK4` for a shape that
 draws no ground (a polygon under three vertices, a circle or path of no width, a rectangle of no area), and
 `SK5` for a column the world cannot hold. Each carries the document path that named nothing in its `field`
 and the shape's id as its subject.
@@ -1065,8 +1095,8 @@ clearance is `OB19`'s — the pass declines it and this preview carries the find
 other drop, so it needs no rule of its own.
 
 **The finish libraries**, all map-independent and all `library.md`'s to describe. `/styles` and `/themes` are
-the terrain-paint library a theme is pulled from or pushed to; `/room-styles` is the shell library the Rooms
-step binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
+the terrain-paint library a theme is copied from or saved to; `/room-styles` is the shell library the Theme
+phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
 `/terrain/prop-preview` render what an edit will look like; `/terrain/path-styles`, `/terrain/water-forms`,

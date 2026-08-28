@@ -595,7 +595,7 @@ goes from eight to nine — while nothing anywhere in the tool shows it. Lanes a
 
 **The buildings are not choosable.** Spawn points, wool sources, their protections and their rooms are all
 placed here, and on a plan-built map each of them gets a stamped shell at export — a spawn building, a wool
-cage. Which shell that is comes from the room styles bound in the **Sketch** tool's Rooms step, and Configure
+cage. Which shell that is comes from the room styles bound in the **Sketch** tool's Theme phase, and Configure
 offers no control for it.
 
 **Opening a corpus map does not make it configurable.** Any map in the database can be opened, but a corpus

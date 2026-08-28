@@ -10,9 +10,10 @@ namespace PgmStudio.Client.Features.Library;
 /// previewed and what is saved are the same value and the picture cannot promise a theme the save would not
 /// produce.
 ///
-/// <para>An unbound bucket is one the theme does not override: it is left out of the bindings and keeps the
-/// built-in finish. Bound and switched off are different answers, and a bucket gives either without the
-/// other — only an unbound bucket that still paints is dropped, because that one says nothing.</para>
+/// <para>An unbound bucket is one the theme says nothing about: it is left out of the bindings and resolves to
+/// stone, the unthemed ground <see cref="PgmStudio.Minecraft.Painting.TerrainTheme"/> defaults to. Bound and
+/// switched off are different answers, and a bucket gives either without the other — only an unbound bucket
+/// that still paints is dropped, because that one says nothing.</para>
 ///
 /// <para>A theme does not nest, so every bucket is drawn at once and the outline reaches a section rather
 /// than choosing which one exists.</para>
@@ -26,9 +27,16 @@ public partial class ThemeEditor
     private const string AbsoluteBedrock = "absolute";
     private const string RelativeBedrock = "relative";
 
-    /// <summary>Bound to nothing — a bucket's "keep the built-in finish", stored by leaving the binding out
-    /// rather than by a row that says so.</summary>
+    /// <summary>Bound to nothing — a bucket that resolves to stone, stored by leaving the binding out rather
+    /// than by a row that says so.</summary>
     private const long Unbound = 0;
+
+    private string importJson = "";
+    private string? importError;
+
+    /// <summary>Whether the paste-a-theme section shows. Importing creates a row, so it is offered while one is
+    /// being started and not once there is a row to edit.</summary>
+    private bool CanImport => editingId is null;
 
     /// <summary>The outline row the geometry knobs sit on, which is not a bucket.</summary>
     private const string GroundPart = "ground";
@@ -133,6 +141,17 @@ public partial class ThemeEditor
     {
         draftName = name;
         await OnName.InvokeAsync(name);
+    }
+
+    /// <summary>Take a whole painter theme JSON into the library: one style per bucket plus the bindings, which
+    /// is what makes it editable here rather than a stored blob. It creates a row, so the editor moves to it.</summary>
+    private async Task ImportJson()
+    {
+        importError = null;
+        var id = await Library.ImportThemeAsync(draftName.Trim(), importJson);
+        if (id is null) { importError = "The library could not read that theme."; return; }
+        await OnSaved.InvokeAsync("saved");
+        Nav.NavigateTo($"/library/{LibraryKinds.ThemesSlug}/{id}");
     }
 
     private void Pick(string part) => selected = part;

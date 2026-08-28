@@ -229,17 +229,16 @@ public sealed record BedrockSpec(bool Relative, int Value)
 
 /// <summary>
 /// A terrain-paint theme (docs/world-export/terrain-painting.md §5): the geometry knobs plus a material — and,
-/// for the top-claiming buckets, a depth and toggle (<see cref="TopBand"/>) — per bucket. The default is the
-/// shipping finish: a one-block quartz rim, a team-tinted stained-clay wall, a grass-over-two-dirt surface
-/// three blocks deep, and stone left as fill, over a one-block bedrock floor, capping every drop. Every field has
-/// a base default, so <see cref="Default"/> is complete and any single knob can be overridden alone.
+/// for the top-claiming buckets, a depth and toggle (<see cref="TopBand"/>) — per bucket. Every field has a base
+/// default, so <see cref="Default"/> is complete and any single knob can be overridden alone.
+/// <para><b>The material defaults are stone in every bucket</b>, which is what unpainted ground already is: the
+/// built-in states no finish, so ground nothing has themed reads as ground nothing has themed. The geometry
+/// defaults still hold — a rim runs where the ground drops, a wall covers every riser — they simply resolve to
+/// the same block until a theme says otherwise. Finishes worth starting from are the named themes in
+/// <see cref="ThemePresets"/>, seeded into the library and picked by an author.</para>
 /// </summary>
 public sealed record TerrainTheme
 {
-    // grass over two dirt — the standard interior stack (TP11); its layer thicknesses sum to the surface depth.
-    private static readonly TerrainMaterial DefaultSurface = new LayeredMaterial(new BandStack(
-        [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)]));
-
     // ── geometry ──
     /// <summary>The bedrock floor thickness (TP8). Default one block.</summary>
     public BedrockSpec Bedrock { get; init; } = BedrockSpec.Absolute(1);
@@ -252,19 +251,19 @@ public sealed record TerrainTheme
     // ── buckets ──
     // The two top-claiming buckets carry their own depth (TP7/TP11) and toggle (TP12) via TopBand; the wall's
     // depth is the derived riser, so it stays a bare material + toggle; fill is required and always on.
-    /// <summary>The edge cap (TP7): quartz, one block deep.</summary>
-    public TopBand Rim { get; init; } = new(new SolidMaterial(Blocks.QuartzBlock), Depth: 1);
-    /// <summary>The interior stack (TP11): grass over two dirt, three blocks deep.</summary>
-    public TopBand Surface { get; init; } = new(DefaultSurface, Depth: 3);
-    /// <summary>The exposed riser (TP9/TP12): team-tinted clay, light-grey clay on neutral land (the tint is a
-    /// material any bucket can take, not wall-specific).</summary>
-    public TerrainMaterial Wall { get; init; } = new TeamTintedMaterial(Blocks.StainedClay, new SolidMaterial(Blocks.StainedClay, 8));
+    /// <summary>The edge cap (TP7): stone, one block deep.</summary>
+    public TopBand Rim { get; init; } = new(new SolidMaterial(Blocks.Stone), Depth: 1);
+    /// <summary>The interior stack (TP11): stone, one block deep.</summary>
+    public TopBand Surface { get; init; } = new(new SolidMaterial(Blocks.Stone), Depth: 1);
+    /// <summary>The exposed riser (TP9/TP12): stone.</summary>
+    public TerrainMaterial Wall { get; init; } = new SolidMaterial(Blocks.Stone);
     /// <summary>Whether the wall paints at all (TP12); off, its riser blocks fall to fill.</summary>
     public bool WallEnabled { get; init; } = true;
     /// <summary>The required base (TP12): every block no enabled bucket claimed. Stone.</summary>
     public TerrainMaterial Fill { get; init; } = new SolidMaterial(Blocks.Stone);
 
-    /// <summary>The shipping finish — the validated base model with example materials.</summary>
+    /// <summary>Unthemed ground: stone in every bucket. What a map paints where no theme reaches, and what a
+    /// bucket a theme leaves unbound resolves to.</summary>
     public static TerrainTheme Default { get; } = new();
 
     /// <summary>The material a bucket resolves through (bedrock is fixed, never themeable).</summary>

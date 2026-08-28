@@ -112,13 +112,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
     onShapeSelected: (id) => selectShape(id),
-    // A brush in hand paints the shape it is clicked on, and alt-click lifts that shape's theme back into
-    // the slot. Both go through the same assignment the tree's Apply button uses.
+    // A brush in hand paints the shape it is clicked on; shift widens it to every shape the island holds, and
+    // alt lifts that shape's theme back into the hand. All three write through the one assignment.
     onThemePaint: edit((id) => { setShapeTheme(id, themeBrush); afterThemeChange(); }),
+    onThemePaintIsland: edit((islandId) => { setIslandTheme(islandId, themeBrush); afterThemeChange(); }),
     onThemeLift: (id) => {
       const shape = canvas.getShape(id);
       setThemeBrush(shape?.theme ?? "");
     },
+    onThemeDrop: () => setThemeBrush(""),
     onIslandSelected: (id) => selectIsland(id),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
@@ -542,9 +544,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // island's theme from its member shapes (uniform → that theme, else mixed).
   function themesState() {
     const shapeThemes = {};
+    let shapeCount = 0;
     syncActive();
-    for (const L of layers) for (const s of (L.shapes || [])) if (s.theme) shapeThemes[s.id] = s.theme;
-    return JSON.stringify({ themes, mapTheme: mapTheme || "", shapeThemes });
+    // Every storey, not the one being drawn on: a theme is the board's, so what carries one and how many
+    // could are counted over the same set or the coverage answers a question nobody asked.
+    for (const L of layers) for (const s of (L.shapes || [])) {
+      shapeCount++;
+      if (s.theme) shapeThemes[s.id] = s.theme;
+    }
+    return JSON.stringify({ themes, mapTheme: mapTheme || "", shapeThemes, shapeCount });
   }
   // A theme edit is a discrete action the author is waiting on the result of, so it repaints at once; only
   // the continuous geometry stream (drag, resize) is worth coalescing.
@@ -683,6 +691,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
+  /** Every shape an island holds takes `themeId` (empty clears). The island scope, written per member shape,
+   *  which is where a theme is stored — so the brush's shift-click and the handle's assignIsland are one act. */
+  function setIslandTheme(islandId, themeId) {
+    const isl = islandById(islandId);
+    if (!isl) return;
+    for (const sid of (isl.shapeIds || [])) setShapeTheme(sid, themeId);
+  }
+
   function setShapeTheme(shapeId, themeId) {
     const s = canvas.getShape(shapeId);
     if (!s) return;
@@ -894,11 +910,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // Assign (or clear, with an empty themeId) a theme to one shape — a per-shape override.
     assignShape(shapeId, themeId) { setShapeTheme(shapeId, themeId); afterThemeChange(); },
     // Assign (or clear) a theme to every shape of an island — the coarse scope, written per member shape.
-    assignIsland(islandId, themeId) {
-      const isl = islandById(islandId); if (!isl) return;
-      for (const sid of (isl.shapeIds || [])) setShapeTheme(sid, themeId);
-      afterThemeChange();
-    },
+    assignIsland(islandId, themeId) { setIslandTheme(islandId, themeId); afterThemeChange(); },
 
     // ── dressing (decoration.md) ──
     // Placing is the canvas's; the bridge exposes reading the document, editing the selection, and the

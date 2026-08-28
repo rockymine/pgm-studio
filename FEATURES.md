@@ -2301,6 +2301,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A theme pasted in lands as a theme, not a blob (TL7).** The theme editor's **Start from JSON** takes a
+  whole painter theme — what an agent writes over the API, what a board saves out — through
+  `POST /themes/import`, which makes one style per bucket and binds them, so it arrives editable. It creates a
+  row, so it is offered while a theme is being started and not on one that already exists. An unbound bucket
+  now says what it does: it reads `(unbound — stone)` rather than naming a built-in finish. (TL7)
 - **The library is a page you author in, and the sketch draws from it (B44).** `/library` is the studio's
   fourth entry point, on the shape catalog's browse layout (a filter rail, a grid of pictures, a rail for the
   one you picked — now one `lib-*` namespace both pages share). Its **Styles** half filters by kind, starts one
@@ -6074,6 +6079,35 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **Unthemed ground is stone, and a finish is something an author picked (WE50).** Every material default on
+  `TerrainTheme` is stone — what unpainted ground already is — so a board naming no theme exports as a board
+  naming no theme, and a bucket a theme leaves unbound resolves to stone instead of borrowing a rim, a wall or
+  a surface it never asked for. The geometry defaults are untouched: a rim still runs where the ground drops,
+  it simply resolves to the same block until a theme says otherwise. The finishes worth starting from are the
+  six named themes in `ThemePresets`, which `LibrarySeed` puts in the library. (WE50)
+- **The Theme phase is one step, and painting is one act (TS46).** A theme is taken in hand from a swatch
+  strip at the foot of the canvas — chrome, like the storey strip, because a theme belongs to the board and
+  every click in the phase is addressed to it — and a click on a shape paints it. The apply button, the
+  scope control and the tree-target selection are gone: what a click reaches is the selection rule every
+  phase already shares, with the modifiers read against what is held: `Shift`+click widens the stroke to every
+  shape an island holds, `Alt`+click lifts a shape's theme back into the hand. `[` and `]` step through the
+  registry with the empty hand as one of the stops. The
+  sidebar is the island tree alone; the inspector holds what is in hand, what the selection carries, and,
+  with nothing selected, the board's defaults. (TS46)
+- **Authoring a theme is the library's, and the board picks one (TS47).** The Theme phase's Create step was a
+  second theme editor over a second model of a theme; it is gone, and the strip's `+` copies a library theme
+  onto the board instead — under its library name, so copying it in again replaces it, which is how a theme
+  edited in the library is brought up to date. A board theme goes the other way with **Save to library**,
+  which decomposes it into one style per bucket. The Rooms step is gone with it: the cage and spawn shells are
+  fallbacks in the same sense the map default is, so all three sit together under **Board defaults**, beside
+  a count of how many shapes still fall through to it. (TS47)
+- **A phase offers the overlays it can use (TS48).** The layer bar was the same six chips everywhere. A phase
+  now shows the layer it works on and the layer it works against, and an overlay drawing a fact another shown
+  layer already carries is not offered: Theme and Dressing open with Blocks and Shapes on and no contour chip,
+  because the painted ground already carries the height; Relief leads with the contours, because the paint has
+  not run. Snap is not an overlay at all — it changes what a drag does — so it sits in the dock beside the
+  shape tools, in Draw, the one phase that drags a shape edge onto another. A chip switched by hand holds
+  until the phase is left. (TS48)
 - **A phase says what a click picks, and Theme's answer is a brush (TS43).** An island is the unit in Draw,
   where a landmass is what moves, and in Relief, where one relief is solved per island; in Theme the job is
   naming one shape, so a click picks the shape and the island is reached with `Alt` or from the tree —
@@ -6081,8 +6115,8 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   theme was three acts: pick a target, pick a theme, press **Apply**. A theme is now taken *in hand* from the
   list and the canvas is a brush — a click paints the shape under it, `Alt`+click lifts that shape's theme
   back into the slot, and picking the theme in hand again puts it down. Both go through the same assignment
-  the button does, so there is one verb and one undo step per shape. **Apply** stays for a selection made in
-  the tree, where a click is not a click on the board; leaving the phase puts the brush down. (TS43)
+  the button does, so there is one verb and one undo step per shape; leaving the phase puts the brush
+  down. (TS43)
 - **An island shows what it is made of once it is being worked in (TS44).** The Shapes chip draws every
   primitive on the board or none, which is the wrong granularity for reaching one member of one island. The
   selected or entered island draws its own members without it — faintly while merely selected, plainly once

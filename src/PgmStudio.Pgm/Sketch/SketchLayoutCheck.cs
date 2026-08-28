@@ -244,7 +244,7 @@ public static class SketchLayoutCheck
         if (layout.MapTheme is { Length: > 0 } mapTheme && !themes.Contains(mapTheme))
             findings.Add(new Finding(SketchRules.NamesNothing,
                 $"the map default is theme '{mapTheme}', which the layout's registry does not carry — every "
-                + "cell no shape scope claims takes the built-in default instead",
+                + "cell no shape scope claims takes unthemed stone instead",
                 Severity.Complaint, Field: "mapTheme"));
 
         return findings;

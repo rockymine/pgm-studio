@@ -16,8 +16,7 @@ namespace PgmStudio.Export;
 public static class TerrainThemeScope
 {
     /// <summary>The per-cell theme resolver for <see cref="TerrainPainter"/>. Returns a constant map-default
-    /// resolver when nothing is themed (a plain sketch), so the common path allocates nothing per cell and
-    /// paints exactly the built-in default as before.</summary>
+    /// resolver when nothing is themed (a plain sketch), so the common path allocates nothing per cell.</summary>
     public static Func<string, int, int, TerrainTheme> ThemeAt(string layoutJson)
     {
         var layout = SketchLayout.Parse(layoutJson);

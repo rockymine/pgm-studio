@@ -1,5 +1,6 @@
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Minecraft.Palette;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Tests;
@@ -22,25 +23,37 @@ public sealed class TerrainThemeComposerTests
     [Test]
     public async Task Decompose_yields_one_binding_per_themeable_bucket_with_its_kind()
     {
-        var decomposed = TerrainThemeComposer.Decompose(TerrainTheme.Default);
+        // Meadow, not the bare-stone default: decompose's kind mapping needs a theme whose buckets actually
+        // differ from each other to be worth asserting on.
+        var decomposed = TerrainThemeComposer.Decompose(ThemePresets.Meadow);
         await Assert.That(decomposed.Buckets.Count).IsEqualTo(4);
 
         string Kind(TerrainBucket bucket) => decomposed.Buckets.First(b => b.Bucket == bucket).Kind;
         await Assert.That(Kind(TerrainBucket.Rim)).IsEqualTo("solid");        // quartz
         await Assert.That(Kind(TerrainBucket.Surface)).IsEqualTo("layered");  // grass over two dirt
         await Assert.That(Kind(TerrainBucket.Wall)).IsEqualTo("teamTint");    // team-tinted clay
-        await Assert.That(Kind(TerrainBucket.Fill)).IsEqualTo("solid");       // stone
+        await Assert.That(Kind(TerrainBucket.Fill)).IsEqualTo("voronoi");     // stone worn into cells
     }
 
     [Test]
     public async Task Bucket_depth_and_toggle_survive_the_trip()
     {
-        var decomposed = TerrainThemeComposer.Decompose(TerrainTheme.Default);
+        var decomposed = TerrainThemeComposer.Decompose(ThemePresets.Meadow);
         var surface = decomposed.Buckets.First(b => b.Bucket == TerrainBucket.Surface);
         await Assert.That(surface.Depth).IsEqualTo(3);          // grass over two dirt, three deep
         await Assert.That(surface.Enabled).IsTrue();
         var wall = decomposed.Buckets.First(b => b.Bucket == TerrainBucket.Wall);
         await Assert.That(wall.Enabled).IsTrue();               // WallEnabled default
+    }
+
+    [Test]
+    public async Task An_unbound_wall_composes_to_stone()
+    {
+        // Nothing binds Wall at all — the composer's fallback for a bucket the decomposition never mentions.
+        var decomposed = new DecomposedTheme(BedrockRelative: false, BedrockValue: 1, RimEdges.Drop,
+            WallOnTerrainFaces: true, Buckets: []);
+        var theme = TerrainThemeComposer.Compose(decomposed);
+        await Assert.That(theme.Wall).IsEqualTo(new SolidMaterial(Blocks.Stone));
     }
 
     [Test]

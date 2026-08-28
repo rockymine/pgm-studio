@@ -120,15 +120,24 @@ public sealed class WorldBuilderTests
     public async Task Team_tint_owns_terrain_by_island_and_leaves_anchorless_land_neutral()
     {
         // Three separate islands (no mirroring): a red-spawn island, a blue-spawn island, and one with no
-        // anchor. Each is a base_height-5 plateau, so the painter walls their edges.
-        const string layout =
-            """
-            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
-              {"id":"a","type":"rectangle","operation":"add","min_x":-30,"max_x":-10,"min_z":-10,"max_z":10,"base_height":5},
-              {"id":"b","type":"rectangle","operation":"add","min_x":10,"max_x":30,"min_z":-10,"max_z":10,"base_height":5},
-              {"id":"c","type":"rectangle","operation":"add","min_x":-5,"max_x":5,"min_z":30,"max_z":50,"base_height":5}
-            ],"islands":[]} }]}
-            """;
+        // anchor. Each is a base_height-5 plateau, so the painter walls their edges. Themed with Meadow — a
+        // team-tinted wall is what this test is about, and unthemed stone carries no team colour at all.
+        var layout = new SketchLayout
+        {
+            Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter { Cx = 0, Cz = 0 } },
+            Layers = [SketchLayer.Ground(
+                [
+                    new SketchShape { Id = "a", Type = "rectangle", Operation = "add", MinX = -30, MaxX = -10, MinZ = -10, MaxZ = 10, BaseHeight = 5 },
+                    new SketchShape { Id = "b", Type = "rectangle", Operation = "add", MinX = 10, MaxX = 30, MinZ = -10, MaxZ = 10, BaseHeight = 5 },
+                    new SketchShape { Id = "c", Type = "rectangle", Operation = "add", MinX = -5, MaxX = 5, MinZ = 30, MaxZ = 50, BaseHeight = 5 },
+                ],
+                [])],
+            Themes = new Dictionary<string, JsonElement>
+            {
+                ["map"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(ThemePresets.Meadow)),
+            },
+            MapTheme = "map",
+        }.ToJson();
         var intent = new MapIntent
         {
             Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
@@ -147,7 +156,7 @@ public sealed class WorldBuilderTests
         await Assert.That(w.GetBlock(-30, 2, 0)).IsEqualTo((Blocks.StainedClay, 14));
         await Assert.That(w.GetBlock(29, 2, 0)).IsEqualTo((Blocks.StainedClay, 11));
         await Assert.That(w.GetBlock(-5, 2, 40)).IsEqualTo((Blocks.StainedClay, 8));
-        // A rim stays quartz regardless of team; the interior stays grass.
+        // A rim stays quartz regardless of team.
         await Assert.That(w.GetBlock(-30, 4, 0)).IsEqualTo((Blocks.QuartzBlock, 0));
     }
 

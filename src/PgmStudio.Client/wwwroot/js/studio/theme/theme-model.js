@@ -1,7 +1,7 @@
 /**
  * Terrain-paint theme model shared by the sketch tool's Theme phase (docs/tools/library.md). A theme is the
  * wire JSON the painter (`TerrainThemeJson`/`TerrainTheme`) deserialises — no second model — so this holds only
- * the built-in default a new theme clones and a small id uniquifier. Pure, no DOM.
+ * the unthemed ground a new theme starts from and a small id uniquifier. Pure, no DOM.
  */
 
 /** The built-in terrain-paint theme: the whole-map default when no theme is authored. Mirrors
@@ -13,9 +13,11 @@ export function defaultThemeJson() {
     bedrock: { relative: false, value: 1 },
     rimEdges: "drop",          // void | drop | boundary — which edges the rim caps
     wallOnTerrainFaces: true,
-    rim: { material: { kind: "solid", id: 155 }, depth: 1, enabled: true },
-    surface: { material: { kind: "layered", layers: [{ material: { kind: "solid", id: 2 }, thickness: 1 }, { material: { kind: "solid", id: 3 }, thickness: 2 }] }, depth: 3, enabled: true },
-    wall: { kind: "teamTint", blockId: 159, neutral: { kind: "solid", id: 159, data: 8 } },
+    // Stone in every bucket — the same unthemed ground the painter's own default states, so a theme defined
+    // here and one the export falls back to describe the same terrain rather than two.
+    rim: { material: { kind: "solid", id: 1 }, depth: 1, enabled: true },
+    surface: { material: { kind: "solid", id: 1 }, depth: 1, enabled: true },
+    wall: { kind: "solid", id: 1 },
     wallEnabled: true,
     fill: { kind: "solid", id: 1 },
   };

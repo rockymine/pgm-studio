@@ -1,5 +1,6 @@
 /**
- * Per-shape theming end-to-end (finishing-model.md §4), on a board with more than one themeable unit.
+ * Per-shape theming end-to-end (docs/tools/sketch.md, the Theme phase), on a board with more than one
+ * themeable unit.
  *
  * The single-island seed can't exercise per-shape assignment — it has one shape at one height. So this composes
  * a generator plan and **randomizes its piece heights**, which makes `PlanCompiler` emit one shape per plateau
@@ -9,12 +10,13 @@
  * colours against the stone the rest is built from.
  */
 
-import { openBrowser, newPage, clearFaults, Checks, api, BASE, TMP_DIR } from "./lib/harness.mjs";
+import { openBrowser, newPage, clearFaults, Checks, api, worldAimer, shapeAimPoints, BASE, TMP_DIR }
+  from "./lib/harness.mjs";
 import { mkdir } from "node:fs/promises";
 
 const OUT = TMP_DIR;
 await mkdir(OUT, { recursive: true });
-const checks = new Checks("theming · per-shape (finishing-model §4)");
+const checks = new Checks("theming · per-shape (sketch · Theme phase)");
 
 // The terrain (non-structural) shapes wherever the layout keeps them — legacy single `layout`, or `layers[]`
 // once the editor has saved through getState().
@@ -34,7 +36,13 @@ const shapeCount = terrainShapes(compiled.layout).length;
 checks.add("plan yields multiple shapes", shapeCount >= 2, `${shapeCount} terrain shapes`);
 
 const { slug } = await api("/sketch", { method: "POST", body: { name: "theme multi" } });
-await api(`/map/${slug}/sketch`, { method: "PUT", body: compiled.layout });
+// The board's registry, put there over the API — the phase picks and places themes, it does not author them,
+// so a board with an empty registry has nothing for the strip to hand out.
+const seeded = structuredClone(compiled.layout);
+seeded.themes = { grass: { bedrock: { relative: false, value: 1 },
+  surface: { material: { kind: "solid", id: 2 }, depth: 1, enabled: true },
+  fill: { kind: "solid", id: 3 } } };
+await api(`/map/${slug}/sketch`, { method: "PUT", body: seeded });
 
 // ── drive the UI: assign a theme to ONE shape, and prove it persisted ──────────────────────────────────
 checks.section("the UI per-shape assignment persists");
@@ -49,19 +57,26 @@ try {
   await page.waitForTimeout(1200);
 
   await page.click('button[title="Theme"]');
-  await page.waitForTimeout(500);
-  await page.fill('input[placeholder="name"]', "grass");
-  await page.click('button:has-text("Add")');
-  await page.waitForTimeout(400);
-  await page.click('button:has-text("Apply →")');
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(1200);
 
-  // A shape row (indented — the island rows have no pipe), then apply the theme to it.
-  await page.locator('.geo-row:has(.indent-pipe)').first().click();
-  await page.waitForTimeout(300);
-  await page.click('button:has-text("Apply grass")');
-  await page.waitForTimeout(1500);   // let the debounced save flush
-  ok = true;
+  // Take a theme in hand from the strip, then click one shape on the board — the whole of applying a theme.
+  await page.click('.canvas-theme-swatch:has-text("grass")');
+  await page.waitForTimeout(400);
+  await page.screenshot({ path: `${OUT}theme-multi-inhand.png`, fullPage: false });
+
+  // Aim at a shape the layout actually carries rather than at a fraction of the viewport: where the board
+  // sits on screen is the fit's business, and a click that misses proves nothing about the brush.
+  const aim = await worldAimer(page);
+  const grassCount = async () =>
+    terrainShapes(await api(`/map/${slug}/sketch`)).filter(shape => shape.theme === "grass").length;
+  for (const point of terrainShapes(await api(`/map/${slug}/sketch`)).flatMap(shape => shapeAimPoints(shape))) {
+    if (!aim) break;
+    const at = aim(point.x, point.z);
+    await page.mouse.click(at.x, at.y);
+    await page.waitForTimeout(1500);   // let the debounced save flush
+    if (await grassCount() >= 1) break;
+  }
+  ok = aim != null;
 } catch (e) {
   page.faults.push(`drive: ${String(e).split("\n")[0]}`);
 }
@@ -118,12 +133,10 @@ try {
   await page.goto(`${BASE}/maps/${slug}/sketch`, { waitUntil: "networkidle", timeout: 30000 });
   await page.waitForSelector("canvas", { timeout: 20000 });
   await page.waitForTimeout(2000);   // WASM boot + the async block-palette fetch that colours the overlay
-  // Into the Theme phase's Apply step (the island tree + theme controls), and settle before toggling.
+  // Into the Theme phase, and settle. The phase opens with Blocks on — the paint is what it acts on — so
+  // this only confirms it rather than reaching for the chip.
   await page.click('button[title="Theme"]');
-  await page.waitForTimeout(700);
-  await page.click('button:has-text("Apply →")');
-  await page.waitForTimeout(1500);
-  // Turn Blocks on *here* (so the raster paints while the canvas is visible) and confirm it took.
+  await page.waitForTimeout(2200);
   const blocks = page.locator('button.canvas-chip:has-text("Blocks")');
   const isOn = async () => blocks.evaluate(el => el.classList.contains("canvas-chip--on"));
   if (!(await isOn())) await blocks.click();

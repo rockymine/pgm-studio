@@ -49,8 +49,8 @@ public partial class SketchDressingInspector
     private IReadOnlyList<PropOptionDto> woods = [];
     private string woodedFor = "";
     private IReadOnlyList<PaintBlockDto> blocks = [];
-    // The map's own default finish. A preview drawn on the built-in grass would promise a meadow a desert map
-    // would refuse, so the picture is grown on what this map actually paints.
+    // The map's own default finish. A preview grown on unthemed stone would show ground no themed map paints,
+    // so the picture is grown on what this map actually paints.
     private string? themeJson;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");

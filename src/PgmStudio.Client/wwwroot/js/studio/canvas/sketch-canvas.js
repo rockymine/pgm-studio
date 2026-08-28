@@ -452,10 +452,12 @@ export class SketchCanvas extends CanvasBase {
     const island = this.#hitIsland(svgPt.x, svgPt.y);
     const shape = this.#hitTest(svgPt.x, svgPt.y);
 
-    // A brush is armed: paint what is under the pointer, or lift what is on it. Alt is the eyedropper here
-    // rather than select-the-parent — a brush in hand is what the modifier is read against.
+    // A brush is armed: paint what is under the pointer, or lift what is on it. The modifiers are read
+    // against what is held rather than against the grouping — Alt is the eyedropper here rather than
+    // select-the-parent, and Shift widens the stroke to every shape the island holds.
     if (this.#themeBrush && shape) {
       if (up) this.#callbacks.onThemeLift?.(shape);
+      else if (e.shiftKey && island) this.#callbacks.onThemePaintIsland?.(island);
       else this.#callbacks.onThemePaint?.(shape);
       this.#callbacks.onShapeSelected?.(shape);
       return;
@@ -1018,7 +1020,7 @@ export class SketchCanvas extends CanvasBase {
     // listed by the `?` sheet and dropped with the canvas; `when` keeps a hidden canvas from answering.
     const live = () => this._wrap?.offsetParent != null && !this._isoOn;
     Keys.register("sketch-canvas", [
-      { id: "sketch.cancel", keys: "escape", label: "Cancel the draw · leave the group · deselect",
+      { id: "sketch.cancel", keys: "escape", label: "Put the brush down · cancel the draw · leave the group · deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
       { id: "sketch.enter", keys: "enter", label: "Enter the selection's group",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedIslandId),
@@ -1043,6 +1045,9 @@ export class SketchCanvas extends CanvasBase {
   /** Escape, in the order a press means them: an in-progress draw, then the group, then the selection. */
   #onEscape() {
     this.#draw.cancel(); this.#clearMeasure(); this.#clearSplit();
+    // A thing in hand is the first thing Escape lets go of: with a brush armed every click paints, so
+    // putting it down is what "never mind" means before anything about the selection does.
+    if (this.#themeBrush) { this.#callbacks.onThemeDrop?.(); return; }
     if (this.#scopeIslandId) {
       const parent = this.#scopeIslandId;
       this.#enterScope(null);

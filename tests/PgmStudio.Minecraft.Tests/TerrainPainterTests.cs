@@ -18,6 +18,16 @@ public sealed class TerrainPainterTests
     private static ColumnProfile TerrainStep(int top, int neighbourTop)
         => new(top, VoidEdge: false, OpenEdge: true, ClosedEdge: true, VoidDrop: -1, TerrainDrop: neighbourTop);
 
+    // A theme with a distinct, deterministic material in every bucket — what the whole-world paint tests below
+    // check the routing against, since the built-in default no longer tells buckets apart by colour.
+    private static readonly TerrainTheme Themed = TerrainTheme.Default with
+    {
+        Rim = new TopBand(new SolidMaterial(Blocks.QuartzBlock)),
+        Surface = new TopBand(new LayeredMaterial(new BandStack(
+            [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)])), Depth: 3),
+        Wall = new SolidMaterial(Blocks.StainedClay, 8),
+    };
+
     // ── the resolver (pure) ────────────────────────────────────────────────────────────────────────────
 
     [Test]
@@ -35,8 +45,8 @@ public sealed class TerrainPainterTests
     [Test]
     public async Task Interior_is_bedrock_then_fill_then_a_three_deep_surface_stack()
     {
-        // the default surface claims its configured depth (3: grass over two dirt), fill takes the middle.
-        var bands = TerrainPainter.Resolve(Interior(9), TerrainTheme.Default);
+        // the surface claims its configured depth (3), fill takes the middle.
+        var bands = TerrainPainter.Resolve(Interior(9), TerrainTheme.Default with { Surface = TerrainTheme.Default.Surface with { Depth = 3 } });
         await Assert.That(bands).IsEquivalentTo(new[]
         {
             new TerrainBand(0, 1, TerrainBucket.Bedrock),
@@ -235,7 +245,11 @@ public sealed class TerrainPainterTests
     public async Task Rim_off_lets_the_surface_stack_read_right_up_to_the_edge_lip()
     {
         // an edge with the rim disabled falls to the surface stack (depth 3), the wall still rises below it.
-        var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with { Rim = TerrainTheme.Default.Rim with { Enabled = false } });
+        var bands = TerrainPainter.Resolve(VoidEdge(9), TerrainTheme.Default with
+        {
+            Rim = TerrainTheme.Default.Rim with { Enabled = false },
+            Surface = TerrainTheme.Default.Surface with { Depth = 3 },
+        });
         await Assert.That(bands).IsEquivalentTo(new[]
         {
             new TerrainBand(0, 1, TerrainBucket.Bedrock),
@@ -295,10 +309,10 @@ public sealed class TerrainPainterTests
         for (var z = 0; z < 5; z++)
             columns.Add(Seg(x, z, 1, 9));
         var terrain = TerrainBuilder.Build(columns);
-        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.Default);
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, Themed);
 
         var w = terrain.World;
-        // interior column (2,2): grass over two dirt (the default surface stack), stone body, bedrock floor.
+        // interior column (2,2): grass over two dirt (the themed surface stack), stone fill, bedrock floor.
         await Assert.That(w.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Grass, 0));
         await Assert.That(w.GetBlock(2, 7, 2)).IsEqualTo((Blocks.Dirt, 0));
         await Assert.That(w.GetBlock(2, 6, 2)).IsEqualTo((Blocks.Dirt, 0));
@@ -332,7 +346,7 @@ public sealed class TerrainPainterTests
     }
 
     [Test]
-    public async Task Default_wall_paints_the_team_colour_and_neutral_grey_off_team()
+    public async Task A_team_tinted_wall_paints_the_team_colour_and_neutral_grey_off_team()
     {
         var columns = new List<ColumnSegment>();
         for (var x = 0; x < 5; x++)
@@ -340,11 +354,11 @@ public sealed class TerrainPainterTests
             columns.Add(Seg(x, z, 1, 9));
 
         var red = Build(columns);
-        TerrainPainter.Paint(red.World, red.SurfaceTop, TerrainTheme.Default, teamDamageAt: (_, _) => 14);
+        TerrainPainter.Paint(red.World, red.SurfaceTop, ThemePresets.Meadow, teamDamageAt: (_, _) => 14);
         await Assert.That(red.World.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 14));   // wall = red clay
 
         var neutral = Build(columns);
-        TerrainPainter.Paint(neutral.World, neutral.SurfaceTop, TerrainTheme.Default);           // no team map
+        TerrainPainter.Paint(neutral.World, neutral.SurfaceTop, ThemePresets.Meadow);            // no team map
         await Assert.That(neutral.World.GetBlock(0, 5, 2)).IsEqualTo((Blocks.StainedClay, 8));  // wall = neutral grey
     }
 
@@ -376,7 +390,7 @@ public sealed class TerrainPainterTests
         // a "structure": bedrock all the way up the (2,2) column, taller than the terrain.
         for (var y = 0; y <= 12; y++) terrain.World.SetBlock(2, y, 2, Blocks.Bedrock);
 
-        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, TerrainTheme.Default);
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, Themed);
 
         var w = terrain.World;
         // the structure column is untouched — still bedrock at its surface, not grass/rim.

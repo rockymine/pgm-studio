@@ -179,7 +179,7 @@ public sealed class ThemeLibraryEndpointsTests
 
         await Assert.That(preview!.Section).Contains(BlockPalette.Hex(Blocks.GoldBlock, 0));
         await Assert.That(preview.Buckets[ThemeBuckets.Fill]).Contains(BlockPalette.Hex(Blocks.GoldBlock, 0));
-        await Assert.That(preview.Buckets[ThemeBuckets.Rim]).Contains(BlockPalette.Hex(Blocks.QuartzBlock, 0));
+        await Assert.That(preview.Buckets[ThemeBuckets.Rim]).Contains(BlockPalette.Hex(Blocks.Stone, 0));
 
         await Assert.That((await client.GetFromJsonAsync<List<ThemeSummary>>("/api/themes"))!.Count).IsEqualTo(0);
     }

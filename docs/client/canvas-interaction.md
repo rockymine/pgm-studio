@@ -173,6 +173,15 @@ two modifiers. It answers what to select and what the scope becomes. The geometr
 because an island is a polygon and a box is a cell rect; what could not differ between them is the rule, so
 it is written once — two tools with two grouping models is two things to learn for one idea.
 
+**A brush pre-empts the rule, and is the only thing that does.** `SketchCanvas.#themeBrush` holds the theme
+the Theme phase has in hand; while it is set, a click on a shape paints it, `Shift`+click paints every shape
+its island holds and `Alt`+click lifts that shape's theme back into the hand — none of the three reaches
+`resolvePick` at all. `Escape` follows the same reading: a thing in hand is the first thing it lets go of, so
+with a brush armed it puts the brush down and touches neither the scope nor the selection. That is deliberate
+and narrow: with something in hand the modifiers are read against what is held rather than against the
+grouping, which is why `Alt` means eyedropper there and select-the-parent everywhere else. With an empty hand
+the shared rule applies unchanged.
+
 ## 6. Bridges — the interop seam
 
 Each surface has one bridge exposing `async mount(...) → handle`. Blazor imports the module on demand

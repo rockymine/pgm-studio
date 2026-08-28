@@ -453,8 +453,8 @@ public sealed class TerrainPatternsTests
         var (wid, wdata) = terrain.World.GetBlock(0, 5, 2);
         await Assert.That(wid).IsEqualTo(Blocks.Wool);
         await Assert.That(wdata is 0 or 15).IsTrue();
-        // the interior surface is still the default grass — the wall pattern touched only the wall bucket.
-        await Assert.That(terrain.World.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Grass, 0));
+        // the interior surface is untouched — still the default's stone — the wall pattern touched only the wall bucket.
+        await Assert.That(terrain.World.GetBlock(2, 8, 2)).IsEqualTo((Blocks.Stone, 0));
     }
 
     [Test]

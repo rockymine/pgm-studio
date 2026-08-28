@@ -30,7 +30,7 @@
       <NavButton Icon="book-open-text" Title="Info" Active="@InfoActive" OnClick="GoInfo" />
       <NavButton Icon="pencil-ruler" Title="Draw" Active="@DrawActive" OnClick="GoDraw" />
       <NavButton Icon="mountain" Title="Relief" Active="@ReliefActive" OnClick="GoRelief" />
-      <NavButton Icon="palette" Title="Theme" Active="@(ThemeCreateActive || ThemeApplyActive || ThemeRoomsActive)" OnClick="GoTheme" />
+      <NavButton Icon="palette" Title="Theme" Active="@ThemeActive" OnClick="GoTheme" />
       <NavButton Icon="trees" Title="Dressing" Active="@DressingActive" OnClick="GoDressing" />
     </NavRail>
   </Rail>
@@ -41,28 +41,19 @@
                          Mode="@mode" CenterX="@centerX" CenterZ="@centerZ"
                          OnModeChange="OnModeChange" OnCenterX="OnCenterX" OnCenterZ="OnCenterZ" />
       }
-      @if (ThemeCreateActive)
-      {
-        <SketchThemePhase Handle="handle" OnApply="EnterThemeApply" OnRooms="GoThemeRooms" OnBack="GoDraw" />
-      }
-      @if (ThemeRoomsActive)
-      {
-        <SketchRoomStyleStep Handle="handle" OnGoStep="GoThemeStep" OnBack="GoDraw" />
-      }
-      @* Draw + Theme-Apply share the one mounted canvas, so this body stays present (hidden when Info/Create
-         is up) — [hidden] is display:none, and the canvas re-measures on unhide. Theme-Apply swaps the sidebar
-         (island tree + theme controls) and hides the draw toolbar/inspector; the canvas is reused as-is. *@
-      <div class="phase-body" hidden="@(!(DrawActive || ThemeApplyActive || DressingActive || ReliefActive))">
-      @if (ThemeApplyActive)
+      @* Every phase that draws shares the one mounted canvas, so this body stays present (hidden while Info is
+         up) — [hidden] is display:none, and the canvas re-measures on unhide. A phase swaps what the columns
+         hold and which overlays the bar offers; the canvas is reused as it stands. *@
+      <div class="phase-body" hidden="@(!(DrawActive || ThemeActive || DressingActive || ReliefActive))">
+      @if (ThemeActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="palette" PhaseTitle="Theme"
-                 Steps="ThemeSteps" CurrentStep="1" BackEnabled="true" NextLabel="Done" NextEnabled="true"
-                 OnStep="GoThemeStep" OnBack="BackToThemeCreate" OnNext="GoDraw" />
+                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoRelief" OnNext="GoDressing" />
       }
       else if (DressingActive)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="trees" PhaseTitle="Dressing"
-                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoDraw" OnNext="GoDraw" />
+                 BackEnabled="true" NextLabel="Done" NextEnabled="true" OnBack="GoTheme" OnNext="GoDraw" />
       }
       else if (ReliefActive)
       {
@@ -77,13 +68,12 @@
       }
       <Workspace>
         <Sidebar>
-          @if (ThemeApplyActive)
+          @if (ThemeActive)
           {
+            @* What exists, and nothing more: the theme in hand is on the strip and what it lands on is in the
+               inspector, so the column stays the one list a phase can always show. *@
             <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
                          OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
-            <SketchThemeApplyRail Handle="handle" SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
-                                  TargetShapeIds="ScopeTargetShapeIds"
-                                  Brush="@themeBrush" BrushChanged="SetThemeBrush" />
           }
           else if (DressingActive)
           {
@@ -127,18 +117,31 @@
           <CanvasLayerBar>
             @if (!threeD)
             {
-              <LayerChip Icon="shapes" Active="shapesOn" Title="Show the draw primitives over the islands"
-                         OnClick="ToggleShapes">Shapes</LayerChip>
-              <LayerChip Icon="flip-horizontal-2" Active="mirrorOn" Title="Show the mirrored copies"
-                         OnClick="ToggleMirror">Mirror</LayerChip>
-              <LayerChip Icon="grid" Active="chunksOn" Title="Show the 16-block chunk grid"
-                         OnClick="ToggleChunks">Chunks</LayerChip>
-              <LayerChip Icon="box" Active="blocksOn" Title="@BlocksChipTitle"
-                         OnClick="ToggleBlocks">Blocks</LayerChip>
-              <LayerChip Icon="mountain" Active="reliefOn" Title="Show the height contours of the relief the islands carry"
-                         OnClick="ToggleRelief">Relief</LayerChip>
-              <LayerChip Icon="magnet" Active="snapOn" Title="Snap shapes to other shapes' edges while dragging (Alt bypasses)"
-                         OnClick="ToggleSnap">Snap</LayerChip>
+              @if (ChipOffered(ChipShapes))
+              {
+                <LayerChip Icon="shapes" Active="shapesOn" Title="Show the draw primitives over the islands"
+                           OnClick="ToggleShapes">Shapes</LayerChip>
+              }
+              @if (ChipOffered(ChipMirror))
+              {
+                <LayerChip Icon="flip-horizontal-2" Active="mirrorOn" Title="Show the mirrored copies"
+                           OnClick="ToggleMirror">Mirror</LayerChip>
+              }
+              @if (ChipOffered(ChipChunks))
+              {
+                <LayerChip Icon="grid" Active="chunksOn" Title="Show the 16-block chunk grid"
+                           OnClick="ToggleChunks">Chunks</LayerChip>
+              }
+              @if (ChipOffered(ChipBlocks))
+              {
+                <LayerChip Icon="box" Active="blocksOn" Title="@BlocksChipTitle"
+                           OnClick="ToggleBlocks">Blocks</LayerChip>
+              }
+              @if (ChipOffered(ChipRelief))
+              {
+                <LayerChip Icon="mountain" Active="reliefOn" Title="Show the height contours of the relief the islands carry"
+                           OnClick="ToggleRelief">Relief</LayerChip>
+              }
               <CanvasRoundButton Icon="scan" Title="Fit the working bounds" OnClick="OnFit" />
             }
             else
@@ -166,6 +169,13 @@
           {
             <SketchLayerStrip Layers="layerRows" ActiveId="@activeLayerId" OnSelect="SelectLayer"
                               OnAdd="AddLayer" AllowAdd="@DrawActive" />
+          }
+
+          @* What is in hand, where a thing in hand belongs. The Theme phase's every click is addressed to it. *@
+          @if (ThemeActive && !threeD)
+          {
+            <SketchThemeStrip Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId" AddOpen="themeAddOpen"
+                              OnTake="TakeTheme" OnAdd="() => themeAddOpen = !themeAddOpen" />
           }
 
           @* Nothing is drawn in the isometric preview, so the dock goes with the tools it holds. *@
@@ -220,6 +230,10 @@
               <DockGroup>
                 <DockButton Icon="ruler" Title="Measure" Active="@(tool == "measure")" OnClick='() => SetTool("measure")' />
                 <DockButton Icon="scissors" Title="Split" Active="@(tool == "split")" OnClick='() => SetTool("split")' />
+                @* Not an overlay: it changes what a drag does rather than what is drawn, so it sits with the
+                   tools that drag rather than in the bar that says what is shown. *@
+                <DockButton Icon="magnet" Title="Snap to other shapes' edges while dragging (Alt bypasses)"
+                            Active="@snapOn" OnClick="ToggleSnap" />
               </DockGroup>
             }
           </CanvasDock>
@@ -235,7 +249,17 @@
           <div class="sidebar-handle"></div>
           <SketchReliefInspector Handle="handle" ActiveTool="@tool" StateJson="@reliefJson" />
         }
-        else if (!ScopeApplyActive)
+        else if (ThemeActive)
+        {
+          <div class="sidebar-handle"></div>
+          <SketchThemeInspector Handle="handle" Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId"
+                                ShapeThemes="shapeThemes" ShapeCount="themedShapeTotal" Revision="themeRevision"
+                                SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
+                                TargetShapeIds="ScopeTargetShapeIds"
+                                AddOpen="themeAddOpen" AddOpenChanged="v => themeAddOpen = v"
+                                OnHold="SetThemeBrush" OnChanged="ReadThemes" />
+        }
+        else
         {
           <div class="sidebar-handle"></div>
           <SketchInspector Handle="handle" Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"

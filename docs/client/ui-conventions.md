@@ -57,7 +57,7 @@ phases; `AppFooter`/`AppFooterLink` and `SideDrawer` finish the set.
 picks between, where `DockModeButton` flips a two-state mode) and `DockFlyoutGroup`, plus `CanvasRoundButton`
 and `ViewModeToggle`.
 
-**Terrain** — the material vocabulary shared by the Sketch tool's Theme phase and the library:
+**Terrain** — the material vocabulary shared by the Sketch tool's Dressing phase and the library:
 `MaterialEditor`, `BlockPicker`, `StyleSelect` (binding a saved style — the same question, grouped by kind,
 with the bound style's own picture beside the control) and `HouseViews`.
 

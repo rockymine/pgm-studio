@@ -61,7 +61,7 @@ public sealed class TerrainLibraryClient(HttpClient http)
 
     /// <summary>A sample patch the pass actually dressed with one prop, from above and cut open. The theme is
     /// passed because what the paint leaves on top is what decides whether flora grows and what a path may
-    /// repaint — previewing against the built-in default would promise a meadow the map's finish would refuse.</summary>
+    /// repaint — previewing against unthemed stone would promise ground the map's own finish would refuse.</summary>
     public Task<DressingPreviewDto?> PropPreviewAsync(string propJson, string? themeJson)
         => PostOrNull<DressingPreviewDto>("api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson));
 

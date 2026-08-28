@@ -1,0 +1,150 @@
+@namespace PgmStudio.Client.Features.Sketch
+
+@* The Theme phase's inspector. It shows what is in hand and what the selection is painted with; with nothing
+   selected it shows what the board falls back to instead, so the column describes the phase when it has no one
+   thing to describe.
+
+   Themes are authored in the library, not here — the strip's + copies one onto the board, and a board theme
+   edited elsewhere is saved out and copied back. One editor for a theme means one shape for a theme. *@
+
+<Inspector>
+  @* Adding is a short detour that ends by taking what it copied in hand, so it has the column to itself
+     rather than pushing what the phase is showing down a scroll. *@
+  @if (AddOpen)
+  {
+    <Section Title="Add from the library">
+      <Actions>
+        <Button Variant="icon" Icon="x" Title="Close" OnClick="() => AddOpenChanged.InvokeAsync(false)" />
+      </Actions>
+      <ChildContent>
+        <p class="section-desc">Copying one in takes a snapshot. Copying in again under the same name replaces
+          it, which is how a theme edited in the library is brought up to date.</p>
+        @if (libraryThemes.Count == 0)
+        {
+          <p class="section-desc">The library has no themes yet.</p>
+        }
+        else
+        {
+          <div class="lib-picklist">
+            @foreach (var theme in libraryThemes)
+            {
+              <ListRow Compact @key="theme.Id" OnClick="() => CopyIn(theme)">
+                <span class="list-label">@theme.Name</span>
+                @if (Themes.Contains(theme.Name)) { <Badge Kind="dim">on the board</Badge> }
+                <span class="list-tag">copy in</span>
+              </ListRow>
+            }
+          </div>
+        }
+        <Actions>
+          <Button Href="/library/themes" Icon="external-link">Author one in the library</Button>
+        </Actions>
+      </ChildContent>
+    </Section>
+  }
+  else
+  {
+  @if (InHand is { } held)
+  {
+    <Section Title="In hand">
+      <Actions><Badge Kind="neutral">@held</Badge></Actions>
+      <ChildContent>
+        <p class="section-desc">Click a shape to paint it, Shift-click for the whole island, Alt-click to lift a
+          shape's theme into your hand. Esc puts this one down.</p>
+        @if (preview is not null)
+        {
+          <div class="theme-section-figure">@((MarkupString)preview.Section)</div>
+          <div class="theme-apply-swatches">
+            @foreach (var bucket in ThemeBuckets.All)
+            {
+              <figure class="theme-apply-swatch" @key="bucket">
+                <div class="theme-swatch-img">@((MarkupString)(preview.Buckets.GetValueOrDefault(bucket) ?? ""))</div>
+                <figcaption>@bucket</figcaption>
+              </figure>
+            }
+          </div>
+        }
+        <div class="panel-actions">
+          <Button Icon="upload" OnClick="SaveToLibrary" Title="Save this board theme to the library, one style per bucket">Save to library</Button>
+          <Button Variant="danger" Icon="trash-2" OnClick="RemoveFromBoard"
+                  Title="Take it off the board — every shape painted with it goes back to the map default">Remove</Button>
+        </div>
+        @if (note is not null) { <p class="section-desc">@note</p> }
+      </ChildContent>
+    </Section>
+  }
+
+  @if (HasSelection)
+  {
+    <Section Title="Selection">
+      <Actions>
+        <Badge Kind="dim">@(SelectedIslandId is not null ? "island" : "shape")</Badge>
+      </Actions>
+      <ChildContent>
+        <div class="theme-apply-sel-row">
+          <span class="list-label list-label--mono">@(SelectedIslandId ?? SelectedShapeId)</span>
+          @if (SelectionTheme() == Mixed) { <Badge Kind="neutral">mixed</Badge> }
+          else if (SelectionTheme() is { Length: > 0 } current) { <Badge Kind="neutral">@current</Badge> }
+          else { <span class="section-desc">— unpainted, so the map default reaches it —</span> }
+        </div>
+        <div class="panel-actions">
+          <Button Icon="eraser" OnClick="ClearSelection" Disabled="@(SelectionTheme().Length == 0)">Unpaint</Button>
+        </div>
+      </ChildContent>
+    </Section>
+  }
+  else
+  {
+    @* Nothing is selected, so the column describes the board: what paints where nothing else reaches, and how
+       much of the board is still falling through to it. *@
+    <Section Title="Board defaults">
+      <p class="section-desc">The lowest layer — what paints every cell no shape claims.</p>
+      <Field Label="Map default">
+        <select class="field-input field-input--slim" value="@MapTheme" @onchange="SetMapDefault">
+          <option value="">(unthemed — stone)</option>
+          @foreach (var id in Themes) { <option value="@id" @key="id">@id</option> }
+        </select>
+      </Field>
+      <p class="section-desc">@Coverage</p>
+    </Section>
+
+    <Section Title="Room shells">
+      <Actions>
+        <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
+      </Actions>
+      <ChildContent>
+        <p class="section-desc">The finish every wool cage and every spawn cube is stamped with — never their
+          size. One shell each, because both are mirrored. Picking one takes a snapshot.</p>
+        @foreach (var kind in RoomKindInfo.All)
+        {
+          <Field Label="@kind.Title" @key="kind.Id">
+            <div class="lib-bind">
+              <select class="field-input field-input--slim" value="@PickedRoom(kind.Id)"
+                      @onchange="e => BindRoom(kind.Id, e)">
+                <option value="0">(the built-in shell)</option>
+                @foreach (var room in rooms) { <option value="@room.Id" @key="room.Id">@room.Name</option> }
+              </select>
+              @if (BoundRoom(kind.Id) is not null)
+              {
+                <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"
+                        OnClick="() => ClearRoom(kind.Id)" />
+              }
+            </div>
+          </Field>
+          @if (RoomPreview(kind.Id) is { } views)
+          {
+            <div class="dressing-views">
+              <figure class="theme-section-figure">@((MarkupString)views.Plan)</figure>
+              <figure class="theme-section-figure">@((MarkupString)views.Section)</figure>
+            </div>
+          }
+        }
+        @if (rooms.Count == 0)
+        {
+          <p class="section-desc">The library has no room styles yet.</p>
+        }
+      </ChildContent>
+    </Section>
+  }
+  }
+</Inspector>

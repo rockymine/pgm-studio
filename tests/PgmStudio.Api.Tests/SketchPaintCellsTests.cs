@@ -66,9 +66,11 @@ public sealed class SketchPaintCellsTests
     [Test]
     public async Task The_rim_bucket_reaches_the_payload_not_just_the_surface()
     {
-        // The default rim is quartz and only the footprint edge takes it, so a flat "one colour per theme"
+        // Meadow's rim is quartz and only the footprint edge takes it, so a flat "one colour per theme"
         // preview cannot produce it — its presence is what proves the real painter ran.
-        var cells = Paint(Layout(null, null, Rect("s0", 0, 0, 20, 20, null)));
+        var themes = new Dictionary<string, JsonElement>
+            { ["map"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(ThemePresets.Meadow)) };
+        var cells = Paint(Layout(themes, "map", Rect("s0", 0, 0, 20, 20, null)));
         await Assert.That(cells.Any(c => c.BlockId == Quartz)).IsTrue();
         await Assert.That(cells.Any(c => c.BlockId != Quartz)).IsTrue();   // an interior that is not rim
     }

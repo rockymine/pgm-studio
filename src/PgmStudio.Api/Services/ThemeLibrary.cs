@@ -13,7 +13,7 @@ namespace PgmStudio.Api.Services;
 /// <see cref="TerrainThemeJson"/>), which live in different layers. <see cref="ComposeAsync"/> assembles a
 /// library theme's rows back into the theme the painter consumes (and <see cref="ComposeJsonAsync"/> into the
 /// exact JSON a map snapshots); <see cref="ImportAsync"/> takes a whole theme JSON and decomposes it into one
-/// style per bucket plus a composed theme, so an existing inline theme (or the built-in default) can be lifted
+/// style per bucket plus a composed theme, so a theme a board or an agent already holds inline can be lifted
 /// into the library.
 /// </summary>
 public sealed class ThemeLibrary(ThemeStore store)
@@ -41,8 +41,8 @@ public sealed class ThemeLibrary(ThemeStore store)
 
     /// <summary>The theme a set of bindings composes to without any of it being saved — what a theme editor
     /// previews while it is being assembled. A bucket bound to no style (or to one this library no longer
-    /// holds) keeps the built-in material, which is the composer's own fallback — but its depth and its toggle
-    /// still apply, so a preview shows the rim switched off without a rim material having been chosen.</summary>
+    /// holds) resolves to stone, the composer's own fallback — but its depth and its toggle still apply, so a
+    /// preview shows the rim switched off without a rim material having been chosen.</summary>
     public async Task<TerrainTheme> ComposeDraftAsync(ThemeSaveRequest draft, CancellationToken ct = default)
     {
         var styles = (await store.GetStylesAsync(draft.Buckets.Select(b => b.StyleId), ct))

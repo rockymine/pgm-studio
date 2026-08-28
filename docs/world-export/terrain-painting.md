@@ -2,9 +2,10 @@
 
 A second pass over the **realized world**, sibling to the structure stamping of `structures.md` and the
 first concrete slice of the theming work parked as G34. Where the stampers write rooms, cubes and
-objectives onto the terrain, this pass dresses the terrain **itself**: the raw stone a map exports today
-becomes a stone body walled in clay, lipped in quartz, and topped in grass. It reads the terrain the
-world builder already placed and rewrites its surface — no new geometry, only materials.
+objectives onto the terrain, this pass dresses the terrain **itself**, bucket by bucket — rim, wall,
+surface, fill — through whichever theme applies; unthemed, every bucket stays the raw stone it already is.
+It reads the terrain the world builder already placed and rewrites its surface — no new geometry, only
+materials.
 
 **Status: the whole model — TP1–TP21, including scoped per-shape theming (TP10) — is built and shipped.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `WorldBuilder.Build`;
@@ -12,7 +13,8 @@ the four-stage architecture of §5 is in place. A theme is resolved **per cell**
 sketch shape's own theme, else the map default); themes are authored in the Sketch tool's **Theme** phase and
 stored on the sketch layout. Depth is a per-bucket knob (`TopBand`
 carries a bucket's material, depth and toggle), so a theme sets the rim depth and the surface stack
-independently; the default surface is grass over two dirt, three blocks deep (TP11). Any bucket's material can
+independently; the built-in default states no finish — stone, one block deep (TP11) — and a picked theme,
+such as the library's seeded Meadow finish (grass over two dirt, three deep), states one. Any bucket's material can
 be a pattern — voronoi or cell regions, a fractal / turbulence / electric field, wall-runs that wrap the
 void-facing perimeter (TP13), those runs sheared onto the diagonal, a checkerboard laid in the face it
 paints (TP17), or that same board turning one log upright and on its side (TP20) — every one of them sampled
@@ -134,8 +136,8 @@ the blocks each bucket resolves to are a **preset** — the same style-as-data s
 
 - **rim** — the edge lip (TP1).
 - **wall** — the exposed riser (TP4).
-- **surface** — the top of the interior, a **layered stack** to a configured depth (grass over two dirt by
-  default), not one block (TP11).
+- **surface** — the top of the interior, a **layered stack** to a configured depth, not fixed at one block
+  (TP11) — one block of stone by default; grass over two dirt, three deep, in the seeded Meadow finish.
 - **fill** — the interior body below the surface. The **required** bucket: it claims whatever no other
   enabled bucket took, so a theme is never partial (TP12).
 
@@ -213,9 +215,10 @@ and the **configure step** overwrites it when the author clicks islands onto tea
 on the one `IslandDetector` id space, the tint the export paints is exactly what configure shows — no second
 decomposition to drift. (This reproduces `BoardDeriver`'s ownership exactly: its islands are the same
 connected components, and its captive/stepping-stone analysis refines the zone/mid grammar, not who owns the
-land — verified cell-for-cell across the plan corpus.) The default theme tints the wall (neutral fallback:
-light-grey clay); everything else stays neutral until a theme says otherwise. What is *not* a theme choice is the domain invariant — bedrock and every
-stamped structure stay untouched regardless (TP6).
+land — verified cell-for-cell across the plan corpus.) The built-in theme states no tint at all — every
+bucket is stone regardless of team; a theme whose wall is a team tint, such as the seeded Meadow finish
+(neutral fallback: light-grey clay), is what puts a team's colour on the wall. What is *not* a theme choice
+is the domain invariant — bedrock and every stamped structure stay untouched regardless (TP6).
 
 The eventual theme file (a JSON extension) is exactly this record serialized: a `TerrainMaterial` per bucket
 — any of which may be a team tint or a pattern that embeds one — plus the depth knobs, resolved per scope
@@ -421,11 +424,12 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   on parse.
 
 - **TP11** *(built)* *The surface is a layered stack with its own depth.* Not one block: an ordered run of
-  layers (`LayeredMaterial`) claimed from the top of an interior column — the standard being **one grass over
-  two dirt**. It has a total depth (`Surface.Depth`) like the rim, and the same clamp: it cannot descend past
-  what the bedrock floor leaves (bedrock takes priority), so a shallow column drops the surface stack's
-  **deepest** layers first and keeps the topmost. Below the surface, fill takes the rest. Default
-  `Surface = TopBand([grass×1, dirt×2], Depth: 3)`.
+  layers (`LayeredMaterial`) claimed from the top of an interior column — the seeded Meadow finish's being
+  **one grass over two dirt**. It has a total depth (`Surface.Depth`) like the rim, and the same clamp: it
+  cannot descend past what the bedrock floor leaves (bedrock takes priority), so a shallow column drops the
+  surface stack's **deepest** layers first and keeps the topmost. Below the surface, fill takes the rest.
+  Default `Surface = TopBand(SolidMaterial(Stone), Depth: 1)` — a bare depth-1 band, not a stack; a theme
+  states a layered surface by naming one.
 
 - **TP12** *(built)* *Surface, rim and wall are toggleable; fill is required and is the fallback.* Fill always
   claims every block no enabled bucket took, so a theme is never partial. The fallbacks follow the treatments'
@@ -550,18 +554,18 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP2** | Edges are found over the 8 neighbours (void or lower), so a reentrant corner never gaps. |
 | **TP3** | `rimEdges` picks the edge test: `void` (only where the footprint meets the void — no lip on the treads of a stacked body), `drop` (the default — void or lower), `boundary` (the full plateau outline, also lipping edges facing a room or a taller plateau). |
 | **TP4** | The wall is the exposed riser, `y ∈ [drop, surfaceTop − 2]`; buried stone and the y=0 bedrock course are left. |
-| **TP5** | The interior is the grass top of every non-edge column. |
+| **TP5** | The interior is the top course of every non-edge column. |
 | **TP6** | A stamped structure (piece-relative room/cube, or the interface-relative bedrock approach wall) is height-bearing: never painted, never a drop (no open lip, no clay behind it), always a closed-rim edge. |
 | **TP7** | Rim depth is configurable (`Rim.Depth`, default 1); the wall takes the height below it, and the rim never overrides the bedrock floor. |
 | **TP8** | Bedrock floor thickness is configurable — absolute, or terrain-relative (bedrock = column height − intended terrain depth); ≥1, ≤ column height. When it equals the height, no rim or wall. |
 | **TP9** | A toggle paints wall on exposed terrain-to-terrain faces (adjacent height difference ≥2 after the rim), not only void-facing ones. |
 | **TP10** | Theming is scoped: map default › shape, winner-takes-all (whole theme). A `themes` registry + `mapTheme` + each shape's own `theme` on the sketch layout; a per-cell `themeAt` resolver (`TerrainThemeScope`, the `TeamTerritory` shape) walking the rasterizer's shape footprints at export, the smaller shape winning an overlap. Authored in the Sketch tool's Theme phase. Resolves at interfaces with no special case. |
-| **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; grass over two dirt by default), clamped by the bedrock floor. |
+| **TP11** | The surface is a layered stack to a configured depth (`Surface.Depth`; one block of stone by default, grass over two dirt in the seeded Meadow finish), clamped by the bedrock floor. |
 | **TP12** | Surface, rim and wall are toggleable; fill is required and claims the rest. Rim off → surface, then fill; wall/surface off → fill. |
 | **TP13** | Buckets take patterns, not just a block. Region: `VoronoiMaterial` (bands inward from the cell boundary — band 0 is the grid line, the last is the middle, a small cell never reaches it), `CellMaterial` (one material per warped region). Field: `NoiseMaterial` · `TurbulenceMaterial` · `ElectricMaterial` (an N-stop ramp over a fractal field, bent plain / folded / ridged; spread held constant across octave counts). Wall: `WallRunMaterial` (N stripes wrapping the void-facing perimeter arc). All deterministic, and each entry nests any material. |
 | **TP14** | A theme is authored as a form, not as JSON: one section per bucket carrying its toggle, its depth and a material editor that switches the bucket between every kind and recurses into the materials a composite nests. Blocks are picked from `TerrainPalette` — the curated offer list, named and coloured by `BlockPalette`, so a swatch cannot promise a colour the export will not place — with the three sixteen-shade colour families offered as a colour row rather than forty-eight dropdown lines. The offer is not a restriction: a block it does not carry is typed as an id/data pair beside the name. The editor writes the theme node itself, so there is no second model of a material; every edit re-renders the server swatch through the real materials. |
 | **TP15** | Every area pattern carries a `Rise`: the vertical period of its field in blocks, 0 for the plane. At 0 a column resolves to one block and the pattern decides only the ground; above it the field is sampled over the volume, so the wall and the fill carry the pattern too. Off by default — it is the more expensive field and a three-course surface has nothing to vary. A volume field carries its own octave statistics, so its outer stops hold. |
-| **PT1** | *A block that surfaces ground is never painted below the course it surfaces.* Grass, podzol, mycelium and farmland are each exactly one course thick in the world — what lies under one is soil — so a bucket deeper than a course filled with one writes it into every course of its depth, and the ground comes out made of its own skin. The rule is about **depth**, which is where a theme's materials and its buckets meet: a `layered` material is a stack and may carry a surfacing block as its **top band at one course**, which is what the standard grass-over-two-dirt surface is; every other kind is a **pick**, so whichever block it picks fills the whole depth and a surfacing block cannot go in one at any depth over one. The fill claims everything under the buckets above it, so a surfacing block there is buried by definition. Refused where a layout is stored, alongside the house styles (`docs/tools/sketch.md`'s Refusals); podzol is answered by its variant, since it shares an id with the dirt under it. |
+| **PT1** | *A block that surfaces ground is never painted below the course it surfaces.* Grass, podzol, mycelium and farmland are each exactly one course thick in the world — what lies under one is soil — so a bucket deeper than a course filled with one writes it into every course of its depth, and the ground comes out made of its own skin. The rule is about **depth**, which is where a theme's materials and its buckets meet: a `layered` material is a stack and may carry a surfacing block as its **top band at one course**, which is what the seeded Meadow finish's grass-over-two-dirt surface does; every other kind is a **pick**, so whichever block it picks fills the whole depth and a surfacing block cannot go in one at any depth over one. The fill claims everything under the buckets above it, so a surfacing block there is buried by definition. Refused where a layout is stored, alongside the house styles (`docs/tools/sketch.md`'s Refusals); podzol is answered by its variant, since it shares an id with the dirt under it. |
 | **TP16** | `TerrainPalette` is grouped by **tone family** — the set of blocks that read as one ground with a texture — and a family is the unit a material's list is filled from: one entry per block, in the family's light-to-dark order, replacing what the list held. An author then removes the blocks that ground does not use, which is shorter than picking each one by hand. Only full cubes are named; an ore sits with its stone, planks are in where logs are out, and bedrock has no family because it is the map's floor and the shell of its walls. Where colour and use disagree the use wins — gravel is cobble, not grey stone, because it is laid at the water's edge. **A neutral family holds neutral blocks**, though: where a family's own colour is a grey every block in it has to read as one, since asking the picker for the pale grey and being handed a yellow-tan is the swatch lying about what it offers — which is why the two mushroom blocks sit with sand, whose colour they actually read as, and why a test holds every grey family to it with the two by-use exceptions named rather than derived. The same table names ground in the surface analysis, so what an author paints and what a report measures cannot drift apart — which is what makes the table's completeness load-bearing: `SurfaceReport` counts a full cube no family names as **unnamed material** and legends it magenta, so a block missing from a family reads as a fault in the board rather than as a hole in the vocabulary. Two things follow. A **data variant** of a claimed id is claimed too wherever it reads as the same ground — smooth sandstone beside sandstone, chiselled stone brick beside stone brick — and the **blocks a board's own fixtures are built of** are named, since an iron block left out put a permanent magenta speck on every board carrying an iron cube. |
 | **TP17** | The wall's stripe cycle is also read sheared and squared. `WallDiagonalMaterial` starts each course `Slope` cells further round the perimeter than the one beneath, so a stripe travels one cell along per course up at slope 1 (45° on a square-blocked face), lays flatter as the slope rises, leans the other way when it is negative, and is the vertical run again at 0 — read off world height, so two walls of unequal height meet with their diagonals in line. `CheckerMaterial` alternates two materials over squares `Size` on a side, laid **in the face it paints**: the perimeter arc and height on an outer wall, the two ground axes anywhere else, since world x and z everywhere would answer a whole column at once and come out as stripes down a wall rather than squares on it. Square indices are floored rather than truncated, so the board does not fold at the origin. |
 | **TP18** | A corner is a **turn**, not a change of direction. A wall exists only as squares, so a boundary that is not axis-aligned is drawn as steps and its direction changes at nearly every cell; the profile instead measures how far the boundary bends over a span either side (`GridBoundary.TurnAt`), which cancels the staircase and leaves curvature. Each boundary column carries that angle (`BucketContext.PerimeterTurn`) beside its arc, so a material asks one threshold and a shape drawn round reaches it nowhere. |

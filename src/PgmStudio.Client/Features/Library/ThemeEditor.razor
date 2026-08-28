@@ -40,7 +40,7 @@
               <div class="lib-bucket">
                 <div class="lib-bucket-fields">
                   <Field Label="Made of">
-                    <StyleSelect Styles="styles" Value="@binding.StyleId" Unbound="(built-in default)"
+                    <StyleSelect Styles="styles" Value="@binding.StyleId" Unbound="(unbound — stone)"
                                  ValueChanged="id => BindStyle(bucket.Id, id)" />
                   </Field>
                   @if (bucket.HasDepth && binding.StyleId != Unbound)
@@ -66,6 +66,25 @@
               <p class="section-desc">Off — its blocks fall through to @bucket.FallsTo.</p>
             }
           </ChildContent>
+        </Section>
+      }
+
+      @if (CanImport)
+      {
+        <Section Title="Start from JSON" Class="lib-section--wide">
+          <p class="section-desc">A whole terrain-paint theme, as the painter reads one — what an agent writes
+            over the API and what a board saves out. Importing it makes one style per bucket and binds them,
+            so it lands as an editable theme rather than a blob.</p>
+          <Field Error="@importError">
+            <textarea class="field-input theme-json" spellcheck="false" placeholder="{ &quot;rim&quot;: … }"
+                      @bind="importJson"></textarea>
+          </Field>
+          <div class="panel-actions">
+            <Button Variant="primary" Icon="download" OnClick="ImportJson"
+                    Disabled="@(string.IsNullOrWhiteSpace(importJson) || string.IsNullOrWhiteSpace(draftName))">
+              Import
+            </Button>
+          </div>
         </Section>
       }
 

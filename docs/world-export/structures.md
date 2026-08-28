@@ -15,7 +15,7 @@ alike. Read alongside:
   anchoring.
 - `docs/generator/rules.md` ST1–ST5 — the stamped-structure law; ST1/ST2 carry the footprint rule.
 - `docs/pgm/destroyables-and-cores.md` — the style-as-data precedent (§5 below).
-- `docs/tools/sketch.md` — the tool that binds the shells (its Rooms step) and stamps the same house as a
+- `docs/tools/sketch.md` — the tool that binds the shells (its Theme phase) and stamps the same house as a
   dressing prop.
 - `docs/tools/capabilities.md`'s renderer section — every structural stamp here, and the house `decoration.md`
   §8 stamps, claims `WorldProvenance`'s `Structure` layer as it is placed, which is what lets a stage image
@@ -907,7 +907,7 @@ The binding lives on the **sketch layout**, under a `roomStyles` key beside the 
 the export reads: `WorldBuilder` is handed the layout JSON and nothing else about the map. It is a
 **snapshot**, not a library reference (`docs/tools/library.md`) — picking a style copies its JSON in, so editing
 that library row later cannot rebuild a shipped map's rooms. The `style_id` a map picked from is not stored,
-which is the point: there is no reference to go stale, and the Rooms step's "from *Slate cage*" caption is a
+which is the point: there is no reference to go stale, and the picker's "from *Slate cage*" selection is a
 note on the session rather than a fact about the map.
 
 `RoomStyleScope` is the read side, `TerrainThemeScope`'s sibling — with one shape difference that says the
