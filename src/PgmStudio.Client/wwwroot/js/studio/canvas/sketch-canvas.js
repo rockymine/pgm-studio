@@ -141,7 +141,7 @@ export class SketchCanvas extends CanvasBase {
   #paintData     = null;   // the server's block-pixel payload for the terrain paint (terrain-painting.md TP10)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
   #relief        = null;   // the server's traced contours for the relief the layout carries
-  #selectOnly    = false;  // Theme phase: pick islands/shapes and pan/zoom, edit nothing
+  #selectOnly    = false;  // pick islands/shapes and pan/zoom, edit nothing (Theme and Relief)
 
   // The island a click is resolved INSIDE. Null means clicks resolve to whole islands; set, they resolve to
   // that island's member shapes, and a click outside its footprint leaves. This is what makes entering a
@@ -302,6 +302,33 @@ export class SketchCanvas extends CanvasBase {
       && !(isl.holes ?? []).some(hole => pointInRing(cx, cz, hole)));
   }
 
+  /**
+   * The level an island's ground already stands at: the most common top among its add shapes, ties to the
+   * tallest. A column's top is <code>floor + base_height</code> and the tallest add wins a column, so a board
+   * drawn at one height answers that height and a mixed one answers the height most of its pieces state.
+   * Null for an island with no add shape to read — there is then nothing to agree with, and a caller says so
+   * rather than inventing a level.
+   *
+   * A subtract states no ground and a role-tagged annotation is not terrain, so neither is counted. A shape
+   * with per-vertex anchors is counted at its uniform `base_height`: an anchored top varies by definition and
+   * has no single level for a relief to fall back to.
+   */
+  islandTop(islandId) {
+    const island = this.#islands.find(one => one.id === islandId);
+    if (!island) return null;
+    const counts = new Map();
+    for (const shapeId of island.shapeIds ?? []) {
+      const shape = this.#shapes.get(shapeId);
+      if (!shape || shape.operation === "subtract" || shape.role) continue;
+      const top = Math.round((shape.floor ?? 0) + (shape.base_height ?? 1));
+      counts.set(top, (counts.get(top) ?? 0) + 1);
+    }
+    let best = null;
+    for (const [top, count] of counts)
+      if (!best || count > best.count || (count === best.count && top > best.top)) best = { top, count };
+    return best?.top ?? null;
+  }
+
   setIslands(islands)        { this.#islands = islands ?? []; this.#paintWorld(); this.#renderIslandChrome(); }
   setGhostIslands(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
@@ -345,9 +372,10 @@ export class SketchCanvas extends CanvasBase {
 
   /**
    * Make the canvas a selection surface: islands and shapes can be picked (and the view panned and zoomed),
-   * but nothing can be moved, resized, rotated, reshaped or given a vertex. The Theme phase runs in this
-   * mode — it assigns paint to geometry the Draw phase owns, so offering an edit there would let an author
-   * change the map from a rail that has no undo, no snapping and no height controls to make sense of it.
+   * but nothing can be moved, resized, rotated, reshaped or given a vertex. The Theme and Relief phases run
+   * in this mode — both reach geometry the Draw phase owns by picking it, one to assign paint and one to
+   * state ground inside it, so offering an edit would make the gesture that selects an island the gesture
+   * that reshapes it, from a rail with no undo, no snapping and no height controls to make sense of it.
    *
    * Restricted at the source rather than by ignoring the results: the edit controller draws no handles, the
    * island chrome draws no rotate/scale grips, and `_hitMovable` reports nothing draggable — so a drag has
@@ -533,7 +561,7 @@ export class SketchCanvas extends CanvasBase {
   #isIslandHandle(h) { return !!(h && typeof h === "object" && h.islandId); }
 
   _hitMovable(world) {
-    if (this._isoOn || this.#selectOnly) return null;   // Theme phase: a selected thing is not draggable
+    if (this._isoOn || this.#selectOnly) return null;   // select-only: a selected thing is not draggable
     // Island selected → drag the whole island when the point is inside its footprint.
     if (this.#selectedIslandId) {
       const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
@@ -854,9 +882,9 @@ export class SketchCanvas extends CanvasBase {
       x: l, y: t, width: r - l, height: bot - t,
       fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none",
     }));
-    // In select-only mode the dashed box is the whole chrome: it says what is selected, which the Theme
-    // phase needs, while every grabbable part below it — rotate zones, scale handles — is an edit
-    // affordance and is not drawn at all, so there is nothing to take hold of.
+    // In select-only mode the dashed box is the whole chrome: it says what is selected, which is all a
+    // phase that picks needs, while every grabbable part below it — rotate zones, scale handles — is an
+    // edit affordance and is not drawn at all, so there is nothing to take hold of.
     if (this.#selectOnly) return;
 
     const HALF = 4, ZONE = 9;   // anchor half-size · rotate-zone half
@@ -1041,6 +1069,10 @@ export class SketchCanvas extends CanvasBase {
       // island's edge — a mark is clipped, not confined, and a hill authored into a corner is exactly that
       // gesture — so this decides ownership at placement and never again.
       onIslandAt: (bx, bz) => this.#hitIsland(bx + 0.5, bz + 0.5),
+      // The level an island's ground already stands at, so a fresh relief starts where the island was drawn
+      // rather than at a constant. A relief replaces the top of every column of its island, so this is the
+      // one number a new one has to agree with.
+      onIslandTop: (islandId) => this.islandTop(islandId),
       // The contours on screen, so a press can grab one. They are the solver's answer rather than anything
       // placed, which is why they are read from the overlay rather than kept by the controller: what an
       // author grabs is exactly what is drawn, and when the overlay is off there is nothing to grab.

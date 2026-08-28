@@ -38,10 +38,19 @@ export const PUSH_KIND = "push";
  *  and nothing to drag. It rides as a property of the island's relief instead — one height and a depth. */
 export const RIM_KIND = "rim";
 
-/** What a relief starts as before an author has stated anything. Base 8 is a working ground level rather than
- *  a claim; a reach of 0 means the marks decide the whole surface, which is what a single island wants. */
-export function defaultRelief() {
-  return { base: 8, reach: 0, step: 1, grain: { amplitude: 1.2, scale: 12, seed: 1 }, marks: [], pushes: [] };
+/**
+ * The level a relief falls back to when nothing can be read from the island it is stated in. It is the C#
+ * record's own default, so a document the editor seeds and one a hand writes mean the same thing by an
+ * absent `base` — a second number here would be a second rule.
+ */
+export const FALLBACK_BASE = 4;
+
+/** What a relief starts as before an author has stated anything. `base` is the island's own ground level,
+ *  because a relief REPLACES the top of every column of its island: a base that is not where the island
+ *  already stands moves the whole landmass the moment the first mark lands. A reach of 0 means the marks
+ *  decide the whole surface, which is what a single island wants. */
+export function defaultRelief(base = FALLBACK_BASE) {
+  return { base, reach: 0, step: 1, grain: { amplitude: 1.2, scale: 12, seed: 1 }, marks: [], pushes: [] };
 }
 
 /**
@@ -52,11 +61,11 @@ export function defaultRelief() {
  * nothing. It arrives from the tool's settings, seeded from the island's own base — a first mark placed on
  * flat ground reads as flat ground, which is honest, rather than jumping to a height nobody asked for.
  */
-export function defaultMark(kind, height = 8) {
+export function defaultMark(kind, height = FALLBACK_BASE) {
   const base = { kind, id: "" };
   switch (kind) {
     case "point": return { ...base, at: [0, 0], h: height, r: 4 };
-    case "line":  return { ...base, points: [], h: height, width: 3 };
+    case "line":  return { ...base, points: [], h: height, r: 3 };
     case "area":  return { ...base, ring: [], h: height };
     // A scarp is the one mark stating two heights: the shelf above its line and the ground below it. The
     // defaults put a 6-block drop over a 2-block face, which is a barrier a player builds over rather than
@@ -99,6 +108,15 @@ export const isRing = (markOrKind) => {
 export const isPush = (markOrKind) =>
   (typeof markOrKind === "string" ? markOrKind : markOrKind?.kind) === PUSH_KIND;
 
+/** A stored mark with its reach under the one name it has. A document may spell a line's reach `width`, which
+ *  the C# reader takes into the same field; normalising it here is what lets every reader downstream — the
+ *  renderer, the hit test, the inspector — ask one question by one name. */
+function reachOf(mark) {
+  if (mark?.width === undefined) return mark;
+  const { width, ...rest } = mark;
+  return { ...rest, r: rest.r ?? width };
+}
+
 /** A mark's traced points, whatever field its kind keeps them in — `ring` for an area, `points` for the rest.
  *  Two names because the wire format says what a thing IS: an area's points close, a line's do not. */
 export function markPoints(mark) {
@@ -128,7 +146,7 @@ export function markReach(mark) {
   const points = markPoints(mark);
   if (!points.length) return 0;
   const [ax, az] = markAnchor(mark);
-  const band = mark?.kind === "line" ? (mark.width ?? 1.5)
+  const band = mark?.kind === "line" ? (mark.r ?? 2)
              : mark?.kind === "scarp" ? (mark.band ?? 5)
              // A push's skirt is ground it moves, so a click on the slope reaches the push that made it.
              : isPush(mark) ? (mark.falloff ?? 10)
@@ -197,7 +215,7 @@ export class ReliefDoc {
       if (!islandId || !relief || typeof relief !== "object") continue;
       const kept = { ...defaultRelief(), ...relief };
       kept.marks = (relief.marks ?? []).filter(mark => MARK_KINDS.includes(mark?.kind) || mark?.kind === RIM_KIND)
-                                       .map(mark => ({ ...mark, id: mark.id || doc.#mintId() }));
+                                       .map(mark => reachOf({ ...mark, id: mark.id || doc.#mintId() }));
       kept.pushes = (relief.pushes ?? []).map(push => ({ ...push, id: push.id || doc.#mintId() }));
       doc.#byIsland.set(islandId, kept);
     }
@@ -219,9 +237,12 @@ export class ReliefDoc {
   /** Every island that states something, with its relief. */
   get islands() { return [...this.#byIsland.entries()].map(([id, relief]) => ({ id, relief })); }
 
-  /** One island's relief, created on demand — asking for it is how a first mark gets somewhere to live. */
-  reliefOf(islandId) {
-    if (!this.#byIsland.has(islandId)) this.#byIsland.set(islandId, defaultRelief());
+  /** One island's relief, created on demand — asking for it is how a first mark gets somewhere to live.
+   *  `base` is the level that island's ground already stands at, so a fresh relief leaves the landmass where
+   *  it was drawn; a caller with nothing to read passes nothing and gets {@link FALLBACK_BASE}. */
+  reliefOf(islandId, base) {
+    if (!this.#byIsland.has(islandId))
+      this.#byIsland.set(islandId, defaultRelief(Number.isFinite(base) ? base : FALLBACK_BASE));
     return this.#byIsland.get(islandId);
   }
 

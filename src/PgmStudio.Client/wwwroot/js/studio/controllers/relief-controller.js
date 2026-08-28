@@ -28,7 +28,7 @@
 
 import { paintMarkPreview, paintSpotGhost } from "../render/relief-render.js";
 import { defaultMark, defaultPush, isSpot, isRing, isPush, markAnchor, markPoints, markReach, pointsPatch,
-         translateMark, PUSH_KIND } from "../relief/relief-doc.js";
+         translateMark, FALLBACK_BASE, PUSH_KIND } from "../relief/relief-doc.js";
 import { contourAt, markFromDrag } from "../relief/contour-drag.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
 import { svgEl, handleRectAttrs } from "../render/svg.js";
@@ -69,13 +69,14 @@ export class ReliefController {
   #selectedId = null;
   #settings = {};         // per-kind starting values for the next mark placed
   #islandAt;              // (bx, bz) → the id of the island covering this cell, or null
+  #islandTop;             // (islandId) → the level that island's ground already stands at, or null
   #contours;              // () → the traced contour payload on screen, or null
 
   /**
    * @param doc          ReliefDoc — the stated relief (mutated through its own methods)
    * @param handlesLayer SVGGElement — screen-space handle layer for the selected mark's points
    * @param getViewport  () => { scale, panX, panY }
-   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onIslandAt }
+   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onIslandAt, onIslandTop }
    */
   constructor(doc, handlesLayer, getViewport, callbacks = {}) {
     this.#doc = doc;
@@ -83,6 +84,7 @@ export class ReliefController {
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
     this.#islandAt = callbacks.onIslandAt ?? (() => null);
+    this.#islandTop = callbacks.onIslandTop ?? (() => null);
     this.#contours = callbacks.onContours ?? (() => null);
     for (const kind of ["point", "line", "area", "scarp", PUSH_KIND]) this.#settings[kind] = defaultMark(kind);
   }
@@ -129,6 +131,7 @@ export class ReliefController {
    *  these are what the marks are stated against. */
   updateRelief(islandId, patch) {
     if (!islandId) return null;
+    this.#reliefFor(islandId);
     const relief = this.#doc.updateRelief(islandId, patch);
     this.#callbacks.onChanged?.();
     return relief;
@@ -236,6 +239,7 @@ export class ReliefController {
       const stated = markFromDrag(grabbed, dx, dz);
       // A contour pressed and released without moving is a click on a line, not a statement about the ground.
       if (!stated) { this.#callbacks.onPreviewChanged?.(); return true; }
+      this.#reliefFor(stated.islandId);
       const placed = this.#doc.add(stated.islandId, stated.mark);
       this.select(placed.id);
       this.#callbacks.onChanged?.();
@@ -369,13 +373,19 @@ export class ReliefController {
   #freshMark(kind, islandId) {
     // A push gets its own seed, so two drawn with the same roughness are still two different slopes. Derived
     // from how many there already are rather than rolled, so re-opening a document places nothing new.
+    this.#reliefFor(islandId);
     if (isPush(kind)) return { ...this.#settings[kind], seed: 1 + this.#doc.pushes.length * 7 };
     const relief = this.#doc.peek(islandId);
-    if (relief?.marks?.length) return { ...this.#settings[kind] };
-    return defaultMark(kind, relief?.base ?? this.#doc.reliefOf(islandId).base);
+    if (relief.marks.length) return { ...this.#settings[kind] };
+    return defaultMark(kind, relief.base);
   }
 
-  #baseOf(islandId) { return this.#doc.peek(islandId)?.base ?? 8; }
+  /** The island's relief, created against the level its ground already stands at. A relief REPLACES the top
+   *  of every column of its island, so a base read from anywhere but the island moves the whole landmass the
+   *  moment the first mark lands. */
+  #reliefFor(islandId) { return this.#doc.reliefOf(islandId, this.#islandTop(islandId)); }
+
+  #baseOf(islandId) { return this.#doc.peek(islandId)?.base ?? this.#islandTop(islandId) ?? FALLBACK_BASE; }
 
   // What a preview is coloured by — a scarp reads as its shelf, a push as its lift, everything else as the
   // height it states.

@@ -38,6 +38,9 @@ public partial class SketchReliefInspector
     private string kind = "";
     private string? islandId;
     private string? islandName;
+    private double? islandTop;      // the level the island's ground already stands at, or null where nothing
+                                    // can be read from it — every height in the panel is stated against it
+    private string? islandError;    // what the bridge refused the last island edit with
 
     private string IslandTitle => $"Island {islandName ?? islandId}";
 
@@ -59,6 +62,7 @@ public partial class SketchReliefInspector
         markCount = 0;
         islandId = null;
         islandName = null;
+        islandError = null;
 
         if (string.IsNullOrWhiteSpace(StateJson)) return;
         JsonNode? root;
@@ -71,6 +75,7 @@ public partial class SketchReliefInspector
             : [];
         islandId = state["islandId"]?.GetValue<string>();
         islandName = state["islandName"]?.GetValue<string>();
+        islandTop = state["islandTop"] is { } top && double.TryParse(top.ToString(), out var level) ? level : null;
         if (state["relief"] is JsonObject stated) relief = (JsonObject)stated.DeepClone();
         if (state["selected"] is JsonObject selected)
         {
@@ -174,31 +179,61 @@ public partial class SketchReliefInspector
     private Task LevelHeights() => Set(MarkFields.Height, JsonValue.Create(Height(0)));
 
     // ── editing the island ─────────────────────────────────────────────────────
+    /// <summary>Write one of the island's own settings. The bridge answers a sentence when it cannot place
+    /// the edit, and that sentence is shown rather than dropped: an edit that lands nowhere and says nothing
+    /// is indistinguishable from one that worked.</summary>
     private async Task SetRelief(string field, JsonNode? value)
     {
         if (Handle is null || islandId is null) return;
-        (relief ??= [])[field] = value;
         var patch = new JsonObject { [field] = value?.DeepClone() };
-        await Handle.InvokeVoidAsync("updateIslandRelief", patch.ToJsonString());
+        islandError = await Handle.InvokeAsync<string?>("updateIslandRelief", patch.ToJsonString());
+        if (islandError is null) (relief ??= [])[field] = value;
     }
+
+    /// <summary>The base the island states, falling back to the level it is already drawn at — a relief
+    /// replaces the top of every column of its island, so where nothing has been stated the ground is
+    /// exactly where the shapes put it.</summary>
+    private double Base => ReliefNum(ReliefFields.Base, islandTop ?? FallbackBase);
+
+    /// <summary>What an absent <c>base</c> means, matching the C# record's own default so a document the
+    /// editor seeds and one a hand writes mean the same thing by an absent field.</summary>
+    private const double FallbackBase = 4;
+
+    private static string Blocks(double count)
+        => $"{Math.Round(count)} block{(Math.Abs(Math.Round(count)) == 1 ? "" : "s")}";
 
     private Task SetBase(double value) => SetRelief(ReliefFields.Base, JsonValue.Create(value));
     private Task SetReach(double value) => SetRelief(ReliefFields.Reach, JsonValue.Create(Math.Max(0, value)));
     private Task SetStep(double value) => SetRelief(ReliefFields.Step, JsonValue.Create((int)Math.Max(1, value)));
 
-    private async Task SetGrain(string field, JsonNode? value)
+    private Task SetGrain(string field, JsonNode? value)
     {
-        if (Handle is null || islandId is null) return;
-        relief ??= [];
-        if (relief[ReliefFields.Grain] is not JsonObject grain) relief[ReliefFields.Grain] = grain = [];
+        var grain = relief?[ReliefFields.Grain] is JsonObject stated ? (JsonObject)stated.DeepClone() : [];
         grain[field] = value;
-        var patch = new JsonObject { [ReliefFields.Grain] = grain.DeepClone() };
-        await Handle.InvokeVoidAsync("updateIslandRelief", patch.ToJsonString());
+        return SetRelief(ReliefFields.Grain, grain);
     }
 
     private Task SetGrainAmount(double value) => SetGrain(GrainFields.Amplitude, JsonValue.Create(Math.Max(0, value)));
     private Task SetGrainScale(double value) => SetGrain(GrainFields.Scale, JsonValue.Create((int)Math.Max(1, value)));
     private Task SetGrainSeed(double value) => SetGrain(GrainFields.Seed, JsonValue.Create((int)Math.Max(0, value)));
+
+    // ── what the step strands, and what the ground is meant to be ──────────────
+    /// <summary>Whether the block step's stair repair is asked for. Worth asking for whenever the step is
+    /// more than one, since that is the setting that turns a riser into a wall.</summary>
+    private bool HasStairs => relief?[ReliefFields.Stairs] is { } node && bool.TryParse(node.ToString(), out var on) && on;
+
+    private Task ToggleStairs(ChangeEventArgs e)
+        => SetRelief(ReliefFields.Stairs, JsonValue.Create(e.Value is true));
+
+    /// <summary>The word the island states about what kind of ground it is meant to be, or empty for one
+    /// stating none. It shapes nothing — the readback measures the solved surface against it.</summary>
+    private string Landform => relief?[ReliefFields.Landform]?.ToString() ?? "";
+
+    private Task SetLandform(ChangeEventArgs e)
+    {
+        var word = e.Value?.ToString() ?? "";
+        return SetRelief(ReliefFields.Landform, word.Length == 0 ? null : JsonValue.Create(word));
+    }
 
     // ── the rim ────────────────────────────────────────────────────────────────
     // The rim is a mark in the wire format and a setting in the interface, because it holds the island's whole
@@ -210,7 +245,7 @@ public partial class SketchReliefInspector
     private bool HasRim => Rim is not null;
 
     private double RimHeight => Rim?[MarkFields.Height] is { } stated && double.TryParse(stated.ToString(), out var value)
-        ? value : ReliefNum(ReliefFields.Base, 8);
+        ? value : Base;
 
     private async Task ToggleRim(ChangeEventArgs e)
     {
@@ -227,7 +262,7 @@ public partial class SketchReliefInspector
             var rim = new JsonObject
             {
                 ["kind"] = MarkKinds.Rim,
-                [MarkFields.Height] = JsonValue.Create(ReliefNum(ReliefFields.Base, 8)),
+                [MarkFields.Height] = JsonValue.Create(Base),
                 [MarkFields.Depth] = JsonValue.Create(1),
             };
             var reordered = new JsonArray { rim };
@@ -338,6 +373,8 @@ public static class ReliefFields
     public const string Base = "base";
     public const string Reach = "reach";
     public const string Step = "step";
+    public const string Stairs = "stairs";
+    public const string Landform = "landform";
     public const string Grain = "grain";
     public const string Marks = "marks";
     public const string Pushes = "pushes";

@@ -745,6 +745,26 @@ it is a switch on the island instead — one that writes the rim *first* in the 
 cuts a doorway through both ends of every ridge that reaches the outline. A first mark in an island starts at
 that island's own **base** rather than at the last mark's height, which would state a cliff nobody asked for.
 
+**The base is the island's own level, and the editor reads it rather than assuming one.** A relief replaces the
+top of every column of its island (§13), so `base` is not a working ground level an author adjusts afterwards —
+it is what the whole landmass becomes wherever the marks say nothing. A base that disagrees with the height the
+shapes were drawn at therefore moves the island the moment the first mark lands, and it moves it silently: the
+contour overlay simply redraws at the new height, and nothing about the gesture says a landmass just fell. So a
+relief created in the editor starts at the island's own top — the most common `floor + base_height` among its
+add shapes, ties to the tallest, which on a plan-derived island is one number — and the panel states that level
+beside the field, with which way the ground moves where the two differ. The number a hand-written document gets
+for an absent `base` is the same one, since a second constant would be a second rule. What the editor may not
+do is correct a base *after* marks are placed: every mark carries an absolute height, so a base moved under
+them leaves them where they were stated, which is a pit or a plateau exactly where the author's first statement
+went.
+
+**A relief is stated in an island, and the phase may not reshape one.** Picking an island is how its base,
+reach, step, grain and rim are reached, so the phase runs on the canvas as a **selection surface** — the same
+mode the Theme phase uses, for the same reason. Offering the edit handles here would make the gesture that
+selects an island the gesture that reshapes it, and the island's outline is the footprint the relief was solved
+over: moving it re-fuses the board, and a re-fused board is a different island with nowhere for its relief to
+land (below). Geometry is Draw's.
+
 A mark carries an **id** on the wire for the same reason a prop does. The solver has no use for it — a mark is a
 set of pinned cells — but a placed thing has to survive being selected, moved and edited among its neighbours,
 and a relief that renumbered its marks on load would move the selection under the author's hands.
@@ -753,7 +773,10 @@ and a relief that renumbered its marks on load would move the selection under th
 round here. Every mark does the same thing to the ground and differs only in where and how high, so a glance
 should answer "is this the high one or the low one" rather than "is this a line or an area", which the drawn
 shape already says. Each mark also wears its own number, and the two kinds that state more than one wear both: a
-falling ridgeline shows its ends, a scarp shows its drop.
+falling ridgeline shows its ends, a scarp shows its drop. The number is **chrome, not ground**: it is sized in
+screen pixels, like the hairlines and the contour labels beside it, because what a mark states does not get
+bigger as the board is zoomed into — and it is dropped entirely below about eighteen pixels of the mark's own
+extent, where a number would be wider than the thing it labels.
 
 **A contour is grabbed and moved to state a height.** A press near a contour grabs it, and moving it writes a
 `line` mark at that contour's own level along its new position: a contour is a line of constant height, so

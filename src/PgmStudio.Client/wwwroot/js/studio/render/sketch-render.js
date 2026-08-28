@@ -179,11 +179,16 @@ export function paintContours(painter, relief, { indexEvery = 5 } = {}) {
       if (Math.abs(line.level % indexEvery) > 1e-6) continue;
       const at = labelPoint(line.points ?? []);
       if (at) painter.text(`${Math.round(line.level)}`, at.x, at.z, {
-        size: 10, fill: "var(--canvas-contour-index)", halo: "var(--canvas-bg)", haloWidth: 3,
+        size: painter.screenPx(CONTOUR_LABEL_PX), fill: "var(--canvas-contour-index)",
+        halo: "var(--canvas-bg)", haloWidth: 3,
       });
     }
   }
 }
+
+// Screen px. A contour label reads its level off a map legend, not off the ground, so it holds its size as
+// the board is zoomed — the same rule the hairlines beside it already follow.
+const CONTOUR_LABEL_PX = 10;
 
 // Where a contour's label goes: the middle of its straightest stretch, measured as how much of a window's
 // walked length it covers as the crow flies. A contour's segments are all about a block long, so the longest

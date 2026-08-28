@@ -14,7 +14,15 @@
  * through to a cold blue for a low one, read against the island's own base.
  */
 
-import { markAnchor, markPoints, pushAmounts, isSpot, isRing, isPush } from "../relief/relief-doc.js";
+import { markAnchor, markPoints, markReach, pushAmounts, isSpot, isRing, isPush, FALLBACK_BASE }
+  from "../relief/relief-doc.js";
+
+// Screen px, both. A label is chrome rather than ground: it says what a mark states, and what a mark states
+// does not get bigger as the board is zoomed into. LABEL_MIN_PX is the mark's own on-screen reach, so a mark
+// under about eighteen pixels across wears no number — it is a dot at that zoom, and a number wider than the
+// thing it labels reads as floating on the board rather than naming anything.
+const LABEL_SIZE_PX = 11;
+const LABEL_MIN_PX = 9;
 
 const FILL_ALPHA = 0.28;
 const GHOST_ALPHA = 0.12;      // a mirror image is context, not a thing to click
@@ -26,7 +34,7 @@ const CIRCLE_POINTS = 24;
  *  outlier should not wash every other mark to the middle of the scale. */
 const SPAN = 12;
 
-export function heightColor(height, base = 8) {
+export function heightColor(height, base = FALLBACK_BASE) {
   const t = Math.max(-1, Math.min(1, (height - base) / SPAN));
   if (t >= 0) {
     // base → summit: slate through amber.
@@ -59,7 +67,7 @@ export const liftColor = (amount) => heightColor(amount, 0);
  */
 export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoint = null, orderOf = null, baseOf = null } = {}) {
   for (const mark of marks ?? []) {
-    const base = baseOf?.(mark.islandId) ?? 8;
+    const base = baseOf?.(mark.islandId) ?? FALLBACK_BASE;
     const order = Math.max(1, orderOf?.(mark.islandId) ?? 1);
     const colour = isPush(mark) ? liftColor(topHeight(mark)) : heightColor(topHeight(mark), base);
 
@@ -96,16 +104,20 @@ export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoin
       painter.segments(runs, { stroke: colour, width: mark.kind === "scarp" ? 2.5 : 1.5 });
     }
     // The height, at the mark's own anchor. A relief is a set of numbers before it is a set of shapes, and a
-    // board of unlabelled patches says only that something was stated somewhere.
-    const [ax, az] = markAnchor(mark);
-    painter.text(label(mark), ax, az, {
-      size: 11, weight: 600, fill: colour, halo: "var(--canvas-bg)", haloWidth: 3,
-    });
+    // board of unlabelled patches says only that something was stated somewhere — but a mark drawn smaller
+    // than its own number is better read from its colour and the list.
+    if (markReach(mark) >= painter.screenPx(LABEL_MIN_PX)) {
+      const [ax, az] = markAnchor(mark);
+      painter.text(label(mark), ax, az, {
+        size: painter.screenPx(LABEL_SIZE_PX), weight: 600, fill: colour,
+        halo: "var(--canvas-bg)", haloWidth: 3,
+      });
+    }
   }
 }
 
 /** The in-progress trace, dashed — the same treatment a shape being drawn gets. */
-export function paintMarkPreview(painter, kind, points, height, base = 8) {
+export function paintMarkPreview(painter, kind, points, height, base = FALLBACK_BASE) {
   if (!points || points.length < 2) return;
   const colour = heightColor(height, base);
   const style = { fill: colour, fillAlpha: 0.18, stroke: colour, width: 1, dash: [5, 3], fillRule: "evenodd" };
@@ -118,7 +130,7 @@ export function paintMarkPreview(painter, kind, points, height, base = 8) {
 
 /** Where a spot height will land, before the click that places it. Off any island it reads as refused — a
  *  relief is stated *inside* an island, so there is nothing off one for a mark to belong to. */
-export function paintSpotGhost(painter, x, z, radius, height, base = 8, valid = true) {
+export function paintSpotGhost(painter, x, z, radius, height, base = FALLBACK_BASE, valid = true) {
   const colour = valid ? heightColor(height, base) : "#c0392b";
   painter.ring(disc(x, z, radius), {
     fill: colour, fillAlpha: valid ? 0.18 : 0.12, stroke: colour, width: valid ? 1 : 1.5, dash: [5, 3],
@@ -168,7 +180,7 @@ function footprint(mark, image, mirrorPoint) {
   if (isRing(mark)) return points.map(([x, z]) => mirror(x, z));
   // A line and a scarp hold a band around their run, so the drawn shape is the band — the offset ring of the
   // polyline, which is what the solver actually pins.
-  const width = mark.kind === "scarp" ? (mark.face ?? 2) : (mark.width ?? 1.5);
+  const width = mark.kind === "scarp" ? (mark.face ?? 2) : (mark.r ?? 2);
   return band(points, width).map(([x, z]) => mirror(x, z));
 }
 

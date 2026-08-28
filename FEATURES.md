@@ -1551,10 +1551,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 
 - **A line mark's reach is a radius and is called one (`WE23`).** `LineMark.Pins` kept a cell where
   `distance <= Width`, so the band was **twice** the number an author wrote — `"width": 7` held a fourteen-block
-  strip — while the same quantity on a stroke was `Radius` and a point mark's was `r`. The line mark now states
-  `r`, the one field for one quantity: how far a mark reaches from what it is drawn on.
-  (`Geom/Relief/Marks.cs`, `Pgm/Sketch/SketchRelief.cs`, `Client/Features/Sketch/SketchReliefInspector`,
-  `docs/world-export/relief.md`, `docs/tools/sketch.md`)
+  strip — while the same quantity on a stroke was `Radius` and a point mark's was `r`. The line mark states
+  `r`, the one field for one quantity: how far a mark reaches from what it is drawn on. The client states and
+  reads that name too, so the band on screen, the click target and the band the solver pins are one number:
+  `width` is normalised on the way in, the way the C# reader already takes it, and never written back.
+  (`Geom/Relief/Marks.cs`, `Pgm/Sketch/SketchRelief.cs`, `relief/relief-doc.js`, `render/relief-render.js`,
+  `Client/Features/Sketch/SketchReliefInspector`, `docs/world-export/relief.md`, `docs/tools/sketch.md`,
+  `tests/js/relief-doc.test.js`)
 
 - **The middle is an origin, and the coverage read derives it (`WS2`).** A demand set of spawns and goals
   walks only the journeys a defender makes; the route that decides a match crosses the middle, and no field
@@ -6087,6 +6090,42 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A relief starts at the level its island already stands at (TS55).** A relief replaces the top of every
+  column of its island, so `base` is what the whole landmass becomes wherever the marks say nothing — and a
+  fresh one took the constant 8, unrelated to the ground the author had drawn. An island drawn at 20 fell
+  twelve blocks the moment a first mark landed, silently: the contour overlay simply redrew at the new
+  height. A fresh relief now takes the island's own top — the most common `floor + base_height` among its add
+  shapes, ties to the tallest — and the panel states that level beside the field with which way the ground
+  moves where the two differ. An absent `base` reads 4 on both sides, so the editor seed and the wire default
+  are no longer two numbers. (`canvas/sketch-canvas.js` `islandTop`, `relief/relief-doc.js`,
+  `controllers/relief-controller.js`, `Client/Features/Sketch/SketchReliefInspector`,
+  `docs/world-export/relief.md`, `docs/tools/sketch.md`, `tests/js/relief-doc.test.js`)
+- **The island in play is one expression, so an edit cannot land nowhere (TS56).** The relief panel showed an
+  island's settings for the island of the *selected mark* and wrote them only for a *canvas-selected* island,
+  so with a mark selected every base, reach, step and grain edit was refused with `"no island selected"` —
+  into an `InvokeVoidAsync` that discards the answer. No error, no refusal, nothing: the number landed in the
+  box and stopped there. `reliefIsland()` is now the one expression both the read and the write ask, and the
+  inspector calls through `InvokeAsync<string?>` and shows what came back on the field. (`bridge/sketch-bridge.js`,
+  `Client/Features/Sketch/SketchReliefInspector.razor(.cs)`, `docs/tools/sketch.md`)
+- **The Relief phase picks an island and cannot reshape it (TS57).** Picking an island is how its base,
+  reach, step, grain and rim are reached, and picking one also armed Draw's vertex grips, Bézier handles,
+  rotate and scale chrome and arrow-nudge — so the gesture the phase requires was the gesture it should
+  forbid, over the footprint the relief was solved against. Relief joins Theme in the canvas's select-only
+  mode, which already draws no handles and reports nothing draggable. (`Client/Features/Sketch/SketchTool.razor.cs`,
+  `canvas/sketch-canvas.js`, `bridge/sketch-bridge.js`, `docs/world-export/relief.md`)
+- **A canvas label is chrome, and holds its size (C59).** `painter.text` takes `size` in **world units**, so
+  a relief mark's number was eleven *blocks* tall and a contour's ten — a tenth of a hundred-block island,
+  growing as the board was zoomed into, while the halo around the same glyph and every stroke beside it went
+  through `screenPx`. Both are screen-sized now, and a mark under about eighteen pixels of its own extent
+  wears no number at all: at that zoom it is a dot, and a number wider than the thing it labels names
+  nothing. (`render/relief-render.js`, `render/sketch-render.js`, `docs/client/canvas-interaction.md`,
+  `docs/world-export/relief.md`, `tests/js/relief-doc.test.js`)
+- **The block step's repair and the ground's own word are settable (TS58).** `stairs` cuts a way up out of
+  ground a step of two stranded, and `landform` is the claim the readback measures the solved surface
+  against; both rode on the wire, both were honoured by the solver, and neither had a control — so the panel
+  warned that a step of two "can break a map" beside no way to ask for the repair. The stairs switch appears
+  whenever the step is more than one; the landform select carries the four words. (`Client/Features/Sketch/SketchReliefInspector.razor(.cs)`,
+  `docs/tools/sketch.md`)
 - **How big the selection is reads under it, in every tool (C58).** Configure drew the dimension pill; the
   plan said nothing and the sketch said it in the corner readout, so one question had three answers in three
   places. `renderDimensionPill` in `render/canvas-chrome.js` is the one function all three now call, in

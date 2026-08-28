@@ -408,7 +408,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Move the selection by whole blocks. An island moves as its shapes; a drilled shape moves alone.
   function nudge(dx, dz) {
-    if (selectOnly) return false;   // Theme phase: the arrows are a move, and moving belongs to Draw
+    if (selectOnly) return false;   // select-only: the arrows are a move, and moving belongs to Draw
     return history.step(() => nudgeBy(dx, dz));
   }
 
@@ -625,6 +625,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   // ── the stated relief (docs/world-export/relief.md) ────────────────────
+  // The island in play: the one stating the selected mark, else the one the author has picked on the canvas.
+  // Its own settings — base, reach, step, grain — are what the inspector shows and what it writes, so both
+  // ask this rather than each deciding: a write reaching a different island than the panel is reading is an
+  // edit that lands nowhere and says nothing.
+  function reliefIsland() {
+    const selectedId = canvas.reliefTools?.selectedId ?? null;
+    const selected = selectedId ? canvas.relief.byId(selectedId) : null;
+    return selected?.islandId ?? selectedIslandId ?? null;
+  }
+
   // What an author has said about the ground inside each island. Distinct from the contour overlay below it:
   // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
   // which is the whole reason a mark can be tuned by eye.
@@ -632,9 +642,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const tools = canvas.reliefTools;
     const selectedId = tools?.selectedId ?? null;
     const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    // The island in play: the one stating the selected mark, else the one the author has picked on the
-    // canvas. Its own settings — base, reach, step, grain — are what the inspector edits when no mark is.
-    const islandId = selected?.islandId ?? selectedIslandId ?? null;
+    const islandId = reliefIsland();
     return JSON.stringify({
       // Marks and pushes as one list, because that is how the phase treats them: the sidebar lists them
       // together and the canvas selects across both. Which of the two a row is, its `kind` says.
@@ -647,6 +655,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
       islandId,
       islandName: islandId ? (islandById(islandId)?.name ?? islandId) : null,
+      // What the island's ground already stands at. The panel reads every stated height against it, and it
+      // is what an untouched base is: a relief replaces the top of every column of its island, so a base
+      // that differs from this moves the whole landmass.
+      islandTop: islandId ? canvas.islandTop(islandId) : null,
       relief: islandId ? canvas.relief.peek(islandId) : null,
     });
   }
@@ -725,10 +737,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // is *for*, so reaching for the hand tool to pan must not throw away what you picked.
       if (tool !== "select" && !selectOnly) selectShape(null);
     },
-    // Selection-only: the Theme phase picks islands and shapes to paint but edits none of them. Forcing the
-    // select tool is part of the restriction — a draw tool left armed would add geometry, which is equally
-    // the Draw phase's job. Lifting it only lifts it; the tool stays where it is, which is what the Draw
-    // toolbar is already showing.
+    // Selection-only: a phase that picks islands and shapes but edits none of them. Forcing the select tool
+    // is part of the restriction — a draw tool left armed would add geometry, which is equally the Draw
+    // phase's job — and it is where both phases that use the mode want to start. Lifting it only lifts it;
+    // the tool stays where it is, which is what the Draw toolbar is already showing.
     setSelectOnly(on)  {
       selectOnly = !!on;
       canvas.setSelectOnly(selectOnly);
@@ -964,8 +976,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
      *  are what every mark in the island is stated against, so changing one moves the whole surface. */
     updateIslandRelief(patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
-      if (!selectedIslandId) return "no island selected";
-      canvas.reliefTools?.updateRelief(selectedIslandId, patch);
+      const islandId = reliefIsland();
+      if (!islandId) return "no island selected";
+      canvas.reliefTools?.updateRelief(islandId, patch);
       afterReliefChange(); return null;
     },
     /**

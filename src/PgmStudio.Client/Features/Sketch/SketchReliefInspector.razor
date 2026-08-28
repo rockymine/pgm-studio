@@ -162,12 +162,23 @@
   @if (islandId is not null)
   {
     <Section Title="@IslandTitle">
-      <Field Label="Base">
+      <Field Label="Base" Error="@islandError">
         <LabelHint>(where the ground falls back to)</LabelHint>
         <ChildContent>
-          <NumberField Value="ReliefNum(ReliefFields.Base, 8)" ValueChanged="SetBase" />
+          <NumberField Value="Base" ValueChanged="SetBase" />
         </ChildContent>
       </Field>
+      @* The level the island is already drawn at, against which every height in this panel is read. A relief
+         replaces the top of every column of its island, so a base that differs from it moves the landmass. *@
+      @if (islandTop is { } top)
+      {
+        <p class="plan-readout">
+          Island top @top —
+          @if (Math.Abs(Base - top) < 0.5) { <span>the ground stays where it is</span> }
+          else if (Base > top) { <b>the island rises @Blocks(Base - top)</b> }
+          else { <b>the island drops @Blocks(top - Base)</b> }
+        </p>
+      }
       <Field Label="Reach">
         <LabelHint>(0 = the marks decide everything)</LabelHint>
         <ChildContent>
@@ -179,6 +190,33 @@
       </Field>
       <p class="section-desc">A step of two reads as deliberate terracing — and it is the one knob here that
         can break a map, because every riser becomes a two-block wall.</p>
+      @* The repair for exactly the failure the line above names. Offered whenever the step can strand
+         ground, which is whenever it is more than one. *@
+      @if (ReliefNum(ReliefFields.Step, 1) > 1)
+      {
+        <Field Label="Cut stairs">
+          <label class="ctrl-row" style="cursor:pointer">
+            <input type="checkbox" class="control-input control-input--hidden" checked="@HasStairs"
+                   @onchange="ToggleStairs" />
+            <span class="plan-readout">@(HasStairs ? "stranded ground gets a way up" : "a riser is a wall")</span>
+          </label>
+        </Field>
+      }
+
+      <Field Label="Meant to be">
+        <LabelHint>(what kind of ground this is)</LabelHint>
+        <ChildContent>
+          <select class="field-input" value="@Landform" @onchange="SetLandform">
+            <option value="" selected="@(Landform.Length == 0)">not stated</option>
+            @foreach (var word in PgmStudio.Vocabulary.Landform.All)
+            {
+              <option value="@word" selected="@(Landform == word)">@word</option>
+            }
+          </select>
+        </ChildContent>
+      </Field>
+      <p class="section-desc">A claim the readback checks against the surface the marks actually solved, not a
+        setting that shapes anything.</p>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Grain</h2></div>
       <p class="section-desc">The wobble added after the surface is solved — what stops it reading as

@@ -178,9 +178,12 @@ public partial class SketchTool
     private async Task PushCanvasMode(string phase)
     {
         if (handle is null) return;
-        // Geometry is Draw's alone. Dressing places props rather than shapes, so it is not select-only in the
-        // theme sense — its own tools are armed instead, and the shape tools are simply not offered.
-        await handle.InvokeVoidAsync("setSelectOnly", phase == "theme");
+        // Geometry is Draw's alone. Theme assigns paint to it and Relief states ground inside it, and both
+        // reach an island by picking one — so in both the canvas picks and never edits, or the gesture that
+        // selects an island is also the gesture that reshapes it. Dressing places props rather than shapes,
+        // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
+        // offered.
+        await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief");
         // Both finishing phases show the paint: Theme is authoring it, and Dressing is placing things on it,
         // which is a judgement about the finish as much as about the planting.
         await handle.InvokeVoidAsync("setPaintPreview", phase is "theme" or "dressing");

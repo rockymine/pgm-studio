@@ -468,16 +468,25 @@ island's shapes the solve actually covers is not stated here but on the shapes t
 The island's own settings are what every mark is measured against: `base` (the level the field falls back to
 where nothing is stated), `reach` (how far a mark's influence travels before the field returns to `base` —
 zero is unlimited, and a finite value is what keeps a landform local on a large island), `step` (the
-block quantum the finished surface snaps to), `stairs` (cut a way up out of ground the step stranded — worth
-asking for whenever the step is more than one, since that is what turns a riser into a wall) and `grain` (a
+block quantum the finished surface snaps to), `stairs` (cut a way up out of ground the step stranded — offered
+whenever the step is more than one, since that is what turns a riser into a wall), `landform` (what kind of
+ground this is meant to be, which the readback measures the solved surface against) and `grain` (a
 wobble applied after the solve: amplitude, feature scale, seed).
+
+**`base` is the whole island's height, and a fresh relief takes the island's own.** A relief replaces the top
+of every column of its island, so where the marks say nothing the ground is at `base` — a base that differs
+from the level the shapes were drawn at moves the whole landmass the moment the first mark lands. A relief
+created in the editor therefore starts at the island's own top: the most common `floor + base_height` among
+its add shapes, ties to the tallest, which for a plan-derived island is one number. The panel states that
+level beside the field and says which way the ground moves where the two differ, because a base an author
+cannot compare is a set of heights they cannot read.
 
 Five things are placed, and they divide into two kinds.
 
 | Tool | Kind | States |
 |---|---|---|
 | Spot height | `point` | a height at a place, over a radius |
-| Ridgeline | `line` | a traced line at one height, or one height per vertex, over a width |
+| Ridgeline | `line` | a traced line at one height, or one height per vertex, over a band either side |
 | Bench | `area` | a closed ring held at one height |
 | Scarp | `scarp` | a traced line with a shelf above and ground below — `high`, `low`, the `face` it drops over and the `band` either side for the land to arrive through |
 | Push | `push` | a closed ring lifted by an `amount`, with `falloff`, `roughness`, `crown` and a seed |
@@ -498,7 +507,7 @@ all six, and solves to a surface running 7 to 16:
 ```json
 { "relief": {
   "i1": {
-    "base": 9, "reach": 14, "step": 1, "stairs": true,
+    "base": 9, "reach": 14, "step": 1, "stairs": true, "landform": "rolling",
     "grain": { "amplitude": 1.2, "scale": 12, "seed": 1 },
     "marks": [
       { "id": "r1", "kind": "point", "at": [-30, -10], "h": 15, "r": 5 },
@@ -1186,12 +1195,15 @@ take the stage set.
 
 Two things are worth knowing before hand-writing a document. **Editor defaults and wire defaults are not the
 same numbers.** A mark placed in the editor is seeded from the client's own starting values; a hand-written
-mark that omits a field takes the C# record's default, and several differ — a relief omitting `base` reads 4
-where the editor would have seeded 8, a spot height omitting `r` reads 2 where the editor seeds 4, a ridgeline
-omitting `width` reads 1.5 where the editor seeds 3, and a push omitting `amount`, `roughness` or `crown` reads
-zero for all three. State the fields rather than relying on either. And **a mark that does not carry what its
-kind needs is dropped, not defaulted**: a point without `at`, a line or scarp with fewer than two points, an
-area or push with fewer than three ring vertices simply does not reach the solver.
+mark that omits a field takes the C# record's default, and several differ — a spot height omitting `r` reads 2
+where the editor seeds 4, a ridgeline omitting `r` reads 2 where the editor seeds 3, and a push omitting
+`amount`, `roughness` or `crown` reads zero for all three. `base` is the exception and is deliberately not one:
+an omitted `base` reads 4 on both sides, and the editor states the island's own top rather than any constant.
+A line's reach is `r`, the one name for the one quantity; `width` is read on the way in and never written back,
+so a document that is loaded and saved comes out spelling the one name. State the fields rather than relying on
+any of it. And **a mark that does not carry what its kind needs is dropped, not defaulted**: a point without
+`at`, a line or scarp with fewer than two points, an area or push with fewer than three ring vertices simply
+does not reach the solver.
 
 `tools/seeds/ruediger.layout.json` is the readable example for the geometry, the carve and the theme
 assignment. It states no relief, no dressing and no room styles, so it is not a reference for those three.
