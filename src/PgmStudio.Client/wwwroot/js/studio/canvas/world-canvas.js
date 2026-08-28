@@ -55,6 +55,7 @@
 import { buildTransform, buildInverseTransform } from "../geometry/transform.js";
 import { translateBounds } from "../geometry/shape.js";
 import { svgEl, polyToPath } from "../render/svg.js";
+import { renderDimensionPill } from "../render/canvas-chrome.js";
 import { layerStack, clearLayer } from "../render/layer-stack.js";
 import { CanvasPainter } from "../render/canvas-painter.js";
 import { CanvasBase, ZOOM_MIN, ZOOM_MAX } from "./canvas-base.js";
@@ -820,7 +821,6 @@ export class WorldCanvas extends CanvasBase {
     const s1 = toScr(p1b.x, p1b.y), s2 = toScr(p2b.x, p2b.y);
     const left = Math.min(s1.x, s2.x), right = Math.max(s1.x, s2.x);
     const top  = Math.min(s1.y, s2.y), bottom = Math.max(s1.y, s2.y);
-    const mid  = (left + right) / 2;
 
     const maxChars = 36;
     const label = node.label ?? node.id ?? "";
@@ -834,26 +834,9 @@ export class WorldCanvas extends CanvasBase {
     nameEl.textContent = labelText;
     this.#screen.overlay.appendChild(nameEl);
 
-    const fmtDim = v => Number.isInteger(v) ? String(v) : v.toFixed(1);
-    const dimText = `${fmtDim(max_x - min_x)} × ${fmtDim(max_z - min_z)}`;
-    const FONT_SZ = 10, PAD_X = 6, PAD_Y = 3;
-    const pillH = FONT_SZ + PAD_Y * 2;
-    const pillW = dimText.length * (FONT_SZ * 0.6) + PAD_X * 2;
-    const pillX = mid - pillW / 2;
-    const pillY = bottom + 5;
-    this.#screen.overlay.appendChild(svgEl("rect", {
-      x: pillX, y: pillY, width: pillW, height: pillH, rx: 3,
-      fill: color, "fill-opacity": "0.85", "pointer-events": "none",
-    }));
-    const dimEl = svgEl("text", {
-      x: mid, y: pillY + PAD_Y + FONT_SZ - 1,
-      "text-anchor": "middle", "dominant-baseline": "auto",
-      "font-size": FONT_SZ, "font-family": "ui-monospace, monospace",
-      // dark ink — the pill is always a bright region colour, so stay dark in both themes
-      fill: "var(--canvas-handle-fill)", "font-weight": "600", "pointer-events": "none",
+    renderDimensionPill(this.#screen.overlay, {
+      left, right, bottom, width: max_x - min_x, depth: max_z - min_z, color,
     });
-    dimEl.textContent = dimText;
-    this.#screen.overlay.appendChild(dimEl);
 
     if (RESIZABLE_TYPES.has(node.type)) this.#editCtrl.renderHandles(node);
   }

@@ -374,12 +374,35 @@ public partial class SketchTool
             }
         }
         catch { /* no saved layout / map not found — start blank */ }
+        await LoadObjectives();
         await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
             System.Text.Json.JsonSerializer.Serialize(Shortcuts));
     }
 
     /// <summary>The name this tool's chords are registered and dropped under.</summary>
     private const string KeyOwner = "sketch-tool";
+
+    /// <summary>Where the map's destroyables and cores stand, from the intent that places them. The sketch
+    /// draws the ground and does not own an objective, so these arrive as markers the canvas is handed: an
+    /// author refining the ground can see what it has to carry. A map with no intent has none.</summary>
+    private async Task LoadObjectives()
+    {
+        if (handle is null) return;
+        JsonElement intent;
+        try { intent = await Http.GetFromJsonAsync<JsonElement>($"api/map/{Slug}/intent"); }
+        catch { return; }
+        if (intent.ValueKind != JsonValueKind.Object) return;
+
+        var markers = new List<object>();
+        foreach (var (key, kind) in new[] { ("destroyables", "destroyable"), ("cores", "core") })
+            if (intent.TryGetProperty(key, out var list) && list.ValueKind == JsonValueKind.Array)
+                foreach (var entry in list.EnumerateArray())
+                    if (entry.TryGetProperty("anchor", out var at) && at.ValueKind == JsonValueKind.Object
+                        && at.TryGetProperty("x", out var x) && at.TryGetProperty("z", out var z))
+                        markers.Add(new { kind, x = x.GetDouble(), z = z.GetDouble() });
+
+        await handle.InvokeVoidAsync("setObjectives", JsonSerializer.Serialize(markers));
+    }
 
     private async Task SetTool(string t)
     {

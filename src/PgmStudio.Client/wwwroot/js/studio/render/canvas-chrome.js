@@ -78,6 +78,36 @@ const NICE_BLOCKS = [1, 2, 5, 10, 16, 25, 32, 50, 64, 100, 128, 200, 256, 500, 5
 const TARGET_PX = 120;   // the bar aims for about this long, then rounds down to a nice block count
 
 /**
+ * How big the selected thing is, as a pill under it — the one place every editor answers that question, so a
+ * piece, a region and a shape all say it in the same words in the same place. Screen space: the pill stays a
+ * fixed size and stays put under the selection at any zoom.
+ *
+ * `left`/`right`/`bottom` are the selection's screen box; `width`/`depth` are what it measures in blocks.
+ */
+export function renderDimensionPill(layer, { left, right, bottom, width, depth, color = "var(--accent)" }) {
+  if (!layer || !isFinite(left) || !isFinite(right) || !isFinite(bottom)) return;
+  const fmt = value => (Number.isInteger(value) ? String(value) : value.toFixed(1));
+  const text = `${fmt(width)} × ${fmt(depth)}`;
+  const FONT = 10, PAD_X = 6, PAD_Y = 3;
+  const boxH = FONT + PAD_Y * 2;
+  const boxW = text.length * (FONT * 0.6) + PAD_X * 2;
+  const mid = (left + right) / 2;
+  const top = bottom + 5;
+  layer.appendChild(svgEl("rect", {
+    x: mid - boxW / 2, y: top, width: boxW, height: boxH, rx: 3,
+    fill: color, "fill-opacity": "0.85", "pointer-events": "none",
+  }));
+  const label = svgEl("text", {
+    x: mid, y: top + PAD_Y + FONT - 1, "text-anchor": "middle", "dominant-baseline": "auto",
+    "font-size": FONT, "font-family": "ui-monospace, monospace", "font-weight": "600",
+    // Dark ink: the pill is always a bright accent, so the number stays legible in either theme.
+    fill: "var(--canvas-handle-fill)", "pointer-events": "none",
+  });
+  label.textContent = text;
+  layer.appendChild(label);
+}
+
+/**
  * The scale bar, bottom-right in SCREEN space (never scaled with the map). Picks the largest nice block
  * count that fits within ~TARGET_PX at the current zoom, so the bar length stays roughly constant and the
  * number does the moving.

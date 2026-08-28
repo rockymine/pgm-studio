@@ -26,6 +26,12 @@ export const OP_COLORS = {
 };
 export const opColors = (operation) => (operation === "subtract" ? OP_COLORS.subtract : OP_COLORS.add);
 
+/** What each objective is drawn in, wherever one is drawn — the plan places them and the sketch shows where
+ *  they landed, so the two read as the same thing rather than as two conventions. */
+export const OBJECTIVE_COLORS = {
+  spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e", core: "#d4622a",
+};
+
 /**
  * @param {string} treatment  — one of the treatments above.
  * @param {object} opts

@@ -8,7 +8,7 @@
 
 import { paintShape } from "./shape-render.js";
 import { toRing } from "../geometry/shape.js";
-import { primitiveStyle, opColors } from "./primitive-style.js";
+import { primitiveStyle, opColors, OBJECTIVE_COLORS } from "./primitive-style.js";
 import { dyeColorLabel } from "./palette.js";
 
 function shapeStyle(shape, selected) {
@@ -71,6 +71,24 @@ export function paintStructural(painter, shapes) {
     const size = Math.max(2, Math.min(h * 0.4, w / (0.6 * Math.max(1, text.length))));
     painter.text(text, (s.min_x + s.max_x) / 2, (s.min_z + s.max_z) / 2,
       { fill: "var(--canvas-ink)", halo: "var(--bg-canvas)", haloWidth: 3, size, weight: 600 });
+  }
+}
+
+/**
+ * Where the map's destroyables and cores stand, from the intent that places them (their anchor column). A
+ * marker and nothing else: the sketch draws the ground, and these are here so an author refining it can see
+ * what the ground has to carry — the plan names them, and Configure is where one is edited.
+ *
+ * Drawn in the objective's own colour at a fixed block size, so a board zoomed out still shows where they
+ * are rather than a dot that shrinks away.
+ */
+export function paintObjectives(painter, objectives) {
+  const half = 1.6;
+  for (const { kind, x, z } of objectives ?? []) {
+    if (!Number.isFinite(x) || !Number.isFinite(z)) continue;
+    const color = OBJECTIVE_COLORS[kind] ?? "#888";
+    painter.rect({ min_x: x - half, min_z: z - half, max_x: x + half, max_z: z + half },
+      { fill: color, fillAlpha: 0.85, stroke: "var(--canvas-ink)", strokeAlpha: 0.7, width: 1.5 });
   }
 }
 

@@ -31,6 +31,13 @@ import { resolvePick } from "../shared/pick.js";
 // Island scale handles (S21): normalized bbox position (0=min · 0.5=mid · 1=max) + which axes each drives +
 // its cursor. Corners scale both axes, edge midpoints one. Anchored on the opposite corner/edge (or the
 // centre with Alt); Shift locks a corner to a uniform (aspect-preserving) scale.
+// How far outside the island's box its scale handles sit, in screen px, and how far past those the rotate
+// zones start. A ring drawn ON the box lands on the shape's own corners: where the sole member is a
+// rectangular polygon, every scale handle sits under the vertex handle at the same point and under the
+// midpoint-insert ghost on the same edge. The offset is what keeps the three reachable.
+const SCALE_RING_PAD = 10;
+const ROTATE_RING_PAD = SCALE_RING_PAD + 14;
+
 const SCALE_HANDLES = [
   { nx: 0,   nz: 0,   axX: 1, axZ: 1, cur: "nwse-resize" },
   { nx: 1,   nz: 0,   axX: 1, axZ: 1, cur: "nesw-resize" },
@@ -56,11 +63,12 @@ import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
   paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostIslands, paintRaster, paintStructural,
+  paintObjectives,
   paintContours,
 } from "../render/sketch-render.js";
 import { rasterizeShapes, cellRuns } from "../geometry/rasterize.js";
 import { loadBlockImage, blockImageBounds } from "../render/block-render.js";
-import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, gridStep, paintWorkArea, renderScaleBar, renderDimensionPill } from "../render/canvas-chrome.js";
 // iso-webgl is loaded lazily (on first 3-D toggle) so a missing/blocked WebGL stack — or any failure
 // to load that module — degrades to "no 3-D preview" instead of breaking the whole editor at page load.
 
@@ -101,6 +109,7 @@ export class SketchCanvas extends CanvasBase {
 
   #shapes      = new Map();   // id → shape (source for paint / hit-test / edit)
   #structural  = [];          // locked plan pieces (S25) — render-only, never hit-tested/edited/rasterized
+  #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
   #selectedIslandId = null;   // selected island (drives the island bbox chrome + whole-island drag)
   #islands     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
@@ -687,7 +696,10 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("shapes",    () => this.#paintShapes());
     // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the island
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
-    painter.layer("structural", () => paintStructural(painter, this.#structural));
+    painter.layer("structural", () => {
+      paintStructural(painter, this.#structural);
+      paintObjectives(painter, this.#objectives);
+    });
     painter.layer("selection", () => this.#paintSelectionHighlight());
     painter.layer("marks",     () => this.#paintReliefMarks(painter));
     painter.layer("dressing",  () => this.#paintDressing(painter));
@@ -729,6 +741,9 @@ export class SketchCanvas extends CanvasBase {
 
   /** The locked plan pieces (S25) — follow the Shapes toggle, but are drawn read-only (no selection chrome). */
   setStructural(shapes) { this.#structural = shapes ?? []; this.#paintWorld(); }
+
+  /** Where the map's destroyables and cores stand: `[{kind, x, z}]`, drawn as markers and nothing else. */
+  setObjectives(objectives) { this.#objectives = objectives ?? []; this.#paintWorld(); }
 
   #paintGuides() {
     const { min_x, max_x, min_z, max_z } = this.#gridBounds();   // guides run the full visible width/height
@@ -825,6 +840,7 @@ export class SketchCanvas extends CanvasBase {
     const layer = this.#screen.islandChrome;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
+    this.#renderSizePill(layer);
     if (!this.#selectedIslandId) return;
     const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
     if (!isl) return;
@@ -843,10 +859,11 @@ export class SketchCanvas extends CanvasBase {
     // affordance and is not drawn at all, so there is nothing to take hold of.
     if (this.#selectOnly) return;
 
-    const HALF = 4, OUT = 9, ZONE = 9;   // anchor half-size · rotate-zone offset outward · rotate-zone half
-    // Rotate zones just outside the four corners (all islands; transparent fill so they still hit-test).
+    const HALF = 4, ZONE = 9;   // anchor half-size · rotate-zone half
+    // Rotate zones outside the four corners, past the scale ring (all islands; transparent fill so they
+    // still hit-test).
     for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]]) {
-      const zone = svgEl("rect", { x: ax + sx * OUT - ZONE, y: ay + sy * OUT - ZONE, width: ZONE * 2, height: ZONE * 2, fill: "transparent" });
+      const zone = svgEl("rect", { x: ax + sx * ROTATE_RING_PAD - ZONE, y: ay + sy * ROTATE_RING_PAD - ZONE, width: ZONE * 2, height: ZONE * 2, fill: "transparent" });
       zone.style.cursor = ROTATE_CURSOR;
       zone.addEventListener("mousedown", (e) => this.#startRotate(e));
       layer.appendChild(zone);
@@ -857,7 +874,10 @@ export class SketchCanvas extends CanvasBase {
     const soleRect = members.length === 1 && members[0]?.type === "rectangle";
     if (!soleRect) {
       for (const hd of SCALE_HANDLES) {
-        const hx = l + hd.nx * (r - l), hy = t + hd.nz * (bot - t);
+        // Outward along the handle's own normal: a corner moves diagonally, an edge midpoint straight out,
+        // so the ring stays a box around the selection rather than a box drawn on it.
+        const hx = l + hd.nx * (r - l) + Math.sign(hd.nx - 0.5) * SCALE_RING_PAD;
+        const hy = t + hd.nz * (bot - t) + Math.sign(hd.nz - 0.5) * SCALE_RING_PAD;
         const h = svgEl("rect", {
           x: hx - HALF, y: hy - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
           fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5",
@@ -867,13 +887,32 @@ export class SketchCanvas extends CanvasBase {
         layer.appendChild(h);
       }
     } else {
-      for (const [ax, ay] of [[l, t], [r, t], [r, bot], [l, bot]]) {
+      for (const [ax, ay, sx, sy] of [[l, t, -1, -1], [r, t, 1, -1], [r, bot, 1, 1], [l, bot, -1, 1]]) {
         layer.appendChild(svgEl("rect", {
-          x: ax - HALF, y: ay - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
+          x: ax + sx * SCALE_RING_PAD - HALF, y: ay + sy * SCALE_RING_PAD - HALF, width: HALF * 2, height: HALF * 2, rx: 1,
           fill: "var(--bg-deep)", stroke: "var(--accent)", "stroke-width": "1.5", "pointer-events": "none",
         }));
       }
     }
+  }
+
+  /** How big the selection is, under it — the shape when one is picked, else the island. The same pill the
+   *  plan and Configure draw, in the same place, because it answers the same question. */
+  #renderSizePill(layer) {
+    const shape = this.#selectedId ? this.#shapes.get(this.#selectedId) : null;
+    const island = !shape && this.#selectedIslandId
+      ? this.#islands.find(entry => entry.id === this.#selectedIslandId) : null;
+    const bounds = shape
+      ? toBounds(shape)
+      : boundsOfShapes((island?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean));
+    if (!bounds) return;
+    const p0 = this._toScreen(bounds.min_x, bounds.min_z), p1 = this._toScreen(bounds.max_x, bounds.max_z);
+    renderDimensionPill(layer, {
+      left: Math.min(p0.x, p1.x), right: Math.max(p0.x, p1.x),
+      // Below the handle ring rather than on the box, so the number never sits under a grab target.
+      bottom: Math.max(p0.y, p1.y) + SCALE_RING_PAD + 4,
+      width: Math.round(bounds.max_x - bounds.min_x), depth: Math.round(bounds.max_z - bounds.min_z),
+    });
   }
 
   // Begin scaling the selected island via a bbox handle: freeze its original bbox + snapshot every member;
@@ -1167,14 +1206,11 @@ export class SketchCanvas extends CanvasBase {
   // On-canvas size readout (sub-bar): the active draw's W×D, else the selected shape's extent — so the
   // author can aim for a target block size while drawing. (The ruler distance reads on the ruler line
   // itself via #renderMeasureLabel, not here.)
+  // The readout says what is being drawn or measured right now. What the *selection* measures is the pill
+  // under it, where every other tool puts it.
   #updateDim() {
     if (!this.#dimEl) return;
-    let label = this.#draw?.activeDimLabel?.() || "";
-    if (!label && this.#selectedId) {
-      const b = toBounds(this.#shapes.get(this.#selectedId));
-      if (b) label = `${Math.round(b.max_x - b.min_x)} × ${Math.round(b.max_z - b.min_z)}`;
-    }
-    this.#dimEl.textContent = label;
+    this.#dimEl.textContent = this.#draw?.activeDimLabel?.() || "";
   }
 
   #hitTest(wx, wz) {

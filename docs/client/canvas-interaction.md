@@ -182,6 +182,19 @@ and narrow: with something in hand the modifiers are read against what is held r
 grouping, which is why `Alt` means eyedropper there and select-the-parent everywhere else. With an empty hand
 the shared rule applies unchanged.
 
+**Two pieces of selection chrome are one function, not three.** How big the selected thing is reads as a pill
+under it — `render/canvas-chrome.js`'s `renderDimensionPill`, in screen space so it stays a fixed size and
+stays put at any zoom — and Configure, the plan and the sketch all draw it by calling that, so a region, a
+piece and a shape answer the same question in the same words in the same place. The objective colours are the
+same story: `render/primitive-style.js`'s `OBJECTIVE_COLORS` is what the plan draws a marker in and what the
+sketch shows a destroyable or a core in, so the two tools cannot drift into two conventions for one thing.
+
+**A handle ring sits outside what it resizes.** Drawn on the selection's own box, a corner handle lands
+exactly on a rectangular polygon's corner vertex and an edge handle lands on the midpoint-insert ghost — three
+targets at one point, and the stretch is the one that loses. So the sketch's scale rings are offset outward:
+`SCALE_RING_PAD` for an island's, `SCALE_BOX_PAD` for a shape outline's, with the island's rotate zones past
+both. The resize maths still reads the selection's true bounds; only the grab point moves.
+
 ## 6. Bridges — the interop seam
 
 Each surface has one bridge exposing `async mount(...) → handle`. Blazor imports the module on demand

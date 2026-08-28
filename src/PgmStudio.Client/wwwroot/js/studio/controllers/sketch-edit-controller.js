@@ -23,6 +23,11 @@ const GHOST_R            = 4;
 const EDGE_THRESHOLD     = 10;  // screen px — hover distance to show midpoint ghost
 const BEZIER_R           = 3;   // bezier tangent handle radius (px)
 const BEZIER_COLLAPSE_PX = 5;   // screen px — collapse the handle when this close to the vertex
+// How far outside an outline its scale box sits, in screen px. The box has to clear the vertex handles it
+// surrounds: on a rectangular polygon every corner of the box would otherwise land exactly on a vertex, and
+// the handle that stretches the shape would sit under the handle that moves one point of it.
+const SCALE_BOX_PAD      = 12;
+const MIN_SPAN           = 1;   // blocks — an outline is never scaled thinner than this on either axis
 
 // The shapes an author edits point by point. A path joins them because it is stored as the line it was
 // drawn as — dragging one of its points moves the line, and the band follows. Its line is **open**, so the
@@ -55,6 +60,7 @@ export class SketchEditController {
   #getShape;
   #callbacks;
 
+  #polyScaleState  = null;   // { shapeId, xf, zf, from } — an outline being stretched by its box
   #enabled         = true;   // off in the Theme phase: selection only, no editing affordance at all
   #selectedId      = null;
   #selectedVertex  = -1;     // index of the click-selected vertex (for per-anchor height editing, S5b)
@@ -109,7 +115,10 @@ export class SketchEditController {
    */
   setEnabled(on) {
     this.#enabled = !!on;
-    if (!this.#enabled) { this.#rectResizeState = null; this.#vertexDragState = null; this.#bezierDragState = null; }
+    if (!this.#enabled) {
+      this.#rectResizeState = null; this.#vertexDragState = null; this.#bezierDragState = null;
+      this.#polyScaleState = null;
+    }
     this.refresh();
   }
 
@@ -124,7 +133,7 @@ export class SketchEditController {
     const shape = this.#getShape(this.#selectedId);
     if (!shape) return;
     if (shape.type === "rectangle") this.#renderRectHandles(shape);
-    else if (vertexEdited(shape)) this.#renderVertexHandles(shape);
+    else if (vertexEdited(shape)) { this.#renderScaleHandles(shape); this.#renderVertexHandles(shape); }
   }
 
   /** Document mousemove during a resize / vertex / bezier drag. Returns true if consumed. */
@@ -171,6 +180,10 @@ export class SketchEditController {
         }
         this.#callbacks.onShapeUpdated?.(shape);
       }
+      return true;
+    }
+    if (this.#polyScaleState) {
+      this.#scaleOutline(wx, wz);
       return true;
     }
     if (this.#rectResizeState) {
@@ -239,6 +252,7 @@ export class SketchEditController {
       return true;
     }
     if (this.#rectResizeState) { this.#rectResizeState = null; this.refresh(); return true; }
+    if (this.#polyScaleState) { this.#polyScaleState = null; this.refresh(); return true; }
     if (this.#vertexDragState) {
       const { shapeId, vertexIdx, moved } = this.#vertexDragState;
       this.#vertexDragState = null;
@@ -308,6 +322,95 @@ export class SketchEditController {
     this.#vertexDragState = { shapeId, vertexIdx: j };
     this.#ghostEl = null;
     this.#hoveredEdgeIdx = -1;
+    this.refresh();
+  }
+
+  /** The world box an outline draws inside — its vertices and whatever its Bézier handles pull the curve out
+   *  to, so a bulging edge is inside the box that scales it. */
+  static #outlineBounds(shape) {
+    const points = [...shape.vertices];
+    for (const ctrl of Object.values(shape.controls ?? {}))
+      for (const side of ["in", "out"]) if (ctrl[side]) points.push(ctrl[side]);
+    const xs = points.map(pt => pt[0]), zs = points.map(pt => pt[1]);
+    return { min_x: Math.min(...xs), max_x: Math.max(...xs), min_z: Math.min(...zs), max_z: Math.max(...zs) };
+  }
+
+  /**
+   * The box that stretches an outline, drawn a fixed margin OUTSIDE it. A polygon is edited point by point,
+   * which is the wrong unit for "make this the same shape but bigger" — and on a rectangular one every
+   * corner of its own bounds is also a vertex, so a box drawn on them would bury the stretch handle under
+   * the one that drags a single point. The margin is what keeps the two reachable.
+   */
+  #renderScaleHandles(shape) {
+    if ((shape.vertices?.length ?? 0) < 3) return;   // a path's open line has no area to stretch
+    const world = SketchEditController.#outlineBounds(shape);
+    const tl = this.#toScreen(world.min_x, world.min_z);
+    const br = this.#toScreen(world.max_x, world.max_z);
+    const b = {
+      l: Math.min(tl.x, br.x) - SCALE_BOX_PAD, r: Math.max(tl.x, br.x) + SCALE_BOX_PAD,
+      t: Math.min(tl.y, br.y) - SCALE_BOX_PAD, b: Math.max(tl.y, br.y) + SCALE_BOX_PAD,
+    };
+    b.mx = (b.l + b.r) / 2;
+    b.my = (b.t + b.b) / 2;
+
+    this.#handlesLayer.appendChild(svgEl("rect", {
+      x: b.l, y: b.t, width: b.r - b.l, height: b.b - b.t, fill: "none",
+      stroke: "var(--text-muted)", "stroke-width": "1", "stroke-dasharray": "4 3",
+      opacity: "0.7", "pointer-events": "none",
+    }));
+
+    for (const hd of HANDLE_DEFS) {
+      const [hx, hy] = hd.pos(b);
+      const handle = svgEl("rect", {
+        ...handleRectAttrs(hx, hy, HANDLE_HALF),
+        fill: "var(--bg-deep)", stroke: "var(--text-muted)", "stroke-width": "1", style: `cursor:${hd.cursor}`,
+      });
+      handle.addEventListener("mousedown", (e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation();
+        // The outline as it stood when the drag opened. Every frame scales from this rather than from the
+        // last one, so a drag back and forth lands where it started instead of compounding.
+        this.#polyScaleState = {
+          shapeId: shape.id, xf: hd.xf, zf: hd.zf, from: world,
+          vertices: shape.vertices.map(([x, z]) => [x, z]),
+          controls: JSON.parse(JSON.stringify(shape.controls ?? {})),
+        };
+      });
+      handle.addEventListener("click", (e) => e.stopPropagation());
+      this.#handlesLayer.appendChild(handle);
+    }
+  }
+
+  /** Scale the outline so the dragged edge of its box lands under the pointer, every point moving with it. */
+  #scaleOutline(wx, wz) {
+    const st = this.#polyScaleState;
+    const shape = this.#getShape(st.shapeId);
+    if (!vertexEdited(shape)) return;
+
+    const axis = (dragged, toward, minKey, maxKey) => {
+      if (!dragged) return null;
+      const anchor = dragged === maxKey ? st.from[minKey] : st.from[maxKey];
+      const span = Math.abs(st.from[maxKey] - st.from[minKey]);
+      if (span === 0) return null;
+      const wanted = Math.max(MIN_SPAN, Math.abs(Math.round(toward) - anchor));
+      return { anchor, factor: wanted / span };
+    };
+    const sx = axis(st.xf, wx, "min_x", "max_x");
+    const sz = axis(st.zf, wz, "min_z", "max_z");
+    const put = ([x, z]) => [
+      sx ? sx.anchor + (x - sx.anchor) * sx.factor : x,
+      sz ? sz.anchor + (z - sz.anchor) * sz.factor : z,
+    ];
+
+    shape.vertices = st.vertices.map(put);
+    if (Object.keys(st.controls).length) {
+      shape.controls = {};
+      for (const [key, ctrl] of Object.entries(st.controls)) {
+        shape.controls[key] = {};
+        for (const side of ["in", "out"]) if (ctrl[side]) shape.controls[key][side] = put(ctrl[side]);
+      }
+    }
+    this.#callbacks.onShapeUpdated?.(shape);
     this.refresh();
   }
 

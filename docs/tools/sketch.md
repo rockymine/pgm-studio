@@ -335,10 +335,21 @@ rather than what is drawn, so it sits in the dock beside the shape tools, in Dra
 shape edge onto another. Entering a phase switches on what that phase works with and never switches anything
 off, so an overlay asked for by hand is not taken away by walking through the phases.
 
+**How big the selection is reads as a pill under it** — the same pill Configure draws under a region and the
+plan draws under a piece, from the one function all three call. The corner readout is for what is being drawn
+or measured right now; what the selection measures is under the selection.
+
+**The map's destroyables and cores show as markers**, in the colours the plan places them in. The sketch draws
+the ground and owns no objective, so they arrive from the map's intent as positions and nothing else — no
+name, no handle, nothing to select. An author refining the ground can see what it has to carry; Configure is
+where one is edited.
+
 **Undo is one stack for the whole document, sixty steps deep.** `Ctrl`/`⌘`+`Z` steps back and
 `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) steps forward. A step is the whole layout — the value the canvas can be
 loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
-and a drag that fires on every frame between the press and the release costs exactly one.
+and a drag that fires on every frame between the press and the release costs exactly one. A step is the
+document and not the view: the camera and the storey being drawn on are where the author is, so both survive
+it.
 
 **Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
 table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+`K` runs any of them by name.
@@ -394,11 +405,16 @@ two points, the usual question being how wide a void gap is, and **split** slice
 into two independent shapes. Every draw and every split drops the
 tool back to select when it completes.
 
-**Editing is per point.** A rectangle shows eight resize handles. A polygon (and a path's centreline) shows a
-handle per vertex, a midpoint ghost on edge hover that inserts a vertex where it is clicked, and a pair of
-Bézier tangent handles per vertex that round the edges leaving and arriving — which is how an outline stops
-being rectilinear. A rectangle can be **promoted** to a polygon in place, keeping its id and therefore its
-island membership. Selection can be rotated by a stated number of degrees about its own bounding-box centre,
+**Editing is per point, and per outline.** A rectangle shows eight resize handles. A polygon (and a path's
+centreline) shows a handle per vertex, a midpoint ghost on edge hover that inserts a vertex where it is
+clicked, and a pair of Bézier tangent handles per vertex that round the edges leaving and arriving — which is
+how an outline stops being rectilinear. Beyond the points, a polygon shows an eight-handle **scale box**: the
+same stretch a rectangle gets, moving every vertex and every Bézier handle proportionally, because "the same
+shape but bigger" is not something point-by-point editing can say. The box is drawn a margin outside the
+outline — on a rectangular polygon its corners are the polygon's own vertices, and a handle drawn there would
+bury the stretch under the point-drag and the midpoint-insert at the same spot. The island's own scale ring is
+offset for the same reason, with its rotate zones past it. A rectangle can be **promoted** to a polygon in
+place, keeping its id and therefore its island membership. Selection can be rotated by a stated number of degrees about its own bounding-box centre,
 nudged a block at a time with the arrow keys (sixteen with Shift), moved with snapping to other shapes' edges
 (Alt bypasses), have its operation or its override flipped, or be deleted.
 

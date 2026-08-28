@@ -6079,6 +6079,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **How big the selection is reads under it, in every tool (C58).** Configure drew the dimension pill; the
+  plan said nothing and the sketch said it in the corner readout, so one question had three answers in three
+  places. `renderDimensionPill` in `render/canvas-chrome.js` is the one function all three now call, in
+  screen space so it holds its size and its place at any zoom. The sketch's corner readout keeps what it is
+  for — the size of what is being drawn or measured right now. (C58)
+- **A destroyable and a core show where they stand (TS52).** The sketch draws the ground and owns no
+  objective, so the two arrive from the map's intent as positions and nothing else: a marker in the colour the
+  plan places them in, no name, no handle, nothing to select. An author refining the ground can see what it
+  has to carry. `OBJECTIVE_COLORS` moves to `render/primitive-style.js` so the plan and the sketch cannot
+  drift into two conventions for one thing. (TS52)
+- **A step back is a step in the document, not in the view (TS53).** `applySetup` framed the board on every
+  load, so an undo re-fitted the camera and dropped the author back to the ground storey. Both are where the
+  author is rather than what the document says, and `keepView` now reaches the frame that was resetting
+  them. (TS53)
+- **A polygon can be stretched, not only re-pointed (TS54).** Point-by-point editing cannot say "the same
+  shape but bigger": an outline now carries the same eight-handle scale a rectangle has, moving every vertex
+  and Bézier handle proportionally from the outline as it stood when the drag opened. The box is drawn a
+  margin outside the shape, and the island's scale ring is offset likewise with its rotate zones past it —
+  drawn on the bounds, a handle lands exactly on a rectangular polygon's own corner vertex, and the stretch
+  is the affordance that loses to the two stacked on it. (TS54)
 - **Unthemed ground is stone, and a finish is something an author picked (WE50).** Every material default on
   `TerrainTheme` is stone — what unpainted ground already is — so a board naming no theme exports as a board
   naming no theme, and a bucket a theme leaves unbound resolves to stone instead of borrowing a rim, a wall or

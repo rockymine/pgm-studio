@@ -528,9 +528,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     });
   }
 
-  function applySetup(s) {
+  /** The board's frame, centre and mirror. `keepView` states the working area without framing it: the camera
+   *  is the author's, and a restore that moves it reads as a different board rather than as a step back. */
+  function applySetup(s, keepView) {
     setup = { bbox: s.bbox ?? setup.bbox, center: s.center ?? setup.center, mirror_mode: s.mirror_mode ?? setup.mirror_mode };
-    if (s.bbox) { canvas.setBbox(setup.bbox); canvas.fitToBbox(); }
+    if (s.bbox) { canvas.setBbox(setup.bbox); if (!keepView) canvas.fitToBbox(); }
     if (s.center !== undefined) canvas.setCenter(setup.center.cx ?? 0, setup.center.cz ?? 0);
     if (s.mirror_mode !== undefined) canvas.setMode(setup.mirror_mode);
     refreshMirror();
@@ -905,6 +907,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     /** Which unit a plain click picks with no group entered — "island" or "shape". The phase states it. */
     setPickUnit(unit) { canvas.setPickUnit(unit); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
+    /** Where the map's destroyables and cores stand, from the intent — markers the board carries, not shapes
+     *  it owns, so they are handed in rather than read out of the layout. */
+    setObjectives(json) {
+      let list; try { list = JSON.parse(json); } catch { list = []; }
+      canvas.setObjectives(Array.isArray(list) ? list : []);
+    },
     setThemeBrush(id) { setThemeBrush(id); },
     setMapTheme(id) { mapTheme = (id && themes[id]) ? id : ""; afterThemeChange(); },
     // Assign (or clear, with an empty themeId) a theme to one shape — a per-shape override.
@@ -997,8 +1005,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // Load a persisted layout: setup + the layers[] array. A flat board is a stack of one.
     load(state, keepView) {
+      const wasActive = active;
       const s = state ?? {};
-      if (s.setup) applySetup(s.setup);
+      if (s.setup) applySetup(s.setup, keepView);
       themes = (s.themes && typeof s.themes === "object") ? s.themes : {};
       mapTheme = (s.mapTheme && themes[s.mapTheme]) ? s.mapTheme : "";
       roomStyles = {
@@ -1024,7 +1033,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         };
       });
       if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], islands: [], savedMetas: [] }];
-      active = 0;
+      // A restore keeps the storey being drawn on, for the reason it keeps the camera: which layer is active
+      // is where the author is, not what the document says.
+      active = keepView && wasActive < layers.length ? wasActive : 0;
       // Cache the non-active layers' islands (for ghosts/iso); the active one is computed by recompute(true).
       for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].islands = computeLayerIslands(layers[i].shapes, layers[i].savedMetas);
       canvas.clearShapes();
@@ -1032,9 +1043,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setStructural(layers[active].structural ?? []);
       pushActiveLayer();
       recompute(true);
-      // Frame what was loaded. applySetup's fit above ran before the shapes existed, so on its own it
-      // would open a saved sketch on the blank working area instead of on the drawing. An undo passes
-      // keepView, because a step back that also moves the camera reads as a different board.
+      // Frame what was loaded: applySetup states the working area, and the drawing is what should be on
+      // screen. An undo passes keepView, because a step back that also moves the camera reads as a different
+      // board.
       if (!keepView) canvas.fitToBbox();
     },
     // The layout for the host to persist (the SketchLayoutJson shape — now layers[]).

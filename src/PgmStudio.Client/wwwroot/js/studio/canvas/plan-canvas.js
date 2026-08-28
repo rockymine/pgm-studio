@@ -21,7 +21,8 @@ import {
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
-import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar } from "../render/canvas-chrome.js";
+import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar, renderDimensionPill } from "../render/canvas-chrome.js";
+import { OBJECTIVE_COLORS } from "../render/primitive-style.js";
 import * as Keys from "../shared/keys.js";
 import { resolvePick } from "../shared/pick.js";
 
@@ -50,7 +51,6 @@ const GRID_SNAP_CELLS = 4;
 // fit() frames the working area with this much of it again added on each side, so the tinted region sits
 // inside a visible margin of grid rather than filling the surface edge to edge.
 const FIT_PAD_FRACTION = 0.2;
-const MARKER_COLORS = { spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e", core: "#d4622a" };
 
 // The 8 resize handles of a rect: ex/ez pick which cell edge each drags (−1 = min side, 1 = max, 0 = none);
 // nx/nz are the handle's normalised position on the block-bounds box (for placing it in screen space).
@@ -508,7 +508,7 @@ export class PlanCanvas extends CanvasBase {
       painter.rect(img.bounds, { stroke: BOX_COLORS[img.kind] || "#9aa7b4", width: 1.5, dash: [8, 5], alpha: 0.35 });
     const cell = this.#doc.globals.cell;
     for (const m of markerMirrorImages(this.#doc))
-      painter.circle(m.x, m.z, cell * 0.28, { fill: MARKER_COLORS[m.kind] || "#888", fillAlpha: 0.3 });
+      painter.circle(m.x, m.z, cell * 0.28, { fill: OBJECTIVE_COLORS[m.kind] || "#888", fillAlpha: 0.3 });
   }
 
   #paintZones() {
@@ -569,7 +569,7 @@ export class PlanCanvas extends CanvasBase {
       const c = markerCell(this.#doc, marker);
       if (!c) continue;
       const cx = c[0] * cell, cz = c[1] * cell, r = cell * 0.34;
-      const color = MARKER_COLORS[kind] || "#888";
+      const color = OBJECTIVE_COLORS[kind] || "#888";
       if (kind === "spawn") {
         this.#painter.circle(cx, cz, r, { fill: color, fillAlpha: 0.85, stroke: "#222", width: 1 });
         const [dx, dz] = FACING_DIR[marker.facing] || FACING_DIR.front;
@@ -821,6 +821,10 @@ export class PlanCanvas extends CanvasBase {
     const p0 = toS(b.min_x, b.min_z), p1 = toS(b.max_x, b.max_z);
     const l = Math.min(p0.x, p1.x), r = Math.max(p0.x, p1.x), t = Math.min(p0.y, p1.y), bot = Math.max(p0.y, p1.y);
     layer.appendChild(svgEl("rect", { x: l, y: t, width: r - l, height: bot - t, fill: "none", stroke: "var(--accent)", "stroke-width": "1.5", "stroke-dasharray": "5 3", "pointer-events": "none" }));
+    // How big the selected piece is, under it, the way Configure says it of a region.
+    renderDimensionPill(layer, {
+      left: l, right: r, bottom: bot, width: b.max_x - b.min_x, depth: b.max_z - b.min_z,
+    });
     if (!handles) return;
     const HALF = 4;
     for (const hd of HANDLES) {
