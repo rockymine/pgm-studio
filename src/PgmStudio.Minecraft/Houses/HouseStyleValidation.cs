@@ -218,7 +218,7 @@ public static class HouseStyleValidation
     {
         yield return ("roof", style.Roof.Body);
         yield return ("verge", style.Roof.Verge);
-        yield return ("gable", style.Roof.Gable);
+        if (style.Roof.Gable is { } gable) yield return ("gable", gable);
         yield return ("wall", style.Wall.At(0).Material);
         yield return ("foundation.plate", style.Foundation.Plate.At(0).Material);
         if (style.Foundation.Footing is { } footing) yield return ("foundation.footing", footing);

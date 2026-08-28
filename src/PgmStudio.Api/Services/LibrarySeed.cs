@@ -227,7 +227,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         foreach (var entry in PartCoursesOf(RoomParts.Wall, style.Wall)) yield return entry;
         yield return (RoomParts.Roof, style.Roof.Body);
         yield return (RoomParts.Verge, style.Roof.Verge);
-        yield return (RoomParts.Sill, style.Foundation.Footing);
+        if (style.Foundation.Footing is { } footing) yield return (RoomParts.Sill, footing);
         if (style.Post is { } post) yield return (RoomParts.Post, post);
         if (style.Roof.Gable is { } gable) yield return (RoomParts.Gable, gable);
         if (style.Foundation.Surface.Field is { } field) yield return (RoomParts.Field, field);

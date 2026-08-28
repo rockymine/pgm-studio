@@ -81,7 +81,7 @@ public static class WorldBuilder
 
         return intent with
         {
-            Spawns = intent.Spawns?.Select((s, i) => s with { Stamp = Seed(s.Stamp, "spawn", i) }).ToList(),
+            Spawns = [.. intent.Spawns.Select((s, i) => s with { Stamp = Seed(s.Stamp, "spawn", i) })],
             Wools = intent.Wools?.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wool", i) }).ToList(),
             Destroyables = intent.Destroyables?.Select((d, i) => d with { Stamp = Seed(d.Stamp, "destroyable", i) }).ToList(),
             Cores = intent.Cores?.Select((c, i) => c with { Stamp = Seed(c.Stamp, "core", i) }).ToList(),
