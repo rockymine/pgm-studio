@@ -40,6 +40,15 @@ public sealed class SketchLayout
     /// which is what separates it from a theme. Absent dresses nothing.</summary>
     [JsonPropertyName("dressing")] public JsonElement? Dressing { get; set; }
 
+    /// <summary>Which biome each chunk of the exported world carries — the byte a client reads to tint grass,
+    /// leaves and water. Map-wide and answered per chunk, because a biome's tint is blended across a radius
+    /// and a region drawn to a finer edge never reaches its own colour there. Absent is plains everywhere,
+    /// which is what every board already exported as.
+    /// <para>Carried as raw JSON for the reason <see cref="Dressing"/> is: the field's own type is
+    /// <c>Minecraft.Painting.BiomeField</c> and this project does not reach that one. The export reads it
+    /// through <c>BiomeScope</c>, which does.</para></summary>
+    [JsonPropertyName("biome")] public JsonElement? Biome { get; set; }
+
     /// <summary>Interior elevation, keyed by island id. It rides at the top level rather than inside the
     /// shapes because a plan recompile replaces every shape it produced and a relief is hand work a plan
     /// cannot express, so it is carried across one under its own rule.</summary>
@@ -60,9 +69,10 @@ public sealed class SketchLayout
     }
 
     /// <summary>The keys that hold a map's finish rather than its shape: the terrain-theme registry and the
-    /// map default, the two bound room shells, and every placed prop. A plan states where the ground is and
-    /// nothing about how it looks, so a layout compiled from one carries none of them.</summary>
-    public static readonly string[] FinishKeys = ["themes", "mapTheme", "roomStyles", "dressing"];
+    /// map default, the two bound room shells, every placed prop, and the biome the ground is tinted by. A
+    /// plan states where the ground is and nothing about how it looks, so a layout compiled from one carries
+    /// none of them.</summary>
+    public static readonly string[] FinishKeys = ["themes", "mapTheme", "roomStyles", "dressing", "biome"];
 
     /// <summary>
     /// A freshly compiled layout with the finish of the layout the map already holds carried onto it.

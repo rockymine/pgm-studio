@@ -11,13 +11,17 @@ public sealed class VoxelWorld
 {
     public const int MaxHeight = 256;
 
-    /// <summary>One chunk's 16 sections (lazily allocated) + its tile entities / entities.</summary>
+    /// <summary>One chunk's 16 sections (lazily allocated) + its tile entities / entities, and one biome per
+    /// column. <see cref="Biomes"/> is the chunk's 256-byte <c>Biomes</c> array, indexed <c>(z &amp; 15) * 16 +
+    /// (x &amp; 15)</c> the way the format stores it, or null for a chunk nothing has painted — which writes as
+    /// plains, the biome every chunk carried before a field could be stated.</summary>
     internal sealed class ChunkData
     {
         public readonly ushort[]?[] Ids = new ushort[16][];
         public readonly byte[]?[] Data = new byte[16][];
         public readonly List<NbtCompound> TileEntities = [];
         public readonly List<NbtCompound> Entities = [];
+        public byte[]? Biomes;
     }
 
     private readonly Dictionary<(int Cx, int Cz), ChunkData> _chunks = [];
@@ -25,6 +29,27 @@ public sealed class VoxelWorld
     internal IReadOnlyDictionary<(int Cx, int Cz), ChunkData> Chunks => _chunks;
 
     public bool IsEmpty => _chunks.Count == 0;
+
+    /// <summary>The chunk coordinates of every chunk the world holds — what a per-chunk pass walks.</summary>
+    public IEnumerable<(int Cx, int Cz)> ChunkCoords => _chunks.Keys;
+
+    /// <summary>Give one column its biome. A chunk the world does not hold is skipped rather than created: a
+    /// biome places nothing, so painting one into empty space would write a chunk of air into the region file
+    /// for the sake of a colour nothing is standing on. The array is allocated on the first column painted, so
+    /// a world nobody painted carries none of them.</summary>
+    public void SetBiome(int x, int z, byte biome)
+    {
+        if (!_chunks.TryGetValue((x >> 4, z >> 4), out var chunk)) return;
+        var biomes = chunk.Biomes ??= NewBiomes();
+        biomes[((z & 15) << 4) | (x & 15)] = biome;
+    }
+
+    private static byte[] NewBiomes()
+    {
+        var biomes = new byte[256];
+        Array.Fill(biomes, Palette.Biome.Plains);
+        return biomes;
+    }
 
     /// <summary>Set the block at world <paramref name="x"/>/<paramref name="y"/>/<paramref name="z"/>.</summary>
     public void SetBlock(int x, int y, int z, int id, int data = 0)

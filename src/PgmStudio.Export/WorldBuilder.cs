@@ -318,6 +318,13 @@ public static class WorldBuilder
         foreach (var claim in dressed.Placements)
             provenance.Claim(claim.Cells, claim.Pass, claim.Owner);
 
+        // ── Biome — the one colour that costs no block. Every chunk the world holds takes its byte from the
+        // map's field, folded through the same symmetry the painter uses so a mirrored board answers one
+        // biome on both halves. It runs after every pass that could add a chunk, because a chunk that arrives
+        // later would otherwise keep the plains it was created with; it writes no blocks, so nothing above
+        // cares that it ran at all.
+        BiomeScope.Paint(world, BiomeScope.FieldOf(layoutJson), symmetry.Canonical);
+
         // ── Observer platform (floating at the authored Y) ───────────────────────────────────────────
         int spawnX, spawnY, spawnZ;
         ObserverIntent? resolvedObserver = null;

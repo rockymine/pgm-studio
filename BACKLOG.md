@@ -573,6 +573,29 @@ Four places the paint and the document disagree — an overlap resolved by oppos
 interior is never themed, a palette stacked down a column it should top, and a band stack the editor cannot
 author. Beside them, one where the *reader* disagrees with a document that is right.
 
+- [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
+  to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is
+  drawn — carrying a field of its own, so a corner of the board reads as desert against a map that is otherwise
+  forest and river. The map's field becomes the default the patches sit on. `BiomeScope.Paint` already walks
+  every column and would resolve patch-first, map-second; what is missing is a drawn area on the dressing
+  document and the pass that reads it. Per **shape** selection is deliberately not wanted (author) — a patch is
+  drawn for this, not inherited from the geometry.
+
+- [ ] **WE53 — A painted biome is invisible in the studio.** Every static render multiplies grass, leaves,
+  vines and water by a fixed temperate tint, because a render has no biome to sample
+  (`Minecraft/Palette/BlockPaletteData.cs`). So a board's biome field shows in game and nowhere in the studio —
+  an author paints it blind. The fix is a biome-aware tint on the paint overlay and the iso preview: the tint
+  is a per-biome multiplier over the same texture mean the palette already holds. Evidence:
+  `maps/biome-test-pattern` in the mapgen repo carries three biomes over 16,384 columns and looks identical in
+  every studio picture. Swampland wants its own path even then: vanilla paints it two-tone from a noise of its
+  own (see `terrain-painting.md` §5b), so a single multiplier cannot reproduce it.
+
+- [ ] **WE54 — A biome field has no surface to author it on.** The field round-trips over the API and through
+  the layout, and nothing in the browser states one. It belongs in the Dressing phase (author), which today
+  places props — a prop is a point or a point-list with a radius, and a field is neither — so the phase gains
+  its first map-wide control rather than a seventh prop kind. Wants the biome ids as a named list, which
+  `Minecraft/Palette/Biome.cs` already holds.
+
 - [ ] **B144 — Settle how height and paint resolve an overlap, and warn where they disagree.** Height takes the
   **taller** add-shape (`MergeCell`); paint takes the **smallest-area** shape (`ShapeScopeOwners`, "the most
   specific scope"). The documented way to give a tier an organic edge is to let the tier below run *under* it —

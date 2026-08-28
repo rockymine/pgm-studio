@@ -2304,6 +2304,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A board is painted in biomes (WE55 — see BACKLOG WE52–WE54 for what is left).** A biome is one byte per
+  column the client reads to tint grass, leaves and water, so it is the only colour a board gets for free.
+  `AnvilRegionWriter` filled every chunk with plains; a chunk now carries 256 bytes answered by a map-wide
+  `BiomeField` — `solid`, `cell` or `noise`, stated on the layout beside the other finish keys and read by
+  `BiomeScope`. **Per column, in blocks**, which is the same vocabulary a terrain pattern uses: answering once
+  per chunk quantises every field into chunk-sized rectangles, and a board a few chunks across has too few of
+  them to hold a pattern at all. What a boundary costs is softness — the client blends a tint over a small
+  neighbourhood — which is a reason to choose a scale, not to quantise. A field is its own family rather than
+  a `TerrainMaterial` read for its id, because a biome is not a block and a `solid` of 4 would mean
+  cobblestone to every reader and forest to one pass; the kinds are named after the material ones and rest on
+  the same `Voronoi`/`PatternNoise` primitives. The pass folds every column through the board's symmetry, so a
+  mirrored map answers one biome at a cell and at its image. (`Painting/BiomeField.cs`, `Palette/Biome.cs`,
+  `Anvil/{VoxelWorld,AnvilRegionWriter}.cs`, `Export/BiomeScope.cs`, `Pgm/Sketch/SketchLayout.cs`,
+  `docs/world-export/terrain-painting.md` §5b; 9 tests)
 - **A roof may be laid in logs (WE51).** The ban was on the log, and it wanted to be on the log with no
   *axis*: a log's data nibble is which way it lies, so one named as a solid has none and every one of them
   stands upright showing a sawn face out at the slope — which is what a verge laid that way looked like and
