@@ -49,6 +49,9 @@ public partial class SketchDressingInspector
     private IReadOnlyList<PropOptionDto> woods = [];
     private string woodedFor = "";
     private IReadOnlyList<PaintBlockDto> blocks = [];
+    // The library's styles, so a prop's paving, bank or rock can be filled from one the same way a theme's
+    // can. Loaded beside the blocks, since the surfaces that offer one offer the other.
+    private IReadOnlyList<StyleDto> styles = [];
     // The map's own default finish. A preview grown on unthemed stone would show ground no themed map paints,
     // so the picture is grown on what this map actually paints.
     private string? themeJson;
@@ -116,6 +119,7 @@ public partial class SketchDressingInspector
         // The block picker's offered list is the export's own palette, so a path and a rock cannot be paved
         // with something the painter has no colour for.
         if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
+        if (styles.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
         if (kind == PropKinds.Stroke && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(Spec(PropFields.Pave));
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
         if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(Spec(PropFields.Rock));

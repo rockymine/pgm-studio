@@ -2304,6 +2304,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A slot is filled from a saved style, wherever a material is edited (TL8).** A style *is* a material and
+  materials nest, so a style inside a layer, a band, a patch, a tint's fallback or a frame's panel is nesting
+  rather than a new kind of thing — and combining small styles into a large one was the reason the level
+  exists, with no way to do it. `MaterialEditor` carries a **Fill from a style…** beside the control naming
+  its kind, and the two answer one question: a kind gives an empty recipe of that shape, a style one already
+  written. It reaches every slot at once because the editor is recursive — a layer row and a voronoi band are
+  the same component — and it is offered by the style editor (every row but the one being edited), and by the
+  Sketch dressing inspector for a path's paving, a bank and a rock. What lands is a **copy**: the material
+  tree is what the painter deserializes and what a map snapshots, so a slot naming a style would have to be
+  resolved by everything that reads one. Being an action rather than a state, the control is keyed on the
+  fills it has taken so it goes back to reading as an offer instead of claiming a provenance it does not
+  store. `JsonEdit.Replace` is the one in-place swap behind it and behind a kind change, which were the same
+  operation written twice. (`Components/Terrain/{MaterialEditor,ThemeVocabulary}.cs`,
+  `Features/Library/StyleEditor`, `Features/Sketch/SketchDressingInspector`, `docs/tools/library.md`)
 - **A theme pasted in lands as a theme, not a blob (TL7).** The theme editor's **Start from JSON** takes a
   whole painter theme — what an agent writes over the API, what a board saves out — through
   `POST /themes/import`, which makes one style per bucket and binds them, so it arrives editable. It creates a

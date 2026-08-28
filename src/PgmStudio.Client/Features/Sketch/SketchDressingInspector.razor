@@ -80,7 +80,7 @@
           decides what fills it.</p>
         @if (Material(PropFields.Pave) is { } pave)
         {
-          <MaterialEditor Node="pave" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Pave)" />
+          <MaterialEditor Node="pave" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Pave)" />
         }
       }
       else if (kind == PropKinds.Water)
@@ -124,7 +124,7 @@
           through and the shore meets the land with.</p>
         @if (Material(PropFields.Bank) is { } bank)
         {
-          <MaterialEditor Node="bank" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Bank)" />
+          <MaterialEditor Node="bank" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Bank)" />
         }
       }
       else if (kind == PropKinds.Flora)
@@ -253,7 +253,7 @@
           the rock comes out identical.</p>
         @if (Material(PropFields.Rock) is { } rock)
         {
-          <MaterialEditor Node="rock" Blocks="blocks" OnChanged="() => MaterialChanged(PropFields.Rock)" />
+          <MaterialEditor Node="rock" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Rock)" />
         }
         <Field Label="Moss">
           <Chip Active="Flag(PropFields.Mossy)" OnClick="() => Set(PropFields.Mossy, JsonValue.Create(!Flag(PropFields.Mossy)))">

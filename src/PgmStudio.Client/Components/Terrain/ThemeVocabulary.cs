@@ -283,6 +283,21 @@ public static class JsonEdit
     public static void SetChild(JsonObject node, string field, JsonNode child)
         => node[field] = child.DeepClone();
 
+    /// <summary>
+    /// Make <paramref name="node"/> hold exactly what <paramref name="material"/> holds, in place — the whole
+    /// material swapped rather than merged, so no field the incoming kind cannot read is left behind to be
+    /// silently dropped and reappear if the author switches back.
+    ///
+    /// <para>In place, because the editors bind to the node itself: the tree above it holds this object, and
+    /// handing back a new one would leave the parent pointing at the old. Each value is detached from its
+    /// source first, since a <see cref="JsonNode"/> may have only one parent.</para>
+    /// </summary>
+    public static void Replace(JsonObject node, JsonObject material)
+    {
+        node.Clear();
+        foreach (var (name, value) in material) node[name] = value?.DeepClone();
+    }
+
     /// <summary>A child object, created from <paramref name="ifMissing"/> when absent or the wrong shape so the
     /// editor always has something to bind to.</summary>
     public static JsonObject Child(JsonObject? node, string field, Func<JsonObject> ifMissing)

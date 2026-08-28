@@ -27,7 +27,7 @@
   <Fields>
     @if (Picked is { } node)
     {
-      <MaterialEditor Flat Node="node" Blocks="blocks" OnChanged="DraftEdited" @key="selected" />
+      <MaterialEditor Flat Node="node" Blocks="blocks" Styles="Fillable" OnChanged="DraftEdited" @key="selected" />
     }
     else
     {

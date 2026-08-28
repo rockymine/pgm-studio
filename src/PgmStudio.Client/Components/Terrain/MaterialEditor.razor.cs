@@ -16,6 +16,10 @@ public partial class MaterialEditor
     /// <summary>The material node this edits, in place.</summary>
     [Parameter, EditorRequired] public JsonObject Node { get; set; } = [];
     [Parameter] public IReadOnlyList<PaintBlockDto> Blocks { get; set; } = [];
+
+    /// <summary>The saved styles a slot may be filled from. Empty offers nothing, which is what a surface with
+    /// no library behind it wants.</summary>
+    [Parameter] public IReadOnlyList<StyleDto> Styles { get; set; } = [];
     [Parameter] public string? Label { get; set; }
     /// <summary>Renders inside another material — indented and ruled, rather than as a top-level block.</summary>
     [Parameter] public bool Nested { get; set; }
@@ -34,6 +38,12 @@ public partial class MaterialEditor
     /// <summary>Whether the "?" beside the kind is showing its note. Top-level only — a nested material
     /// never renders the mark, so it never carries the state either.</summary>
     private bool helpOpen;
+
+    /// <summary>How many fills this slot has taken. It keys the style select, which is what makes the control
+    /// go back to reading "fill from a style…" after one: the select carries a placeholder value the diff
+    /// sees as unchanged, so nothing would push the browser's own selection back off the name it landed on,
+    /// and the row would go on claiming a provenance it does not store.</summary>
+    private int filled;
 
     /// <summary>Whether this instance is one of a flattened form's rows rather than a form of its own.</summary>
     private bool Stub => Nested && Flat;
@@ -112,15 +122,35 @@ public partial class MaterialEditor
     private async Task ChangeKind(string kind)
     {
         if (kind.Length == 0 || kind == Kind) return;
-        // A kind change replaces the material wholesale rather than keeping fields the new kind cannot read —
-        // a leftover `cellSize` on a solid would be silently dropped and reappear on switching back.
-        var replacement = ThemeFields.NewMaterial(kind);
-        Node.Clear();
-        foreach (var (name, value) in replacement.ToList())
-        {
-            replacement.Remove(name);
-            Node[name] = value;
-        }
+        JsonEdit.Replace(Node, ThemeFields.NewMaterial(kind));
+        await Changed();
+    }
+
+    /// <summary>The saved styles as rows, grouped by kind — the same grouping every list of them uses, because
+    /// what tells two styles apart at a glance is what kind of material each is.</summary>
+    private IReadOnlyList<SelectOption> StyleRows =>
+    [
+        .. Styles.Select(style => new SelectOption(
+            style.Id.ToString(), style.Name, Group: MaterialKind.NameOf(style.Kind))),
+    ];
+
+    /// <summary>
+    /// Fill this slot with a saved style. A style <b>is</b> a material and materials nest, so a style inside a
+    /// layer, a band or a patch is nesting rather than a new kind of thing — there is nothing for the document
+    /// to say that it cannot already say.
+    ///
+    /// <para>What lands is a <b>copy</b>. The material tree is the wire format the painter deserializes and the
+    /// form a map snapshots, so a slot holding a style's name would have to be resolved by everything that
+    /// reads one, and a map's paint would change under it whenever the library did. Once filled it is ordinary
+    /// material JSON and is edited like any other: the style is where it came from, not what it is.</para>
+    /// </summary>
+    private async Task FillFromStyle(string value)
+    {
+        if (!long.TryParse(value, out var id)) return;
+        if (Styles.FirstOrDefault(style => style.Id == id) is not { } style) return;
+        if (JsonNode.Parse(style.Params) is not JsonObject material) return;
+        JsonEdit.Replace(Node, material);
+        filled++;
         await Changed();
     }
 

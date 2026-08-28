@@ -26,6 +26,7 @@ public partial class StyleEditor
     private const string Plan = "plan", Section = "section", Both = "both";
 
     private IReadOnlyList<PaintBlockDto> blocks = [];
+    private IReadOnlyList<StyleDto> styles = [];
     private JsonObject draft = ThemeFields.Solid(1);
     private long? editingId;
     private string draftName = "";
@@ -54,7 +55,17 @@ public partial class StyleEditor
 
     private string Footnote => $"{Outline.Count} material{(Outline.Count == 1 ? "" : "s")} · {MaterialKind.NameOf(DraftKind)}";
 
-    protected override async Task OnInitializedAsync() => blocks = await Library.BlocksAsync();
+    protected override async Task OnInitializedAsync()
+    {
+        blocks = await Library.BlocksAsync();
+        styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
+    }
+
+    /// <summary>The styles a slot here may be filled from — every one but the row being edited. A style
+    /// filled into itself would land the saved version inside the draft of the same thing, which is a copy
+    /// wearing the name of its original and reads as a loop even though it is not one.</summary>
+    private IReadOnlyList<StyleDto> Fillable =>
+        editingId is { } id ? [.. styles.Where(style => style.Id != id)] : styles;
 
     /// <summary>What the draft was loaded for. A parameter set that does not move the route is the host
     /// re-rendering — reloading there would re-read the row, report the name back up, and re-render the host

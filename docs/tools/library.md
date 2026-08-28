@@ -46,6 +46,19 @@ There is no second model of a material anywhere: the same editor authors a libra
 the Sketch tool, and the kind is read back off the JSON node the editor rewrote, so the row's kind and its
 params cannot disagree.
 
+**A style may be filled with another style, because a style is a material and materials nest.** Every slot the
+material editor draws — a layer of a stack, a band of a voronoi, a patch of a cell field, a tint's neutral
+fallback, a frame's panel — offers *Fill from a style…* beside the control naming its kind, and the two answer
+the same question: a kind gives an empty recipe of that shape, a style gives one already written. It is how a
+palette of small styles becomes a large one, which is the reason the level exists.
+
+What lands is a **copy**. The material tree is the wire format the painter deserializes and the form a map
+snapshots, so a slot holding a style's *name* would have to be resolved by everything that reads one, and a
+map's paint would change under it whenever the library did. Once filled, the material is ordinary JSON edited
+like any other — the style is where it came from, not what it is — which is why the control goes back to
+reading as an offer rather than staying on the name it was given. Editing the source style afterwards does not
+reach what was filled from it.
+
 A style's card picture travels with the row rather than costing a request per card, because a library is
 browsed by what its entries look like. The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
@@ -617,7 +630,8 @@ different — the only honest way to say whether a preset survived being stored.
 The library knows nothing about maps, and that cuts both ways. There is no way to ask which maps use a row,
 because no map references one; and there is no way to push an edit into a map that already snapshotted it. The
 snapshot is the guarantee that a library edit cannot rebuild a shipped map, so the missing "re-apply to these
-maps" is the price of it rather than a gap.
+maps" is the price of it rather than a gap. A style filled into another style is the same bargain one level
+down: what was filled in is a copy, so editing the source afterwards does not reach it.
 
 A theme and a house's own proportions are still saved as stated — a style, a theme, a bare porch, and every
 knob that is not one of the three shapes of fault above; the previews are the only feedback on those, and they
