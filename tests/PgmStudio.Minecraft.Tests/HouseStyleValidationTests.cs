@@ -207,8 +207,10 @@ public sealed class HouseStyleValidationTests
         await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roof")).IsTrue();
     }
 
+    /// <summary>A <b>bare</b> log has no axis, so every one of them stands upright and shows a sawn face out
+    /// at the slope. That is the fault, and it is the log with no axis rather than the log.</summary>
     [Test]
-    public async Task A_roof_or_a_verge_named_a_log_is_refused()
+    public async Task A_roof_or_a_verge_named_a_bare_log_is_refused()
     {
         var roofLog = Roofed(HousePresets.Desert.Style, new SolidMaterial(Blocks.Log2, 0));
         var vergeLog = Roofed(HousePresets.Desert.Style, verge: new SolidMaterial(Blocks.Log2, 0));
@@ -216,6 +218,39 @@ public sealed class HouseStyleValidationTests
         await Assert.That((roofFindings.Single().Rule, roofFindings.Single().Field))
             .IsEqualTo((HouseStyleRules.RoofMaterial, "roof"));
         await Assert.That(HouseStyleValidation.Check(vergeLog).Single().Field).IsEqualTo("verge");
+    }
+
+    /// <summary>A <b>laid</b> log is a roof material, on the body and on the verge alike — the verge because an
+    /// unbound one is the body reaching the edge, which is what a roof laid in one thing looks like. It is one
+    /// block that takes its axis from the surface, so it is not the "several blocks in one surface" a pattern
+    /// on a roof is refused for either.</summary>
+    [Test]
+    public async Task A_roof_laid_in_logs_is_allowed_on_the_body_and_on_the_verge()
+    {
+        var laid = new LaidLogMaterial(Blocks.Log, 1);   // spruce
+        await Assert.That(HouseStyleValidation.Check(Roofed(HousePresets.Desert.Style, laid, laid))).IsEmpty();
+        await Assert.That(HouseStyleValidation.Check(Roofed(HousePresets.Desert.Style, laid))).IsEmpty();
+    }
+
+    /// <summary>Laying something that is not a log is the fault the laid kind can still commit: only a log
+    /// carries its axis in its data, so anything else laid comes out turned at random.</summary>
+    [Test]
+    public async Task A_roof_laid_in_something_that_is_not_a_log_is_refused()
+    {
+        var style = Roofed(HousePresets.Desert.Style, new LaidLogMaterial(Blocks.Stone));
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That((findings.Single().Rule, findings.Single().Field))
+            .IsEqualTo((HouseStyleRules.RoofMaterial, "roof"));
+    }
+
+    /// <summary>No slab is cut from a log, so a half-course rise over a laid-log roof alternates logs with
+    /// something that is not one, all the way up the slope.</summary>
+    [Test]
+    public async Task A_half_course_rise_over_a_laid_log_roof_is_refused()
+    {
+        var style = Slabbed(Roofed(HousePresets.Desert.Style, new LaidLogMaterial(Blocks.Log, 1)), Blocks.StoneSlab);
+        var findings = HouseStyleValidation.Check(style);
+        await Assert.That(findings.Any(f => f.Rule == HouseStyleRules.RoofMaterial && f.Field == "roofSlab")).IsTrue();
     }
 
     [Test]

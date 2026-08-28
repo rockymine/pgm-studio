@@ -27,9 +27,16 @@ public static class HouseStyleRules
 
     /// <summary>A roof is not one material. Its body and its verge are each a single block — never a
     /// pattern, so nothing spreads a voronoi across a roof — and the half-course slab continues the body in
-    /// the body's own material. A log or a ground material is not a roof material at all, and a slab named as
-    /// the whole-block body with no half-course companion builds a roof with a gap in every course.</summary>
-    /// <remarks>Give the roof one material and the verge one material. They may be the same — a brick body with a brick verge is a whole brick roof — or they may differ, which is how a dark oak verge trims a brick roof; what they may not be is a pattern, several blocks, or a log or a ground material. Set `roofSlab` to a slab of the body's own material, or leave it unset and let the body carry the whole rise. The gable is the end wall and follows the wall, not this rule.</remarks>
+    /// the body's own material. A <b>bare</b> log or a ground material is not a roof material at all, and a
+    /// slab named as the whole-block body with no half-course companion builds a roof with a gap in every
+    /// course.
+    ///
+    /// <para>A <b>laid</b> log is a roof material, and the distinction is the whole rule. A log's data nibble
+    /// is its axis: named as a solid it has none, so every log on the roof stands upright and shows a sawn end
+    /// to anyone looking at the slope. A laid log takes the axis the surface is going — along the ridge, so
+    /// the ends are buried in the gable at each end and only bark shows — which is how a great many hand-built
+    /// houses roof. What was never a roof is the log with no axis, not the log.</para></summary>
+    /// <remarks>Give the roof one material and the verge one material. They may be the same — a brick body with a brick verge is a whole brick roof — or they may differ, which is how a dark oak verge trims a brick roof; what they may not be is a pattern, several blocks, a bare log or a ground material. A log belongs on a roof laid rather than solid: name it `laidLog` and it lies along the ridge instead of standing on end. Set `roofSlab` to a slab of the body's own material, or leave it unset and let the body carry the whole rise — a laid log has no slab, so a log roof carries its own rise. The gable is the end wall and follows the wall, not this rule.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Material)]
     public const string RoofMaterial = "HS3";
 
@@ -311,6 +318,18 @@ public static class HouseStyleValidation
 
         foreach (var (field, material) in new[] { ("roof", roof.Body), ("verge", roof.Verge) })
         {
+            // A laid log is one material, not several: it is one block that takes its axis from the surface it
+            // is on, which is the one thing a solid cannot say and the reason it is its own kind. On a roof
+            // that axis is the ridge, so the logs lie along the slope and show bark rather than sawn ends.
+            if (material is LaidLogMaterial laid)
+            {
+                if (!BlockFamilies.IsLog(laid.Id))
+                    findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                        $"{field} ({laid.Id}) is laid as a log and is not one. Only a log carries its axis in " +
+                        "its data; anything else laid comes out turned at random.", Field: field));
+                continue;
+            }
+
             // A roof is read from below and from a distance, and both halves of it are one plane each: a
             // pattern there is several blocks in one surface, which is the fault rather than a style.
             if (material is not SolidMaterial solid)
@@ -323,12 +342,22 @@ public static class HouseStyleValidation
             var id = solid.Id;
             if (BlockFamilies.IsLog(id))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
-                    $"{field} ({id}) is a log. A log is never a roof or a verge material.", Field: field));
+                    $"{field} ({id}) is a bare log, which has no axis and stands every one of them on end — a " +
+                    "sawn face out at whoever looks at the slope. Lay it instead: a laid log takes the axis " +
+                    "the ridge is going.", Field: field));
             else if (BlockFamilies.IsSoil(id))
                 findings.Add(new Finding(HouseStyleRules.RoofMaterial,
                     $"{field} ({id}) is a ground material. A ground material — what a building stands on — is " +
                     "never a roof or a verge material.", Field: field));
         }
+
+        // A laid log has no slab to continue it in, so a half-course rise over one is a course of logs and a
+        // course of something else alternating up the slope.
+        if (roof.Slab >= 0 && roof.Body is LaidLogMaterial)
+            findings.Add(new Finding(HouseStyleRules.RoofMaterial,
+                "roofSlab is set over a roof laid in logs, and no slab is cut from a log. A laid log carries " +
+                "its own whole-course rise — leave roofSlab unset.",
+                Field: "roofSlab"));
 
         // The half-course slab is the body continuing by halves, so it is the body's own material. A slab of
         // something else makes the roof two materials in alternating courses, which reads as neither.

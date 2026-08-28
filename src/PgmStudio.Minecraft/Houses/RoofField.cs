@@ -49,6 +49,11 @@ public sealed class RoofField
     /// the reason a long building is a long building rather than a tall one.</summary>
     private readonly int shortSpan;
 
+    /// <summary>Which way the ridge runs — the axis a slope's own face travels along, and what a block with a
+    /// direction of its own is laid on. A log laid across the slope would put a sawn end out at whoever is
+    /// looking; laid along the ridge its ends are buried in the gable at each end and only bark shows.</summary>
+    public bool RidgeAlongX => acrossZ;
+
     /// <param name="form">Which roof this is.</param>
     /// <param name="overhang">How far past the walls the roof reaches, in blocks.</param>
     /// <param name="baseY">The course the roof stands at over the wall line — one above the wall's last.</param>

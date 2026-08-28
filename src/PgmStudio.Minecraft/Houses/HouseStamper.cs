@@ -141,7 +141,10 @@ public static class HouseStamper
         // Air resolved out of a material is a gap left open, never a hole punched in what is already there:
         // a stack whose fourth course is air is a light slit, and skipping it keeps the pass from erasing a
         // stamp underneath. Only a doorway and a window write air, because those are openings cut on purpose.
-        void Put(int x, int y, int z, TerrainMaterial material, BuildingPlan ring, int depth = 0)
+        // `run` overrides which way the face at this cell is going. Unset it is the wall ring's own run, which
+        // is the answer for every cell of a wall; a roof's face travels along its ridge instead, and the ring
+        // beneath it is a different surface going a different way.
+        void Put(int x, int y, int z, TerrainMaterial material, BuildingPlan ring, int depth = 0, int? run = null)
         {
             if (y is < 1 or >= VoxelWorld.MaxHeight) return;
             // A wall is a closed ring, so a pattern reads it exactly as it reads a plateau's outer edge: the
@@ -149,7 +152,7 @@ public static class HouseStamper
             // is. Without them every cell of the wall answers as arc 0 and a striped wall comes out flat.
             var arc = ring.Arc(x, z);
             var (id, data) = material.Resolve(new BucketContext(
-                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, ring.Turn(arc), ring.Run(x, z)));
+                x, y, z, TerrainBucket.Fill, depth, color, arc, 0, ring.Turn(arc), run ?? ring.Run(x, z)));
             if (id == Blocks.Air) return;
             world.SetBlock(x, y, z, id, data);
         }
@@ -526,10 +529,14 @@ public static class HouseStamper
             // On a half course the topmost cell is a slab rather than a cube — written straight, the way a
             // window's pieces are, because which half it fills is geometry and not something a material may
             // resolve. The cubes under it are the roof's own material like any other course.
+            // The slope's own face travels along the ridge, so that is the run a roof cell answers with rather
+            // than the wall ring's underneath it — what lays a log along the roof instead of turning it with
+            // whatever wall happens to pass below.
+            var ridgeRun = field.RidgeAlongX ? GridBoundary.RunAlongX : GridBoundary.RunAlongZ;
             var slab = field.Half(x, z);
             var from = Math.Max(field.Underside(x, z), lowest);
             for (var y = from; y <= (slab ? crown - 1 : crown); y++)
-                Put(x, y, z, material, ring);
+                Put(x, y, z, material, ring, run: ridgeRun);
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
                 world.SetBlock(x, crown, z, slabBlock, style.Roof.SlabData & 0x7);
 

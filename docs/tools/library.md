@@ -514,9 +514,11 @@ rule ids (`PgmStudio.Minecraft.HouseStyleRules`), so a caller can act on `rule` 
   surface, and `roofSlab` is the body's own material, since the slab is the body continuing by halves. The two
   may be the same block — a brick body with a brick verge is a whole brick roof — or they may differ, which is
   how a dark oak verge trims one. A slab named as the whole-block `roof` while `roofSlab` is unset builds a
-  see-through roof at a whole block of rise; a log or a ground material named as `roof` or `verge` is refused
-  outright, whichever role it is asked to fill. The **gable** is the end wall carried up and follows the wall,
-  so it is not held to this.
+  see-through roof at a whole block of rise; a **bare** log or a ground material named as `roof` or `verge` is
+  refused outright, whichever role it is asked to fill. A **laid** log is not — a `laidLog` roof lies along the
+  ridge and is one of the commonest hand-built roofs there is, and what was never a roof is the log with no
+  axis rather than the log. It carries its own whole-course rise, so `roofSlab` over one is refused: no slab is
+  cut from a log. The **gable** is the end wall carried up and follows the wall, so it is not held to this.
 
 - **`HS4` — a part built of two blocks, built of two materials.** A door head is a stair at each corner and a
   slab between them, and a window may be seated in a host block; each pair is one line of the building and is

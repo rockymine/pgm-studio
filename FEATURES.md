@@ -2304,6 +2304,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A roof may be laid in logs (WE51).** The ban was on the log, and it wanted to be on the log with no
+  *axis*: a log's data nibble is which way it lies, so one named as a solid has none and every one of them
+  stands upright showing a sawn face out at the slope — which is what a verge laid that way looked like and
+  why the rule was written. A `laidLog` states the axis, so `HS3` now refuses a **bare** log on a roof or a
+  verge and admits a laid one on either — the verge because an unbound one composes to the body reaching the
+  edge, which is what a roof laid in one thing is. The stamper hands a roof cell **the ridge** as its run
+  rather than the wall ring's underneath it: the ring is a different surface going a different way, and off a
+  wall it has no answer at all, so every laid roof would otherwise lie on one axis whatever shape the building
+  is. `roofSlab` over a laid-log roof is refused, since no slab is cut from a log.
+  (`Houses/{HouseStyleValidation,HouseStamper,RoofField}.cs`, `docs/tools/library.md`,
+  `docs/world-export/structures.md`; 4 tests, the stamper's over both ridge orientations)
 - **A house answers back every part it stores (TL9).** `RoomStyleDetail` was built with 21 of its 26
   arguments, so a house's **door head, gable windows, beams, roof slab and window host** were stored, stamped
   correctly into the building — and never put on the wire. The editor loads that answer and saves what it

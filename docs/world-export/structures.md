@@ -335,7 +335,17 @@ block — a pattern is refused in either (`HS3`), because a roof is read as one 
 across it is several blocks in one surface — and the slab continues the body, so it is the body's own
 material: a sandstone slab under a brick roof builds alternating courses of two materials and reads as
 neither. Body and verge may be the same block, which is a whole brick roof, or they may differ, which is how a
-dark oak verge trims one; what neither may be is a log or a ground material. The **gable is not in this rule**:
+dark oak verge trims one; what neither may be is a **bare** log or a ground material.
+
+**A laid log is a roof material, and the difference is the axis.** A log's data nibble is which way it lies, so
+a log named as a solid has none: every one of them stands upright and shows a sawn face out at the slope, which
+is the fault the ban was written for. A `laidLog` takes the axis the surface it is on is going, and for a roof
+that is **the ridge** — so the logs run the length of the building, their ends buried in the gable at each end
+and only bark showing on the slope. The roof passes its ridge rather than the wall ring beneath it, because the
+ring is a different surface going a different way and off a wall it has no answer to give at all. A laid log
+carries its own whole-course rise and no slab is cut from one, so `roofSlab` over a log roof is refused.
+
+The **gable is not in this rule**:
 it is the end wall carried up and it follows the wall, which is why a stone brick gable under a spruce roof is
 a house rather than a fault.
 

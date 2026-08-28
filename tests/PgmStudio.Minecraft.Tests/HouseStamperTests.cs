@@ -46,6 +46,45 @@ public sealed class HouseStamperTests
         return false;
     }
 
+    /// <summary>
+    /// A roof laid in logs lies <b>along its ridge</b>, whichever way the ridge runs. The axis is a log's data
+    /// nibble, so this is what separates a laid roof from a heap of upright logs showing a sawn face at every
+    /// cell of the slope: the slope's own face travels along the ridge, and off a wall the ring underneath has
+    /// no answer to give — it would lay every roof on one axis whatever shape the building is.
+    /// </summary>
+    [Test]
+    [Arguments(13, 7)]   // wider than deep — the ridge runs along X
+    [Arguments(7, 13)]   // deeper than wide — and the logs turn with it
+    public async Task A_roof_laid_in_logs_lies_along_its_ridge(int width, int depth)
+    {
+        const int Spruce = 1, AlongX = 4, AlongZ = 8;
+        var style = new HouseStyle
+        {
+            // The corner post is an upright oak log by default and the shell is what is under test, so it goes
+            // — otherwise the posts answer this question too, in the axis a post is supposed to stand on.
+            Post = new SolidMaterial(Blocks.Stone),
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Gable, Pitch = 1, Overhang = 1,
+                Body = new LaidLogMaterial(Blocks.Log, Spruce),
+                Verge = new LaidLogMaterial(Blocks.Log, Spruce),
+            },
+        };
+        var world = House(width, depth, style);
+
+        var axes = new HashSet<int>();
+        for (var x = -1; x <= width; x++)
+            for (var z = -1; z <= depth; z++)
+                for (var y = FloorY; y < FloorY + 30; y++)
+                    if (world.GetBlock(x, y, z).Id == Blocks.Log)
+                        axes.Add(world.GetBlock(x, y, z).Data & 0xC);
+
+        await Assert.That(axes).IsNotEmpty();
+        // One axis over the whole roof, and it is the long side's: a log turned the other way, or standing
+        // upright, would put its sawn end out at the slope.
+        await Assert.That(axes.Single()).IsEqualTo(width > depth ? AlongX : AlongZ);
+    }
+
     [Test]
     [Arguments(11, 9, 1)]
     [Arguments(11, 10, 1)]      // even span — the ridge is two blocks wide
