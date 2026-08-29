@@ -562,6 +562,53 @@ public sealed class TerrainPainterTests
         await Assert.That(layered.Beyond).IsNull();
     }
 
+    /// <summary>
+    /// <b>A lower layer finished in a stone variant is finished.</b> Stone's id is shared by granite, diorite,
+    /// andesite and their polished forms, so a stone-only test that reads the id alone counts a finished
+    /// course as unpainted ground and the next layer's pass writes through it — a plinth in polished diorite
+    /// comes back in whatever the thing standing on it is made of.
+    ///
+    /// <para>A plinth to y5 and a wool block on it from y6, painted in document order. The wool layer's fill
+    /// band covers the whole column, so its only reason to leave y1–4 alone is that the plinth's pass already
+    /// claimed them.</para>
+    /// </summary>
+    [Test]
+    public async Task A_course_finished_in_a_stone_variant_is_not_repainted_by_the_layer_above()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 5; x++)
+        for (var z = 0; z < 5; z++)
+        {
+            columns.Add(new ColumnSegment(x, z, 1, 6, "plinth"));
+            columns.Add(new ColumnSegment(x, z, 6, 10, "block"));
+        }
+        var terrain = TerrainBuilder.Build(columns);
+
+        var diorite = TerrainTheme.Default with
+        {
+            Rim = new TopBand(new SolidMaterial(Blocks.Stone, 4)),
+            Surface = new TopBand(new SolidMaterial(Blocks.Stone, 4)),
+            Wall = new SolidMaterial(Blocks.Stone, 3),
+            Fill = new SolidMaterial(Blocks.Stone, 3),
+        };
+        var wool = TerrainTheme.Default with
+        {
+            Rim = new TopBand(new SolidMaterial(Blocks.Wool, 14)),
+            Surface = new TopBand(new SolidMaterial(Blocks.Wool, 14)),
+            Wall = new SolidMaterial(Blocks.Wool, 14),
+            Fill = new SolidMaterial(Blocks.Wool, 14),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => layer == "plinth" ? diorite : wool);
+
+        // The plinth keeps its own courses.
+        await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Stone, 3));
+        await Assert.That(terrain.World.GetBlock(2, 5, 2)).IsEqualTo((Blocks.Stone, 4));
+        // And what stands on it is still wool.
+        await Assert.That(terrain.World.GetBlock(2, 7, 2)).IsEqualTo((Blocks.Wool, 14));
+        await Assert.That(terrain.World.GetBlock(2, 9, 2)).IsEqualTo((Blocks.Wool, 14));
+    }
+
     /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
     private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
 }

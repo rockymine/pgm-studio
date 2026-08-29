@@ -58,7 +58,11 @@ public static class TerrainPainter
             var sample = foldAt?.Invoke(cell.X, cell.Z) ?? cell;
             foreach (var (y, id, data) in ColumnBlocks(cell.X, cell.Z, column, themeAt(cell.X, cell.Z), team(cell.X, cell.Z), sample))
             {
-                if (world.GetBlock(cell.X, y, cell.Z).Id != Blocks.Stone) continue;   // stone-only invariant
+                // The stone-only invariant, over the whole block and not its id alone: stone's id is shared
+                // by granite, diorite, andesite and their polished forms, so a course a lower layer has
+                // already finished in one of those is still unpainted ground to an id-only test and the next
+                // layer's pass writes straight through it.
+                if (world.GetBlock(cell.X, y, cell.Z) != (Blocks.Stone, 0)) continue;
                 if (id != Blocks.Stone || data != 0) world.SetBlock(cell.X, y, cell.Z, id, data);
             }
         }

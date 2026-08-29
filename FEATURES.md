@@ -2304,6 +2304,11 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A lower layer's finish survives the pass above it (WE58).** The stone-only invariant is over the whole
+  block rather than over its id: stone's id is shared by granite, diorite, andesite and their polished forms,
+  so an id-only guard counted a course already finished in one of those as unpainted ground and the next
+  layer's pass wrote through it — a plinth in polished diorite under a wool prop came back wool. The read now
+  compares `(id, data)` against `(Stone, 0)`, which is what the write beside it always compared. (WE58)
 - **A board is painted in biomes (WE55 — see BACKLOG WE52–WE54 for what is left).** A biome is one byte per
   column the client reads to tint grass, leaves and water, so it is the only colour a board gets for free.
   `AnvilRegionWriter` filled every chunk with plains; a chunk now carries 256 bytes answered by a map-wide

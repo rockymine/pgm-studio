@@ -233,6 +233,12 @@ shape still wins a contested cell. Across layers there is no contest at all — 
 The passes cannot tread on each other because of the stone-only invariant: a course a lower layer has already
 finished is no longer stone. Where two layers genuinely meet flush, the one drawn first is what stands.
 
+**The invariant is over the whole block and not over its id.** Stone's id is shared by granite, diorite,
+andesite and their polished forms, so a lower layer finishing a course in one of those leaves a block whose
+id still reads as stone; a guard testing the id alone counts it as unpainted ground and the pass above paints
+straight through it. A plinth in polished diorite under a red prop comes back red. The read compares the pair
+— `(id, data)` against `(Stone, 0)` — which is what the write beside it has always compared.
+
 ## 4. The cases — and the tests they drive
 
 Each scenario the prototype separated is a test fixture; several are now written as `TerrainPainterTests`

@@ -208,85 +208,89 @@ below are what that would cost. Each names the question that has to be answered 
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
+## A made thing is a third kind, and it is drawn out of layers
 
-## Props that are not terrain: a structure drawn out of layers
+**The author's ruling.** The shape tool draws **terrain** — shapes and a relief. The dressing pass places
+**props** — houses, trees, boulders. A sculpture is neither: it is a *made thing*, its own kind beside those
+two, and it happens to be written in the layer model because that is what can hold it.
+`pgm-studio-mapgen/SCULPTING-WITH-LAYERS.md` is the measurement behind every entry here — nine forms in sketch
+shapes, eight of them one layer, and nine compiled solids on two exported boards.
 
-A layer is one arbitrary height field — `(floor, top)` per column, because the taller add wins a contested
-column outright and carries its own floor — so the shapes an author already has draw a dome, a ring wall, a
-tapered tower or an arch, one layer each. `pgm-studio-mapgen/SCULPTING-WITH-LAYERS.md` is the measurement:
-nine parametric forms, eight of them a single layer, and four compiled solids on a played board
-(`maps/opus5-automaton`) that scores 0 with no violation and no lint. What the four entries below name is what
-that board could not do, and every one of them is a fact about the layer *system* rather than about the
-shapes drawn on it.
+**The house is the worked precedent, and its contract is the one to copy** (`docs/world-export/decoration.md`
+§8, `structures.md` §6). A house prop is a drawn rectangle handed to a stamper that neither knows nor cares
+where the footprint came from; it **seats on the lowest column of its own footprint, one course down**, carves
+the terrain standing over that floor out of every footprint column while the ground outside keeps its height,
+**claims what it stamps grown one block outward**, and refuses rather than half-lands — `DR-SITE` on the first
+column with no ground under it, `DR-SLOPE` where the rise across the footprint reaches the building's own
+height. That is exactly what a made thing needs, and none of it has to be invented.
 
-- [ ] **TS61 — A layer seats itself on the ground under it.** A shape states an absolute `floor`, and a
-  relief moves the ground beneath it, so a prop on rolling terrain floats or is buried and there is no word
-  that says otherwise: `height_mode` reaches a shape inside its own island's relief and never a shape on
-  another layer. Measured: `opus5-automaton`'s first build put nine props into the ground, the deepest seven
-  courses, and the board is flat only because of it. Add `seat` to `SketchLayer` (`SketchLayout.cs`) —
-  absent is today's absolute floor, `raise` takes each shape's floor from the top of the ground standing
-  under its own footprint, read off the same solve `SketchRasterizer.ReliefFields` already produces. It runs
-  where the erected shapes run, after the relief and before the mirror fan.
+- [ ] **TS61 — A made thing seats itself on the ground, and the relief does not reach it.** A shape states an
+  absolute `floor` and a relief moves the ground beneath it, so a prop on rolling terrain floats or is buried:
+  `height_mode` reaches a shape inside its own island's relief and never one on another layer. Evidence:
+  `opus5-automaton`'s first build put nine props into the ground, the deepest seven courses, and the board is
+  flat only because of it. Give the layer a `seat` — absent is today's absolute floor, `ground` takes the
+  whole layer's floors from the **lowest** solid column under its own footprint, one course down, the way
+  `HouseProp` already seats. Carve, claim and refuse by the same contract: the terrain over the seat comes
+  out, the footprint claims one block of ring, and a column with no ground under it declines the piece rather
+  than hanging half of it in the air.
 
-- [ ] **TS62 — `SK10` and `SK11` read a prop as a storey, and both are wrong about it.** A solid sculpture
-  standing on a hill *should* sink into the hill: there is no gap to lose, and `SK10`'s sentence ("the gap
-  between the two storeys is not in the world there") describes a gallery under a deck. `SK11` fires on
-  every overhang a prop has — a dome on columns, a raised arm, an antenna — and `sculpture/models` raises
-  twenty-two of them, all true and none a fault. Give `SketchLayer` a `kind` (`ground` · `prop`), take a
-  `prop` layer out of `OverlappingLayerSpans`' pair walk and out of `DetachedMasses`, and say so in
-  `SketchRules`' two docstrings. The rules stay exactly as strict about the storeys they were written for.
+- [ ] **TS62 — A layer says what kind it is, and a prop is not a storey.** `SK10` reads a solid sculpture
+  sinking into a hill as two storeys losing the gap between them, and `SK11` reads every overhang — a dome on
+  columns, a raised arm, an antenna — as standable ground nothing reaches: 19 findings on
+  `maps/sculpture-gallery`, all true and none a fault. Give `SketchLayer` a `kind` (`ground` · `prop`), take a
+  `prop` layer out of `SketchRasterizer.OverlappingLayerSpans`' pair walk and out of `DetachedMasses`, and say
+  so in both `SketchRules` docstrings. The rules stay exactly as strict about the storeys they were written
+  for, which is what they are about.
+
+- [ ] **TS65 — Two words in the sketch model are the wrong words.** An **island** was the right name when a
+  board was one layer and every shape reached the bedrock: a connected landmass. It is now the name of any
+  connected group of shapes on any layer, including a robot's forearm forty blocks in the air, and it is
+  wrong there (author). And the editor calls a layer a **storey**, which is the word `HouseStyle` already owns
+  for a floor of a building (`structures.md` §7.6) — two meanings, one word, in one export. A layer is a
+  layer. Settle both names, then change every site in the same commit: the wire keys, `SketchLayout`,
+  `SketchRules`' sentences, `docs/tools/sketch.md`, the storey strip and the island tree. No compatibility
+  path — the stored blobs are re-emitted.
+
+- [ ] **TS64 — A made thing is one thing to an author and many layers to the rasterizer.** `opus5-automaton`
+  carries 31 layers, 24 of them `colossus-L0…sentinel-L7`; `GET …/render/topdown?layer=` prints all 31 in its
+  `RQ4` refusal, and the layer strip would be unreadable. Give a layer an optional `group` and render the
+  strip, the layer list and the topdown filter by group — one row per made thing with its layers folded under
+  it. **A group is also what moves**: dragging one has to take every layer of it together, since a made thing
+  standing half a block from where it was put is not a made thing. Downstream of `TS62`, which is where
+  `kind` arrives.
 
 - [ ] **TS63 — A form library: the round structures a layer already draws.** `ring_wall`, `ellipse_wall`,
-  `dome`, `spire`, `ziggurat`, `arch`, `colonnade`, `tapered_tower`, `bowl` — a footprint and a few numbers
-  each, emitting circles and polygons with a floor and a height, so what lands in the document stays
-  draggable in Draw. Costs measured on `sculpture/forms`: a hollow dome of radius 13 is 13 circles on one
-  layer, a hollow ellipse is 2 polygons, a thirty-course tapered tower is 6. Two mechanisms are load-bearing
-  and neither is documented in `docs/tools/sketch.md`: an **annulus is one polygon** (outer ring, slit
-  inward, inner ring reversed — even-odd fill does the rest), because `SK13` refuses a subtract with
-  anything over or under it; and an **override add** lays a floor inside a wall whatever their heights.
-
-- [ ] **TS64 — A stack of thirty-one layers is not a storey strip.** `opus5-automaton` carries 31 layers, 24
-  of them `colossus-L0…sentinel-L7`, and `GET …/render/topdown?layer=` prints all 31 in its `RQ4` refusal.
-  A prop is one thing to an author and *n* layers to the rasterizer. Give a layer an optional `group` and
-  render the strip and the layer list by group, one row per prop with its layers folded under it. Downstream
-  of `TS62`, which is where `kind` arrives.
-
-- [ ] **WE58 — The stone-only invariant reads the id and not the data, so a stone-variant finish is repainted
-  by the next layer.** `TerrainPainter.Paint` guards with `world.GetBlock(...).Id != Blocks.Stone` and writes
-  with `id != Blocks.Stone || data != 0` (`TerrainPainter.cs:61-62`). The write is data-aware and the read is
-  not, so every **id 1** block — stone, granite, polished granite, diorite, polished diorite, andesite,
-  polished andesite — is written by a lower layer's pass and still reads as stone to the next one, which
-  paints straight through it. `terrain-painting.md` §3 states the opposite in as many words: *"the passes
-  cannot tread on each other because of the stone-only invariant: a course a lower layer has already finished
-  is no longer stone"*, and §"the runtime seam" claims a re-run is idempotent. Neither holds for that family.
-  Measured on `pgm-studio-mapgen/sculpture`, one column, everything else identical: a plinth themed
-  `(1, 4)` under a red car comes back **red at y1–5**; the same plinth themed `(24, 2)` comes back sandstone.
-  Fix the read to compare the pair — `is not (Blocks.Stone, 0)` — and the write already agrees with it. A
-  test wants the pair: two layers, the lower finished in polished diorite, the upper in wool.
+  `dome`, `spire`, `ziggurat`, `arch`, `colonnade`, `tapered_tower`, `bowl`, `crenellated_wall`, `drum_tower`,
+  and a `gatehouse` composing five of them — a footprint and a few numbers each, emitting circles and polygons
+  with a floor and a height, so what lands stays draggable in Draw. Costs measured on
+  `pgm-studio-mapgen/sculpture/forms`: a hollow dome of radius 13 is 13 circles on one layer, a hollow ellipse
+  is 2 polygons, a thirty-course tapered tower is 6, the gatehouse 8 layers and 74 shapes. **Which forms earn
+  a place is the author's**: the arch, the ziggurat, the ellipse wall, the tapered tower and the domed roof
+  are wanted; the amphitheatre and the colonnade are not, as drawn. Two mechanisms are load-bearing and
+  neither is in `docs/tools/sketch.md`: an **annulus is one polygon** (outer ring, slit inward, inner ring
+  reversed — even-odd fill does the rest), because `SK13` refuses a subtract with anything over or under it;
+  and an **override add** lays a floor inside a wall whatever their heights.
 
 - [ ] **WE57 — A material that reads absolute Y, and stops a colour change costing a layer.** A layer's span
   carries one theme, so a colour band splits a run as surely as air does — and that, not geometry, is what a
-  sculpture costs. Measured over seven models in `pgm-studio-mapgen/sculpture`: the layer count the shape
-  alone needs against the one it actually takes — starship 2 against 4, robot 5 against 16, and a Rubik's
-  cube, which is a **solid box with one run per column**, 1 against 7. Add a `heightBand` to
-  `TerrainMaterial`'s polymorphic set (`TerrainTheme.cs`, fourteen derived types already): a list of
-  `(from, to, material)` over world Y plus a fallback, resolved off `BucketContext.Y`, which every context
-  already carries and no material maps to a stated band — the volume patterns sample it as a noise
-  coordinate and that is all. Nothing in the rasterizer, the painter or the gate changes. Re-compiling the
-  seven with runs split on air alone measures the win: robot 16 layers / 746 shapes → **5 / 396**, cube
-  7 / 123 → **1 / 33**, station 7 / 2,557 → **6 / 1,467**. Fewer layers *and* fewer shapes, because
-  splitting a run by colour also shatters its footprint into small rectangles.
+  sculpture costs. Measured over nine models: the layer count the shape alone needs against the one it takes —
+  starship 2 against 4, robot 5 against 16, and a Rubik's cube, which is a **solid box with one run per
+  column**, 1 against 7. The shape is already in the model: `BandStack` states bands along a distance and its
+  own ending, and *the caller states the axis* (`structures.md` §7) — `BandAxis` reads `Depth` down a bucket
+  and `Inward` from an edge. Add a third that reads world Y off `BucketContext.Y`, which every context already
+  carries. **Purely additive**: no existing theme names it, so nothing already stored paints differently.
+  Re-compiling the nine with runs split on air alone: robot 16 layers / 746 shapes → **5 / 396**, cube
+  7 / 123 → **1 / 33**, station 7 / 2,557 → **6 / 1,467**. Fewer layers *and* fewer shapes, because splitting
+  a run by colour also shatters its footprint into small rectangles.
 
-- [ ] **WE56 — The painter's buckets are a model of ground, and a sculpture is not ground.** `rim` caps every
-  plateau boundary and `wall` covers every exposed riser, so on a curved voxel form — which is nothing but
-  plateau boundaries — a three-tone theme speckles the whole surface; every piece in `pgm-studio-mapgen/sculpture`
-  states a **solid** theme for that reason. Two smaller edges belong with it: a theme whose material *is*
-  stone writes nothing (the stone-only invariant) and its cells stay overwritable by the next layer's pass,
-  which reads as one shape's material flooding another's column; and `BedrockSpec.PaintFloor` clamps to at
-  least one course, so y=0 is bedrock wherever a column has ground. Decide whether a theme states that it
-  paints a made thing rather than terrain — a `flat` bucket policy — and write the three facts into
-  `docs/world-export/terrain-painting.md` either way.
-
+- [ ] **WE56 — Write down what the painter does to a shape that is not ground.** `rim` caps every plateau
+  boundary and `wall` covers every exposed riser, so on a curved voxel form — which is nothing but plateau
+  boundaries — a three-tone theme speckles the whole surface; every piece in
+  `pgm-studio-mapgen/sculpture` states a **solid** theme for that reason, and that is the whole finding. Put
+  it in `docs/world-export/terrain-painting.md` beside the bucket model, with the second fact it travels with:
+  `BedrockSpec.PaintFloor` clamps to at least one course, so y=0 is bedrock wherever a column has ground and a
+  made thing standing at y=0 has a bedrock sole. No new theme concept is needed — a solid theme is already the
+  answer — so this is documentation and, at most, a `rimEdges` word for "cap nothing".
 
 ## The library preview: authoring a building where it will stand
 
