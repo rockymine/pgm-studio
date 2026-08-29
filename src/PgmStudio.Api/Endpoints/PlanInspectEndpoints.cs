@@ -145,16 +145,19 @@ public sealed class PlanInspectEndpoint : EndpointWithoutRequest<PlanInspectDto>
             structures = [];
         }
 
-        // The destroy-goal walks: own-spawn, enemy-spawn and the ratio, in blocks over the fanned closure.
-        // A measurement, not a rule — the band a rule would hold the ratio to is the author's to state.
+        // The destroy-goal walks, in blocks over the fanned closure: to each spawn with the ratio, and
+        // between the goals themselves. Measurements, not rules — the bands the four goal rules hold them to
+        // are the author's to state, and are stated on the terms.
         var goalDistances = GoalDistances.Read(plan).Select(walk => new PlanGoalWalkDto(
             walk.Id, walk.Kind, walk.OwnSpawnBlocks, walk.EnemySpawnBlocks, walk.Ratio)).ToList();
+        var goalPairs = GoalDistances.Pairs(plan).Select(pair => new PlanGoalPairDto(
+            pair.From, pair.To, pair.Opposing, pair.Blocks)).ToList();
 
         await Send.OkAsync(new PlanInspectDto(
             interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps,
             [.. structures.Select(b => new PlanStructureBoxDto(
                 b.Kind, b.Color, b.MinX, b.MinZ, b.MaxX, b.MaxZ, b.Floor, b.Top))],
-            goalDistances), ct);
+            goalDistances, goalPairs), ct);
     }
 }
 

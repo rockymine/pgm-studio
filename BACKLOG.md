@@ -1160,31 +1160,6 @@ asked over.
   sharing an approach and the defender arriving from behind the objective. That test rests on a fuse position
   this entry says is wrong on townside, so it wants re-checking once the forks are per pair.*
 
-- [ ] **B175 — Add a goal↔goal walk to `GoalDistances`, and a rule over it for a team's own goals.**
-  `GoalDistances` already walks the fanned closure to each spawn in the settled unit; the goal↔goal walk is the
-  same traversal with a different target, and `GoalDistances` already walks a `Walk.Field` out of each goal,
-  so a second read of the same field answers it. The band lives on the term as `SoftTerm.AuthoredBand`, the
-  way `GO1` does, and the number is stated: **`GO2`, 35–65 blocks by walk**. It is the destroy-side
-  counterpart of `WL7`, which already separates a team's wools.
-
-  *author, 2026-08-14 · Haiku DTM Tower seats a destroyable and a core on one piece, `red-monument-region`
-  ending at `x −9` and `red-core-region` starting at `x −1` — eight blocks of clear ground, both sky markers
-  ten apart. Two well-spaced boards read 70 (`tallow-kilnrow`) and 74.3 (`basalt-reach`) in the same retired
-  unit.*
-
-- [ ] **B179 — State how far opposing goals stand apart, and how much of the board the contest uses.** The
-  first is `B175`'s walk read across the axis instead of within a team — one traversal serves both, and
-  `GoalDistances` already fans the closure so a route may cross the boundary. The second is `GroundCoverage`
-  (`B241`), which already classes every ground cell reached, decorated or dead: "how much of this board is the
-  contest using" is measurable there rather than inferable from a bounding box. The number is stated:
-  **`GO3`, 85–150 blocks by walk** between opposing goals.
-
-  *author, 2026-08-14 · on a 240 × 190 board every Ashfall Scar objective sits on `x = 0`, the objective set
-  spans `z −37 … 38`, and opposing monuments stand 19 blocks apart with no obstacle between them. The author's
-  reading — a stalemate rather than a rush, and a board too large for what it uses — is a gameplay judgment and
-  is the author's; the numbers are what it rests on. The goals being visible from spawn is the good half and
-  the door's approach keep-out protects it.*
-
 - [ ] **B169 — Complain about spawn ground that carries nothing and contests nothing.** Raw size is not the
   test (author): a spawn seated on a large rectangle that *is* the map is fine, and Mirefast's 92-wide
   `steading` at least carries nine houses and two ramps. What fails is flat dead area around a spawn placed at

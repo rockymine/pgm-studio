@@ -48,6 +48,8 @@ public static class LayoutEvaluator
         new WoolFrontRatio(),
         new WoolFrontRemoteness(),
         new GoalSpawnRatio(),
+        new OwnGoalDistance(),
+        new OpposingGoalDistance(),
         new GoalSpawnDistance(),
     ];
 

@@ -2318,6 +2318,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   stood, a basin deeper than `level − depth` keeping its own floor rather than a shelf hung in it. **The basin
   is a low floor and not a hole**: the pass skips a column the surface map does not carry, so a harbour is an
   override add rather than a subtract. (WE59)
+- **Goal against goal: GO2 and GO3, over the walk the spawn rules already use (B175, B179).**
+  `GoalDistances` walks one field out of each destroy goal; it now reads that field at the other goals as
+  well as at the two spawns, so the four goal rules are four bands over one traversal rather than four
+  geometries. `Pairs` answers each unordered pair once — a team's own (`opposing: false`) and a goal against
+  one the other team defends (`opposing: true`), which on an order-2 board is the orbit image of an authored
+  goal, a monument against its own mirror being the pair every symmetric board carries. `OwnGoalDistance`
+  holds the first to **[35, 65]** blocks (GO2: two goals one position covers are one goal with two names,
+  two no position covers make the defence a shuttle) and `OpposingGoalDistance` the second to
+  **[85, 150]** (GO3: what the contest spans, between a rush and a stalemate), worst pair scored in each.
+  A goal with no route keeps its pairs and loses only their distance, since the pair is a fact about the
+  board and the walk is what is unknown. `POST /plan/inspect` serves them as `goalPairs`. (B175, B179)
 - **A made thing is a third kind, and three words on a layer say so (TS62, TS65).** A ship, a balloon, a
   statue is neither terrain nor a dressing prop: it is drawn out of layers because layers hold an arbitrary
   solid. `SketchLayer` carries `kind` (`ground` · `prop`, absent is ground), `prop` naming which made thing

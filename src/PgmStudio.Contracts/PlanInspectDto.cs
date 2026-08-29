@@ -19,6 +19,7 @@ namespace PgmStudio.Contracts;
 /// <param name="IslandGaps">The straits between bridged islands, and how wide each is.</param>
 /// <param name="Structures">The boxes the world build will stamp, which the iso view draws.</param>
 /// <param name="GoalDistances">Each destroy goal's walk from its own spawn and from the enemy's.</param>
+/// <param name="GoalPairs">The walk between each pair of destroy goals — a team's own, and across the axis.</param>
 public sealed record PlanInspectDto(
     IReadOnlyList<PlanInterfaceDto> Interfaces,
     IReadOnlyList<PlanGapLinkDto> GapLinks,
@@ -27,7 +28,8 @@ public sealed record PlanInspectDto(
     IReadOnlyList<PlanFrontlineRunDto> FrontlineRuns,
     IReadOnlyList<PlanIslandGapDto> IslandGaps,
     IReadOnlyList<PlanStructureBoxDto> Structures,
-    IReadOnlyList<PlanGoalWalkDto> GoalDistances);
+    IReadOnlyList<PlanGoalWalkDto> GoalDistances,
+    IReadOnlyList<PlanGoalPairDto> GoalPairs);
 
 /// <summary>Where two pieces meet: the seam as a segment, how the surface steps across it, and what the seam
 /// carries — a wool room, a wall, the chest piece of one.</summary>
@@ -137,3 +139,14 @@ public sealed record PlanStructureBoxDto(
 /// defender.</param>
 public sealed record PlanGoalWalkDto(
     string Id, string Kind, double? OwnSpawnBlocks, double? EnemySpawnBlocks, double? Ratio);
+
+/// <summary>The walk between two destroy goals, over the same fanned closure the spawn walks are taken on.
+/// <paramref name="Opposing"/> separates the two rules stated over it: false is a pair one team defends
+/// (<c>GO2</c>, 35–65 blocks), true is a goal against one the other team defends (<c>GO3</c>, 85–150). On an
+/// order-2 board the opposing goal is the orbit image of an authored one, so a monument against its own
+/// mirror is a pair like any other — and the one every symmetric board carries.</summary>
+/// <param name="From">One of the two goals, by id.</param>
+/// <param name="To">The other; the same id where the pair is a goal against its own image.</param>
+/// <param name="Opposing">Whether the two are defended by different teams.</param>
+/// <param name="Blocks">The walk in blocks, or null where no route joins them over the closure.</param>
+public sealed record PlanGoalPairDto(string From, string To, bool Opposing, double? Blocks);

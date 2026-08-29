@@ -409,10 +409,14 @@ it applies to and from no others.
 - **Objective / wool** — wool↔spawn ≥20 (WL2); wool↔wool ≥45 (WL7); flat plateau covering ≥ the 8×8 stamp,
   edge-to-edge (WL3); 1–3 wools, each on a distinct lane (WL6); a third wool is rare and a real route, not
   crammed by the spawn (G45).
-- **Destroy goals** — each goal's enemy÷own spawn walk lands in the authored band **[3.0, 4.0]** (GO1),
-  measured over the fanned closure, worst goal scored (`goal-spawn-ratio`); the same own-spawn leg is also held
-  to an absolute band, **[40, 90]** blocks (GO4), worst goal scored (`goal-spawn-distance`); bare reachability
-  is the export gate's refusal, never a soft term.
+- **Destroy goals** — four bands over one walk. Each goal's enemy÷own spawn walk lands in the authored band
+  **[3.0, 4.0]** (GO1), measured over the fanned closure, worst goal scored (`goal-spawn-ratio`); the same
+  own-spawn leg is also held to an absolute band, **[40, 90]** blocks (GO4), worst goal scored
+  (`goal-spawn-distance`); a team's own goals stand **[35, 65]** blocks apart (GO2, `own-goal-distance`) and
+  opposing goals **[85, 150]** (GO3, `opposing-goal-distance`), worst pair scored in each. All four read
+  `GoalDistances`, which walks one field out of each goal and reads it at the spawns and at the other goals,
+  so a board cannot answer them in two geometries. Bare reachability is the export gate's refusal, never a
+  soft term.
 - **Height (purposeful, not random)** — surface deltas are multiples of 2 (EL1); ≤2 raised sections per
   island (EL4); **wool room ≥ its
   approach** (a real climb, WL5); a **tower** is a tall tile on the frontline edge that clears the void; and the
