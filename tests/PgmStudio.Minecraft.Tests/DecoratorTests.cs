@@ -582,6 +582,48 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task A_stated_level_fills_a_basin_the_ground_has_no_surface_at()
+    {
+        // The case a derived line cannot answer: the ground is dug out, so the lowest surface the channel
+        // crosses IS the basin floor and filling to it puts no water in the hole. A stated line fills to itself.
+        var (world, top) = Plateau();
+        for (var z = 14; z < 27; z++)
+        for (var x = 14; x < 27; x++)
+        {
+            for (var y = 3; y <= 7; y++) world.SetBlock(x, y, z, Blocks.Air);
+            world.SetBlock(x, 2, z, Blocks.Stone);
+            top[(x, z)] = 3;
+        }
+
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[20, 16], [20, 24]], Radius = 6, Depth = 2, Shore = 0, Level = 6, Seed = 5,
+        }]));
+
+        // The basin holds water to the stated line and no further: y6 is water, y7 is the air above it.
+        await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(20, 4, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Air);
+        // And the basin floor is still the ground it was, not a shelf laid at line minus depth.
+        await Assert.That(world.GetBlock(20, 2, 20).Id).IsEqualTo(Blocks.Stone);
+    }
+
+    [Test]
+    public async Task A_stated_level_reaches_no_further_than_the_footprint()
+    {
+        // Water rises to the line inside the prop's own cells and nowhere else — the rim is the author's, and
+        // the pass never floods outward looking for one.
+        var (world, top) = Plateau();
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "w", Points = [[20, 16], [20, 24]], Radius = 3, Depth = 2, Shore = 0, Level = 9, Seed = 5,
+        }]));
+
+        await Assert.That(world.GetBlock(20, 9, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(2, 9, 2).Id).IsEqualTo(Blocks.Air);
+    }
+
+    [Test]
     public async Task A_channel_over_a_void_leaves_the_void_alone()
     {
         // A column the surface map does not carry is a hole the terrain left, and water fills a bed cut into

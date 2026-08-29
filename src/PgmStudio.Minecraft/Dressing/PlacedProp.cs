@@ -118,6 +118,17 @@ public sealed record WaterProp : PlacedProp
     /// single block at the shore, so the fill sits in a bowl rather than a walled trench.</summary>
     public double Depth { get; init; } = 2;
 
+    /// <summary>The world Y the water stands at, where the author states one. Absent, the line is the lowest
+    /// surface the channel crosses and the fill never rises past a column's own surface — a channel cut into
+    /// ground that was already there.
+    ///
+    /// <para>Stated, the line is that Y and the fill reaches it whatever the column beneath is doing, which is
+    /// what fills a basin: ground dug out in the sketch has no surface up at the line for a derived one to find,
+    /// so a lake, a harbour or the water a ship floats on can only be stated. What the author owns then is the
+    /// rim — water rises to the line inside the prop's own footprint and nowhere else, so a line above the
+    /// surrounding ground stands as a wall of water rather than spilling.</para></summary>
+    public double? Level { get; init; }
+
     public ChannelForm Form { get; init; } = ChannelForm.Canal;
 
     /// <summary>How far a <see cref="ChannelForm.Natural"/> or <see cref="ChannelForm.Stream"/> edge wobbles its

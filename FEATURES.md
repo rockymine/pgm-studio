@@ -2304,6 +2304,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **Water fills to a stated level, so a basin holds it (WE59).** `WaterProp.Level` is the world Y the water
+  stands at. Absent, the line is what it always was — the lowest surface the channel crosses — and the carve
+  touches only terrain that was already there. Stated, the fill reaches that Y whatever the column beneath is
+  doing, which is the only way a lake, a harbour or the water a ship floats on is expressible: ground dug out
+  in the shapes has no surface up at the line for a derived one to find, so the lowest surface the channel
+  crosses *is* the basin floor and filling to it puts no water in the hole. The footprint bounds it — the pass
+  never floods outward, so the rim is the author's — and the bed floor is laid only where terrain already
+  stood, a basin deeper than `level − depth` keeping its own floor rather than a shelf hung in it. **The basin
+  is a low floor and not a hole**: the pass skips a column the surface map does not carry, so a harbour is an
+  override add rather than a subtract. (WE59)
 - **A made thing is a third kind, and three words on a layer say so (TS62, TS65).** A ship, a balloon, a
   statue is neither terrain nor a dressing prop: it is drawn out of layers because layers hold an arbitrary
   solid. `SketchLayer` carries `kind` (`ground` · `prop`, absent is ground), `prop` naming which made thing

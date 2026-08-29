@@ -317,11 +317,13 @@ public static class Decorator
     /// it: laid flat it reads as blue paint, so it has to sit in a carved bed and fill to a level plane. The bed
     /// is a bowl deepest on the centerline; the fill is one water line across the whole run.
     ///
-    /// <para><b>Only existing terrain is ever touched.</b> The carve runs from just above the bed floor up to the
-    /// column's old surface and no higher, so nothing is written into what was already air — a channel dug across
-    /// a hollow keeps the hollow. The water line is the lowest surface the channel crosses, which is what keeps
-    /// the fill from floating above ground it did not cut: every column's surface is at or above the line, so
-    /// every block written sits at or below terrain that was there before.</para></summary>
+    /// <para><b>Where the line comes from decides what the carve may touch.</b> Derived — the lowest surface the
+    /// channel crosses — the carve runs from just above the bed floor to the column's old surface and no higher,
+    /// so nothing is written into what was already air and a channel dug across a hollow keeps the hollow. Every
+    /// column's surface is then at or above the line, so every block written sits at or below terrain that was
+    /// there before. Stated (<see cref="WaterProp.Level"/>), the fill reaches that Y whatever the column beneath
+    /// is doing, which is the only way a basin dug out in the sketch holds water: there is no surface up at the
+    /// line for a derived one to find. The footprint bounds it either way.</para></summary>
     private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims.Storey claims)
     {
         var ground = context.GroundFor(water);
@@ -362,16 +364,23 @@ public static class Decorator
             }
             if (cells.Count == 0) continue;
 
+            // The line the water stands at: the author's where they stated one, else the lowest surface this
+            // image crosses. A stated line is the same Y at every image, a level plane being level in all of them.
+            var line = water.Level is { } stated ? (int)Math.Floor(stated) : waterLevel;
+
             foreach (var (x, z, surfaceSolid, depth) in cells)
             {
-                var bedFloor = Math.Max(0, waterLevel - depth);
-                // Take the material out and fill it: water up to the level line, air above it (a bank cut higher
-                // than the water stands open, not roofed over). The loop never rises past the old surface, so it
-                // only ever replaces terrain that was already there.
-                for (var y = bedFloor + 1; y <= surfaceSolid; y++)
-                    world.SetBlock(x, y, z, y <= waterLevel ? Blocks.StationaryWater : Blocks.Air);
-                // The bank floor the shallows show through, laid where terrain already stood.
-                if (bedFloor >= 1) { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
+                var bedFloor = Math.Max(0, line - depth);
+                // Take the material out and fill it: water up to the line, air above it (a bank cut higher than
+                // the water stands open, not roofed over). The span starts at the lower of the bed floor and the
+                // column's own surface and reaches the higher of that surface and the line, so a channel cut into
+                // standing ground replaces only what was there while a basin already dug out fills to the line.
+                for (var y = Math.Min(bedFloor, surfaceSolid) + 1; y <= Math.Max(surfaceSolid, line); y++)
+                    world.SetBlock(x, y, z, y <= line ? Blocks.StationaryWater : Blocks.Air);
+                // The bank floor the shallows show through, laid only where terrain already stood — a bed floor
+                // above the ground the column actually has would be a shelf hanging in the basin.
+                if (bedFloor >= 1 && bedFloor <= surfaceSolid)
+                { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
                 claims.Claim(x, z, ClaimKind.Water, water.Id);
                 covered.Add((x, z));
             }

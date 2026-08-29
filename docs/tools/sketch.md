@@ -739,7 +739,7 @@ Six things can be placed, in three placement geometries.
 | Tool | Kind | Placed by | Starts as |
 |---|---|---|---|
 | Stroke | `stroke` | tracing a line | gravel, radius 3, `solid`, coverage 0.7, paint rather than a route |
-| Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank |
+| Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `level` states a world Y where a basin has to hold water |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | a `template` oak, height 12 |
@@ -761,8 +761,14 @@ it covers, so a tree keeps three blocks off it and a boulder two (`DR-ROAD`), wh
 is planted over. Marking every stroke a route is how a board ends up with nowhere left to plant.
 
 **Water** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
-level water line, because water laid flat on a surface reads as blue paint. It only ever carves existing
-terrain — the cut stops at the surface it crosses and never fills what was already air. Its `form` is `canal`
+level water line, because water laid flat on a surface reads as blue paint. Absent a `level` the line is
+derived — the lowest surface the channel crosses — and the prop only ever carves existing terrain: the cut
+stops at the surface it crosses and never fills what was already air. **`level` states the world Y instead**,
+and then the fill reaches it whatever the column beneath is doing, which is what fills a basin dug out in the
+shapes: a lake, a harbour, the water a ship floats on has no surface up at the line for a derived one to find.
+**The basin is a low floor and not a hole** — the pass skips any column the surface map does not carry, so a
+subtract leaves nothing to fill and a harbour is an override add laying a floor at the depth the water reaches
+down to. The footprint bounds it either way — the pass never floods outward, so the rim is the author's. Its `form` is `canal`
 (a clean uniform width, deepest on the centreline), `natural` (the width wandered by noise) or `stream` (the
 width pinching and swelling on a beat down the arc, running shallower throughout, so it reads as riffles
 rather than one even channel). Around that: `radius` and `depth`, `edge` for how far a natural or stream bank
@@ -894,6 +900,9 @@ each:
     "pave": { "kind": "solid", "id": 13, "data": 0 } },
   { "id": "d2", "kind": "water", "seed": 2, "points": [[-30, -16], [-16, -12]],
     "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
+    "bank": { "kind": "solid", "id": 12, "data": 0 } },
+  { "id": "d2b", "kind": "water", "seed": 6, "points": [[-30, 24], [-14, 24]],
+    "radius": 10, "depth": 3, "form": "canal", "shore": 0, "level": 12,
     "bank": { "kind": "solid", "id": 12, "data": 0 } },
   { "id": "d3", "kind": "flora", "seed": 3,
     "points": [[-38, 8], [-26, 8], [-26, 18], [-38, 18]],

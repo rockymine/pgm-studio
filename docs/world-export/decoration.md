@@ -447,13 +447,31 @@ ground *out* rather than standing on it.
 The carve is a shallow U — deepest on the centerline, rising to a single block at the band's edge — so the
 fill sits in a bowl rather than a walled trench. `WaterBed` yields a depth per cell from that parabolic law;
 the dressing pass (`Decorator.PlaceWater`) turns each depth into a cut against the surface the cell actually
-crosses. The fill is one **water line** for the whole run: the lowest surface the channel crosses. That level
-is what keeps the water from floating — every column's surface is at or above it, so the pass fills from just
-above the bed floor up to the line with stationary water and cuts any bank *above* the line back to air,
-leaving the channel open. The carve **only ever touches existing terrain**: it never rises past a column's old
-surface and skips any column the surface map does not carry, so a channel dug across a hollow keeps the hollow
-and one dug over a stamp leaves the stamp — the same exclusion a stroke respects. Like every prop, a channel is
-**fanned across the symmetry orbit**, so both teams get the same water from the same side.
+crosses. The fill is one **water line** for the whole run, and where that line comes from decides what the
+carve may touch.
+
+**Derived** — the default — the line is the lowest surface the channel crosses, which is what keeps the water
+from floating: every column's surface is at or above it, so the pass fills from just above the bed floor up to
+the line with stationary water and cuts any bank *above* the line back to air, leaving the channel open. The
+carve then **only ever touches existing terrain**: it never rises past a column's old surface and skips any
+column the surface map does not carry, so a channel dug across a hollow keeps the hollow and one dug over a
+stamp leaves the stamp — the same exclusion a stroke respects.
+
+**Stated** — `level`, a world Y — the line is that Y and the fill reaches it whatever the column beneath is
+doing. **A basin is a low floor and not a hole**, because the pass skips any column the surface map does not
+carry: a subtract takes the whole column out and leaves nothing to fill, so a harbour is drawn as an override
+add laying a floor at the depth the water is meant to reach down to, inside the shore's own footprint. That is
+the only way a basin holds water: ground dug out in the sketch has no surface up at the line
+for a derived line to find, so the lowest surface the channel crosses *is* the basin floor and filling to it
+puts no water in the hole. A lake, a harbour, the water a ship floats on can only be stated. What the author
+owns then is the **rim**: water rises to the line inside the prop's own footprint and nowhere else — the pass
+never floods outward looking for a wall — so a line above the surrounding ground stands as a wall of water
+rather than spilling, which is visible the moment it is exported. The bed floor is laid only where terrain
+already stood, so a stated line over a basin already deeper than `level − depth` leaves the basin's own floor
+alone instead of hanging a shelf in it.
+
+Like every prop, a channel is **fanned across the symmetry orbit**, so both teams get the same water from the
+same side; a stated line is the same Y at every image, a level plane being level in all of them.
 
 The water meets the land through a **beach**. The shore is its own pass — the band *outside* the water, out to
 a width that wanders with a noise field and drops to nothing in places, so the water meets the grass directly
