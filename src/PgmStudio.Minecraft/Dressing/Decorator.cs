@@ -327,10 +327,16 @@ public static class Decorator
     private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims.Storey claims)
     {
         var ground = context.GroundFor(water);
-        if (water.Points.Count < 2 || water.Radius <= 0 || water.Depth <= 0) return Placed.None;
-        var bed = WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed).ToList();
+        var pool = water.Shape == WaterShape.Pool;
+        if (water.Points.Count < (pool ? 3 : 2) || water.Radius <= 0 || water.Depth <= 0) return Placed.None;
+        var bed = (pool
+            ? WaterBed.PoolCells(water.Points, water.Radius, water.Depth, water.Edge, water.Seed)
+            : WaterBed.Cells(water.Points, water.Radius, water.Depth, water.Form, water.Edge, water.Seed)).ToList();
         if (bed.Count == 0) return Placed.None;
-        var shore = WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge, water.ShoreWander, water.Seed).ToList();
+        var shore = (pool
+            ? WaterBed.PoolShoreCells(water.Points, water.Shore, water.Edge, water.ShoreWander, water.Seed)
+            : WaterBed.ShoreCells(water.Points, water.Radius, water.Form, water.Shore, water.Edge,
+                                  water.ShoreWander, water.Seed)).ToList();
 
         // The bank is a full terrain material, so the bed floor and the beach are a voronoi patchwork or any
         // pattern the painter offers, resolved cell by cell exactly as the painter resolves a surface.
@@ -347,19 +353,22 @@ public static class Decorator
             // the orbit image and the beach below can reach the right one.
             var covered = new List<(int X, int Z)>();
             images.Add(covered);
-            var cells = new List<(int X, int Z, int SurfaceSolid, int Depth)>(bed.Count);
+            var cells = new List<(int X, int Z, int SurfaceSolid, int Depth, bool FillOnly)>(bed.Count);
             var waterLevel = int.MaxValue;
             foreach (var cell in bed)
             {
                 var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, image);
-                if (context.IsKeptClear(x, z)) continue;
                 if (!ground.TryGetValue((x, z), out var top) || top < 2) continue;
                 var surfaceSolid = top - 1;
                 // Water no more takes a stamp's own block than a path does: the painter writes only terrain, so
                 // anything else on a surface belongs to something the map is played through.
                 if (DressingPalette.IsStamp(world.GetBlock(x, surfaceSolid, z).Id)) continue;
 
-                cells.Add((x, z, surfaceSolid, cell.Depth));
+                // A column something else keeps clear is filled and never cut. The two halves of the pass are
+                // different acts on a kept column: carving takes that thing's own ground out from under it,
+                // which is what the keep-out is for, while filling puts water in the air beside a hull or a
+                // pier standing in the water — and a harbour dry under the ship floating in it is not one.
+                cells.Add((x, z, surfaceSolid, cell.Depth, context.IsKeptClear(x, z)));
                 waterLevel = Math.Min(waterLevel, surfaceSolid);
             }
             if (cells.Count == 0) continue;
@@ -368,20 +377,26 @@ public static class Decorator
             // image crosses. A stated line is the same Y at every image, a level plane being level in all of them.
             var line = water.Level is { } stated ? (int)Math.Floor(stated) : waterLevel;
 
-            foreach (var (x, z, surfaceSolid, depth) in cells)
+            foreach (var (x, z, surfaceSolid, depth, fillOnly) in cells)
             {
                 var bedFloor = Math.Max(0, line - depth);
                 // Take the material out and fill it: water up to the line, air above it (a bank cut higher than
                 // the water stands open, not roofed over). The span starts at the lower of the bed floor and the
                 // column's own surface and reaches the higher of that surface and the line, so a channel cut into
                 // standing ground replaces only what was there while a basin already dug out fills to the line.
-                for (var y = Math.Min(bedFloor, surfaceSolid) + 1; y <= Math.Max(surfaceSolid, line); y++)
+                var from = fillOnly ? surfaceSolid + 1 : Math.Min(bedFloor, surfaceSolid) + 1;
+                for (var y = from; y <= Math.Max(surfaceSolid, line); y++)
+                {
+                    // Over the column's own surface the pass is filling what was air, and anything standing
+                    // there belongs to something else — a hull, a mast, a pier. The water goes round it.
+                    if (y > surfaceSolid && world.GetBlock(x, y, z).Id != Blocks.Air) continue;
                     world.SetBlock(x, y, z, y <= line ? Blocks.StationaryWater : Blocks.Air);
+                }
                 // The bank floor the shallows show through, laid only where terrain already stood — a bed floor
                 // above the ground the column actually has would be a shelf hanging in the basin.
-                if (bedFloor >= 1 && bedFloor <= surfaceSolid)
+                if (!fillOnly && bedFloor >= 1 && bedFloor <= surfaceSolid)
                 { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
-                claims.Claim(x, z, ClaimKind.Water, water.Id);
+                if (!fillOnly) claims.Claim(x, z, ClaimKind.Water, water.Id);
                 covered.Add((x, z));
             }
         }

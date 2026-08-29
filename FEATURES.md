@@ -2308,6 +2308,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **Water is drawn as a pool as well as a channel, and fills round what floats in it (WE60).**
+  `WaterProp.Shape` says what the prop's points mean: a `channel` strokes them as a centerline and takes its
+  width from `radius` — what the prop always was — or a `pool` closes them into a ring and fills it, corners
+  and all, which is the only way to make a harbour or a lake with square edges however wide a line is drawn.
+  The bowl is the same law either way and only the distance differs: a channel's deepens away from its
+  centerline, a pool's inward from its shore, so on a pool `radius` is read as the shelf the bed takes to
+  reach full depth and a harbour shallows against its quays. `WaterBed.PoolCells` and `PoolShoreCells` are
+  the pure side; `edge` wobbles either boundary by the same value field. **And the fill goes round what
+  stands in it**: carving and filling are different acts on a column something else keeps clear — cutting
+  takes that thing's own ground from beneath it, filling puts water in the air beside a hull — so a kept
+  column is filled and never cut, and above any column's own surface the pass writes only into air. A ship
+  moored in a harbour floats rather than sitting in a dry hole. (WE60)
 - **Water fills to a stated level, so a basin holds it (WE59).** `WaterProp.Level` is the world Y the water
   stands at. Absent, the line is what it always was — the lowest surface the channel crosses — and the carve
   touches only terrain that was already there. Stated, the fill reaches that Y whatever the column beneath is

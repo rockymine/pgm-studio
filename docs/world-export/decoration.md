@@ -444,6 +444,15 @@ tool is that it **cannot drape on the surface** the way gravel can: laid on a sl
 Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
 ground *out* rather than standing on it.
 
+**A body of water is drawn one of two ways, and `shape` says which its points mean.** A `channel` strokes them
+as a centerline and takes its width from `radius` — a canal, a river, a moat. A `pool` closes them into a ring
+and fills it, corners and all: a harbour, a lake, a flooded basin, the shape a stroked line cannot make
+however wide it is drawn. The bowl is the same law either way and only the distance it is measured along
+differs, which is the argument for one prop rather than two: a channel's bowl deepens away from its
+centerline, a pool's inward from its shore, and on a pool `radius` is read as that **shelf** — how far in the
+bed takes to reach full depth, so a harbour shallows against its quays rather than dropping to a trench at the
+wall. `edge` wobbles either boundary by a value field, so a lake is not a ruled polygon.
+
 The carve is a shallow U — deepest on the centerline, rising to a single block at the band's edge — so the
 fill sits in a bowl rather than a walled trench. `WaterBed` yields a depth per cell from that parabolic law;
 the dressing pass (`Decorator.PlaceWater`) turns each depth into a cut against the surface the cell actually
@@ -469,6 +478,13 @@ never floods outward looking for a wall — so a line above the surrounding grou
 rather than spilling, which is visible the moment it is exported. The bed floor is laid only where terrain
 already stood, so a stated line over a basin already deeper than `level − depth` leaves the basin's own floor
 alone instead of hanging a shelf in it.
+
+**Water fills round what stands in it and never cuts under it.** The two halves of the pass are different
+acts on a column something else keeps clear: carving takes that thing's own ground out from beneath it, which
+is what a keep-out is for, while filling puts water in the air beside a hull or a pier — and a harbour dry
+under the ship floating in it is not a harbour. So a kept column is filled and never cut, its bed floor is
+not laid and it claims nothing; and above any column's own surface the pass writes only into air, so the
+water goes round a hull, a mast or a stamp rather than through it.
 
 Like every prop, a channel is **fanned across the symmetry orbit**, so both teams get the same water from the
 same side; a stated line is the same Y at every image, a level plane being level in all of them.

@@ -108,10 +108,19 @@ public sealed record WaterProp : PlacedProp
         new VoronoiBand(new SolidMaterial(Palette.Blocks.Sand), 1),
     ]);
 
-    /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
+    /// <summary>What the water is drawn as, which is what <see cref="Points"/> means: a
+    /// <see cref="WaterShape.Channel"/> strokes them as a centerline, a <see cref="WaterShape.Pool"/> closes
+    /// them into a ring and fills it. A harbour, a lake or a flooded basin is a pool; a canal, a river or a
+    /// moat is a channel.</summary>
+    public WaterShape Shape { get; init; } = WaterShape.Channel;
+
+    /// <summary>The drawn points, as <c>[x, z]</c> pairs — a centerline for a channel, an outline for a pool.
+    /// Two points or more for a channel, three or more for a pool.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
-    /// <summary>Half the channel's water width, in blocks.</summary>
+    /// <summary>Half the channel's water width, in blocks. On a <see cref="WaterShape.Pool"/> it is the
+    /// <b>shelf</b> instead: how far in from the shore the bed reaches its full depth, so a harbour shelves
+    /// off its quays rather than dropping to a trench at the wall.</summary>
     public double Radius { get; init; } = 3;
 
     /// <summary>How deep the bed is cut below the water line on the centerline, in blocks. The bed rises to a

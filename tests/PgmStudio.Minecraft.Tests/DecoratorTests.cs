@@ -624,6 +624,65 @@ public sealed class DecoratorTests
     }
 
     [Test]
+    public async Task Water_fills_the_air_beside_a_thing_standing_in_it_and_never_cuts_under_it()
+    {
+        // The harbour case: a hull floats in a pool and its columns are kept clear, so the pass must not
+        // carve the seabed out from under it — and must still put water in the air beside it, a harbour dry
+        // under the ship floating in it being no harbour.
+        var (world, top) = Plateau();
+        for (var z = 14; z < 27; z++)
+        for (var x = 14; x < 27; x++)
+        {
+            for (var y = 3; y <= 7; y++) world.SetBlock(x, y, z, Blocks.Air);
+            world.SetBlock(x, 2, z, Blocks.Stone);
+            top[(x, z)] = 3;
+        }
+        // A hull two blocks thick floating at the line, over four columns of the basin.
+        for (var z = 19; z < 22; z++)
+        for (var x = 19; x < 22; x++)
+        for (var y = 5; y <= 6; y++)
+            world.SetBlock(x, y, z, Blocks.Planks, 1);
+
+        KeepOut? hull(int x, int z) =>
+            x is >= 19 and <= 21 && z is >= 19 and <= 21 ? KeepOut.Structure : null;
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "harbour", Shape = WaterShape.Pool, Points = [[14, 14], [26, 14], [26, 26], [14, 26]],
+            Radius = 3, Depth = 2, Shore = 0, Level = 6, Seed = 5,
+        }], keptClear: hull));
+
+        // The basin holds water to the line, the hull is untouched, and the course under it is water rather
+        // than the dry hole a kept-clear column used to be left as.
+        await Assert.That(world.GetBlock(16, 6, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        await Assert.That(world.GetBlock(20, 5, 20)).IsEqualTo((Blocks.Planks, 1));
+        await Assert.That(world.GetBlock(20, 6, 20)).IsEqualTo((Blocks.Planks, 1));
+        await Assert.That(world.GetBlock(20, 4, 20).Id).IsEqualTo(Blocks.StationaryWater);
+        // And the ground it stands over is the ground it stood over: no bed was cut beneath it.
+        await Assert.That(world.GetBlock(20, 2, 20).Id).IsEqualTo(Blocks.Stone);
+    }
+
+    [Test]
+    public async Task A_pool_fills_a_ring_and_shelves_in_from_its_shore()
+    {
+        // A pool is the footprint a harbour needs: a filled outline rather than a stroked line, its bed one
+        // block deep at the ring and full depth once the shelf is crossed.
+        var (world, top) = Plateau(size: 60);
+        Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "lake", Shape = WaterShape.Pool, Seed = 5, Shore = 0, Edge = 0,
+            Points = [[10, 10], [50, 10], [50, 50], [10, 50]], Radius = 8, Depth = 5,
+        }]));
+
+        // Water across the whole ring, corners included — what a stroked channel cannot fill.
+        foreach (var (x, z) in new[] { (12, 12), (48, 12), (12, 48), (48, 48), (30, 30) })
+            await Assert.That(world.GetBlock(x, 7, z).Id).IsEqualTo(Blocks.StationaryWater);
+        // And it shelves: the bed at the middle is cut deeper than the bed one block in from the shore.
+        var atShore = Enumerable.Range(0, 8).Count(y => world.GetBlock(11, y, 30).Id == Blocks.StationaryWater);
+        var atMiddle = Enumerable.Range(0, 8).Count(y => world.GetBlock(30, y, 30).Id == Blocks.StationaryWater);
+        await Assert.That(atMiddle).IsGreaterThan(atShore);
+    }
+
+    [Test]
     public async Task A_channel_over_a_void_leaves_the_void_alone()
     {
         // A column the surface map does not carry is a hole the terrain left, and water fills a bed cut into

@@ -15,6 +15,18 @@ public enum ChannelForm
     Stream,
 }
 
+/// <summary>What a body of water is drawn as, which is what its own points mean. A <see cref="Channel"/>
+/// strokes them as a centerline and takes its width from a radius; a <see cref="Pool"/> closes them into a
+/// ring and fills it. The bowl is the same law either way — deepest away from the shore, one block at it —
+/// and only the distance it is measured along differs, which is the argument for one prop rather than two.</summary>
+public enum WaterShape
+{
+    /// <summary>A stroked line: a canal, a river, a moat.</summary>
+    Channel,
+    /// <summary>A filled ring: a harbour, a lake, a flooded basin. A rectangle is four points.</summary>
+    Pool,
+}
+
 /// <summary>One cell a channel carves: where it is, and how deep the bed is cut below the water line there —
 /// deepest on the centerline, one block at the shore.</summary>
 public readonly record struct WaterCell(int X, int Z, int Depth);
@@ -93,6 +105,98 @@ public static class WaterBed
             if (hit.Distance <= water + ShoreAt(shoreWidth, wander, hit, seed)) yield return (x, z);
         }
     }
+
+    /// <summary>The cells a pool fills inside <paramref name="ring"/>, each with the depth its bed is cut to
+    /// below the water line. The same bowl a channel cuts, measured inward from the shore instead of out from
+    /// a centerline: one block deep at the ring and full <paramref name="depth"/> once
+    /// <paramref name="shelf"/> blocks in, so a harbour shelves off its quays rather than dropping to a
+    /// trench at the wall. A ring narrower than twice the shelf never reaches full depth, which is what a
+    /// shallow pool is.</summary>
+    public static IEnumerable<WaterCell> PoolCells(
+        IReadOnlyList<double[]> ring, double shelf, double depth, double edge, uint seed)
+    {
+        if (ring.Count < 3 || depth <= 0) yield break;
+        var reach = Math.Max(1.0, shelf);
+
+        foreach (var (x, z, inset) in RingCells(ring, edge, seed))
+        {
+            var bowl = Math.Clamp(inset / reach, 0, 1);
+            yield return new WaterCell(x, z, Math.Max(1, (int)Math.Round(1 + (depth - 1) * bowl)));
+        }
+    }
+
+    /// <summary>The beach a pool meets the land through — the band just <em>outside</em> its ring, the same
+    /// relation a channel's shore has to its water. Empty for a pool that states no shore.</summary>
+    public static IEnumerable<(int X, int Z)> PoolShoreCells(
+        IReadOnlyList<double[]> ring, double shoreWidth, double edge, bool wander, uint seed)
+    {
+        if (ring.Count < 3 || shoreWidth <= 0) yield break;
+        var inside = new HashSet<(int, int)>(RingCells(ring, edge, seed).Select(cell => (cell.X, cell.Z)));
+        var scanned = new HashSet<(int, int)>();
+
+        foreach (var (x, z) in Polyline.Hits(Closed(ring), shoreWidth + Math.Max(0, edge) + 1)
+                                       .Select(hit => (hit.X, hit.Z)))
+        {
+            if (inside.Contains((x, z)) || !scanned.Add((x, z))) continue;
+            var width = wander
+                ? Math.Max(0, shoreWidth * (1.9 * PatternNoise.Value(x, z, seed + 91, ShoreScale) - 0.25))
+                : shoreWidth;
+            if (DistanceToRing(ring, x + 0.5, z + 0.5) <= width) yield return (x, z);
+        }
+    }
+
+    // Every cell inside the ring with how far into it that cell stands, in blocks. A natural edge wobbles the
+    // boundary in and out by `edge` blocks so a lake does not read as a ruled polygon; the wobble is a value
+    // field on the cell, the same one a channel's width carries, so the two edges are the same roughness at
+    // the same setting. The inset rides along because the caller's bowl is a function of it and computing the
+    // distance twice for one cell is the same walk twice.
+    private static IEnumerable<(int X, int Z, double Inset)> RingCells(
+        IReadOnlyList<double[]> ring, double edge, uint seed)
+    {
+        double minX = double.MaxValue, maxX = double.MinValue, minZ = double.MaxValue, maxZ = double.MinValue;
+        foreach (var point in ring)
+        {
+            minX = Math.Min(minX, point[0]); maxX = Math.Max(maxX, point[0]);
+            minZ = Math.Min(minZ, point[1]); maxZ = Math.Max(maxZ, point[1]);
+        }
+        var slack = Math.Max(0, edge) + 1;
+        var outline = Cast(ring);
+        for (var x = (int)Math.Floor(minX - slack); x <= (int)Math.Ceiling(maxX + slack); x++)
+        for (var z = (int)Math.Floor(minZ - slack); z <= (int)Math.Ceiling(maxZ + slack); z++)
+        {
+            var wobble = edge <= 0 ? 0 : edge * (PatternNoise.Value(x, z, seed + 5, WidthNoiseScale) - 0.5);
+            var reach = DistanceToRing(ring, x + 0.5, z + 0.5);
+            var inset = Polygon.PointInRing(x + 0.5, z + 0.5, outline) ? reach : -reach;
+            if (inset + wobble > 0) yield return (x, z, Math.Max(0, inset + wobble));
+        }
+    }
+
+    private static double DistanceToRing(IReadOnlyList<double[]> ring, double px, double pz)
+    {
+        var best = double.MaxValue;
+        for (var i = 0; i < ring.Count; i++)
+        {
+            var a = ring[i];
+            var b = ring[(i + 1) % ring.Count];
+            best = Math.Min(best, SegmentDistance(px, pz, a[0], a[1], b[0], b[1]));
+        }
+        return best;
+    }
+
+    private static double SegmentDistance(double px, double pz, double ax, double az, double bx, double bz)
+    {
+        double dx = bx - ax, dz = bz - az;
+        var length = dx * dx + dz * dz;
+        var t = length <= 0 ? 0 : Math.Clamp(((px - ax) * dx + (pz - az) * dz) / length, 0, 1);
+        double cx = ax + t * dx, cz = az + t * dz;
+        return Math.Sqrt((px - cx) * (px - cx) + (pz - cz) * (pz - cz));
+    }
+
+    private static List<double[]> Closed(IReadOnlyList<double[]> ring)
+        => [.. ring, ring[0]];
+
+    private static List<IReadOnlyList<double>> Cast(IReadOnlyList<double[]> ring)
+        => [.. ring.Select(point => (IReadOnlyList<double>)point)];
 
     // The half-width the water reaches at a cell, the prototype's `drawChannel` R. A canal holds the nominal
     // radius. A natural edge wobbles it by an absolute amount (a value field, ±edge blocks). A stream beads: the
