@@ -41,7 +41,7 @@ public static class SketchDiscard
         return untouched;
     }
 
-    // The layout blob is {setup?, layers:[{layout:{shapes,islands}}]} (or a legacy single {layout:{…}}, or
+    // The layout blob is {setup?, layers:[{layout:{shapes,groups}}]} (or a legacy single {layout:{…}}, or
     // {} / setup-only for a fresh draft). "Drawn on" = a shape in any layer.
     private static async Task<bool> HasShapesAsync(MapArtifactStore artifacts, long mapId, CancellationToken ct)
     {

@@ -140,7 +140,7 @@ function translateControls(controls, dx, dz) {
 
 /**
  * Rotate a shape by `angleRad` about `pivot` `[px,pz]`, **baking** the rotation into the geometry (there is
- * no stored angle — islands/mirror/rasterizer just see the moved coords). Positive angle turns clockwise on
+ * no stored angle — groups/mirror/rasterizer just see the moved coords). Positive angle turns clockwise on
  * the canvas (x right, z down). A **rectangle** can't hold a non-axis angle, so it's promoted via
  * `rectToPolygon` first (which carries its height fields); a **circle** keeps its radius and only its centre
  * orbits; **polygon/lasso** rotate their vertices + Bézier control handles. Pure — id / operation / override /
@@ -365,7 +365,7 @@ export function toBounds(shape) {
   }
 }
 
-/** Union AABB `{min_x,min_z,max_x,max_z}` of several shapes' bounds (the island bbox); null if none has
+/** Union AABB `{min_x,min_z,max_x,max_z}` of several shapes' bounds (the group bbox); null if none has
  *  bounds. Degenerate polygons/lassos (no vertices) are skipped. */
 export function boundsOfShapes(shapes) {
   let b = null;

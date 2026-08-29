@@ -7,7 +7,7 @@ namespace PgmStudio.Client.Features.Sketch;
 /// <summary>
 /// The Dressing phase's sidebar: every prop on the map, in the order it was placed. The canvas is where a prop
 /// is normally reached, but a marker in a dense corner is a small target and a list is the only view that says
-/// how much has been placed at all — the same job the island tree does for shapes.
+/// how much has been placed at all — the same job the group tree does for shapes.
 /// </summary>
 public partial class SketchDressingList
 {

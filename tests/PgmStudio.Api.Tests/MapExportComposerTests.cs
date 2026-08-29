@@ -24,14 +24,14 @@ public sealed class MapExportComposerTests
     private const string IslandLayout = """
         {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
          "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":40,"min_z":0,"max_z":40}],
-                   "islands":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a"]}]} }]}
+                   "groups":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a"]}]} }]}
         """;
 
     // The same island, plus one tree drawn at (10,10) — well inside the clearance of a goal anchored there.
     private const string IslandLayoutWithTree = """
         {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
          "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":0,"max_x":40,"min_z":0,"max_z":40}],
-                   "islands":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a"]}]} }],
+                   "groups":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a"]}]} }],
          "dressing":{"props":[{"kind":"tree","id":"t1","seed":1,"x":10,"z":10}]}}
         """;
 

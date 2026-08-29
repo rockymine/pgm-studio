@@ -227,7 +227,7 @@ export class DressingController {
       const points = (rect ? (wingCorners(prop.wings?.[0]) ?? []) : (prop.points ?? [])).map(([x, z]) => [x, z]);
       if (this.#pointDrag.idx >= points.length) { this.#pointDrag = null; return false; }
       points[this.#pointDrag.idx] = [bx, bz];
-      // Reshaping a wing keeps whatever else that wing states — its storeys, roof, ridge and joint.
+      // Reshaping a wing keeps whatever else that wing states — its layers, roof, ridge and joint.
       this.#doc.update(prop.id, rect
         ? { wings: [withCorners(prop.wings?.[0], points), ...(prop.wings ?? []).slice(1)] }
         : { points });

@@ -22,7 +22,7 @@ public sealed class WorldBuilderTests
 {
     private const string Layout =
         """
-        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"islands":[]} }]}
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"groups":[]} }]}
         """;
 
     private static MapIntent SampleIntent() => new()
@@ -81,7 +81,7 @@ public sealed class WorldBuilderTests
         // bottom: solid to y=4, first air at y=5, so the room's floor is the platform's own top block.
         const string plateau =
             """
-            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]} }]}
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"groups":[]} }]}
             """;
         var intent = SampleIntent();
         var piece = new Rect(-16, 4, -4, 16);
@@ -237,7 +237,7 @@ public sealed class WorldBuilderTests
         // stays under y=256 rather than throwing ArgumentOutOfRangeException mid-export.
         const string tall =
             """
-            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":300}],"islands":[]} }]}
+            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":300}],"groups":[]} }]}
             """;
         var intent = new MapIntent
         {
@@ -260,7 +260,7 @@ public sealed class WorldBuilderTests
         // not float at (0, y, 0) over the void.
         const string offset =
             """
-            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":10,"min_z":10,"max_x":35,"max_z":35,"base_height":5}],"islands":[]} }]}
+            {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":10,"min_z":10,"max_x":35,"max_z":35,"base_height":5}],"groups":[]} }]}
             """;
         var intent = new MapIntent
         {
@@ -430,7 +430,7 @@ public sealed class WorldBuilderTests
     {
         const string plateau =
             """
-            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]} }]}
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"groups":[]} }]}
             """;
         return WorldBuilder.Build(plateau, new MapIntent
         {
@@ -450,7 +450,7 @@ public sealed class WorldBuilderTests
     {
         const string plateau =
             """
-            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"islands":[]} }]}
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"groups":[]} }]}
             """;
         return WorldBuilder.Build(plateau, new MapIntent
         {

@@ -1,10 +1,10 @@
 /**
- * The relief a map carries: what an author has stated about the ground inside each island, and what a fresh
+ * The relief a map carries: what an author has stated about the ground inside each group, and what a fresh
  * statement of each kind starts as. Pure state and math, NO DOM.
  *
  * The shape differs from the dressing document in one way that decides everything else about this file: a prop
- * is placed *on the map* and a mark is placed *in an island*. A relief is solved over one island's fused
- * footprint, so the document is keyed by island id — `{ "i3": { base, reach, step, grain, marks, pushes } }` —
+ * is placed *on the map* and a mark is placed *in a group*. A relief is solved over one group's fused
+ * footprint, so the document is keyed by group id — `{ "i3": { base, reach, step, grain, marks, pushes } }` —
  * and it is exactly `SketchLayout.Relief`, the same object the rasterizer reads and the solver takes. There is
  * no second model of a mark.
  *
@@ -34,21 +34,21 @@ export const MARK_KINDS = ["point", "line", "area", "scarp"];
  */
 export const PUSH_KIND = "push";
 
-/** A rim is a mark, but it is not placed: it holds the island's whole outline, so there is nowhere to put it
- *  and nothing to drag. It rides as a property of the island's relief instead — one height and a depth. */
+/** A rim is a mark, but it is not placed: it holds the group's whole outline, so there is nowhere to put it
+ *  and nothing to drag. It rides as a property of the group's relief instead — one height and a depth. */
 export const RIM_KIND = "rim";
 
 /**
- * The level a relief falls back to when nothing can be read from the island it is stated in. It is the C#
+ * The level a relief falls back to when nothing can be read from the group it is stated in. It is the C#
  * record's own default, so a document the editor seeds and one a hand writes mean the same thing by an
  * absent `base` — a second number here would be a second rule.
  */
 export const FALLBACK_BASE = 4;
 
-/** What a relief starts as before an author has stated anything. `base` is the island's own ground level,
- *  because a relief REPLACES the top of every column of its island: a base that is not where the island
+/** What a relief starts as before an author has stated anything. `base` is the group's own ground level,
+ *  because a relief REPLACES the top of every column of its group: a base that is not where the group
  *  already stands moves the whole landmass the moment the first mark lands. A reach of 0 means the marks
- *  decide the whole surface, which is what a single island wants. */
+ *  decide the whole surface, which is what a single group wants. */
 export function defaultRelief(base = FALLBACK_BASE) {
   return { base, reach: 0, step: 1, grain: { amplitude: 1.2, scale: 12, seed: 1 }, marks: [], pushes: [] };
 }
@@ -58,7 +58,7 @@ export function defaultRelief(base = FALLBACK_BASE) {
  * so a mark drawn on the canvas and one deserialized from a hand-written relief are the same mark.
  *
  * `h` is the one field a placement has to decide rather than inherit, because a mark with no height states
- * nothing. It arrives from the tool's settings, seeded from the island's own base — a first mark placed on
+ * nothing. It arrives from the tool's settings, seeded from the group's own base — a first mark placed on
  * flat ground reads as flat ground, which is honest, rather than jumping to a height nobody asked for.
  */
 export function defaultMark(kind, height = FALLBACK_BASE) {
@@ -197,69 +197,69 @@ export function pushAmountPatch(push, index, value) {
 }
 
 /**
- * The relief document: one relief per island, and the marks inside each. Mutating methods return the affected
+ * The relief document: one relief per group, and the marks inside each. Mutating methods return the affected
  * mark so a caller can select what it just made; the caller owns when to persist.
  *
- * Ids are unique across the WHOLE document rather than per island, because a mark can be dragged out of one
- * island and into another and an id that changed on the way would break the selection mid-drag.
+ * Ids are unique across the WHOLE document rather than per group, because a mark can be dragged out of one
+ * group and into another and an id that changed on the way would break the selection mid-drag.
  */
 export class ReliefDoc {
-  #byIsland = new Map();
+  #byGroup = new Map();
   #nextId = 1;
 
   /** Read a stored document. A mark whose kind the client cannot draw is dropped rather than carried as a
    *  shape nothing can edit — the same rule the dressing document follows, for the same reason. */
   static from(stored) {
     const doc = new ReliefDoc();
-    for (const [islandId, relief] of Object.entries(stored ?? {})) {
-      if (!islandId || !relief || typeof relief !== "object") continue;
+    for (const [groupId, relief] of Object.entries(stored ?? {})) {
+      if (!groupId || !relief || typeof relief !== "object") continue;
       const kept = { ...defaultRelief(), ...relief };
       kept.marks = (relief.marks ?? []).filter(mark => MARK_KINDS.includes(mark?.kind) || mark?.kind === RIM_KIND)
                                        .map(mark => reachOf({ ...mark, id: mark.id || doc.#mintId() }));
       kept.pushes = (relief.pushes ?? []).map(push => ({ ...push, id: push.id || doc.#mintId() }));
-      doc.#byIsland.set(islandId, kept);
+      doc.#byGroup.set(groupId, kept);
     }
     doc.#nextId = Math.max(doc.#nextId, ...doc.#allIds().map(id => (parseInt(String(id).replace(/\D/g, ""), 10) || 0) + 1));
     return doc;
   }
 
-  /** The stored form — exactly what `SketchLayout.Relief` deserializes. An island whose relief states nothing
+  /** The stored form — exactly what `SketchLayout.Relief` deserializes. A group whose relief states nothing
    *  is left out entirely, so opening the phase and closing it again cannot add a key to the layout. */
   toJSON() {
     const out = {};
-    for (const [islandId, relief] of this.#byIsland)
-      if (relief.marks.length || relief.pushes.length) out[islandId] = relief;
+    for (const [groupId, relief] of this.#byGroup)
+      if (relief.marks.length || relief.pushes.length) out[groupId] = relief;
     return out;
   }
 
   get isEmpty() { return Object.keys(this.toJSON()).length === 0; }
 
-  /** Every island that states something, with its relief. */
-  get islands() { return [...this.#byIsland.entries()].map(([id, relief]) => ({ id, relief })); }
+  /** Every group that states something, with its relief. */
+  get groups() { return [...this.#byGroup.entries()].map(([id, relief]) => ({ id, relief })); }
 
-  /** One island's relief, created on demand — asking for it is how a first mark gets somewhere to live.
-   *  `base` is the level that island's ground already stands at, so a fresh relief leaves the landmass where
+  /** One group's relief, created on demand — asking for it is how a first mark gets somewhere to live.
+   *  `base` is the level that group's ground already stands at, so a fresh relief leaves the landmass where
    *  it was drawn; a caller with nothing to read passes nothing and gets {@link FALLBACK_BASE}. */
-  reliefOf(islandId, base) {
-    if (!this.#byIsland.has(islandId))
-      this.#byIsland.set(islandId, defaultRelief(Number.isFinite(base) ? base : FALLBACK_BASE));
-    return this.#byIsland.get(islandId);
+  reliefOf(groupId, base) {
+    if (!this.#byGroup.has(groupId))
+      this.#byGroup.set(groupId, defaultRelief(Number.isFinite(base) ? base : FALLBACK_BASE));
+    return this.#byGroup.get(groupId);
   }
 
-  /** One island's relief if it has one, without creating it — what a reader asks. */
-  peek(islandId) { return this.#byIsland.get(islandId) ?? null; }
+  /** One group's relief if it has one, without creating it — what a reader asks. */
+  peek(groupId) { return this.#byGroup.get(groupId) ?? null; }
 
-  /** Every mark in the document, each tagged with the island stating it. */
+  /** Every mark in the document, each tagged with the group stating it. */
   get marks() {
-    return [...this.#byIsland.entries()].flatMap(([islandId, relief]) =>
-      relief.marks.map(mark => ({ ...mark, islandId })));
+    return [...this.#byGroup.entries()].flatMap(([groupId, relief]) =>
+      relief.marks.map(mark => ({ ...mark, groupId })));
   }
 
-  /** Every push, each tagged with its island and with the word for what it is. The `kind` is added here
+  /** Every push, each tagged with its group and with the word for what it is. The `kind` is added here
    *  rather than stored, because the array it sits in already says it. */
   get pushes() {
-    return [...this.#byIsland.entries()].flatMap(([islandId, relief]) =>
-      relief.pushes.map(push => ({ ...push, kind: PUSH_KIND, islandId })));
+    return [...this.#byGroup.entries()].flatMap(([groupId, relief]) =>
+      relief.pushes.map(push => ({ ...push, kind: PUSH_KIND, groupId })));
   }
 
   /** Everything an author placed, marks and pushes together, in the one list the canvas selects from and the
@@ -268,29 +268,29 @@ export class ReliefDoc {
 
   byId(id) { return this.statements.find(entry => entry.id === id) ?? null; }
 
-  /** Which island states an entry, and which of its two arrays holds it — the question every edit has to
-   *  answer first, since a statement lives inside its island rather than in one flat list. */
+  /** Which group states an entry, and which of its two arrays holds it — the question every edit has to
+   *  answer first, since a statement lives inside its group rather than in one flat list. */
   #locate(id) {
-    for (const [islandId, relief] of this.#byIsland) {
-      if (relief.marks.some(mark => mark.id === id)) return { islandId, list: relief.marks, kind: null };
-      if (relief.pushes.some(push => push.id === id)) return { islandId, list: relief.pushes, kind: PUSH_KIND };
+    for (const [groupId, relief] of this.#byGroup) {
+      if (relief.marks.some(mark => mark.id === id)) return { groupId, list: relief.marks, kind: null };
+      if (relief.pushes.some(push => push.id === id)) return { groupId, list: relief.pushes, kind: PUSH_KIND };
     }
     return null;
   }
 
-  islandOf(id) { return this.#locate(id)?.islandId ?? null; }
+  groupOf(id) { return this.#locate(id)?.groupId ?? null; }
 
-  add(islandId, entry) {
+  add(groupId, entry) {
     const placed = { ...entry, id: entry.id || this.#mintId() };
     if (isPush(entry)) {
       // Stored without the word: the pushes array is what says it is a push, and a field repeating that
       // would be one more thing able to disagree with it.
       const { kind, ...stored } = placed;
-      this.reliefOf(islandId).pushes.push(stored);
-      return { ...stored, kind: PUSH_KIND, islandId };
+      this.reliefOf(groupId).pushes.push(stored);
+      return { ...stored, kind: PUSH_KIND, groupId };
     }
-    this.reliefOf(islandId).marks.push(placed);
-    return { ...placed, islandId };
+    this.reliefOf(groupId).marks.push(placed);
+    return { ...placed, groupId };
   }
 
   update(id, patch) {
@@ -304,33 +304,33 @@ export class ReliefDoc {
       for (const [key, value] of Object.entries(patch)) if (value === undefined) delete merged[key];
       delete merged.kind;
       found.list[at] = merged;
-      return { ...merged, kind: PUSH_KIND, islandId: found.islandId };
+      return { ...merged, kind: PUSH_KIND, groupId: found.groupId };
     }
-    const islandId = found.islandId;
-    const marks = this.#byIsland.get(islandId).marks;
+    const groupId = found.groupId;
+    const marks = this.#byGroup.get(groupId).marks;
     const at = marks.findIndex(mark => mark.id === id);
     marks[at] = { ...marks[at], ...patch, id, kind: marks[at].kind };
-    return { ...marks[at], islandId };
+    return { ...marks[at], groupId };
   }
 
   remove(id) {
     const found = this.#locate(id);
     if (!found) return;
-    const relief = this.#byIsland.get(found.islandId);
+    const relief = this.#byGroup.get(found.groupId);
     if (found.kind === PUSH_KIND) relief.pushes = relief.pushes.filter(push => push.id !== id);
     else relief.marks = relief.marks.filter(mark => mark.id !== id);
   }
 
-  /** Patch an island's own settings — base, reach, step, grain. Not a mark: these are what the marks are
+  /** Patch a group's own settings — base, reach, step, grain. Not a mark: these are what the marks are
    *  stated against. */
-  updateRelief(islandId, patch) {
-    const relief = this.reliefOf(islandId);
+  updateRelief(groupId, patch) {
+    const relief = this.reliefOf(groupId);
     Object.assign(relief, patch);
     return relief;
   }
 
   #allIds() {
-    return [...this.#byIsland.values()].flatMap(relief =>
+    return [...this.#byGroup.values()].flatMap(relief =>
       [...relief.marks, ...relief.pushes].map(entry => entry.id));
   }
 

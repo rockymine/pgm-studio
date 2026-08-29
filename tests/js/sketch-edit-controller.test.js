@@ -67,10 +67,10 @@ test("a point is round where an anchor is square, and both wear the accent", () 
   assert.equal(new Set([...anchors, ...verts].map(el => el.getAttribute("stroke"))).size, 1);
 });
 
-test("the island rung leaves the shape layer empty, so the canvas's box stands alone", () => {
+test("the group rung leaves the shape layer empty, so the canvas's box stands alone", () => {
   const g = layer();
   const c = controller(g);
-  c.setSelected("s1", "island");
+  c.setSelected("s1", "group");
   c.refresh();
   assert.equal(g.children.length, 0);
 });

@@ -1,48 +1,48 @@
-// Tests for the sketch boolean-island layer. Runs in the standard `node --test` harness — boolean.js
+// Tests for the sketch boolean-group layer. Runs in the standard `node --test` harness — boolean.js
 // imports the vendored polygon-clipping bundle relatively, so no node_modules is needed.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import {
-  computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta,
-  shapeToMultiPoly, pointInIsland,
+  computeGroups, assignShapesToGroups, computeMirrorPreview, restoreGroupMeta,
+  shapeToMultiPoly, pointInGroup,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/boolean.js";
 
 const rect = (id, min_x, min_z, max_x, max_z, extra = {}) =>
   ({ id, type: "rectangle", operation: "add", override: false, min_x, min_z, max_x, max_z, ...extra });
 
-// ── computeIslands ──────────────────────────────────────────────────────────
-test("two disjoint adds → two islands", () => {
-  const { islands } = computeIslands([rect("a", 0, 0, 5, 5), rect("b", 10, 0, 15, 5)]);
-  assert.equal(islands.length, 2);
+// ── computeGroups ──────────────────────────────────────────────────────────
+test("two disjoint adds → two groups", () => {
+  const { groups } = computeGroups([rect("a", 0, 0, 5, 5), rect("b", 10, 0, 15, 5)]);
+  assert.equal(groups.length, 2);
 });
 
-test("two overlapping adds → one island", () => {
-  const { islands } = computeIslands([rect("a", 0, 0, 6, 5), rect("b", 4, 0, 10, 5)]);
-  assert.equal(islands.length, 1);
+test("two overlapping adds → one group", () => {
+  const { groups } = computeGroups([rect("a", 0, 0, 6, 5), rect("b", 4, 0, 10, 5)]);
+  assert.equal(groups.length, 1);
 });
 
-test("add minus interior subtract → one island with a hole", () => {
-  const { islands } = computeIslands([
+test("add minus interior subtract → one group with a hole", () => {
+  const { groups } = computeGroups([
     rect("a", 0, 0, 10, 10),
     rect("b", 3, 3, 7, 7, { operation: "subtract" }),
   ]);
-  assert.equal(islands.length, 1);
-  assert.equal(islands[0].holes.length, 1);
+  assert.equal(groups.length, 1);
+  assert.equal(groups[0].holes.length, 1);
 });
 
-test("no adds → no islands", () => {
-  assert.deepEqual(computeIslands([]).islands, []);
+test("no adds → no groups", () => {
+  assert.deepEqual(computeGroups([]).groups, []);
 });
 
-// ── assignShapesToIslands ─────────────────────────────────────────────────────
-test("assignShapesToIslands attributes each shape to its island", () => {
+// ── assignShapesToGroups ─────────────────────────────────────────────────────
+test("assignShapesToGroups attributes each shape to its group", () => {
   const shapes = [rect("a", 0, 0, 5, 5), rect("b", 10, 0, 15, 5)];
-  const { islands, addUnion, afterSub, overrideAddUnion } = computeIslands(shapes);
-  assignShapesToIslands(shapes, islands, addUnion, overrideAddUnion, afterSub);
-  const all = islands.flatMap(i => i.shapeIds).sort();
+  const { groups, addUnion, afterSub, overrideAddUnion } = computeGroups(shapes);
+  assignShapesToGroups(shapes, groups, addUnion, overrideAddUnion, afterSub);
+  const all = groups.flatMap(i => i.shapeIds).sort();
   assert.deepEqual(all, ["a", "b"]);
-  assert.ok(islands.every(i => i.shapeIds.length === 1));
+  assert.ok(groups.every(i => i.shapeIds.length === 1));
 });
 
 // ── computeMirrorPreview ──────────────────────────────────────────────────────
@@ -62,34 +62,34 @@ test("rot_90 → three copies; mirrors:false → none", () => {
   assert.equal(computeMirrorPreview([sqIsland({ mirrors: false })], "mirror_x", 0, 0).length, 0);
 });
 
-// ── restoreIslandMeta ─────────────────────────────────────────────────────────
-test("restoreIslandMeta copies fields from the best shapeId-overlap match", () => {
-  const islands = [{ shapeIds: ["a", "b"], name: "Island 1", mirrors: true }];
-  restoreIslandMeta(islands, [{ shapeIds: ["a"], name: "North", mirrors: false }], ["name", "mirrors"]);
-  assert.equal(islands[0].name, "North");
-  assert.equal(islands[0].mirrors, false);
+// ── restoreGroupMeta ─────────────────────────────────────────────────────────
+test("restoreGroupMeta copies fields from the best shapeId-overlap match", () => {
+  const groups = [{ shapeIds: ["a", "b"], name: "Group 1", mirrors: true }];
+  restoreGroupMeta(groups, [{ shapeIds: ["a"], name: "North", mirrors: false }], ["name", "mirrors"]);
+  assert.equal(groups[0].name, "North");
+  assert.equal(groups[0].mirrors, false);
 });
 
-test("restoreIslandMeta gives one saved record to one island", () => {
-  // The board's own island and two strays a brush stroke left outside it, all overlapping the single
-  // saved record. Handing that record to all three would write three islands under one id — and an id
+test("restoreGroupMeta gives one saved record to one group", () => {
+  // The board's own group and two strays a brush stroke left outside it, all overlapping the single
+  // saved record. Handing that record to all three would write three groups under one id — and an id
   // is what a relief is keyed by, so the board comes back flat.
-  const islands = [
-    { shapeIds: ["s0", "a", "b", "c"], id: "isl_1", name: "Island 1" },
-    { shapeIds: ["d"], id: "isl_2", name: "Island 2" },
-    { shapeIds: ["e"], id: "isl_3", name: "Island 3" },
+  const groups = [
+    { shapeIds: ["s0", "a", "b", "c"], id: "isl_1", name: "Group 1" },
+    { shapeIds: ["d"], id: "isl_2", name: "Group 2" },
+    { shapeIds: ["e"], id: "isl_3", name: "Group 3" },
   ];
-  restoreIslandMeta(islands, [{ shapeIds: ["s0", "a", "b", "c", "d", "e"], id: "team", name: "Team island" }],
+  restoreGroupMeta(groups, [{ shapeIds: ["s0", "a", "b", "c", "d", "e"], id: "team", name: "Team group" }],
                     ["id", "name"]);
-  assert.deepEqual(islands.map(i => i.id), ["team", "isl_2", "isl_3"]);
-  assert.equal(new Set(islands.map(i => i.id)).size, 3);
+  assert.deepEqual(groups.map(i => i.id), ["team", "isl_2", "isl_3"]);
+  assert.equal(new Set(groups.map(i => i.id)).size, 3);
 });
 
-test("restoreIslandMeta pairs two records with two islands by strongest overlap first", () => {
-  const islands = [{ shapeIds: ["a", "b", "c"] }, { shapeIds: ["d", "e"] }];
-  restoreIslandMeta(islands, [{ shapeIds: ["d", "e"], id: "south" }, { shapeIds: ["a", "b", "c"], id: "north" }],
+test("restoreGroupMeta pairs two records with two groups by strongest overlap first", () => {
+  const groups = [{ shapeIds: ["a", "b", "c"] }, { shapeIds: ["d", "e"] }];
+  restoreGroupMeta(groups, [{ shapeIds: ["d", "e"], id: "south" }, { shapeIds: ["a", "b", "c"], id: "north" }],
                     ["id"]);
-  assert.deepEqual(islands.map(i => i.id), ["north", "south"]);
+  assert.deepEqual(groups.map(i => i.id), ["north", "south"]);
 });
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -98,9 +98,9 @@ test("shapeToMultiPoly wraps a ring; degenerate → []", () => {
   assert.deepEqual(shapeToMultiPoly({ type: "polygon", vertices: [[0, 0], [1, 1]] }), []);
 });
 
-test("pointInIsland respects holes", () => {
+test("pointInGroup respects holes", () => {
   const isl = { exterior: [[0, 0], [10, 0], [10, 10], [0, 10]], holes: [[[3, 3], [7, 3], [7, 7], [3, 7]]] };
-  assert.equal(pointInIsland(1, 1, isl), true);   // inside exterior, outside hole
-  assert.equal(pointInIsland(5, 5, isl), false);  // inside the hole
-  assert.equal(pointInIsland(20, 20, isl), false); // outside exterior
+  assert.equal(pointInGroup(1, 1, isl), true);   // inside exterior, outside hole
+  assert.equal(pointInGroup(5, 5, isl), false);  // inside the hole
+  assert.equal(pointInGroup(20, 20, isl), false); // outside exterior
 });

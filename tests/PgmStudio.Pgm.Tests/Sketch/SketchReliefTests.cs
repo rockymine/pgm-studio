@@ -19,7 +19,7 @@ public sealed class SketchReliefTests
           { "id": "s1", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 20, "max_z": 20, "base_height": 3, "floor": 0 }
         ],
-        "islands": [ { "id": "i1", "name": "board", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["s1"] } ]
+        "groups": [ { "id": "i1", "name": "board", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["s1"] } ]
       } }]
       {{(relief is null ? "" : $", \"relief\": {relief}")}}
     }
@@ -197,7 +197,7 @@ public sealed class SketchReliefTests
             { "id": "l1", "base_y": 30, "layout": {
               "shapes": [ { "id": "s1", "type": "rectangle", "operation": "add",
                             "min_x": 0, "min_z": 0, "max_x": 20, "max_z": 20, "base_height": 3, "floor": 0 } ],
-              "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1"] } ] } }
+              "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1"] } ] } }
           ],
           "relief": { "i1": { "base": 5, "marks": [ { "kind": "point", "at": [10, 10], "h": 12, "r": 3 } ] } }
         }

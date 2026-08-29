@@ -15,7 +15,7 @@ namespace PgmStudio.Client.Features.Sketch;
 /// </summary>
 public partial class SketchThemeInspector
 {
-    /// <summary>The value <see cref="SelectionTheme"/> answers when an island's shapes disagree.</summary>
+    /// <summary>The value <see cref="SelectionTheme"/> answers when a group's shapes disagree.</summary>
     private const string Mixed = "~mixed~";
 
     [Parameter] public IJSObjectReference? Handle { get; set; }
@@ -29,7 +29,7 @@ public partial class SketchThemeInspector
     [Parameter] public IReadOnlyDictionary<string, string> ShapeThemes { get; set; } = new Dictionary<string, string>();
     /// <summary>Every shape on the board, themed or not — the denominator of the coverage line.</summary>
     [Parameter] public int ShapeCount { get; set; }
-    [Parameter] public string? SelectedIslandId { get; set; }
+    [Parameter] public string? SelectedGroupId { get; set; }
     [Parameter] public string? SelectedShapeId { get; set; }
     /// <summary>The shape ids the current selection covers — what its theme is read back over.</summary>
     [Parameter] public IReadOnlyList<string> TargetShapeIds { get; set; } = [];
@@ -64,7 +64,7 @@ public partial class SketchThemeInspector
     private readonly Dictionary<string, RoomStylePreviewDto> roomPreviews = [];
 
     private string? InHand => string.IsNullOrEmpty(Brush) ? null : Brush;
-    private bool HasSelection => SelectedIslandId is not null || SelectedShapeId is not null;
+    private bool HasSelection => SelectedGroupId is not null || SelectedShapeId is not null;
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,7 +87,7 @@ public partial class SketchThemeInspector
     }
 
     /// <summary>What the selection paints: the theme every target shape shares, empty when none carries one, or
-    /// <see cref="Mixed"/> when an island's shapes disagree.</summary>
+    /// <see cref="Mixed"/> when a group's shapes disagree.</summary>
     private string SelectionTheme()
     {
         if (TargetShapeIds.Count == 0) return "";
@@ -166,7 +166,7 @@ public partial class SketchThemeInspector
     private async Task ClearSelection()
     {
         if (Handle is null) return;
-        if (SelectedIslandId is not null) await Handle.InvokeVoidAsync("assignIsland", SelectedIslandId, "");
+        if (SelectedGroupId is not null) await Handle.InvokeVoidAsync("assignGroup", SelectedGroupId, "");
         else if (SelectedShapeId is not null) await Handle.InvokeVoidAsync("assignShape", SelectedShapeId, "");
         await OnChanged.InvokeAsync();
     }

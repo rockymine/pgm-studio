@@ -104,10 +104,10 @@ export function meshColumns(payload, hide = null) {
 /**
  * The flat `cols` array as a map of `"x,z"` → `{x, z, runs}`, runs top first as the server wrote them.
  *
- * `hidden` is a set of layer indices to leave out — what a viewer passes to hide a storey. A run whose layer
+ * `hidden` is a set of layer indices to leave out — what a viewer passes to hide a layer. A run whose layer
  * is `-1` is one no layer accounts for (a house, a tree) and is never hidden by a layer toggle: hiding the
  * ground a house stands on should not take the house with it, since the two are different claims and only
- * one of them is the storey being switched off.
+ * one of them is the layer being switched off.
  */
 export function decodeColumns(payload, hidden = null) {
   const cols = payload?.cols ?? [];

@@ -6,10 +6,10 @@ namespace PgmStudio.Pgm.Sketch;
 /// here, the way every gate family's are.</summary>
 public static class SketchRules
 {
-    /// <summary>A recompile fused the board differently, so an island the author had drawn relief onto no
+    /// <summary>A recompile fused the board differently, so a group the author had drawn relief onto no
     /// longer exists to carry it.</summary>
-    /// <remarks>Island identity is derived from the geometry, so a recompile that re-fuses the board produces
-    /// a different island rather than moving the old one — the relief has nowhere correct to land. Retry with
+    /// <remarks>Group identity is derived from the geometry, so a recompile that re-fuses the board produces
+    /// a different group rather than moving the old one — the relief has nowhere correct to land. Retry with
     /// <c>?force=true</c> to accept the loss and proceed, or redraw the plan so the same landmass survives the
     /// compile.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
@@ -31,7 +31,7 @@ public static class SketchRules
     public const int MaxBoardColumns = 4_000_000;
 
     /// <summary>The document names something that is not there — a shape kind nobody has, a mirror mode
-    /// nobody has, an island listing a shape id the layout does not carry, a relief keyed to an island that
+    /// nobody has, a group listing a shape id the layout does not carry, a relief keyed to a group that
     /// does not exist. A complaint rather than a refusal: the board still builds, and it builds without
     /// whatever the name was for, which is the thing worth saying out loud.</summary>
     /// <remarks>Correct the name the finding's <c>field</c> points at. A shape kind is one of rectangle, circle, polygon, lasso or path; a mirror mode is one of none, mirror_x, mirror_z, mirror_d1, mirror_d2, rot_90 or rot_180 — an unknown one leaves the board unmirrored rather than refusing, so half the map quietly goes missing.</remarks>
@@ -86,32 +86,32 @@ public static class SketchRules
 
     /// <summary>Two layers are driven into each other by more than the one course a stack shares at its
     /// seam. A layer is a slab and the stack is what puts air between two of them, so where their spans meet
-    /// they build as one solid mass: the gap the storeys were drawn to have is not in the world there, and
+    /// they build as one solid mass: the gap the layers were drawn to have is not in the world there, and
     /// nothing under the upper slab can be stood in.</summary>
     /// <remarks>Raise the upper layer's `base_y`, or lower the height of what stands on the layer below. A layer's span is inclusive of its top, so an upper layer sitting exactly at the lower one's top shares that one course and is the ordinary seam — this fires only past it. The world is built either way.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string LayersOverlap = "SK10";
 
-    /// <summary>Two islands of one layer answering to the same id. An island id is the key a relief is
+    /// <summary>Two groups of one layer answering to the same id. A group id is the key a relief is
     /// stored under and the handle a placement names, so a board carrying it twice has no single answer to
     /// either: the terrain authored under that name lands on whichever of them is solved first and the rest
     /// of the ground builds flat.</summary>
-    /// <remarks>Give each island its own id. A recompile mints one per island, so a duplicate is a document
-    /// that was written by hand or by a tool that copied a record onto more than one island.</remarks>
+    /// <remarks>Give each group its own id. A recompile mints one per group, so a duplicate is a document
+    /// that was written by hand or by a tool that copied a record onto more than one group.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
-    public const string IslandIdTwice = "SK12";
+    public const string GroupIdTwice = "SK12";
 
     /// <summary>A mass of standable ground under open sky that no route reaches from the rest of the board.
     /// Ground under a roof is a room and says nothing; ground with sky over it and no way onto it is either a
-    /// second island the author meant or a storey whose stair was never drawn, and only the author knows
+    /// second landmass the author meant or an upper level whose stair was never drawn, and only the author knows
     /// which.</summary>
-    /// <remarks>Draw the way onto it — a ramp, a shaft, a shape bridging the gap — or leave it if a detached island is what the board is. The map builds either way.</remarks>
+    /// <remarks>Draw the way onto it — a ramp, a shaft, a shape bridging the gap — or leave it if a detached landmass is what the board is. The map builds either way.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string MassUnreached = "SK11";
 
-    /// <summary>An override add states a top its island's relief will solve straight through. An override add
+    /// <summary>An override add states a top its group's relief will solve straight through. An override add
     /// says the column is its own, floor and all — it is what a wall, a flight of stairs, a crop bed or a
-    /// stepped mound is drawn as — and a relief replaces the top of every column of its island. Only a shape
+    /// stepped mound is drawn as — and a relief replaces the top of every column of its group. Only a shape
     /// naming a <c>height_mode</c> stands out of that field, and only a <c>relief_scope</c> keeps its ground
     /// out of the solve, so a made thing carrying neither is built to whatever the relief says and the
     /// author's number is nowhere in the world. Nothing else catches it: the board still builds, every gate
@@ -125,7 +125,7 @@ public static class SketchRules
     /// by <b>area</b> and not by height, so where the smaller of the two is also the shorter, the world holds
     /// the taller shape's ground in the smaller one's material. A mound's outer ring crossing a town wall
     /// leaves the wall standing to its own courses and finished in grass over dirt, sides included. It is
-    /// visible only in a column read or in the world. A shape in a mirroring island is judged at every image
+    /// visible only in a column read or in the world. A shape in a mirroring group is judged at every image
     /// of its orbit: what a patch contests is as often another patch's reflection as the patch itself.</summary>
     /// <remarks>Cut the smaller shape out of the taller one's footprint — the two are not meant to share ground, and clipping is what states that. Where the overlap is deliberate, give the two the same theme, or scope the paint with a shape at the same height: two shapes at one height are a theme scoped to a patch, which is what scoping is for and is not this.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain, RuleConcern.Theme)]
@@ -146,4 +146,13 @@ public static class SketchRules
     /// <remarks>The negative space is the board's to state and may be redrawn — round the buffer off, narrow it, move it — but never papered over with an add. Move the add off the subtracted ground, or change the subtract to the shape the void is now meant to be. A bridge over the void is written by raising the add's `floor` above the subtract's: the column's one span moves up and the drop stays open under it. A plain add on the subtract's own layer draws nothing and is the complaint rather than the refusal; the board builds, with that shape absent from it.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string DrawnOverSubtraction = "SK13";
+
+    /// <summary>A made thing asks to be seated on the ground and has none under it. A layer that seats takes
+    /// its floors from the lowest solid column of its own footprint, so a thing whose footprint covers no
+    /// ground at all has nothing to measure against and stays at the height it was drawn. A complaint: a
+    /// sculpture hanging in open sky is a legitimate board — a balloon, a ship in the air, a thing on a spire
+    /// — and the word for that is simply to state no seat.</summary>
+    /// <remarks>Move the thing over ground, or take the layer's `seat` off so its floors are the absolute heights it states. The finding names the made thing and how many of its columns found nothing beneath them.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
+    public const string SeatedOnNothing = "SK16";
 }

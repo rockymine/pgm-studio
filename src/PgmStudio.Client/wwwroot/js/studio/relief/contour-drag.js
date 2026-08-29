@@ -45,17 +45,17 @@ const MOVED_ENOUGH = 1;
  */
 export function contourAt(relief, x, z, { slack = GRAB_SLACK, indexEvery = 5 } = {}) {
   let best = null;
-  for (const island of relief?.islands ?? []) {
-    for (const line of island.lines ?? []) {
+  for (const group of relief?.groups ?? []) {
+    for (const line of group.lines ?? []) {
       const distance = distanceToLine(line.points ?? [], x, z);
       if (distance > slack) continue;
       const index = Math.abs(line.level % indexEvery) < 1e-6;
       // An index line is judged as if it were nearer than it is, so it wins anything within the preference.
       const score = index ? distance - INDEX_PREFERENCE : distance;
-      if (!best || score < best.score) best = { score, distance, island: island.island, line, index };
+      if (!best || score < best.score) best = { score, distance, group: group.group, line, index };
     }
   }
-  return best && { islandId: best.island, level: best.line.level, points: best.line.points, index: best.index };
+  return best && { groupId: best.group, level: best.line.level, points: best.line.points, index: best.index };
 }
 
 /**
@@ -72,7 +72,7 @@ export function markFromDrag(grabbed, dx, dz, { width = 2 } = {}) {
   const simplified = douglasPeucker(moved, SIMPLIFY_TOLERANCE);
   if (simplified.length < 2) return null;
   return {
-    islandId: grabbed.islandId,
+    groupId: grabbed.groupId,
     mark: { kind: "line", id: "", points: simplified, h: Math.round(grabbed.level), width },
   };
 }

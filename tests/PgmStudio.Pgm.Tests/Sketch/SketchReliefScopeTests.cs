@@ -22,7 +22,7 @@ public sealed class SketchReliefScopeTests
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38, "base_height": 14, "floor": 0
             {{(scope is null ? "" : $", \"relief_scope\": \"{scope}\"")}} }
         ],
-        "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land", "town"] } ]
+        "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["land", "town"] } ]
       } }],
       "relief": {
         "i1": {
@@ -140,7 +140,7 @@ public sealed class SketchReliefScopeTests
                 "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38, "base_height": 8, "floor": 0,
                 "height_mode": "raise", "relief_scope": "SCOPE" }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land", "rock"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["land", "rock"] } ]
           } }],
           "relief": { "i1": { "base": 6, "marks": [
               { "kind": "point", "at": [3, 3], "h": 6, "r": 3 },
@@ -170,7 +170,7 @@ public sealed class SketchReliefScopeTests
                 "min_x": 14, "min_z": 40, "max_x": 30, "max_z": 60,
                 "base_height": 24, "floor": 0, "height_mode": "level" }
             ],
-            "islands": [ { "id": "i1", "mirrors": true, "shapeIds": ["land", "mesa"] } ]
+            "groups": [ { "id": "i1", "mirrors": true, "shapeIds": ["land", "mesa"] } ]
           } }],
           "relief": { "i1": { "base": 6, "marks": [
               { "kind": "point", "at": [8, 24], "h": 6, "r": 3 },

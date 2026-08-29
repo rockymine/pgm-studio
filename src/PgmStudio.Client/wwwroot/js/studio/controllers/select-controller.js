@@ -1,5 +1,5 @@
 /**
- * SelectController — a generic click-select mode registry (pick a region / island / …).
+ * SelectController — a generic click-select mode registry (pick a region / group / …).
  * Each mode is a picker the canvas registers (a hit-test + the host callback); the canvas forwards its
  * _onCanvasClick into the active mode. Mirrors the draw/edit controllers — the interaction wiring lives
  * here, so adding a mode is one register() call, not another branch in _onCanvasClick. Not editor-

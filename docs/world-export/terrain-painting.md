@@ -159,10 +159,11 @@ because the distance belongs to whoever is measuring it.
 |---|---|---|
 | `depth` *(default)* | `BucketContext.DepthFromTop`, courses down from the top of the bucket | grass over two dirt; a wall's banded riser (TP11) |
 | `inward` | `BucketContext.Inset`, steps in from the landmass's void-facing edge | a cobble rim, two rings of stone brick, then a field |
+| `height` | `BucketContext.Y` less the stack's own `from`, courses up from a stated world Y | a hull's waterline; a tower banded by course, whatever the ground beneath it does |
 
-**One type with the axis named, not two types.** The bands, the thicknesses and the run-out rule are identical
-either way and only the distance differs, so a second material reading a different property would have been
-the same code twice. `depth` is what a layered material always meant and stays the default, which is why
+**One type with the axis named, not three types.** The bands, the thicknesses and the run-out rule are identical
+whichever way it is read and only the distance differs, so a second material reading a different property would
+have been the same code twice. `depth` is what a layered material always meant and stays the default, which is why
 nothing already stored has to be rewritten.
 
 **`ending` decides what happens past the last band, and `beyond` says what shows there.** Under `repeat` the
@@ -172,7 +173,16 @@ ring stack usually does not own its whole space: it is meant to run a few rings 
 block already falls to. Off the footprint the inward axis is -1, which is not "past the last band" — there is
 no ring to be in, so the stack is never asked and `beyond` answers directly.
 
-**Restricting rings to the top course needs no knob, because the two axes compose.** A surface material that
+**The height axis reads the world and not the column, which is what a made thing needs.** `depth` and
+`inward` both measure from the shape the block is in, so a colour change along either splits nothing: the band
+is a property of the material. A colour change stated as *geometry* is a different matter — a layer holds one
+theme, so banding a form by splitting it into a layer per colour costs a layer per band, and that, not the
+shape, is what a sculpture costs. Measured over nine models: the layer count the shape alone needs against the
+one it took — a starship 2 against 4, a robot 5 against 16, a Rubik's cube, which is a solid box with one run
+per column, 1 against 7. Read along `height` the same banding is one material on one layer. `from` is the
+world Y the first band starts at and defaults to 0.
+
+**Restricting rings to the top course needs no knob, because the axes compose.** A surface material that
 is a `depth` stack whose first band is one course thick and is *itself* an `inward` stack rings the top course
 and leaves the courses under it alone — which is also what keeps a grass ring one block thick rather than
 three (a palette that repeats grass down every course is the most-repeated authoring mistake in this repo).
@@ -190,9 +200,9 @@ surface — stored:
    {"material":{"kind":"voronoi","seed":11,"scale":7,"bands":[…]},"thickness":5}]}}
 ```
 
-**What the schema gained is two optional fields on `layered`** — `axis` and `beyond` — and nothing else. A
-stored theme written before either existed reads as `axis: "depth"` with no `beyond`, which is exactly what it
-meant. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
+**What the schema carries on `layered` beyond the stack itself is three optional fields** — `axis`, `beyond`
+and, for the height axis, `from` on the stack. A theme naming no axis reads `depth` with no `beyond`, which is
+what a layered material always meant. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
 it had never been read by a person before, because nothing authored a stack that ends.
 
 `tools/library-map.cs` puts two plots on the catalogue map from this — a disc and a cross — so the reading can
@@ -224,7 +234,7 @@ The eventual theme file (a JSON extension) is exactly this record serialized: a 
 — any of which may be a team tint or a pattern that embeds one — plus the depth knobs, resolved per scope
 (TP10).
 
-**A scope is a layer and a cell, not a cell.** The board is painted one layer at a time, each storey against
+**A scope is a layer and a cell, not a cell.** The board is painted one layer at a time, each against
 its own surface, so a cell standing on two layers is painted twice — once per surface it carries. That is
 what puts a gallery floor's turf under a deck's meadow rather than giving the deck the paint of what lies
 beneath it, and it is why `TerrainThemeScope.ThemeAt` answers `(layer, x, z)` and
@@ -335,6 +345,16 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    exposed riser, fill the remainder; a disabled bucket reroutes down its fallback chain; each band takes only
    what the band above left. Output: an ordered list of `(yRange, bucket)` per column. One pure function,
    unit-tested per column against synthetic profiles.
+
+   **A column starts at its own base, and for ground that base is nought.** `ColumnProfile.Base` is the lowest
+   course a column's bands run from. Terrain runs from the bedrock floor, so the bedrock band is stated and the
+   fill reaches down to it. A made thing's column does not: a hull flying at y24 has no bedrock course and no
+   fill under it, and its span is what it is made of — the column beneath belongs to somebody else. So where a
+   base is stated the resolver emits no bedrock band and lets fill stop there, and `TerrainPainter.Paint`
+   takes the per-layer floors of every `prop` layer from `BuiltTerrain.FloorByLayer` for exactly that. Without
+   it a made thing's fill band claims the whole column beneath it and only the stone-only invariant stops the
+   damage — which makes the *order* of the layer list load-bearing, a plinth painted after the colossus
+   standing on it coming out brass.
 
 4. **Materials — the painter (the pattern seam).** For each band, the bucket's `TerrainMaterial` resolves the
    actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc) and writes it.
@@ -473,7 +493,7 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   paint the seam, unambiguously.
 
   Authored in the Sketch tool's **Theme** phase (`docs/tools/sketch.md`): Create edits a theme against live
-  previews, Apply assigns it to a shape or to every shape of an island, and the map default is named beside
+  previews, Apply assigns it to a shape or to every shape of a group, and the map default is named beside
   them. A plan states no paint at all — `themes`, `mapTheme` and `themeScopes` on a plan document are dropped
   on parse.
 

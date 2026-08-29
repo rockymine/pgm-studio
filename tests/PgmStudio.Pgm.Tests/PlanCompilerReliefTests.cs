@@ -48,7 +48,7 @@ public sealed class PlanCompilerReliefTests
     // crossing straight through the spawn piece (x 80..100, z 20..40) were nothing holding it back.
     private static string WithRelief(SketchLayout layout)
     {
-        var islandId = SketchLayout.Stack(layout)[0].Islands.Single().Id!;
+        var islandId = SketchLayout.Stack(layout)[0].Groups.Single().Id!;
         layout.Relief = new Dictionary<string, SketchReliefJson>
         {
             [islandId] = new SketchReliefJson

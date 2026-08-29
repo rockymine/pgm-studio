@@ -284,8 +284,15 @@ public static class WorldBuilder
         // The board's symmetry, read once and used twice: the painter folds every cell into the primary image
         // before a pattern samples it (TP21), and the dressing pass below fans each prop across the same orbit.
         var symmetry = DressingScope.SymmetryOf(layoutJson);
+        // A made thing is painted over its own span. Ground's bands run from the bedrock course whatever its
+        // floor, so only a prop layer hands its floors over; the painter takes what it is given and asks
+        // nothing about kinds.
+        var propFloors = SketchRasterizer.PropLayers(SketchLayout.Stated(layoutJson))
+            .Where(terrain.FloorByLayer.ContainsKey)
+            .ToDictionary(layer => layer, layer => terrain.FloorByLayer[layer]);
         TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
-                             TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical);
+                             TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
+                             propFloors);
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders half-buried in
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one

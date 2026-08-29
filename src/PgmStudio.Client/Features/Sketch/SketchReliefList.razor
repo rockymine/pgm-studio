@@ -1,26 +1,26 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* What the map's ground has been told to do, as a list, grouped by the island stating it. The canvas is the
+@* What the map's ground has been told to do, as a list, grouped by the group stating it. The canvas is the
    primary way to reach a mark, but a spot height under a broad area is hard to hit, and a list is the one view
-   that says how much of the terrain is authored at all — and, because a relief is solved per island, which
-   islands are still flat. *@
+   that says how much of the terrain is authored at all — and, because a relief is solved per group, which
+   groups are still flat. *@
 
 <Section Title="Stated">
   @if (groups.Count == 0)
   {
     <p class="section-desc">Nothing stated yet. Pick a tool and click a <strong>spot height</strong>, or drag a
-      <strong>ridgeline</strong>, an <strong>area</strong> or a <strong>scarp</strong> inside an island.</p>
+      <strong>ridgeline</strong>, an <strong>area</strong> or a <strong>scarp</strong> inside a group.</p>
   }
   else
   {
     <div class="region-tree">
       @foreach (var group in groups)
       {
-        @* The island row selects the island, which is how its base, grain and rim are reached — the same
-           treatment the island tree gives its own rows, because it is the same kind of row. *@
-        <div class="geo-row" @key="group.IslandId" @onclick="() => SelectIsland(group.IslandId)">
+        @* The group row selects the group, which is how its base, grain and rim are reached — the same
+           treatment the group tree gives its own rows, because it is the same kind of row. *@
+        <div class="geo-row" @key="group.GroupId" @onclick="() => SelectGroup(group.GroupId)">
           <span class="geo-type-icon"><i data-lucide="layers"></i></span>
-          <span class="geo-label">@group.IslandId</span>
+          <span class="geo-label">@group.GroupId</span>
           <span class="list-tag">base @group.Base</span>
         </div>
         @foreach (var row in group.Marks)

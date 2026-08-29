@@ -65,13 +65,13 @@ top block of each column and the ground the map keeps clear, and never has to re
 elevation model it needs is the same `BuiltTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
 first air Y above each column) the painter and every stamper already read.
 
-**On a stacked board a prop says which storey it rests on.** `SurfaceTop` names the highest surface at a
+**On a stacked board a prop says which layer it rests on.** `SurfaceTop` names the highest surface at a
 cell, so a prop stated for a gallery floor would land on the deck over it. A prop carries an optional
 `layer`, and `DressingContext.GroundFor` answers that layer's own surfaces — `BuiltTerrain.SurfaceFor` is the
-same resolver for a stamped thing, so the two readers of a placement's storey cannot disagree about where it
+same resolver for a stamped thing, so the two readers of a placement's layer cannot disagree about where it
 is. Naming no layer keeps the top surface, which is where everything already authored goes; naming one the
 board has no ground on is **declined** (`DR-LAYER`) rather than seated on the top, because that is exactly
-the storey the author was saying they did not mean.
+the layer the author was saying they did not mean.
 
 **A shape can say it is not ground to dress.** Everything else in the keep-out is read off the intent or off
 the finished world's top block, and neither can see a wall or a crop bed drawn as *terrain*: the painter wrote
@@ -82,12 +82,12 @@ either side of it keeps its top course. Without it a stroke repaints whatever it
 water line is the *lowest* surface its band crosses, cuts every other column in the band down to that line —
 which on a wall standing seventeen courses over a river is a hole through the wall, not a bank.
 
-**The claim book is per storey for the same reason.** `GroundClaims` is keyed on the layer as well as the
-cell, and each placement is handed one storey's view of it — `claims.On(prop.Layer)` — so a channel carved
+**The claim book is per layer for the same reason.** `GroundClaims` is keyed on the layer as well as the
+cell, and each placement is handed one layer's view of it — `claims.On(prop.Layer)` — so a channel carved
 into the ground holds the columns it cut on the ground and none of the columns above them. Two props share a
-cell only where they share a storey, which is the only case in which they can collide; a tree on a floating
+cell only where they share a layer, which is the only case in which they can collide; a tree on a floating
 island and a river under it stand on different ground and neither is `DR-CLAIM`. A prop naming no layer
-claims on the top surface, which is a storey like any other here, so a board with one layer has one book.
+claims on the top surface, which is a layer like any other here, so a board with one layer has one book.
 
 The break from the painter is the geometry. `TerrainMaterial.Resolve` only ever answers *which block* a
 stone cell becomes — it cannot add a cell. Flora, boulders and trees **are** added cells: a tall-grass

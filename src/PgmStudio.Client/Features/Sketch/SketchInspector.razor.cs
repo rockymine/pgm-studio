@@ -11,7 +11,7 @@ public partial class SketchInspector
     /// a callback that does nothing but forward.</summary>
     [Parameter] public IJSObjectReference? Handle { get; set; }
     [Parameter] public SketchShapeRow? Shape { get; set; }
-    [Parameter] public SketchIslandRow? Island { get; set; }
+    [Parameter] public SketchGroupRow? Group { get; set; }
     [Parameter] public IReadOnlyList<SketchShapeRow> Shapes { get; set; } = [];
     [Parameter] public EventCallback<string> OnToggleOp { get; set; }
     [Parameter] public EventCallback<string> OnToggleOverride { get; set; }
@@ -25,7 +25,7 @@ public partial class SketchInspector
     [Parameter] public EventCallback<(int Idx, double Height)> OnSlopeHeightChanged { get; set; }
     [Parameter] public EventCallback OnApplySlope { get; set; }
     [Parameter] public EventCallback<string> OnToggleMirrors { get; set; }
-    [Parameter] public EventCallback<(string Id, string Name)> OnRenameIsland { get; set; }
+    [Parameter] public EventCallback<(string Id, string Name)> OnRenameGroup { get; set; }
     [Parameter] public EventCallback<double> OnRotate { get; set; }
     [Parameter] public EventCallback<(string Id, double Radius, string Edge, int Seed)> OnSetPathBand { get; set; }
 
@@ -82,7 +82,7 @@ public partial class SketchInspector
     private Task FloorChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));
 
-    /// <summary>How a shape's top is decided once its island carries a relief (docs/world-export/relief.md §7). The
+    /// <summary>How a shape's top is decided once its group carries a relief (docs/world-export/relief.md §7). The
     /// empty word is ordinary ground and is deliberately first: a shape is part of the landmass unless its
     /// author says otherwise, and a default that made every shape a mesa would turn a drawn board into a
     /// staircase of plates.</summary>
@@ -99,15 +99,15 @@ public partial class SketchInspector
         "level" => "Cuts a flat top straight through the field, whatever the ground under it was doing — so its faces are cliffs.",
         "raise" => "Stands proud of the ground it covers, read at the middle of it, so it keeps its prominence wherever it is dragged.",
         "sink" => "Cuts down into the ground it covers by the same reading — a quarry, a sunken arena, a pit.",
-        _ => "Part of the landmass: the island's relief is what this shape's ground does.",
+        _ => "Part of the landmass: the group's relief is what this shape's ground does.",
     };
 
-    /// <summary>Whether a shape's ground joins the relief its island is solved over (docs/world-export/relief.md §11).
-    /// Inheriting is first and is the default: the island is the unit because a relief solved per shape leaves
+    /// <summary>Whether a shape's ground joins the relief its group is solved over (docs/world-export/relief.md §11).
+    /// Inheriting is first and is the default: the group is the unit because a relief solved per shape leaves
     /// a seam wherever two of them meet and disagree about the height they share.</summary>
     private static readonly (string Value, string Label)[] ReliefScopes =
     [
-        ("", "yes — its ground is the island's ground"),
+        ("", "yes — its ground is the group's ground"),
         ("hold", "holds its own level, and the land meets it"),
         ("exclude", "sits apart — the land ignores it"),
     ];
@@ -116,7 +116,7 @@ public partial class SketchInspector
     {
         "hold" => "Flat at its own floor + height, and the surrounding surface is solved knowing where it has to arrive — a walled town the valley runs up to.",
         "exclude" => "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth.",
-        _ => "The island's relief rolls through it, which is what a shape drawn to make a landmass wants.",
+        _ => "The group's relief rolls through it, which is what a shape drawn to make a landmass wants.",
     };
 
     private Task ReliefScopeChanged(ChangeEventArgs e)
@@ -139,10 +139,10 @@ public partial class SketchInspector
             : OnSetVertexHeight.InvokeAsync((Shape.Id, SelectedVertexIdx, v));
 
     private Task RenameChanged(ChangeEventArgs e)
-        => Island is null ? Task.CompletedTask
-                          : OnRenameIsland.InvokeAsync((Island.Id, e.Value?.ToString()?.Trim() is { Length: > 0 } n ? n : Island.Name));
+        => Group is null ? Task.CompletedTask
+                          : OnRenameGroup.InvokeAsync((Group.Id, e.Value?.ToString()?.Trim() is { Length: > 0 } n ? n : Group.Name));
 
-    private IEnumerable<SketchShapeRow> IslandShapes()
-        => Island is null ? []
-                          : Island.ShapeIds.Select(id => Shapes.FirstOrDefault(s => s.Id == id)).OfType<SketchShapeRow>();
+    private IEnumerable<SketchShapeRow> GroupShapes()
+        => Group is null ? []
+                          : Group.ShapeIds.Select(id => Shapes.FirstOrDefault(s => s.Id == id)).OfType<SketchShapeRow>();
 }

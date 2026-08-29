@@ -3,7 +3,7 @@
 The other passes in this folder dress a world that already exists: `structures.md` stamps rooms onto the
 terrain, `terrain-painting.md` rewrites its materials, `decoration.md` adds its life. This one decides the
 ground all three of them land on. **Relief** is the interior half of the sketch's height model — a height
-field authored *inside* an island, out of marks placed where the ground should rise and fall, and solved into
+field authored *inside* a group, out of marks placed where the ground should rise and fall, and solved into
 a surface between them — and it reaches the world as the column tops the rasterizer emits.
 
 **Status: built.** The solver, the five marks, the push, the block step and its stair repair, the symmetry
@@ -72,7 +72,7 @@ line stored under `width` reads into the same field and is written back as `r`; 
 anything else, and only the name promised otherwise. Its per-vertex heights are interpolated along its arc, so
 one drawn stroke can be a ridge that descends. The rim is optional and it is what keeps a hill inside its shape:
 without one, marks alone decide the whole surface, so a shape carrying a single high mark rises to that height
-everywhere and simply runs off its own edge — which is usually what an island's interior wants, and never what
+everywhere and simply runs off its own edge — which is usually what a group's interior wants, and never what
 a lake wants.
 
 A mark is clipped to the footprint rather than confined to it, so one can be **placed past the edge** and only
@@ -193,7 +193,7 @@ Three knobs turn a solved field into ground, and each answers a question the mar
 **Reach** is how far a statement travels before the field falls back to the relief's base level, in blocks. It
 enters the relaxation as a screening term pulling every free cell toward the base, so the field decays over a
 characteristic length the author states directly. Unlimited reach — stated as zero — means the marks decide the
-whole surface, which is what a room-sized island wants; a finite reach makes each mark a local landform with
+whole surface, which is what a room-sized group wants; a finite reach makes each mark a local landform with
 plain ground between, which is what a ninety-by-a-hundred-and-thirty-five board wants. It is the difference
 between two summits joined by a broad saddle and two hills standing in a field.
 
@@ -213,7 +213,7 @@ through that place's **cheapest** riser — the smallest intervention that recon
 connectivity while moving under eight cells and the walkable share only from 86.9% to 87.3%: visually almost
 nothing, which is exactly why the failure has to be caught by measurement rather than by eye. A stair that would
 run out of footprint is **refused rather than half-cut**, since a riser with a partial cut in it is the same map
-with a scar. The repair is a switch on the island (`stairs`) and is worth asking for whenever the step is more
+with a scar. The repair is a switch on the group (`stairs`) and is worth asking for whenever the step is more
 than one.
 
 ## 5. Steepness is how terrain decides where players go
@@ -278,7 +278,7 @@ to charge. Fourteen is a room with a hill in it, which is a legitimate thing to 
 Those numbers are one room's. Across a whole board the same question is asked with two, and both are read back
 off the solved surface rather than off what the marks asked for.
 
-**Elevation is read for the board's own size.** The measure is the range over the square root of the island's
+**Elevation is read for the board's own size.** The measure is the range over the square root of the group's
 cells, because a bare range says nothing on its own: twenty-eight blocks is a mountain on a board a hundred
 cells across and a slope on one four hundred across — `opus5-deepcut` carries 28 over 4,736 cells and
 `opus5-elderwold` 22 over 13,950, and one is a quarry while the other is a hillside. The four bands are the
@@ -295,7 +295,7 @@ range. Thornfell rolls at 7.6 scrambles per barrier and Tarnfell at 3.0; **Deepc
 transition on it** and 7.85% of its steps are barriers, which is a mountain's elevation with none of a
 mountain's shaping. At or above two the ground rolls; at or below one it steps.
 
-An island **states which of the four it is meant to be** (`relief.landform`), and the read answers what it
+A group **states which of the four it is meant to be** (`relief.landform`), and the read answers what it
 measured. Where the two disagree the response carries an `RL1` complaint, and ground that carries elevation it
 never graded carries `RL2` — complaints, never refusals: a relief is authored ground, and the studio's business
 is to measure it and say where the measurement and the statement disagree. A plain is never `RL2`, since a
@@ -330,12 +330,12 @@ one way, which is what a pit with a flat bottom is missing.
 Nothing downstream needs teaching. The painter classifies a column by its neighbours (`terrain-painting.md` §5),
 so a mesa's face arrives as a void-facing or terrain-facing edge with a known drop and is painted as a wall
 under a rim. And the corpus's own cliff law (`rules.md` EL6) discriminates on the result without being told
-anything: over one prototype island the mesa's face measures **27 wide with an 11-block drop** and qualifies as
+anything: over one prototype group the mesa's face measures **27 wide with an 11-block drop** and qualifies as
 a cliff, while the monolith's — **8 wide** at a comparable drop — does not, which is right, because a monolith
 is a structure and not a landform.
 
 That distinction has a second half, at the shape's own edge. An erected shape meets the ground at whatever step
-the two heights happen to differ by, and unqualified that step is sheer: over the same island the mesa's west
+the two heights happen to differ by, and unqualified that step is sheer: over the same group the mesa's west
 face rises **13 blocks between two adjacent cells**, and the worst step anywhere around its outline is **17**.
 Sheer is right for a monolith, which wants a hard edge; it is wrong for a mesa, which is a landform and belongs
 *in* the terrain rather than on it. A **skirt** of N blocks says which: the top is blended toward the ground it
@@ -438,14 +438,14 @@ are five, covering exactly the three gaps the scarps were drawn to leave. Crossi
 That is the point of the exercise. Every one of those numbers is a design decision the author made and can now
 read back, and none of them is a score.
 
-## 11. The island is the unit, and a shape can leave it
+## 11. The group is the unit, and a shape can leave it
 
-A relief is solved over the **island** — the fused footprint of every shape on one landmass — not over a shape.
+A relief is solved over the **group** — the fused footprint of every shape on one landmass — not over a shape.
 Solving per shape is not a smaller version of the same thing; it is a different and wrong answer, because a mark
 outside a shape says nothing to it and the two sides of a seam settle independently. Measured on a board of
 three abutting pieces with a ridge running across all of them, solving per shape leaves steps of **8 and 7
 blocks** at the two seams; solving over the fusion leaves **1 and 1**. On a plan-derived sketch this is the
-common case rather than an edge one, since equal-level plan pieces fuse into exactly such an island.
+common case rather than an edge one, since equal-level plan pieces fuse into exactly such a group.
 
 The fusion is not always what an author wants, and the case that decides it is a built thing standing on the
 ground: a city, a keep, a walled compound. Its floor is not terrain and it is themed as a unit, so a field
@@ -454,7 +454,7 @@ participation is a property of the **shape**, and there are three answers:
 
 | | The shape | Does its height reach the land around it? |
 |---|---|---|
-| **inherit** | is part of the island; the relief flows through it | there is no separate height — one continuous surface (the default) |
+| **inherit** | is part of the group; the relief flows through it | there is no separate height — one continuous surface (the default) |
 | **hold** | keeps one flat height and pins it | **yes** — the surrounding surface is solved knowing where it must arrive, and moves when that height changes. A structural room whose height nobody has corrected takes the ground's height rather than the plan's (below) |
 | **exclude** | is taken out of the solve, leaving a hole | **no** — the land is whatever that outline would have produced at any height the shape is finally stamped at |
 
@@ -489,20 +489,20 @@ that is terrain.
 
 **A structural annotation binds by footprint, not by membership, and its held height can be corrected once the
 ground is real.** A spawn or wool room the plan compiler projects into the layout is a held shape that is never
-listed in its island's own `shapeIds` — that list is read elsewhere as the island's terrain rings, and the
-annotation is not terrain. It binds instead by overlapping the ground the island's own shapes already claimed,
+listed in its group's own `shapeIds` — that list is read elsewhere as the group's terrain rings, and the
+annotation is not terrain. It binds instead by overlapping the ground the group's own shapes already claimed,
 so `hold`/`exclude` apply to it exactly as they would an ordinary member shape. Its stated `floor`/`base_height`
 starts out as the plan's flat `surface`, because that is the only height a plan-space piece can state before any
 terrain exists — and once the relief solved around it is visible, that number is very often wrong.
 
-**So an uncorrected room is seated on the terrain rather than held at the plan's number.** The island is solved
+**So an uncorrected room is seated on the terrain rather than held at the plan's number.** The group is solved
 once **without the room's pin** — so what that solve leaves under the room is the relief's own answer and the
-plan's number plays no part in it — the room takes a height from it, and the island is solved again holding it
+plan's number plays no part in it — the room takes a height from it, and the group is solved again holding it
 there (warm-started from the first, so the second costs a few sweeps rather than a solve). The room stays
 exactly as flat as it was — a spawn or wool room is a level rectangle and can never slope — and the height it is
 flat *at* becomes the ground's rather than the plan's. Doing anything else puts a spawn door against a wall
 the relief built around it: on `opus5-undercroft` the plan declared every piece at `surface: 14`, a `back-rise`
-point mark two blocks in front of the door raised the island to 19, and the pad stayed at 14 — a **five-block
+point mark two blocks in front of the door raised the group to 19, and the pad stayed at 14 — a **five-block
 vertical face across the whole door**, walked into by every player leaving spawn, with the objective they are
 defending behind it. Nothing complained, and nothing could: `SP8` reads plan-piece surfaces, all of which were
 14, so the seam it measures was flat.
@@ -524,7 +524,7 @@ its own wool, so the ground that has to be level with it is the ground the attac
 **A room stating no door is read on every side**, because a room nobody named a way into is entered from
 wherever the ground reaches it. The median under its own footprint is the answer this rule exists to reject —
 it splits the difference and leaves a step at the way in as well as at the back — so it is the last resort
-only, for a room with no ground outside it at all, which is a room filling its own island. The distinction is
+only, for a room with no ground outside it at all, which is a room filling its own group. The distinction is
 not academic: a stored layout written before `doors` existed carries none, and on `opus5-hollowmarch` reading
 the footprint seats the back wool room at **19** against an approach at **21**, while reading the ring outside
 seats it at **21** and the way in is flush.
@@ -617,12 +617,12 @@ Classification is not pure geometry — a cliff is a corpus rule about play — 
 reachable-place flood, the scarp qualification and the ford/detour measures live in
 **`PgmStudio.Analysis.Playability.ReliefReadback`**, where the other derivations that read a surface already are.
 
-`SketchRasterizer` consumes the result: an island carrying a relief takes its columns' **tops** from the solved
+`SketchRasterizer` consumes the result: a group carrying a relief takes its columns' **tops** from the solved
 field instead of from the per-vertex triangulation, and their **floors** are left alone, because a relief states
 where the ground is and not how thick the slab under it is. Nothing else about the rasterizer changes — the
-field answers the same question the triangulation did. It solves over the cells the island's add-shapes
+field answers the same question the triangulation did. It solves over the cells the group's add-shapes
 contribute that survive the set algebra, so a relief cannot re-add ground a subtract took away, and a mirrored
-copy reads its heights back out of the island's own solved surface through the same transform, which makes the
+copy reads its heights back out of the group's own solved surface through the same transform, which makes the
 two halves identical by construction rather than to within a second solve's tolerance (§8).
 
 The canvas preview draws the field's **contours**, which is both the readable view of a height field and the
@@ -630,11 +630,11 @@ direct-manipulation surface: dragging a contour line is dragging a line mark at 
 reading of the surface and the way it is edited are the same object. The field itself arrives from the server as
 traced lines — §15 says why the relaxation is not twinned in JS the way `Geom.Symmetry` is.
 
-A relief rides **top-level on the layout, keyed by island id** (`SketchReliefJson`), because the island is the
+A relief rides **top-level on the layout, keyed by group id** (`SketchReliefJson`), because the group is the
 unit it is solved over (§11) and because a plan recompile replaces every shape it produced:
 
 ```json
-"relief": { "island-3": {
+"relief": { "group-3": {
   "base": 8,
   "reach": 26,
   "step": 1,
@@ -668,7 +668,7 @@ The shape gains one word for how its own top is decided, and a number for how ha
 "skirt": 0
 ```
 
-and one for whether its ground joins the island's, which is the other question and is asked of the shapes the
+and one for whether its ground joins the group's, which is the other question and is asked of the shapes the
 first is not:
 
 ```json
@@ -682,7 +682,7 @@ its doors stand on so the seating above knows which ground the room has to be le
 "doors": ["-z"]
 ```
 
-`base_height` and `anchor_heights` keep their meaning; a relief supersedes them on the island that carries one.
+`base_height` and `anchor_heights` keep their meaning; a relief supersedes them on the group that carries one.
 That matters for more than compatibility: the flat plate and the neat staircase are the right answer often
 enough that they should not become special cases of a solver.
 
@@ -709,8 +709,8 @@ perturbs the field locally, so a warm-started relaxation has only that perturbat
 blocks, on the settled answer everywhere but the figures in the last column, each off by exactly one. So the
 drag warm-starts and the release solves in full.
 
-Each island's preview resumes from the surface its previous preview settled on (`ReliefPreviewCache`, a bounded
-LRU keyed by map and island, matched on the exact footprint since a field is an array indexed by the grid it was
+Each group's preview resumes from the surface its previous preview settled on (`ReliefPreviewCache`, a bounded
+LRU keyed by map and group, matched on the exact footprint since a field is an array indexed by the grid it was
 solved on). **It cannot change an answer**, and that is the design rather than a hope: the relaxation stops when
 the field stops moving, so a resumed run that reaches that tolerance has reached the surface a cold one would,
 and a resume that fails to settle is discarded and the cold cascade runs instead. The fallback is deliberately
@@ -735,34 +735,34 @@ flat methods. Relief has the same five parts with different nouns — `ReliefDoc
 `SketchReliefList` + `SketchReliefInspector` — and the mark kinds are tool buttons the way the prop kinds are.
 
 Three things differ, and each is the model asserting itself over the borrowed shape. A prop is placed **on the
-map**; a mark is placed **in an island**, because that is the unit a relief is solved over — so the island is
+map**; a mark is placed **in a group**, because that is the unit a relief is solved over — so the group is
 fixed by where a trace *starts*, and never revised. Judging it by coverage instead would break the one gesture
 the clipping rule exists for: a mark dragged past an edge raises the ground into a corner and stops, and
-ownership by area would hand that mark to whichever island the overhang happened to cross. For the same reason a
-mark, unlike a prop, may be dragged **off** its island entirely, where a prop's drag stops at the void. And the
+ownership by area would hand that mark to whichever group the overhang happened to cross. For the same reason a
+mark, unlike a prop, may be dragged **off** its group entirely, where a prop's drag stops at the void. And the
 **rim** gets no tool at all: it holds the whole outline, so there is nowhere to put it and nothing to drag, and
-it is a switch on the island instead — one that writes the rim *first* in the mark list, since a rim written last
-cuts a doorway through both ends of every ridge that reaches the outline. A first mark in an island starts at
-that island's own **base** rather than at the last mark's height, which would state a cliff nobody asked for.
+it is a switch on the group instead — one that writes the rim *first* in the mark list, since a rim written last
+cuts a doorway through both ends of every ridge that reaches the outline. A first mark in a group starts at
+that group's own **base** rather than at the last mark's height, which would state a cliff nobody asked for.
 
-**The base is the island's own level, and the editor reads it rather than assuming one.** A relief replaces the
-top of every column of its island (§13), so `base` is not a working ground level an author adjusts afterwards —
+**The base is the group's own level, and the editor reads it rather than assuming one.** A relief replaces the
+top of every column of its group (§13), so `base` is not a working ground level an author adjusts afterwards —
 it is what the whole landmass becomes wherever the marks say nothing. A base that disagrees with the height the
-shapes were drawn at therefore moves the island the moment the first mark lands, and it moves it silently: the
+shapes were drawn at therefore moves the group the moment the first mark lands, and it moves it silently: the
 contour overlay simply redraws at the new height, and nothing about the gesture says a landmass just fell. So a
-relief created in the editor starts at the island's own top — the most common `floor + base_height` among its
-add shapes, ties to the tallest, which on a plan-derived island is one number — and the panel states that level
+relief created in the editor starts at the group's own top — the most common `floor + base_height` among its
+add shapes, ties to the tallest, which on a plan-derived group is one number — and the panel states that level
 beside the field, with which way the ground moves where the two differ. The number a hand-written document gets
 for an absent `base` is the same one, since a second constant would be a second rule. What the editor may not
 do is correct a base *after* marks are placed: every mark carries an absolute height, so a base moved under
 them leaves them where they were stated, which is a pit or a plateau exactly where the author's first statement
 went.
 
-**A relief is stated in an island, and the phase may not reshape one.** Picking an island is how its base,
+**A relief is stated in a group, and the phase may not reshape one.** Picking a group is how its base,
 reach, step, grain and rim are reached, so the phase runs on the canvas as a **selection surface** — the same
 mode the Theme phase uses, for the same reason. Offering the edit handles here would make the gesture that
-selects an island the gesture that reshapes it, and the island's outline is the footprint the relief was solved
-over: moving it re-fuses the board, and a re-fused board is a different island with nowhere for its relief to
+selects a group the gesture that reshapes it, and the group's outline is the footprint the relief was solved
+over: moving it re-fuses the board, and a re-fused board is a different group with nowhere for its relief to
 land (below). Geometry is Draw's.
 
 A mark carries an **id** on the wire for the same reason a prop does. The solver has no use for it — a mark is a
@@ -802,17 +802,17 @@ phase, since a relief is geometry and is worth seeing while the shapes over it a
 exactly when the paint preview is not.
 
 **The readback sits next to the document it describes.** `POST /map/{slug}/sketch/relief/read` answers, per
-island, what the terrain charges at each of the three thresholds, the places that leaves and the ledges stranded
+group, what the terrain charges at each of the three thresholds, the places that leaves and the ledges stranded
 off them, the faces with cliffs qualified, crossings counted both ways, and the symmetry error. It is fetched on
 a button rather than on every edit, and it is what makes a relief correctable by a generator or an agent rather
 than only by eye.
 
 **A count says a board is broken; the pieces say where.** Beside the place and ledge counts each tier carries
-`parts`, one entry per piece of surface, largest first: how many cells it holds, what share of the island that
+`parts`, one entry per piece of surface, largest first: how many cells it holds, what share of the group that
 is, where its middle sits, the box it spans, and whether it is a place or a ledge. The flood that produces the
 counts already has them, so this costs nothing, and without it a read of *places 3, largest 0.95* leaves the
 missing five percent to be found by guessing a coordinate and taking a column transect. The list is cut at
-sixteen; a place is at least one percent of the island so the cap only ever bites on ledges, whose tail is
+sixteen; a place is at least one percent of the group so the cap only ever bites on ledges, whose tail is
 slivers along a brink, and the `ledges` count still counts them all. The centroid is the mean of a piece's
 cells, so a horseshoe answers with a point outside itself — a fact about the piece rather than an error, and
 the box beside it is what bounds a search. One measure needed a rule the prose above does not state: a face is grouped by **which way it
@@ -822,16 +822,16 @@ EL6 exists to get right.
 
 **A recompile refuses rather than guesses.** A relief is expensive hand work and it is *geometry*, so a recompile
 from a plan would replace it — the same rule that already replaces hand-drawn shapes, and a much worse loss. Two
-things follow, and the second is the one with teeth. A relief is stored top-level on the layout, keyed by island,
+things follow, and the second is the one with teeth. A relief is stored top-level on the layout, keyed by group,
 rather than nested inside the shapes a recompile discards, and is carried across the compile under its own rule
-rather than as a finish key: theming is a finish, terrain is not. But island identity is itself derived from the
-geometry, so a board that re-fuses does not move an island — it produces a different one, and a relief authored
+rather than as a finish key: theming is a finish, terrain is not. But group identity is itself derived from the
+geometry, so a board that re-fuses does not move a group — it produces a different one, and a relief authored
 against the old fusion has nowhere correct to land. Neither of the alternatives survives that. A stable authored
 id would keep the key alive while the ground under it changed shape, which is worse than losing it, because the
 terrain would still be applied. Re-binding by footprint overlap decides by area what the author decided by
-intent, and the case it gets wrong — one island split in two, most of the relief landing on the larger half — is
+intent, and the case it gets wrong — one group split in two, most of the relief landing on the larger half — is
 exactly the case that matters. So `PUT /map/{slug}/sketch/from-plan` answers **409** in the refusal envelope,
-one `SK1` finding per island whose relief it cannot place — the island id riding as the finding's subject —
+one `SK1` finding per group whose relief it cannot place — the group id riding as the finding's subject —
 and writes nothing; `?force=true` accepts the loss. Discarding hours of terrain is a decision, and it belongs
 to the author.
 

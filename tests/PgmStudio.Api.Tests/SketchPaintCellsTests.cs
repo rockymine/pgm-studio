@@ -42,7 +42,7 @@ public sealed class SketchPaintCellsTests
             Themes = themes,
             MapTheme = mapTheme,
             Layers = [SketchLayer.Ground([.. shapes],
-                [new SketchIsland { Id = "i", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }])],
+                [new SketchGroup { Id = "i", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }])],
         }.ToJson();
 
     private static IReadOnlyList<SurfaceCell> Paint(string layoutJson)

@@ -21,7 +21,7 @@ public sealed class SketchErectTests
             "base_height": {{amount}}, "floor": {{floor}}
             {{(mode is null ? "" : $", \"height_mode\": \"{mode}\"")}} }
         ],
-        "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+        "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
       } }],
       "relief": {
         "i1": {
@@ -98,7 +98,7 @@ public sealed class SketchErectTests
                 "min_x": {{minX}}, "min_z": {{minZ}}, "max_x": {{minX + 8}}, "max_z": {{minZ + 8}},
                 "base_height": 6, "floor": 0 }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
           } }],
           "relief": {
             "i1": { "base": 6, "marks": [ { "kind": "point", "at": [2, 2], "h": 6, "r": 3 },
@@ -147,7 +147,7 @@ public sealed class SketchErectTests
                 "vertices": [[10,10],[50,10],[50,30],[10,30]],
                 "anchor_heights": [8, 20, 20, 8], "base_height": 14, "floor": 0 }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
           } }]
         }
         """;
@@ -179,7 +179,7 @@ public sealed class SketchErectTests
                 "min_x": 20, "min_z": 12, "max_x": 44, "max_z": 30,
                 "base_height": 24, "floor": 0, "skirt": {{skirt}} }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
           } }]
         }
         """;
@@ -217,7 +217,7 @@ public sealed class SketchErectTests
               { "id": "s2", "type": "rectangle", "operation": "add", "height_mode": "level",
                 "min_x": 20, "min_z": 12, "max_x": 44, "max_z": 30, "base_height": 26, "floor": 0, "skirt": 6 }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
           } }],
           "relief": {
             "i1": { "base": 8, "marks": [ { "kind": "point", "at": [4, 20], "h": 8, "r": 3 },
@@ -255,7 +255,7 @@ public sealed class SketchErectTests
               { "id": "s2", "type": "rectangle", "operation": "add", "height_mode": "raise",
                 "min_x": 10, "min_z": 10, "max_x": 18, "max_z": 18, "base_height": 9, "floor": 0 }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["s1", "s2"] } ]
           } }]
         }
         """;
@@ -282,7 +282,7 @@ public sealed class SketchErectTests
                 "height_mode": "level", "skirt": 0,
                 "vertices": [[0,0],[24,0],[24,8],[0,8]],
                 "anchor_heights": [4, 28, 28, 4], "floor": 0, "base_height": 29 }],
-            "islands": [{ "id": "i", "mirrors": false, "shapeIds": ["g", "ramp"] }] } }] }
+            "groups": [{ "id": "i", "mirrors": false, "shapeIds": ["g", "ramp"] }] } }] }
         """).Where(cell => cell.Z == 4 && cell.X >= 0 && cell.X < 24)
             .OrderBy(cell => cell.X).Select(cell => cell.YTop).ToList();
 
@@ -307,7 +307,7 @@ public sealed class SketchErectTests
                 "height_mode": "level", "skirt": 0,
                 "vertices": [[0,0],[24,0],[24,8],[0,8]],
                 "anchor_heights": [4, 16, 16, 4], "floor": 0, "base_height": 17 }],
-            "islands": [{ "id": "i", "mirrors": false, "shapeIds": ["g", "ramp"] }] } }] }
+            "groups": [{ "id": "i", "mirrors": false, "shapeIds": ["g", "ramp"] }] } }] }
         """).Where(cell => cell.Z == 4 && cell.X >= 0 && cell.X < 24)
             .OrderBy(cell => cell.X).Select(cell => cell.YTop).ToList();
 

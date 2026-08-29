@@ -200,7 +200,7 @@ test("splitShape returns null when the line doesn't cross twice, or for a circle
 });
 
 // ── boundsOfShapes ────────────────────────────────────────────────────────────
-test("boundsOfShapes unions member bounds (the island bbox)", () => {
+test("boundsOfShapes unions member bounds (the group bbox)", () => {
   const b = boundsOfShapes([
     { type: "rectangle", min_x: 0, min_z: 0, max_x: 4, max_z: 4 },
     { type: "circle", center_x: 20, center_z: 10, radius: 5 },   // 15..25 x, 5..15 z

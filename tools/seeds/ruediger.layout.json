@@ -1302,7 +1302,7 @@
             "theme": null
           }
         ],
-        "islands": [
+        "groups": [
           {
             "id": "team",
             "name": "Other team island",

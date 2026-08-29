@@ -10,10 +10,14 @@ namespace PgmStudio.Minecraft.Stamping;
 /// <param name="SurfaceByLayer">The same read taken one layer at a time, layer id → its own cells' tops. A
 /// stacked board has a surface per storey and the whole-board answer only ever names the highest, so this is
 /// what a pass addressing a particular storey — painting it, seating something on it — reads instead.</param>
+/// <param name="FloorByLayer">Where each layer's own span starts, cell by cell — the other end of the pair
+/// above. Only a pass painting a layer that is not ground reads it: terrain's bands run from the bedrock
+/// course whatever its floor, and a made thing's run over its own span.</param>
 public sealed record BuiltTerrain(
     VoxelWorld World,
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> SurfaceByLayer)
+    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> SurfaceByLayer,
+    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> FloorByLayer)
 {
     /// <summary>The ground a thing placed on <paramref name="layer"/> stands on: that layer's own surfaces,
     /// or — for a placement naming no layer, and for one naming a layer this board does not have — the
@@ -41,6 +45,7 @@ public static class TerrainBuilder
         var world = new VoxelWorld();
         var surface = new Dictionary<(int X, int Z), int>();
         var byLayer = new Dictionary<string, Dictionary<(int X, int Z), int>>();
+        var floorOf = new Dictionary<string, Dictionary<(int X, int Z), int>>();
         var grounded = new HashSet<(int X, int Z)>();
 
         foreach (var (x, z, yFloor, yTop, layer) in columns)
@@ -60,12 +65,18 @@ public static class TerrainBuilder
 
             if (!byLayer.TryGetValue(layer, out var tops)) byLayer[layer] = tops = [];
             AddSurface(tops, x, z, yTop);
+
+            if (!floorOf.TryGetValue(layer, out var floors)) floorOf[layer] = floors = [];
+            var start = Math.Clamp(yFloor, 0, VoxelWorld.MaxHeight);
+            if (!floors.TryGetValue((x, z), out var known) || start < known) floors[(x, z)] = start;
         }
 
         foreach (var (x, z) in grounded) world.SetBlock(x, 0, z, Blocks.Bedrock);
 
         return new BuiltTerrain(world, surface,
             byLayer.ToDictionary(entry => entry.Key,
+                                 entry => (IReadOnlyDictionary<(int X, int Z), int>)entry.Value),
+            floorOf.ToDictionary(entry => entry.Key,
                                  entry => (IReadOnlyDictionary<(int X, int Z), int>)entry.Value));
     }
 

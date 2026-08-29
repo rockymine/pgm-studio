@@ -1,7 +1,7 @@
 /**
- * Boolean island computation for the Sketch tool — the one genuinely sketch-domain geometry layer.
+ * Boolea group computation for the Sketch tool — the one genuinely sketch-domain geometry layer.
  * Converts primitive shapes to rings (geometry/shape.js), runs union/difference via the vendored
- * polygon-clipping bundle, extracts connected-component islands, and assigns shapes to the islands
+ * polygon-clipping bundle, extracts connected-component groups, and assigns shapes to the groups
  * they contribute to. Also computes the live mirror-preview polygons for a symmetry axis.
  *
  * This drives the *live* canvas preview (the hot path stays in JS); the server rasterizes from shapes
@@ -19,16 +19,16 @@ export function shapeToMultiPoly(shape) {
   return ring.length ? [[ring]] : [];
 }
 
-/** Point-in-island test: inside the exterior and outside every hole. */
-export function pointInIsland(px, pz, island) {
-  if (!pointInRing(px, pz, island.exterior)) return false;
-  return !island.holes.some(h => pointInRing(px, pz, h));
+/** Point-in-group test: inside the exterior and outside every hole. */
+export function pointInGroup(px, pz, group) {
+  if (!pointInRing(px, pz, group.exterior)) return false;
+  return !group.holes.some(h => pointInRing(px, pz, h));
 }
 
 // ── Main boolean computation ──────────────────────────────────────────────────
 
 /**
- * Compute islands from the given shapes.
+ * Compute groups from the given shapes.
  *
  * Evaluation order:
  *   1. union(normal adds)
@@ -36,18 +36,18 @@ export function pointInIsland(px, pz, island) {
  *   3. ∪ union(override adds)       ← immune to normal subtracts
  *   4. − union(override subtracts)  ← cuts through everything
  *
- * Returns `{ islands, addUnion, afterSub, overrideAddUnion }`. `islands` is
+ * Returns `{ groups, addUnion, afterSub, overrideAddUnion }`. `groups` is
  * `[{ id, name, mirrors, exterior, holes, shapeIds }]` — names/mirror flags are carried over from
- * `previousIslands` by centroid proximity; `shapeIds` is filled by assignShapesToIslands.
+ * `previousGroups` by centroid proximity; `shapeIds` is filled by assignShapesToGroups.
  */
-export function computeIslands(shapes, previousIslands = []) {
+export function computeGroups(shapes, previousGroups = []) {
   const normalAdds   = shapes.filter(s => s.operation !== "subtract" && !s.override);
   const overrideAdds = shapes.filter(s => s.operation !== "subtract" &&  s.override);
   const normalSubs   = shapes.filter(s => s.operation === "subtract"  && !s.override);
   const overrideSubs = shapes.filter(s => s.operation === "subtract"  &&  s.override);
 
   if (normalAdds.length === 0 && overrideAdds.length === 0) {
-    return { islands: [], addUnion: [], afterSub: [], overrideAddUnion: [] };
+    return { groups: [], addUnion: [], afterSub: [], overrideAddUnion: [] };
   }
 
   // Step 1 — union normal adds.
@@ -90,17 +90,17 @@ export function computeIslands(shapes, previousIslands = []) {
     } catch (err) { console.warn("boolean: override-sub difference error", err); }
   }
 
-  // Build island objects, carrying name/mirror from previous islands matched by centroid proximity.
-  const prevCentroids = previousIslands.map(isl => ({
+  // Build group objects, carrying name/mirror from previous groups matched by centroid proximity.
+  const prevCentroids = previousGroups.map(isl => ({
     isl,
     cx: ringCentroid(isl.exterior)[0],
     cz: ringCentroid(isl.exterior)[1],
   }));
 
-  const MATCH_THRESHOLD = 32; // blocks — centroids further apart → a new island
+  const MATCH_THRESHOLD = 32; // blocks — centroids further apart → a new group
   const matchedPrev = new Set();
 
-  const islands = result.map((poly, i) => {
+  const groups = result.map((poly, i) => {
     const exterior = poly[0];
     const holes    = poly.slice(1);
     const [ncx, ncz] = ringCentroid(exterior);
@@ -116,7 +116,7 @@ export function computeIslands(shapes, previousIslands = []) {
 
     return {
       id:      best?.id      ?? `isl_${Date.now()}_${i}`,
-      name:    best?.name    ?? `Island ${i + 1}`,
+      name:    best?.name    ?? `Group ${i + 1}`,
       mirrors: best?.mirrors ?? true,
       exterior,
       holes,
@@ -124,23 +124,23 @@ export function computeIslands(shapes, previousIslands = []) {
     };
   });
 
-  return { islands, addUnion: normalUnion, afterSub, overrideAddUnion: afterOverrideAdd };
+  return { groups, addUnion: normalUnion, afterSub, overrideAddUnion: afterOverrideAdd };
 }
 
-// ── Shape → island assignment ─────────────────────────────────────────────────
+// ── Shape → group assignment ─────────────────────────────────────────────────
 
 /**
- * Assign each shape to the island(s) it contributes to and populate `island.shapeIds`. Uses polygon
- * intersection (not centroid) so a subtract spanning multiple islands appears under all of them.
- * Mutates `islands` in place.
+ * Assign each shape to the group(s) it contributes to and populate `group.shapeIds`. Uses polygon
+ * intersection (not centroid) so a subtract spanning multiple groups appears under all of them.
+ * Mutates `groups` in place.
  */
-export function assignShapesToIslands(shapes, islands, addUnion, overrideAddUnion, afterSub) {
-  if (!islands.length) return;
+export function assignShapesToGroups(shapes, groups, addUnion, overrideAddUnion, afterSub) {
+  if (!groups.length) return;
 
-  const islandPolys = islands.map(isl => [[isl.exterior, ...isl.holes]]);
-  const toNormalIdx   = _mapIslandsToUnion(islands, addUnion);
-  const toOverrideIdx = _mapIslandsToUnion(islands, overrideAddUnion ?? []);
-  const normalPath    = _normalPathSet(islands, afterSub);
+  const groupPolys = groups.map(isl => [[isl.exterior, ...isl.holes]]);
+  const toNormalIdx   = _mapGroupsToUnion(groups, addUnion);
+  const toOverrideIdx = _mapGroupsToUnion(groups, overrideAddUnion ?? []);
+  const normalPath    = _normalPathSet(groups, afterSub);
 
   for (const shape of shapes) {
     const sp = shapeToMultiPoly(shape);
@@ -150,20 +150,20 @@ export function assignShapesToIslands(shapes, islands, addUnion, overrideAddUnio
     if (shape.operation === "subtract" && !shape.override) {
       for (let j = 0; j < addUnion.length; j++) {
         if (!_intersects(sp, [addUnion[j]])) continue;
-        for (let i = 0; i < islands.length; i++) {
+        for (let i = 0; i < groups.length; i++) {
           if (toNormalIdx[i] === j && normalPath.has(i)) toAssign.add(i);
         }
       }
     } else if (shape.operation === "subtract" && shape.override) {
-      _intersectUnionComponents(sp, overrideAddUnion ?? [], toOverrideIdx, islands, toAssign);
+      _intersectUnionComponents(sp, overrideAddUnion ?? [], toOverrideIdx, groups, toAssign);
     } else if (shape.override) {
-      for (let i = 0; i < islands.length; i++) {
-        if (_intersects(sp, islandPolys[i])) toAssign.add(i);
+      for (let i = 0; i < groups.length; i++) {
+        if (_intersects(sp, groupPolys[i])) toAssign.add(i);
       }
     } else {
       for (let j = 0; j < addUnion.length; j++) {
         if (!_intersects(sp, [addUnion[j]])) continue;
-        const peers = islands.reduce((acc, _, i) => {
+        const peers = groups.reduce((acc, _, i) => {
           if (toNormalIdx[i] === j && normalPath.has(i)) acc.push(i);
           return acc;
         }, []);
@@ -171,31 +171,31 @@ export function assignShapesToIslands(shapes, islands, addUnion, overrideAddUnio
           toAssign.add(peers[0]);
         } else {
           for (const i of peers) {
-            if (_intersects(sp, islandPolys[i])) toAssign.add(i);
+            if (_intersects(sp, groupPolys[i])) toAssign.add(i);
           }
         }
       }
     }
 
-    for (const i of toAssign) islands[i].shapeIds.push(shape.id);
+    for (const i of toAssign) groups[i].shapeIds.push(shape.id);
   }
 }
 
-function _mapIslandsToUnion(islands, union) {
-  return islands.map(isl => {
+function _mapGroupsToUnion(groups, union) {
+  return groups.map(isl => {
     if (!union.length) return -1;
-    const islandPoly = [[isl.exterior, ...isl.holes]];
+    const groupPoly = [[isl.exterior, ...isl.holes]];
     for (let j = 0; j < union.length; j++) {
-      if (_intersects(islandPoly, [union[j]])) return j;
+      if (_intersects(groupPoly, [union[j]])) return j;
     }
     return -1;
   });
 }
 
-function _intersectUnionComponents(sp, union, toComponentIdx, islands, toAssign) {
+function _intersectUnionComponents(sp, union, toComponentIdx, groups, toAssign) {
   for (let j = 0; j < union.length; j++) {
     if (!_intersects(sp, [union[j]])) continue;
-    for (let i = 0; i < islands.length; i++) {
+    for (let i = 0; i < groups.length; i++) {
       if (toComponentIdx[i] === j) toAssign.add(i);
     }
   }
@@ -205,13 +205,13 @@ function _intersects(a, b) {
   try { return polygonClipping.intersection(a, b).length > 0; } catch { return false; }
 }
 
-// Island indices that have solid area in afterSub (produced by the normal-subtract step, not purely
-// by an override-add inside a hole). When afterSub is empty, all islands are on the normal path.
-function _normalPathSet(islands, afterSub) {
-  if (!afterSub || !afterSub.length) return new Set(islands.map((_, i) => i));
+// Group indices that have solid area in afterSub (produced by the normal-subtract step, not purely
+// by an override-add inside a hole). When afterSub is empty, all groups are on the normal path.
+function _normalPathSet(groups, afterSub) {
+  if (!afterSub || !afterSub.length) return new Set(groups.map((_, i) => i));
   const result = new Set();
-  for (let i = 0; i < islands.length; i++) {
-    const extPoly = [[islands[i].exterior]]; // exterior ring as a filled polygon
+  for (let i = 0; i < groups.length; i++) {
+    const extPoly = [[groups[i].exterior]]; // exterior ring as a filled polygon
     for (const comp of afterSub) {
       if (_intersects(extPoly, [comp])) { result.add(i); break; }
     }
@@ -222,13 +222,13 @@ function _normalPathSet(islands, afterSub) {
 // ── Mirror preview ────────────────────────────────────────────────────────────
 
 /**
- * Live mirror-preview polygons for a set of islands + a symmetry axis. rot_90 → three copies
- * (90/180/270); other modes → one. Returns `[{ sourceId, exterior, holes }]` for islands with
+ * Live mirror-preview polygons for a set of groups + a symmetry axis. rot_90 → three copies
+ * (90/180/270); other modes → one. Returns `[{ sourceId, exterior, holes }]` for groups with
  * `mirrors === true`.
  */
-export function computeMirrorPreview(islands, axis, cx, cz) {
+export function computeMirrorPreview(groups, axis, cx, cz) {
   const result = [];
-  for (const isl of islands) {
+  for (const isl of groups) {
     if (!isl.mirrors) continue;
     const copies = axis === "rot_90" ? ["rot_90", "rot_180", "rot_270"] : [axis];
     for (const copyAxis of copies) {
@@ -254,23 +254,23 @@ function _transformRing(ring, axis, cx, cz) {
 }
 
 /**
- * Apply saved island metadata to computed islands by matching on shapeId overlap.
+ * Apply saved group metadata to computed groups by matching on shapeId overlap.
  *
- * **A saved record is claimed by one island.** One of the fields carried across is the id, and an id is
- * what a relief is keyed by, so handing the same record to two islands writes a layout in which two
- * islands answer to one name — the relief then belongs to whichever of them the solver reaches first and
+ * **A saved record is claimed by one group.** One of the fields carried across is the id, and an id is
+ * what a relief is keyed by, so handing the same record to two groups writes a layout in which two
+ * groups answer to one name — the relief then belongs to whichever of them the solver reaches first and
  * the rest of the board comes back flat. The pairing is therefore resolved greedily by overlap: the
- * strongest (island, record) pair first, then the next over what is left, and an island no record
+ * strongest (group, record) pair first, then the next over what is left, and a group no record
  * reaches keeps the identity it was computed with.
  *
- * @param {object[]} islands   from computeIslands (shapeIds populated)
- * @param {object[]} savedMeta persisted island records ({shapeIds, …fields})
- * @param {string[]} fields    which fields to copy from the matched record onto each island
+ * @param {object[]} groups   from computeGroups (shapeIds populated)
+ * @param {object[]} savedMeta persisted group records ({shapeIds, …fields})
+ * @param {string[]} fields    which fields to copy from the matched record onto each group
  */
-export function restoreIslandMeta(islands, savedMeta, fields) {
+export function restoreGroupMeta(groups, savedMeta, fields) {
   if (!savedMeta.length) return;
   const pairs = [];
-  for (const isl of islands) {
+  for (const isl of groups) {
     for (const meta of savedMeta) {
       const saved = new Set(meta.shapeIds ?? []);
       const overlap = isl.shapeIds.reduce((n, sid) => n + (saved.has(sid) ? 1 : 0), 0);
@@ -278,10 +278,10 @@ export function restoreIslandMeta(islands, savedMeta, fields) {
     }
   }
   pairs.sort((a, b) => b.overlap - a.overlap);
-  const takenIslands = new Set(), takenMeta = new Set();
+  const takenGroups = new Set(), takenMeta = new Set();
   for (const { isl, meta } of pairs) {
-    if (takenIslands.has(isl) || takenMeta.has(meta)) continue;
-    takenIslands.add(isl); takenMeta.add(meta);
+    if (takenGroups.has(isl) || takenMeta.has(meta)) continue;
+    takenGroups.add(isl); takenMeta.add(meta);
     for (const field of fields) {
       if (meta[field] !== undefined) isl[field] = meta[field];
     }

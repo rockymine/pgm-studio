@@ -5,7 +5,7 @@ using Microsoft.JSInterop;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The Relief phase's readback panel: what the stated terrain costs a player, per island.
+/// The Relief phase's readback panel: what the stated terrain costs a player, per group.
 ///
 /// <para>Fetched on demand rather than pushed on every edit. It is a second pass of measurement over the same
 /// solved field — reachability floods at two tiers, a face sweep, a crossing count each way — and an author
@@ -29,11 +29,11 @@ public partial class SketchReliefReadback
     private sealed record PartRow(int Cells, double Share, int CentroidX, int CentroidZ, bool Place);
     private sealed record FaceRow(int Width, int Drop);
     private sealed record Crossing(int Rows, int OnFoot, int WithBlock, int Descended);
-    private sealed record IslandRead(string Id, int Low, int High, int Relief, List<TierRow> Tiers,
+    private sealed record GroupRead(string Id, int Low, int High, int Relief, List<TierRow> Tiers,
         List<FaceRow> Faces, int FaceCount, int Cliffs, Crossing AcrossX, Crossing AcrossZ,
         int SymmetryError, bool Symmetric);
 
-    private List<IslandRead> islands = [];
+    private List<GroupRead> groups = [];
     private bool busy;
     private int readAt = -1;      // the revision the reading on screen describes
 
@@ -42,7 +42,7 @@ public partial class SketchReliefReadback
     protected override void OnParametersSet()
     {
         // A reading of terrain that has since moved is worse than none — it reads as current and is not.
-        if (Revision != readAt) islands = [];
+        if (Revision != readAt) groups = [];
     }
 
     private static string TierWord(string name) => name switch
@@ -61,26 +61,26 @@ public partial class SketchReliefReadback
         try
         {
             var json = await Handle.InvokeAsync<string>("readRelief");
-            islands = Parse(json);
+            groups = Parse(json);
             readAt = Revision;
         }
-        catch { islands = []; }
+        catch { groups = []; }
         finally { busy = false; }
     }
 
-    private static List<IslandRead> Parse(string json)
+    private static List<GroupRead> Parse(string json)
     {
-        var read = new List<IslandRead>();
+        var read = new List<GroupRead>();
         try
         {
             using var doc = JsonDocument.Parse(json);
-            if (!doc.RootElement.TryGetProperty("islands", out var array) || array.ValueKind != JsonValueKind.Array)
+            if (!doc.RootElement.TryGetProperty("groups", out var array) || array.ValueKind != JsonValueKind.Array)
                 return read;
 
-            foreach (var island in array.EnumerateArray())
+            foreach (var group in array.EnumerateArray())
             {
                 var tiers = new List<TierRow>();
-                foreach (var tier in Array(island, "tiers"))
+                foreach (var tier in Array(group, "tiers"))
                 {
                     var parts = new List<PartRow>();
                     foreach (var part in Array(tier, "parts"))
@@ -91,23 +91,23 @@ public partial class SketchReliefReadback
                 }
 
                 var faces = new List<FaceRow>();
-                foreach (var face in Array(island, "faces")) faces.Add(new FaceRow(Int(face, "width"), Int(face, "drop")));
+                foreach (var face in Array(group, "faces")) faces.Add(new FaceRow(Int(face, "width"), Int(face, "drop")));
 
-                var error = Int(island, "symmetryError");
-                read.Add(new IslandRead(Str(island, "island"), Int(island, "low"), Int(island, "high"),
-                    Int(island, "relief"), tiers, faces, Int(island, "faceCount"), Int(island, "cliffs"),
-                    CrossingOf(island, "acrossX"), CrossingOf(island, "acrossZ"), error,
-                    // "Mirrors exactly" is only worth saying when a symmetry was declared at all; an island on
+                var error = Int(group, "symmetryError");
+                read.Add(new GroupRead(Str(group, "group"), Int(group, "low"), Int(group, "high"),
+                    Int(group, "relief"), tiers, faces, Int(group, "faceCount"), Int(group, "cliffs"),
+                    CrossingOf(group, "acrossX"), CrossingOf(group, "acrossZ"), error,
+                    // "Mirrors exactly" is only worth saying when a symmetry was declared at all; a group on
                     // a map with none is not symmetric, it is simply not being asked to be.
-                    Symmetric: error == 0 && island.TryGetProperty("symmetryError", out _)));
+                    Symmetric: error == 0 && group.TryGetProperty("symmetryError", out _)));
             }
         }
         catch (JsonException) { /* a reply the client cannot read shows nothing rather than throwing */ }
         return read;
     }
 
-    private static Crossing CrossingOf(JsonElement island, string name)
-        => island.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object
+    private static Crossing CrossingOf(JsonElement group, string name)
+        => group.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.Object
             ? new Crossing(Int(value, "rows"), Int(value, "onFoot"), Int(value, "withBlock"), Int(value, "descended"))
             : new Crossing(0, 0, 0, 0);
 

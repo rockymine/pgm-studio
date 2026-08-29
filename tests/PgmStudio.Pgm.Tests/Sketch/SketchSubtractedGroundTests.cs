@@ -28,7 +28,7 @@ public sealed class SketchSubtractedGroundTests
         + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""floor"":{floor},""base_height"":8}}";
 
     private static string Layer(string id, params string[] shapes) =>
-        $@"{{""id"":""{id}"",""base_y"":0,""layout"":{{""shapes"":[{string.Join(",", shapes)}],""islands"":[]}}}}";
+        $@"{{""id"":""{id}"",""base_y"":0,""layout"":{{""shapes"":[{string.Join(",", shapes)}],""groups"":[]}}}}";
 
     private static string Board(params string[] layers) =>
         "{" + Setup + @",""layers"":[" + string.Join(",", layers) + "]}";

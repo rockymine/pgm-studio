@@ -232,7 +232,7 @@ public sealed class DestroyableWorldTests
              "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
                {"id":"mesa","type":"rectangle","operation":"add",
                 "min_x":-30,"min_z":-30,"max_x":30,"max_z":30,"base_height":30}
-             ],"islands":[]} }]}
+             ],"groups":[]} }]}
             """;
 
         var built = WorldBuilder.Build(layoutJson, intent);
@@ -283,7 +283,7 @@ public sealed class DestroyableWorldTests
              "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
                {"id":"mesa","type":"rectangle","operation":"add",
                 "min_x":-118,"min_z":-94,"max_x":-68,"max_z":-40,"base_height":58}
-             ],"islands":[]} }]}
+             ],"groups":[]} }]}
             """;
 
         var built = WorldBuilder.Build(layoutJson, intent);

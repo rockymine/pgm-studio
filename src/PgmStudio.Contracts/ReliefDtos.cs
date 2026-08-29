@@ -8,12 +8,12 @@ namespace PgmStudio.Contracts;
 /// the preview the sketch canvas strokes while an author shapes the ground.
 /// </summary>
 /// <param name="Interval">The height step between one contour and the next, as asked for.</param>
-/// <param name="Islands">One entry per island the layout carries.</param>
-public sealed record ReliefContoursDto(double Interval, IReadOnlyList<ReliefIslandContoursDto> Islands);
+/// <param name="Groups">One entry per group the layout carries.</param>
+public sealed record ReliefContoursDto(double Interval, IReadOnlyList<ReliefGroupContoursDto> Groups);
 
-/// <summary>One island's solved surface: how far it ranges, the box it covers, and the lines across it. The
-/// bounds are inclusive on both ends, so a one-cell island has equal min and max.</summary>
-/// <param name="Island">Which island, by id.</param>
+/// <summary>One group's solved surface: how far it ranges, the box it covers, and the lines across it. The
+/// bounds are inclusive on both ends, so a one-cell group has equal min and max.</summary>
+/// <param name="Group">Which group, by id.</param>
 /// <param name="Min">Its lowest solved height.</param>
 /// <param name="Max">Its highest.</param>
 /// <param name="MinX">The west edge of the box it covers, inclusive.</param>
@@ -21,8 +21,8 @@ public sealed record ReliefContoursDto(double Interval, IReadOnlyList<ReliefIsla
 /// <param name="MaxX">The east edge, inclusive.</param>
 /// <param name="MaxZ">The south edge, inclusive.</param>
 /// <param name="Lines">The contours across it.</param>
-public sealed record ReliefIslandContoursDto(
-    string Island,
+public sealed record ReliefGroupContoursDto(
+    string Group,
     int Min,
     int Max,
     [property: JsonPropertyName("min_x")] int MinX,
@@ -37,14 +37,14 @@ public sealed record ReliefIslandContoursDto(
 /// multiply the payload by the length of the words <c>x</c> and <c>z</c> — and the client strokes them in
 /// pairs either way.
 /// </summary>
-/// <param name="Closed">Whether the line closes on itself — an island's outline does, a line running off the
+/// <param name="Closed">Whether the line closes on itself — a group's outline does, a line running off the
 /// footprint does not.</param>
 /// <param name="Level">The height the contour traces.</param>
 /// <param name="Points">A flat <c>[x, z, x, z, …]</c> run, strokable in pairs.</param>
 public sealed record ContourLineDto(double Level, bool Closed, IReadOnlyList<double> Points);
 
 /// <summary>
-/// What the relief a posted layout carries actually <b>charges</b>, per island
+/// What the relief a posted layout carries actually <b>charges</b>, per group
 /// (<c>POST /map/{slug}/sketch/relief/read</c>).
 ///
 /// <para>Not a walkability score. A relief walkable everywhere is a field rather than a map, and one number
@@ -52,11 +52,11 @@ public sealed record ContourLineDto(double Level, bool Closed, IReadOnlyList<dou
 /// thresholds, separates places from ledges, qualifies faces as cliffs by the corpus rule, measures crossings
 /// in both directions, and reports the symmetry error, which nothing else would show.</para>
 /// </summary>
-/// <param name="Islands">One reading per island the layout carries.</param>
-public sealed record ReliefReadDto(IReadOnlyList<ReliefIslandReadDto> Islands);
+/// <param name="Groups">One reading per group the layout carries.</param>
+public sealed record ReliefReadDto(IReadOnlyList<ReliefGroupReadDto> Groups);
 
 /// <summary>
-/// One island's relief, read.
+/// One group's relief, read.
 /// </summary>
 /// <param name="Cells">How much ground there is to read.</param>
 /// <param name="Relief">The whole range, <paramref name="High"/> less <paramref name="Low"/>.</param>
@@ -66,25 +66,25 @@ public sealed record ReliefReadDto(IReadOnlyList<ReliefIslandReadDto> Islands);
 /// <param name="Faces">The first twelve faces the terrain presents. The tail is all banks, which is why the
 /// list is cut and <paramref name="FaceCount"/> says how many there were.</param>
 /// <param name="Cliffs">How many of the faces qualify as cliffs by the corpus rule rather than by intent.</param>
-/// <param name="AcrossX">What crossing the island costs along x, measured in both directions — a drop is free
+/// <param name="AcrossX">What crossing the group costs along x, measured in both directions — a drop is free
 /// the way it falls, so a face that stops a crossing one way lets it through the other.</param>
 /// <param name="SymmetryError">How far the two halves disagree. A relief that is unfair is unfair invisibly,
 /// since nothing else about it looks wrong.</param>
-/// <param name="Island">Which island, by id.</param>
+/// <param name="Group">Which group, by id.</param>
 /// <param name="Low">Its lowest solved height.</param>
 /// <param name="High">Its highest.</param>
 /// <param name="FaceCount">How many faces the terrain presents in total, since
 /// <paramref name="Faces"/> is cut at twelve.</param>
-/// <param name="AcrossZ">What crossing the island costs along z, measured in both directions.</param>
+/// <param name="AcrossZ">What crossing the group costs along z, measured in both directions.</param>
 /// <param name="Landform">What kind of ground the surface measures as — the range over the square root of the
-/// island's cells, which is elevation for the board's own size. Answered whether or not the island stated
+/// group's cells, which is elevation for the board's own size. Answered whether or not the group stated
 /// one; where it stated a different word the response carries an <c>RL1</c> complaint.</param>
 /// <param name="Smoothing">How many two-block scrambles the surface keeps per barrier taller than one. Above
 /// two the ground rolls, at or below one it steps, whatever its range: a quarry and a mountainside carry the
-/// same elevation and are not the same ground. <b>Null where the island has no barrier at all</b> — there is
+/// same elevation and are not the same ground. <b>Null where the group has no barrier at all</b> — there is
 /// nothing to divide by, and a ratio of infinity is not a number JSON can carry.</param>
-public sealed record ReliefIslandReadDto(
-    string Island,
+public sealed record ReliefGroupReadDto(
+    string Group,
     int Cells, int Low, int High, int Relief,
     IReadOnlyDictionary<string, int> Steps,
     IReadOnlyList<ReliefTierDto> Tiers,
@@ -104,14 +104,14 @@ public sealed record ReliefIslandReadDto(
 /// stranded one can be walked to rather than guessed at.</summary>
 /// <param name="Name">The threshold this reads at — a jump, a placed block, building in earnest.</param>
 /// <param name="MaxStep">The height difference a player can cross at it, in blocks.</param>
-/// <param name="Share">How much of the island is crossable at it, 0–1.</param>
+/// <param name="Share">How much of the group is crossable at it, 0–1.</param>
 /// <param name="Places">How many separate pieces of ground that leaves.</param>
 /// <param name="LargestPlace">How much of the ground the largest of them holds, 0–1.</param>
 /// <param name="Ledges">How many pieces are stranded off it — counted apart from
 /// <paramref name="Places"/>, since one connected map with twenty cliff-top ledges is not twenty-one
 /// places.</param>
 /// <param name="Parts">The pieces themselves, largest first, each with the coordinates to find it at. Cut at
-/// sixteen: a place is at least one percent of the island, so the cap only ever bites on ledges, and
+/// sixteen: a place is at least one percent of the group, so the cap only ever bites on ledges, and
 /// <paramref name="Ledges"/> still counts them all.</param>
 public sealed record ReliefTierDto(
     string Name, int MaxStep, double Share, int Places, double LargestPlace, int Ledges,
@@ -120,7 +120,7 @@ public sealed record ReliefTierDto(
 /// <summary>One piece of surface a player can move around within, with the coordinates that let it be found.
 /// The counts above say a board is broken; this says where.</summary>
 /// <param name="Cells">How much ground the piece holds.</param>
-/// <param name="Share">That, over the island's ground, 0–1.</param>
+/// <param name="Share">That, over the group's ground, 0–1.</param>
 /// <param name="CentroidX">The mean of its cells, east–west. On a piece shaped like a ring this lies outside
 /// it, which is a fact about the piece rather than an error — the box below is what bounds a search.</param>
 /// <param name="CentroidZ">The same, north–south.</param>

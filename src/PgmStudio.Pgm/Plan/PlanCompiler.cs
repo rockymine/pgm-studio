@@ -154,11 +154,11 @@ public static class PlanCompiler
         }
 
         // islands = mirror groups: one per distinct mirrors flag (all-true seeds → a single "team" island)
-        var islands = new List<SketchIsland>();
+        var islands = new List<SketchGroup>();
         foreach (var mirrors in islandShapes.Select(s => s.Mirrors).Distinct())
         {
             var ids = islandShapes.Where(s => s.Mirrors == mirrors).Select(s => s.ShapeId).ToList();
-            islands.Add(new SketchIsland
+            islands.Add(new SketchGroup
             {
                 Id = mirrors ? "team" : "neutral",
                 Name = mirrors ? "Team island" : "Neutral",

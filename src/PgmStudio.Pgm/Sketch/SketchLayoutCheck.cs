@@ -110,24 +110,31 @@ public static class SketchLayoutCheck
             findings.Add(new Finding(SketchRules.LayersOverlap,
                 $"layers '{lower}' and '{upper}' are driven {courses} block(s) into each other over {cells} "
                 + $"column(s) — deepest at ({x}, {z}) — so they build as one solid mass where they meet and "
-                + $"the gap between the two storeys is not in the world there. Raise the base_y of '{upper}', "
+                + $"the gap between the two layers is not in the world there. Raise the base_y of '{upper}', "
                 + "or lower what stands on it",
                 Severity.Complaint, Subjects: [lower, upper]));
+
+        // SK16 — a made thing that asked for the ground and found none. The board builds where it was drawn.
+        foreach (var (thing, cells) in SketchRasterizer.SeatedOnNothing(layout))
+            findings.Add(new Finding(SketchRules.SeatedOnNothing,
+                $"'{thing}' seats on the ground and none of its {cells} column(s) has any under it, so it "
+                + "stands at the height it was drawn. Move it over ground, or take its `seat` off",
+                Severity.Complaint, Subjects: [thing]));
 
         // SK11 — ground with sky over it and no way onto it. Roofed ground is a room and stays silent.
         foreach (var (places, x, z, y) in SketchRasterizer.DetachedMasses(layout))
             findings.Add(new Finding(SketchRules.MassUnreached,
                 $"{places} place(s) of standable ground around ({x}, {z}) @{y} have open sky over them and no "
                 + "route onto them from the rest of the board — draw the way up, or leave it if a detached "
-                + "island is what this is",
+                + "group is what this is",
                 Severity.Complaint));
 
-        // SK14 — a relief solves a surface over every column of its island, so an override add that does not
+        // SK14 — a relief solves a surface over every column of its group, so an override add that does not
         // stand out of that field builds to the field rather than to the top it stated.
-        foreach (var (shape, layerId, islandId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
+        foreach (var (shape, layerId, groupId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
             findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
-                $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and island "
-                + $"'{islandId}' carries a relief that solves a surface through it — the world builds it to "
+                $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and group "
+                + $"'{groupId}' carries a relief that solves a surface through it — the world builds it to "
                 + "whatever the relief says. Give it \"height_mode\": \"level\" with \"skirt\": 0 to hold "
                 + "the top it states, or \"relief_scope\": \"exclude\" to keep its ground out of the solve",
                 Severity.Complaint, Subjects: [shape]));
@@ -197,30 +204,30 @@ public static class SketchLayoutCheck
 
         }
 
-        var islands = new HashSet<string>(SketchLayout.IslandIds(layout), StringComparer.Ordinal);
-        foreach (var (island, where) in Islands(layout))
-            foreach (var named in island.ShapeIds.Where(id => !shapeIds.Contains(id)))
+        var groups = new HashSet<string>(SketchLayout.GroupIds(layout), StringComparer.Ordinal);
+        foreach (var (group, where) in Groups(layout))
+            foreach (var named in group.ShapeIds.Where(id => !shapeIds.Contains(id)))
                 findings.Add(new Finding(SketchRules.NamesNothing,
-                    $"island '{island.Id}' lists shape '{named}', which the layout does not carry",
+                    $"group '{group.Id}' lists shape '{named}', which the layout does not carry",
                     Severity.Complaint, Field: $"{where}.shapeIds",
-                    Subjects: island.Id is { Length: > 0 } id ? [id] : null));
+                    Subjects: group.Id is { Length: > 0 } id ? [id] : null));
 
-        // SK12 — one id, two islands. The relief is stored under the id and so is a placement's island, so a
+        // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
         // board carrying it twice has no single answer to either.
-        foreach (var group in Islands(layout).Select(entry => entry.Island)
-                                             .Where(island => island.Id is { Length: > 0 })
-                                             .GroupBy(island => island.Id!, StringComparer.Ordinal)
+        foreach (var group in Groups(layout).Select(entry => entry.Group)
+                                             .Where(group => group.Id is { Length: > 0 })
+                                             .GroupBy(group => group.Id!, StringComparer.Ordinal)
                                              .Where(group => group.Count() > 1)
                                              .OrderBy(group => group.Key, StringComparer.Ordinal))
-            findings.Add(new Finding(SketchRules.IslandIdTwice,
-                $"{group.Count()} islands answer to the id '{group.Key}', so terrain and placements stored "
-                + "under it have no single island to belong to — the first one solved takes them and the "
-                + "rest build flat. Give each island its own id",
+            findings.Add(new Finding(SketchRules.GroupIdTwice,
+                $"{group.Count()} groups answer to the id '{group.Key}', so terrain and placements stored "
+                + "under it have no single group to belong to — the first one solved takes them and the "
+                + "rest build flat. Give each group its own id",
                 Severity.Complaint, Subjects: [group.Key]));
 
-        foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !islands.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
+        foreach (var orphan in (layout.Relief ?? []).Keys.Where(key => !groups.Contains(key)).OrderBy(key => key, StringComparer.Ordinal))
             findings.Add(new Finding(SketchRules.NamesNothing,
-                $"a relief is stated for island '{orphan}', which the layout does not carry, so that "
+                $"a relief is stated for group '{orphan}', which the layout does not carry, so that "
                 + "elevation is not built",
                 Severity.Complaint, Field: $"relief.{orphan}"));
 
@@ -284,7 +291,7 @@ public static class SketchLayoutCheck
     }
 
     // Every shape the layout carries, with the path to it — the layers a stacked sketch holds, and the
-    // single top-level layout a legacy one does (the same two the island walk reads).
+    // single top-level layout a legacy one does (the same two the group walk reads).
     private static IEnumerable<(SketchShape Shape, string Where)> Shapes(SketchLayout layout)
     {
         foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, index) => (layer, index)))
@@ -292,11 +299,11 @@ public static class SketchLayoutCheck
                 yield return (shape, $"layers[{index}].layout.shapes[{at}]");
     }
 
-    private static IEnumerable<(SketchIsland Island, string Where)> Islands(SketchLayout layout)
+    private static IEnumerable<(SketchGroup Group, string Where)> Groups(SketchLayout layout)
     {
         foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, index) => (layer, index)))
-            foreach (var (island, at) in layer.Islands.Select((island, at) => (island, at)))
-                yield return (island, $"layers[{index}].layout.islands[{at}]");
+            foreach (var (group, at) in layer.Groups.Select((group, at) => (group, at)))
+                yield return (group, $"layers[{index}].layout.groups[{at}]");
     }
 
     // Why a shape of a known kind still draws nothing, or null where it draws something.

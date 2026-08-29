@@ -34,9 +34,9 @@ public sealed class PlanSeedGoldenTests
         foreach (var (ring, h) in want) await Assert.That(got[ring]).IsEqualTo(h);
 
         // one mirror island covering every shape
-        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Count).IsEqualTo(1);
-        var island = SketchLayout.Stack(layout)[0].Islands[0];
-        await Assert.That(island.Mirrors).IsEqualTo(SketchLayout.Stack(seed)[0].Islands[0].Mirrors);
+        await Assert.That(SketchLayout.Stack(layout)[0].Groups.Count).IsEqualTo(1);
+        var island = SketchLayout.Stack(layout)[0].Groups[0];
+        await Assert.That(island.Mirrors).IsEqualTo(SketchLayout.Stack(seed)[0].Groups[0].Mirrors);
         var refRings = island.ShapeIds
             .Select(id => PlanTestSupport.NormRing(SketchLayout.Stack(layout)[0].Shapes.Single(s => s.Id == id).Vertices ?? []))
             .ToHashSet();

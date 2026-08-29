@@ -39,7 +39,7 @@ public sealed class TerrainThemeScopeTests
             Themes = themes,
             MapTheme = mapTheme,
             Layers = [SketchLayer.Ground(shapes.ToList(),
-                [new SketchIsland { Id = "i", Mirrors = false, ShapeIds = shapes.Select(s => s.Id).ToList() }])],
+                [new SketchGroup { Id = "i", Mirrors = false, ShapeIds = shapes.Select(s => s.Id).ToList() }])],
         };
         return layout.ToJson();
     }

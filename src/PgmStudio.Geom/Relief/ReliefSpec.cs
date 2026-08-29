@@ -1,10 +1,10 @@
 namespace PgmStudio.Geom.Relief;
 
 /// <summary>
-/// How a shape takes part in the relief of the island it belongs to. The unit a relief is solved over is the
-/// <b>island</b> — the fused footprint of every shape on one landmass — because a relief solved per shape
+/// How a shape takes part in the relief of the group it belongs to. The unit a relief is solved over is the
+/// <b>group</b> — the fused footprint of every shape on one landmass — because a relief solved per shape
 /// leaves a seam wherever two of them meet and disagree about the height they share, and a plan-derived
-/// sketch fuses equal-level pieces into exactly such an island.
+/// sketch fuses equal-level pieces into exactly such a group.
 ///
 /// <para>But the fusion is not always what an author wants, and the case that decides it is a built thing
 /// standing on the ground: a city, a keep, a walled compound. Its floor is not terrain and it is themed as a
@@ -25,7 +25,7 @@ namespace PgmStudio.Geom.Relief;
 /// </summary>
 public enum Participation { Inherit, Hold, Exclude }
 
-/// <summary>One shape of an island as the relief sees it: the ring it covers, how it takes part, and the
+/// <summary>One shape of a group as the relief sees it: the ring it covers, how it takes part, and the
 /// height it holds when it is holding one.</summary>
 public sealed record ReliefShape(double[][] Ring, Participation Participation = Participation.Inherit,
                                  double HeldHeight = 0);
@@ -81,8 +81,8 @@ public sealed record ReliefSpec
     public double FoldCentreZ { get; init; }
 }
 
-/// <summary>An island as the relief is asked to solve it: its shapes, and the relief stated over them.</summary>
-public sealed record ReliefIsland(IReadOnlyList<ReliefShape> Shapes, ReliefSpec Spec)
+/// <summary>A group as the relief is asked to solve it: its shapes, and the relief stated over them.</summary>
+public sealed record ReliefGroup(IReadOnlyList<ReliefShape> Shapes, ReliefSpec Spec)
 {
     /// <summary>The fused footprint every shape contributes to, minus the shapes that take themselves out of
     /// the solve. An excluded shape is a hole, so the relaxation bends around it exactly as it bends around
@@ -107,7 +107,7 @@ public sealed record ReliefIsland(IReadOnlyList<ReliefShape> Shapes, ReliefSpec 
         return marks;
     }
 
-    /// <summary>The solved surface over the island's own ground, excluded shapes left out of it.</summary>
+    /// <summary>The solved surface over the group's own ground, excluded shapes left out of it.</summary>
     public HeightField Solve() => ReliefSolver.Solve(Footprint(), Spec with { Marks = Marks() });
 
     /// <summary>The <em>built</em> surface: the solve with every excluded shape stamped back at its own

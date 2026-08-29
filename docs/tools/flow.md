@@ -99,9 +99,9 @@ fuse into single polygons, so what arrives in Sketch is a board rather than a gr
 
 **Layout onto a map.** `PUT /api/map/{slug}/sketch/from-plan` **merges** rather than replaces: the sketch's
 themes, room shells, dressing and any author-corrected structural height are carried onto the fresh geometry.
-Relief is the exception — it is keyed by island id and island identity is derived from the geometry, so a
-recompile that re-fuses the board produces different islands and hand-authored terrain has nowhere correct to
-land. That case answers **409** in the refusal envelope, one `SK1` finding per island it would orphan, and
+Relief is the exception — it is keyed by group id and group identity is derived from the geometry, so a
+recompile that re-fuses the board produces different groups and hand-authored terrain has nowhere correct to
+land. That case answers **409** in the refusal envelope, one `SK1` finding per group it would orphan, and
 `?force=true` accepts the loss. It is the author's call, not the server's. Both write paths answer what the
 stored document names and does not have (`SK3`/`SK4`/`SK5`) as complaints on the success, the merge path over
 the document the merge produced rather than the one that was posted.
@@ -247,7 +247,7 @@ once rather than one per round trip. `docs/refusals.md` has the envelope.
 | Document | Read it for |
 |---|---|
 | `plan.md` | the board: the plan document field by field, what a compile produces, the refusals |
-| `sketch.md` | the ground: shapes, islands, relief, themes, dressing — the largest tool |
+| `sketch.md` | the ground: shapes, groups, relief, themes, dressing — the largest tool |
 | `configure.md` | the play: the intent, the import path, the objective phases, the export gate |
 | `generator.md` | rolling boards: the request, what a compose produces, the browse feed |
 | `shapes.md` | the vocabulary the generator fills boxes with, and how far each shape actually gets |

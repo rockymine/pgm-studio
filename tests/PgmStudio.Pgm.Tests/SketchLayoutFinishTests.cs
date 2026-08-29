@@ -12,7 +12,7 @@ namespace PgmStudio.Pgm.Tests;
 public sealed class SketchLayoutFinishTests
 {
     private const string Compiled = """
-    {"setup":{"mirror_mode":"rot_180"},"layers":[{"id":"L","layout":{"shapes":[],"islands":[]}}]}
+    {"setup":{"mirror_mode":"rot_180"},"layers":[{"id":"L","layout":{"shapes":[],"groups":[]}}]}
     """;
 
     private const string Finished = """
@@ -21,7 +21,7 @@ public sealed class SketchLayoutFinishTests
      "roomStyles":{"cage":{"walls":"quartz"}},
      "dressing":{"props":[{"kind":"tree","x":4,"z":9}]},
      "biome":{"kind":"cell","seed":3,"cellSize":2,"jitter":70,"palette":[4,7]},
-     "layers":[{"id":"old","layout":{"shapes":[{"id":"s0"}],"islands":[]}}]}
+     "layers":[{"id":"old","layout":{"shapes":[{"id":"s0"}],"groups":[]}}]}
     """;
 
     private static JsonElement Merge(string compiled, string? stored)

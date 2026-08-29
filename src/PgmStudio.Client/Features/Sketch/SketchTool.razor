@@ -6,8 +6,8 @@
 @implements IAsyncDisposable
 
 @* Sketch tool — Layout step. Blazor renders the topbar + toolbar + svg shell; the reused SketchCanvas
-   JS (via bridge/sketch-bridge.js) owns drawing, the live island computation, and the mirror preview.
-   Persistence (load/save) is wired in S2d; this step is the draw + live-islands experience. *@
+   JS (via bridge/sketch-bridge.js) owns drawing, the live group computation, and the mirror preview.
+   Persistence (load/save) is wired in S2d; this step is the draw + live-groups experience. *@
 
 <StudioShell>
   <Bar>
@@ -18,7 +18,7 @@
       </Crumbs>
       <Right>
         @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
-        <span class="topbar-crumb topbar-crumb--dim">@islandLabel</span>
+        <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
         <Button Variant="icon" Icon="keyboard" Title="Keyboard shortcuts" OnClick="ShowKeys" />
@@ -72,22 +72,22 @@
           {
             @* What exists, and nothing more: the theme in hand is on the strip and what it lands on is in the
                inspector, so the column stays the one list a phase can always show. *@
-            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
-                         OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+            <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
+                         OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
           }
           else if (DressingActive)
           {
             @* Dressing places things on the map rather than assigning recipes to shapes, so its sidebar is the
-               list of what is placed — the island tree would only offer a selection nothing here acts on. *@
+               list of what is placed — the group tree would only offer a selection nothing here acts on. *@
             <SketchDressingList StateJson="@dressingJson" Handle="handle" />
           }
           else if (ReliefActive)
           {
-            @* Relief needs BOTH: the island tree, because the island is the unit a relief is solved over and
+            @* Relief needs BOTH: the group tree, because the group is the unit a relief is solved over and
                picking one is how its base and grain are reached; and the list of what is stated, because a
                spot height under a broad bench is a small target on the canvas. *@
-            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
-                         OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+            <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
+                         OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
             <SketchReliefList StateJson="@reliefJson" Handle="handle" />
             @* What the stated terrain costs a player. Below the list rather than beside it: the list is what
                was said, this is what it came to, and reading the second without the first is how a number
@@ -98,8 +98,8 @@
           {
             <SketchLayers Layers="layerRows" ActiveId="@activeLayerId"
                           OnRename="RenameLayer" OnSetBaseY="SetLayerBaseY" />
-            <SketchPanel Islands="islands" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedIslandId="@selectedIslandId"
-                         OnSelectShape="SelectShape" OnSelectIsland="SelectIsland" />
+            <SketchPanel Groups="groups" Shapes="shapes" SelectedShapeId="@selectedShapeId" SelectedGroupId="@selectedGroupId"
+                         OnSelectShape="SelectShape" OnSelectGroup="SelectGroup" />
           }
         </Sidebar>
         <div class="sidebar-handle"></div>
@@ -111,7 +111,7 @@
           <CanvasReadout @ref="readout" ShowSize />
 
           @* The chips mean different things either side of the toggle. In 2-D they are overlays over the
-             drawing; in 3-D they are the board's own storeys, one chip per sketch layer, because the thing
+             drawing; in 3-D they are the board's own layers, one chip each, because the thing
              an author wants in a preview of a stack is to take the deck off and look under it. A board of
              one layer shows none — there is nothing to take off — and the rotate replaces fit either way. *@
           <CanvasLayerBar>
@@ -119,7 +119,7 @@
             {
               @if (ChipOffered(ChipShapes))
               {
-                <LayerChip Icon="shapes" Active="shapesOn" Title="Show the draw primitives over the islands"
+                <LayerChip Icon="shapes" Active="shapesOn" Title="Show the draw primitives over the groups"
                            OnClick="ToggleShapes">Shapes</LayerChip>
               }
               @if (ChipOffered(ChipMirror))
@@ -139,7 +139,7 @@
               }
               @if (ChipOffered(ChipRelief))
               {
-                <LayerChip Icon="mountain" Active="reliefOn" Title="Show the height contours of the relief the islands carry"
+                <LayerChip Icon="mountain" Active="reliefOn" Title="Show the height contours of the relief the groups carry"
                            OnClick="ToggleRelief">Relief</LayerChip>
               }
               <CanvasRoundButton Icon="scan" Title="Fit the working bounds" OnClick="OnFit" />
@@ -254,7 +254,7 @@
           <div class="sidebar-handle"></div>
           <SketchThemeInspector Handle="handle" Themes="themeIds" Brush="@themeBrush" MapTheme="@mapThemeId"
                                 ShapeThemes="shapeThemes" ShapeCount="themedShapeTotal" Revision="themeRevision"
-                                SelectedIslandId="@selectedIslandId" SelectedShapeId="@selectedShapeId"
+                                SelectedGroupId="@selectedGroupId" SelectedShapeId="@selectedShapeId"
                                 TargetShapeIds="ScopeTargetShapeIds"
                                 AddOpen="themeAddOpen" AddOpenChanged="v => themeAddOpen = v"
                                 OnHold="SetThemeBrush" OnChanged="ReadThemes" />
@@ -262,9 +262,9 @@
         else
         {
           <div class="sidebar-handle"></div>
-          <SketchInspector Handle="handle" Shape="SelectedShape" Island="SelectedIsland" Shapes="shapes"
+          <SketchInspector Handle="handle" Shape="SelectedShape" Group="SelectedGroup" Shapes="shapes"
                            OnToggleOp="ToggleOp" OnToggleOverride="ToggleOverride" OnDeleteShape="DeleteShape"
-                           OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameIsland="RenameIsland"
+                           OnPromoteShape="PromoteShape" OnSetHeight="SetHeight" OnToggleMirrors="ToggleMirrors" OnRenameGroup="RenameGroup"
                            OnRotate="Rotate" OnSetPathBand="SetPathBand"
                            SelectedVertexIdx="selectedVertexIdx" SelectedVertexHeight="selectedVertexHeight" OnSetVertexHeight="SetVertexHeight"
                            SlopeControls="slopeControls" OnSlopeHeightChanged="SetSlopeHeight" OnApplySlope="ApplySlope" />

@@ -8,10 +8,10 @@ import { recordingPainter } from "./_painter-stub.js";
 
 import { paintContours } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/sketch-render.js";
 
-// One island's worth of lines, each a flat [x, z, x, z, …] run as the endpoint returns them.
+// One group's worth of lines, each a flat [x, z, x, z, …] run as the endpoint returns them.
 const relief = (levels) => ({
-  islands: [{
-    island: "i1",
+  groups: [{
+    group: "i1",
     lines: levels.map(level => ({
       level, closed: false,
       points: Array.from({ length: 12 }, (_, i) => (i % 2 === 0 ? i : level)),
@@ -49,8 +49,8 @@ test("a label lands on the line's straightest stretch", () => {
   // A line that turns a hard corner at its start and then runs straight: the label belongs on the run.
   const painter = recordingPainter();
   paintContours(painter, {
-    islands: [{
-      island: "i1",
+    groups: [{
+      group: "i1",
       lines: [{
         level: 5, closed: false,
         points: [0, 0, 1, 4, 2, 0, 3, 4, 4, 0, 20, 0, 36, 0, 52, 0, 68, 0, 84, 0, 100, 0],
@@ -64,7 +64,7 @@ test("a label lands on the line's straightest stretch", () => {
 test("a line too short to hold a label window is labelled at its midpoint", () => {
   const painter = recordingPainter();
   paintContours(painter, {
-    islands: [{ island: "i1", lines: [{ level: 5, closed: true, points: [0, 0, 4, 0, 4, 4] }] }],
+    groups: [{ group: "i1", lines: [{ level: 5, closed: true, points: [0, 0, 4, 0, 4, 4] }] }],
   });
   const [content, x, z] = painter.of("text")[0];
   assert.equal(content, "5");
@@ -74,7 +74,7 @@ test("a line too short to hold a label window is labelled at its midpoint", () =
 test("nothing is drawn for an empty payload or a degenerate line", () => {
   const painter = recordingPainter();
   paintContours(painter, null);
-  paintContours(painter, { islands: [] });
-  paintContours(painter, { islands: [{ island: "i1", lines: [{ level: 5, points: [3, 3] }] }] });
+  paintContours(painter, { groups: [] });
+  paintContours(painter, { groups: [{ group: "i1", lines: [{ level: 5, points: [3, 3] }] }] });
   assert.equal(painter.calls.length, 0);
 });

@@ -3,10 +3,10 @@ using PgmStudio.Geom.Relief;
 namespace PgmStudio.Geom.Tests.Relief;
 
 /// <summary>
-/// The scope rule: a relief is solved over the fused island rather than per shape, and a shape can leave that
+/// The scope rule: a relief is solved over the fused group rather than per shape, and a shape can leave that
 /// fusion in one of two ways that differ in which of the two is holding the other still.
 /// </summary>
-public sealed class ReliefIslandTests
+public sealed class ReliefGroupTests
 {
     private static double[][] Rect(double minX, double minZ, double maxX, double maxZ) =>
         [[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]];
@@ -51,7 +51,7 @@ public sealed class ReliefIslandTests
             if (heights.TryGetValue((x, 23), out var above) && heights.TryGetValue((x, 24), out var below))
                 perShapeSeam = Math.Max(perShapeSeam, Math.Abs(below - above));
 
-        var fused = new ReliefIsland([new ReliefShape(North), new ReliefShape(South)], Spec()).Build();
+        var fused = new ReliefGroup([new ReliefShape(North), new ReliefShape(South)], Spec()).Build();
         var fusedSeam = WorstStepAcross(fused, 23);
 
         await Assert.That(fusedSeam).IsLessThanOrEqualTo(1);
@@ -65,13 +65,13 @@ public sealed class ReliefIslandTests
         // field, because both are boundaries — an excluded shape is a hole the field bends around, and a hole
         // has an outline. What separates them is whether the *height* travels: solved at two very different
         // heights, a held compound moves the land around it and an excluded one does not move it at all.
-        ReliefIsland Island(Participation how, double height) => new(
+        ReliefGroup Group(Participation how, double height) => new(
             [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, how, height)], Spec());
 
         int OutsideDifferences(Participation how)
         {
-            var low = Island(how, 6).Build();
-            var high = Island(how, 20).Build();
+            var low = Group(how, 6).Build();
+            var high = Group(how, 20).Build();
             return low.Footprint.Land()
                 .Where(cell => !Polygon.PointInRing(cell.X + 0.5, cell.Z + 0.5, Compound))
                 .Count(cell => low.At(cell.X, cell.Z) != high.At(cell.X, cell.Z));
@@ -87,7 +87,7 @@ public sealed class ReliefIslandTests
         // Flatness in a sloping field has to be paid for at the edge — a flat pad across a gradient must step
         // somewhere, whichever way it is bound. What Hold buys is not a smaller step but a surrounding
         // surface that was solved knowing the pad is there.
-        var held = new ReliefIsland(
+        var held = new ReliefGroup(
             [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, Participation.Hold, 14)],
             Spec()).Build();
 
@@ -99,11 +99,11 @@ public sealed class ReliefIslandTests
     [Test]
     public async Task An_excluded_shape_is_not_solved_over()
     {
-        var island = new ReliefIsland(
+        var group = new ReliefGroup(
             [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, Participation.Exclude, 12)],
             Spec());
 
-        var solved = island.Solve();
+        var solved = group.Solve();
         var covered = solved.Footprint.Land()
             .Count(cell => Polygon.PointInRing(cell.X + 0.5, cell.Z + 0.5, Compound));
         await Assert.That(covered).IsEqualTo(0);

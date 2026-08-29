@@ -19,7 +19,7 @@ editor reaches it.
 |---|---|---|---|
 | plan | `PlanModel` | `Pgm/Plan/PlanModel.cs` | `GET /map/{slug}/plan`, `POST /plan/compile`, `/plans` store |
 | sketch layout | `SketchLayout` | `Pgm/Sketch/SketchLayout.cs` | `GET·PUT /map/{slug}/sketch` |
-| relief | `SketchReliefJson` | `Pgm/Sketch/SketchRelief.cs` | inside the layout under `relief`, keyed by island id |
+| relief | `SketchReliefJson` | `Pgm/Sketch/SketchRelief.cs` | inside the layout under `relief`, keyed by group id |
 | themes | `TerrainTheme` | `Minecraft/Painting/TerrainTheme.cs` | inside the layout under `themes`; library at `/themes` |
 | dressing | `DressingDoc` | `Minecraft/Dressing/DressingJson.cs` | inside the layout under `dressing` |
 | room styles | `HouseStyle` | `Minecraft/Houses/HouseStyle.cs` | inside the layout under `roomStyles`; library at `/room-styles` |
@@ -36,10 +36,10 @@ right surface for an agent because it is small and because the validator and eva
 rule-ids.
 
 The **layout** is the ground: `shapes` (rectangle, circle, polygon, path) with set-algebra operations,
-grouped into `islands` that decide what mirrors. A shape carries far more than a footprint — its own `theme`,
+grouped into `groups` that decide what mirrors. A shape carries far more than a footprint — its own `theme`,
 its `floor` and `base_height`, per-vertex `anchor_heights`, a `height_mode` of `level`/`raise`/`sink` with a
-`skirt`, and a `relief_scope` of `hold`/`exclude` deciding whether its ground joins the island's solved
-relief. The **relief** rides beside the shapes rather than inside them, keyed by island id, because a plan
+`skirt`, and a `relief_scope` of `hold`/`exclude` deciding whether its ground joins the group's solved
+relief. The **relief** rides beside the shapes rather than inside them, keyed by group id, because a plan
 recompile replaces every shape it produced and a relief is hand work a plan cannot express.
 
 The set algebra is where **void** comes from, and void is the instrument `mapgen-review.md` names as the primary
@@ -106,7 +106,7 @@ where the boundary between the two layers actually falls on this map: the curves
 above are the sketch's for the same reason. A plan states rectangles on a cell grid and a height per
 rectangle; everything drawn, carved or painted on top of that is the tool downstream.
 
-**Two islands that mirror into four.** Both are `mirrors: true` under `rot_180`, so the authored half becomes
+**Two groups that mirror into four.** Both are `mirrors: true` under `rot_180`, so the authored half becomes
 the whole 140×260 board.
 
 **Hand-authored defence walls.** The intent carries two `structures.walls` entries — 21×3 at `topY` 13 and
@@ -165,7 +165,7 @@ spec.
 
 `compose` asks the generator for a board and `plan` carries a drawn one; both produce a `PlanModel` and
 compile it. **`grid` is the third, and it is a catalogue rather than a board**: a list of plots laid on a
-regular grid, each its own island, none of them mirroring. It emits its `SketchLayout` directly instead of
+regular grid, each its own group, none of them mirroring. It emits its `SketchLayout` directly instead of
 compiling one, because a plan piece is a rectangle on a cell grid and a plot is a disc, an octagon, a cross
 or a wedge — compiling one through a plan would either lose the outline or grow the plan a shape vocabulary
 with no gameplay use. A `grid` map therefore carries no plan at all, which is visible in exactly one place:
@@ -174,7 +174,7 @@ the stage set is the other eight images, with no `plan.png`.
 A plot states only what it is; the grid decides where it sits. `kind` is the sketch's own vocabulary and no
 more of it — `rectangle` (reading `width`/`depth`), `circle` (`radius`), `polygon` (`vertices` as `[dx, dz]`
 offsets from the plot's own centre, so one outline lays at every plot without restating its coordinates) —
-plus a `theme` naming a key in the layout's own registry and a `name` carried onto the island. The grid
+plus a `theme` naming a key in the layout's own registry and a `name` carried onto the group. The grid
 carries `columns`, `pitch`, `floor` and `top`: plots run left to right and then down, so the order stated is
 the order walked, and the whole grid is centred on the origin however long it is.
 
@@ -248,12 +248,12 @@ of it needs a relief, a theme or a prop to work.
 layout says where ground is absent; `BuildIntent`'s areas say where a player may place a block, so the same
 gap is permanent or crossable-from-the-first-minute depending on a document that says nothing about geometry.
 Which of the two a given channel should be is `docs/gameplay/approaches.md`. The mechanical consequence
-belongs here: this is how a board's islands are joined at all, since a capture map's separate landmasses are
+belongs here: this is how a board's groups are joined at all, since a capture map's separate landmasses are
 connected by build regions rather than by ground — which is what `ruediger` does, and what any connectivity
 read has to know before it can call a board disconnected.
 
 The **water lane** is the third setting of that same dial, and it is not water.
-`docs/pgm/water-lanes.md` owns the mechanism: a gap between islands that becomes **bridgeable part-way through
+`docs/pgm/water-lanes.md` owns the mechanism: a gap between groups that becomes **bridgeable part-way through
 a match**, built on PGM's void filter reading y=0 live, so the crossing opens on a timer rather than at the
 start. Where it belongs on a board, and the misuse the mechanism invites, is `approaches.md`.
 
@@ -475,7 +475,7 @@ is scenery. Tilted with `anchor_heights` it leans; a shallower tilt is a ramp. I
 **walk**, not where they may build: see the ceiling note above for why a shape cannot stand over the cap.
 Two further facts make the pillar read as one: the theme's `fill` is what fills the column below the surface
 bucket's stated depth, so a banded riser wants the same `layered` stack in both or the bands stop a few
-courses down; and `relief_scope: exclude` keeps the shape out of its island's solve so it holds the height it
+courses down; and `relief_scope: exclude` keeps the shape out of its group's solve so it holds the height it
 was drawn at.
 
 **A building used as a boundary rather than as a place.** A `HouseStyle` takes `RoofForm.Flat` — the lid form
@@ -500,7 +500,7 @@ building for this instead of a shape.
 | validate / score | `Pgm/Plan/PlanValidator.cs`, `Evaluate/` | `PlanModel` → findings with rule ids |
 | compile | `Pgm/Plan/PlanCompiler.cs` | `PlanModel` → `(SketchLayout, MapIntent)` |
 | rasterize | `Pgm/Sketch/SketchRasterizer.cs` | layout JSON → columns `(x, z, yFloor, yTop)` |
-| solve relief | `Geom/Relief/` | `ReliefSpec` → a surface per island |
+| solve relief | `Geom/Relief/` | `ReliefSpec` → a surface per group |
 | build the world | `Export/WorldBuilder.cs` | layout + intent → `VoxelWorld` + resolved intent |
 | paint | `Minecraft/Painting/TerrainPainter.cs` | raw stone → rim, wall, surface, fill |
 | dress | `Minecraft/Dressing/Decorator.cs` | props → trees, houses, boulders, paths, water, ground cover |
@@ -547,11 +547,11 @@ family through the real emitters and answers with the shape or a directed reject
 the plan view, `--heightmap` and `--contour` for the third dimension, `--surface` for what the paint did,
 `--traversability-map` for whether the navigable ground actually joins spawn to every goal — ground and
 headroom, plus any void column the map's own buildable-region apply rule opens to bridging from the first
-tick, so a capture board that joins its islands with build regions (`ruediger`, or a composed board's own
+tick, so a capture board that joins its groups with build regions (`ruediger`, or a composed board's own
 mid band) does not read as cut apart just because the join has no ground of its own; a water lane is left
 out on purpose, since it opens only after the match clock passes its timer and is not a connection yet at
 the moment the picture is taken — `--buildings` and
-`--structures` for what was stamped, `--island-study` and `--skeleton-study` for footprint shape and
+`--structures` for what was stamped, `--group-study` and `--skeleton-study` for footprint shape and
 centrelines, `--water`, `--flora`, `--ores` and `--underground` for the rest. These renderers live in
 `PgmStudio.Minecraft.Render` and
 read equally from a region directory or an in-memory `VoxelWorld` (`AnvilRegion.FromWorld`), which is what

@@ -19,7 +19,7 @@ public sealed class SketchStackedGroundTests
     /// <summary>A rectangle of the given extent and thickness, as one add.</summary>
     private static string Slab(string id, int minX, int minZ, int maxX, int maxZ, int height) =>
         $@"{{""shapes"":[{{""id"":""{id}"",""type"":""rectangle"",""operation"":""add"","
-        + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""base_height"":{height}}}],""islands"":[]}}";
+        + $@"""min_x"":{minX},""min_z"":{minZ},""max_x"":{maxX},""max_z"":{maxZ},""base_height"":{height}}}],""groups"":[]}}";
 
     private static string Layer(string id, int baseY, string shapes) =>
         $@"{{""id"":""{id}"",""base_y"":{baseY},""layout"":{shapes}}}";

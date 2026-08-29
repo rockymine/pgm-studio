@@ -5,13 +5,13 @@ using Microsoft.JSInterop;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The Relief phase's sidebar: every mark on the map, grouped by the island stating it. The canvas is where a
+/// The Relief phase's sidebar: every mark on the map, grouped by the group stating it. The canvas is where a
 /// mark is normally reached, but a spot height sitting inside a broad area is a small target and a list is the
 /// only view that says how much of the terrain is authored at all.
 ///
-/// <para>Grouped rather than flat, because the grouping is the model: a relief is solved over one island's
-/// fused footprint, so two marks in different islands never talk to each other however close they look on the
-/// canvas. Each group's header carries the island's own base, which is the level its marks are read against.</para>
+/// <para>Grouped rather than flat, because the grouping is the model: a relief is solved over one group's
+/// fused footprint, so two marks in different groups never talk to each other however close they look on the
+/// canvas. Each group's header carries the group's own base, which is the level its marks are read against.</para>
 /// </summary>
 public partial class SketchReliefList
 {
@@ -21,7 +21,7 @@ public partial class SketchReliefList
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
     private sealed record Row(string Id, string Icon, string Label, string Where);
-    private sealed record Group(string IslandId, string Base, List<Row> Marks);
+    private sealed record Group(string GroupId, string Base, List<Row> Marks);
 
     private List<Group> groups = [];
     private string? selectedId;
@@ -42,21 +42,21 @@ public partial class SketchReliefList
                 selectedId = selected.GetString();
             if (!root.TryGetProperty("marks", out var marks) || marks.ValueKind != JsonValueKind.Array) return;
 
-            // The push carries the base of the island in play only, so every other group falls back to a dash
-            // rather than to a number that would be the wrong island's.
-            var inPlay = root.TryGetProperty("islandId", out var island) ? island.GetString() : null;
+            // The push carries the base of the group in play only, so every other group falls back to a dash
+            // rather than to a number that would be the wrong group's.
+            var inPlay = root.TryGetProperty("groupId", out var stated) ? stated.GetString() : null;
             var inPlayBase = root.TryGetProperty("relief", out var relief) && relief.ValueKind == JsonValueKind.Object
                 && relief.TryGetProperty("base", out var baseValue) ? baseValue.GetRawText() : null;
 
-            var byIsland = new Dictionary<string, Group>();
+            var byGroup = new Dictionary<string, Group>();
             foreach (var mark in marks.EnumerateArray())
             {
-                var islandId = mark.TryGetProperty("islandId", out var owner) ? owner.GetString() ?? "" : "";
-                if (!byIsland.TryGetValue(islandId, out var group))
-                    byIsland[islandId] = group = new Group(islandId, islandId == inPlay ? inPlayBase ?? "—" : "—", []);
+                var groupId = mark.TryGetProperty("groupId", out var owner) ? owner.GetString() ?? "" : "";
+                if (!byGroup.TryGetValue(groupId, out var group))
+                    byGroup[groupId] = group = new Group(groupId, groupId == inPlay ? inPlayBase ?? "—" : "—", []);
                 group.Marks.Add(RowOf(mark));
             }
-            groups = [.. byIsland.Values];
+            groups = [.. byGroup.Values];
         }
         catch (JsonException) { /* a state push the client cannot read lists nothing rather than throwing */ }
     }
@@ -127,13 +127,13 @@ public partial class SketchReliefList
     private Task Select(string id)
         => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("selectMark", id).AsTask();
 
-    /// <summary>Pick the island a group heads. It is the unit a relief is solved over, so selecting it is how
+    /// <summary>Pick the group a group heads. It is the unit a relief is solved over, so selecting it is how
     /// its base, grain and rim are reached — and picking one clears the mark selection, since the inspector's
-    /// island settings are about the island rather than about anything inside it.</summary>
-    private async Task SelectIsland(string id)
+    /// group settings are about the group rather than about anything inside it.</summary>
+    private async Task SelectGroup(string id)
     {
         if (Handle is null) return;
         await Handle.InvokeVoidAsync("selectMark", "");
-        await Handle.InvokeVoidAsync("selectIsland", id);
+        await Handle.InvokeVoidAsync("selectGroup", id);
     }
 }

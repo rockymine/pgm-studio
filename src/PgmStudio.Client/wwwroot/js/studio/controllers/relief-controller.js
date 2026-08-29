@@ -14,15 +14,15 @@
  * why a push travels the same pipeline instead of getting a phase of its own.
  *
  * One thing here has no counterpart in dressing, and it is the whole difference between the two phases: a
- * prop is placed **on the map**, a mark is placed **in an island**. A relief is solved over one island's fused
- * footprint, so every mark has to belong to one, and the island is decided by where the trace *starts* — not
+ * prop is placed **on the map**, a mark is placed **in a group**. A relief is solved over one group's fused
+ * footprint, so every mark has to belong to one, and the group is decided by where the trace *starts* — not
  * by where most of it lands. A mark is clipped, not confined: one placed past an edge raises the ground into
  * a corner and stops, which is how a spawn hill is authored with no wasted strip behind it. Judging ownership
- * by coverage would make that authoring gesture pick whichever island the overhang happened to cross.
+ * by coverage would make that authoring gesture pick whichever group the overhang happened to cross.
  *
  * New marks take the tool's current settings as a copy, so an author can state six spot heights without
  * configuring six of them, while still bending any one afterwards. The exception is the first mark in an
- * island: its height starts at that island's own base, because a mark carried over from another island at
+ * group: its height starts at that group's own base, because a mark carried over from another group at
  * another base would state a cliff nobody asked for.
  */
 
@@ -61,30 +61,30 @@ export class ReliefController {
   #handlesLayer;
   #getViewport;
   #tool = null;
-  #trace = null;          // the in-progress drag: { kind, islandId, points }
+  #trace = null;          // the in-progress drag: { kind, groupId, points }
   #cursor = null;         // where a spot height would drop
   #drag = null;           // moving an already-placed mark
   #pointDrag = null;      // reshaping one: { id, idx }
   #contourDrag = null;    // moving a traced contour: { grabbed, fromX, fromZ, dx, dz }
   #selectedId = null;
   #settings = {};         // per-kind starting values for the next mark placed
-  #islandAt;              // (bx, bz) → the id of the island covering this cell, or null
-  #islandTop;             // (islandId) → the level that island's ground already stands at, or null
+  #groupAt;              // (bx, bz) → the id of the group covering this cell, or null
+  #groupTop;             // (groupId) → the level that group's ground already stands at, or null
   #contours;              // () → the traced contour payload on screen, or null
 
   /**
    * @param doc          ReliefDoc — the stated relief (mutated through its own methods)
    * @param handlesLayer SVGGElement — screen-space handle layer for the selected mark's points
    * @param getViewport  () => { scale, panX, panY }
-   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onIslandAt, onIslandTop }
+   * @param callbacks    { onChanged, onSelected, onPreviewChanged, onPlaced, onGroupAt, onGroupTop }
    */
   constructor(doc, handlesLayer, getViewport, callbacks = {}) {
     this.#doc = doc;
     this.#handlesLayer = handlesLayer ?? null;
     this.#getViewport = getViewport ?? (() => ({ scale: 1, panX: 0, panY: 0 }));
     this.#callbacks = callbacks;
-    this.#islandAt = callbacks.onIslandAt ?? (() => null);
-    this.#islandTop = callbacks.onIslandTop ?? (() => null);
+    this.#groupAt = callbacks.onGroupAt ?? (() => null);
+    this.#groupTop = callbacks.onGroupTop ?? (() => null);
     this.#contours = callbacks.onContours ?? (() => null);
     for (const kind of ["point", "line", "area", "scarp", PUSH_KIND]) this.#settings[kind] = defaultMark(kind);
   }
@@ -127,12 +127,12 @@ export class ReliefController {
     return updated;
   }
 
-  /** Change an island's own relief settings — base, reach, step, grain, and the rim it carries. Not a mark:
+  /** Change a group's own relief settings — base, reach, step, grain, and the rim it carries. Not a mark:
    *  these are what the marks are stated against. */
-  updateRelief(islandId, patch) {
-    if (!islandId) return null;
-    this.#reliefFor(islandId);
-    const relief = this.#doc.updateRelief(islandId, patch);
+  updateRelief(groupId, patch) {
+    if (!groupId) return null;
+    this.#reliefFor(groupId);
+    const relief = this.#doc.updateRelief(groupId, patch);
     this.#callbacks.onChanged?.();
     return relief;
   }
@@ -142,12 +142,12 @@ export class ReliefController {
   onMouseDown(bx, bz, activeTool) {
     const kind = RELIEF_TOOLS[activeTool];
     if (kind) {
-      const islandId = this.#islandAt(bx, bz);
-      // A mark states something about an island's ground. Off every island there is no ground and no island
+      const groupId = this.#groupAt(bx, bz);
+      // A mark states something about a group's ground. Off every group there is no ground and no group
       // to state it about, so the press is consumed and nothing is begun.
-      if (!islandId) { this.#callbacks.onPreviewChanged?.(); return true; }
-      if (isSpot(kind)) { this.#place(kind, islandId, bx, bz); return true; }
-      this.#trace = { kind, islandId, points: [[bx, bz]] };
+      if (!groupId) { this.#callbacks.onPreviewChanged?.(); return true; }
+      if (isSpot(kind)) { this.#place(kind, groupId, bx, bz); return true; }
+      this.#trace = { kind, groupId, points: [[bx, bz]] };
       this.#callbacks.onPreviewChanged?.();
       return true;
     }
@@ -193,7 +193,7 @@ export class ReliefController {
       if (!this.#drag.moved && dx === 0 && dz === 0) return true;
       this.#drag.moved = true;
       this.#drag.fromX = bx; this.#drag.fromZ = bz;
-      // Dragged freely, including off the island. A mark past an edge is clipped rather than refused, and it
+      // Dragged freely, including off the group. A mark past an edge is clipped rather than refused, and it
       // is the gesture that puts a hill in a corner with no wasted ground behind it — so the drag must not
       // stop at the outline the way a prop's does at the void.
       this.#doc.update(mark.id, translateMark(mark, dx, dz));
@@ -208,10 +208,10 @@ export class ReliefController {
       return true;
     }
     // The spot tool shows where its mark would land, and whether the spot will take one — so a click off
-    // every island reads as off-limits before the click that does nothing.
+    // every group reads as off-limits before the click that does nothing.
     const kind = RELIEF_TOOLS[activeTool];
     if (kind && isSpot(kind)) {
-      this.#cursor = { kind, x: bx, z: bz, islandId: this.#islandAt(bx, bz) };
+      this.#cursor = { kind, x: bx, z: bz, groupId: this.#groupAt(bx, bz) };
       this.#callbacks.onPreviewChanged?.();
       return false;
     }
@@ -222,9 +222,9 @@ export class ReliefController {
   /** Release — the drag's last point is the trace's last point, which is the whole interaction. */
   onMouseUp() {
     if (this.#trace) {
-      const { kind, islandId, points } = this.#trace;
+      const { kind, groupId, points } = this.#trace;
       this.#trace = null;
-      this.#finishTrace(kind, islandId, points);
+      this.#finishTrace(kind, groupId, points);
       return true;
     }
     if (this.#drag) {
@@ -239,8 +239,8 @@ export class ReliefController {
       const stated = markFromDrag(grabbed, dx, dz);
       // A contour pressed and released without moving is a click on a line, not a statement about the ground.
       if (!stated) { this.#callbacks.onPreviewChanged?.(); return true; }
-      this.#reliefFor(stated.islandId);
-      const placed = this.#doc.add(stated.islandId, stated.mark);
+      this.#reliefFor(stated.groupId);
+      const placed = this.#doc.add(stated.groupId, stated.mark);
       this.select(placed.id);
       this.#callbacks.onChanged?.();
       return true;
@@ -316,10 +316,10 @@ export class ReliefController {
   paint(painter) {
     if (this.#trace) {
       const settings = this.#settings[this.#trace.kind];
-      // A push is coloured by its lift read from zero, a mark by its height read from the island's base —
+      // A push is coloured by its lift read from zero, a mark by its height read from the group's base —
       // which is the same ramp asked the same question, since what both want to say is "higher" or "lower".
       paintMarkPreview(painter, this.#trace.kind, this.#trace.points, this.#heightOf(settings),
-                       isPush(this.#trace.kind) ? 0 : this.#baseOf(this.#trace.islandId));
+                       isPush(this.#trace.kind) ? 0 : this.#baseOf(this.#trace.groupId));
     }
     // A grabbed contour, at the height it states, following the pointer — so what the drag will say is on
     // screen before the release that says it.
@@ -328,26 +328,26 @@ export class ReliefController {
       const moved = [];
       for (let i = 0; i + 1 < grabbed.points.length; i += 2)
         moved.push([grabbed.points[i] + dx, grabbed.points[i + 1] + dz]);
-      paintMarkPreview(painter, "line", moved, grabbed.level, this.#baseOf(grabbed.islandId));
+      paintMarkPreview(painter, "line", moved, grabbed.level, this.#baseOf(grabbed.groupId));
     }
     if (this.#cursor) {
       const settings = this.#settings[this.#cursor.kind];
-      const base = this.#baseOf(this.#cursor.islandId);
+      const base = this.#baseOf(this.#cursor.groupId);
       paintSpotGhost(painter, this.#cursor.x, this.#cursor.z, Math.max(1, settings.r ?? 4),
-                     this.#heightOf(settings), base, this.#cursor.islandId !== null);
+                     this.#heightOf(settings), base, this.#cursor.groupId !== null);
     }
   }
 
   // ── private ────────────────────────────────────────────────────────────────
-  #place(kind, islandId, bx, bz) {
-    const placed = this.#doc.add(islandId, { ...this.#freshMark(kind, islandId), at: [bx, bz] });
+  #place(kind, groupId, bx, bz) {
+    const placed = this.#doc.add(groupId, { ...this.#freshMark(kind, groupId), at: [bx, bz] });
     this.#cursor = null;
     this.select(placed.id);
     this.#callbacks.onChanged?.();
     this.#callbacks.onPlaced?.();
   }
 
-  #finishTrace(kind, islandId, points) {
+  #finishTrace(kind, groupId, points) {
     // A ring simplifier splits at the two farthest points and walks both ways round, which is right for an
     // outline and would reorder a line. So a ridgeline and a scarp keep their direction through the plain
     // open simplifier — and a scarp's direction is load-bearing, since it says which side the shelf is on. A
@@ -358,34 +358,34 @@ export class ReliefController {
     // A line needs somewhere to go; an area needs to enclose something. Below that the drag was a misfire.
     if (simplified.length < (isRing(kind) ? 3 : 2)) { this.#callbacks.onPreviewChanged?.(); return; }
 
-    const fresh = this.#freshMark(kind, islandId);
-    const placed = this.#doc.add(islandId, { ...fresh, ...pointsPatch(fresh, simplified) });
+    const fresh = this.#freshMark(kind, groupId);
+    const placed = this.#doc.add(groupId, { ...fresh, ...pointsPatch(fresh, simplified) });
     this.select(placed.id);
     this.#callbacks.onChanged?.();
     this.#callbacks.onPlaced?.();
   }
 
-  /** A new statement of a kind: the tool's settings, but re-based when this island has nothing stated yet. A
-   *  height carried over from another island at another base would state a cliff nobody asked for.
+  /** A new statement of a kind: the tool's settings, but re-based when this group has nothing stated yet. A
+   *  height carried over from another group at another base would state a cliff nobody asked for.
    *
    *  A push needs no re-basing, and that is not an exception so much as the point of it: a push states a
    *  lift, not a level, so five blocks up is five blocks up wherever it is drawn. */
-  #freshMark(kind, islandId) {
+  #freshMark(kind, groupId) {
     // A push gets its own seed, so two drawn with the same roughness are still two different slopes. Derived
     // from how many there already are rather than rolled, so re-opening a document places nothing new.
-    this.#reliefFor(islandId);
+    this.#reliefFor(groupId);
     if (isPush(kind)) return { ...this.#settings[kind], seed: 1 + this.#doc.pushes.length * 7 };
-    const relief = this.#doc.peek(islandId);
+    const relief = this.#doc.peek(groupId);
     if (relief.marks.length) return { ...this.#settings[kind] };
     return defaultMark(kind, relief.base);
   }
 
-  /** The island's relief, created against the level its ground already stands at. A relief REPLACES the top
-   *  of every column of its island, so a base read from anywhere but the island moves the whole landmass the
+  /** The group's relief, created against the level its ground already stands at. A relief REPLACES the top
+   *  of every column of its group, so a base read from anywhere but the group moves the whole landmass the
    *  moment the first mark lands. */
-  #reliefFor(islandId) { return this.#doc.reliefOf(islandId, this.#islandTop(islandId)); }
+  #reliefFor(groupId) { return this.#doc.reliefOf(groupId, this.#groupTop(groupId)); }
 
-  #baseOf(islandId) { return this.#doc.peek(islandId)?.base ?? this.#islandTop(islandId) ?? FALLBACK_BASE; }
+  #baseOf(groupId) { return this.#doc.peek(groupId)?.base ?? this.#groupTop(groupId) ?? FALLBACK_BASE; }
 
   // What a preview is coloured by — a scarp reads as its shelf, a push as its lift, everything else as the
   // height it states.

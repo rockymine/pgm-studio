@@ -6,7 +6,7 @@
  * vertex, the cubic-Bézier tangent handles, and the midpoint-insert ghost — and no box, because the box's
  * grips and the points would land on each other. Mirrors the editor edit controller's contract
  * (onResizeMove/onResizeUp consume hooks + onPointerMove for the edge-ghost). Mutates the shape and
- * reports via onShapeUpdated; the host triggers the island recompute.
+ * reports via onShapeUpdated; the host triggers the group recompute.
  *
  * Constructor:
  *   handlesLayer  SVGGElement              — screen-space handle layer
@@ -16,7 +16,7 @@
  *     snapEdges(id, {x,z}, alt) → {x,z}    — snap the dragged resize edge(s) to canvas targets + draw a
  *                                            guide (the resize counterpart of the canvas's move snapping)
  *     onRotateStart(event)                 — a press on a rotate zone; the canvas owns rotation, because it
- *                                            holds the snapshots and applies the same turn to a whole island
+ *                                            holds the snapshots and applies the same turn to a whole group
  */
 
 import { svgEl } from "../render/svg.js";
@@ -55,10 +55,10 @@ export class SketchEditController {
   #enabled         = true;   // off in the Theme phase: selection only, no editing affordance at all
   #selectedId      = null;
   // Which rung of the selection ladder the selected shape is on, and the only thing that decides what is
-  // drawn: "island" means a whole landmass is selected and the canvas draws its box, so a member draws
+  // drawn: "group" means a whole landmass is selected and the canvas draws its box, so a member draws
   // nothing under it; "shape" draws the transform box; "points" draws the vertices. Exactly one of them
   // draws, which is what keeps two grips off one spot.
-  #level           = "island";
+  #level           = "group";
   #selectedVertex  = -1;     // index of the click-selected vertex (for per-anchor height editing, S5b)
   #slopeControls   = [];     // vertex indices shift-clicked as surface-slope controls (2–3), insertion order
   #rectResizeState = null;
@@ -85,7 +85,7 @@ export class SketchEditController {
     if (id !== this.#selectedId) this.#selectedVertex = -1;
     this.#clearSlopeControls(id);
     this.#selectedId = id;
-    this.#level = id ? level : "island";
+    this.#level = id ? level : "group";
   }
 
   /** Which rung the controller is drawing — the canvas asks before deciding whether to draw its own box. */
@@ -133,7 +133,7 @@ export class SketchEditController {
     this.#ghostEl = null;
     this.#hoveredEdgeIdx = -1;
     if (!this.#enabled) return;
-    if (this.#level === "island" || !this.#selectedId) return;
+    if (this.#level === "group" || !this.#selectedId) return;
     const shape = this.#getShape(this.#selectedId);
     if (!shape) return;
     if (this.#level === "points" && vertexEdited(shape)) this.#renderVertexHandles(shape);
@@ -331,7 +331,7 @@ export class SketchEditController {
   }
 
   /**
-   * The box that transforms one shape — the same eight grips and four rotate zones a whole island wears,
+   * The box that transforms one shape — the same eight grips and four rotate zones a whole group wears,
    * on the shape's own bounds. Where a grip sits is not the shape's business and is drawn by the one
    * emission both levels call; what a grip *does* is, and the two differ: a rectangle states bounds, so it
    * moves the bound the grip names and snaps it to the other shapes' edges, while anything stored as

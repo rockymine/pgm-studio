@@ -1,5 +1,5 @@
 // The relief document and the tools that state into it. What these hold is the half of the model the C# side
-// cannot: a mark belongs to an ISLAND, and the whole document is exactly what the layout stores — so a mark
+// cannot: a mark belongs to a GROUP, and the whole document is exactly what the layout stores — so a mark
 // placed on the canvas and one written by hand are the same mark.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -41,7 +41,7 @@ test("a stored mark keeps its id, and one without gets one", () => {
   assert.notEqual(second.id, "r7");
 });
 
-test("an island that states nothing is left out of the stored form entirely", () => {
+test("a group that states nothing is left out of the stored form entirely", () => {
   // Opening the phase and closing it again must not add a key to the layout.
   const doc = new ReliefDoc();
   doc.reliefOf("i1");
@@ -49,15 +49,15 @@ test("an island that states nothing is left out of the stored form entirely", ()
   assert.equal(doc.isEmpty, true);
 });
 
-test("ids are unique across islands, not per island", () => {
-  // A mark can be dragged out of one island and into another; an id that changed on the way would break the
+test("ids are unique across groups, not per group", () => {
+  // A mark can be dragged out of one group and into another; an id that changed on the way would break the
   // selection mid-drag.
   const doc = new ReliefDoc();
   const a = doc.add("i1", defaultMark("point"));
   const b = doc.add("i2", defaultMark("point"));
   assert.notEqual(a.id, b.id);
-  assert.equal(doc.islandOf(a.id), "i1");
-  assert.equal(doc.islandOf(b.id), "i2");
+  assert.equal(doc.groupOf(a.id), "i1");
+  assert.equal(doc.groupOf(b.id), "i2");
 });
 
 test("an update cannot change a mark's kind or id", () => {
@@ -94,33 +94,33 @@ test("a mark's reach counts the band it holds, not only its points", () => {
 });
 
 // ── the tools ─────────────────────────────────────────────────────────────────
-function tools({ islandAt = () => "i1", islandTop = () => null, doc = new ReliefDoc(),
+function tools({ groupAt = () => "i1", groupTop = () => null, doc = new ReliefDoc(),
                 contours = () => null } = {}) {
   const events = [];
   const controller = new ReliefController(doc, null, () => ({ scale: 1, panX: 0, panY: 0 }), {
     onChanged: () => events.push("changed"),
     onSelected: (id) => events.push(`selected:${id}`),
     onPlaced: () => events.push("placed"),
-    onIslandAt: islandAt,
-    onIslandTop: islandTop,
+    onGroupAt: groupAt,
+    onGroupTop: groupTop,
     onContours: contours,
   });
   return { controller, doc, events };
 }
 
-test("a click places a spot height in the island under it", () => {
+test("a click places a spot height in the group under it", () => {
   const { controller, doc, events } = tools();
   assert.equal(controller.onMouseDown(12, 8, "relief:point"), true);
   assert.equal(doc.marks.length, 1);
   assert.deepEqual(doc.marks[0].at, [12, 8]);
-  assert.equal(doc.marks[0].islandId, "i1");
+  assert.equal(doc.marks[0].groupId, "i1");
   assert.ok(events.includes("placed"));
 });
 
-test("a click off every island states nothing", () => {
-  // A relief is stated INSIDE an island. Off one there is no ground and no island to state it about, so the
+test("a click off every group states nothing", () => {
+  // A relief is stated INSIDE a group. Off one there is no ground and no group to state it about, so the
   // press is consumed and nothing is begun.
-  const { controller, doc } = tools({ islandAt: () => null });
+  const { controller, doc } = tools({ groupAt: () => null });
   assert.equal(controller.onMouseDown(12, 8, "relief:point"), true);
   assert.equal(doc.marks.length, 0);
 });
@@ -143,19 +143,19 @@ test("a drag too small to enclose anything is a misfire, not a tiny mark", () =>
   assert.equal(doc.marks.length, 0);
 });
 
-test("the island is decided where the trace STARTS, not where most of it lands", () => {
+test("the group is decided where the trace STARTS, not where most of it lands", () => {
   // A mark is clipped, not confined: one dragged past an edge raises the ground into a corner and stops. If
-  // ownership followed coverage, that authoring gesture would pick whichever island the overhang crossed.
-  const { controller, doc } = tools({ islandAt: (x) => (x < 10 ? "i1" : "i2") });
+  // ownership followed coverage, that authoring gesture would pick whichever group the overhang crossed.
+  const { controller, doc } = tools({ groupAt: (x) => (x < 10 ? "i1" : "i2") });
   controller.onMouseDown(2, 0, "relief:line");
   for (let x = 3; x <= 40; x++) controller.onMouseMove(x, 0, "relief:line");
   controller.onMouseUp();
-  assert.equal(doc.marks[0].islandId, "i1");
+  assert.equal(doc.marks[0].groupId, "i1");
 });
 
-test("a fresh relief stands at the level its island already does", () => {
-  // A relief REPLACES the top of every column of its island, so a base read from anywhere but the island
-  // moves the whole landmass the moment a mark lands. An island drawn at 20 gets a relief at 20.
+test("a fresh relief stands at the level its group already does", () => {
+  // A relief REPLACES the top of every column of its group, so a base read from anywhere but the group
+  // moves the whole landmass the moment a mark lands. A group drawn at 20 gets a relief at 20.
   const doc = new ReliefDoc();
   assert.equal(doc.reliefOf("i1", 20).base, 20);
   assert.equal(doc.reliefOf("i2").base, FALLBACK_BASE);       // nothing to read from
@@ -173,31 +173,31 @@ test("a stored line mark's reach is read under the one name it has", () => {
   assert.ok(markReach(stored) > markReach({ ...stored, r: 1 }));
 });
 
-test("a first mark in an island starts at that island's base, not the last one's height", () => {
-  // A height carried over from another island at another base would state a cliff nobody asked for.
+test("a first mark in a group starts at that group's base, not the last one's height", () => {
+  // A height carried over from another group at another base would state a cliff nobody asked for.
   const doc = ReliefDoc.from({ i2: { base: 20, marks: [] } });
-  const { controller } = tools({ doc, islandAt: () => "i2" });
+  const { controller } = tools({ doc, groupAt: () => "i2" });
   controller.onMouseDown(0, 0, "relief:point");
   assert.equal(doc.marks[0].h, 20);
 });
 
-test("a first mark in an untouched island starts at the level that island stands at", () => {
-  // The island has no relief yet, so there is no stated base to read: the level comes from the ground the
+test("a first mark in an untouched group starts at the level that group stands at", () => {
+  // The group has no relief yet, so there is no stated base to read: the level comes from the ground the
   // author already drew, and the mark lands flush with it instead of twelve blocks under it.
-  const { controller, doc } = tools({ islandAt: () => "i7", islandTop: () => 20 });
+  const { controller, doc } = tools({ groupAt: () => "i7", groupTop: () => 20 });
   controller.onMouseDown(0, 0, "relief:point");
   assert.equal(doc.marks[0].h, 20);
   assert.equal(doc.peek("i7").base, 20);
 });
 
-test("a base typed before any mark is stated against the island, not a constant", () => {
-  // Reaching an island's settings must not depend on having placed something in it first.
-  const { controller, doc } = tools({ islandTop: () => 24 });
+test("a base typed before any mark is stated against the group, not a constant", () => {
+  // Reaching a group's settings must not depend on having placed something in it first.
+  const { controller, doc } = tools({ groupTop: () => 24 });
   controller.updateRelief("i1", { reach: 30 });
   assert.equal(doc.peek("i1").base, 24);
 });
 
-test("a later mark in the same island carries the tool's settings forward", () => {
+test("a later mark in the same group carries the tool's settings forward", () => {
   const { controller, doc } = tools();
   controller.onMouseDown(0, 0, "relief:point");
   controller.updateSelected({ h: 17, r: 9 });
@@ -206,10 +206,10 @@ test("a later mark in the same island carries the tool's settings forward", () =
   assert.equal(doc.marks[1].r, 9);
 });
 
-test("a selected mark can be dragged past its island's edge", () => {
+test("a selected mark can be dragged past its group's edge", () => {
   // The one place this differs from a placed prop, which stops at the void: a hill authored into a corner IS
   // a mark hanging over the edge.
-  const { controller, doc } = tools({ islandAt: (x) => (x < 10 ? "i1" : null) });
+  const { controller, doc } = tools({ groupAt: (x) => (x < 10 ? "i1" : null) });
   controller.onMouseDown(4, 4, "relief:point");
   controller.setTool("select");
   controller.onMouseDown(4, 4, "select");
@@ -266,10 +266,10 @@ test("a spot height has exactly one grip, and it moves the spot", () => {
   assert.deepEqual(doc.marks[0].at, [9, 12]);
 });
 
-test("a grip may be dragged off the island — a mark is clipped, not confined", () => {
+test("a grip may be dragged off the group — a mark is clipped, not confined", () => {
   // The same rule the body drag follows, and the reason both exist: a hill authored into a corner with no
   // wasted ground behind it IS a mark whose points hang over the edge.
-  const { controller, doc } = tools({ islandAt: (x) => (x < 10 ? "i1" : null) });
+  const { controller, doc } = tools({ groupAt: (x) => (x < 10 ? "i1" : null) });
   controller.onMouseDown(0, 0, "relief:line");
   controller.onMouseMove(8, 0, "relief:line");
   controller.onMouseUp();
@@ -309,7 +309,7 @@ test("deleting the selection removes it and clears the selection", () => {
   assert.ok(events.includes("selected:null"));
 });
 
-test("island settings are edited through the document, not through a mark", () => {
+test("group settings are edited through the document, not through a mark", () => {
   const { controller, doc } = tools();
   controller.onMouseDown(0, 0, "relief:point");
   controller.updateRelief("i1", { base: 14, reach: 30 });
@@ -320,23 +320,23 @@ test("island settings are edited through the document, not through a mark", () =
 // ── the paint ─────────────────────────────────────────────────────────────────
 test("a mark is drawn as the ground it holds, and wears its height", () => {
   const painter = recordingPainter({ scale: 8 });
-  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 14, r: 3 }], { baseOf: () => 8 });
+  paintReliefMarks(painter, [{ id: "r1", groupId: "i1", kind: "point", at: [5, 5], h: 14, r: 3 }], { baseOf: () => 8 });
   assert.equal(painter.of("ring").length, 1);
   assert.deepEqual(painter.of("text")[0].slice(0, 3), ["14", 5, 5]);
 });
 
 test("a falling ridgeline wears both of its ends", () => {
   const painter = recordingPainter({ scale: 8 });
-  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "line", points: [[0, 0], [10, 0]], h: [16, 9], r: 2 }]);
+  paintReliefMarks(painter, [{ id: "r1", groupId: "i1", kind: "line", points: [[0, 0], [10, 0]], h: [16, 9], r: 2 }]);
   assert.equal(painter.of("text")[0][0], "16–9");
 });
 
 test("a label holds its size as the board is zoomed", () => {
   // Asked in world units a label grows with the map, which is what put an eleven-BLOCK number on a hundred-
-  // block island. What a mark states does not get bigger as the board is zoomed into.
+  // block group. What a mark states does not get bigger as the board is zoomed into.
   const sizeAt = (scale) => {
     const painter = recordingPainter({ scale });
-    paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "area",
+    paintReliefMarks(painter, [{ id: "r1", groupId: "i1", kind: "area",
                                  ring: [[0, 0], [40, 0], [40, 40], [0, 40]], h: 22 }], { baseOf: () => 20 });
     const call = painter.of("text")[0];
     return call[call.length - 1].size * scale;
@@ -349,8 +349,8 @@ test("a spot's number rides clear of its own grip", () => {
   // other kind is anchored on ground it covers and reads centred.
   const painter = recordingPainter({ scale: 8 });
   paintReliefMarks(painter, [
-    { id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 22, r: 4 },
-    { id: "r2", islandId: "i1", kind: "area", ring: [[0, 0], [40, 0], [40, 40], [0, 40]], h: 22 },
+    { id: "r1", groupId: "i1", kind: "point", at: [5, 5], h: 22, r: 4 },
+    { id: "r2", groupId: "i1", kind: "area", ring: [[0, 0], [40, 0], [40, 40], [0, 40]], h: 22 },
   ], { baseOf: () => 20 });
   const [spot, bench] = painter.of("text").map(call => call[call.length - 1]);
   assert.ok(spot.dy < -4, `a spot lifts its label, got dy ${spot.dy}`);
@@ -360,7 +360,7 @@ test("a spot's number rides clear of its own grip", () => {
 test("a mark drawn smaller than its own number wears none", () => {
   // At a zoom where a mark is a dot, a number over it is wider than the thing it labels.
   const painter = recordingPainter({ scale: 0.5 });
-  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 22, r: 3 }],
+  paintReliefMarks(painter, [{ id: "r1", groupId: "i1", kind: "point", at: [5, 5], h: 22, r: 3 }],
                    { baseOf: () => 20 });
   assert.equal(painter.of("ring").length, 1);      // the ground it holds is still drawn
   assert.equal(painter.of("text").length, 0);
@@ -368,7 +368,7 @@ test("a mark drawn smaller than its own number wears none", () => {
 
 test("a scarp wears its drop", () => {
   const painter = recordingPainter({ scale: 8 });
-  paintReliefMarks(painter, [{ id: "r1", islandId: "i1", kind: "scarp", points: [[0, 0], [10, 0]], high: 18, low: 6 }]);
+  paintReliefMarks(painter, [{ id: "r1", groupId: "i1", kind: "scarp", points: [[0, 0], [10, 0]], high: 18, low: 6 }]);
   assert.equal(painter.of("text")[0][0], "18↓6");
 });
 
@@ -418,7 +418,7 @@ test("marks and pushes are selected, edited and deleted through one pipeline", (
 });
 
 test("a push needs no re-basing — it states a lift, not a level", () => {
-  // A mark placed first in an island takes that island's base. A push must not: five blocks up is five
+  // A mark placed first in a group takes that group's base. A push must not: five blocks up is five
   // blocks up wherever it is drawn, and re-basing it would turn its lift into an elevation.
   const doc = ReliefDoc.from({ i1: { base: 30, marks: [], pushes: [] } });
   const { controller } = tools({ doc });
@@ -486,13 +486,13 @@ test("a push's reach counts its skirt, so a click on the slope finds it", () => 
 test("a push wears its lift with a sign, and a varying one wears both ends", () => {
   const painter = recordingPainter({ scale: 8 });
   paintReliefMarks(painter, [
-    { id: "p1", islandId: "i1", kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]], amount: 5, falloff: 0 },
+    { id: "p1", groupId: "i1", kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]], amount: 5, falloff: 0 },
   ], { baseOf: () => 8 });
   assert.equal(painter.of("text")[0][0], "+5");
 
   const other = recordingPainter({ scale: 8 });
   paintReliefMarks(other, [
-    { id: "p2", islandId: "i1", kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]],
+    { id: "p2", groupId: "i1", kind: "push", ring: [[0, 0], [10, 0], [10, 10], [0, 10]],
       amount: 6, amounts: [6, 6, 1, 1], falloff: 0 },
   ], { baseOf: () => 8 });
   assert.equal(other.of("text")[0][0], "+6→+1");
@@ -504,7 +504,7 @@ test("a push draws its skirt outside the ring, whichever way the ring was traced
   const clockwise = [[0, 0], [10, 0], [10, 10], [0, 10]];
   for (const ring of [clockwise, [...clockwise].reverse()]) {
     const painter = recordingPainter();
-    paintReliefMarks(painter, [{ id: "p1", islandId: "i1", kind: "push", ring, amount: 5, falloff: 6 }],
+    paintReliefMarks(painter, [{ id: "p1", groupId: "i1", kind: "push", ring, amount: 5, falloff: 6 }],
                      { baseOf: () => 8 });
     // Two rings are drawn: the skirt and the ring itself. Whichever order they come in, the skirt is the
     // outer one and it has to clear the drawn ring by about the falloff — inside it would read as a
@@ -527,8 +527,8 @@ test("a lift is coloured from zero, so a push and a mark at the same height agre
 // line of constant height, so moving one says the ground reaches that height here now — which is a line mark
 // at that level, and what makes the reading of a surface and the way it is edited the same object.
 const CONTOURS = {
-  islands: [{
-    island: "i1",
+  groups: [{
+    group: "i1",
     lines: [
       // A plain line at z = 20 and an index line at z = 24, both running the width of the board.
       { level: 7, closed: false, points: [0, 20, 20, 20, 40, 20] },
@@ -558,7 +558,7 @@ test("a dragged contour becomes a line mark at that contour's own height", () =>
   const grabbed = contourAt(CONTOURS, 20, 20);
   const stated = markFromDrag(grabbed, 0, -6);
 
-  assert.equal(stated.islandId, "i1");
+  assert.equal(stated.groupId, "i1");
   assert.equal(stated.mark.kind, "line");
   assert.equal(stated.mark.h, 7);                       // the height it already was
   assert.deepEqual(stated.mark.points[0], [0, 14]);     // moved by the drag
@@ -575,7 +575,7 @@ test("a contour pressed and released without moving states nothing", () => {
 test("a dragged contour is simplified, not stored as the tracer drew it", () => {
   // A traced contour is one point per cell boundary. Stored raw it is a mark with hundreds of grips, which is
   // not a thing an author can then edit.
-  const dense = { islands: [{ island: "i1", lines: [{ level: 5, closed: false,
+  const dense = { groups: [{ group: "i1", lines: [{ level: 5, closed: false,
     points: Array.from({ length: 120 }, (_, i) => (i % 2 === 0 ? i : 30)) }] }] };
   const stated = markFromDrag(contourAt(dense, 20, 30), 0, -4);
   assert.ok(stated.mark.points.length < 8, `kept ${stated.mark.points.length} points`);
@@ -605,10 +605,10 @@ test("dragging a contour places the mark and selects it", () => {
   assert.ok(events.includes("changed"));
 });
 
-test("a mark is ghosted only on an island that mirrors", () => {
-  // The rasterizer fans only the islands that opted in, so ghosting a mark on one that did not draws ground
+test("a mark is ghosted only on a group that mirrors", () => {
+  // The rasterizer fans only the groups that opted in, so ghosting a mark on one that did not draws ground
   // the export will never build — the one thing an overlay must not do.
-  const mark = { id: "r1", islandId: "i1", kind: "point", at: [5, 5], h: 12, r: 3 };
+  const mark = { id: "r1", groupId: "i1", kind: "point", at: [5, 5], h: 12, r: 3 };
 
   const mirrored = recordingPainter();
   paintReliefMarks(mirrored, [mark], { baseOf: () => 8, orderOf: () => 2, mirrorPoint: (x, z) => [x + 50, z] });

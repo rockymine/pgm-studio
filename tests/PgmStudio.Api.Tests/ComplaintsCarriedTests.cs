@@ -26,7 +26,7 @@ public sealed class ComplaintsCarriedTests
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12},
                      {"id":"s2","type":"blob","operation":"add",
                       "min_x":-5,"max_x":5,"min_z":-5,"max_z":5,"floor":8,"base_height":12}],
-           "islands":[{"id":"i","name":"I","shapeIds":["s1","s2"]}]}}]}
+           "groups":[{"id":"i","name":"I","shapeIds":["s1","s2"]}]}}]}
         """;
 
     [Test]

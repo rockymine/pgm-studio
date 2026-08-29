@@ -160,16 +160,16 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
 /// themed map into bare stone.
 ///
 /// <para><b>A relief is carried the same way but refuses rather than merging silently.</b> It is keyed by
-/// island, and island identity is derived from the geometry — so a recompile that re-fuses the board does not
-/// merely move an island, it produces a different one, and terrain authored against the old fusion has
+/// group, and group identity is derived from the geometry — so a recompile that re-fuses the board does not
+/// merely move a group, it produces a different one, and terrain authored against the old fusion has
 /// nowhere correct to land. Losing that is losing hours of hand work with no warning, so the endpoint answers
-/// <b>409</b> — one <c>SK1</c> finding per orphaned island, the island id riding as the finding's subject —
+/// <b>409</b> — one <c>SK1</c> finding per orphaned group, the group id riding as the finding's subject —
 /// and does not write. Sending <c>?force=true</c> accepts the loss and proceeds, which is the author's call to
 /// make and not the server's.</para>
 ///
 /// <para><b>A structural piece's stated height is carried a third way</b>
 /// (<see cref="SketchLayout.CarryStructuralHeight"/>): matched by <c>intentRef</c>, not by shape id or
-/// island, since the compiler regenerates both of those every time but a spawn or wool room keeps the same
+/// group, since the compiler regenerates both of those every time but a spawn or wool room keeps the same
 /// team/owner:colour identity across a recompile. Only a shape the author actually corrected
 /// (<c>height_authored</c>) carries forward — an untouched piece keeps tracking the plan's own
 /// <c>surface</c>, so this never masks a deliberate plan-side height change.</para></summary>
@@ -197,10 +197,10 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         if (orphans.Count > 0 && Query<bool>("force", isRequired: false) != true)
         {
             await Refusals.WriteAsync(HttpContext, 409, "relief would be orphaned",
-            [.. orphans.Select(island => new Finding(SketchRules.ReliefOrphaned,
-                $"the recompiled board has no island for the terrain authored on island {island}; retry "
+            [.. orphans.Select(group => new Finding(SketchRules.ReliefOrphaned,
+                $"the recompiled board has no group for the terrain authored on group {group}; retry "
                 + "with ?force=true to discard it",
-                Subjects: [island]))], ct);
+                Subjects: [group]))], ct);
             return;
         }
 
@@ -484,7 +484,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 }
 
 /// <summary>POST /api/map/{slug}/sketch/relief — the contour overlay for whatever relief the posted layout
-/// carries, one entry per relief-bearing island: its traced lines, its height range, and its bounds. The body
+/// carries, one entry per relief-bearing group: its traced lines, its height range, and its bounds. The body
 /// is the <em>live</em> layout, the same as the paint preview takes, so the overlay tracks unsaved edits.
 ///
 /// <para>The solve is the build's own (<see cref="SketchRasterizer.ReliefFields"/>), so a previewed surface
@@ -494,7 +494,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
 /// <c>?interval=</c> sets the spacing in blocks; a layout carrying no relief answers an empty list rather
 /// than a 404, so the client can draw nothing through the same path.</para>
 ///
-/// <para>Each island's solve <b>resumes</b> from the surface its last preview settled on
+/// <para>Each group's solve <b>resumes</b> from the surface its last preview settled on
 /// (<see cref="ReliefPreviewCache"/>). Every preview is one small edit after the last, so the relaxation has
 /// that edit left to carry rather than the whole surface to build — and because it stops when the field stops
 /// moving, a resumed solve that settles has settled on the same answer. Nothing about the reply depends on
@@ -517,7 +517,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         var interval = Query<double>("interval", isRequired: false);
         if (interval <= 0) interval = 1;
 
-        // Each island resumes from the surface its last preview settled on. The relaxation stops when the
+        // Each group resumes from the surface its last preview settled on. The relaxation stops when the
         // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
         // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
         if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
@@ -527,8 +527,8 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         try
         {
             fields = SketchRasterizer.ReliefFields(layoutJson,
-                (island, footprint) => warm.WarmStart(map.Id, island, footprint),
-                (island, solved) => warm.Remember(map.Id, island, solved));
+                (group, footprint) => warm.WarmStart(map.Id, group, footprint),
+                (group, solved) => warm.Remember(map.Id, group, solved));
         }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
@@ -536,7 +536,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         { await Refusals.UnreadableAsync(HttpContext, "could not solve relief", fault.Message, ct); return; }
 
         // Points go out as one flat [x, z, x, z, …] run per line — see ContourLineDto.
-        var islands = fields.Select(entry => new ReliefIslandContoursDto(
+        var groups = fields.Select(entry => new ReliefGroupContoursDto(
             entry.Key, entry.Value.Min, entry.Value.Max,
             entry.Value.Footprint.MinX,
             entry.Value.Footprint.MinZ,
@@ -546,12 +546,12 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
                 line.Level, line.Closed,
                 [.. line.Points.SelectMany(point => new[] { point.X, point.Z })]))])).ToList();
 
-        await Send.OkAsync(new ReliefContoursDto(interval, islands), ct);
+        await Send.OkAsync(new ReliefContoursDto(interval, groups), ct);
     }
 }
 
 /// <summary>POST /api/map/{slug}/sketch/relief/read — what the relief a posted layout carries <b>charges</b>,
-/// per island. Not a walkability score: a relief that is walkable everywhere is a field rather than a map, and
+/// per group. Not a walkability score: a relief that is walkable everywhere is a field rather than a map, and
 /// a single number ranks every deliberate barrier as a defect. The report states reachability at each of the
 /// game's three thresholds (a jump, a placed block, building in earnest), separates <b>places</b> from
 /// <b>ledges</b>, qualifies faces as cliffs by the corpus rule, measures crossings in <b>both</b> directions
@@ -583,8 +583,8 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         {
             state = SketchLayout.Parse(layoutJson);
             fields = SketchRasterizer.ReliefFields(layoutJson,
-                (island, footprint) => warm.WarmStart(map.Id, island, footprint),
-                (island, solved) => warm.Remember(map.Id, island, solved));
+                (group, footprint) => warm.WarmStart(map.Id, group, footprint),
+                (group, solved) => warm.Remember(map.Id, group, solved));
         }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
@@ -595,17 +595,17 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         var cx = state?.Setup?.Center?.Cx ?? 0;
         var cz = state?.Setup?.Center?.Cz ?? 0;
 
-        // What each island states about itself, to read the measurement back against (RL1).
+        // What each group states about itself, to read the measurement back against (RL1).
         var declared = new Dictionary<string, string?>(StringComparer.Ordinal);
-        foreach (var (island, relief) in state?.Relief ?? [])
-            declared[island] = relief?.Landform;
+        foreach (var (group, relief) in state?.Relief ?? [])
+            declared[group] = relief?.Landform;
 
         var complaints = new List<Finding>();
-        var islands = fields.Select(entry =>
+        var groups = fields.Select(entry =>
         {
             var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
             complaints.AddRange(ReliefReadback.Check(read, declared.GetValueOrDefault(entry.Key), entry.Key));
-            return new ReliefIslandReadDto(
+            return new ReliefGroupReadDto(
                 entry.Key, read.Cells, read.Low, read.High, read.Relief, read.Steps,
                 [.. read.Tiers.Select(t => new ReliefTierDto(
                     t.Name, t.MaxStep, t.Share, t.Places, t.LargestPlace, t.Ledges,
@@ -617,24 +617,24 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
                 read.Faces.Count, read.Cliffs,
                 new ReliefFordsDto(read.AcrossX.Rows, read.AcrossX.OnFoot, read.AcrossX.WithBlock, read.AcrossX.Descended),
                 new ReliefFordsDto(read.AcrossZ.Rows, read.AcrossZ.OnFoot, read.AcrossZ.WithBlock, read.AcrossZ.Descended),
-                // An island with no barrier divides by nothing, and infinity is not a JSON number.
+                // A group with no barrier divides by nothing, and infinity is not a JSON number.
                 read.SymmetryError, read.Landform,
                 double.IsInfinity(read.Smoothing) ? null : read.Smoothing);
         }).ToList();
 
         Complaints.Add(HttpContext, complaints);
-        await Send.OkAsync(new ReliefReadDto(islands), ct);
+        await Send.OkAsync(new ReliefReadDto(groups), ct);
     }
 }
 
 /// <summary>POST /api/map/{slug}/sketch/finish — rasterize the stored layout into the world geometry
-/// artifacts (layer.parquet / islands.json / segments) so the draft flows into the Configure wizard.
+/// artifacts (layer.parquet / groups.json / segments) so the draft flows into the Configure wizard.
 /// 422 only if the layout rasterizes to no ground at all.
 ///
-/// <para>It does <b>not</b> ask for two islands. An island is a connected landmass, not a side: over the 320
-/// readable worlds of the destroy-the-monument corpus, 17% are a single island and 26% carry a single major
+/// <para>It does <b>not</b> ask for two groups. A group is a connected landmass, not a side: over the 320
+/// readable worlds of the destroy-the-monument corpus, 17% are a single group and 26% carry a single major
 /// one, so the commonest shape in that category — one continent both teams stand on — is exactly what a
-/// two-island floor rejected. Symmetry decides whether a board has two sides, and it is stated in the setup
+/// two-group floor rejected. Symmetry decides whether a board has two sides, and it is stated in the setup
 /// rather than counted in the ground.</para></summary>
 public sealed class SketchFinishEndpoint(MapRepository repo, MapArtifactStore artifacts, WorldFeatureWriter writer)
     : EndpointWithoutRequest<SketchFinishedDto>

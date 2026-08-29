@@ -22,7 +22,7 @@ public sealed class SketchPathShapeTests
             "radius": {{radius}}, "base_height": {{baseHeight}}, "floor": 0
             {{(edge is null ? "" : $", \"path_edge\": \"{edge}\", \"path_seed\": 7")}} }
         ],
-        "islands": [ { "id": "i1", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["plate", "road"] } ]
+        "groups": [ { "id": "i1", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["plate", "road"] } ]
       } }]
     }
     """;
@@ -122,7 +122,7 @@ public sealed class SketchPathShapeTests
               { "id": "road", "type": "path", "operation": "add",
                 "vertices": [[10, 10]], "radius": 3, "base_height": 9, "floor": 0 }
             ],
-            "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["plate", "road"] } ]
+            "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["plate", "road"] } ]
           } }]
         }
         """;

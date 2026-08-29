@@ -85,7 +85,7 @@ public sealed record AreaMark(double[][] Ring, double Height) : Mark
 /// <summary>The footprint's own outer rings held at one height — the statement that the land meets the void
 /// at a known level. It is optional, and that matters: without one, marks alone decide the whole surface, so
 /// a shape carrying a single high mark rises to that height everywhere and runs off its own edge, which is
-/// usually what an island's interior wants and never what a lake wants.</summary>
+/// usually what a group's interior wants and never what a lake wants.</summary>
 public sealed record RimMark(double Height, int Depth = 1) : Mark
 {
     public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)

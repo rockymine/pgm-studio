@@ -23,7 +23,7 @@ public static class TerrainPainter
         Func<int, int, int>? teamDamageAt = null, Func<int, int, (int X, int Z)>? foldAt = null)
         => Paint(world, surfaceTop, (_, _) => theme, teamDamageAt, foldAt);
 
-    /// <summary>Paint a board one layer at a time, each storey against its own surface and its own theme.
+    /// <summary>Paint a board one layer at a time, each against its own surface and its own theme.
     /// A cell on two layers is painted twice — once per surface it carries — which is what puts turf on a
     /// gallery floor and a meadow on the deck roofing it. The stone-only invariant keeps the passes from
     /// treading on each other: a course a lower layer has already finished is no longer stone.
@@ -33,10 +33,12 @@ public static class TerrainPainter
     public static void Paint(VoxelWorld world,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> surfaceByLayer,
         Func<string, int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null,
-        Func<int, int, (int X, int Z)>? foldAt = null)
+        Func<int, int, (int X, int Z)>? foldAt = null,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? floorByLayer = null)
     {
         foreach (var (layer, tops) in surfaceByLayer)
-            Paint(world, tops, (x, z) => themeAt(layer, x, z), teamDamageAt, foldAt);
+            Paint(world, tops, (x, z) => themeAt(layer, x, z), teamDamageAt, foldAt,
+                  floorByLayer?.GetValueOrDefault(layer));
     }
 
     /// <summary>Paint the footprint with a <b>per-cell</b> theme (TP10): <paramref name="themeAt"/> resolves the
@@ -49,10 +51,11 @@ public static class TerrainPainter
     /// Unset, every cell samples itself, which is a board with no symmetry.</para></summary>
     public static void Paint(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         Func<int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null,
-        Func<int, int, (int X, int Z)>? foldAt = null)
+        Func<int, int, (int X, int Z)>? foldAt = null,
+        IReadOnlyDictionary<(int X, int Z), int>? floorAt = null)
     {
         var team = teamDamageAt ?? ((_, _) => -1);
-        var profile = new TerrainProfile(world, surfaceTop);
+        var profile = new TerrainProfile(world, surfaceTop, floorAt);
         foreach (var (cell, column) in profile.PaintableColumns())
         {
             var sample = foldAt?.Invoke(cell.X, cell.Z) ?? cell;
@@ -119,9 +122,11 @@ public static class TerrainPainter
         var top = column.SurfaceTop;
         var bands = new List<TerrainBand>();
 
-        // Bedrock claims the bottom (TP8). Nothing left above ⇒ the whole column is bedrock, no rim/wall.
-        var paintFloor = theme.Bedrock.PaintFloor(top);
-        bands.Add(new TerrainBand(0, paintFloor, TerrainBucket.Bedrock));
+        // Bedrock claims the bottom (TP8), and only ground has a bottom to claim: a column that starts at a
+        // made thing's own floor is the thing and nothing beneath it, so its bands run over its span alone.
+        // Nothing left above ⇒ the whole column is bedrock, no rim/wall.
+        var paintFloor = column.Base > 0 ? column.Base : theme.Bedrock.PaintFloor(top);
+        if (column.Base == 0) bands.Add(new TerrainBand(0, paintFloor, TerrainBucket.Bedrock));
         if (paintFloor >= top) return bands;
 
         // The top course: the rim on an edge (else it falls to the surface, TP12), the surface on an interior.

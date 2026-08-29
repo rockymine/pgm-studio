@@ -1,12 +1,12 @@
 // sketch-bridge.js — JS-interop bridge for the Sketch tool's Layout canvas. Plays the reference's
-// "layout activity" role on the JS side: owns the live shape list + the island recompute loop
+// "layout activity" role on the JS side: owns the live shape list + the group recompute loop
 // (geometry/boolean.js, the hot path), drives SketchCanvas, owns the arrow-key nudge, and pushes the
-// island→shape tree to the Blazor panel. Blazor owns the toolbar/panel chrome + persistence; it calls
-// the handle methods and receives OnShapeSelected / OnIslandSelected / OnLayout / OnDirty / OnToolChanged.
+// group→shape tree to the Blazor panel. Blazor owns the toolbar/panel chrome + persistence; it calls
+// the handle methods and receives OnShapeSelected / OnGroupSelected / OnLayout / OnDirty / OnToolChanged.
 // getState() returns the layout for the host to PATCH (persistence wiring = S2d).
 
 import { SketchCanvas } from "../canvas/sketch-canvas.js";
-import { computeIslands, assignShapesToIslands, computeMirrorPreview, restoreIslandMeta } from "../geometry/boolean.js";
+import { computeGroups, assignShapesToGroups, computeMirrorPreview, restoreGroupMeta } from "../geometry/boolean.js";
 import { rectToPolygon, translateShape, rotateShape, boundsOfShapes, splitShape } from "../geometry/shape.js";
 import { surfaceHeights } from "../geometry/slope.js";
 import { defaultThemeJson, uniqueScopeId } from "../theme/theme-model.js";
@@ -43,13 +43,13 @@ function dimLabel(s) {
 
 export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, slug) {
   let setup = { ...DEFAULT_SETUP };
-  // Stacked layers (S7b): each holds its own shapes/islands at a base_y. The canvas always edits the
-  // ACTIVE layer's shapes; other layers keep cached shapes+islands for ghosting (2-D) and stacking (iso).
-  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], islands: [], savedMetas: [] }];
+  // Stacked layers (S7b): each holds its own shapes/groups at a base_y. The canvas always edits the
+  // ACTIVE layer's shapes; other layers keep cached shapes+groups for ghosting (2-D) and stacking (iso).
+  let layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [] }];
   let active = 0;
-  let islands = [];            // alias of layers[active].islands — kept current by recompute()
+  let groups = [];            // alias of layers[active].groups — kept current by recompute()
   let mirrorVisible = true;
-  let selectedIslandId = null; // panel island selection (drives arrow-move of the whole island)
+  let selectedGroupId = null; // panel group selection (drives arrow-move of the whole group)
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
   let isoYaw = 30;
@@ -80,19 +80,19 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   const fire = (name, ...args) => fireTo(dotnetRef, name, ...args);
-  const markDirty = () => fire("OnDirty", islands.length);
+  const markDirty = () => fire("OnDirty", groups.length);
   const syncActive = () => { if (layers[active]) layers[active].shapes = canvas.getShapes(); };
 
-  // Compute a layer's islands from its shapes (used for non-active layers at load + on switch).
-  function computeLayerIslands(shapes, savedMetas) {
-    const { islands: next, addUnion, afterSub, overrideAddUnion } = computeIslands(shapes, []);
-    assignShapesToIslands(shapes, next, addUnion, overrideAddUnion, afterSub);
-    if (savedMetas?.length) restoreIslandMeta(next, savedMetas, ["id", "name", "mirrors"]);
+  // Compute a layer's groups from its shapes (used for non-active layers at load + on switch).
+  function computeLayerGroups(shapes, savedMetas) {
+    const { groups: next, addUnion, afterSub, overrideAddUnion } = computeGroups(shapes, []);
+    assignShapesToGroups(shapes, next, addUnion, overrideAddUnion, afterSub);
+    if (savedMetas?.length) restoreGroupMeta(next, savedMetas, ["id", "name", "mirrors"]);
     return next;
   }
 
-  // The other layers' island outlines (for the 2-D ghost render).
-  const ghostPolys = () => layers.flatMap((L, i) => i === active ? [] : L.islands.map(o => ({ exterior: o.exterior, holes: o.holes })));
+  // The other layers' group outlines (for the 2-D ghost render).
+  const ghostPolys = () => layers.flatMap((L, i) => i === active ? [] : L.groups.map(o => ({ exterior: o.exterior, holes: o.holes })));
 
   // The canvas's own callbacks are the other way an edit arrives — a draw, a drag, a key. Every one that
   // changes the document is a step; `history.step` is re-entrant, so the ones that arrive inside a pointer
@@ -112,16 +112,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     }),
     onShapeUpdated: edit(() => { recompute(); markDirty(); }),
     onShapeSelected: (id) => selectShape(id),
-    // A brush in hand paints the shape it is clicked on; shift widens it to every shape the island holds, and
+    // A brush in hand paints the shape it is clicked on; shift widens it to every shape the group holds, and
     // alt lifts that shape's theme back into the hand. All three write through the one assignment.
     onThemePaint: edit((id) => { setShapeTheme(id, themeBrush); afterThemeChange(); }),
-    onThemePaintIsland: edit((islandId) => { setIslandTheme(islandId, themeBrush); afterThemeChange(); }),
+    onThemePaintGroup: edit((groupId) => { setGroupTheme(groupId, themeBrush); afterThemeChange(); }),
     onThemeLift: (id) => {
       const shape = canvas.getShape(id);
       setThemeBrush(shape?.theme ?? "");
     },
     onThemeDrop: () => setThemeBrush(""),
-    onIslandSelected: (id) => selectIsland(id),
+    onGroupSelected: (id) => selectGroup(id),
     // Placing, moving and picking a prop all happen on the canvas; the bridge only has to relay the result.
     onDressingChanged: edit(() => afterDressingChange()),
     onPropSelected:    () => fire("OnDressing", dressingState()),
@@ -150,7 +150,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
   });
 
-  // Promote a rectangle to a polygon (keeps id, so its island membership + selection survive); a no-op
+  // Promote a rectangle to a polygon (keeps id, so its group membership + selection survive); a no-op
   // for any other type. After promotion the shape edits as a polygon (vertex/midpoint/Bézier).
   function promoteShape(id) {
     const s = canvas.getShape(id);
@@ -180,34 +180,34 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   function selectShape(id) {
-    selectedIslandId = null;
+    selectedGroupId = null;
     canvas.selectShape(id);
     fire("OnShapeSelected", id ?? null);
-    fire("OnIslandSelected", null);
+    fire("OnGroupSelected", null);
   }
 
-  function selectIsland(id) {
-    selectedIslandId = id ?? null;
-    canvas.selectIsland(selectedIslandId);
-    // A single-member island shows the shape inspector (its member) — set height / convert / op without
-    // drilling; a multi-shape island shows the island inspector. Either way selectedIslandId stays set, so
-    // arrow-nudge (and later rotate) act on the whole island.
-    const isl = selectedIslandId ? islands.find(i => i.id === selectedIslandId) : null;
+  function selectGroup(id) {
+    selectedGroupId = id ?? null;
+    canvas.selectGroup(selectedGroupId);
+    // A single-member group shows the shape inspector (its member) — set height / convert / op without
+    // drilling; a multi-shape group shows the group inspector. Either way selectedGroupId stays set, so
+    // arrow-nudge (and later rotate) act on the whole group.
+    const isl = selectedGroupId ? groups.find(i => i.id === selectedGroupId) : null;
     const single = isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
     fire("OnShapeSelected", single);
-    fire("OnIslandSelected", single ? null : selectedIslandId);
-    // In the Relief phase the island IS the unit being edited — its base, reach, step and grain are what the
+    fire("OnGroupSelected", single ? null : selectedGroupId);
+    // In the Relief phase the group IS the unit being edited — its base, reach, step and grain are what the
     // marks are stated against — so picking one has to reach the inspector.
     if (reliefMode) fire("OnRelief", reliefState());
   }
 
   // Rotate the current selection by `deg` degrees about its bbox centre (the inspector's numeric field; the
-  // canvas owns the drag-handle path). Island selected → all its members; a drilled shape → just that shape.
+  // canvas owns the drag-handle path). Group selected → all its members; a drilled shape → just that shape.
   function rotateSelected(deg) {
     const rad = (deg || 0) * Math.PI / 180;
     if (!rad) return;
     let ids;
-    if (selectedIslandId) { const isl = islands.find(i => i.id === selectedIslandId); ids = isl?.shapeIds ?? []; }
+    if (selectedGroupId) { const isl = groups.find(i => i.id === selectedGroupId); ids = isl?.shapeIds ?? []; }
     else if (canvas.selectedId) ids = [canvas.selectedId];
     else return;
     const shapes = ids.map(id => canvas.getShape(id)).filter(Boolean);
@@ -219,30 +219,30 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     markDirty();
   }
 
-  // Recompute islands from the canvas's current shapes and push results to the canvas + panel.
+  // Recompute groups from the canvas's current shapes and push results to the canvas + panel.
   // `restoreFromSaved` (load only) seeds metadata from persisted records; live edits carry metadata
-  // over via the previous islands (centroid match inside computeIslands).
+  // over via the previous groups (centroid match inside computeGroups).
   function recompute(restoreFromSaved = false) {
     const shapes = canvas.getShapes();
-    const prev = restoreFromSaved ? [] : islands;
-    const { islands: next, addUnion, afterSub, overrideAddUnion } = computeIslands(shapes, prev);
-    assignShapesToIslands(shapes, next, addUnion, overrideAddUnion, afterSub);
+    const prev = restoreFromSaved ? [] : groups;
+    const { groups: next, addUnion, afterSub, overrideAddUnion } = computeGroups(shapes, prev);
+    assignShapesToGroups(shapes, next, addUnion, overrideAddUnion, afterSub);
     const sm = layers[active].savedMetas;
-    if (restoreFromSaved && sm?.length) restoreIslandMeta(next, sm, ["id", "name", "mirrors"]);
-    islands = next;
-    layers[active].islands = next;
+    if (restoreFromSaved && sm?.length) restoreGroupMeta(next, sm, ["id", "name", "mirrors"]);
+    groups = next;
+    layers[active].groups = next;
     layers[active].shapes = shapes;
-    // `mirrors` rides along because the relief overlay ghosts a mark only on an island that opted in — the
+    // `mirrors` rides along because the relief overlay ghosts a mark only on a group that opted in — the
     // rasterizer fans only those, so a ghost anywhere else is terrain that will never be built.
-    canvas.setIslands(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes, mirrors: i.mirrors })));
-    canvas.setGhostIslands(ghostPolys());
+    canvas.setGroups(next.map(i => ({ id: i.id, shapeIds: i.shapeIds, exterior: i.exterior, holes: i.holes, mirrors: i.mirrors })));
+    canvas.setGhostGroups(ghostPolys());
     refreshMirror();
     pushLayout();
     pushLayers();
     dropIsoMesh();
     refreshPaint();   // the geometry moved, so the paint on it has too (no-op unless the overlay is on)
-    // A relief is solved over the island's own footprint, so moving the geometry re-shapes the ground under
-    // it — and a re-fused island can change which relief applies at all.
+    // A relief is solved over the group's own footprint, so moving the geometry re-shapes the ground under
+    // it — and a re-fused group can change which relief applies at all.
     refreshRelief();
   }
 
@@ -250,7 +250,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // The picture is the world the export builds, not a second guess at it: the live layout goes to
   // `sketch/columns`, which runs the real build over it and answers every column's solid runs, and
   // `column-mesh.js` turns those into triangles. The client decides nothing about height — which is the
-  // point, because it cannot: a shape's top is settled by the per-island relief solve and then again by
+  // point, because it cannot: a shape's top is settled by the per-group relief solve and then again by
   // whatever the shape says about being erected, and neither is derivable here without a second copy of the
   // solver. What the browser used to extrude was the first of those three stages on its own.
   //
@@ -266,7 +266,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function refreshIso() { if (view === "iso" && isoMesh) canvas.drawIso(isoMesh, isoYaw, setup.bbox); }
 
-  // Re-mesh what is already in hand. Hiding a storey is a filter over the payload rather than a question for
+  // Re-mesh what is already in hand. Hiding a layer is a filter over the payload rather than a question for
   // the server: the runs say which layer drew them, so the board only has to be built once.
   async function remeshIso() {
     if (!isoPayload) return;
@@ -331,10 +331,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function refreshMirror() {
     if (!mirrorVisible || !setup.mirror_mode) { canvas.setMirrorPolygons([]); return; }
     const { cx = 0, cz = 0 } = setup.center ?? {};
-    canvas.setMirrorPolygons(computeMirrorPreview(islands, setup.mirror_mode, cx, cz));
+    canvas.setMirrorPolygons(computeMirrorPreview(groups, setup.mirror_mode, cx, cz));
   }
 
-  // Push the island→shape tree to the Blazor panel (compact — render fields + a precomputed dim label).
+  // Push the group→shape tree to the Blazor panel (compact — render fields + a precomputed dim label).
   function pushLayout() {
     const shapes = canvas.getShapes().map(s => ({
       id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s),
@@ -342,8 +342,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
       radius: s.radius ?? 0, pathEdge: s.path_edge ?? "", pathSeed: s.path_seed ?? 0,
     }));
-    const isl = islands.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
-    fire("OnLayout", JSON.stringify({ islands: isl, shapes }));
+    const isl = groups.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
+    fire("OnLayout", JSON.stringify({ groups: isl, shapes }));
   }
 
   // Push the layer list (id/name/base_y + active) to the Blazor layer panel.
@@ -351,17 +351,17 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     fire("OnLayers", JSON.stringify({ active: layers[active].id, layers: layers.map(L => ({ id: L.id, name: L.name, baseY: L.baseY })) }));
   }
 
-  /** Tell the canvas which storey is being drawn on, so whatever is placed lands on it. */
+  /** Tell the canvas which layer is being drawn on, so whatever is placed lands on it. */
   function pushActiveLayer() { canvas.dressing?.setLayer(layers[active]?.id ?? ""); }
 
   // Load the active layer's shapes onto the canvas (after a switch/delete) and recompute. The active layer's
   // locked plan pieces (S25) ride alongside as a render-only overlay — never a drawn/edited shape.
   //
-  // `islands` is seeded from the layer being loaded before the recompute, because `recompute` carries
-  // identity over from whatever `islands` holds: leaving the outgoing layer's there matches the incoming
-  // island against a stranger by centroid and adopts its id, and an id is what a relief is keyed by. Two
-  // storeys of one board are centred on the same place, so the match always succeeds and the ground of a
-  // stacked board comes back named after the storey under it — losing its relief in the live layout and
+  // `groups` is seeded from the layer being loaded before the recompute, because `recompute` carries
+  // identity over from whatever `groups` holds: leaving the outgoing layer's there matches the incoming
+  // group against a stranger by centroid and adopts its id, and an id is what a relief is keyed by. Two
+  // layers of one board are centred on the same place, so the match always succeeds and the ground of a
+  // stacked board comes back named after the layer under it — losing its relief in the live layout and
   // writing the wrong id into the document on the next save.
   function loadActiveToCanvas() {
     canvas.clearShapes();
@@ -369,8 +369,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     canvas.setStructural(layers[active].structural ?? []);
     selectShape(null);
     pushActiveLayer();
-    islands = layers[active].islands ?? [];
-    recompute(!islands.length && (layers[active].savedMetas?.length ?? 0) > 0);
+    groups = layers[active].groups ?? [];
+    recompute(!groups.length && (layers[active].savedMetas?.length ?? 0) > 0);
   }
 
   function switchLayer(id) {
@@ -385,7 +385,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function addLayer() {
     syncActive();
     const baseY = Math.max(0, ...layers.map(L => L.baseY)) + 10;   // stack the new slab above by default
-    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], structural: [], islands: [], savedMetas: [] });
+    layers.push({ id: genId(), name: `Layer ${layers.length + 1}`, baseY, shapes: [], structural: [], groups: [], savedMetas: [] });
     active = layers.length - 1;
     loadActiveToCanvas();
     markDirty();
@@ -406,7 +406,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   function renameLayer(id, name) { const L = layers.find(l => l.id === id); if (!L) return; L.name = name; pushLayers(); markDirty(); }
   function setLayerBaseY(id, y) { const L = layers.find(l => l.id === id); if (!L) return; L.baseY = y; pushLayers(); dropIsoMesh(); markDirty(); }
 
-  // Move the selection by whole blocks. An island moves as its shapes; a drilled shape moves alone.
+  // Move the selection by whole blocks. A group moves as its shapes; a drilled shape moves alone.
   function nudge(dx, dz) {
     if (selectOnly) return false;   // select-only: the arrows are a move, and moving belongs to Draw
     return history.step(() => nudgeBy(dx, dz));
@@ -414,8 +414,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function nudgeBy(dx, dz) {
     let moved = false;
-    if (selectedIslandId) {
-      const isl = islands.find(i => i.id === selectedIslandId);
+    if (selectedGroupId) {
+      const isl = groups.find(i => i.id === selectedGroupId);
       for (const sid of (isl?.shapeIds ?? [])) {
         const s = canvas.getShape(sid);
         if (s) { canvas.updateShape(translateShape(s, dx, dz)); moved = true; }
@@ -538,17 +538,17 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     refreshMirror();
   }
 
-  function islandById(id) { return islands.find(i => i.id === id); }
+  function groupById(id) { return groups.find(i => i.id === id); }
 
   // ── terrain-paint themes (docs/world-export/terrain-painting.md TP10) ────────────────────────────
   // The theme state the Theme phase reads: the registry, the map default, and the resolved per-shape override
-  // (every shape carrying a `theme`). The island tree is the selection surface, so the phase derives an
-  // island's theme from its member shapes (uniform → that theme, else mixed).
+  // (every shape carrying a `theme`). The group tree is the selection surface, so the phase derives an
+  // group's theme from its member shapes (uniform → that theme, else mixed).
   function themesState() {
     const shapeThemes = {};
     let shapeCount = 0;
     syncActive();
-    // Every storey, not the one being drawn on: a theme is the board's, so what carries one and how many
+    // Every layer, not the one being drawn on: a theme is the board's, so what carries one and how many
     // could are counted over the same set or the coverage answers a question nobody asked.
     for (const L of layers) for (const s of (L.shapes || [])) {
       shapeCount++;
@@ -625,24 +625,24 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   // ── the stated relief (docs/world-export/relief.md) ────────────────────
-  // The island in play: the one stating the selected mark, else the one the author has picked on the canvas.
+  // The group in play: the one stating the selected mark, else the one the author has picked on the canvas.
   // Its own settings — base, reach, step, grain — are what the inspector shows and what it writes, so both
-  // ask this rather than each deciding: a write reaching a different island than the panel is reading is an
+  // ask this rather than each deciding: a write reaching a different group than the panel is reading is an
   // edit that lands nowhere and says nothing.
-  function reliefIsland() {
+  function reliefGroup() {
     const selectedId = canvas.reliefTools?.selectedId ?? null;
     const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    return selected?.islandId ?? selectedIslandId ?? null;
+    return selected?.groupId ?? selectedGroupId ?? null;
   }
 
-  // What an author has said about the ground inside each island. Distinct from the contour overlay below it:
+  // What an author has said about the ground inside each group. Distinct from the contour overlay below it:
   // this is the statement, that is what the solver made of it. Both are on screen at once during the phase,
   // which is the whole reason a mark can be tuned by eye.
   function reliefState() {
     const tools = canvas.reliefTools;
     const selectedId = tools?.selectedId ?? null;
     const selected = selectedId ? canvas.relief.byId(selectedId) : null;
-    const islandId = reliefIsland();
+    const groupId = reliefGroup();
     return JSON.stringify({
       // Marks and pushes as one list, because that is how the phase treats them: the sidebar lists them
       // together and the canvas selects across both. Which of the two a row is, its `kind` says.
@@ -653,13 +653,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // an author who wants one corner lower needs a number to change and "the amount, except there" is not
       // one. Only for a selected push; null for everything else.
       amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
-      islandId,
-      islandName: islandId ? (islandById(islandId)?.name ?? islandId) : null,
-      // What the island's ground already stands at. The panel reads every stated height against it, and it
-      // is what an untouched base is: a relief replaces the top of every column of its island, so a base
+      groupId,
+      groupName: groupId ? (groupById(groupId)?.name ?? groupId) : null,
+      // What the group's ground already stands at. The panel reads every stated height against it, and it
+      // is what an untouched base is: a relief replaces the top of every column of its group, so a base
       // that differs from this moves the whole landmass.
-      islandTop: islandId ? canvas.islandTop(islandId) : null,
-      relief: islandId ? canvas.relief.peek(islandId) : null,
+      groupTop: groupId ? canvas.groupTop(groupId) : null,
+      relief: groupId ? canvas.relief.peek(groupId) : null,
     });
   }
 
@@ -705,10 +705,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   }
 
   // Set (or clear, with a falsy themeId) a shape's theme override — the live canvas shape so it persists on sync.
-  /** Every shape an island holds takes `themeId` (empty clears). The island scope, written per member shape,
-   *  which is where a theme is stored — so the brush's shift-click and the handle's assignIsland are one act. */
-  function setIslandTheme(islandId, themeId) {
-    const isl = islandById(islandId);
+  /** Every shape a group holds takes `themeId` (empty clears). The group scope, written per member shape,
+   *  which is where a theme is stored — so the brush's shift-click and the handle's assignGroup are one act. */
+  function setGroupTheme(groupId, themeId) {
+    const isl = groupById(groupId);
     if (!isl) return;
     for (const sid of (isl.shapeIds || [])) setShapeTheme(sid, themeId);
   }
@@ -721,7 +721,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Start in the default "move" (pan) tool — matches the Blazor toolbar default. Without this the canvas
   // sits at CanvasBase's null tool, which the base treats as click-to-select, so a click on first load
-  // would select a shape/island even though the move tool is shown (only the select tool should select).
+  // would select a shape/group even though the move tool is shown (only the select tool should select).
   canvas.setActiveTool("move");
 
   // Seed the default working bounds so drawing + the mirror preview work immediately.
@@ -737,7 +737,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // is *for*, so reaching for the hand tool to pan must not throw away what you picked.
       if (tool !== "select" && !selectOnly) selectShape(null);
     },
-    // Selection-only: a phase that picks islands and shapes but edits none of them. Forcing the select tool
+    // Selection-only: a phase that picks groups and shapes but edits none of them. Forcing the select tool
     // is part of the restriction — a draw tool left armed would add geometry, which is equally the Draw
     // phase's job — and it is where both phases that use the mode want to start. Lifting it only lifts it;
     // the tool stays where it is, which is what the Draw toolbar is already showing.
@@ -776,7 +776,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       enterIso();
     },
     rotateIso()        { isoYaw = (isoYaw + 90) % 360; refreshIso(); },
-    // Show or hide one storey of the preview. The board is not rebuilt — the runs already say which layer
+    // Show or hide one layer of the preview. The board is not rebuilt — the runs already say which layer
     // drew them, so this re-meshes what is in hand.
     setIsoLayerShown(id, shown) {
       if (shown) isoHidden.delete(id); else isoHidden.add(id);
@@ -830,8 +830,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       recompute(); pushLayout(); dropIsoMesh(); markDirty();
     },
 
-    // How a shape's top is decided once its island carries a relief, and how far in it eases into the ground
-    // it meets. Neither changes the footprint, so the island does not need recomputing — but both change the
+    // How a shape's top is decided once its group carries a relief, and how far in it eases into the ground
+    // it meets. Neither changes the footprint, so the group does not need recomputing — but both change the
     // column, so the iso and the saved document do.
     setHeightMode(id, mode) {
       const s = canvas.getShape(id);
@@ -848,7 +848,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       pushLayout(); dropIsoMesh(); markDirty();
     },
 
-    // Whether the shape's ground joins its island's relief. Solved on the server, so nothing here recomputes
+    // Whether the shape's ground joins its group's relief. Solved on the server, so nothing here recomputes
     // — the next preview is what shows it.
     setReliefScope(id, scope) {
       const s = canvas.getShape(id);
@@ -860,14 +860,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // Panel-driven edits.
     selectShape(id)    { selectShape(id ?? null); },
-    selectIsland(id)   { selectIsland(id ?? null); },
+    selectGroup(id)   { selectGroup(id ?? null); },
     rotateSelected(deg){ rotateSelected(deg); },
     deleteShape(id)    { canvas.removeShape(id); recompute(); selectShape(null); markDirty(); },
     promoteShape(id)   { promoteShape(id ?? canvas.selectedId); },
     toggleOp(id)       { const s = canvas.getShape(id); if (!s) return; s.operation = s.operation === "subtract" ? "add" : "subtract"; canvas.updateShape(s); recompute(); markDirty(); },
     toggleOverride(id) { const s = canvas.getShape(id); if (!s) return; s.override = !s.override; canvas.updateShape(s); recompute(); markDirty(); },
-    toggleMirrors(islandId) { const i = islandById(islandId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },
-    renameIsland(islandId, name) { const i = islandById(islandId); if (!i) return; i.name = name; pushLayout(); markDirty(); },
+    toggleMirrors(groupId) { const i = groupById(groupId); if (!i) return; i.mirrors = !i.mirrors; refreshMirror(); pushLayout(); markDirty(); },
+    renameGroup(groupId, name) { const i = groupById(groupId); if (!i) return; i.name = name; pushLayout(); markDirty(); },
 
     // Layer ops (S7b).
     addLayer()              { addLayer(); },
@@ -916,7 +916,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       let parsed; try { parsed = JSON.parse(text); } catch (e) { return e?.message || "Invalid JSON"; }
       themes[id] = parsed; afterThemeChange(); return null;
     },
-    /** Which unit a plain click picks with no group entered — "island" or "shape". The phase states it. */
+    /** Which unit a plain click picks with no group entered — "group" or "shape". The phase states it. */
     setPickUnit(unit) { canvas.setPickUnit(unit); },
     /** Arm a theme so a click on a shape paints it; "" puts the brush down. */
     /** Where the map's destroyables and cores stand, from the intent — markers the board carries, not shapes
@@ -929,8 +929,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setMapTheme(id) { mapTheme = (id && themes[id]) ? id : ""; afterThemeChange(); },
     // Assign (or clear, with an empty themeId) a theme to one shape — a per-shape override.
     assignShape(shapeId, themeId) { setShapeTheme(shapeId, themeId); afterThemeChange(); },
-    // Assign (or clear) a theme to every shape of an island — the coarse scope, written per member shape.
-    assignIsland(islandId, themeId) { setIslandTheme(islandId, themeId); afterThemeChange(); },
+    // Assign (or clear) a theme to every shape of a group — the coarse scope, written per member shape.
+    assignGroup(groupId, themeId) { setGroupTheme(groupId, themeId); afterThemeChange(); },
 
     // ── dressing (decoration.md) ──
     // Placing is the canvas's; the bridge exposes reading the document, editing the selection, and the
@@ -954,7 +954,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
 
     // ── relief (docs/world-export/relief.md) ──
-    // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the island
+    // Placing is the canvas's; the bridge exposes reading the document, editing the selected mark, the group
     // settings the marks are stated against, and the per-kind settings a newly placed mark starts from.
     getRelief() { return reliefState(); },
     setReliefMode(on) {
@@ -972,13 +972,13 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.reliefTools?.updateSelected(patch);
       afterReliefChange(); return null;
     },
-    /** Patch the island's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
-     *  are what every mark in the island is stated against, so changing one moves the whole surface. */
-    updateIslandRelief(patchJson) {
+    /** Patch the group's own relief — base, reach, step, grain, and the rim it carries. Not a mark: these
+     *  are what every mark in the group is stated against, so changing one moves the whole surface. */
+    updateGroupRelief(patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }
-      const islandId = reliefIsland();
-      if (!islandId) return "no island selected";
-      canvas.reliefTools?.updateRelief(islandId, patch);
+      const groupId = reliefGroup();
+      if (!groupId) return "no group selected";
+      canvas.reliefTools?.updateRelief(groupId, patch);
       afterReliefChange(); return null;
     },
     /**
@@ -995,7 +995,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       afterReliefChange(); return null;
     },
     /**
-     * What the relief CHARGES, per island — the readback (docs/world-export/relief.md §5–§6). Asked for rather than
+     * What the relief CHARGES, per group — the readback (docs/world-export/relief.md §5–§6). Asked for rather than
      * pushed: it is a second solve's worth of measurement over the same field, and an author wants it when
      * they stop to read the board rather than on every edit.
      */
@@ -1031,7 +1031,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       canvas.setReliefDoc(s.relief && typeof s.relief === "object" ? s.relief : null);
       const raw = (s.layers && s.layers.length) ? s.layers : [];
       // A layer's stored shapes are partitioned on load: role-tagged shapes are the plan's structural pieces
-      // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (islands, raster,
+      // (S25) — carried as a locked render-only overlay, kept out of the drawn-shape pipeline (groups, raster,
       // mirror, edit) so they can neither be reshaped nor double-cover the ground. Everything else is terrain.
       layers = raw.map((L, i) => {
         const all = (L.layout?.shapes ?? []).map(sh => ({ ...sh }));
@@ -1041,16 +1041,16 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
           baseY: L.base_y ?? 0,
           shapes: all.filter(sh => !sh.role),
           structural: all.filter(sh => sh.role),
-          islands: [],
-          savedMetas: L.layout?.islands ?? [],
+          groups: [],
+          savedMetas: L.layout?.groups ?? [],
         };
       });
-      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], islands: [], savedMetas: [] }];
-      // A restore keeps the storey being drawn on, for the reason it keeps the camera: which layer is active
+      if (!layers.length) layers = [{ id: genId(), name: "Ground", baseY: 0, shapes: [], structural: [], groups: [], savedMetas: [] }];
+      // A restore keeps the layer being drawn on, for the reason it keeps the camera: which layer is active
       // is where the author is, not what the document says.
       active = keepView && wasActive < layers.length ? wasActive : 0;
-      // Cache the non-active layers' islands (for ghosts/iso); the active one is computed by recompute(true).
-      for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].islands = computeLayerIslands(layers[i].shapes, layers[i].savedMetas);
+      // Cache the non-active layers' groups (for ghosts/iso); the active one is computed by recompute(true).
+      for (let i = 0; i < layers.length; i++) if (i !== active) layers[i].groups = computeLayerGroups(layers[i].shapes, layers[i].savedMetas);
       canvas.clearShapes();
       for (const sh of layers[active].shapes) canvas.addShape({ ...sh });
       canvas.setStructural(layers[active].structural ?? []);
@@ -1078,7 +1078,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
         // Dressing rides the same way, and is likewise omitted when empty so an undressed sketch serialises
         // exactly as it did before the phase existed.
         dressing: canvas.dressing.isEmpty ? undefined : canvas.dressing.toJSON(),
-        // Relief rides top-level keyed by island rather than on the shapes, because a plan recompile
+        // Relief rides top-level keyed by group rather than on the shapes, because a plan recompile
         // replaces every shape it produced and a relief is hand work a plan cannot express. Omitted when
         // nothing is stated, so opening the phase and leaving it cannot add a key to the layout.
         relief: canvas.relief.isEmpty ? undefined : canvas.relief.toJSON(),
@@ -1087,14 +1087,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
           layout: {
             // Merge the locked plan pieces (S25) back in so they persist with the terrain they annotate.
             shapes: [...L.shapes, ...(L.structural ?? [])],
-            islands: (L.islands ?? []).map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),
+            groups: (L.groups ?? []).map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds })),
           },
         })),
       };
     },
     undo() { history.undo(); },
     redo() { history.redo(); },
-    islandCount() { return islands.length; },
+    groupCount() { return groups.length; },
     fitToBbox() { canvas.fitToBbox(); },
     resize() { canvas.resize(); },
     dispose() {
@@ -1112,11 +1112,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "setMode", "setCenter", "setBbox",
     "setHeight", "setVertexHeight", "applySlope", "setPathBand", "setHeightMode", "setSkirt", "setReliefScope",
     "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
-    "renameIsland",
+    "renameGroup",
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
     "setRoomStyle", "defineTheme", "renameTheme", "deleteTheme", "setThemeJson", "setMapTheme",
-    "assignShape", "assignIsland",
-    "deleteProp", "updateProp", "deleteMark", "updateMark", "updateIslandRelief", "setPushAmount",
+    "assignShape", "assignGroup",
+    "deleteProp", "updateProp", "deleteMark", "updateMark", "updateGroupRelief", "setPushAmount",
   ];
   for (const verb of MUTATORS) {
     const bare = handle[verb];

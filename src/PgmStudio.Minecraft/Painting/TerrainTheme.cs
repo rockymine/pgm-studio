@@ -81,6 +81,12 @@ public enum BandAxis
     /// field. Reads <see cref="BucketContext.Inset"/>, so bands run as concentric rings round a shape rather
     /// than as courses down a column.</summary>
     Inward,
+
+    /// <summary>Up from a stated world height (<see cref="LayeredMaterial.From"/>): the first band is the
+    /// course at that Y, the next the one above it. Reads <see cref="BucketContext.Y"/>, so the bands are
+    /// pinned to the world and not to the column — which is what lets one span carry a stack of colours that
+    /// lands at the same height in every column it covers, rather than a layer per colour.</summary>
+    Height,
 }
 
 /// <summary>Written as <c>"depth"</c>/<c>"inward"</c> rather than as a number, the way every other enum in a
@@ -150,10 +156,13 @@ public static class Materials
 /// a ring stack that is meant to stop a few rings in and let the ground it sits on show. Under
 /// <see cref="BandEnding.Repeat"/> nothing is ever unclaimed and this is never reached.</para>
 /// </summary>
+/// <param name="From">Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
+/// other axis, and zero everywhere else.</param>
 public sealed record LayeredMaterial(
     BandStack Stack,
     BandAxis Axis = BandAxis.Depth,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TerrainMaterial? Beyond = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] TerrainMaterial? Beyond = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)] int From = 0)
     : TerrainMaterial
 {
     public override (int Id, int Data) Resolve(in BucketContext ctx)
@@ -162,7 +171,12 @@ public sealed record LayeredMaterial(
         // answer a voronoi with no bands gives, and the reader's unread walk is what names the field that was
         // written instead. Painting is called per column, so a throw here is a 500 on a whole request.
         if (Stack is null) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);
-        var step = Axis == BandAxis.Inward ? ctx.Inset : ctx.DepthFromTop;
+        var step = Axis switch
+        {
+            BandAxis.Inward => ctx.Inset,
+            BandAxis.Height => ctx.Y - From,
+            _ => ctx.DepthFromTop,
+        };
         // Off the footprint the inward axis has no answer, which is not the same as being past the last band:
         // there is no ring to be in, so the stack never gets asked.
         if (step < 0) return Beyond?.Resolve(in ctx) ?? (Blocks.Stone, 0);

@@ -24,7 +24,7 @@ public sealed class SketchStructuralHeightCarryTests
             "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10,
             "base_height": {{baseHeight}}, "relief_scope": "hold" }
         ],
-        "islands": [ { "id": "team", "mirrors": true, "shapeIds": ["s0"] } ]
+        "groups": [ { "id": "team", "mirrors": true, "shapeIds": ["s0"] } ]
       } }]
     }
     """;
@@ -41,7 +41,7 @@ public sealed class SketchStructuralHeightCarryTests
             "floor": {{floor}}, "base_height": {{baseHeight}}, "relief_scope": "hold",
             "height_authored": true }
         ],
-        "islands": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
+        "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
       } }]
     }
     """;
@@ -73,7 +73,7 @@ public sealed class SketchStructuralHeightCarryTests
                 "intentRef": "red", "color": "red",
                 "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10, "base_height": 9, "relief_scope": "hold" }
             ],
-            "islands": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
+            "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
           } }]
         }
         """;
@@ -120,7 +120,7 @@ public sealed class SketchStructuralHeightCarryTests
                 "min_x": 0, "min_z": 0, "max_x": 10, "max_z": 10,
                 "floor": 2, "base_height": 4, "relief_scope": "hold", "height_authored": true }
             ],
-            "islands": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
+            "groups": [ { "id": "team", "mirrors": true, "shapeIds": [] } ]
           } }],
           "mapTheme": "grass",
           "relief": { "team": { "base": 6 } }
@@ -153,7 +153,7 @@ public sealed class SketchStructuralHeightCarryTests
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
             "base_height": HEIGHT, "relief_scope": "hold", "height_authored": true }
         ],
-        "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
+        "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
       } }],
       "relief": { "i1": { "base": 6, "marks": [
           { "kind": "point", "at": [3, 3], "h": 6, "r": 3 },
@@ -192,7 +192,7 @@ public sealed class SketchStructuralHeightCarryTests
             "min_x": 22, "min_z": 22, "max_x": 38, "max_z": 38,
             "base_height": 9, "relief_scope": "hold"DOORS }
         ],
-        "islands": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
+        "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["land"] } ]
       } }],
       "relief": { "i1": { "base": 10, "marks": [
           { "kind": "line", "points": [[0, 2], [60, 2]], "h": 6, "r": 3 },

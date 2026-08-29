@@ -68,7 +68,7 @@ export const isRect = (propOrKind) =>
   (typeof propOrKind === "string" ? propOrKind : propOrKind?.kind) === "house";
 
 /** One wing's two opposite corners. A stored wing is `AuthoredWing` — `{corners, spec?}` — because a wing
- *  states its own storeys, roof and ridge alongside its rectangle; everything here reads its corners through
+ *  states its own layers, roof and ridge alongside its rectangle; everything here reads its corners through
  *  this one accessor so the rest of the canvas never has to know the wrapper is there, and so the wrapper can
  *  gain fields without every reader learning about them. Anything that is not a pair of corners reads as no
  *  wing at all rather than as a crash: a drawn layer must not be taken down by one malformed prop. */
@@ -158,7 +158,7 @@ export class DressingDoc {
   #props = [];
   #nextId = 1;
 
-  // The layer a placement lands on — the storey the board is being drawn on, not a property of the prop
+  // The layer a placement lands on — the layer the board is being drawn on, not a property of the prop
   // being placed. Empty means the board is flat and the export resolves the top surface, which is what an
   // unstacked board has always meant.
   #layer = "";
@@ -189,7 +189,7 @@ export class DressingDoc {
   get layer() { return this.#layer; }
 
   /** Place a prop. It takes the active layer unless it names one already — an edit that carries a layer
-   *  keeps it, and a re-placed prop is not silently moved to whichever storey is being looked at. */
+   *  keeps it, and a re-placed prop is not silently moved to whichever layer is being looked at. */
   add(prop) {
     const placed = { ...prop, id: prop.id || this.#mintId() };
     if (this.#layer && !placed.layer) placed.layer = this.#layer;

@@ -28,7 +28,7 @@ public sealed class MapFromDocumentsTests
          "layers":[{"base_y":0,"layout":{
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
-           "islands":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
         """;
 
     private static object Body(object? authors = null, string? name = "Weirgate", string? slug = null) => new
@@ -137,7 +137,7 @@ public sealed class MapFromDocumentsTests
         var resp = await client.PostAsJsonAsync("/api/map/from-documents", new
         {
             plan = JsonDocument.Parse("{}").RootElement,
-            layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"islands":[]}}]}""").RootElement,
+            layout = JsonDocument.Parse("""{"layers":[{"base_y":0,"layout":{"shapes":[],"groups":[]}}]}""").RootElement,
             intent = JsonDocument.Parse("""{"meta":{"name":"Empty"}}""").RootElement,
         });
 

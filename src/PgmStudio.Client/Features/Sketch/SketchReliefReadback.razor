@@ -1,24 +1,24 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* What the terrain CHARGES, per island. Deliberately not a score: a relief that is walkable everywhere is a
+@* What the terrain CHARGES, per group. Deliberately not a score: a relief that is walkable everywhere is a
    field rather than a map, so one number would rank every barrier an author placed on purpose as a defect.
    Every reading here is per passability tier, and the two that decide whether a relief added pressure or broke
    the map — places and ledges — sit next to each other for exactly that comparison. *@
 
 <Section Title="What it charges">
-  @if (islands.Count == 0)
+  @if (groups.Count == 0)
   {
     <p class="section-desc">Nothing stated yet, so there is nothing to read. State a mark and press
       <strong>Measure</strong>.</p>
   }
   else
   {
-    @foreach (var island in islands)
+    @foreach (var group in groups)
     {
-      <div class="readback" @key="island.Id">
+      <div class="readback" @key="group.Id">
         <div class="readback-head">
-          <span class="geo-label">@island.Id</span>
-          <span class="list-tag">y @island.Low–@island.High · @island.Relief blocks of relief</span>
+          <span class="geo-label">@group.Id</span>
+          <span class="list-tag">y @group.Low–@group.High · @group.Relief blocks of relief</span>
         </div>
 
         @* The three thresholds the game actually has. None is a fault and a good map is a mix, so these are
@@ -28,7 +28,7 @@
             <tr><th>Crossing</th><th>Open</th><th>Places</th><th>Largest</th><th>Ledges</th></tr>
           </thead>
           <tbody>
-            @foreach (var tier in island.Tiers)
+            @foreach (var tier in group.Tiers)
             {
               <tr @key="tier.Name">
                 <td>@TierWord(tier.Name)</td>
@@ -43,7 +43,7 @@
 
         @* A count says the board is broken and nothing else. What an author needs before they can fix it is
            where the piece is, so every piece but the one they are standing on is listed with its middle. *@
-        @{ var stranded = island.Tiers.FirstOrDefault(t => t.Name == "walk")?.Parts.Skip(1).ToList() ?? []; }
+        @{ var stranded = group.Tiers.FirstOrDefault(t => t.Name == "walk")?.Parts.Skip(1).ToList() ?? []; }
         @if (stranded.Count > 0)
         {
           <p class="section-desc">Cut off on foot, largest first:</p>
@@ -67,36 +67,36 @@
           <tbody>
             <tr>
               <td>west–east</td>
-              <td>@island.AcrossX.OnFoot / @island.AcrossX.Rows</td>
-              <td>@island.AcrossX.WithBlock</td>
-              <td>@island.AcrossX.Descended</td>
+              <td>@group.AcrossX.OnFoot / @group.AcrossX.Rows</td>
+              <td>@group.AcrossX.WithBlock</td>
+              <td>@group.AcrossX.Descended</td>
             </tr>
             <tr>
               <td>north–south</td>
-              <td>@island.AcrossZ.OnFoot / @island.AcrossZ.Rows</td>
-              <td>@island.AcrossZ.WithBlock</td>
-              <td>@island.AcrossZ.Descended</td>
+              <td>@group.AcrossZ.OnFoot / @group.AcrossZ.Rows</td>
+              <td>@group.AcrossZ.WithBlock</td>
+              <td>@group.AcrossZ.Descended</td>
             </tr>
           </tbody>
         </table>
 
         <div class="readback-head">
-          <span class="list-tag">@island.FaceCount faces · @island.Cliffs @(island.Cliffs == 1 ? "cliff" : "cliffs")</span>
-          @if (island.SymmetryError > 0)
+          <span class="list-tag">@group.FaceCount faces · @group.Cliffs @(group.Cliffs == 1 ? "cliff" : "cliffs")</span>
+          @if (group.SymmetryError > 0)
           {
-            <Badge Kind="warning">@island.SymmetryError off its mirror</Badge>
+            <Badge Kind="warning">@group.SymmetryError off its mirror</Badge>
           }
-          else if (island.Symmetric)
+          else if (group.Symmetric)
           {
             <Badge Kind="ok">mirrors exactly</Badge>
           }
         </div>
 
-        @if (island.Faces.Count > 0)
+        @if (group.Faces.Count > 0)
         {
           <p class="section-desc">
-            Widest face @island.Faces[0].Width wide, dropping @island.Faces[0].Drop.
-            @if (island.Cliffs == 0)
+            Widest face @group.Faces[0].Width wide, dropping @group.Faces[0].Drop.
+            @if (group.Cliffs == 0)
             {
               <text>Nothing wide enough to read as a cliff — these are banks.</text>
             }

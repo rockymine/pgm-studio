@@ -2,7 +2,7 @@
  * SketchDrawController — the four sketch draw tools (rectangle, polygon, lasso, path) for
  * SketchCanvas. Same controller contract as the world draw controller (onMouseDown→bool, onMouseMove,
  * onMouseUp, cancel). Completed shapes are reported via onShapeCreated; the host assigns an id and
- * triggers the island recompute.
+ * triggers the group recompute.
  *
  * The in-progress draw is **state, not elements**: `#drawState` holds the numbers and `paint` draws them
  * on whatever frame the canvas is painting, which is why every mutating entry point ends by asking for

@@ -47,12 +47,12 @@ public sealed class IslandGridTests
             [.. Enumerable.Range(0, 7).Select(i => new GridPlot("rectangle", Name: $"plot {i}"))], Grid);
 
         await Assert.That(SketchLayout.Stack(layout)[0].Shapes.Count).IsEqualTo(7);
-        await Assert.That(SketchLayout.Stack(layout)[0].Islands.Count).IsEqualTo(7);
-        await Assert.That(SketchLayout.Stack(layout)[0].Islands.All(island => !island.Mirrors)).IsTrue();
-        await Assert.That(SketchLayout.Stack(layout)[0].Islands.All(island => island.ShapeIds.Count == 1)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Groups.Count).IsEqualTo(7);
+        await Assert.That(SketchLayout.Stack(layout)[0].Groups.All(island => !island.Mirrors)).IsTrue();
+        await Assert.That(SketchLayout.Stack(layout)[0].Groups.All(island => island.ShapeIds.Count == 1)).IsTrue();
         await Assert.That(layout.Setup!.MirrorMode).IsEqualTo("none");
         // The name travels onto the island, which is what lets a report say what a plot was showing.
-        await Assert.That(SketchLayout.Stack(layout)[0].Islands[3].Name).IsEqualTo("plot 3");
+        await Assert.That(SketchLayout.Stack(layout)[0].Groups[3].Name).IsEqualTo("plot 3");
     }
 
     [Test]

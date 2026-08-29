@@ -41,7 +41,7 @@ public static class IslandSimplifier
         {
             Setup = new SketchSetup { MirrorMode = "none", Center = new SketchCenter { Cx = (minX + maxX) / 2, Cz = (minZ + maxZ) / 2 } },
             Layers = [SketchLayer.Ground(shapes,
-                [new SketchIsland { Id = "island", Name = "Island", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }])],
+                [new SketchGroup { Id = "island", Name = "Island", Mirrors = false, ShapeIds = [.. shapes.Select(s => s.Id)] }])],
         };
         return new Result(layout, simp.Exterior.Count, hid);
     }
@@ -53,7 +53,7 @@ public static class IslandSimplifier
         double tolerance = 2.0)
     {
         var shapes = new List<SketchShape>();
-        var groups = new List<SketchIsland>();
+        var groups = new List<SketchGroup>();
         double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
         foreach (var (id, ext, holes) in islands)
         {
@@ -65,7 +65,7 @@ public static class IslandSimplifier
                 shapes.Add(s);
                 foreach (var v in s.Vertices ?? []) { minX = Math.Min(minX, v[0]); maxX = Math.Max(maxX, v[0]); minZ = Math.Min(minZ, v[1]); maxZ = Math.Max(maxZ, v[1]); }
             }
-            groups.Add(new SketchIsland { Id = $"i{id}", Name = $"Island {id}", Mirrors = false, ShapeIds = [.. islandShapes.Select(s => s.Id)] });
+            groups.Add(new SketchGroup { Id = $"i{id}", Name = $"Island {id}", Mirrors = false, ShapeIds = [.. islandShapes.Select(s => s.Id)] });
         }
         return new SketchLayout
         {

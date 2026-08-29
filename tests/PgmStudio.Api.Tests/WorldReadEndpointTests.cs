@@ -22,7 +22,7 @@ public sealed class WorldReadEndpointTests
          "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
             {"id":"a","type":"rectangle","operation":"add","min_x":-30,"max_x":30,"min_z":-30,"max_z":30,"base_height":6},
             {"id":"b","type":"rectangle","operation":"add","min_x":-10,"max_x":10,"min_z":-10,"max_z":10,"base_height":14}],
-          "islands":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a","b"]}]} }]}
+          "groups":[{"id":"i1","name":"Island","mirrors":false,"shapeIds":["a","b"]}]} }]}
         """;
 
     private static async Task<string> FinishedAsync(HttpClient client)

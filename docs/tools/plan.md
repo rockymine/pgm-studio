@@ -294,8 +294,8 @@ with no wool, or a symmetry that is not a mirror pair, is not this rule's to jud
 
 Spawn-role and wool-room-role pieces are additionally emitted as **structural shapes** — locked annotation
 rectangles tagged with their role and an `intentRef` back to the entity they belong to — so a room stays
-visible in the Sketch tool instead of dissolving into the fused island. The authored image also pins its
-island's relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
+visible in the Sketch tool instead of dissolving into the fused group. The authored image also pins its
+group's relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
 
 **The intent** (`MapIntent`) is the gameplay. Teams come from the red/blue/yellow/green palette in orbit order.
 Each spawn fans to one per team, protected by its whole piece rather than the stamped cube, with its yaw fanned
@@ -342,7 +342,7 @@ placed by clicking a piece — a click over empty grid does nothing — and also
 stays armed, and each click toggles the nearest land interface within one cell between no wall and a wall —
 which face its chests open on is derived from the seam, not chosen here.
 
-Selection is two-level, the same scope model the Sketch tool's islands use. A plain click picks the marker
+Selection is two-level, the same scope model the Sketch tool's groups use. A plain click picks the marker
 under the cursor first (markers paint on top and have a small hit radius), then the smallest containing box,
 then the piece, then the zone. `Ctrl`/`⌘`+click reaches the piece past the box, entering the box as the scope
 in the same motion; `Alt`+click leaves any scope and resolves at the box, never drilling into what it groups.
@@ -416,7 +416,7 @@ destroyable or a core with an empty `piece` is not this error, since an absolute
 unknown or outside of; a core with `float` set without `leak` or the reverse; a core casing with no interior to
 hold lava; a destroyable style that names nothing; destroyables or cores on a symmetry that is not order 2; a
 wall on a pair that shares no land interface; a connected landmass mixing fanned and non-fanned pieces — the
-fan copies whole islands, so a `mirrors: false` piece must form its own island rather than touch mirrored
+fan copies whole groups, so a `mirrors: false` piece must form its own group rather than touch mirrored
 land; a room-frame refusal on a role piece (too small for its shell, a
 non-square pad, a wool room
 with no entry, a spawn room that cannot seat every monument its team will capture); a wool unreachable from a
@@ -566,7 +566,7 @@ draws the board as characters.
 |---|---|---|---|
 | `POST /plan/compile` | the document | `{layout, intent}`, each half serialized with its consumer's options so both can be posted on verbatim; `warnings` rides beside them where the compile is complete enough to succeed and incomplete enough to remark on (today `PL3`, a map with no objective), and where the posted plan carried a field the reader has nowhere to keep (`RQ3`) | 422 `{findings}` structural or completeness errors · 400 malformed |
 | `POST /sketch` | `{name}` | `{slug}` — originates a map; only needed off the bare route | — |
-| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`) | 409 one `SK1` finding per orphaned island, subject = island id (`?force=true` accepts the loss) · 422 `SK2` · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | the compiled `layout` | `{orphaned}` — merges rather than replaces: the sketch's themes, room shells and dressing are carried onto the new board, and a structural piece's author-corrected height is carried by `intentRef`. `warnings` rides beside them: what the merged document names and does not have (`SK3`/`SK4`/`SK5`), the same complaints the plain write answers, and any field of the **posted** layout the reader had nowhere to keep (`RQ3`) | 409 one `SK1` finding per orphaned group, subject = group id (`?force=true` accepts the loss) · 422 `SK2` · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes the layout into world geometry and moves the map to `stage=configure`, answering the stored document's own complaints under `warnings` on the way through | 404 unknown map · 422 the layout rasterizes to no ground · 422 `SK2` |
 | `PUT /map/{slug}/intent/from-plan` | the compiled `intent` | the projected map — carries the stored **authors and contributors** onto it and nothing else. `symmetry` and `islandTeams` are deliberately not carried, so a rebuild clears both | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 | `GET /map/{slug}/export` | — | the world ZIP | 404 unknown map · 409 and 422 as `/xml`, plus non-2xx with a message on a zip/IO failure |
@@ -615,7 +615,7 @@ a wool that is reachable from every capturing team's spawn by a route that does 
 that was carried the whole way to a finished world, and it sits beside the two files it produced —
 `ruediger.layout.json` and `ruediger.intent.json`. Thirty-one pieces at ten surfaces, seven build zones, one
 spawn-role piece with a spawn marker facing `left`, one wool-room piece with a wool marker, one approach wall
-between `wool-a-t1` and `wool-a-t3`, `rot_180` at 30 players. It compiles to 25 shapes on one island framed
+between `wool-a-t1` and `wool-a-t3`, `rot_180` at 30 players. It compiles to 25 shapes on one group framed
 `−70..70 × −130..130`, two teams, two spawns, two wools, 14 build areas, the observer at y 24, and four
 structure directives — two room floors, two entrance redstone rows, two walls. It states no build ceiling,
 because none of them do: that is measured off the terrain the world build produces.

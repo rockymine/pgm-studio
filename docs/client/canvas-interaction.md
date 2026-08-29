@@ -23,7 +23,7 @@ breaking one breaks all of them. The `if`/mode branches that configure the canva
 duplication — leave them alone.
 
 The other three canvases are genuinely separate engines because they draw different things: `PlanCanvas`
-(the coarse cell grid of the plan editor), `SketchCanvas` (freeform shapes and boolean islands), and
+(the coarse cell grid of the plan editor), `SketchCanvas` (freeform shapes and boolean groups), and
 `SideviewCanvas` (a Canvas2D depth cross-section).
 
 All three drawing surfaces — world, plan and sketch — are **hybrid**: the world layers are painted each
@@ -78,7 +78,7 @@ canvas layer can then reuse or test it.
 | `geometry/transform.js` | world↔SVG coordinate math — the single bridge between block space and screen space |
 | `geometry/polygon.js` | **the** point-in-polygon home (`pointInRing`), rasterisation, half-plane clip |
 | `geometry/shape.js` | the unified primitive model: rectangle / circle / polygon / lasso, `toRing`/`toBounds`/`containsPoint` |
-| `geometry/boolean.js` | island booleans over `polygon-clipping` — the one sketch-domain geometry layer |
+| `geometry/boolean.js` | group booleans over `polygon-clipping` — the one sketch-domain geometry layer |
 | `geometry/decompose-cut.js` | lane decomposition: lasso enclosure, edge markers, splitting a piece at two seams |
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
 | `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
@@ -147,7 +147,7 @@ drift:
 |---|---|---|
 | `WorldCanvas.#hitTest` | smallest-area **AABB** containment, else nearest within a 2-block margin | forgiving region select — a 1-block point needs a clickable target, and a click inside a circle's bbox should still select it |
 | `WorldCanvas.#hitTestIsland` | exact **point-in-polygon** | islands are world polygons, where "inside" must mean inside |
-| `SketchCanvas` island pick | exact point-in-polygon, exterior minus holes | same, and holes must not swallow clicks |
+| `SketchCanvas` group pick | exact point-in-polygon, exterior minus holes | same, and holes must not swallow clicks |
 | `PlanCanvas.#selectDown` | cell-grid containment | the plan is a coarse cell frame; a cell either contains the point or does not |
 
 All of them route through the one predicate in `geometry/polygon.js`. That single home matters more than
@@ -156,9 +156,9 @@ differently in one tool than another, which is precisely the bug a duplicate cop
 was set up to cause before it was removed.
 
 **Sketch and Plan share one selection model built on top of these hit tests, not two.** Both are two levels: a
-plain click picks the unit its canvas states — an island in `SketchCanvas`, a box in `PlanCanvas` — and two
+plain click picks the unit its canvas states — a group in `SketchCanvas`, a box in `PlanCanvas` — and two
 modifiers reach past it the same way in both. `Ctrl`/`⌘`+click reaches the member under the cursor directly
-and enters its group as the **scope** in the same motion; `SketchCanvas.#scopeIslandId` and
+and enters its group as the **scope** in the same motion; `SketchCanvas.#scopeGroupId` and
 `PlanCanvas.#scopeBoxId` are the field each canvas holds it in. `Alt`+click does the opposite: it resolves to
 the group itself, whatever is under the cursor, and leaves any scope that was entered. Once a scope is
 entered, a plain click reaches a member and a click landing outside the group's footprint leaves the scope
@@ -167,7 +167,7 @@ before landing normally.
 **Going deeper is a gesture, and coming back is the same gesture reversed.** A double-click steps one level
 in and `Escape` steps one out; `Enter` is the keyboard's way in, where the double-click is the pointer's. The
 sketch has one level more than the plan, because a shape is made of points and a cell rect is not, so its
-ladder runs island → shape → points where the plan's stops at the box. The rung the ladder is on is what
+ladder runs group → shape → points where the plan's stops at the box. The rung the ladder is on is what
 decides which chrome is drawn (§5), and a double-click only ever goes *down* from what the two clicks that
 made it up have already selected — nothing re-resolves the press, so the gesture cannot land somewhere the
 single click would not have. `CanvasBase._onCanvasDblClick` is the hook, gated exactly as `_onCanvasClick`
@@ -178,12 +178,12 @@ that vertex rather than a test of how fast two clicks arrived.
 The rule itself is one function, `shared/pick.js`'s `resolvePick`, and each canvas calls it with whatever its
 own hit tests found: a group, a member, the scope currently entered, which level a plain click picks and the
 two modifiers. It answers what to select and what the scope becomes. The geometry stays in each canvas
-because an island is a polygon and a box is a cell rect; what could not differ between them is the rule, so
+because a group is a polygon and a box is a cell rect; what could not differ between them is the rule, so
 it is written once — two tools with two grouping models is two things to learn for one idea.
 
 **A brush pre-empts the rule, and is the only thing that does.** `SketchCanvas.#themeBrush` holds the theme
 the Theme phase has in hand; while it is set, a click on a shape paints it, `Shift`+click paints every shape
-its island holds and `Alt`+click lifts that shape's theme back into the hand — none of the three reaches
+its group holds and `Alt`+click lifts that shape's theme back into the hand — none of the three reaches
 `resolvePick` at all. `Escape` follows the same reading: a thing in hand is the first thing it lets go of, so
 with a brush armed it puts the brush down and touches neither the scope nor the selection. That is deliberate
 and narrow: with something in hand the modifiers are read against what is held rather than against the
@@ -234,7 +234,7 @@ Each surface has one bridge exposing `async mount(...) → handle`. Blazor impor
 plus a `DotNetObjectReference`, and keeps the returned handle to drive the canvas. Traffic is asymmetric
 by design: **hot paths stay in JS** — cursor coordinates and zoom percentages are written straight to
 label elements per mousemove — and only decisions cross to C# (`OnSelect`, `OnRegionDraw`,
-`OnCanvasIslandSelect`, …).
+`OnCanvasGroupSelect`, …).
 
 `world-bridge` mounts `WorldCanvas`, `plan-bridge` `PlanCanvas` (and owns the plan document and id minting;
 it persists nothing — saving is the host's, on the author's word), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
@@ -242,22 +242,22 @@ it persists nothing — saving is the host's, on the author's word), `sketch-bri
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, which is inconsistent today (**CV15**).
 
-**A layer switch seeds island identity from the layer it is switching to.** `sketch-bridge` keeps one live
-island list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and —
+**A layer switch seeds group identity from the layer it is switching to.** `sketch-bridge` keeps one live
+group list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and —
 load-bearingly — an **id** across from whatever that live list holds, matching by centroid within 32 blocks.
-Loading another storey onto the canvas without reseeding leaves the outgoing storey's islands there, and two
-storeys of one board are centred on the same place, so the match always succeeds: the ground of a stacked
-board comes back carrying the workings' id. A relief is keyed by island id, so it detaches — and because
+Loading another layer onto the canvas without reseeding leaves the outgoing layer's groups there, and two
+layers of one board are centred on the same place, so the match always succeeds: the ground of a stacked
+board comes back carrying the workings' id. A relief is keyed by group id, so it detaches — and because
 the tool saves what the canvas holds, the wrong id is written into the document. `loadActiveToCanvas`
-therefore sets the live list to the incoming layer's own islands before recomputing, and falls back to that
-layer's persisted island records when it has none yet.
+therefore sets the live list to the incoming layer's own groups before recomputing, and falls back to that
+layer's persisted group records when it has none yet.
 
-**A saved island record is claimed by one island.** The other half of the same fact: `restoreIslandMeta`
-copies a name, a `mirrors` flag and an **id** from the persisted island records onto the recomputed
-islands, matched by shapeId overlap. Matching each island to its best record independently gives every
-island of a split board the same record — and a relief is keyed by id, so the board then has several
-islands under one name and its terrain reaches only the first of them. The pairing is resolved greedily
-instead: strongest overlap first, each record and each island claimed once, and an island no record
+**A saved group record is claimed by one group.** The other half of the same fact: `restoreGroupMeta`
+copies a name, a `mirrors` flag and an **id** from the persisted group records onto the recomputed
+groups, matched by shapeId overlap. Matching each group to its best record independently gives every
+group of a split board the same record — and a relief is keyed by id, so the board then has several
+groups under one name and its terrain reaches only the first of them. The pairing is resolved greedily
+instead: strongest overlap first, each record and each group claimed once, and a group no record
 reaches keeps the identity it was computed with. `SK12` reports a layout that still carries one id twice.
 
 **A preview that cannot run says which of the two reasons it was.** `enterIso` fails for two unrelated
@@ -281,7 +281,7 @@ the wrapping label is the clickable thing.
 works from the shared folder. 333 tests over 19 files pass.
 
 Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
-at 100% (`transform`, `symmetry`, `islands`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
+at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
 `canvas-painter` is the one DOM-adjacent module under test, via a small context stub. Of the 55 studio
 modules (12,694 lines), the tests reach 28 — the other **27 files, 8,017 lines, are never imported by a test
 at all**: every canvas, every bridge (`sketch-bridge` 904 lines, `plan-bridge` 449), every controller,

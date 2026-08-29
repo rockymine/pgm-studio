@@ -24,7 +24,7 @@ public sealed class SketchSelfImageIslandTests
             "vertices": [[-22, 2], [-18, 2], [-18, 16], [-22, 16]],
             "anchor_heights": [1, 1, 14, 14] }
         ],
-        "islands": [ { "id": "team", "mirrors": {{(mirrors ? "true" : "false")}},
+        "groups": [ { "id": "team", "mirrors": {{(mirrors ? "true" : "false")}},
                        "shapeIds": ["land", "descent"] } ]
       } }]
     }
@@ -73,7 +73,7 @@ public sealed class SketchSelfImageIslandTests
                 "height_mode": "sink", "skirt": 0,
                 "min_x": -30, "min_z": 10, "max_x": -20, "max_z": 30 }
             ],
-            "islands": [ { "id": "team", "mirrors": true, "shapeIds": ["land", "delve"] } ]
+            "groups": [ { "id": "team", "mirrors": true, "shapeIds": ["land", "delve"] } ]
           } }]
         }
         """;
@@ -95,7 +95,7 @@ public sealed class SketchSelfImageIslandTests
               { "id": "land", "type": "rectangle", "operation": "add",
                 "min_x": -40, "min_z": 10, "max_x": 40, "max_z": 40, "floor": 0, "base_height": 9 }
             ],
-            "islands": [ { "id": "team", "mirrors": true, "shapeIds": ["land"] } ]
+            "groups": [ { "id": "team", "mirrors": true, "shapeIds": ["land"] } ]
           } }]
         }
         """;

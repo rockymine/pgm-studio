@@ -13,12 +13,12 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("dim")] string Dim,
     [property: JsonPropertyName("baseHeight")] double BaseHeight = 1,   // a shape is never zero-height
     [property: JsonPropertyName("floor")] double Floor = 0,
-    // How the top is decided once the island carries a relief (docs/world-export/relief.md §7). Empty is ordinary
+    // How the top is decided once the group carries a relief (docs/world-export/relief.md §7). Empty is ordinary
     // ground; level / raise / sink make the shape something standing IN the terrain rather than being it.
     [property: JsonPropertyName("heightMode")] string HeightMode = "",
     // How far in from its outline an erected shape eases into the ground it meets. Zero is a sheer face.
     [property: JsonPropertyName("skirt")] double Skirt = 0,
-    // Whether the shape's ground joins its island's relief. Empty inherits; hold pins it at its own level and
+    // Whether the shape's ground joins its group's relief. Empty inherits; hold pins it at its own level and
     // the land is solved to meet it; exclude takes it out of the solve entirely.
     [property: JsonPropertyName("reliefScope")] string ReliefScope = "",
     // A path's band: half-width, how its edges are drawn, and the seed a rough edge wanders by. Empty on
@@ -27,14 +27,14 @@ public sealed record SketchShapeRow(
     [property: JsonPropertyName("pathEdge")] string PathEdge = "",
     [property: JsonPropertyName("pathSeed")] int PathSeed = 0);
 
-public sealed record SketchIslandRow(
+public sealed record SketchGroupRow(
     [property: JsonPropertyName("id")] string Id,
     [property: JsonPropertyName("name")] string Name,
     [property: JsonPropertyName("mirrors")] bool Mirrors,
     [property: JsonPropertyName("shapeIds")] List<string> ShapeIds);
 
 public sealed record SketchLayoutDto(
-    [property: JsonPropertyName("islands")] List<SketchIslandRow> Islands,
+    [property: JsonPropertyName("groups")] List<SketchGroupRow> Groups,
     [property: JsonPropertyName("shapes")] List<SketchShapeRow> Shapes);
 
 // One shift-marked surface-slope control vertex (from the bridge's OnSlopeControls): the vertex index +

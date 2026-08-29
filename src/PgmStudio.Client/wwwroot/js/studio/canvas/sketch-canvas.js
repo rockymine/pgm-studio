@@ -3,11 +3,11 @@
  * delegates: draw tools → SketchDrawController, resize/vertex/Bézier edit → SketchEditController,
  * all world painting → render/sketch-render, point-in-shape → geometry/shape.containsPoint. It owns the
  * shape map, selection, and the bbox/center/mode setup state; the host (bridge/sketch-bridge.js) owns
- * the island recompute loop and pushes results via setIslands/setMirror.
+ * the group recompute loop and pushes results via setGroups/setMirror.
  *
  * A hybrid surface, like the plan canvas: the world layers are **painted** to a 2-D `<canvas>` under the
  * svg and redrawn each frame at the current scale, so no rasterization is kept for a zoom to stretch;
- * screen-space chrome (island bbox + handles, the centre marker, the ruler label, the scale bar) stays in
+ * screen-space chrome (group bbox + handles, the centre marker, the ruler label, the scale bar) stays in
  * the svg, which also remains the single pointer target. Nothing is retained between frames, so every
  * setter ends in a repaint rather than in an element edit.
  *
@@ -16,7 +16,7 @@
  * through buildTransform — do not collapse the two.)
  *
  * Callbacks: onShapeCreated(partial) · onShapeUpdated(shape) · onShapeSelected(id|null) [drill] ·
- * onIslandSelected(id|null) [single-click] · onShapeDeleted(id) · onSplit(a, b) [slice a shape in two]
+ * onGroupSelected(id|null) [single-click] · onShapeDeleted(id) · onSplit(a, b) [slice a shape in two]
  */
 
 import { CanvasBase } from "./canvas-base.js";
@@ -41,7 +41,7 @@ import { paintReliefMarks } from "../render/relief-render.js";
 import { orbitAxes, applySymmetry } from "../geometry/symmetry.js";
 import { SketchEditController } from "../controllers/sketch-edit-controller.js";
 import {
-  paintSketchShape, paintIslands, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostIslands, paintRaster, paintStructural,
+  paintSketchShape, paintGroups, paintMirror, paintBbox, paintChunkGrid, paintAxis, paintGhostGroups, paintRaster, paintStructural,
   paintObjectives,
   paintContours,
 } from "../render/sketch-render.js";
@@ -90,15 +90,15 @@ export class SketchCanvas extends CanvasBase {
   #structural  = [];          // locked plan pieces (S25) — render-only, never hit-tested/edited/rasterized
   #objectives  = [];          // {kind, x, z} — where the intent's destroyables and cores stand, marker only
   #selectedId  = null;        // drilled/single-member shape (drives the edit-controller handles)
-  #selectedIslandId = null;   // selected island (drives the island bbox chrome + whole-island drag)
+  #selectedGroupId = null;   // selected group (drives the group bbox chrome + whole-group drag)
   // Which rung of the selection ladder the pointer is working at, and the ONE thing that decides which
-  // chrome is drawn: "island" transforms a whole landmass, "shape" transforms one member, "points" edits
+  // chrome is drawn: "group" transforms a whole landmass, "shape" transforms one member, "points" edits
   // that member's vertices. Exactly one rung draws, which is what lets every box sit on its own bounds
   // with no offset — nothing else is there for an anchor to bury.
-  #level       = "island";
-  #islands     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
+  #level       = "group";
+  #groups     = [];          // [{ id, shapeIds, exterior, holes }] from the bridge
   #mirrorPolys = [];
-  #ghostPolys  = [];          // other layers' island outlines (S7)
+  #ghostPolys  = [];          // other layers' group outlines (S7)
 
   // Placed dressing (decoration.md). The document lives here rather than in the bridge because the canvas is
   // where a prop is put, moved and picked; the bridge asks for it when it saves.
@@ -107,13 +107,13 @@ export class SketchCanvas extends CanvasBase {
   #dressingOn  = false;      // only the Dressing phase draws and edits props
 
   // The stated relief (docs/world-export/relief.md). Here for the same reason the dressing document is:
-  // this is where a mark is put, moved and picked. Unlike dressing it is keyed by island, because a relief is
-  // solved over an island's fused footprint rather than placed loose on the map.
+  // this is where a mark is put, moved and picked. Unlike dressing it is keyed by group, because a relief is
+  // solved over a group's fused footprint rather than placed loose on the map.
   #reliefDoc   = new ReliefDoc();
   #reliefTools = null;
   #reliefOn    = false;      // only the Relief phase draws and edits marks
   // A placement hands the canvas back to select mid-press, so the click that finished it would arrive with
-  // select already active and be read as "pick the island under the cursor" — deselecting the prop just put
+  // select already active and be read as "pick the group under the cursor" — deselecting the prop just put
   // down. This marks that click as spent. Cleared on the next press, so it can only ever swallow its own.
   #placementClick = false;
 
@@ -125,15 +125,15 @@ export class SketchCanvas extends CanvasBase {
   #paintData     = null;   // the server's block-pixel payload for the terrain paint (terrain-painting.md TP10)
   #paintImage    = null;   // that payload decoded — a canvas blits a bitmap, not a data URL
   #relief        = null;   // the server's traced contours for the relief the layout carries
-  #selectOnly    = false;  // pick islands/shapes and pan/zoom, edit nothing (Theme and Relief)
+  #selectOnly    = false;  // pick groups/shapes and pan/zoom, edit nothing (Theme and Relief)
 
-  // The island a click is resolved INSIDE. Null means clicks resolve to whole islands; set, they resolve to
-  // that island's member shapes, and a click outside its footprint leaves. This is what makes entering a
-  // group a state rather than a single click — without it every click after a drill re-selects the island.
-  #scopeIslandId = null;
+  // The group a click is resolved INSIDE. Null means clicks resolve to whole groups; set, they resolve to
+  // that group's member shapes, and a click outside its footprint leaves. This is what makes entering a
+  // group a state rather than a single click — without it every click after a drill re-selects the group.
+  #scopeGroupId = null;
 
-  // Which level a plain click picks when no island is entered, in `resolvePick`'s words. A phase states it
-  // in its own: an island is what moves in Draw and what a relief is solved over, and a shape is what a
+  // Which level a plain click picks when no group is entered, in `resolvePick`'s words. A phase states it
+  // in its own: a group is what moves in Draw and what a relief is solved over, and a shape is what a
   // theme is applied to.
   #pickUnit = "group";
 
@@ -152,9 +152,9 @@ export class SketchCanvas extends CanvasBase {
   #split     = null;   // { ax, az, bx, bz } — the first cut point (S14) + the cursor, awaiting the second click
   #guides     = { x: null, z: null };   // alignment guide lines drawn during a snapped move/resize
   #dragStartShape = null;  // snapshot of the grabbed shape at drag start (absolute snap-aware move, S9)
-  #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole island (S20)
-  #rotateState = null;     // { snapshots, pivot, lastAngle, total } while rotating a selected island (S13)
-  #scaleState = null;      // { snapshots, orig, h } while scaling a selected island via a bbox handle (S21)
+  #dragStartShapes = null; // id→snapshot of every member when body-dragging a whole group (S20)
+  #rotateState = null;     // { snapshots, pivot, lastAngle, total } while rotating a selected group (S13)
+  #scaleState = null;      // { snapshots, orig, h } while scaling a selected group via a bbox handle (S21)
   #snapEnabled = true;
 
   // The world layers are PAINTED: `#painter` owns a <canvas> under the svg and redraws the whole world
@@ -241,7 +241,7 @@ export class SketchCanvas extends CanvasBase {
 
   removeShape(id) {
     this.#shapes.delete(id);
-    if (this.#selectedId === id) { this.#selectedId = null; this.#level = "island"; this.#edit?.setSelected(null); this.#edit?.refresh(); }
+    if (this.#selectedId === id) { this.#selectedId = null; this.#level = "group"; this.#edit?.setSelected(null); this.#edit?.refresh(); }
     this.#renderSetup();   // shrink back when content is removed
   }
 
@@ -251,20 +251,20 @@ export class SketchCanvas extends CanvasBase {
   // when the same shape is picked again, so clicking a shape you are already editing point by point does not
   // throw you back out of it.
   selectShape(id) {
-    this.#selectedIslandId = null;
+    this.#selectedGroupId = null;
     const same = id && id === this.#selectedId;
     this.#selectedId = id;
-    this.#setLevel(id ? (same && this.#level === "points" ? "points" : "shape") : "island");
+    this.#setLevel(id ? (same && this.#level === "points" ? "points" : "shape") : "group");
   }
 
-  // Select an island (single-click / panel-island): draws its bbox chrome. A single-member island keeps its
+  // Select a group (single-click / panel-group): draws its bbox chrome. A single-member group keeps its
   // member as the selection so the inspector, Delete and the arrow-nudge all reach it — but the ladder stays
-  // on the island rung, because the island's box and its lone member's ARE the same box and drawing both is
+  // on the group rung, because the group's box and its lone member's ARE the same box and drawing both is
   // what put two anchors on every corner. Setter only — the click path fires the callback.
-  selectIsland(id) {
-    this.#selectedIslandId = id ?? null;
-    this.#selectedId = this.#soleMemberOf(this.#selectedIslandId);
-    this.#setLevel("island");
+  selectGroup(id) {
+    this.#selectedGroupId = id ?? null;
+    this.#selectedId = this.#soleMemberOf(this.#selectedGroupId);
+    this.#setLevel("group");
   }
 
   /** Move the ladder to `level` and redraw. Both halves of the chrome are asked; one of them draws nothing. */
@@ -277,43 +277,43 @@ export class SketchCanvas extends CanvasBase {
     this.#updateDim();
   }
 
-  /** The lone member of a single-shape island, or null — the case where two rungs of the ladder are one. */
-  #soleMemberOf(islandId) {
-    const isl = islandId ? this.#islands.find(i => i.id === islandId) : null;
+  /** The lone member of a single-shape group, or null — the case where two rungs of the ladder are one. */
+  #soleMemberOf(groupId) {
+    const isl = groupId ? this.#groups.find(i => i.id === groupId) : null;
     return isl && isl.shapeIds?.length === 1 ? isl.shapeIds[0] : null;
   }
 
   getShape(id)  { return this.#shapes.get(id); }
   getShapes()   { return [...this.#shapes.values()]; }
   get selectedId() { return this.#selectedId; }
-  #islandOfShape(shapeId) { return this.#islands.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
+  #groupOfShape(shapeId) { return this.#groups.find(i => i.shapeIds?.includes(shapeId)) ?? null; }
 
-  // Whether a cell centre sits on the rasterized terrain — inside some island's footprint and clear of its
-  // holes. The same exterior-minus-holes test the island hit-test uses, at the cell's own centre so it agrees
+  // Whether a cell centre sits on the rasterized terrain — inside some group's footprint and clear of its
+  // holes. The same exterior-minus-holes test the group hit-test uses, at the cell's own centre so it agrees
   // with the rasterizer's membership rule (a cell is terrain when its centre is inside a shape).
   #cellOnTerrain(bx, bz) {
     const cx = bx + 0.5, cz = bz + 0.5;
-    return this.#islands.some(isl => (isl.exterior?.length ?? 0) >= 4
+    return this.#groups.some(isl => (isl.exterior?.length ?? 0) >= 4
       && pointInRing(cx, cz, isl.exterior)
       && !(isl.holes ?? []).some(hole => pointInRing(cx, cz, hole)));
   }
 
   /**
-   * The level an island's ground already stands at: the most common top among its add shapes, ties to the
+   * The level a group's ground already stands at: the most common top among its add shapes, ties to the
    * tallest. A column's top is <code>floor + base_height</code> and the tallest add wins a column, so a board
    * drawn at one height answers that height and a mixed one answers the height most of its pieces state.
-   * Null for an island with no add shape to read — there is then nothing to agree with, and a caller says so
+   * Null for a group with no add shape to read — there is then nothing to agree with, and a caller says so
    * rather than inventing a level.
    *
    * A subtract states no ground and a role-tagged annotation is not terrain, so neither is counted. A shape
    * with per-vertex anchors is counted at its uniform `base_height`: an anchored top varies by definition and
    * has no single level for a relief to fall back to.
    */
-  islandTop(islandId) {
-    const island = this.#islands.find(one => one.id === islandId);
-    if (!island) return null;
+  groupTop(groupId) {
+    const group = this.#groups.find(one => one.id === groupId);
+    if (!group) return null;
     const counts = new Map();
-    for (const shapeId of island.shapeIds ?? []) {
+    for (const shapeId of group.shapeIds ?? []) {
       const shape = this.#shapes.get(shapeId);
       if (!shape || shape.operation === "subtract" || shape.role) continue;
       const top = Math.round((shape.floor ?? 0) + (shape.base_height ?? 1));
@@ -325,8 +325,8 @@ export class SketchCanvas extends CanvasBase {
     return best?.top ?? null;
   }
 
-  setIslands(islands)        { this.#islands = islands ?? []; this.#paintWorld(); this.#renderTransformChrome(); }
-  setGhostIslands(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
+  setGroups(groups)        { this.#groups = groups ?? []; this.#paintWorld(); this.#renderTransformChrome(); }
+  setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
   setDressingMode(on) {
@@ -367,10 +367,10 @@ export class SketchCanvas extends CanvasBase {
   }
 
   /**
-   * Make the canvas a selection surface: islands and shapes can be picked (and the view panned and zoomed),
+   * Make the canvas a selection surface: groups and shapes can be picked (and the view panned and zoomed),
    * but nothing can be moved, resized, rotated, reshaped or given a vertex. The Theme and Relief phases run
    * in this mode — both reach geometry the Draw phase owns by picking it, one to assign paint and one to
-   * state ground inside it, so offering an edit would make the gesture that selects an island the gesture
+   * state ground inside it, so offering an edit would make the gesture that selects a group the gesture
    * that reshapes it, from a rail with no undo, no snapping and no height controls to make sense of it.
    *
    * Restricted at the source rather than by ignoring the results: the edit controller draws no handles, the
@@ -410,7 +410,7 @@ export class SketchCanvas extends CanvasBase {
    * had to be re-fetched.
    */
   loadReliefLayer(relief) {
-    this.#relief = relief?.islands?.length ? relief : null;
+    this.#relief = relief?.groups?.length ? relief : null;
     this.#paintWorld();
   }
 
@@ -430,8 +430,8 @@ export class SketchCanvas extends CanvasBase {
   _onIsoEnter() { this.#draw?.cancel(); }
   // What the preview covers: the painted world, the (inert) viewport group, and every screen-space overlay.
   _isoLayers() {
-    const { handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, islandChrome } = this.#screen;
-    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, islandChrome];
+    const { handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, groupChrome } = this.#screen;
+    return [this.#canvasEl, this._viewportG, handles, dressingHandles, reliefHandles, center, drawHandles, measureLabel, groupChrome];
   }
 
   // ── CanvasBase hooks ───────────────────────────────────────────────────────────
@@ -483,63 +483,63 @@ export class SketchCanvas extends CanvasBase {
     if (this._isoOn) return;
     if (this.#placementClick) { this.#placementClick = false; return; }
     const up = e.altKey;
-    const island = this.#hitIsland(svgPt.x, svgPt.y);
+    const group = this.#hitGroup(svgPt.x, svgPt.y);
     const shape = this.#hitTest(svgPt.x, svgPt.y);
 
     // A brush is armed: paint what is under the pointer, or lift what is on it. The modifiers are read
     // against what is held rather than against the grouping — Alt is the eyedropper here rather than
-    // select-the-parent, and Shift widens the stroke to every shape the island holds.
+    // select-the-parent, and Shift widens the stroke to every shape the group holds.
     if (this.#themeBrush && shape) {
       if (up) this.#callbacks.onThemeLift?.(shape);
-      else if (e.shiftKey && island) this.#callbacks.onThemePaintIsland?.(island);
+      else if (e.shiftKey && group) this.#callbacks.onThemePaintGroup?.(group);
       else this.#callbacks.onThemePaint?.(shape);
       this.#callbacks.onShapeSelected?.(shape);
       return;
     }
 
     const picked = resolvePick({
-      group: island, member: shape, scope: this.#scopeIslandId, unit: this.#pickUnit,
+      group: group, member: shape, scope: this.#scopeGroupId, unit: this.#pickUnit,
       deep: e.ctrlKey || e.metaKey, up,
     });
     this.#enterScope(picked.scope);
-    if (picked.pick === "group") this.#callbacks.onIslandSelected?.(picked.id);
+    if (picked.pick === "group") this.#callbacks.onGroupSelected?.(picked.id);
     else if (picked.pick === "member") this.#callbacks.onShapeSelected?.(picked.id);
-    else this.#callbacks.onIslandSelected?.(null);
+    else this.#callbacks.onGroupSelected?.(null);
   }
 
-  /** Enter an island as the scope, or leave whatever is entered. Redraws, because the scope is drawn. */
-  #enterScope(islandId) {
-    const next = islandId ?? null;
-    if (next === this.#scopeIslandId) return;
-    this.#scopeIslandId = next;
+  /** Enter a group as the scope, or leave whatever is entered. Redraws, because the scope is drawn. */
+  #enterScope(groupId) {
+    const next = groupId ?? null;
+    if (next === this.#scopeGroupId) return;
+    this.#scopeGroupId = next;
     this.#paintWorld();
   }
 
   /**
-   * One rung down the selection ladder. From an island it reaches the member under the cursor and enters the
-   * island as the scope in the same motion; from a shape it opens that shape's points, where the vertices,
+   * One rung down the selection ladder. From a group it reaches the member under the cursor and enters the
+   * group as the scope in the same motion; from a shape it opens that shape's points, where the vertices,
    * the Bézier tangents and the midpoint-insert ghost live and the box does not.
    *
-   * A single-member island is one rung and not two — its box and its member's box are the same box, so
+   * A single-member group is one rung and not two — its box and its member's box are the same box, so
    * there is nothing for the shape rung to say — and drilling it opens the points directly.
    *
    * `wx`/`wz` are the cursor; null means the keyboard asked, which has no cursor to read a member from and
-   * therefore enters the island instead.
+   * therefore enters the group instead.
    */
   #deeper(wx = null, wz = null) {
     if (this.#selectOnly || this._isoOn || this.#level === "points") return;
     if (this.#level === "shape") { this.#setLevel("points"); return; }
-    const island = this.#selectedIslandId;
-    const sole = this.#soleMemberOf(island);
+    const group = this.#selectedGroupId;
+    const sole = this.#soleMemberOf(group);
     if (sole) {
-      this.#enterScope(island);
+      this.#enterScope(group);
       this.#callbacks.onShapeSelected?.(sole);
       this.#setLevel("points");
       return;
     }
     const shape = wx == null ? null : this.#hitTest(wx, wz);
-    if (!shape) { if (wx == null && island) this.#enterScope(island); return; }
-    this.#enterScope(this.#islandOfShape(shape)?.id ?? null);
+    if (!shape) { if (wx == null && group) this.#enterScope(group); return; }
+    this.#enterScope(this.#groupOfShape(shape)?.id ?? null);
     this.#callbacks.onShapeSelected?.(shape);
   }
 
@@ -553,7 +553,7 @@ export class SketchCanvas extends CanvasBase {
     this.#deeper(svgPt.x, svgPt.y);
   }
 
-  /** Which unit a plain click picks with no island entered — the phase's word, "island" or "shape". */
+  /** Which unit a plain click picks with no group entered — the phase's word, "group" or "shape". */
   setPickUnit(unit) { this.#pickUnit = unit === "shape" ? "member" : "group"; }
 
   /** Arm a theme, so a click paints it; "" puts the brush down. */
@@ -583,18 +583,18 @@ export class SketchCanvas extends CanvasBase {
     return consumed;
   }
 
-  // Body-drag (CV10 shape / S20 island): drag a selected shape's body — or a whole selected island — to
+  // Body-drag (CV10 shape / S20 group): drag a selected shape's body — or a whole selected group — to
   // move it. World == surface coords here, so the default _toWorld (identity) is correct — no override.
-  // A shape handle is its id (string); an island handle is `{ islandId }`.
-  #isIslandHandle(h) { return !!(h && typeof h === "object" && h.islandId); }
+  // A shape handle is its id (string); a group handle is `{ groupId }`.
+  #isGroupHandle(h) { return !!(h && typeof h === "object" && h.groupId); }
 
   _hitMovable(world) {
     if (this._isoOn || this.#selectOnly) return null;   // select-only: a selected thing is not draggable
-    // Island selected → drag the whole island when the point is inside its footprint.
-    if (this.#selectedIslandId) {
-      const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+    // Group selected → drag the whole group when the point is inside its footprint.
+    if (this.#selectedGroupId) {
+      const isl = this.#groups.find(i => i.id === this.#selectedGroupId);
       if (isl && isl.exterior?.length >= 4 && pointInRing(world.x, world.z, isl.exterior) &&
-          !(isl.holes ?? []).some(h => pointInRing(world.x, world.z, h))) return { islandId: this.#selectedIslandId };
+          !(isl.holes ?? []).some(h => pointInRing(world.x, world.z, h))) return { groupId: this.#selectedGroupId };
     }
     // Else a drilled/selected shape → drag that shape.
     if (this.#selectedId) {
@@ -604,8 +604,8 @@ export class SketchCanvas extends CanvasBase {
     return null;
   }
   _moveBy(handle, dx, dz) {
-    if (this.#isIslandHandle(handle)) {
-      const isl = this.#islands.find(i => i.id === handle.islandId);
+    if (this.#isGroupHandle(handle)) {
+      const isl = this.#groups.find(i => i.id === handle.groupId);
       for (const id of (isl?.shapeIds ?? [])) { const s = this.#shapes.get(id); if (s) this.updateShape(translateShape(s, dx, dz)); }
       this.#renderTransformChrome();
       this.#callbacks.onShapeUpdated?.();
@@ -615,14 +615,14 @@ export class SketchCanvas extends CanvasBase {
     if (!s) return;
     const moved = translateShape(s, dx, dz);
     this.updateShape(moved);
-    this.#callbacks.onShapeUpdated?.(moved);   // bridge recomputes islands + marks dirty each step
+    this.#callbacks.onShapeUpdated?.(moved);   // bridge recomputes groups + marks dirty each step
   }
 
   setSnapEnabled(v) { this.#snapEnabled = !!v; }
 
   _moveStart(handle) {
-    if (this.#isIslandHandle(handle)) {
-      const isl = this.#islands.find(i => i.id === handle.islandId);
+    if (this.#isGroupHandle(handle)) {
+      const isl = this.#groups.find(i => i.id === handle.groupId);
       const entries = (isl?.shapeIds ?? []).map(id => [id, this.#shapes.get(id)]).filter(([, s]) => s);
       this.#dragStartShapes = new Map(entries.map(([id, s]) => [id, structuredClone(s)]));
       this.#dragStartShape = null;
@@ -636,7 +636,7 @@ export class SketchCanvas extends CanvasBase {
   // Absolute, snap-aware move (S9): place the shape at start + (dx,dz), snapping its bbox edges/centre to
   // other shapes' edges/centres + the symmetry centre; draws alignment guides. Alt bypasses snapping.
   _moveTo(handle, dx, dz, alt) {
-    if (this.#isIslandHandle(handle)) return this.#moveIslandTo(dx, dz, alt);
+    if (this.#isGroupHandle(handle)) return this.#moveGroupTo(dx, dz, alt);
     const start = this.#dragStartShape;
     if (!start || start.id !== handle) return false;
     const sb = toBounds(start);
@@ -656,9 +656,9 @@ export class SketchCanvas extends CanvasBase {
     return true;
   }
 
-  // Whole-island absolute move: snap the island's bbox edges/centre to other shapes + the symmetry centre
-  // (excluding every island member), draw the guide, and translate all members from their snapshots.
-  #moveIslandTo(dx, dz, alt) {
+  // Whole-group absolute move: snap the group's bbox edges/centre to other shapes + the symmetry centre
+  // (excluding every group member), draw the guide, and translate all members from their snapshots.
+  #moveGroupTo(dx, dz, alt) {
     const starts = this.#dragStartShapes;
     if (!starts || !starts.size) return false;
     const sb = boundsOfShapes([...starts.values()]);
@@ -675,7 +675,7 @@ export class SketchCanvas extends CanvasBase {
     const rdx = Math.round(sdx), rdz = Math.round(sdz);
     for (const [, start] of starts) this.updateShape(translateShape(start, rdx, rdz));
     this.#renderTransformChrome();
-    this.#callbacks.onShapeUpdated?.();   // one island recompute for the whole move
+    this.#callbacks.onShapeUpdated?.();   // one group recompute for the whole move
     return true;
   }
 
@@ -699,7 +699,7 @@ export class SketchCanvas extends CanvasBase {
   }
 
   // Candidate snap coordinates: every OTHER shape's bbox min/centre/max + the symmetry centre.
-  // `exclude` is a shape id or a list of ids (all members of a dragged island).
+  // `exclude` is a shape id or a list of ids (all members of a dragged group).
   #snapTargets(exclude) {
     const ex = Array.isArray(exclude) ? new Set(exclude) : new Set([exclude]);
     const xs = new Set([this.#center.cx]), zs = new Set([this.#center.cz]);
@@ -734,7 +734,7 @@ export class SketchCanvas extends CanvasBase {
     painter.layer("chunk",     () => { if (this.#chunkVisible) paintChunkGrid(painter, this.#gridBounds(), gridStep(CHUNK * this._scale)); });
     painter.layer("axis",      () => paintAxis(painter, this.#gridBounds(), this.#center, this.#mode));
     painter.layer("mirror",    () => { if (this.#mirrorVisible) paintMirror(painter, this.#mirrorPolys); });
-    painter.layer("ghost",     () => paintGhostIslands(painter, this.#ghostPolys));
+    painter.layer("ghost",     () => paintGhostGroups(painter, this.#ghostPolys));
     // The Blocks layer is the terrain paint when the server has sent it, and the plain stone footprint until
     // then — so drawing keeps its immediate voxelization feedback while the painted blocks are in flight.
     const painted = this.#blocksVisible && this.#paintImage;
@@ -743,14 +743,14 @@ export class SketchCanvas extends CanvasBase {
       if (painted) painter.image(this.#paintImage, blockImageBounds(this.#paintData));
       else paintRaster(painter, this.#rasterRuns);
     });
-    // The island fill would tint every painted block towards the result purple, so under the paint the
-    // island contributes its outline only.
-    painter.layer("island",    () => paintIslands(painter, this.#islands, { filled: !painted }));
-    // Contours sit over the blocks and the island fill and under everything drawn or selected: they describe
+    // The group fill would tint every painted block towards the result purple, so under the paint the
+    // group contributes its outline only.
+    painter.layer("group",    () => paintGroups(painter, this.#groups, { filled: !painted }));
+    // Contours sit over the blocks and the group fill and under everything drawn or selected: they describe
     // the ground, so they belong on it, but an author's own shapes have to stay legible across them.
     painter.layer("relief",    () => { if (this.#relief) paintContours(painter, this.#relief); });
     painter.layer("shapes",    () => this.#paintShapes());
-    // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the island
+    // Structural pieces (S25) are locked plan context, not drawn primitives — always shown (like the group
     // outlines), not behind the Shapes toggle, so they stay visible while a plan is refined.
     painter.layer("structural", () => {
       paintStructural(painter, this.#structural);
@@ -772,7 +772,7 @@ export class SketchCanvas extends CanvasBase {
   get paintOrder() { return this.#painter?.layers ?? []; }
 
   /**
-   * The drawn primitives. The chip draws every one of them; without it, the island the pointer is working
+   * The drawn primitives. The chip draws every one of them; without it, the group the pointer is working
    * in still draws its own — a group shows what it is made of once it is being worked in, which is how a
    * member becomes reachable without hunting for a toggle first.
    */
@@ -782,15 +782,15 @@ export class SketchCanvas extends CanvasBase {
         paintSketchShape(this.#painter, shape, { selected: shape.id === this.#selectedId });
       return;
     }
-    const context = this.#scopeIslandId ?? this.#selectedIslandId;
+    const context = this.#scopeGroupId ?? this.#selectedGroupId;
     if (!context) return;
-    const island = this.#islands.find(entry => entry.id === context);
-    for (const id of (island?.shapeIds ?? [])) {
+    const group = this.#groups.find(entry => entry.id === context);
+    for (const id of (group?.shapeIds ?? [])) {
       const shape = this.#shapes.get(id);
-      // Faint where the island is merely selected, plain where it has been entered: entering is the act
+      // Faint where the group is merely selected, plain where it has been entered: entering is the act
       // that says the members are what is being worked on.
       if (shape) paintSketchShape(this.#painter, shape, {
-        selected: shape.id === this.#selectedId, alpha: this.#scopeIslandId ? 0.85 : 0.4,
+        selected: shape.id === this.#selectedId, alpha: this.#scopeGroupId ? 0.85 : 0.4,
       });
     }
   }
@@ -811,14 +811,14 @@ export class SketchCanvas extends CanvasBase {
   /**
    * Accent-outline the current selection (S22) so it's findable even when the Shapes layer is hidden: the
    * selected shape's own outline (its Bézier curve) when a shape is selected/drilled, else the selected
-   * island's outline (exterior + holes). World space, so it follows move / rotate / scale / resize with
+   * group's outline (exterior + holes). World space, so it follows move / rotate / scale / resize with
    * everything else on the frame.
    */
   #paintSelectionHighlight() {
-    // The entered island, as the frame clicks resolve inside — dashed, because it is a context rather than
+    // The entered group, as the frame clicks resolve inside — dashed, because it is a context rather than
     // a selection, and drawn under whatever is selected within it.
-    if (this.#scopeIslandId) {
-      const scope = this.#islands.find(entry => entry.id === this.#scopeIslandId);
+    if (this.#scopeGroupId) {
+      const scope = this.#groups.find(entry => entry.id === this.#scopeGroupId);
       if (scope?.exterior?.length >= 3) {
         this.#painter.poly({ exterior: scope.exterior, holes: scope.holes ?? [] },
           { stroke: "var(--accent)", width: 1.5, dash: [6, 4], alpha: 0.75 });
@@ -836,8 +836,8 @@ export class SketchCanvas extends CanvasBase {
       }
       return;
     }
-    if (!this.#selectedIslandId) return;
-    const isl = this.#islands.find(i => i.id === this.#selectedIslandId);
+    if (!this.#selectedGroupId) return;
+    const isl = this.#groups.find(i => i.id === this.#selectedGroupId);
     if (isl?.exterior?.length >= 3) this.#painter.poly({ exterior: isl.exterior, holes: isl.holes ?? [] }, style);
   }
 
@@ -866,11 +866,11 @@ export class SketchCanvas extends CanvasBase {
     // surface, so drawing them from one list is what makes the phase one phase.
     paintReliefMarks(painter, this.#reliefDoc.statements, {
       selectedId: this.#reliefTools?.selectedId ?? null,
-      // Per island: the rasterizer fans only the islands that opted into mirroring, so ghosting a mark on one
+      // Per group: the rasterizer fans only the groups that opted into mirroring, so ghosting a mark on one
       // that did not would draw ground the export will never build.
-      orderOf: (islandId) => (this.#islands.find(isl => isl.id === islandId)?.mirrors ? axes.length + 1 : 1),
+      orderOf: (groupId) => (this.#groups.find(isl => isl.id === groupId)?.mirrors ? axes.length + 1 : 1),
       mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
-      baseOf: (islandId) => this.#reliefDoc.peek(islandId)?.base ?? 8,
+      baseOf: (groupId) => this.#reliefDoc.peek(groupId)?.base ?? 8,
     });
     this.#reliefTools?.paint(painter);
   }
@@ -889,17 +889,17 @@ export class SketchCanvas extends CanvasBase {
 
   // ── screen-space chrome ────────────────────────────────────────────────────────
 
-  // The transform box for the top rung of the ladder — a whole island, over its members' bounds, with four
+  // The transform box for the top rung of the ladder — a whole group, over its members' bounds, with four
   // corner anchors, an edge grab band per side and the rotate zones outside the corners. Below that rung the
   // box belongs to one shape and the edit controller draws it, so this draws only the size pill: exactly one
   // box is on screen at a time, which is what lets it sit ON the bounds. Re-rendered on selection, on every
   // viewport change and on every frame of a transform.
   #renderTransformChrome() {
-    const layer = this.#screen.islandChrome;
+    const layer = this.#screen.groupChrome;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
     this.#renderSizePill(layer);
-    if (this.#level !== "island" || !this.#selectedIslandId) return;
+    if (this.#level !== "group" || !this.#selectedGroupId) return;
     const b = boundsOfShapes(this.#transformSubject());
     if (!b) return;
     const p0 = this._toScreen(b.min_x, b.min_z), p1 = this._toScreen(b.max_x, b.max_z);
@@ -916,11 +916,11 @@ export class SketchCanvas extends CanvasBase {
     });
   }
 
-  /** The shapes a transform acts on: an island's members at the top rung, the selected shape below it. One
+  /** The shapes a transform acts on: a group's members at the top rung, the selected shape below it. One
    *  answer, so a scale, a rotation and the size pill can never disagree about what is being transformed. */
   #transformSubject() {
-    if (this.#level === "island") {
-      const isl = this.#islands.find(entry => entry.id === this.#selectedIslandId);
+    if (this.#level === "group") {
+      const isl = this.#groups.find(entry => entry.id === this.#selectedGroupId);
       return (isl?.shapeIds ?? []).map(id => this.#shapes.get(id)).filter(Boolean);
     }
     const shape = this.#selectedId ? this.#shapes.get(this.#selectedId) : null;
@@ -978,8 +978,8 @@ export class SketchCanvas extends CanvasBase {
 
   // Begin rotating the transform subject: freeze the pivot = its bbox centre + snapshot every member, then
   // #rotateMove re-applies the accumulated angle from those snapshots each drag step. Reached from the
-  // island's own rotate zones and from the shape box's, which is why it reads the subject rather than the
-  // island — one turn, whichever rung asked for it.
+  // group's own rotate zones and from the shape box's, which is why it reads the subject rather than the
+  // group — one turn, whichever rung asked for it.
   #startRotate(e) {
     if (e.button !== 0) return;
     e.stopPropagation();
@@ -994,7 +994,7 @@ export class SketchCanvas extends CanvasBase {
     };
   }
 
-  // Rotate the island to the accumulated angle from the cursor's swept angle about the pivot (distance-
+  // Rotate the group to the accumulated angle from the cursor's swept angle about the pivot (distance-
   // independent, unwrapped across ±π so you can spin past 360°). Shift snaps the total to 15°.
   #rotateMove(wx, wz, shift) {
     const st = this.#rotateState;
@@ -1027,7 +1027,7 @@ export class SketchCanvas extends CanvasBase {
     this._svg.appendChild(this._viewportG);
 
     this.#screen = layerStack(this._svg, {
-      islandChrome: null,                          // island bbox (inert) + interactive rotate zones
+      groupChrome: null,                          // group bbox (inert) + interactive rotate zones
       handles:      null,
       dressingHandles: null,                       // the selected prop's point grips (Dressing phase)
       reliefHandles: null,                         // the selected mark's point grips (Relief phase)
@@ -1060,21 +1060,21 @@ export class SketchCanvas extends CanvasBase {
       // nothing, so the canvas refuses to drop it there in the first place.
       onTerrain: (bx, bz) => this.#cellOnTerrain(bx, bz),
     });
-    // Relief states the ground inside an island, so its tools live on the same canvas for the same reason
+    // Relief states the ground inside a group, so its tools live on the same canvas for the same reason
     // dressing's do — and its own controller for the same reason too.
     this.#reliefTools = new ReliefController(this.#reliefDoc, this.#screen.reliefHandles, getViewport, {
       onChanged: () => { this.#paintWorld(); this.#callbacks.onReliefChanged?.(); },
       onSelected: (id) => this.#callbacks.onMarkSelected?.(id),
       onPreviewChanged: () => this.#paintWorld(),
       onPlaced: () => { this.#placementClick = true; this.#callbacks.onReliefPlaced?.(); },
-      // A mark belongs to the island it was started in. Unlike a prop it may then be dragged past that
-      // island's edge — a mark is clipped, not confined, and a hill authored into a corner is exactly that
+      // A mark belongs to the group it was started in. Unlike a prop it may then be dragged past that
+      // group's edge — a mark is clipped, not confined, and a hill authored into a corner is exactly that
       // gesture — so this decides ownership at placement and never again.
-      onIslandAt: (bx, bz) => this.#hitIsland(bx + 0.5, bz + 0.5),
-      // The level an island's ground already stands at, so a fresh relief starts where the island was drawn
-      // rather than at a constant. A relief replaces the top of every column of its island, so this is the
+      onGroupAt: (bx, bz) => this.#hitGroup(bx + 0.5, bz + 0.5),
+      // The level a group's ground already stands at, so a fresh relief starts where the group was drawn
+      // rather than at a constant. A relief replaces the top of every column of its group, so this is the
       // one number a new one has to agree with.
-      onIslandTop: (islandId) => this.islandTop(islandId),
+      onGroupTop: (groupId) => this.groupTop(groupId),
       // The contours on screen, so a press can grab one. They are the solver's answer rather than anything
       // placed, which is why they are read from the overlay rather than kept by the controller: what an
       // author grabs is exactly what is drawn, and when the overlay is off there is nothing to grab.
@@ -1098,13 +1098,13 @@ export class SketchCanvas extends CanvasBase {
     Keys.register("sketch-canvas", [
       { id: "sketch.cancel", keys: "escape", label: "Put the brush down · cancel the draw · step back up a level · deselect",
         group: "Canvas", when: live, inField: false, run: () => this.#onEscape() },
-      { id: "sketch.enter", keys: "enter", label: "Go one level deeper — into an island, then into a shape's points",
-        group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedIslandId),
+      { id: "sketch.enter", keys: "enter", label: "Go one level deeper — into a group, then into a shape's points",
+        group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedGroupId),
         run: () => this.enterSelection() },
       { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
         group: "Canvas", when: () => live() && !!this.#selectedId,
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
-      { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own island",
+      { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own group",
         group: "Sketch", when: () => live() && !!this.#selectedId,
         run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },
     ]);
@@ -1126,13 +1126,13 @@ export class SketchCanvas extends CanvasBase {
     // putting it down is what "never mind" means before anything about the selection does.
     if (this.#themeBrush) { this.#callbacks.onThemeDrop?.(); return; }
     if (this.#level === "points") { this.#setLevel("shape"); return; }
-    if (this.#scopeIslandId) {
-      const parent = this.#scopeIslandId;
+    if (this.#scopeGroupId) {
+      const parent = this.#scopeGroupId;
       this.#enterScope(null);
-      this.#callbacks.onIslandSelected?.(parent);
+      this.#callbacks.onGroupSelected?.(parent);
       return;
     }
-    if (this.#selectedIslandId || this.#selectedId) this.#callbacks.onIslandSelected?.(null);
+    if (this.#selectedGroupId || this.#selectedId) this.#callbacks.onGroupSelected?.(null);
   }
 
   // The exact block AABB of the drawn content — every shape plus the mirror-preview polygons (the
@@ -1261,10 +1261,10 @@ export class SketchCanvas extends CanvasBase {
     return null;
   }
 
-  // The island whose footprint (exterior minus holes) contains (wx,wz), topmost first; null if none.
-  #hitIsland(wx, wz) {
-    for (let i = this.#islands.length - 1; i >= 0; i--) {
-      const isl = this.#islands[i];
+  // The group whose footprint (exterior minus holes) contains (wx,wz), topmost first; null if none.
+  #hitGroup(wx, wz) {
+    for (let i = this.#groups.length - 1; i >= 0; i--) {
+      const isl = this.#groups[i];
       if (isl.exterior?.length >= 4 && pointInRing(wx, wz, isl.exterior) &&
           !(isl.holes ?? []).some(h => pointInRing(wx, wz, h))) return isl.id;
     }

@@ -6,16 +6,16 @@ using Microsoft.JSInterop;
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
-/// The Relief phase's inspector: the numbers of the mark under the cursor, and the island settings those
+/// The Relief phase's inspector: the numbers of the mark under the cursor, and the group settings those
 /// numbers are stated against.
 ///
 /// <para>What it shows follows the canvas, the same way the Dressing inspector's does: the selected mark's own
 /// numbers when one is selected, and the active tool's <em>starting</em> numbers when none is, so the next
 /// mark can be aimed before it is placed rather than corrected after.</para>
 ///
-/// <para>The island's own settings sit below and are shown whether or not a mark is selected. That is not a
+/// <para>The group's own settings sit below and are shown whether or not a mark is selected. That is not a
 /// layout preference: a height means nothing without the base it is read against, and the base, the reach and
-/// the block step move every mark in the island at once. There is no separate place to reach them, because
+/// the block step move every mark in the group at once. There is no separate place to reach them, because
 /// there is no moment when they are not what the numbers above mean.</para>
 /// </summary>
 public partial class SketchReliefInspector
@@ -25,24 +25,24 @@ public partial class SketchReliefInspector
     /// shown when nothing is selected.</summary>
     [Parameter] public string? ActiveTool { get; set; }
     /// <summary>The relief state pushed by the bridge (<c>OnRelief</c>) — the marks, the selection, and the
-    /// island in play with its own settings.</summary>
+    /// group in play with its own settings.</summary>
     [Parameter] public string? StateJson { get; set; }
 
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
     private JsonObject? mark;          // what is being edited: the selection, else the tool's settings
-    private JsonObject? relief;        // the island in play's own settings
+    private JsonObject? relief;        // the group in play's own settings
     private bool editingSelection;
     private int markCount;
     private List<double> amounts = [];   // a selected push's lift at each ring vertex, expanded
     private string kind = "";
-    private string? islandId;
-    private string? islandName;
-    private double? islandTop;      // the level the island's ground already stands at, or null where nothing
+    private string? groupId;
+    private string? groupName;
+    private double? groupTop;      // the level the group's ground already stands at, or null where nothing
                                     // can be read from it — every height in the panel is stated against it
-    private string? islandError;    // what the bridge refused the last island edit with
+    private string? groupError;    // what the bridge refused the last group edit with
 
-    private string IslandTitle => $"Island {islandName ?? islandId}";
+    private string GroupTitle => $"Group {groupName ?? groupId}";
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
@@ -60,9 +60,9 @@ public partial class SketchReliefInspector
         editingSelection = false;
         kind = ReliefTools.KindOf(ActiveTool) ?? "";
         markCount = 0;
-        islandId = null;
-        islandName = null;
-        islandError = null;
+        groupId = null;
+        groupName = null;
+        groupError = null;
 
         if (string.IsNullOrWhiteSpace(StateJson)) return;
         JsonNode? root;
@@ -73,9 +73,9 @@ public partial class SketchReliefInspector
         amounts = state["amounts"] is JsonArray lifts
             ? [.. lifts.Select(lift => double.TryParse(lift?.ToString(), out var one) ? one : 0)]
             : [];
-        islandId = state["islandId"]?.GetValue<string>();
-        islandName = state["islandName"]?.GetValue<string>();
-        islandTop = state["islandTop"] is { } top && double.TryParse(top.ToString(), out var level) ? level : null;
+        groupId = state["groupId"]?.GetValue<string>();
+        groupName = state["groupName"]?.GetValue<string>();
+        groupTop = state["groupTop"] is { } top && double.TryParse(top.ToString(), out var level) ? level : null;
         if (state["relief"] is JsonObject stated) relief = (JsonObject)stated.DeepClone();
         if (state["selected"] is JsonObject selected)
         {
@@ -178,22 +178,22 @@ public partial class SketchReliefInspector
     /// single-number form has to stay reachable rather than being a special case of an array.</summary>
     private Task LevelHeights() => Set(MarkFields.Height, JsonValue.Create(Height(0)));
 
-    // ── editing the island ─────────────────────────────────────────────────────
-    /// <summary>Write one of the island's own settings. The bridge answers a sentence when it cannot place
+    // ── editing the group ─────────────────────────────────────────────────────
+    /// <summary>Write one of the group's own settings. The bridge answers a sentence when it cannot place
     /// the edit, and that sentence is shown rather than dropped: an edit that lands nowhere and says nothing
     /// is indistinguishable from one that worked.</summary>
     private async Task SetRelief(string field, JsonNode? value)
     {
-        if (Handle is null || islandId is null) return;
+        if (Handle is null || groupId is null) return;
         var patch = new JsonObject { [field] = value?.DeepClone() };
-        islandError = await Handle.InvokeAsync<string?>("updateIslandRelief", patch.ToJsonString());
-        if (islandError is null) (relief ??= [])[field] = value;
+        groupError = await Handle.InvokeAsync<string?>("updateGroupRelief", patch.ToJsonString());
+        if (groupError is null) (relief ??= [])[field] = value;
     }
 
-    /// <summary>The base the island states, falling back to the level it is already drawn at — a relief
-    /// replaces the top of every column of its island, so where nothing has been stated the ground is
+    /// <summary>The base the group states, falling back to the level it is already drawn at — a relief
+    /// replaces the top of every column of its group, so where nothing has been stated the ground is
     /// exactly where the shapes put it.</summary>
-    private double Base => ReliefNum(ReliefFields.Base, islandTop ?? FallbackBase);
+    private double Base => ReliefNum(ReliefFields.Base, groupTop ?? FallbackBase);
 
     /// <summary>What an absent <c>base</c> means, matching the C# record's own default so a document the
     /// editor seeds and one a hand writes mean the same thing by an absent field.</summary>
@@ -225,7 +225,7 @@ public partial class SketchReliefInspector
     private Task ToggleStairs(ChangeEventArgs e)
         => SetRelief(ReliefFields.Stairs, JsonValue.Create(e.Value is true));
 
-    /// <summary>The word the island states about what kind of ground it is meant to be, or empty for one
+    /// <summary>The word the group states about what kind of ground it is meant to be, or empty for one
     /// stating none. It shapes nothing — the readback measures the solved surface against it.</summary>
     private string Landform => relief?[ReliefFields.Landform]?.ToString() ?? "";
 
@@ -236,9 +236,9 @@ public partial class SketchReliefInspector
     }
 
     // ── the rim ────────────────────────────────────────────────────────────────
-    // The rim is a mark in the wire format and a setting in the interface, because it holds the island's whole
+    // The rim is a mark in the wire format and a setting in the interface, because it holds the group's whole
     // outline: there is nowhere to place it and nothing to drag. So it is read out of, and written back into,
-    // the island's own mark list rather than being a field of its own.
+    // the group's own mark list rather than being a field of its own.
     private JsonObject? Rim => (relief?[ReliefFields.Marks] as JsonArray)
         ?.OfType<JsonObject>().FirstOrDefault(entry => entry["kind"]?.GetValue<string>() == MarkKinds.Rim);
 
@@ -249,7 +249,7 @@ public partial class SketchReliefInspector
 
     private async Task ToggleRim(ChangeEventArgs e)
     {
-        if (Handle is null || islandId is null || relief is null) return;
+        if (Handle is null || groupId is null || relief is null) return;
         var marks = relief[ReliefFields.Marks] as JsonArray ?? [];
         var kept = new JsonArray();
         foreach (var entry in marks.OfType<JsonObject>())
@@ -308,7 +308,7 @@ public partial class SketchReliefInspector
         [MarkKinds.Scarp] = ("triangle", "Scarp",
             "A shelf above a line and open ground below it. The face is the drop; where the line stops is where the shelf can be crossed."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
-            "The island's whole outline, held at one height."),
+            "The group's whole outline, held at one height."),
         [MarkKinds.Push] = ("arrows-up-from-line", "Push",
             "A drawn ring the ground is lifted inside, falling away outside it over the skirt. It moves the surface rather than stating a height, so two over the same ground add."),
     };
@@ -367,7 +367,7 @@ public static class PushFields
     public const string Ring = "ring";
 }
 
-/// <summary>One island's relief settings — what its marks are stated against.</summary>
+/// <summary>One group's relief settings — what its marks are stated against.</summary>
 public static class ReliefFields
 {
     public const string Base = "base";

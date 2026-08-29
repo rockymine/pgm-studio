@@ -1,6 +1,6 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* The board's theme registry, as canvas chrome beside the storey strip. A theme belongs to the board rather
+@* The board's theme registry, as canvas chrome beside the layer strip. A theme belongs to the board rather
    than to a phase, and every click in the Theme phase is addressed to whichever one is in hand — so it hangs
    off the canvas where a thing in hand belongs, rather than in a column the eye has to leave the board to
    read.
@@ -50,5 +50,5 @@
 
     private string Title(string id) => id == Brush
         ? $"Put “{id}” down"
-        : $"Take “{id}” in hand, then click a shape to paint it (Shift-click paints a whole island)";
+        : $"Take “{id}” in hand, then click a shape to paint it (Shift-click paints a whole group)";
 }

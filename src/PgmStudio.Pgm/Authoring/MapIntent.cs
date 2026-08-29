@@ -90,7 +90,7 @@ public sealed record MapIntent
 public sealed record StructureIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
-    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
     public string? Layer { get; init; }
 
@@ -330,7 +330,7 @@ public sealed record TeamDef
 public sealed record SpawnIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
-    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
     public string? Layer { get; init; }
 
@@ -383,7 +383,7 @@ public sealed record ObserverIntent
 public sealed record WoolIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
-    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
     public string? Layer { get; init; }
 
@@ -427,7 +427,7 @@ public sealed record WoolIntent
 public sealed record MonumentIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
-    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
     public string? Layer { get; init; }
 
@@ -456,7 +456,7 @@ public sealed record MonumentIntent
 public sealed record DestroyableIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
-    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
     public string? Layer { get; init; }
 
@@ -508,7 +508,7 @@ public sealed record DestroyableIntent
 public sealed record CoreIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
-    /// per storey, and a thing stated for a hall lands on the deck roofing it unless it says which storey it
+    /// per layer, and a thing stated for a hall lands on the deck roofing it unless it says which layer it
     /// meant.</summary>
     public string? Layer { get; init; }
 

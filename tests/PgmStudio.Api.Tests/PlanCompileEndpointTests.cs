@@ -32,7 +32,7 @@ public sealed class PlanCompileEndpointTests
         var ground = layout.GetProperty("layers")[0];
         await Assert.That(ground.GetProperty("id").GetString()).IsEqualTo("ground");
         await Assert.That(ground.GetProperty("layout").GetProperty("shapes").GetArrayLength()).IsGreaterThan(0);
-        await Assert.That(ground.GetProperty("layout").GetProperty("islands").GetArrayLength()).IsGreaterThan(0);
+        await Assert.That(ground.GetProperty("layout").GetProperty("groups").GetArrayLength()).IsGreaterThan(0);
 
         // The intent carries teams + spawns + wools fanned from the authored unit.
         await Assert.That(intent.GetProperty("teams").GetArrayLength()).IsGreaterThan(0);

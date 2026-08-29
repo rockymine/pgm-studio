@@ -1,5 +1,5 @@
 // pick.js — the two-level selection rule both authoring canvases answer a click with. The geometry differs
-// (an island is a polygon, a box is a cell rect) and stays in each canvas; what is shared is the *rule*, so
+// (a group is a polygon, a box is a cell rect) and stays in each canvas; what is shared is the *rule*, so
 // it is written once and both call it with whatever their own hit tests found.
 //
 // A group is entered as a **scope**. While one is entered a click reaches its members and a click outside it

@@ -28,7 +28,7 @@ public sealed class BuildAndComposeGateChainTests
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
           {"id":"a","type":"rectangle","operation":"add","min_x":-60,"min_z":-20,"max_x":-20,"max_z":20,"base_height":1},
           {"id":"b","type":"rectangle","operation":"add","min_x":20,"min_z":-20,"max_x":60,"max_z":20,"base_height":1}],
-         "islands":[]} }]}
+         "groups":[]} }]}
         """;
 
     /// <summary>One plate covering both halves, so everything on it reaches everything else.</summary>
@@ -36,7 +36,7 @@ public sealed class BuildAndComposeGateChainTests
         """
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
           {"id":"a","type":"rectangle","operation":"add","min_x":-60,"min_z":-20,"max_x":60,"max_z":20,"base_height":1}],
-         "islands":[]} }]}
+         "groups":[]} }]}
         """;
 
     /// <summary>A spawn on the left plate and a wool on the right one — on <see cref="TwoIslands"/> the two

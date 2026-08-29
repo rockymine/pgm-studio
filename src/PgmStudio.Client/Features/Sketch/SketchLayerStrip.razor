@@ -1,18 +1,18 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Which storey is being drawn on, as canvas chrome, and where one is added and removed. A layer is a
+@* Which layer is being drawn on, as canvas chrome, and where one is added and removed. A layer is a
    property of the board rather than of any one phase — the same as the mirror axis and the chunk grid,
    which is why it hangs off the canvas and is therefore present wherever the canvas is. Whatever is placed
    lands on the active layer; the others ghost.
 
-   The storeys are switched, added and deleted here and nowhere else, because a list offering the same three
-   verbs in two places is two places to keep in step. What stays in the Draw sidebar is the active storey's
+   The layers are switched, added and deleted here and nowhere else, because a list offering the same three
+   verbs in two places is two places to keep in step. What stays in the Draw sidebar is the active layer's
    settings — its name and its base Y — which are settings rather than a mode. *@
 
 @if (Layers.Count > 1 || AllowEdit)
 {
-  <div class="canvas-layer-strip" role="group" aria-label="Storey">
-    <span class="canvas-layer-strip-label">Storey</span>
+  <div class="canvas-layer-strip" role="group" aria-label="Layer">
+    <span class="canvas-layer-strip-label">Layer</span>
     @foreach (var layer in Layers)
     {
       <span class="canvas-layer-tab-wrap @(layer.Id == ActiveId ? "canvas-layer-tab-wrap--on" : null)" @key="layer.Id">
@@ -21,8 +21,8 @@
           <span class="canvas-layer-tab-name">@layer.Name</span>
           <span class="canvas-layer-tab-y">y @layer.BaseY</span>
         </button>
-        @* The last storey has no delete: a board always stands on one, and a strip with nothing on it is
-           not a board with no storeys but a board whose storey cannot be reached. *@
+        @* The last layer has no delete: a board always stands on one, and a strip with nothing on it is
+           not a board with no layers but a board whose layer cannot be reached. *@
         @if (AllowEdit && Layers.Count > 1)
         {
           <button type="button" class="canvas-layer-del" title="@($"Delete '{layer.Name}'")"
@@ -34,7 +34,7 @@
     }
     @if (AllowEdit)
     {
-      <button type="button" class="canvas-layer-add" title="Add a storey above" @onclick="OnAdd">
+      <button type="button" class="canvas-layer-add" title="Add a layer above" @onclick="OnAdd">
         <i data-lucide="plus" @key="@("plus")"></i>
       </button>
     }
@@ -48,7 +48,7 @@
     [Parameter] public EventCallback OnAdd { get; set; }
     [Parameter] public EventCallback<string> OnDelete { get; set; }
 
-    /// <summary>Whether the set of storeys can be changed from here. Adding and removing one is drawing
-    /// work, so only Draw offers it; every other phase switches between the storeys that exist.</summary>
+    /// <summary>Whether the set of layers can be changed from here. Adding and removing one is drawing
+    /// work, so only Draw offers it; every other phase switches between the layers that exist.</summary>
     [Parameter] public bool AllowEdit { get; set; }
 }

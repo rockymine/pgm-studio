@@ -50,7 +50,13 @@ public sealed class MaterialVocabularyTests
 
         await Assert.That(axis.Required).IsFalse();
         await Assert.That(axis.Default).IsEqualTo("depth");
-        await Assert.That(axis.Choices).IsEquivalentTo(new[] { "depth", "inward" });
+        await Assert.That(axis.Choices).IsEquivalentTo(new[] { "depth", "inward", "height" });
+
+        // The height axis is the one with an origin, and the origin is optional like the axis itself: a stack
+        // that names no `from` reads from y0, which is what every other axis already means by "the start".
+        var from = layered.Fields.Single(f => f.Name == "from");
+        await Assert.That(from.Required).IsFalse();
+        await Assert.That(from.Default).IsEqualTo(0);
 
         var frame = MaterialVocabulary.Of("wallFrame")!.Value;
         await Assert.That(frame.Fields.Single(f => f.Name == "angle").Default).IsEqualTo(45);

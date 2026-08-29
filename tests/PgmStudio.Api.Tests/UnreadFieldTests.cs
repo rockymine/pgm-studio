@@ -31,7 +31,7 @@ public sealed class UnreadFieldTests
          "layers":[{"id":"L1","name":"base","base_y":0,"layout":{
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
-           "islands":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
         """;
 
     private const string Intent = """
@@ -90,7 +90,7 @@ public sealed class UnreadFieldTests
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await OriginateAsync(client);
 
-        var layout = Layout.Replace("\"islands\":[", "\"relief\":{\"i\":{\"kind\":\"ridge\"}},\"islands\":[");
+        var layout = Layout.Replace("\"groups\":[", "\"relief\":{\"i\":{\"kind\":\"ridge\"}},\"groups\":[");
 
         await Assert.That(await Unread(await client.PutAsync($"/api/map/{slug}/sketch", Json(layout)), "PUT sketch"))
             .IsEquivalentTo(["layers[0].layout.relief"]);

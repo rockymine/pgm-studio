@@ -1,21 +1,21 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Sketch Layout tree — islands (collapsible parents) with their contributing shapes as indented
+@* Sketch Layout tree — groups (collapsible parents) with their contributing shapes as indented
    children. Same geo-tree format as the region tree (geo-indent pipes + collapse chevrons). Selection
    only; per-item actions live in SketchInspector. Rendered inside the editor's workspace-sidebar. *@
 
-<Section Title="Islands">
+<Section Title="Groups">
   <div class="region-tree">
-    @if (!Islands.Any() && !Shapes.Any())
+    @if (!Groups.Any() && !Shapes.Any())
     {
-      <div class="panel-empty-msg">Draw shapes to form islands.</div>
+      <div class="panel-empty-msg">Draw shapes to form groups.</div>
     }
     else
     {
-      @foreach (var isl in Islands)
+      @foreach (var isl in Groups)
       {
-        <div class="geo-row @(isl.Id == SelectedIslandId ? "geo-row--selected" : null)"
-             @onclick="() => OnSelectIsland.InvokeAsync(isl.Id)">
+        <div class="geo-row @(isl.Id == SelectedGroupId ? "geo-row--selected" : null)"
+             @onclick="() => OnSelectGroup.InvokeAsync(isl.Id)">
           <span class="geo-indent">
             @if (isl.ShapeIds.Count > 0)
             {

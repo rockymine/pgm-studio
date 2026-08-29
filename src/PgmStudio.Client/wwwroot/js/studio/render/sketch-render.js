@@ -1,5 +1,5 @@
 /**
- * Stateless paint for the sketch tool — draw primitives, island/mirror result polygons, and the setup
+ * Stateless paint for the sketch tool — draw primitives, group/mirror result polygons, and the setup
  * overlays (bbox / chunk grid / symmetry axis). Each function takes the canvas's `CanvasPainter` + data
  * and draws; nothing is retained between frames, so the canvas owns *when* to paint and this owns *what*
  * a thing looks like — which keeps sketch-canvas.js focused on state + interaction. Reuses
@@ -48,7 +48,7 @@ const ROLE_FILL = { spawn: "#8f7bd6", woolRoom: "#3fae74" };
 /**
  * The plan's structural pieces (S25) — the spawn buildings and wool rooms the plan already placed, projected
  * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
- * are not terrain (the rasterizer skips them; the ground under them is the fused island): a filled box in the
+ * are not terrain (the rasterizer skips them; the ground under them is the fused group): a filled box in the
  * plan's role colour (purple spawn / green wool), a solid border, and a centred label sized to fit. The colour
  * carries the role, so the label carries the identity — a spawn's team, a wool's dye colour + owning team.
  * Read-only — never hit-tested or edited, so no selection chrome.
@@ -93,27 +93,27 @@ export function paintObjectives(painter, objectives) {
 }
 
 /**
- * The computed island result polygons (exterior + holes). `filled` off draws the outline alone — what the
- * Blocks overlay needs, because the painted blocks under it *are* the island's interior and a translucent
+ * The computed group result polygons (exterior + holes). `filled` off draws the outline alone — what the
+ * Blocks overlay needs, because the painted blocks under it *are* the group's interior and a translucent
  * fill on top would tint every block colour towards the result purple.
  */
-export function paintIslands(painter, islands, { filled = true } = {}) {
-  for (const island of islands ?? []) {
-    if (!island?.exterior?.length) continue;
-    painter.poly({ exterior: island.exterior, holes: island.holes ?? [] }, {
+export function paintGroups(painter, groups, { filled = true } = {}) {
+  for (const group of groups ?? []) {
+    if (!group?.exterior?.length) continue;
+    painter.poly({ exterior: group.exterior, holes: group.holes ?? [] }, {
       ...(filled ? { fill: "var(--canvas-result-fill)", fillAlpha: 0.22 } : {}),
       stroke: "var(--canvas-result-stroke)", width: 1.5,
     });
   }
 }
 
-/** The *other* layers' island outlines, faintly — context for aligning the active layer. */
-export function paintGhostIslands(painter, polys) {
+/** The *other* layers' group outlines, faintly — context for aligning the active layer. */
+export function paintGhostGroups(painter, polys) {
   for (const poly of polys ?? []) {
     if (!poly?.exterior?.length) continue;
     painter.poly({ exterior: poly.exterior, holes: poly.holes ?? [] }, {
-      fill: "var(--canvas-island)", fillAlpha: 0.07,
-      stroke: "var(--canvas-island)", width: 1, dash: [2, 4],
+      fill: "var(--canvas-group)", fillAlpha: 0.07,
+      stroke: "var(--canvas-group)", width: 1, dash: [2, 4],
     });
   }
 }
@@ -131,7 +131,7 @@ export function paintMirror(painter, polys) {
 /**
  * The rasterized block footprint (S23) — the exact cells the shapes voxelize into, as merged horizontal
  * runs `{ x, z, w }` (see geometry/rasterize.cellRuns). Painted as a faint stone fill beneath the smooth
- * island outline, so a curve visibly reads as the blocky cells it becomes on export. This is the geometry
+ * group outline, so a curve visibly reads as the blocky cells it becomes on export. This is the geometry
  * preview only; the *paint* those cells receive is the block bitmap the canvas blits over it.
  */
 export function paintRaster(painter, runs) {
@@ -146,8 +146,8 @@ export function paintRaster(painter, runs) {
 }
 
 /**
- * The relief as contour lines — the payload `sketch/relief` returns, one entry per island:
- * `{ island, min, max, lines: [{ level, closed, points: [x, z, x, z, …] }] }`. Nothing here decides where a
+ * The relief as contour lines — the payload `sketch/relief` returns, one entry per group:
+ * `{ group, min, max, lines: [{ level, closed, points: [x, z, x, z, …] }] }`. Nothing here decides where a
  * line goes; the server traces the same field the export builds from, so what is drawn is the ground that
  * will exist rather than a client's idea of it.
  *
@@ -159,8 +159,8 @@ export function paintRaster(painter, runs) {
  */
 export function paintContours(painter, relief, { indexEvery = 5 } = {}) {
   const hair = painter.screenPx(1);
-  for (const island of relief?.islands ?? []) {
-    for (const line of island.lines ?? []) {
+  for (const group of relief?.groups ?? []) {
+    for (const line of group.lines ?? []) {
       const points = line.points ?? [];
       if (points.length < 4) continue;
 
@@ -175,7 +175,7 @@ export function paintContours(painter, relief, { indexEvery = 5 } = {}) {
     }
 
     // Labels last, so no line is stroked over one.
-    for (const line of island.lines ?? []) {
+    for (const line of group.lines ?? []) {
       if (Math.abs(line.level % indexEvery) > 1e-6) continue;
       const at = labelPoint(line.points ?? []);
       if (at) painter.text(`${Math.round(line.level)}`, at.x, at.z, {

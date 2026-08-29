@@ -6,7 +6,7 @@ namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
 /// The sketch layout wire model — the authoring blob (<c>{setup, layers:[{id, name, base_y,
-/// layout:{shapes, islands}}]}</c>) shared by
+/// layout:{shapes, groups}}]}</c>) shared by
 /// the rasterizer that reads it and the generators that write it. camelCase by default (Web options);
 /// snake_case and reserved-word fields carry an explicit name. Kept as the single definition so a
 /// generated layout and a hand-drawn one parse through exactly the same shape.
@@ -49,7 +49,7 @@ public sealed class SketchLayout
     /// through <c>BiomeScope</c>, which does.</para></summary>
     [JsonPropertyName("biome")] public JsonElement? Biome { get; set; }
 
-    /// <summary>Interior elevation, keyed by island id. It rides at the top level rather than inside the
+    /// <summary>Interior elevation, keyed by group id. It rides at the top level rather than inside the
     /// shapes because a plan recompile replaces every shape it produced and a relief is hand work a plan
     /// cannot express, so it is carried across one under its own rule.</summary>
     [JsonPropertyName("relief")] public Dictionary<string, SketchReliefJson>? Relief { get; set; }
@@ -105,18 +105,18 @@ public sealed class SketchLayout
         return carried ? target.ToJsonString(Json) : compiledJson;
     }
 
-    /// <summary>The island ids a stored relief is bound to that the freshly compiled layout has no island
+    /// <summary>The group ids a stored relief is bound to that the freshly compiled layout has no group
     /// for. Each one is hand-authored terrain the recompile would silently discard, which is why the compile
-    /// path refuses rather than carrying what it can: island identity is derived from the geometry, so a
-    /// re-fused island does not merely move — it becomes a different island, and a relief authored against
+    /// path refuses rather than carrying what it can: group identity is derived from the geometry, so a
+    /// re-fused group does not merely move — it becomes a different group, and a relief authored against
     /// the old fusion has nowhere correct to land.</summary>
     public static IReadOnlyList<string> OrphanedRelief(string compiledJson, string? storedJson)
     {
         var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
         if (stored?.Relief is not { Count: > 0 } relief) return [];
 
-        var islands = new HashSet<string>(IslandIds(Parse(compiledJson)));
-        return relief.Keys.Where(id => !islands.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
+        var groups = new HashSet<string>(GroupIds(Parse(compiledJson)));
+        return relief.Keys.Where(id => !groups.Contains(id)).OrderBy(id => id, StringComparer.Ordinal).ToList();
     }
 
     /// <summary>The layers a document draws, in draw order — the one place the stack is read, so a gate, a
@@ -134,12 +134,12 @@ public sealed class SketchLayout
         return layers;
     }
 
-    /// <summary>Every island id a layout names, across all its layers.</summary>
-    public static IEnumerable<string> IslandIds(SketchLayout? state)
+    /// <summary>Every group id a layout names, across all its layers.</summary>
+    public static IEnumerable<string> GroupIds(SketchLayout? state)
     {
         foreach (var layer in Stack(state))
-            foreach (var island in layer.Islands)
-                if (island.Id is { Length: > 0 } id) yield return id;
+            foreach (var group in layer.Groups)
+                if (group.Id is { Length: > 0 } id) yield return id;
     }
 
     /// <summary>A freshly compiled layout with the stored relief carried onto it. Only call this once
@@ -154,8 +154,8 @@ public sealed class SketchLayout
         try { node = JsonNode.Parse(compiledJson); } catch (JsonException) { return compiledJson; }
         if (node is not JsonObject target) return compiledJson;
 
-        var islands = new HashSet<string>(IslandIds(Parse(compiledJson)));
-        var kept = relief.Where(entry => islands.Contains(entry.Key))
+        var groups = new HashSet<string>(GroupIds(Parse(compiledJson)));
+        var kept = relief.Where(entry => groups.Contains(entry.Key))
                          .ToDictionary(entry => entry.Key, entry => entry.Value);
         if (kept.Count == 0) return compiledJson;
 
@@ -165,7 +165,7 @@ public sealed class SketchLayout
 
     /// <summary>A freshly compiled layout with every author-stated structural height carried onto it —
     /// the shape-level counterpart to <see cref="CarryRelief"/>. A plan recompile writes a fresh Floor/
-    /// BaseHeight for every Role-tagged shape it holds an island's relief against, because that is the only
+    /// BaseHeight for every Role-tagged shape it holds a group's relief against, because that is the only
     /// height a plan-space piece can state before any terrain exists; once the ground is real and an author
     /// corrects that number in the sketch, <see cref="SketchShape.HeightAuthored"/> marks the shape so this
     /// carries its Floor/BaseHeight/AnchorHeights forward instead of letting the recompile hand back the
@@ -250,7 +250,7 @@ public sealed class SketchRoomStyles
     public static JsonElement Open { get; } = JsonDocument.Parse("null").RootElement;
 }
 
-/// <summary>A stacked slab (S7): its shapes/islands at a Y offset. The whole 2-D editor authors one layer;
+/// <summary>A stacked slab (S7): its shapes/groups at a Y offset. The whole 2-D editor authors one layer;
 /// the rasterizer stacks them — a cell's column is the layer's <c>[floor, top]</c> shifted by <c>base_y</c>.</summary>
 /// <summary>One layer of the drawing: the shapes on it, and the height its ground starts at.</summary>
 public sealed class SketchLayer
@@ -262,16 +262,16 @@ public sealed class SketchLayer
     public const string GroundName = "Ground";
 
     /// <summary>The single layer a flat board is — the ground, at <c>base_y</c> 0, holding these shapes and
-    /// the islands they group into. Every producer of an unstacked document goes through this, so a board
-    /// drawn by the plan compiler, the island simplifier and the catalogue grid all state their one layer
+    /// the groups they group into. Every producer of an unstacked document goes through this, so a board
+    /// drawn by the plan compiler, the group simplifier and the catalogue grid all state their one layer
     /// the same way.</summary>
-    public static SketchLayer Ground(List<SketchShape>? shapes = null, List<SketchIsland>? islands = null) =>
+    public static SketchLayer Ground(List<SketchShape>? shapes = null, List<SketchGroup>? groups = null) =>
         new()
         {
             Id = GroundId,
             Name = GroundName,
             BaseY = 0,
-            Layout = new SketchShapes { Shapes = shapes ?? [], Islands = islands ?? [] },
+            Layout = new SketchShapes { Shapes = shapes ?? [], Groups = groups ?? [] },
         };
 
     /// <summary>What the rest of the document names the layer by.</summary>
@@ -283,23 +283,54 @@ public sealed class SketchLayer
     /// <summary>The height this layer's ground starts at, in blocks.</summary>
     [JsonPropertyName("base_y")] public double BaseY { get; set; }
 
-    /// <summary>The shapes drawn on it, and the islands they group into.</summary>
+    /// <summary>What this layer holds: <c>ground</c> — terrain, the stacking model every rule below is written
+    /// for — or <c>prop</c>, a made thing standing on the ground rather than being it. Absent is ground.
+    ///
+    /// <para>A made thing is neither terrain nor a dressing prop. It is drawn out of layers because that is
+    /// what can hold it, and the word is what keeps the stacking rules off it: a solid sculpture sinking into a
+    /// hill has no gap to lose, and a raised arm is not standable ground somebody forgot a stair to.</para></summary>
+    [JsonPropertyName("kind")]   public string? Kind { get; set; }
+
+    /// <summary>Which made thing this layer belongs to, where it belongs to one. A sculpture is one thing to
+    /// an author and many layers to the rasterizer — a column's runs are split across them — so the name is
+    /// what lets a strip draw one row for it, a filter address it, and a drag move every layer of it
+    /// together.</summary>
+    [JsonPropertyName("prop")]   public string? Prop { get; set; }
+
+    /// <summary>How the layer's floors meet the ground: absent, every shape's <c>floor</c> is the absolute
+    /// height it states; <c>ground</c> takes the whole layer down onto the lowest solid column under its own
+    /// footprint, so a made thing settles into a slope instead of floating over it or being buried by
+    /// it.</summary>
+    [JsonPropertyName("seat")]   public string? Seat { get; set; }
+
+    /// <summary>Whether this layer is a made thing rather than terrain.</summary>
+    [JsonIgnore] public bool IsProp => string.Equals(Kind, PropKind, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Whether this layer's floors are taken from the ground under it.</summary>
+    [JsonIgnore] public bool SeatsOnGround => string.Equals(Seat, GroundSeat, StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>The two words <see cref="Kind"/> takes, and the one <see cref="Seat"/> does.</summary>
+    public const string GroundKind = "ground";
+    public const string PropKind = "prop";
+    public const string GroundSeat = "ground";
+
+    /// <summary>The shapes drawn on it, and the groups they group into.</summary>
     [JsonPropertyName("layout")] public SketchShapes? Layout { get; set; }
 
     /// <summary>The shapes on this layer — empty where it states none, so a caller walking a stack never
     /// branches on a layer that was left blank.</summary>
     [JsonIgnore] public List<SketchShape> Shapes => Layout?.Shapes ?? [];
 
-    /// <summary>The islands this layer's shapes group into, empty where it states none.</summary>
-    [JsonIgnore] public List<SketchIsland> Islands => Layout?.Islands ?? [];
+    /// <summary>The groups this layer's shapes group into, empty where it states none.</summary>
+    [JsonIgnore] public List<SketchGroup> Groups => Layout?.Groups ?? [];
 }
 
-/// <summary>The mirror mode + centre that fan a mirroring island's shapes onto their orbit images, plus the
+/// <summary>The mirror mode + centre that fan a mirroring group's shapes onto their orbit images, plus the
 /// optional working bounds the editor frames the canvas to (hand-drawn sketches carry it; the rasterizer
 /// ignores it and reads only the centre + mode).</summary>
 public sealed class SketchSetup
 {
-    /// <summary>How a mirroring island's shapes are fanned onto their orbit images — <c>rot_180</c>,
+    /// <summary>How a mirroring group's shapes are fanned onto their orbit images — <c>rot_180</c>,
     /// <c>rot_90</c>, <c>mirror_x</c>, <c>mirror_z</c>, or <c>none</c>.</summary>
     [JsonPropertyName("mirror_mode")] public string MirrorMode { get; set; } = "rot_180";
 
@@ -344,19 +375,19 @@ public sealed class SketchShapes
     [JsonPropertyName("shapes")]  public List<SketchShape> Shapes { get; set; } = [];
 
     /// <summary>The landmasses those shapes group into.</summary>
-    [JsonPropertyName("islands")] public List<SketchIsland> Islands { get; set; } = [];
+    [JsonPropertyName("groups")] public List<SketchGroup> Groups { get; set; } = [];
 }
 
 /// <summary>Groups shapes into a landmass and records whether the group is copied onto the mirror.</summary>
-public sealed class SketchIsland
+public sealed class SketchGroup
 {
-    /// <summary>What the rest of the document names the island by — a relief is keyed on it.</summary>
+    /// <summary>What the rest of the document names the group by — a relief is keyed on it.</summary>
     [JsonPropertyName("id")]       public string? Id { get; set; }
 
-    /// <summary>What the island is called on screen.</summary>
+    /// <summary>What the group is called on screen.</summary>
     [JsonPropertyName("name")]     public string? Name { get; set; }
 
-    /// <summary>Whether the group is copied onto its orbit images. An on-axis neutral island sets it false,
+    /// <summary>Whether the group is copied onto its orbit images. An on-axis neutral group sets it false,
     /// so it is not doubled onto itself.</summary>
     [JsonPropertyName("mirrors")]  public bool Mirrors { get; set; } = true;
 
@@ -377,7 +408,7 @@ public sealed class SketchControl
 /// <summary>One shape: a rectangle / circle / polygon (or lasso) with its set-algebra role.</summary>
 public sealed class SketchShape
 {
-    /// <summary>What the island lists and the theme scope names this shape by.</summary>
+    /// <summary>What the group lists and the theme scope names this shape by.</summary>
     [JsonPropertyName("id")]        public string Id { get; set; } = "";
 
     /// <summary>What it is: <c>rectangle</c>, <c>circle</c>, <c>polygon</c>, <c>lasso</c>, <c>path</c> —
@@ -443,7 +474,7 @@ public sealed class SketchShape
     // spans [Floor, Floor + BaseHeight]. For a polygon/lasso whose AnchorHeights line up with its Vertices,
     // the thickness varies per vertex (TIN-interpolated across the footprint). All optional; absent = the
     // flat one-block Y=0 behaviour.
-    /// <summary>How this shape's top is decided, once an island carries a relief. Absent, the shape is
+    /// <summary>How this shape's top is decided, once a group carries a relief. Absent, the shape is
     /// ordinary ground and the relief is the ground — which is what a shape drawn to make a landmass wants.
     /// The three words are for a shape that is meant to stand OUT of the field rather than be part of it:
     /// <c>level</c> cuts a flat top at an absolute height (a mesa, whose faces are cliffs), <c>raise</c> holds
@@ -457,14 +488,14 @@ public sealed class SketchShape
     /// sits it IN the terrain instead of on it.</summary>
     [JsonPropertyName("skirt")]          public int? Skirt { get; set; }
 
-    /// <summary>Whether this shape's ground takes part in its island's relief. The island is the unit a relief
+    /// <summary>Whether this shape's ground takes part in its group's relief. The group is the unit a relief
     /// is solved over, because a relief solved per shape leaves a seam wherever two of them meet and disagree
     /// about the height they share. The fusion is not always what an author wants, and the case that decides
     /// it is a built thing standing on the ground — a city, a keep, a walled compound — whose floor is not
     /// terrain and which is themed as a unit. <c>hold</c> pins the shape at its own stated top, so the
     /// surrounding surface is solved knowing where it has to arrive; <c>exclude</c> pins nothing and takes the
     /// footprint out of the solve entirely, so the land is whatever that outline would have produced and the
-    /// shape keeps its own height. Absent is <c>inherit</c> — the shape is part of the island's ground.
+    /// shape keeps its own height. Absent is <c>inherit</c> — the shape is part of the group's ground.
     /// <para>Not read on a shape that declares a <see cref="HeightMode"/>: such a shape already stands out of
     /// the field, and <c>raise</c>/<c>sink</c> read the ground under their own footprint to know where to
     /// stand, which an excluded footprint would not have.</para></summary>
@@ -485,7 +516,7 @@ public sealed class SketchShape
     // Structural annotation (S25). A shape carrying a Role is not terrain the author drew — it is the spawn
     // or wool-room piece the plan already placed, projected in from the map intent so it stays visible while
     // a plan is refined. Role-tagged shapes are locked (read-only) and contribute nothing to the terrain:
-    // the rasterizer skips them, so they never carve or double-cover the ground the fused island already
+    // the rasterizer skips them, so they never carve or double-cover the ground the fused group already
     // holds. IntentRef links back to the intent entity (a team id for a spawn, owner:colour for a wool);
     // Colour is the dye/team slug the client fills the labelled box with.
     /// <summary>What this shape is, where it is not terrain the author drew but a piece the plan placed —
@@ -502,7 +533,7 @@ public sealed class SketchShape
 
     // Whether Floor/BaseHeight on a Role-tagged shape were stated by the author rather than derived from the
     // plan's flat Surface. A compile always writes a fresh Floor/BaseHeight for the shape it holds the
-    // island's relief against (AppendStructuralShape), because that is the only way a plan-space piece can
+    // group's relief against (AppendStructuralShape), because that is the only way a plan-space piece can
     // state a height at all before any terrain exists. Once a relief is solved the author can see where that
     // flat number lands and correct it — and the correction has to outlive the next recompile, which
     // otherwise overwrites every structural shape it produces. This flag is what tells the recompile which
@@ -525,7 +556,7 @@ public sealed class SketchShape
     [JsonPropertyName("doors")] public string[]? Doors { get; set; }
 
     // Terrain-paint theme override (docs/world-export/terrain-painting.md TP10): the id (into SketchLayout.Themes) of the theme this
-    // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Island
+    // shape paints; null falls to the map default. The scope is the shape, so a reshape moves the paint. Group
     // and full-map assignment are UI conveniences that write this per member shape / the map default.
     /// <summary>The theme this shape paints with, by id into the layout's registry. Absent falls to the map
     /// default. The scope is the shape, so a reshape moves the paint.</summary>

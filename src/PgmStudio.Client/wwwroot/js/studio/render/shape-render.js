@@ -18,7 +18,7 @@ const RADIAL_TYPES = new Set(["cylinder", "circle", "sphere"]);
 export function paintShape(painter, type, boundsOrPoly, style = {}) {
   if (!boundsOrPoly) return;
 
-  // Polygon case: a resolved region or an island outline, holes and all.
+  // Polygon case: a resolved region or a group outline, holes and all.
   if (boundsOrPoly.exterior !== undefined || boundsOrPoly.polygons !== undefined) {
     if (!boundsOrPoly.exterior?.length && !boundsOrPoly.polygons?.length) return;
     painter.poly(boundsOrPoly, style);

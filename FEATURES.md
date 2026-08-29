@@ -2304,6 +2304,42 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A made thing is a third kind, and three words on a layer say so (TS62, TS65).** A ship, a balloon, a
+  statue is neither terrain nor a dressing prop: it is drawn out of layers because layers hold an arbitrary
+  solid. `SketchLayer` carries `kind` (`ground` · `prop`, absent is ground), `prop` naming which made thing
+  the layer belongs to, and `seat`. `kind` is what keeps the stacking rules off it — a `prop` layer is out of
+  `SketchRasterizer.OverlappingLayerSpans`' pair walk (`SK10`) and out of `DetachedMasses` (`SK11`), because a
+  solid form sinking into a hill has no gap to lose and a raised arm is not standable ground missing a stair;
+  the 19 findings `maps/sculpture-gallery` raised were all true and none a fault. Nothing else reads `kind`.
+  In the same commit the sketch model's two wrong words go: an **island** is now a **group**, since a
+  connected set of shapes forty blocks in the air is not a landmass, and the editor's **storey** is a
+  **layer**, the word `HouseStyle` already owning a floor of a building. The wire keys, the types, the JS
+  bridge, the canvas, the rules' own sentences and the seed layouts all move together; `IslandDetector` and
+  everything reading a real landmass keeps its name. (TS62, TS65)
+- **A made thing seats itself on the ground, and the ground gets out of its way (TS61).** A layer stating
+  `seat: ground` takes its floors from the lowest solid column anywhere under its own footprint, one course
+  down, and the terrain standing over that floor is cut out of the footprint so the bank it digs into stops at
+  its own hull — the house prop's contract (`structures.md` §6), applied to a drawn thing rather than a
+  stamped rectangle. **The drop is one number for the whole thing**: layers sharing a `prop` name seat as a
+  unit, because a keel that settled independently of the deck above it would not be a ship. What it measures
+  against is what the thing is not — terrain, and any made thing stating its own absolute height. A footprint
+  covering no ground has nothing to measure against and stays where it was drawn, which `SK16` says as a
+  complaint, a balloon being a legitimate board. Evidence: `opus5-automaton`'s first build put nine props into
+  the ground, the deepest seven courses. (TS61)
+- **A made thing is painted over its own span (WE56).** `ColumnProfile.Base` is the lowest course a column's
+  bands run from — nought for terrain, whose bands start at the bedrock floor, and a made thing's own floor
+  where the column belongs to one, since a hull flying at y24 has no bedrock course and no fill reaching down
+  to one. `TerrainPainter.Paint` takes those floors from `BuiltTerrain.FloorByLayer` for every `prop` layer.
+  Without it a made thing's fill band claims the whole column beneath it and only the stone-only invariant
+  stops the damage, which makes the *order* of the layer list load-bearing: `opus5-automaton`'s colossus
+  listed before its plinth painted that plinth brass at y9–11. (WE56)
+- **A material that reads absolute Y, so a colour band costs no layer (WE57).** `BandAxis.Height` reads
+  `BucketContext.Y` less the stack's own `from`, beside `Depth` down a bucket and `Inward` from an edge — a
+  third distance for the same `BandStack`, which states its bands and its ending and lets the caller state the
+  axis. A layer carries one theme, so banding a form by colour cost a layer per band, and that, not geometry,
+  is what a sculpture cost: over nine models the layer count the shape alone needs against the one it took —
+  starship 2 against 4, robot 5 against 16, a Rubik's cube (a solid box, one run per column) 1 against 7.
+  Purely additive: a theme naming no axis resolves as `depth`, exactly as before. (WE57)
 - **A lower layer's finish survives the pass above it (WE58).** The stone-only invariant is over the whole
   block rather than over its id: stone's id is shared by granite, diorite, andesite and their polished forms,
   so an id-only guard counted a course already finished in one of those as unpainted ground and the next

@@ -609,6 +609,52 @@ public sealed class TerrainPainterTests
         await Assert.That(terrain.World.GetBlock(2, 9, 2)).IsEqualTo((Blocks.Wool, 14));
     }
 
+    /// <summary>
+    /// <b>A made thing is painted over its own span.</b> A column that starts at a prop layer's own floor is
+    /// the thing and nothing beneath it, so its bands run from that floor: no bedrock course, and no fill
+    /// reaching down through whatever it stands over.
+    /// </summary>
+    [Test]
+    public async Task A_column_with_its_own_base_carries_no_bedrock_and_no_fill_below_it()
+    {
+        var ground = TerrainPainter.Resolve(Interior(9) with { Base = 0 }, TerrainTheme.Default);
+        await Assert.That(ground[0].Bucket).IsEqualTo(TerrainBucket.Bedrock);
+        await Assert.That(ground[0].LoY).IsEqualTo(0);
+
+        var prop = TerrainPainter.Resolve(Interior(30) with { Base = 24 }, TerrainTheme.Default);
+        await Assert.That(prop.Any(band => band.Bucket == TerrainBucket.Bedrock)).IsFalse();
+        await Assert.That(prop.Min(band => band.LoY)).IsEqualTo(24);
+        await Assert.That(prop.Max(band => band.HiY)).IsEqualTo(30);
+    }
+
+    /// <summary>
+    /// <b>A stack read up from a stated world height.</b> The bands are pinned to the world rather than to the
+    /// column, so one span carries a run of colours that lands at the same Y in every column it covers —
+    /// which is what a layer per colour was paying for.
+    /// </summary>
+    [Test]
+    public async Task A_height_stack_reads_the_same_band_at_the_same_world_y()
+    {
+        var banded = new LayeredMaterial(
+            new BandStack([new Band(new SolidMaterial(Blocks.Wool, 14), 2),
+                           new Band(new SolidMaterial(Blocks.Wool, 4), 3)], BandEnding.HandOver),
+            BandAxis.Height, new SolidMaterial(Blocks.QuartzBlock), From: 20);
+
+        // Two columns whose depth-from-top differs by four still answer the same band at the same Y.
+        foreach (var depth in new[] { 0, 4 })
+        {
+            await Assert.That(banded.Resolve(new BucketContext(0, 20, 0, TerrainBucket.Fill, depth)))
+                        .IsEqualTo((Blocks.Wool, 14));
+            await Assert.That(banded.Resolve(new BucketContext(0, 22, 0, TerrainBucket.Fill, depth)))
+                        .IsEqualTo((Blocks.Wool, 4));
+        }
+        // Under the stack, and past its last band, the fallback answers.
+        await Assert.That(banded.Resolve(new BucketContext(0, 19, 0, TerrainBucket.Fill, 0)))
+                    .IsEqualTo((Blocks.QuartzBlock, 0));
+        await Assert.That(banded.Resolve(new BucketContext(0, 25, 0, TerrainBucket.Fill, 0)))
+                    .IsEqualTo((Blocks.QuartzBlock, 0));
+    }
+
     /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
     private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
 }

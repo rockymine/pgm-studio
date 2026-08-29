@@ -13,7 +13,7 @@ namespace PgmStudio.Pgm.Sketch;
 /// <c>YTop = base_y + floor + height</c>. Height is a uniform <c>base_height</c>, or, for a polygon/lasso
 /// whose <c>anchor_heights</c> line up with its vertices, a per-vertex thickness TIN-interpolated across
 /// the footprint (<see cref="Triangulation"/>). Mirrors the JS geometry it must agree with (circle =
-/// 64-gon, Bézier = 16 samples/edge); per-island mirror copies follow the saved island <c>shapeIds</c>.
+/// 64-gon, Bézier = 16 samples/edge); per-group mirror copies follow the saved group <c>shapeIds</c>.
 /// </summary>
 /// <summary>Two shapes on one layer where the world holds only the upper: <paramref name="Lost"/> is the
 /// shape whose ground is not in the built board, <paramref name="Kept"/> the one that replaced it.</summary>
@@ -35,9 +35,9 @@ public readonly record struct AddOverSubtract(string Add, string AddLayer, strin
 /// lowest-then-northmost of them, so it can be flown to and looked at.</summary>
 public readonly record struct DetachedMass(int Places, int X, int Z, int Y);
 
-/// <summary>An override add whose stated top its island's relief will solve straight through: the shape, the
-/// layer it is on, the island whose relief overrules it, and the top it asked for.</summary>
-public readonly record struct ReliefOverTop(string Shape, string Layer, string Island, int Top);
+/// <summary>An override add whose stated top its group's relief will solve straight through: the shape, the
+/// layer it is on, the group whose relief overrules it, and the top it asked for.</summary>
+public readonly record struct ReliefOverTop(string Shape, string Layer, string Group, int Top);
 
 /// <summary>Two shapes on one layer where one builds the ground and the other paints it: the taller
 /// <see cref="Built"/> wins the column, the smaller <see cref="Painted"/> wins the theme, and the world holds
@@ -63,7 +63,7 @@ public static class SketchRasterizer
     private const int CirclePoints  = 64;   // matches JS geometry/shape.js CIRCLE_POINTS
     private const int BezierSamples  = 16;   // matches JS geometry/shape.js BEZIER_SAMPLES
 
-    /// <summary>The finished world's solid (x,z) footprint (primary + opted-in island mirror copies).</summary>
+    /// <summary>The finished world's solid (x,z) footprint (primary + opted-in group mirror copies).</summary>
     public static List<(int X, int Z)> Rasterize(string layoutJson)
         => RasterizeColumns(layoutJson).Select(c => (c.X, c.Z)).Distinct().ToList();
 
@@ -92,7 +92,87 @@ public static class SketchRasterizer
                 output.Add(new ColumnSegment(kv.Key.Item1, kv.Key.Item2,
                                             kv.Value.Floor + by, kv.Value.Top + by, layer.Id!));
         }
-        return output;
+        return Seat(state, output);
+    }
+
+    /// <summary>Every made thing that seats on the ground, moved down onto it, and the terrain over its seat
+    /// taken out.
+    ///
+    /// <para>The seat is the <b>lowest</b> solid column under the thing's own footprint, one course down, so
+    /// a sculpture settles into a slope rather than perching on its high corner — the seat a placed building
+    /// already takes (<c>docs/world-export/decoration.md</c> §8). Every footprint column is then cleared from
+    /// that course up, which is what lets a made thing dig into a bank instead of having the bank stand
+    /// through it, and the ground outside its footprint keeps its height.</para>
+    ///
+    /// <para><b>One seat per made thing, never one per layer.</b> A sculpture's column runs are split across
+    /// as many layers as its busiest column is deep, and seating each of those on its own footprint would
+    /// move them by different amounts and take the thing apart. Layers naming the same <c>prop</c> are seated
+    /// together, over the union of what they cover; a layer naming none is its own thing.</para></summary>
+    private static List<ColumnSegment> Seat(SketchLayout? state, List<ColumnSegment> segments)
+    {
+        var layers = ResolveLayers(state);
+        var seated = layers.Where(layer => layer.SeatsOnGround).ToList();
+        if (seated.Count == 0) return segments;
+
+        var thingOf = seated.ToDictionary(layer => layer.Id!,
+                                          layer => layer.Prop is { Length: > 0 } prop ? prop : layer.Id!,
+                                          StringComparer.Ordinal);
+
+        // The ground every seat is measured against is what the thing is not: terrain, and any made thing
+        // that states its own absolute height.
+        var groundTop = new Dictionary<(int X, int Z), int>();
+        foreach (var segment in segments)
+            if (!thingOf.ContainsKey(segment.Layer))
+                groundTop[segment.Cell] = Math.Max(groundTop.GetValueOrDefault(segment.Cell, int.MinValue),
+                                                   segment.YTop);
+
+        // Per made thing: the columns it covers, and the lowest floor it states over them.
+        var footprint = new Dictionary<string, HashSet<(int X, int Z)>>(StringComparer.Ordinal);
+        var lowest = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var segment in segments)
+        {
+            if (!thingOf.TryGetValue(segment.Layer, out var thing)) continue;
+            if (!footprint.TryGetValue(thing, out var cells)) footprint[thing] = cells = [];
+            cells.Add(segment.Cell);
+            lowest[thing] = Math.Min(lowest.GetValueOrDefault(thing, int.MaxValue), segment.YFloor);
+        }
+
+        var drop = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var (thing, cells) in footprint)
+        {
+            var under = cells.Where(groundTop.ContainsKey).Select(cell => groundTop[cell]).ToList();
+            if (under.Count == 0) continue;                       // nothing to seat on — SK16 says so
+            drop[thing] = under.Min() - 1 - lowest[thing];
+        }
+        if (drop.Count == 0) return segments;
+
+        // The course each thing's footprint is cleared from, so the bank it digs into stops there.
+        var cutTo = new Dictionary<(int X, int Z), int>();
+        foreach (var (thing, cells) in footprint)
+        {
+            if (!drop.TryGetValue(thing, out var moved)) continue;
+            var floor = lowest[thing] + moved;
+            foreach (var cell in cells)
+                cutTo[cell] = Math.Min(cutTo.GetValueOrDefault(cell, int.MaxValue), floor);
+        }
+
+        var settled = new List<ColumnSegment>(segments.Count);
+        foreach (var segment in segments)
+        {
+            if (thingOf.TryGetValue(segment.Layer, out var thing))
+            {
+                var moved = drop.GetValueOrDefault(thing, 0);
+                settled.Add(segment with { YFloor = segment.YFloor + moved, YTop = segment.YTop + moved });
+                continue;
+            }
+            if (!cutTo.TryGetValue(segment.Cell, out var top) || segment.YTop <= top)
+            {
+                settled.Add(segment);
+                continue;
+            }
+            if (segment.YFloor < top) settled.Add(segment with { YTop = top });
+        }
+        return settled;
     }
 
     /// <summary>The columns covered by every shape that says it is not ground to dress
@@ -102,8 +182,8 @@ public static class SketchRasterizer
     ///
     /// <para>The marked shapes are rasterized on their own, so what comes back is their footprint rather
     /// than what survives the set algebra of the whole layer: a shape that says keep off means the ground it
-    /// covers, whatever is later drawn over it. Island membership still decides the fan, so a marked shape on
-    /// a mirrored island keeps its images clear too.</para></summary>
+    /// covers, whatever is later drawn over it. Group membership still decides the fan, so a marked shape on
+    /// a mirrored group keeps its images clear too.</para></summary>
     public static HashSet<(int X, int Z)> KeepClearCells(SketchLayout? state)
     {
         var cx = state?.Setup?.Center?.Cx ?? 0;
@@ -116,24 +196,24 @@ public static class SketchRasterizer
             if (layer.Layout is not { } layout) continue;
             var marked = layout.Shapes.Where(shape => shape.KeepClear).ToList();
             if (marked.Count == 0) continue;
-            var only = new SketchShapes { Shapes = marked, Islands = layout.Islands };
+            var only = new SketchShapes { Shapes = marked, Groups = layout.Groups };
             foreach (var cell in RasterizeLayout(only, cx, cz, axes, state?.Relief, state?.Setup?.MirrorMode).Keys)
                 kept.Add(cell);
         }
         return kept;
     }
 
-    /// <summary>Every relief-bearing island's solved surface, keyed by island id, with each field's heights
+    /// <summary>Every relief-bearing group's solved surface, keyed by group id, with each field's heights
     /// already shifted into world Y by its layer's <c>base_y</c>. This is the same solve the build runs, from
     /// the same entry point, so a preview drawn from it cannot show a surface the world will not have —
     /// which is the only reason a preview is worth drawing.
     ///
-    /// <para>An island appears once. A layout that names the same island on two layers is malformed, and
+    /// <para>A group appears once. A layout that names the same group on two layers is malformed, and
     /// showing the lower of the two would be a quieter wrong answer than showing the first.</para></summary>
-    /// <param name="warmStart">The surface each island's last solve settled on, asked for by island id and
+    /// <param name="warmStart">The surface each group's last solve settled on, asked for by group id and
     /// footprint. Resuming from it is a head start and never a different answer — the solver discards a resume
     /// that fails to settle — so a caller with nothing to offer simply omits this.</param>
-    /// <param name="remember">Handed each island's solve as the solver produced it, for a caller keeping
+    /// <param name="remember">Handed each group's solve as the solver produced it, for a caller keeping
     /// surfaces to resume from. It is the <b>unshifted</b> field, and the pairing is the point: what comes
     /// back from this method has its layer's <c>base_y</c> added, and feeding that back as a head start would
     /// seed the next solve a whole layer too high.</param>
@@ -154,11 +234,11 @@ public static class SketchRasterizer
             if (shapes.Count == 0) continue;
 
             var shift = (int)Math.Round(layer.BaseY);
-            foreach (var (islandId, field) in SolveRelief(RasterGroup(shapes), shapes, layer.Islands,
+            foreach (var (groupId, field) in SolveRelief(RasterGroup(shapes), shapes, layer.Groups,
                                                           relief, state.Setup?.MirrorMode, cx, cz, warmStart))
             {
-                if (!fields.ContainsKey(islandId)) remember?.Invoke(islandId, field);
-                fields.TryAdd(islandId, shift == 0 ? field : new HeightField(field.Footprint,
+                if (!fields.ContainsKey(groupId)) remember?.Invoke(groupId, field);
+                fields.TryAdd(groupId, shift == 0 ? field : new HeightField(field.Footprint,
                     [.. field.Continuous.Select(height => height + shift)],
                     [.. field.Blocks.Select(height => height + shift)]));
             }
@@ -173,7 +253,7 @@ public static class SketchRasterizer
 
     /// <summary>Maps every cell a scoped shape covers, keyed by the layer it covers it on, to that shape's
     /// id — the primary footprint plus each
-    /// mirroring island's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
+    /// mirroring group's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
     /// (the most specific scope). <paramref name="scopeOf"/> says which annotation makes a shape a scope, so
     /// paint and planting resolve through one traversal rather than two that could disagree about which shape
     /// owns a contested cell — and each caller keeps its own rule for what counts, since what makes a shape a
@@ -205,12 +285,12 @@ public static class SketchRasterizer
         foreach (var layer in ResolveLayers(state))
         {
             // A cell contested on one layer goes to the smallest-area shape covering it; a cell covered on
-            // two layers is not contested at all, because each storey shows its own surface.
+            // two layers is not contested at all, because each layer shows its own surface.
             layerId = layer.Id!;
             var shapes = layer.Shapes;
             foreach (var s in shapes) Claim(s);                             // primary footprint
 
-            var metas = layer.Islands;
+            var metas = layer.Groups;
             if (metas.Count == 0)
             {
                 foreach (var axis in axes) foreach (var s in shapes) Claim(MirrorShape(s, axis, cx, cz));
@@ -229,7 +309,7 @@ public static class SketchRasterizer
     // Layers to rasterize, in draw order — read through the document's one stack reader.
     private static IReadOnlyList<SketchLayer> ResolveLayers(SketchLayout? state) => SketchLayout.Stack(state);
 
-    // One layer → its solid (x,z) cells with layer-local columns (primary + opted-in island mirror copies).
+    // One layer → its solid (x,z) cells with layer-local columns (primary + opted-in group mirror copies).
     private static Dictionary<(int, int), (int Top, int Floor)> RasterizeLayout(
         SketchShapes layout, double cx, double cz, IReadOnlyList<string> axes,
         Dictionary<string, SketchReliefJson>? relief = null, string? mirrorMode = null)
@@ -238,13 +318,13 @@ public static class SketchRasterizer
         if (shapes.Count == 0) return [];
 
         var cells = RasterGroup(shapes, out var claimed);        // primary
-        var metas = layout?.Islands ?? [];
+        var metas = layout?.Groups ?? [];
 
-        // Interior elevation, per island, over the cells the set algebra actually left standing — so a relief
+        // Interior elevation, per group, over the cells the set algebra actually left standing — so a relief
         // never re-adds ground a subtract took away. The solved surface replaces the column's top and leaves
         // its floor alone: a relief says where the ground is, not how thick the slab under it is.
         var solved = SolveRelief(cells, shapes, metas, relief, mirrorMode, cx, cz);
-        foreach (var (islandId, field) in solved)
+        foreach (var (groupId, field) in solved)
             foreach (var (x, z) in field.Footprint.Land())
                 if (cells.TryGetValue((x, z), out var column))
                     cells[(x, z)] = (Math.Max(column.Floor + 1, field.At(x, z)), column.Floor);
@@ -256,7 +336,7 @@ public static class SketchRasterizer
 
         if (metas.Count == 0)
         {
-            // No island metadata (hand-authored): mirror the whole primary footprint (height is invariant).
+            // No group metadata (hand-authored): mirror the whole primary footprint (height is invariant).
             var primary = new Dictionary<(int, int), (int Top, int Floor)>(cells);
             foreach (var axis in axes)
             {
@@ -270,13 +350,13 @@ public static class SketchRasterizer
             var byId = shapes.GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.First());
             foreach (var meta in metas.Where(m => m.Mirrors))
             {
-                var islandShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
+                var groupShapes = meta.ShapeIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
                 var field = meta.Id is { Length: > 0 } id ? solved.GetValueOrDefault(id) : null;
                 foreach (var axis in axes)
                 {
-                    var mirrored = islandShapes.Select(s => MirrorShape(s, axis, cx, cz)).ToList();
+                    var mirrored = groupShapes.Select(s => MirrorShape(s, axis, cx, cz)).ToList();
                     var copy = RasterGroup(mirrored, out var mirroredClaims);
-                    // A mirrored copy of a relief-bearing island takes its heights from the island's own
+                    // A mirrored copy of a relief-bearing group takes its heights from the group's own
                     // solved surface, read back through the same transform — exactly symmetric by
                     // construction, rather than symmetric to within a second solve's tolerance.
                     if (field is not null)
@@ -374,7 +454,7 @@ public static class SketchRasterizer
                 cells[cell] = (Math.Max(column.Floor + 1, top), column.Floor);
                 // A shape that says how its top is decided has claimed the column as surely as an override
                 // add has: the settled top is not the shape's stated one, so a merge that re-reads the
-                // stated top — an island's own reflection, most of all — must not win it back.
+                // stated top — a group's own reflection, most of all — must not win it back.
                 claimed?.Add(cell);
             }
         }
@@ -424,7 +504,7 @@ public static class SketchRasterizer
 
     /// <summary>The height a room should be level at, read off a surface solved without its pin: the median of
     /// the ground **immediately outside its doors**, or of the ground under the room where it states none.
-    /// Null where neither is on the island, which leaves the stated height as the only answer there is.
+    /// Null where neither is on the group, which leaves the stated height as the only answer there is.
     ///
     /// <para>The door and not the whole footprint, because a room is a level rectangle that can never slope
     /// while the ground it sits in can. A room whose approach runs downhill across it has no single height
@@ -460,7 +540,7 @@ public static class SketchRasterizer
         }
         if (outside.Count > 0) { outside.Sort(); return outside[outside.Count / 2]; }
 
-        // Nothing outside it at all — a room filling its own island. Its own ground is all there is to read.
+        // Nothing outside it at all — a room filling its own group. Its own ground is all there is to read.
         var under = covered.Where(cell => footprint.Inside(cell.X, cell.Z))
                            .Select(cell => field.At(cell.X, cell.Z)).ToList();
         if (under.Count == 0) return null;
@@ -468,11 +548,11 @@ public static class SketchRasterizer
         return under[under.Count / 2];
     }
 
-    /// <summary>Each relief-bearing island's solved surface, over the cells that island actually contributes
-    /// to the standing footprint. An island with no relief is absent, which is the common case and costs
+    /// <summary>Each relief-bearing group's solved surface, over the cells that group actually contributes
+    /// to the standing footprint. A group with no relief is absent, which is the common case and costs
     /// nothing.</summary>
     private static Dictionary<string, HeightField> SolveRelief(
-        Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes, List<SketchIsland> metas,
+        Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes, List<SketchGroup> metas,
         Dictionary<string, SketchReliefJson>? relief, string? mirrorMode, double cx, double cz,
         Func<string, Footprint, double[]?>? warmStart = null)
     {
@@ -482,10 +562,10 @@ public static class SketchRasterizer
         var byId = shapes.GroupBy(s => s.Id).ToDictionary(g => g.Key, g => g.First());
         foreach (var meta in metas)
         {
-            if (meta.Id is not { Length: > 0 } islandId) continue;
-            if (!relief.TryGetValue(islandId, out var stated)) continue;
+            if (meta.Id is not { Length: > 0 } groupId) continue;
+            if (!relief.TryGetValue(groupId, out var stated)) continue;
 
-            // The island's own ground: the cells its add-shapes cover that survived the layer's set algebra,
+            // The group's own ground: the cells its add-shapes cover that survived the layer's set algebra,
             // minus the shapes that take themselves out of the solve. An excluded shape is a hole, so the
             // relaxation bends around it exactly as it bends around the void.
             var owned = new List<(int X, int Z)>();
@@ -513,9 +593,9 @@ public static class SketchRasterizer
                 }
             }
 
-            // A structural annotation (a spawn or wool room, S25) is never listed in an island's own
-            // ShapeIds — that list is read elsewhere as the island's terrain rings — so a room binds by
-            // footprint instead: if the room it marks overlaps ground this island already owns, a stated
+            // A structural annotation (a spawn or wool room, S25) is never listed in a group's own
+            // ShapeIds — that list is read elsewhere as the group's terrain rings — so a room binds by
+            // footprint instead: if the room it marks overlaps ground this group already owns, a stated
             // relief_scope applies to it exactly as it would an ordinary shape's. RasterGroup still skips
             // the annotation itself, so it never draws terrain of its own; this only lets it pin or hole
             // the terrain that was already there.
@@ -549,10 +629,10 @@ public static class SketchRasterizer
             if (held.Count > 0) spec = spec with { Marks = [.. spec.Marks, .. held] };
 
             var footprint = Footprint.Over(ground, margin: 0);
-            var field = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(islandId, footprint));
+            var field = ReliefSolver.Solve(footprint, spec, warmStart?.Invoke(groupId, footprint));
 
             // A room that has not been corrected takes its height from the surface just solved for it, and the
-            // island is solved again holding it there. A plan-space piece states its height before any terrain
+            // group is solved again holding it there. A plan-space piece states its height before any terrain
             // exists, so the number it carries is about a flat board; leaving it alone puts a spawn door
             // against a wall the relief built around it, and a player walks out into rock.
             if (seated.Count > 0)
@@ -569,18 +649,18 @@ public static class SketchRasterizer
                 field = ReliefSolver.Solve(footprint, spec, field.Continuous);
             }
 
-            solved[islandId] = field;
+            solved[groupId] = field;
         }
         return solved;
     }
 
-    /// <summary>Every override add whose stated top its island's relief discards. An override add says the
-    /// column is its own, floor and all; a relief solves a surface over every column of its island and
+    /// <summary>Every override add whose stated top its group's relief discards. An override add says the
+    /// column is its own, floor and all; a relief solves a surface over every column of its group and
     /// replaces the top of each. Only an <b>erected</b> shape stands out of that field — one naming a
     /// <c>height_mode</c> — and only a <c>relief_scope</c> keeps a shape's ground out of the solve, so an
     /// override add carrying neither builds to whatever the field says and not to what it stated.
     ///
-    /// <para>Judged per island, since a relief is keyed on one: a shape listed in an island the document
+    /// <para>Judged per group, since a relief is keyed on one: a shape listed in a group the document
     /// carries no relief for is not in this. Plain adds are not either — a relief shaping ordinary terrain is
     /// what a relief is for. It is the <em>override</em> that is the statement being overruled.</para>
     ///
@@ -594,21 +674,21 @@ public static class SketchRasterizer
 
         foreach (var layer in ResolveLayers(state))
         {
-            var islandOf = new Dictionary<string, string>();
-            foreach (var island in layer.Islands)
-                if (island.Id is { Length: > 0 } id && relief.ContainsKey(id))
-                    foreach (var shapeId in island.ShapeIds)
-                        islandOf[shapeId] = id;
-            if (islandOf.Count == 0) continue;
+            var groupOf = new Dictionary<string, string>();
+            foreach (var group in layer.Groups)
+                if (group.Id is { Length: > 0 } id && relief.ContainsKey(id))
+                    foreach (var shapeId in group.ShapeIds)
+                        groupOf[shapeId] = id;
+            if (groupOf.Count == 0) continue;
 
             foreach (var shape in layer.Shapes)
             {
                 if (!shape.Override || shape.Operation == "subtract" || shape.Role is not null) continue;
                 if (IsErected(shape) || shape.ReliefScope is "hold" or "exclude") continue;
                 if (shape.BaseHeight is null && shape.Floor is null && shape.AnchorHeights is null) continue;
-                if (!islandOf.TryGetValue(shape.Id, out var islandId)) continue;
+                if (!groupOf.TryGetValue(shape.Id, out var groupId)) continue;
                 var floor = Math.Max(0, (int)Math.Round(shape.Floor ?? 0));
-                found.Add(new ReliefOverTop(shape.Id, layer.Id ?? "", islandId,
+                found.Add(new ReliefOverTop(shape.Id, layer.Id ?? "", groupId,
                                             floor + Math.Max(1, (int)Math.Round(shape.BaseHeight ?? 1))));
             }
         }
@@ -626,7 +706,7 @@ public static class SketchRasterizer
     /// are a theme scoped to a patch, which is what scoping is for, and two sharing a theme cannot disagree
     /// about paint. One entry per pair.</para>
     ///
-    /// <para><b>The images count.</b> A shape in a mirroring island stands on the board once for every axis
+    /// <para><b>The images count.</b> A shape in a mirroring group stands on the board once for every axis
     /// of the orbit, and what a patch contests is as often another patch's <em>reflection</em> as the patch
     /// itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the
     /// other. The image carries its shape's theme and top, so it is judged as that shape and reported under
@@ -639,8 +719,8 @@ public static class SketchRasterizer
 
         foreach (var layer in ResolveLayers(state))
         {
-            var fanned = new HashSet<string>(layer.Islands.Where(island => island.Mirrors)
-                                                          .SelectMany(island => island.ShapeIds),
+            var fanned = new HashSet<string>(layer.Groups.Where(group => group.Mirrors)
+                                                          .SelectMany(group => group.ShapeIds),
                                              StringComparer.Ordinal);
             var adds = layer.Shapes
                 .Where(shape => shape.Override && shape.Operation != "subtract"
@@ -718,7 +798,7 @@ public static class SketchRasterizer
                 for (var j = 0; j < spans.Count; j++)
                 {
                     if (i == j) continue;
-                    // A span starting at or above another's top is a second storey: the taller replaces the
+                    // A span starting at or above another's top is a second deck: the taller replaces the
                     // shorter outright, floor included, so the lower one's ground is not in the world.
                     if (spans[j].Floor < spans[i].Top) continue;
                     if (seen.Add((spans[i].Id, spans[j].Id)))
@@ -790,7 +870,7 @@ public static class SketchRasterizer
     }
 
     /// <summary>Where two layers are driven into each other. A layer is a slab and the stack is what puts air
-    /// between two of them, so a pair whose spans meet builds as one solid mass and the gap the storeys were
+    /// between two of them, so a pair whose spans meet builds as one solid mass and the gap the layers were
     /// drawn to have is not in the world. One entry per pair of layers, carrying how deep they meet, the
     /// first column they contest and how many they contest in all.
     ///
@@ -802,9 +882,14 @@ public static class SketchRasterizer
     /// Anything deeper is a slab driven through another.</para></summary>
     public static List<OverlappingLayers> OverlappingLayerSpans(SketchLayout? state)
     {
+        // A made thing is not a deck. It stands on the ground and sinks into whatever it stands on, so the
+        // courses it shares with the terrain are the seat rather than a lost gap, and a pair holding one is
+        // not two layers driven into each other.
+        var props = PropLayers(state);
         var byCell = new Dictionary<(int X, int Z), List<ColumnSegment>>();
         foreach (var segment in RasterizeColumns(state))
         {
+            if (props.Contains(segment.Layer)) continue;
             if (!byCell.TryGetValue(segment.Cell, out var here)) byCell[segment.Cell] = here = [];
             here.Add(segment);
         }
@@ -832,15 +917,15 @@ public static class SketchRasterizer
     }
 
     /// <summary>Every mass of standable ground that <b>stands over other ground</b> and that nothing joins to
-    /// it. A storey with no way onto it, in other words — which is the one shape of this that is a fault
+    /// it. A raised mass with no way onto it, in other words — which is the one shape of this that is a fault
     /// rather than a choice.
     ///
-    /// <para><b>A mass beside another is an island, not a fault.</b> Two landmasses across a void are how a
+    /// <para><b>A mass beside another is a landmass, not a fault.</b> Two landmasses across a void are how a
     /// board is normally drawn — the build zone bridges them at the intent tier, which a sketch does not
     /// state — so a mass sharing no column with any other says nothing. What is reported is a mass some of
     /// whose columns also carry ground in another mass: something floating above another thing, with nothing
     /// between them. Measured, the discriminator is the whole difference between a useful finding and noise:
-    /// without it `thunderstorm`, a one-layer board of ordinary islands, reports eight.</para>
+    /// without it `thunderstorm`, a one-layer board of ordinary landmasses, reports eight.</para>
     ///
     /// <para>Ground under a roof says nothing either: that is a room, and a room with no door is the
     /// author's to have. Only a mass with open sky over some of it is reported.</para>
@@ -854,8 +939,13 @@ public static class SketchRasterizer
     /// <param name="floor">Masses smaller than this are a ledge or a rasterizer sliver, not a place.</param>
     public static List<DetachedMass> DetachedMasses(SketchLayout? state, int floor = 16)
     {
+        // The walk is over terrain alone: a dome on columns, a raised arm and an antenna are all standable
+        // ground under open sky that nothing reaches, all true, and none of them a way onto a deck somebody
+        // forgot to draw.
+        var props = PropLayers(state);
         var ground = WalkGround.OfSpans(
-            RasterizeColumns(state).Select(segment => (segment.X, segment.Z, segment.YFloor, segment.YTop)));
+            RasterizeColumns(state).Where(segment => !props.Contains(segment.Layer))
+                                   .Select(segment => (segment.X, segment.Z, segment.YFloor, segment.YTop)));
         if (ground.Ground.Count == 0) return [];
 
         var components = Walk.Components(ground, JoinedRise);
@@ -884,13 +974,47 @@ public static class SketchRasterizer
         return [.. found.OrderByDescending(mass => mass.Places)];
     }
 
+    /// <summary>Every made thing that asked to be seated and found no ground under any of its columns, with
+    /// how many columns it covers — what <c>SK16</c> reports. A thing partly over ground seats on what there
+    /// is, which is the same reading a slope gets.</summary>
+    public static List<(string Thing, int Cells)> SeatedOnNothing(SketchLayout? state)
+    {
+        var layers = ResolveLayers(state);
+        var seated = layers.Where(layer => layer.SeatsOnGround).ToList();
+        if (seated.Count == 0) return [];
+
+        var thingOf = seated.ToDictionary(layer => layer.Id!,
+                                          layer => layer.Prop is { Length: > 0 } prop ? prop : layer.Id!,
+                                          StringComparer.Ordinal);
+        var segments = RasterizeColumns(state);
+        var ground = segments.Where(segment => !thingOf.ContainsKey(segment.Layer))
+                             .Select(segment => segment.Cell).ToHashSet();
+
+        var cells = new Dictionary<string, HashSet<(int X, int Z)>>(StringComparer.Ordinal);
+        foreach (var segment in segments)
+            if (thingOf.TryGetValue(segment.Layer, out var thing))
+            {
+                if (!cells.TryGetValue(thing, out var here)) cells[thing] = here = [];
+                here.Add(segment.Cell);
+            }
+
+        return [.. cells.Where(entry => !entry.Value.Any(ground.Contains))
+                        .Select(entry => (entry.Key, entry.Value.Count))
+                        .OrderByDescending(entry => entry.Count).ThenBy(entry => entry.Key, StringComparer.Ordinal)];
+    }
+
+    /// <summary>The ids of the layers holding a made thing rather than terrain — what the stacking rules skip.
+    /// A layer that names no kind is ground, which is every board drawn before the word existed.</summary>
+    public static HashSet<string> PropLayers(SketchLayout? state) =>
+        [.. ResolveLayers(state).Where(layer => layer.IsProp).Select(layer => layer.Id!)];
+
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────
     private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(IEnumerable<SketchShape> shapes)
         => RasterGroup(shapes, out _);
 
     // The cells an override add claimed come back beside the columns, because "the column is its own, floor
-    // and all" has to survive being merged with another group: between two groups the taller column wins,
-    // which is right for two islands meeting and wrong for a claim meeting ordinary ground.
+    // and all" has to survive being merged with another mass: between two masses the taller column wins,
+    // which is right for two masses meeting and wrong for a claim meeting ordinary ground.
     private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(
         IEnumerable<SketchShape> shapes, out HashSet<(int, int)> claimed)
     {
@@ -931,12 +1055,12 @@ public static class SketchRasterizer
         foreach (var (k, v) in src) MergeCell(dst, k, v);
     }
 
-    /// <summary>Merges an island's mirror image back onto the layer, with the columns each side's override
-    /// adds claimed. An override add overwrites the column it lands on, and an island centred on the mirror
-    /// has its own image lying over it: without this a flight cut into a whole-board island is refilled by
+    /// <summary>Merges a group's mirror image back onto the layer, with the columns each side's override
+    /// adds claimed. An override add overwrites the column it lands on, and a group centred on the mirror
+    /// has its own image lying over it: without this a flight cut into a whole-board group is refilled by
     /// the reflection of the ground around it, and the flight's own image is buried by the ground it was cut
     /// out of. Where neither side claimed the column the taller wins, which is what it means between two
-    /// islands meeting.</summary>
+    /// masses meeting.</summary>
     private static void Merge(Dictionary<(int, int), (int Top, int Floor)> dst,
                               Dictionary<(int, int), (int Top, int Floor)> src,
                               HashSet<(int, int)> srcClaimed, HashSet<(int, int)> dstClaimed)
@@ -1001,7 +1125,7 @@ public static class SketchRasterizer
         _ => [],
     };
 
-    // How a shape's ground takes part in its island's relief. An erected shape does not get a say: it already
+    // How a shape's ground takes part in its group's relief. An erected shape does not get a say: it already
     // stands out of the field, and raise/sink read the ground under their own footprint to know where to stand.
     private static Participation ScopeOf(SketchShape s) => IsErected(s) ? Participation.Inherit : s.ReliefScope switch
     {

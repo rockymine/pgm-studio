@@ -49,7 +49,7 @@
     <Section Title="In hand">
       <Actions><Badge Kind="neutral">@held</Badge></Actions>
       <ChildContent>
-        <p class="section-desc">Click a shape to paint it, Shift-click for the whole island, Alt-click to lift a
+        <p class="section-desc">Click a shape to paint it, Shift-click for the whole group, Alt-click to lift a
           shape's theme into your hand. Esc puts this one down.</p>
         @if (preview is not null)
         {
@@ -78,11 +78,11 @@
   {
     <Section Title="Selection">
       <Actions>
-        <Badge Kind="dim">@(SelectedIslandId is not null ? "island" : "shape")</Badge>
+        <Badge Kind="dim">@(SelectedGroupId is not null ? "group" : "shape")</Badge>
       </Actions>
       <ChildContent>
         <div class="theme-apply-sel-row">
-          <span class="list-label list-label--mono">@(SelectedIslandId ?? SelectedShapeId)</span>
+          <span class="list-label list-label--mono">@(SelectedGroupId ?? SelectedShapeId)</span>
           @if (SelectionTheme() == Mixed) { <Badge Kind="neutral">mixed</Badge> }
           else if (SelectionTheme() is { Length: > 0 } current) { <Badge Kind="neutral">@current</Badge> }
           else { <span class="section-desc">— unpainted, so the map default reaches it —</span> }

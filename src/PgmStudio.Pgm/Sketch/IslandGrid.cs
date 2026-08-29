@@ -72,14 +72,14 @@ public static class IslandGrid
         RefuseOverlap(plots, grid);
 
         var shapes = new List<SketchShape>();
-        var islands = new List<SketchIsland>();
+        var islands = new List<SketchGroup>();
         for (var index = 0; index < plots.Count; index++)
         {
             var plot = plots[index];
             var (originX, originZ) = Origin(index, plots.Count, grid);
             var id = $"plot-{index}";
             shapes.Add(Outline(id, plot, originX, originZ, grid));
-            islands.Add(new SketchIsland
+            islands.Add(new SketchGroup
             {
                 Id = $"island-{index}",
                 Name = plot.Name,

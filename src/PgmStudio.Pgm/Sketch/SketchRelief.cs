@@ -6,9 +6,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>
-/// The wire form of an island's relief — the interior elevation an author states inside a landmass, as
+/// The wire form of a group's relief — the interior elevation an author states inside a landmass, as
 /// against the outline heights a shape already carries (docs/world-export/relief.md). It rides
-/// <b>top-level on the layout, keyed by island id</b>, not nested inside the shapes: a plan recompile
+/// <b>top-level on the layout, keyed by group id</b>, not nested inside the shapes: a plan recompile
 /// replaces every shape it produced, and a relief is far more expensive hand work than a shape.
 ///
 /// <para>One flat mark shape carries every kind, discriminated by <see cref="ReliefMarkJson.Kind"/>. That is
@@ -22,7 +22,7 @@ public sealed class SketchReliefJson
     [JsonPropertyName("base")] public double Base { get; set; } = 4;
 
     /// <summary>How far a mark's influence travels, in blocks. Zero is unlimited — the marks decide the whole
-    /// surface, which is what a room-sized island wants.</summary>
+    /// surface, which is what a room-sized group wants.</summary>
     [JsonPropertyName("reach")] public double Reach { get; set; }
 
     /// <summary>The block quantum the finished surface snaps to.</summary>
@@ -33,7 +33,7 @@ public sealed class SketchReliefJson
     [JsonPropertyName("stairs")] public bool Stairs { get; set; }
 
     /// <summary>What kind of ground this is meant to be — one of <see cref="Landform"/>'s four words, or
-    /// absent for an island that states nothing. It is read back against the surface the marks actually
+    /// absent for a group that states nothing. It is read back against the surface the marks actually
     /// solved (<c>RL1</c>), so it is a claim the studio can check rather than a label.</summary>
     [JsonPropertyName("landform")] [WordSet(typeof(Landform))] public string? Landform { get; set; }
 
@@ -47,7 +47,7 @@ public sealed class SketchReliefJson
     [JsonPropertyName("pushes")] public List<ReliefPushJson>? Pushes { get; set; }
 
     /// <summary>The spec the solver takes, with the map's symmetry folded in. The fold is passed whatever the
-    /// island is: for one lying wholly on one side of the axis every mirror lookup falls outside its own
+    /// group is: for one lying wholly on one side of the axis every mirror lookup falls outside its own
     /// footprint and nothing changes, and for one spanning the axis it is exactly what makes the two halves
     /// agree cell for cell.</summary>
     public ReliefSpec ToSpec(string? mirrorMode = null, double centreX = 0, double centreZ = 0) => new()
@@ -124,7 +124,7 @@ public sealed class ReliefMarkJson
     /// would write.</summary>
     [JsonPropertyName("h"), JsonConverter(typeof(ScalarOrArrayJsonConverter))]
     public double[]? Heights { get; set; }
-    /// <summary>How many cells in from the island's outline a rim states its height over.</summary>
+    /// <summary>How many cells in from the group's outline a rim states its height over.</summary>
     [JsonPropertyName("depth")]  public int Depth { get; set; } = 1;
 
     /// <summary>The height on a scarp's upper side.</summary>

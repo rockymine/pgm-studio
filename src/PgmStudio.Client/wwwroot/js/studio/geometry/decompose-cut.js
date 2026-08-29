@@ -78,7 +78,7 @@ export function geoPolys(geo) {
 }
 
 // True when ring `laneRing` meets a build polygon — a vertex inside it, or within `tol` of its boundary (the
-// island shares its frontline edge with the build space rather than overlapping it).
+// group shares its frontline edge with the build space rather than overlapping it).
 function touchesBuild(laneRing, buildPolys, tol) {
   for (const [px, pz] of laneRing)
     for (const poly of buildPolys) {

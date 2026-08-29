@@ -4,14 +4,14 @@
  *
  * A mark is drawn as **the ground it holds**, not as an icon: a spot height as the disc its radius pins, a
  * ridgeline as the band its width holds, an area as the ring that was drawn, a scarp as its face with the
- * band either side of it. An icon would be readable and would also be a lie about how much of the island the
+ * band either side of it. An icon would be readable and would also be a lie about how much of the group the
  * statement covers, which is the one question an author placing terrain is asking.
  *
  * Colour carries the **height**, not the kind. That is the opposite of the dressing overlay's rule and it is
  * the right way round here: every mark does the same thing to the ground and differs only in where and how
  * high, so a glance should answer "is this the high one or the low one" rather than "is this a line or an
  * area" — which the drawn shape already says. The ramp is the contour amber at full strength for a high mark
- * through to a cold blue for a low one, read against the island's own base.
+ * through to a cold blue for a low one, read against the group's own base.
  */
 
 import { markAnchor, markPoints, markReach, pushAmounts, isSpot, isRing, isPush, FALLBACK_BASE }
@@ -48,7 +48,7 @@ export function heightColor(height, base = FALLBACK_BASE) {
 
 /**
  * Where a push's *lift* puts it on the same ramp. A push states a relative move rather than a level, so it
- * cannot be read against the island's base the way a mark is: five blocks up is five blocks up wherever it is
+ * cannot be read against the group's base the way a mark is: five blocks up is five blocks up wherever it is
  * drawn. Reading it as a move from zero puts a lift and a mark at the same height in the same colour, which
  * is the reading an author wants — warm is higher ground either way.
  */
@@ -56,19 +56,19 @@ export const liftColor = (amount) => heightColor(amount, 0);
 
 /**
  * Paint every mark, plus the mirror images of each. `mirrorPoint(x, z, k)` gives the k-th image of a point and
- * `orderOf(islandId)` how many images that island's marks have — the canvas already owns the map's symmetry,
- * so this asks rather than re-deriving it. `baseOf(islandId)` supplies the level each island's marks are read
+ * `orderOf(groupId)` how many images that group's marks have — the canvas already owns the map's symmetry,
+ * so this asks rather than re-deriving it. `baseOf(groupId)` supplies the level each group's marks are read
  * against.
  *
- * The order is asked **per island** rather than taken once for the map, because mirroring is a property of the
- * island: the rasterizer fans only the islands that opted in. Ghosting a mark on an island that does not
+ * The order is asked **per group** rather than taken once for the map, because mirroring is a property of the
+ * group: the rasterizer fans only the groups that opted in. Ghosting a mark on a group that does not
  * mirror draws ground the export will never build, which is worse than drawing nothing — it is the one thing
  * an overlay must not do.
  */
 export function paintReliefMarks(painter, marks, { selectedId = null, mirrorPoint = null, orderOf = null, baseOf = null } = {}) {
   for (const mark of marks ?? []) {
-    const base = baseOf?.(mark.islandId) ?? FALLBACK_BASE;
-    const order = Math.max(1, orderOf?.(mark.islandId) ?? 1);
+    const base = baseOf?.(mark.groupId) ?? FALLBACK_BASE;
+    const order = Math.max(1, orderOf?.(mark.groupId) ?? 1);
     const colour = isPush(mark) ? liftColor(topHeight(mark)) : heightColor(topHeight(mark), base);
 
     // A push's skirt — the ground it moves outside the ring it was drawn on — as a dashed outline at the
@@ -132,8 +132,8 @@ export function paintMarkPreview(painter, kind, points, height, base = FALLBACK_
   painter.segments(runs, { stroke: colour, width: 2, dash: [5, 3] });
 }
 
-/** Where a spot height will land, before the click that places it. Off any island it reads as refused — a
- *  relief is stated *inside* an island, so there is nothing off one for a mark to belong to. */
+/** Where a spot height will land, before the click that places it. Off any group it reads as refused — a
+ *  relief is stated *inside* a group, so there is nothing off one for a mark to belong to. */
 export function paintSpotGhost(painter, x, z, radius, height, base = FALLBACK_BASE, valid = true) {
   const colour = valid ? heightColor(height, base) : "#c0392b";
   painter.ring(disc(x, z, radius), {

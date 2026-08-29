@@ -1,6 +1,6 @@
 @namespace PgmStudio.Client.Features.Sketch
 
-@* Sketch Layout inspector — actions for the selected shape (operation / override / delete) or island
+@* Sketch Layout inspector — actions for the selected shape (operation / override / delete) or group
    (rename / mirror participation + its shape list). Edits round-trip to the JS bridge via the host. *@
 
 <Inspector>
@@ -37,7 +37,7 @@
         </Field>
         <p class="section-desc">Floor lifts the base; the top sits at floor + height.</p>
 
-        @* How the top is decided once the island carries a relief. Ordinary ground is the default and stays
+        @* How the top is decided once the group carries a relief. Ordinary ground is the default and stays
            it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
            does. The other three are for a shape meant to stand in the terrain rather than be it. *@
         <Field Label="Stands as">
@@ -62,7 +62,7 @@
         }
         else
         {
-          @* Whether the shape's ground joins its island's relief. Only asked of a shape that IS ground: one
+          @* Whether the shape's ground joins its group's relief. Only asked of a shape that IS ground: one
              standing out of the field already answers it, and a raise reads the ground under its own
              footprint to know where to stand. *@
           <Field Label="Takes part in relief">
@@ -137,26 +137,26 @@
         </Button>
         <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")</p>
       }
-      else if (Island is not null)
+      else if (Group is not null)
       {
-        <DetailHeader Icon="layers" Label="@Island.Name">
+        <DetailHeader Icon="layers" Label="@Group.Name">
           <span class="detail-header-badges">
-            <Badge Kind="neutral">@Island.ShapeIds.Count shape@(Island.ShapeIds.Count == 1 ? "" : "s")</Badge>
+            <Badge Kind="neutral">@Group.ShapeIds.Count shape@(Group.ShapeIds.Count == 1 ? "" : "s")</Badge>
           </span>
         </DetailHeader>
 
         <Field Label="Name">
-          <input class="field-input" value="@Island.Name" @onchange="RenameChanged" />
+          <input class="field-input" value="@Group.Name" @onchange="RenameChanged" />
         </Field>
-        <Button Full OnClick="() => OnToggleMirrors.InvokeAsync(Island.Id)">
-          @(Island.Mirrors ? "Exclude from mirror" : "Include in mirror")
+        <Button Full OnClick="() => OnToggleMirrors.InvokeAsync(Group.Id)">
+          @(Group.Mirrors ? "Exclude from mirror" : "Include in mirror")
         </Button>
         <Field Label="Rotate (°)">
           <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
         </Field>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Shapes</h2></div>
-        @foreach (var s in IslandShapes())
+        @foreach (var s in GroupShapes())
         {
           <ListRow Compact>
             <span class="geo-type-icon" style="@(s.Operation == "subtract" ? "color:var(--canvas-sub-fill)" : null)"><i data-lucide="@TypeIcon(s.Type)"></i></span>
@@ -168,7 +168,7 @@
       }
       else
       {
-        <p class="section-desc">Select a shape or island to inspect.</p>
+        <p class="section-desc">Select a shape or group to inspect.</p>
       }
     </Section>
 </Inspector>

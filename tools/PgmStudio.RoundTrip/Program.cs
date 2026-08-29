@@ -987,7 +987,7 @@ static int RunIslandSketch(string mapDir, string outJson)
 
     static List<double[]> Ring(NetTopologySuite.Geometries.LineString r) => r.Coordinates.Select(c => new[] { c.X, c.Y }).ToList();
     var shapes = new List<PgmStudio.Pgm.Sketch.SketchShape>();
-    var islandGroups = new List<PgmStudio.Pgm.Sketch.SketchIsland>();
+    var islandGroups = new List<PgmStudio.Pgm.Sketch.SketchGroup>();
     double minX = double.MaxValue, minZ = double.MaxValue, maxX = double.MinValue, maxZ = double.MinValue;
     int imported = 0;
 
@@ -1006,7 +1006,7 @@ static int RunIslandSketch(string mapDir, string outJson)
             shapes.Add(s);
             foreach (var v in s.Vertices ?? []) { minX = Math.Min(minX, v[0]); maxX = Math.Max(maxX, v[0]); minZ = Math.Min(minZ, v[1]); maxZ = Math.Max(maxZ, v[1]); }
         }
-        islandGroups.Add(new PgmStudio.Pgm.Sketch.SketchIsland { Id = $"i{isl.Id}", Name = $"Island {isl.Id}", Mirrors = false, ShapeIds = [.. islandShapes.Select(s => s.Id)] });
+        islandGroups.Add(new PgmStudio.Pgm.Sketch.SketchGroup { Id = $"i{isl.Id}", Name = $"Island {isl.Id}", Mirrors = false, ShapeIds = [.. islandShapes.Select(s => s.Id)] });
     }
 
     var layout = new PgmStudio.Pgm.Sketch.SketchLayout

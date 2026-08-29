@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Tests.Sketch;
 /// <summary>
 /// The document gate for a sketch layout. Every case here was first put through the real build and observed
 /// to pass silently — a shape kind nobody has, a two-vertex polygon, a mirror mode nobody has and a relief
-/// keyed to no island all produce a world, with less in it than the document asked for. The rasterizer is set
+/// keyed to no group all produce a world, with less in it than the document asked for. The rasterizer is set
 /// algebra, so an unreadable shape contributes no ground rather than failing; this is what says so.
 /// </summary>
 public sealed class SketchLayoutCheckTests
@@ -15,7 +15,7 @@ public sealed class SketchLayoutCheckTests
     private static string Layout(string shapes, string extra = "", string mode = "rot_180") =>
         "{\"setup\":{\"mirror_mode\":\"" + mode + "\",\"center\":{\"cx\":0,\"cz\":0}},"
         + "\"layers\":[{\"base_y\":0,\"layout\":{\"shapes\":[" + shapes + "],"
-        + "\"islands\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[\"s1\"]}]}}]" + extra + "}";
+        + "\"groups\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[\"s1\"]}]}}]" + extra + "}";
 
     private const string Rect =
         """{"id":"s1","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}""";
@@ -60,7 +60,7 @@ public sealed class SketchLayoutCheckTests
         var findings = SketchLayoutCheck.Check(Layout(
             """{"id":"other","type":"rectangle","min_x":-5,"max_x":5,"min_z":-5,"max_z":5}"""));
 
-        var finding = findings.Single(f => f.Message.Contains("island 'i'"));
+        var finding = findings.Single(f => f.Message.Contains("group 'i'"));
         await Assert.That(finding.Rule).IsEqualTo(SketchRules.NamesNothing);
         await Assert.That(finding.Message).Contains("lists shape 's1'");
     }
@@ -68,10 +68,10 @@ public sealed class SketchLayoutCheckTests
     [Test]
     public async Task A_relief_keyed_to_an_island_that_is_not_there_is_named()
     {
-        var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"island-2":{"kind":"hills"}}"""));
+        var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"group-2":{"kind":"hills"}}"""));
 
         var finding = findings.Single();
-        await Assert.That(finding.Field).IsEqualTo("relief.island-2");
+        await Assert.That(finding.Field).IsEqualTo("relief.group-2");
         await Assert.That(finding.Message).Contains("is not built");
     }
 
@@ -210,35 +210,35 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.StackedInOneLayer)).IsEmpty();
     }
 
-    /// <summary>An island id is the key a relief is stored under, so a board carrying it twice has no single
-    /// island for that terrain to belong to. Measured on `pgm-studio-mapgen`'s `opus5-ravensmere`, where the
-    /// canvas split one board into three islands and gave all three the saved id: the relief keyed to it
+    /// <summary>A group id is the key a relief is stored under, so a board carrying it twice has no single
+    /// group for that terrain to belong to. Measured on `pgm-studio-mapgen`'s `opus5-ravensmere`, where the
+    /// canvas split one board into three groups and gave all three the saved id: the relief keyed to it
     /// reached one of them and the board's whole surface came back flat.</summary>
     [Test]
     public async Task Two_islands_answering_to_one_id_are_declined()
     {
         var found = SketchLayoutCheck.Check(TwoIslands("i", "i"))
-            .Where(finding => finding.Rule == SketchRules.IslandIdTwice).ToList();
+            .Where(finding => finding.Rule == SketchRules.GroupIdTwice).ToList();
         await Assert.That(found.Count).IsEqualTo(1);
-        await Assert.That(found[0].Message).Contains("2 islands answer to the id 'i'");
+        await Assert.That(found[0].Message).Contains("2 groups answer to the id 'i'");
     }
 
-    /// <summary>Two islands with their own ids is the ordinary shape of a board with two landmasses, and it
+    /// <summary>Two groups with their own ids is the ordinary shape of a board with two landmasses, and it
     /// stays silent.</summary>
     [Test]
     public async Task Two_islands_with_their_own_ids_are_not_declined()
     {
         await Assert.That(SketchLayoutCheck.Check(TwoIslands("i", "j"))
-            .Where(finding => finding.Rule == SketchRules.IslandIdTwice)).IsEmpty();
+            .Where(finding => finding.Rule == SketchRules.GroupIdTwice)).IsEmpty();
     }
 
-    /// <summary>Two rectangles wide apart, one island named over each.</summary>
+    /// <summary>Two rectangles wide apart, one group named over each.</summary>
     private static string TwoIslands(string first, string second) =>
         "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
         + "\"layers\":[{\"base_y\":0,\"layout\":{\"shapes\":[" + Rect + ","
         + "{\"id\":\"s2\",\"type\":\"rectangle\",\"operation\":\"add\",\"min_x\":60,\"max_x\":70,"
         + "\"min_z\":60,\"max_z\":70,\"floor\":8,\"base_height\":12}],"
-        + "\"islands\":[{\"id\":\"" + first + "\",\"name\":\"I\",\"shapeIds\":[\"s1\"]},"
+        + "\"groups\":[{\"id\":\"" + first + "\",\"name\":\"I\",\"shapeIds\":[\"s1\"]},"
         + "{\"id\":\"" + second + "\",\"name\":\"J\",\"shapeIds\":[\"s2\"]}]}}]}";
 
     /// <summary>Walls clamped around a tucked-in floor is how a roofed gallery is built, and the shapes do
@@ -256,7 +256,7 @@ public sealed class SketchLayoutCheckTests
     private static string Relieved(string shapes, string ids) =>
         "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
         + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + shapes + "],"
-        + "\"islands\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[" + ids + "]}]}}],"
+        + "\"groups\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[" + ids + "]}]}}],"
         + "\"relief\":{\"i\":{\"base\":8,\"reach\":16,\"step\":1,\"marks\":[]}}}";
 
     private const string Ground =
@@ -265,7 +265,7 @@ public sealed class SketchLayoutCheckTests
         """{"id":"wall","type":"rectangle","operation":"add","override":true,"theme":"stone","min_x":-40,"max_x":40,"min_z":10,"max_z":14,"floor":0,"base_height":22}""";
 
     /// <summary>A made thing is an override add: the column is its own, floor and all. A relief replaces the
-    /// top of every column of its island, so a wall carrying no `height_mode` builds to the field and its
+    /// top of every column of its group, so a wall carrying no `height_mode` builds to the field and its
     /// twenty-two courses are nowhere in the world — with nothing else on the board to say so.</summary>
     [Test]
     public async Task An_override_add_a_relief_solves_through_is_named()
@@ -306,7 +306,7 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
     }
 
-    /// <summary>A relief is keyed on an island, so a board that carries none has nothing to overrule.</summary>
+    /// <summary>A relief is keyed on a group, so a board that carries none has nothing to overrule.</summary>
     [Test]
     public async Task An_island_with_no_relief_overrules_nothing()
     {
@@ -316,7 +316,7 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.ReliefOverStatedTop)).IsEmpty();
     }
 
-    /// <summary>A shape in a mirroring island stands on the board once per axis of the orbit, so what a patch
+    /// <summary>A shape in a mirroring group stands on the board once per axis of the orbit, so what a patch
     /// contests is as often another patch's reflection as the patch itself.</summary>
     [Test]
     public async Task A_shape_painted_by_another_shapes_image_is_named()
@@ -327,7 +327,7 @@ public sealed class SketchLayoutCheckTests
         var mound = """{"id":"mound","type":"rectangle","operation":"add","override":true,"theme":"turf","min_x":-14,"max_x":-6,"min_z":-18,"max_z":-10,"floor":0,"base_height":10}""";
         var board = "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
                   + "\"layers\":[{\"id\":\"ground\",\"base_y\":0,\"layout\":{\"shapes\":[" + court + "," + mound + "],"
-                  + "\"islands\":[{\"id\":\"i\",\"name\":\"I\",\"mirrors\":true,\"shapeIds\":[\"court\",\"mound\"]}]}}]}";
+                  + "\"groups\":[{\"id\":\"i\",\"name\":\"I\",\"mirrors\":true,\"shapeIds\":[\"court\",\"mound\"]}]}}]}";
 
         var findings = SketchLayoutCheck.Check(board)
             .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape).ToList();
@@ -335,7 +335,7 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(findings.Count).IsEqualTo(1);
         await Assert.That(findings[0].SubjectIds).IsEquivalentTo(new[] { "court", "mound" });
 
-        // The same two on an island that is not fanned contest nothing: the image is what they meet in.
+        // The same two on a group that is not fanned contest nothing: the image is what they meet in.
         await Assert.That(SketchLayoutCheck.Check(board.Replace("\"mirrors\":true", "\"mirrors\":false"))
             .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
     }

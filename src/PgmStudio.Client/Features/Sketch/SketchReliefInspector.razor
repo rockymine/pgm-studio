@@ -2,7 +2,7 @@
 @using System.Text.Json.Nodes
 
 @* The Relief phase's inspector: the numbers of the mark under the cursor, and — always, below them — the
-   island's own settings, because those are what every mark in it is stated against. With nothing selected the
+   group's own settings, because those are what every mark in it is stated against. With nothing selected the
    same form edits the active tool's starting numbers, so the next mark placed is already aimed. *@
 
 <Inspector>
@@ -12,7 +12,7 @@
       <p class="section-desc">
         Pick a tool and state something: click a <strong>spot height</strong>, or drag a
         <strong>ridgeline</strong>, a <strong>bench</strong> or a <strong>scarp</strong>. A mark can be
-        dragged past the island's edge — it is clipped, not refused, which is how a hill sits in a corner with
+        dragged past the group's edge — it is clipped, not refused, which is how a hill sits in a corner with
         no wasted ground behind it.
       </p>
       <p class="section-desc">@markCount stated on this map.</p>
@@ -100,7 +100,7 @@
         </Field>
         <p class="section-desc">Narrow face, big drop is a cliff; wide face is a slope. The band
           <strong>stops where the line stops</strong>, so the gaps either end are where the shelf can be
-          crossed — a line drawn short of the island's edge is a way through.</p>
+          crossed — a line drawn short of the group's edge is a way through.</p>
       }
       else if (kind == MarkKinds.Push)
       {
@@ -157,26 +157,26 @@
     }
   </Section>
 
-  @* The island's own settings. Always shown, never behind a selection: they are what the marks are stated
+  @* The group's own settings. Always shown, never behind a selection: they are what the marks are stated
      against, so a base an author cannot see is a set of heights they cannot read. *@
-  @if (islandId is not null)
+  @if (groupId is not null)
   {
-    <Section Title="@IslandTitle">
-      <Field Label="Base" Error="@islandError">
+    <Section Title="@GroupTitle">
+      <Field Label="Base" Error="@groupError">
         <LabelHint>(where the ground falls back to)</LabelHint>
         <ChildContent>
           <NumberField Value="Base" ValueChanged="SetBase" />
         </ChildContent>
       </Field>
-      @* The level the island is already drawn at, against which every height in this panel is read. A relief
-         replaces the top of every column of its island, so a base that differs from it moves the landmass. *@
-      @if (islandTop is { } top)
+      @* The level the group is already drawn at, against which every height in this panel is read. A relief
+         replaces the top of every column of its group, so a base that differs from it moves the landmass. *@
+      @if (groupTop is { } top)
       {
         <p class="plan-readout">
-          Island top @top —
+          Group top @top —
           @if (Math.Abs(Base - top) < 0.5) { <span>the ground stays where it is</span> }
-          else if (Base > top) { <b>the island rises @Blocks(Base - top)</b> }
-          else { <b>the island drops @Blocks(top - Base)</b> }
+          else if (Base > top) { <b>the group rises @Blocks(Base - top)</b> }
+          else { <b>the group drops @Blocks(top - Base)</b> }
         </p>
       }
       <Field Label="Reach">
@@ -238,7 +238,7 @@
       </Field>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Rim</h2></div>
-      <p class="section-desc">A height held all the way round the island's outline — what keeps a hill inside
+      <p class="section-desc">A height held all the way round the group's outline — what keeps a hill inside
         the shape rather than running off its edge. A setting rather than a tool because there is nowhere to
         place it: it holds the whole outline or none of it.</p>
       <Field Label="Hold the outline">

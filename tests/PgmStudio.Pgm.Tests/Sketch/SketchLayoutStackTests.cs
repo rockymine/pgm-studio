@@ -15,7 +15,7 @@ public sealed class SketchLayoutStackTests
 {
     private const string Square =
         @"{""shapes"":[{""id"":""a"",""type"":""rectangle"",""operation"":""add""," +
-        @"""min_x"":0,""min_z"":0,""max_x"":3,""max_z"":3,""base_height"":4}],""islands"":[]}";
+        @"""min_x"":0,""min_z"":0,""max_x"":3,""max_z"":3,""base_height"":4}],""groups"":[]}";
 
     private const string Setup = @"""setup"":{""mirror_mode"":""none"",""center"":{""cx"":0,""cz"":0}}";
 
@@ -54,7 +54,7 @@ public sealed class SketchLayoutStackTests
     {
         var stack = SketchLayout.Stack(SketchLayout.Parse(Stacked(@"{""id"":""bare"",""base_y"":8}")));
         await Assert.That(stack[0].Shapes).IsEmpty();
-        await Assert.That(stack[0].Islands).IsEmpty();
+        await Assert.That(stack[0].Groups).IsEmpty();
     }
 
     /// <summary>What the plan compiles to is a stack of one, so the compiler and a hand-drawn flat board

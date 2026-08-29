@@ -24,7 +24,7 @@ public sealed class SketchMaterialGateTests
          "layers":[{"base_y":0,"layout":{
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
-           "islands":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
          "roomStyles":{"cage":{"roof":{"form":"gable","pitch":1,"slab":-1,
                                        "body":{"kind":"solid","id":5,"data":1},
                                        "verge":{"kind":"solid","id":17,"data":1}}}}}
@@ -37,7 +37,7 @@ public sealed class SketchMaterialGateTests
          "layers":[{"base_y":0,"layout":{
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
-           "islands":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}],
          "dressing":{"props":[{"kind":"house","id":"byre","wings":[{"corners":[[0,0],[6,6]]}],
                                "style":{"roof":{"form":"gable","pitch":1,"slab":-1,
                                                 "body":{"kind":"solid","id":5,"data":1},
@@ -49,7 +49,7 @@ public sealed class SketchMaterialGateTests
          "layers":[{"base_y":0,"layout":{
            "shapes":[{"id":"s1","type":"rectangle","operation":"add",
                       "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
-           "islands":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
+           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
         """;
 
     private static StringContent Body(string json) => new(json, Encoding.UTF8, "application/json");

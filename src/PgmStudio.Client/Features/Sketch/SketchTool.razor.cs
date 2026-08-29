@@ -27,12 +27,12 @@ public partial class SketchTool
     private bool shapesOn = false;
     private bool chunksOn = true;
     private bool blocksOn = false;   // S23: the rasterized block-footprint preview
-    private bool reliefOn = false;   // the height contours of whatever relief the islands carry
+    private bool reliefOn = false;   // the height contours of whatever relief the groups carry
     private bool snapOn = true;
     private bool threeD = false;
     private bool isoUnavailable = false;   // 3-D preview couldn't be shown (no WebGL, or the build refused)
     private string? isoUnavailableWhy;     // the build's own sentence; null when WebGL itself is missing
-    private string islandLabel = "";
+    private string groupLabel = "";
     private bool canUndo, canRedo;
     /// <summary>The theme in hand while the Apply step is up. The canvas paints it on a click and can lift
     /// another into it, so the tool holds it and the rail reads it.</summary>
@@ -63,7 +63,7 @@ public partial class SketchTool
     /// <summary>Bumped on every registry change, so a view keyed on a theme's name refreshes when the theme
     /// under that name is replaced.</summary>
     private int themeRevision;
-    /// <summary>How many shapes the whole board carries, over every storey — the denominator the themed count
+    /// <summary>How many shapes the whole board carries, over every layer — the denominator the themed count
     /// is read against, and counted where that count is, so the two cannot be over different sets.</summary>
     private int themedShapeTotal;
     /// <summary>Whether the inspector is showing the add-from-library panel; the strip's + toggles it.</summary>
@@ -152,9 +152,9 @@ public partial class SketchTool
         ? "Show the blocks the export places — the rasterized footprint painted by its themes"
         : "Show the rasterized block footprint — the exact cells the shapes voxelize into";
 
-    // The shapes the current selection themes: an island's members, else the single selected shape, else none.
+    // The shapes the current selection themes: a group's members, else the single selected shape, else none.
     private IReadOnlyList<string> ScopeTargetShapeIds =>
-        selectedIslandId is not null ? (SelectedIsland?.ShapeIds ?? (IReadOnlyList<string>)[])
+        selectedGroupId is not null ? (SelectedGroup?.ShapeIds ?? (IReadOnlyList<string>)[])
         : selectedShapeId is not null ? new[] { selectedShapeId }
         : [];
 
@@ -179,8 +179,8 @@ public partial class SketchTool
     {
         if (handle is null) return;
         // Geometry is Draw's alone. Theme assigns paint to it and Relief states ground inside it, and both
-        // reach an island by picking one — so in both the canvas picks and never edits, or the gesture that
-        // selects an island is also the gesture that reshapes it. Dressing places props rather than shapes,
+        // reach a group by picking one — so in both the canvas picks and never edits, or the gesture that
+        // selects a group is also the gesture that reshapes it. Dressing places props rather than shapes,
         // so it is not select-only in that sense: its own tools are armed and the shape tools are simply not
         // offered.
         await handle.InvokeVoidAsync("setSelectOnly", phase is "theme" or "relief");
@@ -192,10 +192,10 @@ public partial class SketchTool
         // it produced at once, which is the only way a mark can be tuned by eye. Leaving does not turn it off
         // again — the chip is the author's, and a contour view they asked for should survive a phase change.
         await handle.InvokeVoidAsync("setReliefMode", phase == "relief");
-        // What a plain click picks. An island is the unit in Draw, where a landmass is what moves, and in
-        // Relief, where one relief is solved per island. In Theme the job is naming one shape, so a click
-        // picks the shape and the island is reached with Alt or from the tree.
-        await handle.InvokeVoidAsync("setPickUnit", phase == "theme" ? "shape" : "island");
+        // What a plain click picks. A group is the unit in Draw, where a landmass is what moves, and in
+        // Relief, where one relief is solved per group. In Theme the job is naming one shape, so a click
+        // picks the shape and the group is reached with Alt or from the tree.
+        await handle.InvokeVoidAsync("setPickUnit", phase == "theme" ? "shape" : "group");
         // A brush and the panel that fills it only exist while the phase that hands one out is up.
         if (phase != "theme") { themeAddOpen = false; await SetThemeBrush(""); }
         if (phase == "relief") reliefOn = true;
@@ -243,19 +243,19 @@ public partial class SketchTool
         if (on.Contains(ChipBlocks) && !blocksOn) { blocksOn = true; await handle.InvokeVoidAsync("setBlocksVisible", true); }
     }
 
-    // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnIslandSelected).
-    private List<SketchIslandRow> islands = [];
+    // Layout pushed from the bridge (OnLayout) + the current selection (OnShapeSelected/OnGroupSelected).
+    private List<SketchGroupRow> groups = [];
     private List<SketchShapeRow> shapes = [];
     private List<SketchLayerRow> layerRows = [];
     private string? activeLayerId;
     private string? selectedShapeId;
-    private string? selectedIslandId;
+    private string? selectedGroupId;
     private int selectedVertexIdx = -1;
     private double selectedVertexHeight;
     private List<SketchSlopeControl> slopeControls = [];   // shift-marked surface-slope controls (2–3)
 
     private SketchShapeRow? SelectedShape => shapes.FirstOrDefault(s => s.Id == selectedShapeId);
-    private SketchIslandRow? SelectedIsland => islands.FirstOrDefault(i => i.Id == selectedIslandId);
+    private SketchGroupRow? SelectedGroup => groups.FirstOrDefault(i => i.Id == selectedGroupId);
 
     private Task Undo() => handle?.InvokeVoidAsync("undo").AsTask() ?? Task.CompletedTask;
     private Task Redo() => handle?.InvokeVoidAsync("redo").AsTask() ?? Task.CompletedTask;
@@ -548,7 +548,7 @@ public partial class SketchTool
     // ── Panel / inspector actions → the JS bridge ──────────────────────────────
 
     private Task SelectShape(string id) => handle?.InvokeVoidAsync("selectShape", id).AsTask() ?? Task.CompletedTask;
-    private Task SelectIsland(string id) => handle?.InvokeVoidAsync("selectIsland", id).AsTask() ?? Task.CompletedTask;
+    private Task SelectGroup(string id) => handle?.InvokeVoidAsync("selectGroup", id).AsTask() ?? Task.CompletedTask;
     private Task Rotate(double deg) => handle?.InvokeVoidAsync("rotateSelected", deg).AsTask() ?? Task.CompletedTask;
     private Task ToggleOp(string id) => handle?.InvokeVoidAsync("toggleOp", id).AsTask() ?? Task.CompletedTask;
     private Task ToggleOverride(string id) => handle?.InvokeVoidAsync("toggleOverride", id).AsTask() ?? Task.CompletedTask;
@@ -561,8 +561,8 @@ public partial class SketchTool
     private Task DeleteLayer(string id) => handle?.InvokeVoidAsync("deleteLayer", id).AsTask() ?? Task.CompletedTask;
     private Task RenameLayer((string Id, string Name) e) => handle?.InvokeVoidAsync("renameLayer", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
     private Task SetLayerBaseY((string Id, double BaseY) e) => handle?.InvokeVoidAsync("setLayerBaseY", e.Id, e.BaseY).AsTask() ?? Task.CompletedTask;
-    private Task ToggleMirrors(string islandId) => handle?.InvokeVoidAsync("toggleMirrors", islandId).AsTask() ?? Task.CompletedTask;
-    private Task RenameIsland((string Id, string Name) e) => handle?.InvokeVoidAsync("renameIsland", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
+    private Task ToggleMirrors(string groupId) => handle?.InvokeVoidAsync("toggleMirrors", groupId).AsTask() ?? Task.CompletedTask;
+    private Task RenameGroup((string Id, string Name) e) => handle?.InvokeVoidAsync("renameGroup", e.Id, e.Name).AsTask() ?? Task.CompletedTask;
 
     // ── Bridge callbacks ───────────────────────────────────────────────────────
 
@@ -588,9 +588,9 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>An island was selected in the panel (null = deselected).</summary>
+    /// <summary>A group was selected in the panel (null = deselected).</summary>
     [JSInvokable]
-    public void OnIslandSelected(string? id) { selectedIslandId = id; StateHasChanged(); }
+    public void OnGroupSelected(string? id) { selectedGroupId = id; StateHasChanged(); }
 
     /// <summary>The theme registry or an assignment changed on the bridge — the strip and the inspector are
     /// both drawn from what this reads.</summary>
@@ -647,12 +647,12 @@ public partial class SketchTool
     private string IsoNoteTitle => isoUnavailableWhy
         ?? "The 3-D height preview needs WebGL, which this browser can't provide.";
 
-    /// <summary>The bridge pushed the current island→shape tree (on every layout change).</summary>
+    /// <summary>The bridge pushed the current group→shape tree (on every layout change).</summary>
     [JSInvokable]
     public void OnLayout(string json)
     {
         var dto = JsonSerializer.Deserialize<SketchLayoutDto>(json);
-        islands = dto?.Islands ?? [];
+        groups = dto?.Groups ?? [];
         shapes = dto?.Shapes ?? [];
         StateHasChanged();
     }
@@ -676,11 +676,11 @@ public partial class SketchTool
         StateHasChanged();
     }
 
-    /// <summary>The layout changed; update the island-count label and schedule a debounced save.</summary>
+    /// <summary>The layout changed; update the group-count label and schedule a debounced save.</summary>
     [JSInvokable]
-    public void OnDirty(int islandCount)
+    public void OnDirty(int groupCount)
     {
-        islandLabel = islandCount == 1 ? "1 island" : $"{islandCount} islands";
+        groupLabel = groupCount == 1 ? "1 group" : $"{groupCount} groups";
         StateHasChanged();
         ScheduleSave();
     }
@@ -755,7 +755,7 @@ public partial class SketchTool
         // A draft left with nothing drawn is discarded so an abandoned "New sketch" click doesn't linger on
         // the dashboard. The client gates on empty geometry to skip the call for real work; the server
         // re-checks the full pristine condition (default name, no authors, no shapes) before deleting.
-        if (shapes.Count == 0 && islands.Count == 0)
+        if (shapes.Count == 0 && groups.Count == 0)
         {
             try { await Http.DeleteAsync($"api/map/{Slug}/sketch/discard-if-empty"); } catch { }
         }

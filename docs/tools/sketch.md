@@ -48,11 +48,11 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | Key | Holds |
 |---|---|
 | `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
-| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, islands}}`. Always at least one; a flat board is a stack of one, called `ground` |
+| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `prop` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `mapTheme` | the terrain-paint registry and the map-wide default |
 | `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
 | `dressing` | every placed prop |
-| `relief` | interior elevation, keyed by island id — and `landform`, the word the island states about what kind of ground it is meant to be |
+| `relief` | interior elevation, keyed by group id — and `landform`, the word the group states about what kind of ground it is meant to be |
 
 Four of those are the map's **finish** rather than its shape — `themes`, `mapTheme`, `roomStyles`,
 `dressing` — and that grouping is load-bearing: a plan cannot express any of them, so when a plan is recompiled
@@ -82,7 +82,7 @@ and a Bézier edge, a carve, and an erected shape standing out of the relief:
           "min_x": -12, "min_z": -2, "max_x": -8, "max_z": 2, "floor": 0, "base_height": 9,
           "height_mode": "raise", "skirt": 2, "relief_scope": "exclude" }
       ],
-      "islands": [ { "id": "i1", "name": "Team island", "mirrors": true,
+      "groups": [ { "id": "i1", "name": "Team island", "mirrors": true,
                      "shapeIds": ["s0", "s1", "s2", "s3"] } ] } }
   ]
 }
@@ -109,11 +109,25 @@ down to the water line. Marking it puts its columns in the dressing pass's keep-
 a prop that lands there is declined as `DR-KEEP` naming the cell. The mark is **exact — no margin** — because
 the wall a road runs through a gate of has to keep its own columns and not a verge either side of them; it is
 the marked shape's own footprint rather than what survives the layer's set algebra, and it travels through the
-symmetry fan with its island, so a marked shape on a mirrored island keeps its images clear too.
+symmetry fan with its group, so a marked shape on a mirrored group keeps its images clear too.
 
 **A subtract is a hole, not a dip.** It takes the whole column out at every cell its outline covers, so its
 own height is not read — a one-block-tall subtract carves exactly as deep as a hundred-block one. That is the
 difference from relief, and it is the whole of it: relief moves a surface, a subtract removes it.
+
+**A hollow ring is one polygon and not two shapes.** A subtract is refused wherever an add sits over or
+under it (`SK13`, below), so a ring wall cannot be a disc with a smaller disc taken out of it on any layer
+that also carries a floor or a roof. What it is instead is one polygon that traces its outer ring, slits
+inward along a radius, traces its inner ring the other way round and returns along the slit: the fill rule is
+**even-odd**, so the doubly-wound interior is outside the shape and the annulus stands. Nothing special reads
+it — it is a vertex list like any other, draggable in Draw, and the same construction makes an elliptical
+wall, a drum, a crenellated parapet and every hollow tower in `pgm-studio-mapgen/sculpture/forms`.
+
+**An override add lays a floor inside a wall whatever their heights are.** A layer keeps one span per column
+and the taller add wins it floor and all, so a low deck drawn inside a tall ring on one layer is simply not in
+the world. Marked `override` it is laid after the ordinary pass and overwrites the columns it covers outright,
+which is what puts a floor inside a tower, a lid on a shaft and a walkway across a court without a second
+layer.
 
 Height is two numbers. `floor` is where the shape's base sits and `base_height` is its thickness, so the
 column spans `[floor, floor + base_height]`. A polygon whose `anchor_heights` line up with its vertices varies
@@ -128,41 +142,41 @@ one-to-one ramp — every sample lands exactly on the rounding boundary and the 
 noughts and twos, which reads as a stair with a two-block rise in it and costs a placed block to climb. A
 flight is therefore one shape at any gradient, and the shallower ones climb a course at a time too.
 
-Four further fields matter once an island carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
+Four further fields matter once a group carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
 a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
 plinth held a fixed amount above whatever ground it sits on, a quarry the same downward. `skirt` is how far in
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a landform. `relief_scope` is `hold` or `exclude` and decides
-whether the shape's ground takes part in its island's relief at all (see *Islands and layers*); absent means
-it is simply part of the island's ground. And a path carries `path_edge`
+whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means
+it is simply part of the group's ground. And a path carries `path_edge`
 (`solid`, `rough`, `tapered`) with a `path_seed`, since a path is stored as the open centreline it was drawn
 as and its band is derived.
 
 A shape tagged with a `role` is not terrain at all. It is a spawn or wool-room piece the plan placed,
-projected in so the room stays visible instead of dissolving into the fused island, carrying an `intentRef`
+projected in so the room stays visible instead of dissolving into the fused group, carrying an `intentRef`
 back to the entity it belongs to and a `color`. Role-tagged shapes are loaded as a locked render-only overlay:
 never hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
 
 **Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
-ground it stands on is the island's; that overlap is what binds the room to its island's relief, since an
-annotation is never listed in an island's own `shapeIds` (`docs/world-export/relief.md` §11). Selecting the
+ground it stands on is the group's; that overlap is what binds the room to its group's relief, since an
+annotation is never listed in a group's own `shapeIds` (`docs/world-export/relief.md` §11). Selecting the
 polygon in front of a room therefore selects one that reaches under the room as well — which is the shape of
 the thing, not a fault in it. What keeps the room level is the pin, and nothing after the pin may tilt it
 (§2.1).
 
-### Islands and layers
+### Groups and layers
 
-An **island** is not authored; it is computed. Every time the shapes change, the tool unions them and reports
-the connected landmasses that result, so two rectangles pushed together become one island and pulling them
-apart splits it again. What an author owns is the island's `name` and its `mirrors` flag — whether the group is
-copied onto its symmetry orbit — and those survive a recompute by matching the island back to its previous
-self. A single-member island shows the shape inspector rather than the island one, so a lone rectangle needs
+A **group** is not authored; it is computed. Every time the shapes change, the tool unions them and reports
+the connected pieces that result, so two rectangles pushed together become one group and pulling them
+apart splits it again. What an author owns is the group's `name` and its `mirrors` flag — whether the group is
+copied onto its symmetry orbit — and those survive a recompute by matching the group back to its previous
+self. A single-member group shows the shape inspector rather than the group one, so a lone rectangle needs
 no drilling.
 
-The island matters beyond naming: **it is the unit a relief is stated against**, because a relief solved per
-shape would leave a seam wherever two shapes met and disagreed about the height they share. One island holds
+The group matters beyond naming: **it is the unit a relief is stated against**, because a relief solved per
+shape would leave a seam wherever two shapes met and disagreed about the height they share. One group holds
 one relief, keyed by its id, and there is no way to give two parts of a landmass a relief each — two shapes
-that touch are one island and share whatever it states.
+that touch are one group and share whatever it states.
 
 **A shape can leave that solve, though, and this is where the fusion stops being a cage.** `relief_scope` on a
 shape says how its ground takes part: `exclude` removes its cells from the field entirely, so the shape keeps
@@ -173,23 +187,23 @@ knowing where it has to arrive. Held shapes are applied last, so one wins its ce
 averaged against.
 
 That is what makes a mixed board possible without a second relief. A flat rectangle with a raised step
-attached to it is one island; marking the step `exclude` leaves it standing at exactly the height it was drawn
+attached to it is one group; marking the step `exclude` leaves it standing at exactly the height it was drawn
 at while a relief shapes only the ground around it, and marking it `hold` flattens it to its own top and lets
 the surrounding surface rise to meet it.
 
 **`reach` bounds the statement; the word bounds the ground.** The fill is a screened-Poisson relaxation and
 `reach` is the screening: the field decays back to `base` over a characteristic length of that many blocks, so
 a finite reach makes each mark a local landform with plain ground between. The default is the trap —
-**`reach` of zero means unlimited**, which is what a room-sized island wants and exactly what lets one mark
+**`reach` of zero means unlimited**, which is what a room-sized group wants and exactly what lets one mark
 decide a whole fused board. But reach only says how far the *mark* travels. Every cell the relief covers takes
 its height from the solved field, so a shape inside it has no height of its own left however local the marks
 are; keeping a drawn height beside a relief is what `exclude` and `hold` are for.
 
 The four outcomes are worth stating as measurements, over one plan — a 30×20 field at surface 9 with a 10×20
-step at 19 attached to it, compiled to one island, carrying one bench five blocks below the base inside the
+step at 19 attached to it, compiled to one group, carrying one bench five blocks below the base inside the
 field. The readings are the built column top at the pit, out on the field, and on the step.
 
-| The island's relief | pit | field | step | The board |
+| The group's relief | pit | field | step | The board |
 |---|---|---|---|---|
 | `reach` 0, step inherits | 4 | 4 | 4 | one mark flattens everything, step included |
 | `reach` 8, step inherits | 4 | 7 | 8 | the pit is local; the step's rise is gone all the same |
@@ -231,7 +245,7 @@ soffit at y 24 whatever the relief does above it. `anchor_heights` interpolates 
 polygon, which is how a ramp climbs from one layer's floor to another's.
 
 **Relief solves per layer** and comes back already shifted into world Y, so a stacked board carries one solved
-surface per relief-bearing island and a caller never adds `base_y` a second time. **A depression or a river in
+surface per relief-bearing group and a caller never adds `base_y` a second time. **A depression or a river in
 an upper layer does not cut through the layer beneath it** — the layers are solved independently, which is
 what the author's ruling asks for.
 
@@ -241,31 +255,78 @@ lets a shape sit inside a hole another shape cut.
 
 **One line lets an air gap survive between two slabs.** `TerrainPainter.Paint` writes only where the world
 already holds *stone*, and the gap between a gallery and the deck over it is air. Without that invariant the
-band resolver — which runs bedrock at the bottom and surface at the top of a column — would fill the storey
+band resolver — which runs bedrock at the bottom and surface at the top of a column — would fill the layer
 out of existence.
 
-**A placement names the storey it rests on.** An objective, a spawn, a room and a prop each carry an optional
+**A placement names the layer it rests on.** An objective, a spawn, a room and a prop each carry an optional
 `layer`; naming none takes the top surface, and naming one the board has no ground on is declined rather than
 seated on the top. `docs/world-export/decoration.md` §1 carries the prop half.
 
-**A column carries one theme per layer, not one theme.** The board is painted one pass per layer, each storey
+**A column carries one theme per layer, not one theme.** The board is painted one pass per layer, each layer
 against its own surface, so a cell standing on two layers is painted twice. Within a layer the smallest-area
 themed shape still wins a contested cell; across layers there is no contest, because each surface shows its
 own. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
 
-**A stacked board is walked storey by storey.** The walk's node is a place — a cell and the storey of it — so
+**A stacked board is walked layer by layer.** The walk's node is a place — a cell and the layer of it — so
 a deck twenty blocks over a yard is two somewheres rather than one, and a step between them is a step only
 where the lower one's clearance admits it. A yard roofed by the deck over it is a separate board from the deck;
 cut a hole in the roof and the two join there. `docs/world-scan/read-backs.md` §"What a walk costs" carries the
 rule.
 
 **What a stacked board says about itself, and what it does not.** `SK10` names two layers cutting into one
-another and `SK11` names a mass no route reaches, both as complaints. What neither can say is which storey a
+another and `SK11` names a mass no route reaches, both as complaints. What neither can say is which layer a
 scanned world's ground belongs to: a scan's segments carry no layer at all, because **a scanned cave and a
 stacked sketch are one geometry seen twice**, differing only in provenance.
 
 In the editor, the active layer is the one being drawn on; the others ghost underneath in 2-D and stack in the
 isometric preview, and a new layer defaults to ten blocks above the highest existing one.
+
+### A made thing, and the three words that say a layer is one
+
+Everything above describes **ground**: slabs stacked into decks, galleries and terraces, each one terrain that
+a player stands on. A layer can hold something else. A ship, a balloon, a statue, a gatehouse — a **made
+thing** — is drawn out of layers because layers are what can hold an arbitrary solid, and it is neither
+terrain nor a dressing prop: a prop is a catalogue entry a stamper places, and a made thing is drawn, shape by
+shape, in the same editor and by the same set algebra as the ground.
+
+Three optional fields on a layer say so, and nothing else changes about how it is drawn.
+
+| Field | Takes | Says |
+|---|---|---|
+| `kind` | `ground` · `prop` | what the layer holds. Absent is `ground` |
+| `prop` | any name | which made thing this layer belongs to, where a thing spans several |
+| `seat` | `ground` | that the layer's floors are taken from the ground beneath it rather than stated absolutely |
+
+**`kind` is what keeps the stacking rules off it.** `SK10` reads two layers whose spans meet as a gap that is
+not in the world, and `SK11` reads a mass under open sky that nothing reaches as a way onto a deck somebody
+forgot to draw. Both are right about terrain and wrong about a sculpture: a solid form sinking into a hill has
+no gap to lose, and a raised arm, a dome on columns, an antenna is not standable ground. A `prop` layer is
+therefore out of `SK10`'s pair walk and out of `SK11`'s detached-mass walk, and the rules stay exactly as
+strict about the ground they were written for. Nothing else reads `kind`: a `prop` layer rasterizes, paints,
+themes and mirrors identically.
+
+**`seat` is where the house model is borrowed from.** A house prop seats on the lowest column of its own
+footprint one course down, carves the terrain standing over that floor out of every footprint column, and
+declines rather than half-lands (`docs/world-export/structures.md` §6). A seated layer does the same thing
+with the same three moves, over the whole made thing rather than over one rectangle: the lowest solid column
+anywhere under the thing's footprint decides one drop, every layer of the thing is shifted by it together, and
+the ground standing above the settled floor is cut out of the footprint so a bank the thing digs into stops
+at its own hull. **The drop is one number for the whole thing, not one per layer** — a keel that settled
+independently of the deck above it would not be a ship — which is exactly what `prop` is for: layers sharing a
+`prop` name seat as a unit, and a layer with no `prop` seats on its own.
+
+**What the seat measures against is what the thing is not.** Terrain, and any made thing that states its own
+absolute height. So a balloon over a ship does not settle onto the ship's deck unless it says it should — it
+either states no `seat` and hangs where it was drawn, or seats and finds the water beneath.
+
+A thing whose footprint covers no ground at all has nothing to measure against and stays at the height it was
+drawn; `SK16` says so as a complaint, because a sculpture in open sky is a legitimate board and the word for
+it is simply to state no seat.
+
+**A seated layer is painted over its own span.** Terrain's bands run from the bedrock course to the surface,
+which is nonsense for a hull flying at y24 — its fill band would claim the whole column beneath it. A `prop`
+layer's bands run over `[its own floor, its own top]` instead. `docs/world-export/terrain-painting.md` §5
+carries that half.
 
 ### What the rasterizer makes of it
 
@@ -273,12 +334,12 @@ isometric preview, and a new layer defaults to ten blocks above the highest exis
 `ColumnSegment` each: `(x, z)`, the span `[YFloor, YTop)`, and **the id of the layer that drew it**. A cell
 standing on two layers answers twice, once per layer, which is what lets a read tell a gallery from the deck
 over it. A layer that named itself keeps its id; one that did not is named by its position (`layer0`), so a
-segment can never come back belonging to no layer. Island mirror copies follow the saved `shapeIds` and the setup's
-mode, so an island that opted out of mirroring is rasterized once.
+segment can never come back belonging to no layer. Group mirror copies follow the saved `shapeIds` and the setup's
+mode, so a group that opted out of mirroring is rasterized once.
 
-**Two rasterizers have to agree, and five constants are what make them.** The live island preview runs the
+**Two rasterizers have to agree, and five constants are what make them.** The live group preview runs the
 boolean in the browser (`boolean.js`, over the vendored `polygon-clipping`) because it is the hot path; the
-server rasterizes the same document authoritatively and re-detects islands. Neither is derived from the other,
+server rasterizes the same document authoritatively and re-detects groups. Neither is derived from the other,
 so the drawn outline and the built one stay identical only as long as both sides read the same numbers:
 
 | Constant | Value | Where |
@@ -286,14 +347,14 @@ so the drawn outline and the built one stay identical only as long as both sides
 | circle resolution | **64** points | `SketchRasterizer.CirclePoints` ⇄ `shape.js CIRCLE_POINTS` |
 | Bézier sampling | **16** samples per curved edge, endpoint excluded | `BezierSamples` ⇄ `BEZIER_SAMPLES` |
 | set-algebra order | adds − subtracts, then override-adds, then override-subtracts | both |
-| `keepClear` footprint | the marked shapes rasterized alone, fanned by island | `SketchRasterizer.KeepClearCells` |
+| `keepClear` footprint | the marked shapes rasterized alone, fanned by group | `SketchRasterizer.KeepClearCells` |
 | `controls` keying | the vertex index as a **string** | `Dictionary<string, SketchControl>` |
 | `rot_270` | `(Δx, Δz) → (Δz, −Δx)` | the internal third image of a `rot_90` orbit — never an authored mode |
 
 Changing one without the other does not fail loudly; it produces a world whose edges disagree with the picture
 by a fraction of a block, which is why the constants carry cross-referencing comments on both sides.
 
-Where an island carries a relief, its surface is solved first (`ReliefFields`) and the same solve is what the
+Where a group carries a relief, its surface is solved first (`ReliefFields`) and the same solve is what the
 contour preview draws — which is the only reason a preview is worth drawing at all.
 
 What becomes of those columns once Finish runs — the layer scheme the world folder is written in, its
@@ -303,36 +364,36 @@ What becomes of those columns once Finish runs — the layer scheme the world fo
 ## Phases
 
 **Selection is a ladder of three rungs, and exactly one of them is on screen.** A plain click picks the unit
-the phase states: an island in Draw and Relief, because a landmass is what moves and one relief is solved per
-island; a shape in Theme, because a theme is assigned to one shape or to everything an island holds. A
-**double-click goes one rung down** — from an island to the member under the cursor, from a shape to that
+the phase states: a group in Draw and Relief, because a landmass is what moves and one relief is solved per
+group; a shape in Theme, because a theme is assigned to one shape or to everything a group holds. A
+**double-click goes one rung down** — from a group to the member under the cursor, from a shape to that
 shape's points — and `Escape` comes back up one, so the two are the same gesture reversed. `Enter` is the
 keyboard's way down, where the double-click is the pointer's.
 
-**A single-member island is one rung and not two**, because its box and its lone member's box are the same
+**A single-member group is one rung and not two**, because its box and its lone member's box are the same
 box and there is nothing for the shape rung to say; drilling it opens the points directly. Reaching a rung
-across islands stays a modifier: `Ctrl`/`⌘`+click reaches the shape under the cursor whichever island holds
-it, entering that island as the scope in the same motion, and `Alt`+click leaves any scope and picks the
-parent island of whatever is under the cursor. Once an island is entered, a plain click reaches a member
+across groups stays a modifier: `Ctrl`/`⌘`+click reaches the shape under the cursor whichever group holds
+it, entering that group as the scope in the same motion, and `Alt`+click leaves any scope and picks the
+parent group of whatever is under the cursor. Once a group is entered, a plain click reaches a member
 shape and a click landing outside its footprint leaves the scope before landing normally — and a click on the
 shape whose points are already open leaves them open, so working point by point is not interrupted by
 touching what is being worked on.
 
 `Escape` walks the whole way out in the order a press means it: an in-progress draw, then the points, then
-the entered island, then the selection itself. With a theme in hand it does none of that and puts the theme
+the entered group, then the selection itself. With a theme in hand it does none of that and puts the theme
 down instead. Closing a drawn polygon is no part of the ladder: a polygon or a path closes on `Enter`, or on
 a click landing back at its own first vertex.
 
-**The Shapes chip draws every primitive on the board; without it, the selected or entered island draws its own
-members instead** — faintly where the island is merely selected, plainly where it is entered, so a member
+**The Shapes chip draws every primitive on the board; without it, the selected or entered group draws its own
+members instead** — faintly where the group is merely selected, plainly where it is entered, so a member
 becomes reachable without hunting for the toggle first.
 
-**Which layer is drawn on is canvas chrome, not any one phase's own state.** The storey strip floats at the
+**Which layer is drawn on is canvas chrome, not any one phase's own state.** The layer strip floats at the
 foot of the canvas beside the dock and is present in every phase that draws the canvas. It is where the set
-of storeys is *changed* as well as switched: only Draw offers the `+` that adds one and the `×` that removes
-one, because both are drawing work, and the last storey has no `×` at all — a board always stands on one.
+of layers is *changed* as well as switched: only Draw offers the `+` that adds one and the `×` that removes
+one, because both are drawing work, and the last layer has no `×` at all — a board always stands on one.
 Whatever is placed lands on the active layer — a placement takes it unless it already names one — so an
-author is never asked twice which storey something belongs to. The Theme phase's swatch strip is chrome for
+author is never asked twice which layer something belongs to. The Theme phase's swatch strip is chrome for
 the same reason and floats above the dock beside it.
 
 **A phase offers the overlays it can use, and switches on the ones it works with.** The layer bar is not a
@@ -359,7 +420,7 @@ where one is edited.
 `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) steps forward. A step is the whole layout — the value the canvas can be
 loaded back into — rather than a record of which edit happened, so a press that changes nothing costs no step
 and a drag that fires on every frame between the press and the release costs exactly one. A step is the
-document and not the view: the camera and the storey being drawn on are where the author is, so both survive
+document and not the view: the camera and the layer being drawn on are where the author is, so both survive
 it.
 
 **Every chord below is also live in the sheet and the palette.** `?` opens the keyboard sheet grouped like the
@@ -378,19 +439,19 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | `X` | Split | Tools |
 | `B` | Flip build ⇄ carve | Tools |
 | `F` | Fit the working bounds | Canvas |
-| Double-click | Go one level deeper — into an island's member, then into that shape's points | Canvas |
-| `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its island as the scope | Canvas |
-| `Alt`+click | Pick the parent island and leave any scope | Canvas |
+| Double-click | Go one level deeper — into a group's member, then into that shape's points | Canvas |
+| `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its group as the scope | Canvas |
+| `Alt`+click | Pick the parent group and leave any scope | Canvas |
 | `Enter` | Go one level deeper, or close the polygon/path in progress | Canvas |
 | `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
 | `Delete` / `Backspace` | Delete the selected shape | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
-| `Shift`+`P` | Promote the shape to its own island | Sketch |
+| `Shift`+`P` | Promote the shape to its own group | Sketch |
 | `Ctrl`/`⌘`+`D` | Duplicate the selected shape | Canvas |
 | `Alt`+`1`…`5` | Toggle Shapes · Mirror · Chunks · Blocks · Relief, where the phase offers it | Overlays |
 | `Alt`+`6` | Snap while dragging | Tools |
 | `[` / `]` | Take the previous / next theme in hand — answers only in Theme | Theme |
-| `Shift`+click | Paint every shape the island holds, with a theme in hand | Theme |
+| `Shift`+click | Paint every shape the group holds, with a theme in hand | Theme |
 | `Alt`+click | Lift a shape's theme into the hand, with a theme in hand | Theme |
 | `Ctrl`/`⌘`+`Z` | Undo | Everywhere |
 | `Ctrl`/`⌘`+`Shift`+`Z` (or `Ctrl`+`Y`) | Redo | Everywhere |
@@ -417,11 +478,11 @@ two points, the usual question being how wide a void gap is, and **split** slice
 into two independent shapes. Every draw and every split drops the
 tool back to select when it completes.
 
-**The top two rungs wear the same box, and the third wears none.** An island and a shape are each drawn with
+**The top two rungs wear the same box, and the third wears none.** A group and a shape are each drawn with
 the **transform box** every surface in the studio uses (`docs/client/canvas-interaction.md` §5): four corner
 anchors on the selection's own bounds, an invisible grab band along each edge that stretches or squashes that
 one axis, and four rotate zones outside the corners. What a grip *does* differs with what it holds — an
-island scales all its members proportionally, a rectangle moves the bound the grip names and snaps it to the
+group scales all its members proportionally, a rectangle moves the bound the grip names and snaps it to the
 other shapes' edges, an outline moves every vertex and every Bézier handle proportionally, because "the same
 shape but bigger" is not something point-by-point editing can say — but where the grips sit does not, so an
 author learns one box.
@@ -440,7 +501,7 @@ lighter accent, being a point proposed rather than a point placed. Both wear the
 being drilled in is read off the colour: colour is left to say what a point IS — plain, picked for its own
 height, or shift-marked in `--warning` as a surface-slope control.
 
-A rectangle can be **promoted** to a polygon in place, keeping its id and therefore its island membership.
+A rectangle can be **promoted** to a polygon in place, keeping its id and therefore its group membership.
 Selection can be rotated by a stated number of degrees about its own bounding-box centre, nudged a block at a
 time with the arrow keys (sixteen with Shift), moved with snapping to other shapes' edges (Alt bypasses),
 have its operation or its override flipped, or be deleted.
@@ -450,16 +511,16 @@ its own height, which materialises the per-vertex array on first use. And two or
 controls fit a plane through their stated heights and fill every remaining vertex from it — a ramp from two, an
 aimed plane from three — rounding to blocks, so a slope reads as the neat straight steps of a staircase.
 
-Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused islands), **Mirror** (the
+Six overlays sit above the canvas: **Shapes** (the draw primitives over the fused groups), **Mirror** (the
 symmetry copies), **Chunks** (the 16-block grid), **Blocks** (the rasterized footprint — the exact cells an
-export would fill), **Relief** (the height contours of whatever relief the islands carry) and **Snap**. A
+export would fill), **Relief** (the height contours of whatever relief the groups carry) and **Snap**. A
 read-only isometric preview draws **the world the export builds**: entering it posts the live layout to
 `sketch/columns`, which runs the real build and answers every column's solid runs, and the browser meshes
-those into triangles. So the picture carries the terrain's own materials, the relief the islands were solved
+those into triangles. So the picture carries the terrain's own materials, the relief the groups were solved
 to, the structures stamped on them and the goal markers hanging over the build ceiling — none of which the
 browser can derive. It rotates in 90° steps and disables itself where WebGL is unavailable.
 
-**In the preview the overlay chips become the board's own storeys**, one per sketch layer, because what an
+**In the preview the overlay chips become the board's own layers**, one per sketch layer, because what an
 author wants of a picture of a stack is to take the deck off and look under it. Every run in the payload says
 which layer drew it, so hiding one is a filter over what the browser already holds rather than a second build
 — and the faces are re-meshed against the board actually shown, so a gallery under a hidden deck gets its top
@@ -472,7 +533,7 @@ nothing to take off. A hidden layer **stays hidden across an edit**, and one the
 neither listed nor hidden.
 
 **Height is why it works this way.** A column's top is settled in three stages — the rasterized ground, then
-the per-island relief solve, then whatever an erected shape says about levelling, raising or sinking — and
+the per-group relief solve, then whatever an erected shape says about levelling, raising or sinking — and
 only the first is knowable client-side. A preview that extruded each shape to its own thickness drew stage one
 and called it the answer, so a mesa read at its own thickness and a hillside read as a plate. Asking the
 server is what makes the one view that exists to show height show the height model.
@@ -482,31 +543,31 @@ read the columns back out. Nothing is drawn in 3-D, so the fetch happens on **en
 than on every edit — the view swaps at once and fills in when the columns land. Rotating redraws the mesh
 already in hand, and re-entering an untouched board draws it again rather than rebuilding.
 
-The sidebar carries the active storey's settings — its name and its base Y — and the island→shape tree; the
-inspector on the right edits whatever is selected. Which storey is active, and which storeys there are, is
-the strip's alone: a storey is switched where it is drawn on, so the sidebar states what the storey **is**
+The sidebar carries the active layer's settings — its name and its base Y — and the group→shape tree; the
+inspector on the right edits whatever is selected. Which layer is active, and which layers there are, is
+the strip's alone: a layer is switched where it is drawn on, so the sidebar states what the layer **is**
 rather than offering a second list of the same rows.
 
 ### Relief
 
-One step, and the phase that turns flat plateaus into terrain. Everything here is stated **inside an island**,
-so the island tree is half the sidebar and the list of what has been stated is the other half. Which of the
-island's shapes the solve actually covers is not stated here but on the shapes themselves, through
+One step, and the phase that turns flat plateaus into terrain. Everything here is stated **inside a group**,
+so the group tree is half the sidebar and the list of what has been stated is the other half. Which of the
+group's shapes the solve actually covers is not stated here but on the shapes themselves, through
 `relief_scope` in the Draw inspector — a shape can hold its own level or leave the field altogether.
 
-The island's own settings are what every mark is measured against: `base` (the level the field falls back to
+The group's own settings are what every mark is measured against: `base` (the level the field falls back to
 where nothing is stated), `reach` (how far a mark's influence travels before the field returns to `base` —
-zero is unlimited, and a finite value is what keeps a landform local on a large island), `step` (the
+zero is unlimited, and a finite value is what keeps a landform local on a large group), `step` (the
 block quantum the finished surface snaps to), `stairs` (cut a way up out of ground the step stranded — offered
 whenever the step is more than one, since that is what turns a riser into a wall), `landform` (what kind of
 ground this is meant to be, which the readback measures the solved surface against) and `grain` (a
 wobble applied after the solve: amplitude, feature scale, seed).
 
-**`base` is the whole island's height, and a fresh relief takes the island's own.** A relief replaces the top
-of every column of its island, so where the marks say nothing the ground is at `base` — a base that differs
+**`base` is the whole group's height, and a fresh relief takes the group's own.** A relief replaces the top
+of every column of its group, so where the marks say nothing the ground is at `base` — a base that differs
 from the level the shapes were drawn at moves the whole landmass the moment the first mark lands. A relief
-created in the editor therefore starts at the island's own top: the most common `floor + base_height` among
-its add shapes, ties to the tallest, which for a plan-derived island is one number. The panel states that
+created in the editor therefore starts at the group's own top: the most common `floor + base_height` among
+its add shapes, ties to the tallest, which for a plan-derived group is one number. The panel states that
 level beside the field and says which way the ground moves where the two differ, because a base an author
 cannot compare is a set of heights they cannot read.
 
@@ -527,10 +588,10 @@ flank of a hill one operation rather than a restatement of the hill. A push's li
 which is what makes a drawn ridge fall along its length; setting every vertex to the same number collapses the
 array back to the single amount.
 
-A sixth mark, the **rim**, is not placed at all: it holds the island's whole outline, so it rides as a property
-of the island's relief — one height and a depth.
+A sixth mark, the **rim**, is not placed at all: it holds the group's whole outline, so it rides as a property
+of the group's relief — one height and a depth.
 
-The document is keyed by island id and carries the island's own settings beside the two lists. This one states
+The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:
 
 ```json
@@ -563,7 +624,7 @@ carry what its kind needs is **dropped rather than defaulted** — a point witho
 two points, an area or push under three ring vertices never reaches the solver.
 
 Two server-side reads support the phase. The **contour overlay** posts the live layout and gets back traced
-lines per island, at a stated interval, from the build's own solver, so what is drawn cannot differ from what
+lines per group, at a stated interval, from the build's own solver, so what is drawn cannot differ from what
 will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
 three thresholds a player has (a jump, a placed block, building in earnest), places separated from ledges and
 each piece named with its cell count, its middle and its box, faces qualified as cliffs, crossings measured in
@@ -580,7 +641,7 @@ One step: the map's paint, picked and placed. A theme is not authored here — t
 `library.md` is where a bucket, a material and the fourteen material kinds are written out. This phase takes
 one of the board's themes in hand and puts it on the ground.
 
-**The board's themes are a strip at the foot of the canvas**, above the dock and beside the storey strip,
+**The board's themes are a strip at the foot of the canvas**, above the dock and beside the layer strip,
 because a theme belongs to the board rather than to the phase and every click in the phase is addressed to
 whichever one is in hand. Clicking a swatch takes it in hand; clicking it again puts it down; `[` and `]` step
 through the registry with the empty hand as one of the stops, so one pair of keys reaches every theme however
@@ -592,9 +653,9 @@ brought up to date.
 
 **With a theme in hand the canvas is a brush**, and the modifiers are read against what is held rather than
 against the grouping. A click paints the shape under it; `Shift`+click widens the stroke to every shape the
-island holds; `Alt`+click lifts that shape's own theme back into the hand. There is no apply button and no
-scope control — with an empty hand the usual selection rule applies unchanged, and the tree reaches an island
-either way. A shape carries the assignment (`shape.theme`), an island stroke writes it to every member, and a
+group holds; `Alt`+click lifts that shape's own theme back into the hand. There is no apply button and no
+scope control — with an empty hand the usual selection rule applies unchanged, and the tree reaches a group
+either way. A shape carries the assignment (`shape.theme`), a group stroke writes it to every member, and a
 cell that carries none falls to the map default, so the resolution is shape, then map. `Escape` puts the brush
 down — a thing in hand is the first thing it lets go of — and so does leaving the phase.
 
@@ -602,7 +663,7 @@ down — a thing in hand is the first thing it lets go of — and so does leavin
 falls back to.** In hand: the sample plateau the theme finishes, a swatch per bucket, and the two acts that
 change the registry rather than the board — **Save to library**, which decomposes the theme into one style per
 bucket so it can be edited there, and **Remove**, which takes it off the board. Selection: what that shape or
-island is painted with, `mixed` where an island's shapes disagree, and **Unpaint**. Board defaults, when
+group is painted with, `mixed` where a group's shapes disagree, and **Unpaint**. Board defaults, when
 nothing is selected: the map default, how many shapes are still falling through to it, and the room shells.
 
 **The map default is the board's; the built-in is stone.** Every bucket of `TerrainTheme.Default` is stone —
@@ -657,7 +718,7 @@ sidebar is the list of what is placed, and the inspector edits either the select
 **Dressing is authored, not sprinkled, and that is the whole design.** A tree is cover and a boulder is a
 wall, so *where* each one stands is a decision about how the map plays and belongs to the person making the
 map: the pass places exactly what was placed and nothing else. There is no scatter, no density pass over the
-board, no "fill this island with forest". Within a drawn area the individual blades are a noise field, because
+board, no "fill this group with forest". Within a drawn area the individual blades are a noise field, because
 nobody places nine hundred of them by hand — but the area itself was drawn.
 
 **One piece of ground answers back.** A destroyable and a core keep the ground they cover, grown by four
@@ -912,7 +973,7 @@ always did: only a well-formed style or theme that is wrong is refused.
 
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while
-the goal marker over it hangs five blocks above a ceiling twenty over the ground — so a tall storey stack
+the goal marker over it hangs five blocks above a ceiling twenty over the ground — so a tall layer stack
 swallows the very sign that says where the goal is. The height is measured on the smallest room there is, 6×6,
 since every sloped roof only climbs further on a bigger footprint: a style refused here has no footprint it
 could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.cage` or
@@ -932,7 +993,7 @@ floor are ordinary ground and stay silent, and so do walls clamped *around* a tu
 roofed gallery is actually built.
 
 **It complains where two layers are driven into each other.** A layer states a `base_y` and a height and the
-pair reads perfectly; only the rasterized spans say whether the air between the storeys is there. Where a
+pair reads perfectly; only the rasterized spans say whether the air between the layers is there. Where a
 lower layer's span reaches into an upper layer's, the two build as **one solid mass** there — the gap is not
 in the world and nothing under the upper slab can be stood in — and `SK10` names both layers, how deep they
 meet, the deepest column and how many they contest in all. It is a **complaint**: the board builds, and a
@@ -945,17 +1006,21 @@ deck over **5,752 of 6,400 columns**, and complaining about it would be complain
 system rather than about the board. Two courses or more is a slab driven through another, and that is what
 fires.
 
-**And it complains where a storey has no way onto it.** `SK11` walks the board's own spans and reports any
+**And it complains where a raised mass has no way onto it.** `SK11` walks the board's own spans and reports any
 standable mass, sixteen places or more, that **stands over other ground** and that nothing joins to the rest
 of the board — with the count and the lowest place's coordinates, so it can be flown to.
 
-Two things are deliberately silent. **A mass beside another is an island**, not a fault: two landmasses across
+**Both of those walks skip a made thing.** A `prop` layer is out of `SK10`'s pair walk and out of `SK11`'s, so
+a hull sunk into a hill and a dome on columns raise nothing. The rules read the ground and the decks over it,
+which is what they are about.
+
+Two things are deliberately silent. **A mass beside another is a landmass**, not a fault: two landmasses across
 a void are how a board is normally drawn, and the build zone bridges them at the intent tier, which a sketch
 does not state — so a mass sharing no column with any other says nothing. Measured, that discriminator is the
 whole difference between a finding and noise: without it `thunderstorm`, a one-layer board of ordinary
-islands, reports **eight**. And **ground under a roof** is a room, and a room with no door is the author's to
+landmasses, reports **eight**. And **ground under a roof** is a room, and a room with no door is the author's to
 have, so only a mass with open sky over some of it is reported. What is left is something floating above
-another thing with nothing between them — a storey whose stair was never drawn, or a deliberate perch, and
+another thing with nothing between them — an upper level whose stair was never drawn, or a deliberate perch, and
 only the author knows which, so it is a complaint and never a refusal.
 
 **Joined means walked, not reached, and the bound is two blocks.** Unbounded, the walk finds a way onto every
@@ -983,10 +1048,10 @@ the northmost of them.
 as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
 its own, and this is its top. Each can be taken away by something that raises no other finding.
 
-A **relief** replaces the top of every column of its island, so an override add on a relieved island builds to
+A **relief** replaces the top of every column of its group, so an override add on a relieved group builds to
 whatever the field solves and its stated top is nowhere in the world. Only a shape naming a `height_mode`
 stands out of that field, and only a `relief_scope` keeps its ground out of the solve; carrying neither is
-`SK14`, a complaint naming the shape, its island and the top it asked for. The board still builds — that is
+`SK14`, a complaint naming the shape, its group and the top it asked for. The board still builds — that is
 exactly the problem, and a twenty-seven-course wall coming out level with the ground beside it is what it
 looks like. A top has to have been stated to be discarded, so an override add carrying no `base_height`,
 `floor` or `anchor_heights` is outside this: such a shape is a footprint holding a theme, and the ground the
@@ -998,14 +1063,20 @@ the ground and the *smaller* wins the paint. Where the smaller is also the short
 shape's blocks in another's material: a mound's outer ring crossing a wall leaves the wall standing to its own
 courses and finished in the mound's paint, sides included. That is `SK15`, a complaint naming both shapes, both
 themes, the columns they contest and the northmost. Two shapes at *one* height are a theme scoped to a patch,
-which is what scoping is for, and are not this. **The images count**: a shape in a mirroring island stands on
+which is what scoping is for, and are not this. **The images count**: a shape in a mirroring group stands on
 the board once per axis of the orbit, and what a patch contests is as often another patch's reflection as the
 patch itself — a dais laid clear of a court on the half it is drawn on lands in the middle of it on the other.
+
+**And it complains where a made thing seats on nothing.** A seated layer takes its floors from the lowest
+solid column under its own footprint, so a thing whose footprint covers no ground has nothing to measure
+against and stays at the height it was drawn. `SK16` names the made thing and how many of its columns found
+nothing beneath them. A complaint and never a refusal: a balloon, a ship in the air, a statue on a spire is a
+legitimate board, and the way to say so is to take the layer's `seat` off.
 
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
 stating its negative space — so a subtract *following* an add on that add's own layer is its hole and says
-nothing; without that reading every simplified island with a hole in it would report a fault. Across layers
+nothing; without that reading every simplified group with a hole in it would report a fault. Across layers
 the order carries nothing of the kind: a layer's place in the stack is a **height**, and a slab written first
 is written `below`. So an add on another layer is a fill wherever it sits in the document.
 
@@ -1034,9 +1105,9 @@ than at the `PUT`, for the reason `SK6` and `SK7` are: a board mid-draw has ever
 finishing declares the drawing done.
 
 **A recompile refuses to orphan a relief.** `PUT .../sketch/from-plan` answers **409** in the refusal envelope
-(`docs/refusals.md`) — one `SK1` finding per island the new geometry has no home for, the island id riding as
-the finding's subject — and writes nothing. Island identity is derived from the geometry, so a recompile that
-re-fuses the board does not merely move an island — it produces a different one, and terrain authored against
+(`docs/refusals.md`) — one `SK1` finding per group the new geometry has no home for, the group id riding as
+the finding's subject — and writes nothing. Group identity is derived from the geometry, so a recompile that
+re-fuses the board does not merely move a group — it produces a different one, and terrain authored against
 the old fusion has nowhere correct to land. `?force=true` accepts the loss and proceeds, which is the author's
 call and not the server's.
 
@@ -1066,7 +1137,7 @@ because the complaints are carried by the pipeline rather than by the endpoint (
 success carries*). Both writes run the gate over the merged document rather than the posted one, since the
 merge is the road a headless driver takes: `SK3` for a name that matches nothing — a
 shape kind nobody has, a **mirror mode** nobody has (which fans the board onto itself, so a map stating two
-halves stands on one), an island listing a shape id the layout does not carry, a relief keyed to an island
+halves stands on one), a group listing a shape id the layout does not carry, a relief keyed to a group
 that does not exist, and a **theme** the registry does not carry, on a shape or as the map default (which
 paints those cells unthemed stone and is otherwise the quietest fault a finish has — one reported per name
 rather than one per shape) — `SK4` for a shape that
@@ -1101,7 +1172,7 @@ Every endpoint is anonymous and rooted at `/api`.
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
 | `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `the board cannot be built as drawn` `SK2` or `SK13` · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned island (`?force=true`) · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 400 · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 
@@ -1113,8 +1184,8 @@ carry — the board an author is looking at is the one place those complaints ar
 | Endpoint | Answers |
 |---|---|
 | `POST /map/{slug}/sketch/paint` | the painted surface as palette-indexed block pixels — the real painter's output, with team tints resolved from the stored intent |
-| `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, islands[]}` — per island its height range, its bounds and its traced contour lines, from the build's own solver |
-| `POST /map/{slug}/sketch/relief/read` | `{islands[]}` — per island the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, and the `landform` it measures as beside the `smoothing` it kept. Carries `RL1` where the island states a different word and `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1) |
+| `POST /map/{slug}/sketch/relief[?interval=]` | `{interval, groups[]}` — per group its height range, its bounds and its traced contour lines, from the build's own solver |
+| `POST /map/{slug}/sketch/relief/read` | `{groups[]}` — per group the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, and the `landform` it measures as beside the `smoothing` it kept. Carries `RL1` where the group states a different word and `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1) |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. The claim is what a keep-out is measured against, and a stroke's is decided by its style, coverage and seed — none of which can be reasoned about from the document | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
@@ -1179,9 +1250,9 @@ drawing, and which answer in a raster it can actually open.
 
 **Four read the sketch itself.** `POST .../sketch/paint` runs the real painter and answers the surface as
 palette-indexed runs — the exact colour of every footprint cell, which is how a Voronoi reads as its cells
-rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per island
+rather than as an average. `POST .../sketch/relief[?interval=]` answers the traced contour lines per group
 from the build's own solver, as flat `[x, z, x, z, …]` runs. `POST .../sketch/relief/read` answers the terrain
-in **numbers**: per island the cell count, low, high and relief, the step count and tiers, the faces with
+in **numbers**: per group the cell count, low, high and relief, the step count and tiers, the faces with
 cliffs qualified, crossings measured in both directions, and the symmetry error. That last one is the one to
 reach for first, because it is the only preview that says whether terrain is any *good* without an eye — it is
 what makes a relief correctable by a generator. `POST .../sketch/columns` answers the whole built world as
@@ -1227,7 +1298,7 @@ same numbers.** A mark placed in the editor is seeded from the client's own star
 mark that omits a field takes the C# record's default, and several differ — a spot height omitting `r` reads 2
 where the editor seeds 4, a ridgeline omitting `r` reads 2 where the editor seeds 3, and a push omitting
 `amount`, `roughness` or `crown` reads zero for all three. `base` is the exception and is deliberately not one:
-an omitted `base` reads 4 on both sides, and the editor states the island's own top rather than any constant.
+an omitted `base` reads 4 on both sides, and the editor states the group's own top rather than any constant.
 A line's reach is `r`, the one name for the one quantity; `width` is read on the way in and never written back,
 so a document that is loaded and saved comes out spelling the one name. State the fields rather than relying on
 any of it. And **a mark that does not carry what its kind needs is dropped, not defaulted**: a point without
@@ -1261,7 +1332,7 @@ reaching a second wing today means writing the document by hand or generating it
 on the canvas is `S60`'s open half.
 
 Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are drawn on one side and copied at
-export for every island that opted in; nothing stops an author drawing across the axis, and nothing checks that
+export for every group that opted in; nothing stops an author drawing across the axis, and nothing checks that
 the two halves agree. The relief readback reports a symmetry error precisely because nothing prevents one.
 
 Almost nothing validates a sketch. The only questions asked of it are whether anything was drawn at all,
