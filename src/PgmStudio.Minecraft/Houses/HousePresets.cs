@@ -62,7 +62,7 @@ public static class HousePresets
     /// </summary>
     private static readonly TerrainMaterial Masonry = new CheckerMaterial(1,
         new SolidMaterial(Blocks.Stone),
-        new SolidMaterial(Blocks.Stone, PolishedAndesite));
+        new SolidMaterial(Blocks.Stone, PolishedAndesiteNibble));
 
     /// <summary>The same two stones scattered rather than boarded — a rubble plinth. The checker is the dressed
     /// wall and this is the footing under it, which is the order a real building puts them in.</summary>
@@ -78,8 +78,139 @@ public static class HousePresets
     /// was designed at travels beside it and is used when it is placed.</para></summary>
     public readonly record struct House(string Name, HouseStyle Style, int Width, int Depth);
 
+    // ── the three an author stated ────────────────────────────────────────────────────────────────────
+    // Ids these three name and the ten above do not. Spelled here for the reason every nibble in this file is:
+    // a bare number in a palette says nothing about which face of a block it is.
+    private const int PolishedAndesiteNibble = 6, ClayBlock = 82;
+    private const int SandstoneSlab = 1;                                    // 1 is the sandstone nibble of 44
+    private const int NetherBrickStairs = 114, NetherBrickSlab = 6;
+    private const int RedMushroomBlock = 100, Pores = 0;                    // 0 is the pore texture on every face
+    private const int SmoothSandstoneBlock = 2, BirchPlanks = 2, DarkOakPlank = 5;
+    private const int BlackClay = 15, RedWool = 14, DarkOakLog = 1;         // nibbles of 159 / 35 / 162
+
+    /// <summary>Andesite posts, a wall of cobble giving way to stone, a clay gable and a stone-brick roof
+    /// trimmed in polished andesite — a mason's own house, grey on grey with one spruce window in it.</summary>
+    public static House Stonemason => new("stonemason", new HouseStyle
+    {
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable, Pitch = 1, Overhang = 1, RidgeCap = true,
+            Body = new SolidMaterial(StoneBrickBlock),
+            Verge = new SolidMaterial(Blocks.Stone, PolishedAndesite),
+            Gable = new SolidMaterial(ClayBlock),
+            GableWindows = new WindowStyle
+            {
+                Form = WindowForm.StairLattice, Block = SpruceStairs, Width = 2, Height = 2, Sill = 1,
+            },
+        },
+        // The post is the storey's, not the building's — a house whose corners are stated once
+        // per level, which is what a stack of storeys each with their own is for.
+        Post = null,
+        Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(StoneBrickBlock), 1) },
+        Storeys = [Ground(
+            new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Stone),
+            new SolidMaterial(Blocks.Stone, Andesite), SpruceStairs)],
+        Doorway = Arched(StoneBrickStairs, StoneSlab, StoneBrickSlab),
+    }, 11, 9);
+
+    /// <summary>Sandstone posts under smooth sandstone and birch, a red mushroom cap for a verge and its
+    /// pores for the gable, all under a red wool roof — sandy, and deliberately cheerful.</summary>
+    public static House SandyMushroom => new("sandy mushroom", new HouseStyle
+    {
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable, Pitch = 1, Overhang = 1, RidgeCap = true,
+            Body = new SolidMaterial(Blocks.Wool, RedWool),
+            Verge = new SolidMaterial(RedMushroomBlock, AllCap),
+            Gable = new SolidMaterial(RedMushroomBlock, Pores),
+            GableWindows = new WindowStyle
+            {
+                Form = WindowForm.StairLattice, Block = SpruceStairs, Width = 2, Height = 2, Sill = 1,
+            },
+        },
+        // The post is the storey's, not the building's — a house whose corners are stated once
+        // per level, which is what a stack of storeys each with their own is for.
+        Post = null,
+        Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(Blocks.Sandstone), 1) },
+        Storeys = [Ground(
+            new SolidMaterial(Blocks.Sandstone, SmoothSandstoneBlock),
+            new SolidMaterial(Blocks.Planks, BirchPlanks),
+            new SolidMaterial(Blocks.Sandstone), SpruceStairs)],
+        Doorway = Arched(SandstoneStairs, StoneSlab, SandstoneSlab),
+    }, 11, 9);
+
+    /// <summary>Dark oak logs and planks over a black clay base, a cobble gable, and a roof <b>laid</b> in
+    /// spruce logs that run the length of the ridge — no verge of its own, so the log reaches the eave.</summary>
+    public static House Darkwood => new("darkwood", new HouseStyle
+    {
+        Roof = new RoofStyle
+        {
+            Form = RoofForm.Gable, Pitch = 1, Overhang = 1, RidgeCap = false,
+            Body = new LaidLogMaterial(Blocks.Log, Spruce),
+            Verge = new LaidLogMaterial(Blocks.Log, Spruce),
+            Gable = new SolidMaterial(Blocks.Cobblestone),
+            GableWindows = new WindowStyle
+            {
+                Form = WindowForm.StairLattice, Block = NetherBrickStairs, Width = 2, Height = 2, Sill = 1,
+            },
+        },
+        // The post is the storey's, not the building's — a house whose corners are stated once
+        // per level, which is what a stack of storeys each with their own is for.
+        Post = null,
+        Foundation = new Foundation { Plate = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), 1) },
+        Storeys = [Ground(
+            new SolidMaterial(Blocks.StainedClay, BlackClay),
+            new SolidMaterial(Blocks.Planks, DarkOakPlank),
+            new SolidMaterial(Blocks.Log2, DarkOakLog), NetherBrickStairs)],
+        Doorway = Arched(NetherBrickStairs, StoneSlab, NetherBrickSlab),
+    }, 11, 9);
+
+    /// <summary>The one storey all three are: two courses of <paramref name="base"/> under a run of
+    /// <paramref name="body"/>, a post of its own, and a stair lattice seated where the two meet.</summary>
+    private static Storey Ground(TerrainMaterial @base, TerrainMaterial body, TerrainMaterial post, int window)
+        => new()
+        {
+            Clear = 5,
+            Post = post,
+            // A plain floor: no border ring and no inlay, so what a player walks on is the floor part's own
+            // top course. Stated rather than left null because a storey with no surface at all is a storey
+            // that has said nothing about its floor, which is a different thing from one that has said plain.
+            Surface = new FloorSurface { BorderWidth = 1, InlayInset = 2 },
+            Wall = new RoomPart(new BandStack([new Band(@base, 2), new Band(body, 4)]), Extent: 5),
+            Windows = new WindowStyle
+            {
+                Form = WindowForm.StairLattice, Block = window, Width = 2, Height = 2, Sill = 2, Spacing = 3,
+            },
+        };
+
+    /// <summary>An open doorway three courses tall under an arched head — stairs in the corners and a slab
+    /// spanning the middle, both cut from one material, which is what HS4 asks of the pair.</summary>
+    private static Doorway Arched(int stairs, int slab, int slabData) => new()
+    {
+        Door = DoorMaterial.Air, Width = 2, Height = 3,
+        Head = new DoorHeadStyle
+        {
+            Form = DoorHeadForm.Arched, Block = stairs,
+            Fill = DoorHeadFill.UpperSlab, FillBlock = slab, FillData = slabData,
+        },
+    };
+
+
+
     public static IReadOnlyList<House> All =>
-        [Alpine, Desert, Diorite, Townside, Stilts, Cottage, Longhouse, Terrace, Counting, Workshop];
+    [
+        Alpine, Desert, Diorite, Townside, Stilts, Cottage, Longhouse, Terrace, Counting, Workshop,
+        Stonemason, SandyMushroom, Darkwood,
+    ];
+
+    /// <summary>The three an author stated in words rather than in code — a mason's house, a mushroom cottage
+    /// and a dark timber one. They are the first buildings here that came from a person, and they are kept as
+    /// presets for that reason: nothing can re-derive a choice.
+    ///
+    /// <para>All three are one storey under a gable and share a shape the ten above do not: the wall is two
+    /// courses of one material under a run of another, stated as a stack rather than as a frame, and the
+    /// gable is a third material that answers neither.</para></summary>
+    public static IReadOnlyList<House> Authored => [Stonemason, SandyMushroom, Darkwood];
 
     /// <summary>The five that are one settlement rather than five samples: a cottage, a hall, a terrace, a
     /// counting house and a workshop, all cut from the same <see cref="Masonry"/> and the same spruce, so a

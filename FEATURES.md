@@ -2343,6 +2343,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   WASM app takes to boot. The fields column now says only what the header cannot, that the document is still
   coming; a row that genuinely will not read sets the header's note and the column stays quiet rather than
   repeating it. (`Features/Library/{House,Theme}Editor.razor`, `docs/tools/library.md`)
+- **The library ships an author's own set, not only generated presets (TL13).** Fifteen ground patterns, two
+  themes and three houses made by hand are now presets like any other: `StylePresets` holds the patterns —
+  the first entries here that belong to no building, so they keep the names their author gave them —
+  `ThemePresets` gains `clay grassland` and `clay mycelium`, and `HousePresets` gains `stonemason`,
+  `sandy mushroom` and `darkwood`, reachable together as `HousePresets.Authored`. A fresh studio opens on
+  them and an agent binds them by name. The seed stays idempotent and rewrites a preset in place, so these
+  are canonical rather than editable — which is the point of moving them out of one database. Verified
+  rather than eyeballed: every pattern and both themes serialize to exactly the JSON they were authored as,
+  and each house **stamps identically block for block** to the building its stored row composed to.
+  `LibrarySeedTests` also calls `VerifyAsync`, which had nothing calling it (`TL12`).
+  (`Painting/{StylePresets,ThemePresets}.cs`, `Houses/HousePresets.cs`, `Api/Services/LibrarySeed.cs`,
+  `docs/tools/library.md`; 4 tests, and the preset gate now runs over thirteen houses)
 - **A slot is filled from a saved style, wherever a material is edited (TL8).** A style *is* a material and
   materials nest, so a style inside a layer, a band, a patch, a tint's fallback or a frame's panel is nesting
   rather than a new kind of thing — and combining small styles into a large one was the reason the level

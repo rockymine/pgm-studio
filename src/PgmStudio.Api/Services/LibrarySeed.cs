@@ -206,8 +206,9 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         return ids;
     }
 
-    /// <summary>The materials the presets use, each under the name it is stored as — the house it belongs to
-    /// and the part it plays, so a library reads as a set of houses rather than as forty loose blocks.</summary>
+    /// <summary>The materials the presets use. A house's are named for the house and the part they play, so a
+    /// library reads as a set of buildings rather than as forty loose blocks; the ground patterns in
+    /// <see cref="StylePresets"/> belong to no building and keep the names their author gave them.</summary>
     private static IEnumerable<(string Name, TerrainMaterial Material)> PresetMaterials()
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -217,6 +218,11 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
                 var name = $"{house.Name} · {part}";
                 if (seen.Add(name)) yield return (name, material);
             }
+
+        // Last, so a house's own material keeps the house's name where the two happen to be the same block:
+        // a row is keyed by name, and the building is the one that needs its parts findable.
+        foreach (var (name, material) in StylePresets.All)
+            if (seen.Add(name)) yield return (name, material);
     }
 
     /// <summary>Every material one house names, tagged with the part it plays and the position in that part's

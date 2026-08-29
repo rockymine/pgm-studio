@@ -573,6 +573,16 @@ Four places the paint and the document disagree — an overlap resolved by oppos
 interior is never themed, a palette stacked down a column it should top, and a band stack the editor cannot
 author. Beside them, one where the *reader* disagrees with a document that is right.
 
+- [ ] **TL12 — Four shipped house presets lose a knob through the library.** `LibrarySeed.VerifyAsync`
+  composes each seeded row back and names what came back different; nothing was calling it, and now that
+  something does it reports: `cottage` loses *windows* and *storey 1 windows*, `longhouse` those plus
+  *doorWidth*, `terrace` *storey 1 windows*, `counting house` *storey 1* and *storey 3 windows*, `workshop`
+  *doorWidth*. Every other preset, including the three authored ones, is clean. The row model lags the stamper
+  on exactly two fields — a window seated per storey, and a doorway's width — so a preset stamped from code
+  and one composed from its rows are different buildings. `LibrarySeedTests` pins the list, so the fix is to
+  shrink it. Evidence: `dotnet run --project tests/PgmStudio.Api.Tests -- --treenode-filter
+  "/*/*/LibrarySeedTests/*"`.
+
 - [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
   to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is
   drawn — carrying a field of its own, so a corner of the board reads as desert against a map that is otherwise

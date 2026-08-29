@@ -59,6 +59,15 @@ like any other — the style is where it came from, not what it is — which is 
 reading as an offer rather than staying on the name it was given. Editing the source style afterwards does not
 reach what was filled from it.
 
+**The library ships with an author's own set beside the generated presets.** Fifteen ground patterns, two
+themes and three houses were made by hand and are seeded as presets like any other, so a fresh studio opens on
+them and an agent can bind them by name. They differ from the rest in what they are: every other preset exists
+because some pass needs it, and these exist because someone chose them — a choice nothing can re-derive, which
+is why they live in `StylePresets`, `ThemePresets` and `HousePresets` rather than in one database. The patterns
+are the first entries here belonging to no building, so they keep the names their author gave them rather than
+a `house · part` one. Being presets, they are rewritten in place by the seed on every start: they are the
+canonical set, and an edit to one in the studio does not survive a restart.
+
 A style's card picture travels with the row rather than costing a request per card, because a library is
 browsed by what its entries look like. The editor previews two views of one material: a **plan**, one course
 seen from above, which is where a voronoi and the three noise fields vary, and a **section**, one row of
