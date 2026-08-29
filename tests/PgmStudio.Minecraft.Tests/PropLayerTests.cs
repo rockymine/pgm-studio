@@ -32,6 +32,31 @@ public sealed class PropLayerTests
         new(terrain.SurfaceTop, props, (_, _) => null, DressingSymmetry.None, null, null,
             terrain.SurfaceByLayer);
 
+    /// <summary><b>A made thing is not the ground under it, and <c>SurfaceFor</c> is where that is answered.</b>
+    /// Everything that RESTS on a board asks for the surface at a cell and names no layer — a room's floor, a
+    /// goal's box and the buried plate beneath it, a wall, a build-region marker, the world spawn — and the
+    /// fallback was the whole-board top. A cloud drawn at y78 over a car park is the top of every column
+    /// under it, so the goal read the cloud and was stamped eighty-three blocks up, over a build ceiling of
+    /// 68 that it had not itself raised. <c>SurfaceTop</c> still answers what it always answered; it is just
+    /// nobody's question any more.</summary>
+    [Test]
+    public async Task A_placement_naming_no_layer_stands_on_the_ground_and_never_on_a_made_thing()
+    {
+        var terrain = TerrainBuilder.Build(
+        [
+            .. Cells().Select(cell => new ColumnSegment(cell.X, cell.Z, 0, 6, "yard")),
+            .. Cells().Select(cell => new ColumnSegment(cell.X, cell.Z, 78, 86, "cloud")),
+        ], new HashSet<string> { "cloud" });
+
+        await Assert.That(terrain.SurfaceTop[(8, 8)]).IsEqualTo(86);       // the highest thing standing
+        await Assert.That(terrain.Ground[(8, 8)]).IsEqualTo(6);           // and the ground under it
+        await Assert.That(terrain.SurfaceFor(null)[(8, 8)]).IsEqualTo(6);
+        // Naming the layer still reaches it: a monument authored onto a deck sits on the deck.
+        await Assert.That(terrain.SurfaceFor("cloud")[(8, 8)]).IsEqualTo(86);
+        // A board that names no made thing reads exactly as it did.
+        await Assert.That(Stacked().SurfaceFor(null)[(8, 8)]).IsEqualTo(26);
+    }
+
     [Test]
     public async Task A_prop_naming_no_layer_rests_on_the_top_surface()
     {

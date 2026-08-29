@@ -936,8 +936,11 @@ fourteen kinds in `library.md` may stand there; a building's `style` is a `House
 means the built-in shell.
 
 **On a stacked board a prop says which storey it rests on.** Every entry takes an optional `layer` — the id of
-the layer whose surface it sits on, as the tree above states it. Naming none keeps the top surface, which is
-where a flat board's props all are and where everything authored before the stack landed stays.
+the layer whose surface it sits on, as the tree above states it. Naming none takes the board's **ground** —
+the tops of everything that is not a made thing — which is where a flat board's props all are and where
+everything authored before the stack landed stays. It is the ground and not the highest thing standing,
+because a made thing is not a storey to rest on: a cloud or a balloon over a cell would otherwise be that
+cell's answer, and the goal beneath one was stamped eighty-three blocks up on it.
 `DressingContext.GroundFor` answers that layer's own surfaces, and it is the same storey reading
 `BuiltTerrain.SurfaceFor` gives a stamped thing, so a prop and a monument on one floor cannot disagree about
 where that floor is. Naming a layer the board has no ground at is **declined** (`DR-LAYER`) rather than seated

@@ -63,12 +63,17 @@ cell, what the surface *is* — and the single fact the dressing pass needs is e
 flora, quartz does not; grass can be replaced by a stroke, a monument's wool cannot. So the pass reads the
 top block of each column and the ground the map keeps clear, and never has to re-derive either. The one
 elevation model it needs is an elevation per cell (`Dictionary<(int X,int Z),int>`, the first air Y above
-each column), and the one it is given is **`BuiltWorld.Surface`** — `BuiltTerrain.SurfaceExcept(prop
-layers)`, the tops of everything on the board that is not a made thing.
+each column), and the one it is given is **`BuiltWorld.Surface`** — `BuiltTerrain.Ground`, the tops of
+everything on the board that is not a made thing.
 
-**A made thing is not ground, and neither the pass nor the picture treats it as one.** `BuiltTerrain.SurfaceTop` answers the highest
-thing standing at a cell, which is wrong for everything here — and, since `G6` amendment 25, for the build
-ceiling as well, which reads the buildings and steps over the made things. A balloon flying
+**A made thing is not ground, and nothing that rests on the board treats it as one.** `BuiltTerrain.SurfaceTop`
+answers the highest thing standing at a cell, and by now that is nobody's question: this pass reads
+`BuiltTerrain.Ground`, the build ceiling reads the buildings and steps over the made things (`G6` amendment
+25), and every placement that *seats* — a room's floor, a goal's box and the buried plate beneath it, a wall,
+a build-region marker, the world spawn — reads `Ground` through `SurfaceFor`, whose fallback it is. That last
+one was the half left undone: a cloud drawn at y78 over a car park is the top of every column beneath it, so
+the goal there read the cloud and was stamped at **y83**, over a build ceiling of 68 that it had not itself
+raised. A balloon flying
 thirty blocks over a field is that field's answer, so a tree stated on it would seat at the envelope and
 every column under it would read as built and take nothing at all. The ground beneath a floating thing is
 exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same

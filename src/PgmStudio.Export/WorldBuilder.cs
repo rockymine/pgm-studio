@@ -109,9 +109,12 @@ public static class WorldBuilder
     {
         intent = WithStampIds(intent);
         var columns = SketchRasterizer.RasterizeColumns(layoutJson);
-        var terrain = TerrainBuilder.Build(columns);
+        // Which layers are made things, read before the terrain so the terrain can answer where the GROUND
+        // is rather than what is highest. Everything below that rests on the board asks that question.
+        var propLayers = SketchRasterizer.PropLayers(SketchLayout.Stated(layoutJson));
+        var terrain = TerrainBuilder.Build(columns, propLayers);
         var world = terrain.World;
-        int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.SurfaceTop, 1);
+        int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.Ground, 1);
 
         // ── Provenance — which pass claimed each column, composited in placement order ────────
         // The rasterizer's own ground claims every column first; every stamp below claims its footprint as
@@ -142,7 +145,7 @@ public static class WorldBuilder
         // cannot be tunnelled into from below, and the building is then stamped on top of that. Which is why
         // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
         // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
-        foreach (var claim in StampRoomFloors(world, terrain.SurfaceTop, intent.Structures))
+        foreach (var claim in StampRoomFloors(world, terrain.Ground, intent.Structures))
             provenance.Claim(claim.Cells, claim.Pass, claim.Owner);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
@@ -258,14 +261,14 @@ public static class WorldBuilder
         // Stamped after the cubes so an authoritative layout feature (an iron cube beside a spawn) wins any
         // footprint overlap. The room floors are not among them — they are the ground the rooms stand on and
         // were laid before them.
-        StampStructures(world, terrain.SurfaceTop, intent.Structures);
+        StampStructures(world, terrain.Ground, intent.Structures);
         ClaimStructures(provenance, intent.Structures);
 
         // ── Build-region outline (ST5) — an unpowered redstone line in the void, one air block clear of the
         // region and of the terrain. Derived here rather than in the compiler because the clearance rule reads
         // the terrain the world actually placed; the areas arrive already fanned, so the marker is symmetric.
         if (intent.Build is { } build)
-            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas), BlockRects(build.Holes), terrain.SurfaceTop);
+            BuildMarkerStamper.Stamp(world, BlockRects(build.Areas), BlockRects(build.Holes), terrain.Ground);
 
         // ── Destroyables (DTM) — the box is computed once here and carried on the resolved intent, so the
         // region the generator emits is the volume these blocks were stamped into (OB8).
@@ -293,7 +296,6 @@ public static class WorldBuilder
         // A made thing is painted over its own span. Ground's bands run from the bedrock course whatever its
         // floor, so only a prop layer hands its floors over; the painter takes what it is given and asks
         // nothing about kinds.
-        var propLayers = SketchRasterizer.PropLayers(SketchLayout.Stated(layoutJson));
         var propFloors = propLayers
             .Where(terrain.FloorByLayer.ContainsKey)
             .ToDictionary(layer => layer, layer => terrain.FloorByLayer[layer]);
@@ -313,7 +315,7 @@ public static class WorldBuilder
         // A balloon flying over a field is the top of every column under it, so reading the whole-board tops
         // seats a tree at its envelope and marks the field it flies over as built — and the ground beneath a
         // floating thing is exactly the ground an author decorates.
-        var groundTop = terrain.SurfaceExcept(propLayers);
+        var groundTop = terrain.Ground;
         var goals = intent with { Destroyables = resolvedDestroyables, Cores = resolvedCores };
         var dressed = Decorator.Decorate(world, new DressingContext(
             groundTop,
@@ -390,8 +392,8 @@ public static class WorldBuilder
         {
             // No observer authored: stand the world spawn on a real terrain column (the one nearest origin)
             // rather than at (0, fallback, 0), which would float over the void when nothing is drawn there.
-            var (gx, gz) = terrain.SurfaceTop.Count > 0
-                ? terrain.SurfaceTop.Keys.OrderBy(k => (long)k.X * k.X + (long)k.Z * k.Z).ThenBy(k => k.X).ThenBy(k => k.Z).First()
+            var (gx, gz) = terrain.Ground.Count > 0
+                ? terrain.Ground.Keys.OrderBy(k => (long)k.X * k.X + (long)k.Z * k.Z).ThenBy(k => k.X).ThenBy(k => k.Z).First()
                 : (0, 0);
             (spawnX, spawnY, spawnZ) = (gx, Surface(gx, gz) + 1, gz);
         }

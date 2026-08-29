@@ -13,18 +13,34 @@ namespace PgmStudio.Minecraft.Stamping;
 /// <param name="FloorByLayer">Where each layer's own span starts, cell by cell — the other end of the pair
 /// above. Only a pass painting a layer that is not ground reads it: terrain's bands run from the bedrock
 /// course whatever its floor, and a made thing's run over its own span.</param>
+/// <param name="PropLayers">Which of those layers are made things rather than ground, so
+/// <see cref="Ground"/> can leave them out. A board that names none reads the same as one that has none.</param>
 public sealed record BuiltTerrain(
     VoxelWorld World,
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> SurfaceByLayer,
-    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> FloorByLayer)
+    IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> FloorByLayer,
+    IReadOnlySet<string>? PropLayers = null)
 {
+    private IReadOnlyDictionary<(int X, int Z), int>? ground;
+
+    /// <summary><b>Where the ground is</b> — <see cref="SurfaceTop"/> with the made things taken out, and the
+    /// one answer everything that RESTS on the board reads: a room's floor, a goal's box and the plate under
+    /// it, a wall, a build-region marker, the world spawn.
+    ///
+    /// <para><see cref="SurfaceTop"/> answers a different question — the highest thing standing at a cell —
+    /// and by now that is nobody's: a cloud drawn at y78 over a car park is the top of every column under it,
+    /// so a goal reading it stood on the cloud, eighty-three blocks up and over a build ceiling it had itself
+    /// pushed nowhere near. Read it for the cells it covers; read this for a height.</para></summary>
+    public IReadOnlyDictionary<(int X, int Z), int> Ground =>
+        ground ??= PropLayers is { Count: > 0 } made ? SurfaceExcept(made) : SurfaceTop;
+
     /// <summary>The ground a thing placed on <paramref name="layer"/> stands on: that layer's own surfaces,
-    /// or — for a placement naming no layer, and for one naming a layer this board does not have — the
-    /// whole-board tops. Naming the layer is how a monument sits in a hall instead of on the deck roofing it;
-    /// naming none keeps the top surface, which is where everything already authored goes.</summary>
+    /// or — for a placement naming no layer, and for one naming a layer this board does not have —
+    /// <see cref="Ground"/>. Naming the layer is how a monument sits in a hall instead of on the deck roofing
+    /// it; naming none takes the board's ground, which is where everything already authored goes.</summary>
     public IReadOnlyDictionary<(int X, int Z), int> SurfaceFor(string? layer) =>
-        layer is { Length: > 0 } named && SurfaceByLayer.TryGetValue(named, out var tops) ? tops : SurfaceTop;
+        layer is { Length: > 0 } named && SurfaceByLayer.TryGetValue(named, out var tops) ? tops : Ground;
 
     /// <summary>The board's surface with <paramref name="layers"/> taken out of the read — the tops of
     /// everything else, cell by cell. A made thing is not ground: a balloon flying thirty blocks over a field
@@ -58,7 +74,7 @@ public sealed record BuiltTerrain(
 /// </summary>
 public static class TerrainBuilder
 {
-    public static BuiltTerrain Build(IEnumerable<ColumnSegment> columns)
+    public static BuiltTerrain Build(IEnumerable<ColumnSegment> columns, IReadOnlySet<string>? propLayers = null)
     {
         var world = new VoxelWorld();
         var surface = new Dictionary<(int X, int Z), int>();
@@ -95,7 +111,8 @@ public static class TerrainBuilder
             byLayer.ToDictionary(entry => entry.Key,
                                  entry => (IReadOnlyDictionary<(int X, int Z), int>)entry.Value),
             floorOf.ToDictionary(entry => entry.Key,
-                                 entry => (IReadOnlyDictionary<(int X, int Z), int>)entry.Value));
+                                 entry => (IReadOnlyDictionary<(int X, int Z), int>)entry.Value),
+            propLayers);
     }
 
     /// <summary>Just the per-cell surface tops of <paramref name="columns"/> — the same map <see cref="Build"/>
