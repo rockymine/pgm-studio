@@ -1,4 +1,5 @@
 using fNbt;
+using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Anvil;
 
@@ -103,8 +104,12 @@ public static class AnvilRegionWriter
             sections.Add(section);
         }
 
-        var biomes = new byte[256];
-        Array.Fill(biomes, (byte)1);   // plains everywhere
+        // One biome per column, which is what the format stores and what lets a field be a pattern rather
+        // than a grid of chunk-sized rectangles. A chunk nothing painted writes plains, as every chunk did
+        // before a field could be stated.
+        byte[] biomes;
+        if (chunk.Biomes is { } painted) biomes = painted;
+        else { biomes = new byte[256]; Array.Fill(biomes, Palette.Biome.Plains); }
 
         var level = new NbtCompound("Level")
         {

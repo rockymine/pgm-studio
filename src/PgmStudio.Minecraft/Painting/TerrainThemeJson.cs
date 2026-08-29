@@ -149,6 +149,11 @@ public static class TerrainThemeJson
     /// was accepted in silence, which is the wrong way round.</summary>
     public static TerrainMaterial DeserializeMaterial(string json) => Read<TerrainMaterial>(Upgraded(json));
 
+    /// <summary>Read one biome field. It is polymorphic on <c>kind</c> the way a material is, so it takes the
+    /// same translation of a missing or unknown discriminator — and deliberately not <see cref="Upgraded"/>,
+    /// whose renames are of fields a material once had and a biome field never did.</summary>
+    public static BiomeField DeserializeBiome(string json) => Read<BiomeField>(JsonNode.Parse(json)!);
+
     /// <summary>Deserialize, carrying the kind fault across whatever depth it was found at. A material is
     /// polymorphic on <c>kind</c>, and System.Text.Json reports a missing discriminator as
     /// <see cref="NotSupportedException"/> rather than <see cref="JsonException"/> — a difference in how it is

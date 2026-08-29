@@ -357,6 +357,54 @@ contest, whatever their themes differ on. Every stage is pure over explicit inpu
 the Profile against the §4 fixtures, the resolver against synthetic columns, the specs on their own — with no
 DB and no IO, exactly as the stampers do.
 
+## 5b. The biome — the one colour that costs no block
+
+Everything above decides which block goes where. A **biome** decides nothing of the sort: it is one byte per
+column that the client reads to tint grass, leaves, vines and water, so a board painted with biomes varies in
+colour without a single extra block being placed. Every chunk carried `plains` before there was a field to
+state, and an unstated field still does.
+
+**It is answered per column, and its numbers are in blocks** — the same units a terrain pattern is written in,
+so one vocabulary covers both. A chunk carries 256 of these bytes and they need not agree. Answering once per
+chunk is the tempting shortcut and it is the wrong one: it turns every field into a grid of chunk-sized
+rectangles, and a board a few chunks across has too few of them to hold a pattern at all. A ten-by-fourteen
+chunk board is a hundred and forty pixels; the same board is thirty-six thousand columns.
+
+**What a boundary costs is softness, not correctness.** The client blends a biome's tint across a small
+neighbourhood, so a region never reaches its own colour within a few blocks of its edge. That is a reason to
+choose a **scale** — a field whose features are four blocks across blends into an even wash — and not a reason
+to quantise the field. At any scale worth looking at, a boundary reads as a soft edge rather than a lost one.
+
+**A biome field is its own family, not a `TerrainMaterial` read for its id.** A biome is not a block. Reusing a
+material would put a block picker in front of a choice between forest and river, and a `solid` of 4 would mean
+cobblestone to every reader of the document and forest to the one pass that consumed it. The kinds are named
+after the material ones on purpose — `solid`, `cell`, `noise`, so an author who knows what a cell does to a
+wall knows what it does here — and both rest on the same `Voronoi` and `PatternNoise` primitives underneath,
+which is where the sharing belongs.
+
+The field is map-wide, stated on the layout beside the other finish keys:
+
+```json
+{ "biome": { "kind": "cell", "seed": 91, "cellSize": 28, "jitter": 85, "palette": [2, 5, 21] } }
+```
+
+`PgmStudio.Minecraft.Palette.Biome` names the ids worth reaching for; a field may state any id whatever is
+listed there. The pass runs after every pass that could add a chunk — a chunk arriving later would otherwise
+keep the plains it was created with — and folds every column through the board's symmetry the way the painter
+folds every cell (TP21), so a mirrored board answers one biome at a cell and at its image rather than putting
+a desert against a forest across the axis. **On a mirrored board the field therefore only varies over the
+primary half**, which is the half a scale should be chosen against.
+
+**Swampland paints itself, and no other biome does** (author, confirmed in 1.8.9 and in WorldEdit). Vanilla
+gives swampland — and swampland M — its own grass colour noise, choosing between a brown and a dark green over
+large cells, so its ground reads splotchy whatever a field says about it. It is the one biome that cannot show
+a flat colour, which makes it a poor choice for a region meant to read as one thing and a good one where
+mottled ground is wanted.
+
+**The studio's own pictures do not show any of this.** Every static render multiplies grass, leaves and water
+by a fixed temperate tint, because a render has no biome to sample (`BlockPaletteData`). A painted biome is
+therefore visible in game and nowhere in the studio, which is a gap rather than a decision (`WE53`).
+
 ## 6. Extensions
 
 The base model (TP1–TP6) and the per-column extensions below share one **resolution order** (`TerrainPainter.Resolve`):

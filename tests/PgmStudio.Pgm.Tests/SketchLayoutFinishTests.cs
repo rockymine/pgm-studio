@@ -6,8 +6,8 @@ namespace PgmStudio.Pgm.Tests;
 /// <summary>
 /// <see cref="SketchLayout.CarryFinish"/> — what survives rebuilding a map from its plan. A compiled layout
 /// states the board and nothing else, so the finish keys the sketch accumulates (themes, the map default,
-/// the bound room shells, placed dressing) have to be carried onto it or a recompile strips a finished map
-/// back to bare stone.
+/// the bound room shells, placed dressing, the biome the ground is tinted by) have to be carried onto it or a
+/// recompile strips a finished map back to bare stone.
 /// </summary>
 public sealed class SketchLayoutFinishTests
 {
@@ -20,6 +20,7 @@ public sealed class SketchLayoutFinishTests
      "themes":{"grass":{"surface":"grass"}},"mapTheme":"grass",
      "roomStyles":{"cage":{"walls":"quartz"}},
      "dressing":{"props":[{"kind":"tree","x":4,"z":9}]},
+     "biome":{"kind":"cell","seed":3,"cellSize":2,"jitter":70,"palette":[4,7]},
      "layers":[{"id":"old","layout":{"shapes":[{"id":"s0"}],"islands":[]}}]}
     """;
 
@@ -34,6 +35,7 @@ public sealed class SketchLayoutFinishTests
             await Assert.That(merged.TryGetProperty(key, out _)).IsTrue();
         await Assert.That(merged.GetProperty("mapTheme").GetString()).IsEqualTo("grass");
         await Assert.That(merged.GetProperty("dressing").GetProperty("props").GetArrayLength()).IsEqualTo(1);
+        await Assert.That(merged.GetProperty("biome").GetProperty("kind").GetString()).IsEqualTo("cell");
     }
 
     [Test]
