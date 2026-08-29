@@ -538,6 +538,16 @@ the stat corpus.
   stalemate. The measure is `GO2`'s walk read across the axis rather than within a team, so one traversal
   answers both. Applies where both teams carry a destroy goal.
 
+- **GO4 [author]** **A destroy goal sits 40 to 90 blocks from its own spawn, by walk.** The measure is
+  `GoalDistances`' own-spawn leg — the same walk GO1's ratio is built from, judged here on its own rather than
+  against the enemy's. Under the band the spawn is already standing on the goal, leaving nothing to defend;
+  over it the spawn cannot reinforce before the goal falls. A straight-line sanity sweep of
+  `pgm-studio-mapgen`'s 54 destroy maps (180 team-goal pairs, spawn point to goal-region centroid) reads
+  median **55.5**, already inside the band on 66% of pairs before the walk is even taken — walking only
+  lengthens a straight line, so the true in-band share is a floor rather than a ceiling. Scored by
+  `goal-spawn-distance` against the authored band **[40, 90]**, worst goal counted; a goal with no route is the
+  traversability gate's refusal, not this rule's.
+
 ## PC — Pieces are anonymous
 
 A narrow seam is legal connecting geometry per *Definitions*, so there is no per-seam width lint: corridor

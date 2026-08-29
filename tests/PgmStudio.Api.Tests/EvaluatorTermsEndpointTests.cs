@@ -39,6 +39,18 @@ public sealed class EvaluatorTermsEndpointTests
     }
 
     [Test]
+    public async Task GO4s_band_is_served_as_the_terms_own_ruling()
+    {
+        var goalDistance = (await TermsAsync()).Single(term => term.Term == "goal-spawn-distance");
+
+        await Assert.That(goalDistance.Rule).IsEqualTo("GO4");
+        await Assert.That(goalDistance.Kind).IsEqualTo("soft");
+        await Assert.That(goalDistance.BandSource).IsEqualTo("authored");
+        await Assert.That(goalDistance.Band).IsEquivalentTo(new[] { 40.0, 90.0 });
+        await Assert.That(goalDistance.LearnsFromTraced).IsEqualTo(false);
+    }
+
+    [Test]
     public async Task A_learned_band_is_served_from_the_envelopes_the_scorer_reads()
     {
         var fillRatio = (await TermsAsync()).Single(term => term.Term == "fill-ratio");

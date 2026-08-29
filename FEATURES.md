@@ -1713,6 +1713,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   the band the author stated off the two shipped boards (3.0, 3.9); the band lives on the term
   (`SoftTerm.AuthoredBand` — a ruling, not a learned envelope), and the old 164-map straight-line table
   moved to `seed-stats.md` marked as the retired unit.
+- **A destroy goal's own-spawn distance is banded: GO4, [40, 90] blocks by walk (`G261`).** The
+  `goal-spawn-distance` soft term scores each goal's own-spawn leg — the same walk GO1's ratio divides by,
+  judged here on its own — against the author's stated band; the band lives on the term
+  (`SoftTerm.AuthoredBand`, a ruling rather than a learned envelope), same shape as GO1's.
 - **The ground-coverage measure: where a map is lived on, and where it is dead (`B241`).** Every ground
   cell classed reached (inside the corridor a waypoint-pair walk claims, or a waypoint's ring), decorated
   (within a prop's fringe) or dead — with the dead clustered into patches named by area, centroid and walk
