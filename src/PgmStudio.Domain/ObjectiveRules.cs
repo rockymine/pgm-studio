@@ -60,9 +60,9 @@ public static class ObjectiveRules
     public const string FloatCap = "OB22";
 
     /// <summary>A goal's own structure reaches above the height players may build to — the build ceiling over
-    /// the terrain the map actually builds. The blocks above it can still be broken, so the map is not
-    /// unwinnable; a goal standing over the line players may reach by building is a goal contested from
-    /// nowhere.</summary>
+    /// the terrain and the buildings the map actually builds, which a goal is deliberately not counted among.
+    /// The blocks above it can still be broken, so the map is not unwinnable; a goal standing over the line
+    /// players may reach by building is a goal contested from nowhere.</summary>
     /// <remarks>Lower the goal's <c>float</c>, shorten its structure, or raise the ground under it. This is a <b>complaint</b> on a built world: the finding carries the goal's own top course and the ceiling it passed.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string OverBuildCeiling = "OB23";

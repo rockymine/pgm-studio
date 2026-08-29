@@ -67,7 +67,8 @@ each column), and the one it is given is **`BuiltWorld.Surface`** — `BuiltTerr
 layers)`, the tops of everything on the board that is not a made thing.
 
 **A made thing is not ground, and neither the pass nor the picture treats it as one.** `BuiltTerrain.SurfaceTop` answers the highest
-thing standing at a cell, which is right for a build ceiling and wrong for everything here: a balloon flying
+thing standing at a cell, which is wrong for everything here — and, since `G6` amendment 25, for the build
+ceiling as well, which reads the buildings and steps over the made things. A balloon flying
 thirty blocks over a field is that field's answer, so a tree stated on it would seat at the envelope and
 every column under it would read as built and take nothing at all. The ground beneath a floating thing is
 exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same

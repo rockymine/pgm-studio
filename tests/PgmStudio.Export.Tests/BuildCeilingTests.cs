@@ -11,12 +11,12 @@ namespace PgmStudio.Export.Tests;
 /// <b>How high a player may build, and how far above that a goal marker hangs</b> — the author's rule, and
 /// the one measurement that makes it right.
 ///
-/// <para>The cap is twenty blocks over the <em>terrain</em> the map builds, and every assertion here is
-/// really about that word. The old cap was the plan's flat nominal <c>surface</c> plus a slack, so it was
-/// computed from a ground level the relief solve abandons and boards came out with a ceiling under their own
-/// terrain. Measuring the built ground fixes that; measuring <em>only</em> the ground is what stops a wool
-/// cage, a house or a tree from raising the ceiling above itself, which would make the cap a consequence of
-/// the dressing.</para>
+/// <para>The cap is twenty blocks over the highest thing the map builds that a player meets: the terrain,
+/// and the buildings standing on it. Every assertion here is about which of those words is in and which is
+/// out. Measuring the <em>built</em> ground rather than the plan's nominal surface is what stops a board
+/// coming out with a ceiling under its own terrain; clearing the roofs is what stops one coming out with a
+/// ceiling a player cannot build over the town in; and leaving out the made things and the objectives is
+/// what stops a balloon or a floating monument deciding it.</para>
 /// </summary>
 public sealed class BuildCeilingTests
 {
@@ -27,9 +27,20 @@ public sealed class BuildCeilingTests
         {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"groups":[]} }]}
         """;
 
+    // The same plate with a second one thirty blocks up, in a corner nothing is stamped on — so the terrain
+    // is the tallest thing on the board and the cap has only it to follow. The corner is chosen for its
+    // `rot_180` IMAGE as much as for itself: a layout stating no group is fanned shape by shape, so a plate
+    // dropped opposite the spawn puts the spawn cube on it and the cap then reads the roof it raised.
     private const string Stepped =
         """
-        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1},{"id":"b","type":"rectangle","operation":"add","min_x":-10,"min_z":-10,"max_x":10,"max_z":10,"base_height":31}],"groups":[]} }]}
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1},{"id":"b","type":"rectangle","operation":"add","min_x":28,"min_z":-40,"max_x":40,"max_z":-28,"base_height":31}],"groups":[]} }]}
+        """;
+
+    // The flat plate with a made thing flying eighty blocks over the red wool room — a prop layer, which is
+    // what a balloon or a ship is drawn as. It stands on nothing and a player meets it nowhere.
+    private const string Flown =
+        """
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"groups":[]} }, { "id": "sky", "base_y": 80, "kind": "prop", "prop": "balloon", "layout":{"shapes":[{"id":"s","type":"rectangle","operation":"add","min_x":-15,"min_z":5,"max_x":-5,"max_z":15,"base_height":4}],"groups":[]} }]}
         """;
 
     private static MapIntent Intent() => new()
@@ -43,20 +54,36 @@ public sealed class BuildCeilingTests
         ],
     };
 
-    /// <summary>The rule, on flat ground: ground at y=1, so the cap is 21 and nothing else decides it.</summary>
+    /// <summary>The tallest thing standing over the red wool room's own footprint, read off the finished
+    /// world below the cap — the cage, not the sky marker hanging five over it. A cage is hollow, so this
+    /// finds its walls rather than the column through its middle.</summary>
+    private static int CageTop(BuiltWorld built) =>
+        Enumerable.Range(0, built.ResolvedIntent.Build!.MaxHeight!.Value).Reverse().First(y =>
+            Enumerable.Range(-15, 11).Any(x =>
+                Enumerable.Range(5, 11).Any(z => built.World.GetBlock(x, y, z).Id != Blocks.Air)));
+
+    /// <summary>
+    /// <b>The measurement, and the assertion this file exists for.</b> The map stamps wool cages, a spawn
+    /// cube and an observer platform on ground at y=1, and the cap clears the tallest of them. A cap read
+    /// off the terrain alone would sit under the roofs, which is a map a player cannot build over the town
+    /// in.
+    /// </summary>
     [Test]
-    public async Task The_cap_is_twenty_over_the_highest_ground()
+    public async Task The_cap_clears_the_buildings_standing_on_the_ground()
     {
         var built = WorldBuilder.Build(Flat, Intent());
+        var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
 
-        await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(BuildCeiling.Of(1));
-        await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(21);
+        // The fixture is only meaningful if something really does stand above the ground.
+        await Assert.That(CageTop(built)).IsGreaterThan(1);
+        await Assert.That(cap).IsEqualTo(BuildCeiling.Of(CageTop(built)));
+        await Assert.That(cap).IsGreaterThan(BuildCeiling.Of(1));
     }
 
-    /// <summary>And it rises with the terrain rather than with a number the plan asserted. The second plate
-    /// sits thirty blocks up, so the cap has to follow it — this is the case the old
-    /// <c>surface + headroom</c> got wrong, where the ceiling stayed at the nominal ground the relief solve
-    /// had already left behind.</summary>
+    /// <summary>And where the terrain is the tallest thing, the cap follows the ground the relief actually
+    /// built rather than a number the plan asserted. The second plate sits thirty blocks up in a corner
+    /// nothing stands on — this is the case the old <c>surface + headroom</c> got wrong, where the ceiling
+    /// stayed at the nominal ground the relief solve had already left behind.</summary>
     [Test]
     public async Task The_cap_follows_the_terrain_the_relief_actually_built()
     {
@@ -65,29 +92,56 @@ public sealed class BuildCeilingTests
         await Assert.That(built.ResolvedIntent.Build!.MaxHeight).IsEqualTo(BuildCeiling.Of(31));
     }
 
-    /// <summary>
-    /// <b>The measurement, and the assertion this file exists for.</b> The map stamps wool cages, a spawn cube
-    /// and an observer platform, all of which stand well above the terrain — and none of them moves the
-    /// ceiling. A cap read off the finished world instead of the ground would climb to whatever was placed
-    /// last, which would make it un-authorable: build a taller shell and the ceiling rises to allow a taller
-    /// shell.
+    /// <summary><b>A made thing does not decide it.</b> A balloon, a ship, a sculpture drawn out of layers is
+    /// scenery the author hung in the air, and a cap that tracked it would follow whatever altitude was felt
+    /// like. The prop here flies eighty blocks over the red room, so the cage's columns and its own are the
+    /// same ones — which is the case that has to be got right, because one column carries both and the read
+    /// wants the roof under the balloon rather than the balloon.
+    ///
+    /// <para>Both rooms name the layer they stand on, which is what puts the cage under the prop instead of
+    /// on it: a room naming none takes the board's top surface, and on this fixture that is the prop.</para>
     /// </summary>
     [Test]
-    public async Task Nothing_stamped_on_the_ground_raises_the_ceiling_over_itself()
+    public async Task A_made_thing_flying_over_a_building_does_not_raise_the_ceiling()
     {
-        var built = WorldBuilder.Build(Flat, Intent());
-        var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
+        var onGround = Intent() with
+        {
+            Wools = [.. Intent().Wools!.Select(wool => wool with { Layer = SketchLayer.GroundId })],
+        };
+        var flown = WorldBuilder.Build(Flown, onGround);
+        var grounded = WorldBuilder.Build(Flat, onGround);
 
-        // The tallest thing standing on the ground under the cap, over the red wool room's own footprint. A
-        // cage is hollow, so this reads its walls rather than the column through its middle.
-        var cageTop = Enumerable.Range(0, cap).Reverse().First(y =>
-            Enumerable.Range(-15, 11).Any(x =>
-                Enumerable.Range(5, 11).Any(z => built.World.GetBlock(x, y, z).Id != Blocks.Air)));
+        await Assert.That(flown.World.GetBlock(-10, 80, 10).Id).IsNotEqualTo(Blocks.Air);   // it is really there
+        await Assert.That(CageTop(flown)).IsLessThan(80);                                   // and the cage is under it
+        await Assert.That(flown.ResolvedIntent.Build!.MaxHeight)
+            .IsEqualTo(grounded.ResolvedIntent.Build!.MaxHeight);
+    }
 
-        // The fixture is only meaningful if something really does stand above the ground.
-        await Assert.That(cageTop).IsGreaterThan(1);
-        await Assert.That(cap).IsEqualTo(BuildCeiling.Of(1));
-        await Assert.That(cap).IsLessThan(BuildCeiling.Of(cageTop));
+    /// <summary><b>Nor does an objective.</b> A goal floats over the ground by design — a core on the ground
+    /// cannot leak — so a cap derived from one could never be beneath it, and
+    /// <see cref="A_goal_over_the_cap_is_a_complaint_naming_its_top_and_the_ceiling"/> could never
+    /// fire.</summary>
+    [Test]
+    public async Task A_floating_objective_does_not_raise_the_ceiling()
+    {
+        var bare = WorldBuilder.Build(Flat, Intent());
+        var floated = WorldBuilder.Build(Flat, Intent() with
+        {
+            Cores =
+            [
+                new CoreIntent
+                {
+                    Owner = "red", Name = "Red Core", Anchor = new Pt(0, 0, 0),
+                    Size = 5, Height = 20, Shell = 1,
+                    Float = ObjectiveDefaults.MaxFloat, Leak = ObjectiveDefaults.CoreLeak,
+                },
+            ],
+        });
+
+        await Assert.That(floated.ResolvedIntent.Cores![0].Box!.Value.MaxY)
+            .IsGreaterThan(bare.ResolvedIntent.Build!.MaxHeight!.Value);
+        await Assert.That(floated.ResolvedIntent.Build!.MaxHeight)
+            .IsEqualTo(bare.ResolvedIntent.Build!.MaxHeight);
     }
 
     /// <summary>A goal marker hangs five over the cap, which is one rule for every goal kind — the
@@ -108,13 +162,13 @@ public sealed class BuildCeilingTests
     /// build to. The blocks above it can still be broken, so nothing is unwinnable — what is wrong is a goal
     /// contested from ground nobody may build up to reach — which is why it is a complaint on a built world
     /// rather than a refusal, and why it is asked here rather than at the plan gate: the ceiling is twenty
-    /// over the terrain the map <em>actually built</em>, which a plan has not solved yet.</summary>
+    /// over what the map <em>actually built</em>, which a plan has not solved yet.</summary>
     [Test]
     public async Task A_goal_over_the_cap_is_a_complaint_naming_its_top_and_the_ceiling()
     {
-        // It takes both knobs to reach the line, which is why the float cap alone does not cover this: at the
-        // most a goal may float, only a structure taller than the clearance leaves can top out over the
-        // ceiling — a tall core casing, since a destroyable's own styles stop at four courses.
+        // It takes both knobs to reach the line: at the most a goal may float, only a casing taller than the
+        // clearance leaves can top out over the ceiling — a core, since a destroyable's own styles stop at
+        // four courses.
         var floated = Intent() with
         {
             Cores =
@@ -122,7 +176,7 @@ public sealed class BuildCeilingTests
                 new CoreIntent
                 {
                     Owner = "red", Name = "Red Core", Anchor = new Pt(0, 0, 0),
-                    Size = 5, Height = 10, Shell = 1,
+                    Size = 5, Height = 20, Shell = 1,
                     Float = ObjectiveDefaults.MaxFloat, Leak = ObjectiveDefaults.CoreLeak,
                 },
             ],

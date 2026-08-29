@@ -61,10 +61,12 @@ public sealed class WorldBuilderTests
     [Test]
     public async Task Every_wool_room_carries_a_sky_marker_in_its_own_wool_colour()
     {
-        // No Build intent is authored here and none is needed: the cap is measured off the terrain the world
-        // built (y=1 across this flat sketch), so it comes out at 21 and the markers five over that.
+        // No Build intent is authored here and none is needed: the cap is measured off the world the build
+        // produced, and the markers hang five over it. Read off the resolved intent rather than re-derived —
+        // what this test is about is the colour of each room's marker, and a second derivation of the
+        // altitude is a second answer free to disagree with the one the stamp used.
         var built = WorldBuilder.Build(Layout, SampleIntent());
-        var floorY = BuildCeiling.Of(1) + BuildCeiling.MarkerOver;
+        var floorY = built.ResolvedIntent.Build!.MaxHeight!.Value + BuildCeiling.MarkerOver;
 
         // The default 10×10 shell centres on the (snapped) wool spawn point for each room.
         await Assert.That(built.World.GetBlock(-10, floorY + 1, 10)).IsEqualTo((Blocks.Wool, 14));   // red room

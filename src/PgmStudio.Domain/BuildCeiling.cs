@@ -5,13 +5,20 @@ namespace PgmStudio.Domain;
 /// author's, and both stated here rather than at the one site that happens to apply them — the mistake
 /// <c>headroom</c> made was not the arithmetic but that nothing named what the arithmetic was for.
 ///
-/// <para><b>The measurement is what makes it right.</b> The ceiling is
-/// <see cref="OverGround"/> blocks over the <em>highest ground the map actually builds</em> — the terrain
-/// alone. Not a house standing on it, not a tree, not a stamped structure. That distinction is the whole
-/// correction: the old cap was the plan's flat nominal <c>surface</c> plus a slack, computed from a ground
-/// level the relief solve then abandons, so boards came out with a ceiling under their own terrain
-/// (<c>B104</c>, <c>B176</c>). Measuring the built terrain instead gives a cap that rises with the map, and
-/// measuring only the terrain keeps it from being pushed up by whatever was placed on it.</para>
+/// <para><b>The measurement is what makes it right.</b> The ceiling is <see cref="OverGround"/> blocks over
+/// the <em>highest thing the map actually builds and a player meets</em>: the terrain, and the buildings
+/// standing on it — a spawn hall, a wool cage, a house's ridge. Measuring what was built rather than the
+/// plan's flat nominal <c>surface</c> is what stops a board coming out with a ceiling under its own terrain
+/// (<c>B104</c>, <c>B176</c>), and clearing the roofs is what stops one coming out with a ceiling a player
+/// cannot build over the town in.</para>
+///
+/// <para><b>Two kinds of block are deliberately not in it, each for its own reason.</b> A <b>made thing</b> —
+/// a balloon, a ship, a sculpture drawn out of layers — is neither ground nor a building but scenery the
+/// author hung in the air, so a ceiling tracking it would follow whatever altitude was felt like: a balloon
+/// at y97 asks for 117 on a board whose terrain tops at 33. An <b>objective</b> floats over the ground by
+/// design — a core on the ground cannot leak and a destroyable on it is trivially covered — so a ceiling
+/// derived from one could never be beneath it, and the over-ceiling complaint that exists to say a goal
+/// stands out of a player's reach could never fire. <see cref="Floating"/> names the second set.</para>
 ///
 /// <para><b>Twenty is <c>G6</c>'s floor, not a guess.</b> The rule asks for at least twenty blocks of build
 /// clearance over the island surface, and warns in the same breath that a generous cap over flat terrain is
@@ -20,8 +27,13 @@ namespace PgmStudio.Domain;
 /// </summary>
 public static class BuildCeiling
 {
-    /// <summary>Blocks of build clearance over the highest terrain surface (<c>G6</c>).</summary>
+    /// <summary>Blocks of build clearance over the highest built surface (<c>G6</c>).</summary>
     public const int OverGround = 20;
+
+    /// <summary>The <see cref="StampId.Kind"/>s a ceiling does not rise for: the objectives, which stand off
+    /// the ground on purpose. Everything else a stamp writes is a building, and the ceiling clears it.</summary>
+    public static readonly IReadOnlySet<string> Floating =
+        new HashSet<string>(StringComparer.Ordinal) { "destroyable", "core" };
 
     /// <summary>Blocks between the ceiling and a goal marker's floor. The marker is a sky sign — a player
     /// crossing open ground reads where the goal is from it — so it hangs just out of reach of the highest

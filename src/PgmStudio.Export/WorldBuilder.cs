@@ -128,18 +128,14 @@ public static class WorldBuilder
         var (woolStyle, spawnStyle) = RoomStyleScope.StylesOf(layoutJson);
 
         // ── The build ceiling, and the one altitude every goal marker hangs at ──────────────────────
-        // Both are the author's rule, and both are derived here because here is the first place that knows
-        // the answer: twenty blocks over the highest ground the map actually built, and the markers five
-        // over that (BuildCeiling). The measurement is the point — SurfaceTop is the terrain the rasterizer
-        // laid, read before a single structure, house or tree is stamped on it, so nothing placed on the map
-        // can push its own ceiling up. It is written back onto the intent so the <max-build-height> the XML
-        // declares and the altitude these markers are stamped at are one number rather than two agreeing
-        // by habit.
-        var highestGround = terrain.SurfaceTop.Count > 0 ? terrain.SurfaceTop.Values.Max() : 0;
-        var maxBuildHeight = Math.Min(BuildCeiling.Of(highestGround), VoxelWorld.MaxHeight - 1);
-        intent = intent with { Build = (intent.Build ?? new BuildIntent()) with { MaxHeight = maxBuildHeight } };
-        var markerFloor = Math.Clamp(
-            maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
+        // Both are the author's rule (BuildCeiling): twenty blocks over the highest thing the map builds and
+        // a player meets, and the markers five over that. **The answer is not known here.** The ceiling
+        // clears the buildings as well as the terrain, and the last of them is a house the dressing pass has
+        // not placed yet — so the markers are collected as they are decided and stamped once the world is
+        // finished, and the goals that top out over the ceiling are complained about at the same point.
+        // Every marker on a board hangs at one altitude, so collecting them costs nothing but the order.
+        var pendingMarkers = new List<(int X, int Z, int Data, GoalMarkerShape Shape)>();
+        var pendingCeiling = new List<(string Kind, string Name, StampId Owner, BlockBox Box)>();
 
         // ── Wool-room bedrock floors (ST1) ──────────────────────────────────────────────────────────
         // Ground, not dressing — the plan fills each wool-room piece solid from y=0 to the surface so the room
@@ -173,8 +169,8 @@ public static class WorldBuilder
                              ProvenancePass.Structure, w.Stamp);
             // One marker per wool room — the room is already one entry per orbit image (PlanCompiler fans
             // team-outer), so no orbit math is needed here to keep a mirrored board's markers matching.
-            GoalMarkerStamper.Stamp(world, (frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
-                markerFloor, BlockColors.BlockDamage(slug), GoalMarkerShape.Cube);
+            pendingMarkers.Add(((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2,
+                BlockColors.BlockDamage(slug), GoalMarkerShape.Cube));
             provenance.Claim((frame.MinX + frame.MaxX) / 2, (frame.MinZ + frame.MaxZ) / 2, ProvenancePass.Structure, w.Stamp);
             woolFrame[i] = frame;
             woolFloor[i] = fy;
@@ -278,10 +274,10 @@ public static class WorldBuilder
         // and that is a thing the caller has to be told rather than a reason to stop.
         var goalComplaints = new List<Finding>();
         var resolvedDestroyables = StampDestroyables(
-            world, terrain, intent.Destroyables, teams, markerFloor, maxBuildHeight, provenance,
+            world, terrain, intent.Destroyables, teams, pendingMarkers, pendingCeiling, provenance,
             goalComplaints);
         var resolvedCores = StampCores(
-            world, terrain, intent.Cores, teams, markerFloor, maxBuildHeight, provenance,
+            world, terrain, intent.Cores, teams, pendingMarkers, pendingCeiling, provenance,
             goalComplaints);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
@@ -355,6 +351,22 @@ public static class WorldBuilder
                     if (provenance.PassAt(cell.X, cell.Z) != ProvenancePass.Structure)
                         provenance.Claim(cell.X, cell.Z, ProvenancePass.Made);
 
+        // ── The build ceiling, now that everything a player meets is standing ───────────────────────
+        // Read here because here is the first place the answer exists: the terrain was laid at the top of
+        // this method, the rooms and the goals were stamped in the middle, and the last building on the
+        // board is a house the dressing pass has just placed. The number is written back onto the intent, so
+        // the <max-build-height> the XML declares and the altitude the markers are stamped at are one number
+        // rather than two agreeing by habit.
+        var maxBuildHeight = Math.Min(BuildCeiling.Of(HighestBuilt(world, groundTop, provenance, columns, propLayers)),
+                                      VoxelWorld.MaxHeight - 1);
+        intent = intent with { Build = (intent.Build ?? new BuildIntent()) with { MaxHeight = maxBuildHeight } };
+        var markerFloor = Math.Clamp(
+            maxBuildHeight + BuildCeiling.MarkerOver, 0, VoxelWorld.MaxHeight - GoalMarkerStamper.Size);
+        foreach (var (mx, mz, data, shape) in pendingMarkers)
+            GoalMarkerStamper.Stamp(world, mx, mz, markerFloor, data, shape);
+        foreach (var (kind, name, owner, box) in pendingCeiling)
+            OverCeiling(goalComplaints, kind, name, owner, box, maxBuildHeight);
+
         // ── Biome — the one colour that costs no block. Every chunk the world holds takes its byte from the
         // map's field, folded through the same symmetry the painter uses so a mirrored board answers one
         // biome on both halves. It runs after every pass that could add a chunk, because a chunk that arrives
@@ -404,6 +416,47 @@ public static class WorldBuilder
             : null;
         return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed,
                               groundTop);
+    }
+
+    /// <summary>The highest block the map built that a player meets — what the ceiling clears
+    /// (<see cref="BuildCeiling"/>). The terrain answers for itself: <paramref name="groundTop"/> is already
+    /// every column's top with the made things taken out. A building answers by its own column, which is why
+    /// the provenance is read rather than the world — a stamp is exactly the pass that claimed a column, so
+    /// the buildings are the <see cref="ProvenancePass.Structure"/> claims less the ones
+    /// <see cref="BuildCeiling.Floating"/> names.
+    ///
+    /// <para>A column is read top-down and a course inside a made thing is stepped over, because the two can
+    /// share one: a house standing under a balloon is claimed Structure and carries the envelope's blocks
+    /// over its own roof. Stepping over them finds the ridge, which is the building's answer and the one
+    /// wanted.</para></summary>
+    private static int HighestBuilt(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> groundTop, WorldProvenance provenance,
+        IReadOnlyList<ColumnSegment> columns, IReadOnlySet<string> propLayers)
+    {
+        var highest = groundTop.Count > 0 ? groundTop.Values.Max() : 0;
+
+        var made = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
+        foreach (var segment in columns)
+        {
+            if (!propLayers.Contains(segment.Layer)) continue;
+            if (!made.TryGetValue(segment.Cell, out var spans)) made[segment.Cell] = spans = [];
+            spans.Add((segment.YFloor, segment.YTop));
+        }
+
+        foreach (var (cell, pass, owner) in provenance.Claims)
+        {
+            if (pass != ProvenancePass.Structure) continue;
+            if (owner is { } stamp && BuildCeiling.Floating.Contains(stamp.Kind)) continue;
+            made.TryGetValue(cell, out var spans);
+            for (var y = VoxelWorld.MaxHeight - 1; y > highest; y--)
+            {
+                if (world.GetBlock(cell.X, y, cell.Z).Id == 0) continue;
+                if (spans is not null && spans.Any(span => y >= span.Floor && y < span.Top)) continue;
+                highest = y;
+                break;
+            }
+        }
+        return highest;
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).
@@ -490,7 +543,8 @@ public static class WorldBuilder
     // wrong structure would hide that.
     private static List<DestroyableIntent>? StampDestroyables(
         VoxelWorld world, BuiltTerrain terrain, List<DestroyableIntent>? destroyables,
-        IReadOnlyList<TeamDef> teams, int markerFloor, int maxBuildHeight, WorldProvenance provenance,
+        IReadOnlyList<TeamDef> teams, List<(int X, int Z, int Data, GoalMarkerShape Shape)> markers,
+        List<(string Kind, string Name, StampId Owner, BlockBox Box)> ceiling, WorldProvenance provenance,
         List<Finding> complaints)
     {
         if (destroyables is null) return null;
@@ -517,7 +571,7 @@ public static class WorldBuilder
 
             ObjectiveStamper.StampDestroyable(world, box, style, DestroyableMaterials.BlockId(materials));
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
-            OverCeiling(complaints, "destroyable", GoalName(b.Name, b.Owner), owner, box, maxBuildHeight);
+            ceiling.Add(("destroyable", GoalName(b.Name, b.Owner), owner, box));
 
             // A buried bedrock plate under the goal, one course beneath the ground's own surface, so the
             // monument cannot be undermined from below and the ground under it cannot be mined away.
@@ -527,7 +581,7 @@ public static class WorldBuilder
             provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
-            GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross);
+            markers.Add((ax, az, WoolDataForTeam(b.Owner, teams), GoalMarkerShape.Cross));
             provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new DestroyableIntent
@@ -544,7 +598,8 @@ public static class WorldBuilder
     // corpus is effectively unanimous.
     private static List<CoreIntent>? StampCores(
         VoxelWorld world, BuiltTerrain terrain, List<CoreIntent>? cores,
-        IReadOnlyList<TeamDef> teams, int markerFloor, int maxBuildHeight, WorldProvenance provenance,
+        IReadOnlyList<TeamDef> teams, List<(int X, int Z, int Data, GoalMarkerShape Shape)> markers,
+        List<(string Kind, string Name, StampId Owner, BlockBox Box)> ceiling, WorldProvenance provenance,
         List<Finding> complaints)
     {
         if (cores is null) return null;
@@ -557,7 +612,7 @@ public static class WorldBuilder
             var box = ObjectiveStamper.CoreBox(terrain.SurfaceFor(c.Layer), ax, az, c.Size, c.Height, c.Float);
             ObjectiveStamper.StampCore(world, box, Blocks.Obsidian, c.Shell, c.OpenTop);
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
-            OverCeiling(complaints, "core", GoalName(c.Name, c.Owner), owner, box, maxBuildHeight);
+            ceiling.Add(("core", GoalName(c.Name, c.Owner), owner, box));
 
             // The same buried plate and defence chest a destroyable stands over: a core is a goal a team
             // defends, and the ground under it is as much worth holding.
@@ -567,7 +622,7 @@ public static class WorldBuilder
             provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.
-            GoalMarkerStamper.Stamp(world, ax, az, markerFloor, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross);
+            markers.Add((ax, az, WoolDataForTeam(c.Owner, teams), GoalMarkerShape.Cross));
             provenance.Claim(ax, az, ProvenancePass.Structure, owner);
 
             resolved.Add(new CoreIntent

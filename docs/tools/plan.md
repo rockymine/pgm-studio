@@ -121,11 +121,11 @@ can.
 **The build ceiling is not a global, and that is the correction.** It was `headroom`, a slack added to
 `surface`, so the cap was computed from the plan's flat nominal world — a ground level the relief solve then
 abandons, which produced boards whose ceiling sat below their own terrain. The author's rule measures it where
-the answer exists: **twenty blocks over the highest ground the world actually builds** (`G6`, amendment 14),
-derived in `WorldBuilder` and written onto the intent as `MaxHeight`. Measuring the *terrain* is the
-whole of it — not a house, a tree or a stamped structure standing on it, or a taller shell would raise the
-ceiling that allows a taller shell. A plan-level number would be a second source for one value, and the one
-that gets overwritten.
+the answer exists: **twenty blocks over the highest block the world actually builds and a player meets**
+(`G6`, amendments 14 and 25) — the terrain and the buildings standing on it, never a made thing hung in the
+air and never an objective, which floats by design. It is derived in `WorldBuilder`, after the dressing pass
+because the last building on the board is a house that pass places, and written onto the intent as
+`MaxHeight`. A plan-level number would be a second source for one value, and the one that gets overwritten.
 
 `surface` stays exactly as it was, per piece and global: it is load-bearing and correct as a plan-space
 concept, and it is still what the observer's default height is measured from.

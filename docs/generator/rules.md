@@ -844,6 +844,30 @@ both corrected.)
     +z, behind the bedrock from the lane, to z 64 facing −z, which is the way its wool room's own door at
     z 75 faces.
 
+25. **The build ceiling clears the buildings, and never a made thing (2026-08-29).** Author's call,
+    amending 14. That amendment settled *which surface* `G6`'s twenty blocks are measured over and answered
+    "the terrain, not what stands on it", the reasoning being that a taller shell must not raise the ceiling
+    that permits a taller shell. Two things have happened since. A board carries **houses** now, and a cap
+    over the terrain alone sits at the roofline of a two-storey town: on `opus5-slipway` the terrain tops at
+    y33 and the spawn hall's ridge at y48, so the terrain-only cap of 53 is five blocks over the building a
+    player is standing next to. And a board carries **made things** — a ship, a balloon, a sculpture drawn
+    out of layers — which are laid by the rasterizer and therefore read as terrain to a `SurfaceTop` measure:
+    the same board's balloons crown at y97 and asked for a cap of 117, clamped to `BuildGenerator`'s 100.
+
+    The rule is now: the cap is **twenty blocks over the highest block the map builds that a player meets** —
+    the terrain, and the buildings standing on it. A **made thing is out**, because it is scenery the author
+    hung in the air and a cap tracking it follows an altitude rather than a landform. An **objective is out**
+    too, because a goal floats over the ground by design and a cap derived from one could never be beneath
+    it, which would make `OB23` — the complaint that a goal stands out of a player's reach — unable to fire.
+    Amendment 14's worry is answered by what is excluded rather than by measuring the terrain alone: a shell
+    can raise the ceiling over itself, and that is the correct answer for a shell a player walks into.
+
+    The measurement moves with the rule. It was read off `SurfaceTop` before a single stamp; it is now read
+    after the dressing pass, over the columns provenance records as `Structure`, stepping over the courses a
+    made thing occupies so a house under a balloon answers with its own ridge. `WorldBuilder` therefore
+    collects the goal markers as they are decided and stamps them once the cap is known. On `opus5-slipway`
+    the cap reads **68** and the markers y73, against 100 and y123 before.
+
 ## Correction protocol
 
 Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further corrections are

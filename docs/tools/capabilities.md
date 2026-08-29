@@ -215,9 +215,10 @@ The first is height without a way over it. `BuildIntent.MaxHeight` becomes the m
 anything standing higher.
 
 **A shape cannot put itself above that line, and this is the part an author has to know before reaching for
-the technique.** The cap is derived at build time as twenty blocks over the highest ground the world actually
-builds — `BuildCeiling.Of(terrain.SurfaceTop.Values.Max())` in `WorldBuilder`, the rule `plan.md`
-states as `G6` amendment 14 — and an erected shape **is** one of those columns. Raising a wall of terrain
+the technique.** The cap is derived at build time as twenty blocks over the highest block the world builds
+that a player meets — `WorldBuilder.HighestBuilt`, the rule `plan.md` states as `G6` amendments 14 and 25 —
+and an erected shape **is** one of those columns. A made thing is not: a spine drawn on a `prop` layer raises
+nothing, which is the difference between drawing a wall and hanging a sculpture. Raising a wall of terrain
 therefore raises the ceiling that would have capped it, by exactly the same twenty blocks, and hands the rest
 of the board that ceiling too. Measured on `pgm-studio-mapgen`'s `alabaster-rake`: five pillars topping at
 y43 over ground topping at y14 wrote `<maxbuildheight>64</maxbuildheight>`, twenty-one blocks of clear air
