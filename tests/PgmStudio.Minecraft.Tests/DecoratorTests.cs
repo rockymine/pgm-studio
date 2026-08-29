@@ -42,6 +42,48 @@ public sealed class DecoratorTests
         => new(top, props, keptClear ?? ((_, _) => null), new DressingSymmetry(symmetry, centerX, centerZ),
                IsGoalClearance: goalClearance);
 
+    /// <summary><b>A stroke is turned away by ground somebody drew, and by nothing else.</b> The keep-out mask
+    /// is about things that <em>stand</em> on ground; a stroke stands on nothing, replaces one course of
+    /// finish, and in front of a door it IS the lane the approach is being kept clear for. Held to the whole
+    /// mask a road stops short of every spawn and tapers away as the approach rect crosses it.</summary>
+    [Test]
+    public async Task A_stroke_paves_through_a_door_approach_and_stops_at_a_drawn_structure()
+    {
+        var (world, top) = Plateau();
+        // The mask a spawn at the far end of the plateau builds: its own margin over z 30+, the lane in
+        // front of its door over z 24..29, and a drawn thing — a wall, a stair, a crop bed — at x 30.
+        static KeepOut? Mask(int x, int z) =>
+            x is >= 29 and <= 31 ? KeepOut.Structure
+            : z >= 30 ? KeepOut.Spawn
+            : z >= 24 ? KeepOut.Approach
+            : null;
+
+        var tally = Decorator.Decorate(world, Context(top,
+        [
+            new StrokeProp
+            {
+                Id = "lane", Points = [[20, 4], [20, 34]], Radius = 2, Seed = 5, Route = true,
+                Pave = new SolidMaterial(Blocks.Gravel),
+            },
+            new StrokeProp
+            {
+                Id = "cross", Points = [[4, 12], [36, 12]], Radius = 2, Seed = 5, Route = true,
+                Pave = new SolidMaterial(Blocks.Gravel),
+            },
+        ], keptClear: Mask));
+
+        await Assert.That(tally.Declines).IsEmpty();
+        // Through the approach and on into the spawn's own margin: a road that stops in front of a door
+        // leads nowhere, and neither reason is about a block standing on the ground.
+        await Assert.That(world.GetBlock(20, 7, 26).Id).IsEqualTo(Blocks.Gravel);
+        await Assert.That(world.GetBlock(20, 7, 32).Id).IsEqualTo(Blocks.Gravel);
+        // And stopped dead at the drawn structure, which is the one thing `keepClear` exists to protect:
+        // the crossing road paves either side of x 30 and not on it.
+        await Assert.That(world.GetBlock(27, 7, 12).Id).IsEqualTo(Blocks.Gravel);
+        await Assert.That(world.GetBlock(30, 7, 12).Id).IsNotEqualTo(Blocks.Gravel);
+        await Assert.That(world.GetBlock(34, 7, 12).Id).IsEqualTo(Blocks.Gravel);
+    }
+
     /// <summary>A goal's clearance over the square [16,24]² — the shape `DressingScope.GoalClearanceAt`
     /// derives from a goal at (20, 20), stated here as the literal it is so these tests read the pass rather
     /// than the derivation.</summary>

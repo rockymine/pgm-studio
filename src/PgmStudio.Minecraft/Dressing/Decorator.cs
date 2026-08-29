@@ -291,7 +291,19 @@ public static class Decorator
         foreach (var cell in stroke)
         {
             var (x, z) = context.Symmetry.ImageCell(cell.X, cell.Z, k);
-            if (context.IsKeptClear(x, z)) continue;
+            // **A stroke is turned away by ground somebody drew, and by nothing else.** The keep-out mask is
+            // about things that STAND on ground — a trunk in a doorway, a boulder inside a spawn's
+            // protection, a house across the lane players walk out through — and a stroke stands on nothing.
+            // It repaints one course of terrain, and in front of a door it IS the lane the approach is being
+            // kept clear for. Held to the whole mask a road stopped twenty blocks short of every spawn and
+            // tapered away as the approach rect cut across it, which is a road leading nowhere.
+            //
+            // What it must still respect is a shape that says it is not ground to dress (`KeepClear`, and the
+            // stated structures beside it — a room floor, a wall, an iron cube): repainting the top course of
+            // a town wall or a flight of stairs is exactly what that word exists to prevent. A stamped column
+            // is caught below by the pass's own test, per cell and with no margin, which is the sharper
+            // reading of the same question — so the road runs to the wall and stops AT the wall.
+            if (context.KeptClearAt(x, z) == KeepOut.Structure) continue;
             if (!ground.TryGetValue((x, z), out var top) || top < 1) continue;
 
             // A stamp's own block is not a road's to take: the painter only writes terrain, so anything else

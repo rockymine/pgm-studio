@@ -120,7 +120,8 @@ one stage rather than four:
   **never RNG** — the discipline `terrain-painting.md` §5 already holds, so a map re-exports identically.
 - **Mask.** Eligibility from the painted surface (soil vs. quartz, read from the top block) and from the
   **keep-out** `DressingScope.KeptClearAt` builds: spawns, wool rooms, stated structures, built columns,
-  the sketch shapes that marked themselves `keepClear`, and every door's approach. Nothing lands where it would break play or read wrong, and the mask answers *which*
+  the sketch shapes that marked themselves `keepClear`, and every door's approach — the whole of it for
+  anything that stands on ground, and only `KeepOut.Structure` for a stroke, which stands on nothing (§3.1). Nothing lands where it would break play or read wrong, and the mask answers *which*
   of those held a cell (`KeepOut`), because a decline that cannot name what stopped it is one nobody can act
   on. This is not the map contract's `protection`, which is a region rule about what a player may enter and
   break; it reads a spawn's protection areas but what it answers is the other thing. A route's own cells join the mask as it is laid, so nothing grows through a road; a stroke that is paint claims nothing and is planted over.
@@ -237,6 +238,19 @@ wall keeps the lane on all four faces.
 own margin, a wool room, a stated structure, a stamped column — never turns a building away, because someone
 drew that rectangle where it is and a room's margin is not a reason to lose it. The lane is the exception,
 and the reason is size: a building is the one prop big enough to close a door's approach entirely.
+
+**And a stroke obeys the stated structures and nothing else** — the mirror of that, and for the mirror
+reason. The mask is about things that *stand* on ground: a trunk in a doorway, a boulder inside a spawn's
+protection, a house across the lane. A stroke stands on nothing. It replaces one course of finish, and in
+front of a door it **is** the lane the approach is being kept clear for, so a road held to the whole mask
+stops twenty blocks short of every spawn and tapers away as the approach rect cuts across it — `opus5-slipway`'s
+spawn road paved 228 cells, narrowing from seven wide to one and ending twelve blocks from a room it is
+authored to reach. What a stroke must still respect is `KeepOut.Structure`: a room floor, a wall, an iron
+cube, and a shape that marked itself `keepClear` — repainting the top course of a town wall or a flight of
+stairs is exactly what that word exists to prevent. A stamped column needs no entry in the mask, because the
+pass tests the block under its own feet per cell and with no margin (§4), which is the sharper reading of the
+same question: the road runs to the wall and stops **at** the wall. The same road now paves 367 cells at its
+full width, into the room's own doorstep.
 
 ## 4. Strokes — drag a line, replace the finish (`DR-PA`)
 
