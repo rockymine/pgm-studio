@@ -251,7 +251,20 @@ shapes drawn on it.
   render the strip and the layer list by group, one row per prop with its layers folded under it. Downstream
   of `TS62`, which is where `kind` arrives.
 
-- [ ] **WE53 — A material that reads absolute Y, and stops a colour change costing a layer.** A layer's span
+- [ ] **WE58 — The stone-only invariant reads the id and not the data, so a stone-variant finish is repainted
+  by the next layer.** `TerrainPainter.Paint` guards with `world.GetBlock(...).Id != Blocks.Stone` and writes
+  with `id != Blocks.Stone || data != 0` (`TerrainPainter.cs:61-62`). The write is data-aware and the read is
+  not, so every **id 1** block — stone, granite, polished granite, diorite, polished diorite, andesite,
+  polished andesite — is written by a lower layer's pass and still reads as stone to the next one, which
+  paints straight through it. `terrain-painting.md` §3 states the opposite in as many words: *"the passes
+  cannot tread on each other because of the stone-only invariant: a course a lower layer has already finished
+  is no longer stone"*, and §"the runtime seam" claims a re-run is idempotent. Neither holds for that family.
+  Measured on `pgm-studio-mapgen/sculpture`, one column, everything else identical: a plinth themed
+  `(1, 4)` under a red car comes back **red at y1–5**; the same plinth themed `(24, 2)` comes back sandstone.
+  Fix the read to compare the pair — `is not (Blocks.Stone, 0)` — and the write already agrees with it. A
+  test wants the pair: two layers, the lower finished in polished diorite, the upper in wool.
+
+- [ ] **WE57 — A material that reads absolute Y, and stops a colour change costing a layer.** A layer's span
   carries one theme, so a colour band splits a run as surely as air does — and that, not geometry, is what a
   sculpture costs. Measured over seven models in `pgm-studio-mapgen/sculpture`: the layer count the shape
   alone needs against the one it actually takes — starship 2 against 4, robot 5 against 16, and a Rubik's
@@ -264,7 +277,7 @@ shapes drawn on it.
   7 / 123 → **1 / 33**, station 7 / 2,557 → **6 / 1,467**. Fewer layers *and* fewer shapes, because
   splitting a run by colour also shatters its footprint into small rectangles.
 
-- [ ] **WE52 — The painter's buckets are a model of ground, and a sculpture is not ground.** `rim` caps every
+- [ ] **WE56 — The painter's buckets are a model of ground, and a sculpture is not ground.** `rim` caps every
   plateau boundary and `wall` covers every exposed riser, so on a curved voxel form — which is nothing but
   plateau boundaries — a three-tone theme speckles the whole surface; every piece in `pgm-studio-mapgen/sculpture`
   states a **solid** theme for that reason. Two smaller edges belong with it: a theme whose material *is*
