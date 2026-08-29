@@ -2308,6 +2308,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A made thing is drawn as itself, and has a picture of its own (WE62).** A ship, a balloon, a crane and a
+  car are laid by the rasterizer on layers of their own, so with no claim of their own every column they
+  stand on read as `ProvenancePass.Ground` — a balloon flying over a field drew as that field's surface and a
+  house beside one as a house standing on it. `ProvenancePass.Made` is that claim and `RenderCategory.Made`
+  its colour, so the structure read carries buildings only and the combined read tells a hull from the water
+  it floats in. It is claimed **after** the dressing pass, because the passes between work on the terrain
+  round a made thing rather than on the thing — the harbour fills round a hull and claims every column it
+  filled, which is true of the water and false of the ship — and it leaves a `Structure` column alone,
+  because a room stamped on a deck is a room. `subject=made` isolates them over the terrain they fly above,
+  with nothing the dressing placed in the way. (WE62)
 - **A made thing is not the ground under it (WE61).** `BuiltTerrain.SurfaceTop` answers the highest thing
   standing at a cell, which is the build ceiling's question and nobody else's: a balloon flying thirty
   blocks over a field was that field's elevation, so the dressing pass seated a tree at the envelope, the

@@ -134,6 +134,18 @@ public sealed class RenderCategoriesTests
     }
 
     [Test]
+    public async Task A_made_things_own_blocks_are_neither_ground_nor_structure()
+    {
+        // A balloon's envelope is wool and its basket is planks, so material alone reads one as a stamp and
+        // the other as a building — and the pass that laid both is the rasterizer, so a Ground claim reads
+        // them as the field they fly over. Only the claim's own kind says what they are.
+        await Assert.That(RenderCategories.Of(Blocks.Wool, ProvenancePass.Made)).IsEqualTo(RenderCategory.Made);
+        await Assert.That(RenderCategories.Of(Blocks.Planks, ProvenancePass.Made)).IsEqualTo(RenderCategory.Made);
+        // And a leaf on a made thing is part of the thing, not a tree standing on it.
+        await Assert.That(RenderCategories.Of(Blocks.Leaves, ProvenancePass.Made)).IsEqualTo(RenderCategory.Made);
+    }
+
+    [Test]
     public async Task Ground_highlight_differs_from_grounds_own_backdrop_shade()
     {
         // The backdrop shade is deliberately muted (it is what the other categories read against in the

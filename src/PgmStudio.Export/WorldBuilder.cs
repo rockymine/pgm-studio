@@ -341,6 +341,20 @@ public static class WorldBuilder
         foreach (var claim in dressed.Placements)
             provenance.Claim(claim.Cells, claim.Pass, claim.Owner);
 
+        // ── A made thing's own columns, claimed last over what only ever touched the ground round them ──
+        // The rasterizer laid a made thing, so without a claim of its own it reads as the ground under it: a
+        // balloon flying over a field draws as that field's surface and a house beside one as a house
+        // standing on it. It is claimed after the dressing rather than before because the passes between
+        // work on the terrain, not on the thing — the harbour fills round a hull and claims every column it
+        // filled, which is a true statement about the water and a false one about the ship floating in it.
+        // A column a stamp built on is left alone: a room stamped on a deck is a room, and the deck is what
+        // it stands on.
+        foreach (var layer in propLayers)
+            if (terrain.SurfaceByLayer.TryGetValue(layer, out var madeCells))
+                foreach (var cell in madeCells.Keys)
+                    if (provenance.PassAt(cell.X, cell.Z) != ProvenancePass.Structure)
+                        provenance.Claim(cell.X, cell.Z, ProvenancePass.Made);
+
         // ── Biome — the one colour that costs no block. Every chunk the world holds takes its byte from the
         // map's field, folded through the same symmetry the painter uses so a mirrored board answers one
         // biome on both halves. It runs after every pass that could add a chunk, because a chunk that arrives

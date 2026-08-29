@@ -6,7 +6,7 @@ namespace PgmStudio.Minecraft.Palette;
 /// it is. <see cref="Void"/> is a column with no block recorded at all (unloaded, or a hole nothing covers);
 /// every loaded column resolves to exactly one of the other four, via <see cref="BlockRoles"/>, the one
 /// classification every render in this suite already shares.</summary>
-public enum RenderCategory { Void, Water, Foliage, Structure, Ground }
+public enum RenderCategory { Void, Water, Foliage, Structure, Made, Ground }
 
 /// <summary>
 /// One false-colour palette for <see cref="RenderCategory"/>, shared by every top-down world read-back that
@@ -43,6 +43,12 @@ public static class RenderCategories
     /// water cyan as the five-colour set allows.</summary>
     public const int StructureRgb = 0xFF7A1F;
 
+    /// <summary>A made thing — a ship, a balloon, a crane, a car — drawn on its own layer rather than built
+    /// on the ground. A hot yellow, the last hue in the set with real separation from the structure orange
+    /// and the foliage violet, because the question these answer is exactly "is that a building or a thing
+    /// standing where a building looks like it is".</summary>
+    public const int MadeRgb = 0xFFD11A;
+
     /// <summary>Natural ground — deliberately the most desaturated of the five, since it is the backdrop the
     /// other four are meant to stand out against rather than a reading of its own.</summary>
     public const int GroundRgb = 0x8A8578;
@@ -66,6 +72,7 @@ public static class RenderCategories
         RenderCategory.Water => WaterRgb,
         RenderCategory.Foliage => FoliageRgb,
         RenderCategory.Structure => StructureRgb,
+        RenderCategory.Made => MadeRgb,
         RenderCategory.Ground => GroundRgb,
         _ => VoidRgb,
     };
@@ -76,13 +83,15 @@ public static class RenderCategories
         RenderCategory.Water => "water",
         RenderCategory.Foliage => "foliage",
         RenderCategory.Structure => "structure",
+        RenderCategory.Made => "made thing",
         RenderCategory.Ground => "ground",
         _ => "?",
     };
 
     /// <summary>Every non-void category, in the order a legend lists them.</summary>
     public static readonly RenderCategory[] Visible =
-        [RenderCategory.Ground, RenderCategory.Structure, RenderCategory.Foliage, RenderCategory.Water];
+        [RenderCategory.Ground, RenderCategory.Structure, RenderCategory.Made, RenderCategory.Foliage,
+         RenderCategory.Water];
 
     /// <summary>What a column's topmost recorded block reads as, from material alone. Liquid outranks foliage
     /// and a built surface outranks bare ground, the same priority every scan in this suite already gives a
@@ -120,10 +129,14 @@ public static class RenderCategories
         : provenance switch
         {
             ProvenancePass.Structure => RenderCategory.Structure,
+            // A made thing is neither: it stands on a layer of its own, so a house beside a balloon reads as
+            // a house beside a balloon rather than as a house standing on ground the balloon happens to be
+            // the top of. This is the one claim whose kind the colour keys on.
+            ProvenancePass.Made => RenderCategory.Made,
             // A prop and the ground both answer the material test, and answer it correctly: a tree's leaves
             // read as foliage, a road's cobble and a boulder's stone read as ground. The layer is what says a
             // pass put them there, which is a provenance question rather than a colour one — so the two share
-            // a branch on purpose, and a picture that wanted to draw props apart would key on the claim's kind.
+            // a branch on purpose.
             ProvenancePass.Prop or ProvenancePass.Ground =>
                 Grown(blockId) ? RenderCategory.Foliage : RenderCategory.Ground,
             _ => Grown(blockId) ? RenderCategory.Foliage

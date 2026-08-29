@@ -6,8 +6,16 @@ namespace PgmStudio.Minecraft.Anvil;
 /// Which build pass claimed a column, last. <see cref="Ground"/> is the rasterizer's own terrain — whatever
 /// the painter later finishes it with, a plaza included. <see cref="Structure"/> is anything raised over it
 /// as a built thing: a wool cage, a spawn cube, a wall, an objective, a dressing-placed building.
+/// <see cref="Made"/> is a made thing's own layer — a ship, a balloon, a crane, a car — which is drawn
+/// rather than built and stands wherever it was drawn, over water or thirty blocks up.
 /// <see cref="Prop"/> is everything else the dressing pass put down — a tree, a boulder, flora, a path, a
 /// water course — which is placed rather than built and must not read as a building.
+
+/// <para><b><see cref="Made"/> is what stops a balloon reading as the ground under it.</b> A made thing's
+/// columns are the rasterizer's, so without a claim of their own they are <see cref="Ground"/>, and a render
+/// keyed on the pass then draws an envelope flying over a field as that field's surface — a house beside one
+/// reads as a house standing on it. The claim is what separates the two, and it is also what lets a picture
+/// isolate the made things over the terrain they fly above.</para>
 ///
 /// <para><b><see cref="Prop"/> exists because a material test answers a different question.</b> A tree does
 /// separate from built ground by material, which is the argument for recording only the first two. What
@@ -16,7 +24,7 @@ namespace PgmStudio.Minecraft.Anvil;
 /// flora prop that was never authored, and two trees of one orbit cannot be told from two trees that happen
 /// to stand alike.</para>
 /// </summary>
-public enum ProvenancePass { Ground, Structure, Prop }
+public enum ProvenancePass { Ground, Structure, Made, Prop }
 
 /// <summary>
 /// Which pass claimed each column of a world the studio built, and — for a <see cref="ProvenancePass.Structure"/>

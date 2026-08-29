@@ -66,13 +66,16 @@ elevation model it needs is an elevation per cell (`Dictionary<(int X,int Z),int
 each column), and the one it is given is **`BuiltWorld.Surface`** — `BuiltTerrain.SurfaceExcept(prop
 layers)`, the tops of everything on the board that is not a made thing.
 
-**A made thing is not ground, and the pass reads past it.** `BuiltTerrain.SurfaceTop` answers the highest
+**A made thing is not ground, and neither the pass nor the picture treats it as one.** `BuiltTerrain.SurfaceTop` answers the highest
 thing standing at a cell, which is right for a build ceiling and wrong for everything here: a balloon flying
 thirty blocks over a field is that field's answer, so a tree stated on it would seat at the envelope and
 every column under it would read as built and take nothing at all. The ground beneath a floating thing is
 exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same
 elevation goes to `DressingScope.KeptClearAt` and to `MapExportComposer.CheckStructureSites` (`WX11`), which
-would otherwise report a shed under a balloon as standing on a fifty-block plinth.
+would otherwise report a shed under a balloon as standing on a fifty-block plinth. The same fact is recorded
+for the renders as `ProvenancePass.Made`, claimed after this pass rather than before it — what runs between
+works on the terrain round a made thing, and a harbour that fills round a hull claims every column it filled,
+which is true of the water and false of the ship.
 
 **On a stacked board a prop says which layer it rests on.** That surface names the highest ground at a
 cell, so a prop stated for a gallery floor would land on the deck over it. A prop carries an optional

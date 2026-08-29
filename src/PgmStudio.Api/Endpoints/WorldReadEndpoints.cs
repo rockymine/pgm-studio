@@ -182,8 +182,10 @@ internal sealed class TopDownReadEndpoint(MapRepository repo, MapReader reader, 
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/topdown"));
         Description(b => b.Png().Refuses(404, 422).Reads(
-            new QueryWord("subject", "What to draw. Absent draws them all together.",
-                ["ground", "structure", "foliage", "objectives", "combined"]),
+            new QueryWord("subject", "What to draw. Absent draws them all together. `made` is the made "
+                + "things — a ship, a balloon, a crane — over the terrain they stand on or fly above, with "
+                + "nothing the dressing pass placed in the way.",
+                ["ground", "structure", "made", "foliage", "objectives", "combined"]),
             new QueryWord("material",
                 "Present colours by the real block palette instead of by category. The category reading is "
                 + "what answers \"what kind of thing is here\"; the material reading answers \"what is it "

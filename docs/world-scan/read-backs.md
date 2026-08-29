@@ -34,7 +34,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 
 | Route | Also | Answers |
 |---|---|---|
-| `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
+| `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `made` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
 | `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project |
 | `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
@@ -173,6 +173,14 @@ rather than in a document somebody may not have open.
 list swallows stone, cobble, sandstone, stone brick, quartz and stained clay — so a cottage roofed in any of
 them reads as ground. On a studio-built world take `render/topdown?subject=structure`, which reads the
 provenance sidecar and draws what the build recorded itself placing.
+
+**A made thing is neither ground nor structure, and `subject=made` is its picture.** A ship, a balloon, a
+crane and a car are laid on layers of their own, so a render keyed on the pass would draw a balloon flying
+thirty blocks over a field as that field's surface and a house beside it as a house standing on one.
+`ProvenancePass.Made` is claimed for those columns after the dressing pass — the passes between work on the
+terrain round a made thing rather than on the thing, and the harbour that fills round a hull claims every
+column it filled — so `subject=structure` carries buildings only and `subject=made` carries the made things
+over the terrain they stand on or fly above, with nothing the dressing placed in the way.
 
 And one that is not a fault: **`surface`'s magenta is not a material.** It is the honest answer for a block no
 tone family claims, and the legend says how many there were.

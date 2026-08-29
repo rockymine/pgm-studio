@@ -21,7 +21,7 @@ public enum TopDownColorMode { Category, Material }
 /// terrain is uniformly the context tone, and only the <c>map.xml</c> overlay (goals, spawns, apply-rule
 /// boxes) is drawn on top, because the question it answers is purely "where do the declared goals sit",
 /// which the finished map's own colours only get in the way of.</summary>
-public enum TopDownSubject { Combined, Ground, Structure, Foliage, Objectives }
+public enum TopDownSubject { Combined, Ground, Structure, Made, Foliage, Objectives }
 
 /// <summary>
 /// A world's surface as a top-down PNG: one pixel block per column. The default reading is a diagram, not a
@@ -214,6 +214,7 @@ public static class TopDownRender
         {
             TopDownSubject.Ground => RenderCategory.Ground,
             TopDownSubject.Structure => RenderCategory.Structure,
+            TopDownSubject.Made => RenderCategory.Made,
             TopDownSubject.Foliage => RenderCategory.Foliage,
             _ => RenderCategory.Ground,
         };
@@ -403,6 +404,7 @@ public static class TopDownRender
             TopDownSubject.Objectives => ContextRgb,
             TopDownSubject.Ground => column.Category == RenderCategory.Ground ? RenderCategories.HighlightOf(RenderCategory.Ground) : ContextRgb,
             TopDownSubject.Structure => column.Category == RenderCategory.Structure ? RenderCategories.HighlightOf(RenderCategory.Structure) : ContextRgb,
+            TopDownSubject.Made => column.Category == RenderCategory.Made ? RenderCategories.HighlightOf(RenderCategory.Made) : ContextRgb,
             TopDownSubject.Foliage => column.Category == RenderCategory.Foliage ? RenderCategories.HighlightOf(RenderCategory.Foliage) : ContextRgb,
             _ => categoryRgb,
         };
