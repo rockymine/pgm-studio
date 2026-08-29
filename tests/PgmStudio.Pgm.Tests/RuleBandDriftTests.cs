@@ -21,4 +21,14 @@ public sealed class RuleBandDriftTests
         // and the prose still names the term that enforces it, so a reader lands on the right code
         await Assert.That(go1.Means).Contains("goal-spawn-ratio");
     }
+
+    [Test]
+    public async Task GO4s_prose_states_the_band_the_term_scores_with()
+    {
+        var band = new GoalSpawnDistance().AuthoredBand!.Value;
+        var go4 = RuleCatalog.Read([]).Single(rule => rule.Rule == "GO4");
+
+        await Assert.That(go4.Means).Contains($"[{band.Lo:0}, {band.Hi:0}]");
+        await Assert.That(go4.Means).Contains("goal-spawn-distance");
+    }
 }

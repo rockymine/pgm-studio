@@ -37,3 +37,36 @@ public sealed class GoalSpawnRatio : SoftTerm
             .Distinct()
             .ToList();
 }
+
+/// <summary>GO4: a destroy goal's distance from its own spawn, by walk, held to the authored band
+/// <b>[40, 90]</b>. The same own-spawn leg <see cref="GoalSpawnRatio"/> divides by is judged here on its own:
+/// under the band the spawn already stands on the goal, over it the spawn cannot reinforce before the goal
+/// falls. A goal with no route contributes nothing — that is the traversability gate's refusal.</summary>
+public sealed class GoalSpawnDistance : SoftTerm
+{
+    public override string Id => "goal-spawn-distance";
+    public override string RuleId => "GO4";
+    public override bool LearnsFromTraced => false;
+    public override Band? AuthoredBand => new Band(40, 90);
+
+    public override double? Value(EvalContext ctx)
+    {
+        var distances = GoalDistances.Read(ctx.Plan)
+            .Where(goal => goal.OwnSpawnBlocks is not null)
+            .Select(goal => goal.OwnSpawnBlocks!.Value)
+            .ToList();
+        if (distances.Count == 0) return null;
+
+        // Every in-band distance scores zero, so the term's one value is the goal the band judges hardest.
+        var band = AuthoredBand!.Value;
+        return distances.OrderByDescending(band.Distance).First();
+    }
+
+    protected override IReadOnlyList<string> Subjects(EvalContext ctx) =>
+        ctx.Plan.Placements.Destroyables.Select(goal => goal.Piece)
+            .Concat(ctx.Plan.Placements.Cores.Select(goal => goal.Piece))
+            .Concat(ctx.Plan.Placements.Spawns.Select(spawn => spawn.Piece))
+            .Where(piece => piece.Length > 0)
+            .Distinct()
+            .ToList();
+}
