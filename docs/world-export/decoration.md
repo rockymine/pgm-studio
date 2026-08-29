@@ -62,10 +62,19 @@ Running after the painter is what makes the whole stage tractable. The painter h
 cell, what the surface *is* — and the single fact the dressing pass needs is exactly that: soil accepts
 flora, quartz does not; grass can be replaced by a stroke, a monument's wool cannot. So the pass reads the
 top block of each column and the ground the map keeps clear, and never has to re-derive either. The one
-elevation model it needs is the same `BuiltTerrain.SurfaceTop` (`Dictionary<(int X,int Z),int>`, the
-first air Y above each column) the painter and every stamper already read.
+elevation model it needs is an elevation per cell (`Dictionary<(int X,int Z),int>`, the first air Y above
+each column), and the one it is given is **`BuiltWorld.Surface`** — `BuiltTerrain.SurfaceExcept(prop
+layers)`, the tops of everything on the board that is not a made thing.
 
-**On a stacked board a prop says which layer it rests on.** `SurfaceTop` names the highest surface at a
+**A made thing is not ground, and the pass reads past it.** `BuiltTerrain.SurfaceTop` answers the highest
+thing standing at a cell, which is right for a build ceiling and wrong for everything here: a balloon flying
+thirty blocks over a field is that field's answer, so a tree stated on it would seat at the envelope and
+every column under it would read as built and take nothing at all. The ground beneath a floating thing is
+exactly the ground an author decorates, so the surface the pass reads leaves the prop layers out. The same
+elevation goes to `DressingScope.KeptClearAt` and to `MapExportComposer.CheckStructureSites` (`WX11`), which
+would otherwise report a shed under a balloon as standing on a fifty-block plinth.
+
+**On a stacked board a prop says which layer it rests on.** That surface names the highest ground at a
 cell, so a prop stated for a gallery floor would land on the deck over it. A prop carries an optional
 `layer`, and `DressingContext.GroundFor` answers that layer's own surfaces — `BuiltTerrain.SurfaceFor` is the
 same resolver for a stamped thing, so the two readers of a placement's layer cannot disagree about where it

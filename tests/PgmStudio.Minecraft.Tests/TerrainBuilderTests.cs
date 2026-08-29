@@ -67,4 +67,21 @@ public sealed class TerrainBuilderTests
         await Assert.That(world.GetBlock(9, 0, 9).Id).IsEqualTo(Blocks.Air);
         await Assert.That(world.GetBlock(9, 14, 9).Id).IsEqualTo(Blocks.Stone);    // and still stands
     }
+
+    /// <summary>A made thing flying over a field is the highest thing standing at those cells, and every
+    /// pass that decorates terrain has to read past it: the shed under a balloon stands on the field, not on
+    /// the envelope. <c>SurfaceExcept</c> is what says which layers are not ground.</summary>
+    [Test]
+    public async Task A_flying_layer_is_not_the_ground_under_it()
+    {
+        var terrain = TerrainBuilder.Build([
+            Seg(0, 0, 0, 20),                                   // the field
+            new ColumnSegment(0, 0, 60, 64, "balloon-L0"),      // and a balloon over it
+        ]);
+
+        await Assert.That(terrain.SurfaceTop[(0, 0)]).IsEqualTo(64);
+        await Assert.That(terrain.SurfaceExcept(new HashSet<string> { "balloon-L0" })[(0, 0)]).IsEqualTo(20);
+        // Named nothing, the answer is the whole board's, which is what a single-layer board wants.
+        await Assert.That(terrain.SurfaceExcept(new HashSet<string>())[(0, 0)]).IsEqualTo(64);
+    }
 }

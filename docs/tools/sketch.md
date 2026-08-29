@@ -309,11 +309,18 @@ themes and mirrors identically.
 footprint one course down, carves the terrain standing over that floor out of every footprint column, and
 declines rather than half-lands (`docs/world-export/structures.md` §6). A seated layer does the same thing
 with the same three moves, over the whole made thing rather than over one rectangle: the lowest solid column
-anywhere under the thing's footprint decides one drop, every layer of the thing is shifted by it together, and
-the ground standing above the settled floor is cut out of the footprint so a bank the thing digs into stops
-at its own hull. **The drop is one number for the whole thing, not one per layer** — a keel that settled
-independently of the deck above it would not be a ship — which is exactly what `prop` is for: layers sharing a
-`prop` name seat as a unit, and a layer with no `prop` seats on its own.
+under the columns the thing **rests on** decides one drop, every layer of the thing is shifted by it together,
+and the ground standing above the settled floor is cut out of the whole footprint so a bank the thing digs
+into stops at its own hull. **The drop is one number for the whole thing, not one per layer** — a keel that
+settled independently of the deck above it would not be a ship — which is exactly what `prop` is for: layers
+sharing a `prop` name seat as a unit, and a layer with no `prop` seats on its own.
+
+**What it rests on is the columns whose own span starts at its lowest course, not its whole shadow.** A crane
+standing on a quay with its jib reaching out over the harbour covers water it never touches, and reading the
+lowest ground anywhere under that shadow would find the seabed and take the crane down to it. The feet are
+what the ground has to carry, so the feet are what the seat is measured from; the cut still runs over the
+whole footprint, so a hull driven into a bank clears the bank. This is the seat a placed prop already takes
+(`Decorator.Seats` reads a prop's resting course), and the two must not disagree about what resting means.
 
 **What the seat measures against is what the thing is not.** Terrain, and any made thing that states its own
 absolute height. So a balloon over a ship does not settle onto the ship's deck unless it says it should — it

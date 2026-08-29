@@ -42,8 +42,18 @@ public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
     IReadOnlyList<Finding>? Declined = null,
     IReadOnlyList<ColumnSegment>? Columns = null,
-    DressingPlacement Dressing = default)
+    DressingPlacement Dressing = default,
+    IReadOnlyDictionary<(int X, int Z), int>? Ground = null)
 {
+    /// <summary>The <b>terrain's</b> surface, cell by cell — the tops of everything on the board that is not
+    /// a made thing. What a pass reading "where does the ground reach here" takes: deriving it from
+    /// <see cref="Columns"/> answers with whatever flies over a cell, so a field a balloon stands off reads
+    /// as ground thirty blocks up.</summary>
+    public IReadOnlyDictionary<(int X, int Z), int> Surface => Ground ?? Empty;
+
+    private static readonly IReadOnlyDictionary<(int X, int Z), int> Empty =
+        new Dictionary<(int X, int Z), int>();
+
     /// <summary>Every prop that did not land, and why. Never null — a caller spreading this into a list of
     /// warnings must not have to tell an absent list from an empty one.</summary>
     public IReadOnlyList<Finding> Declines => Declined ?? [];
@@ -287,7 +297,8 @@ public static class WorldBuilder
         // A made thing is painted over its own span. Ground's bands run from the bedrock course whatever its
         // floor, so only a prop layer hands its floors over; the painter takes what it is given and asks
         // nothing about kinds.
-        var propFloors = SketchRasterizer.PropLayers(SketchLayout.Stated(layoutJson))
+        var propLayers = SketchRasterizer.PropLayers(SketchLayout.Stated(layoutJson));
+        var propFloors = propLayers
             .Where(terrain.FloorByLayer.ContainsKey)
             .ToDictionary(layer => layer, layer => terrain.FloorByLayer[layer]);
         TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
@@ -302,11 +313,16 @@ public static class WorldBuilder
         // The goals handed to the pass are the RESOLVED ones: their boxes were computed above, so the ground
         // read against a goal is the ground its structure occupies rather than a second derivation of it
         // (OB8, and the reason this call sits after the two stamps).
+        // The surface the pass reads is the terrain's, not the board's highest: a made thing is not ground.
+        // A balloon flying over a field is the top of every column under it, so reading the whole-board tops
+        // seats a tree at its envelope and marks the field it flies over as built — and the ground beneath a
+        // floating thing is exactly the ground an author decorates.
+        var groundTop = terrain.SurfaceExcept(propLayers);
         var goals = intent with { Destroyables = resolvedDestroyables, Cores = resolvedCores };
         var dressed = Decorator.Decorate(world, new DressingContext(
-            terrain.SurfaceTop,
+            groundTop,
             DressingScope.PropsOf(layoutJson),
-            DressingScope.KeptClearAt(world, terrain.SurfaceTop, goals, layoutJson),
+            DressingScope.KeptClearAt(world, groundTop, goals, layoutJson),
             symmetry,
             DressingScope.GoalGroundAt(goals),
             DressingScope.GoalClearanceAt(goals),
@@ -372,7 +388,8 @@ public static class WorldBuilder
         List<Finding>? complaints = goalComplaints.Count > 0 || dressed.Declines.Count > 0
             ? [.. goalComplaints, .. dressed.Declines]
             : null;
-        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed);
+        return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed,
+                              groundTop);
     }
 
     // The bedrock under every wool room, laid before the rooms themselves (see the call site).

@@ -2308,6 +2308,18 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   what that bucket alone paints, read from the same `POST /api/themes/preview` the composed picture comes
   from. The fields column has the width for a bucket's three controls on one row and the bound style's own
   picture under them. (TL5, TL6)
+- **A made thing is not the ground under it (WE61).** `BuiltTerrain.SurfaceTop` answers the highest thing
+  standing at a cell, which is the build ceiling's question and nobody else's: a balloon flying thirty
+  blocks over a field was that field's elevation, so the dressing pass seated a tree at the envelope, the
+  keep-out mask read every column beneath it as built and declined everything on it, and `WX11` reported a
+  shed under it as standing on a fifty-block plinth. `BuiltTerrain.SurfaceExcept` answers the tops of
+  everything that is *not* a made thing, `BuiltWorld.Surface` carries that one elevation, and the dressing
+  pass, `DressingScope.KeptClearAt` and `MapExportComposer.CheckStructureSites` all read it. Two readings
+  travelled with it: a made thing's **seat** is measured from the columns it rests on — those whose span
+  starts at its lowest course — rather than its whole shadow, so a crane's jib reaching out over a harbour
+  no longer finds the seabed and takes the crane down to it; and a column run is attributed to a layer by a
+  **half-open** span, so a sculpture's lowest course is no longer credited to the terrain it stands on.
+  (WE61)
 - **Water is drawn as a pool as well as a channel, and fills round what floats in it (WE60).**
   `WaterProp.Shape` says what the prop's points mean: a `channel` strokes them as a centerline and takes its
   width from `radius` — what the prop always was — or a `pool` closes them into a ring and fills it, corners

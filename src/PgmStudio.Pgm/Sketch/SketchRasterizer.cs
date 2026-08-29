@@ -98,11 +98,15 @@ public static class SketchRasterizer
     /// <summary>Every made thing that seats on the ground, moved down onto it, and the terrain over its seat
     /// taken out.
     ///
-    /// <para>The seat is the <b>lowest</b> solid column under the thing's own footprint, one course down, so
-    /// a sculpture settles into a slope rather than perching on its high corner — the seat a placed building
-    /// already takes (<c>docs/world-export/decoration.md</c> §8). Every footprint column is then cleared from
-    /// that course up, which is what lets a made thing dig into a bank instead of having the bank stand
-    /// through it, and the ground outside its footprint keeps its height.</para>
+    /// <para>The seat is the <b>lowest</b> solid column under the columns the thing <b>rests on</b> — those
+    /// whose own span starts at its lowest course — one course down, so a sculpture settles into a slope
+    /// rather than perching on its high corner. Reading the whole shadow instead would seat a thing on
+    /// whatever its overhang happens to pass over: a crane's jib reaching out across a harbour would find the
+    /// seabed and take the crane down to it. This is the seat the dressing pass already takes for a placed
+    /// prop (<c>docs/world-export/decoration.md</c> §8), which reads a prop's resting course for the same
+    /// reason. Every footprint column is then cleared from the seated course up, which is what lets a made
+    /// thing dig into a bank instead of having the bank stand through it, and the ground outside its
+    /// footprint keeps its height.</para>
     ///
     /// <para><b>One seat per made thing, never one per layer.</b> A sculpture's column runs are split across
     /// as many layers as its busiest column is deep, and seating each of those on its own footprint would
@@ -126,21 +130,26 @@ public static class SketchRasterizer
                 groundTop[segment.Cell] = Math.Max(groundTop.GetValueOrDefault(segment.Cell, int.MinValue),
                                                    segment.YTop);
 
-        // Per made thing: the columns it covers, and the lowest floor it states over them.
+        // Per made thing: the columns it covers, the lowest floor it states over them, and the floor each
+        // column's own span starts at — the last is what separates the feet from the overhang.
         var footprint = new Dictionary<string, HashSet<(int X, int Z)>>(StringComparer.Ordinal);
         var lowest = new Dictionary<string, int>(StringComparer.Ordinal);
+        var startsAt = new Dictionary<(string Thing, int X, int Z), int>();
         foreach (var segment in segments)
         {
             if (!thingOf.TryGetValue(segment.Layer, out var thing)) continue;
             if (!footprint.TryGetValue(thing, out var cells)) footprint[thing] = cells = [];
             cells.Add(segment.Cell);
             lowest[thing] = Math.Min(lowest.GetValueOrDefault(thing, int.MaxValue), segment.YFloor);
+            var key = (thing, segment.Cell.X, segment.Cell.Z);
+            startsAt[key] = Math.Min(startsAt.GetValueOrDefault(key, int.MaxValue), segment.YFloor);
         }
 
         var drop = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var (thing, cells) in footprint)
         {
-            var under = cells.Where(groundTop.ContainsKey).Select(cell => groundTop[cell]).ToList();
+            var rests = cells.Where(cell => startsAt[(thing, cell.X, cell.Z)] == lowest[thing]).ToList();
+            var under = rests.Where(groundTop.ContainsKey).Select(cell => groundTop[cell]).ToList();
             if (under.Count == 0) continue;                       // nothing to seat on — SK16 says so
             drop[thing] = under.Min() - 1 - lowest[thing];
         }

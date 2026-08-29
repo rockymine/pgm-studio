@@ -338,14 +338,12 @@ public static class MapExportComposer
     /// what a structure is. A complaint: a building on a ledge is a real thing to draw, and the world builds
     /// either way.</para>
     /// </summary>
+    /// <param name="surface">The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>.
+    /// Not the board's highest: what stands over a cell is not what a building beside it steps down to, and
+    /// a balloon flying over a field would read as a fifty-block plinth under the shed on it.</param>
     public static Findings CheckStructureSites(
-        IReadOnlyList<ColumnSegment> columns, WorldProvenance provenance)
+        IReadOnlyDictionary<(int X, int Z), int> surface, WorldProvenance provenance)
     {
-        var surface = new Dictionary<(int X, int Z), int>();
-        foreach (var column in columns)
-            if (!surface.TryGetValue(column.Cell, out var top) || column.YTop > top)
-                surface[column.Cell] = column.YTop;
-
         var byOwner = new Dictionary<string, List<(int X, int Z)>>();
         foreach (var (cell, pass, owner) in provenance.Claims)
         {

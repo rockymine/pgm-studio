@@ -57,9 +57,12 @@ public static class WorldColumnPayload
                     index[key] = slot = palette.Count;
                     palette.Add(BlockPalette.Hex(run.BlockId, run.BlockData));
                 }
+                // A segment is half-open in Y, so a run starting exactly at one's top starts above it: a
+                // sculpture's lowest course sits at the top of the ground it was seated on, and reading the
+                // bound as inclusive hands every made thing's feet to the terrain under them.
                 var layer = -1;
                 foreach (var span in here ?? [])
-                    if (span.Floor <= run.YBottom && run.YBottom <= span.Top) { layer = span.Layer; break; }
+                    if (span.Floor <= run.YBottom && run.YBottom < span.Top) { layer = span.Layer; break; }
                 cols.Add(run.YTop); cols.Add(run.YBottom); cols.Add(slot); cols.Add(layer);
             }
 

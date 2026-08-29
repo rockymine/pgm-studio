@@ -26,6 +26,24 @@ public sealed record BuiltTerrain(
     public IReadOnlyDictionary<(int X, int Z), int> SurfaceFor(string? layer) =>
         layer is { Length: > 0 } named && SurfaceByLayer.TryGetValue(named, out var tops) ? tops : SurfaceTop;
 
+    /// <summary>The board's surface with <paramref name="layers"/> taken out of the read — the tops of
+    /// everything else, cell by cell. A made thing is not ground: a balloon flying thirty blocks over a field
+    /// is the highest thing standing at those cells and therefore <see cref="SurfaceTop"/>'s answer for them,
+    /// which puts the ground under it out of reach of every pass that decorates terrain. Naming the prop
+    /// layers here is what leaves that ground readable.</summary>
+    public IReadOnlyDictionary<(int X, int Z), int> SurfaceExcept(IReadOnlySet<string> layers)
+    {
+        if (layers.Count == 0) return SurfaceTop;
+        var surface = new Dictionary<(int X, int Z), int>(SurfaceTop.Count);
+        foreach (var (layer, tops) in SurfaceByLayer)
+        {
+            if (layers.Contains(layer)) continue;
+            foreach (var (cell, top) in tops)
+                if (!surface.TryGetValue(cell, out var known) || top > known) surface[cell] = top;
+        }
+        return surface;
+    }
+
     /// <summary>Whether <paramref name="layer"/> is a layer this board has ground on. A placement naming one
     /// it does not is a placement the world cannot seat where it was asked to.</summary>
     public bool Knows(string? layer) => layer is not { Length: > 0 } || SurfaceByLayer.ContainsKey(layer);
