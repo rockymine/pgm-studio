@@ -283,14 +283,17 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   7 / 123 → **1 / 33**, station 7 / 2,557 → **6 / 1,467**. Fewer layers *and* fewer shapes, because splitting
   a run by colour also shatters its footprint into small rectangles.
 
-- [ ] **WE56 — Write down what the painter does to a shape that is not ground.** `rim` caps every plateau
-  boundary and `wall` covers every exposed riser, so on a curved voxel form — which is nothing but plateau
-  boundaries — a three-tone theme speckles the whole surface; every piece in
-  `pgm-studio-mapgen/sculpture` states a **solid** theme for that reason, and that is the whole finding. Put
-  it in `docs/world-export/terrain-painting.md` beside the bucket model, with the second fact it travels with:
-  `BedrockSpec.PaintFloor` clamps to at least one course, so y=0 is bedrock wherever a column has ground and a
-  made thing standing at y=0 has a bedrock sole. No new theme concept is needed — a solid theme is already the
-  answer — so this is documentation and, at most, a `rimEdges` word for "cap nothing".
+- [ ] **WE56 — A made thing is painted over its own span, not from the bedrock up.** `TerrainPainter.Resolve`
+  splits every column from y=0 to the surface top — bedrock, fill, wall, surface — which is the right model
+  for ground and nonsense for a sculpture flying at y24: its fill band claims the whole column beneath it and
+  only the stone-only invariant stops the damage, so the *order* of the layer list becomes load-bearing.
+  Evidence: `opus5-automaton`'s colossus listed before the plinth it stands on painted that plinth brass at
+  y9–11; moving the plinth first fixed it. Resolve a `prop` layer's bands over `[its own floor, its own top]`
+  instead (`kind` arrives in `TS62`), and the ordering hazard goes with it. Two facts travel with it into
+  `terrain-painting.md`: `rim` caps every plateau boundary and `wall` covers every riser, so on a curved voxel
+  form — nothing but boundaries — a three-tone theme speckles, which is why every piece in
+  `pgm-studio-mapgen/sculpture` states a **solid** theme; and `BedrockSpec.PaintFloor` clamps to at least one
+  course, so a made thing standing at y=0 has a bedrock sole.
 
 ## The library preview: authoring a building where it will stand
 
