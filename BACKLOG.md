@@ -251,6 +251,19 @@ shapes drawn on it.
   render the strip and the layer list by group, one row per prop with its layers folded under it. Downstream
   of `TS62`, which is where `kind` arrives.
 
+- [ ] **WE53 — A material that reads absolute Y, and stops a colour change costing a layer.** A layer's span
+  carries one theme, so a colour band splits a run as surely as air does — and that, not geometry, is what a
+  sculpture costs. Measured over seven models in `pgm-studio-mapgen/sculpture`: the layer count the shape
+  alone needs against the one it actually takes — starship 2 against 4, robot 5 against 16, and a Rubik's
+  cube, which is a **solid box with one run per column**, 1 against 7. Add a `heightBand` to
+  `TerrainMaterial`'s polymorphic set (`TerrainTheme.cs`, fourteen derived types already): a list of
+  `(from, to, material)` over world Y plus a fallback, resolved off `BucketContext.Y`, which every context
+  already carries and no material maps to a stated band — the volume patterns sample it as a noise
+  coordinate and that is all. Nothing in the rasterizer, the painter or the gate changes. Re-compiling the
+  seven with runs split on air alone measures the win: robot 16 layers / 746 shapes → **5 / 396**, cube
+  7 / 123 → **1 / 33**, station 7 / 2,557 → **6 / 1,467**. Fewer layers *and* fewer shapes, because
+  splitting a run by colour also shatters its footprint into small rectangles.
+
 - [ ] **WE52 — The painter's buckets are a model of ground, and a sculpture is not ground.** `rim` caps every
   plateau boundary and `wall` covers every exposed riser, so on a curved voxel form — which is nothing but
   plateau boundaries — a three-tone theme speckles the whole surface; every piece in `pgm-studio-mapgen/sculpture`
