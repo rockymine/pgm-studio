@@ -275,13 +275,13 @@ public static class WorldBuilder
         // What a goal could not be built as it was authored. Complaints, never refusals: the world is built
         // and the goal stands, in a material the author did not name or over the height players may build to,
         // and that is a thing the caller has to be told rather than a reason to stop.
-        var goalComplaints = new List<Finding>();
+        var built = new List<Finding>();
         var resolvedDestroyables = StampDestroyables(
             world, terrain, intent.Destroyables, teams, pendingMarkers, pendingCeiling, provenance,
-            goalComplaints);
+            built);
         var resolvedCores = StampCores(
             world, terrain, intent.Cores, teams, pendingMarkers, pendingCeiling, provenance,
-            goalComplaints);
+            built);
 
         // ── Terrain finish — dress the raw stone: team-tinted clay walls, quartz rims, grass surface.
         // Runs last so it reads the finished world; touches only stone, so bedrock and every stamp above stay
@@ -347,11 +347,36 @@ public static class WorldBuilder
         // filled, which is a true statement about the water and a false one about the ship floating in it.
         // A column a stamp built on is left alone: a room stamped on a deck is a room, and the deck is what
         // it stands on.
+        // A column a stamp built on is where the two are in each other's way, and SK18 is raised off exactly
+        // this branch: it is the one place both halves have registered, the rasterizer having laid the thing
+        // and every stamper having claimed what it wrote. Grouped by the pair so one gantry through one shed
+        // is one sentence rather than a sentence per column.
+        var shared = new Dictionary<(string Layer, string Built, string Unit), (int Cells, int X, int Z)>();
         foreach (var layer in propLayers)
             if (terrain.SurfaceByLayer.TryGetValue(layer, out var madeCells))
                 foreach (var cell in madeCells.Keys)
                     if (provenance.PassAt(cell.X, cell.Z) != ProvenancePass.Structure)
                         provenance.Claim(cell.X, cell.Z, ProvenancePass.Made);
+                    else
+                    {
+                        var owner = provenance.OwnerAt(cell.X, cell.Z);
+                        var standing = owner is { Kind.Length: > 0 } stamp
+                            ? stamp.Unit is { Length: > 0 } unit ? $"{stamp.Kind} '{unit}'" : stamp.Kind
+                            : "structure";
+                        var key = (layer, Built: standing, Unit: owner?.Unit ?? "");
+                        shared[key] = shared.TryGetValue(key, out var seen)
+                            ? (seen.Cells + 1, seen.X, seen.Z)
+                            : (1, cell.X, cell.Z);
+                    }
+
+        foreach (var (key, seen) in shared.OrderByDescending(entry => entry.Value.Cells))
+            built.Add(new Finding(SketchRules.MadeThingInBuilt,
+                $"the made thing '{key.Layer}' and the {key.Built} stand in {seen.Cells} of the same "
+                + $"column(s) — first at ({seen.X}, {seen.Z}). Neither pass reads the other: the thing is "
+                + "drawn at the floor it states, and what is built seats on the terrain under it with the "
+                + "made things taken out, so their blocks interleave and what stands there is one inside the "
+                + "other. Raise or move the made thing, or move what it is standing in",
+                Severity.Complaint, Subjects: key.Unit.Length > 0 ? [key.Layer, key.Unit] : [key.Layer]));
 
         // ── The build ceiling, now that everything a player meets is standing ───────────────────────
         // Read here because here is the first place the answer exists: the terrain was laid at the top of
@@ -367,7 +392,7 @@ public static class WorldBuilder
         foreach (var (mx, mz, data, shape) in pendingMarkers)
             GoalMarkerStamper.Stamp(world, mx, mz, markerFloor, data, shape);
         foreach (var (kind, name, owner, box) in pendingCeiling)
-            OverCeiling(goalComplaints, kind, name, owner, box, maxBuildHeight);
+            OverCeiling(built, kind, name, owner, box, maxBuildHeight);
 
         // ── Biome — the one colour that costs no block. Every chunk the world holds takes its byte from the
         // map's field, folded through the same symmetry the painter uses so a mirrored board answers one
@@ -411,10 +436,11 @@ public static class WorldBuilder
             Cores = resolvedCores,
         };
 
-        // One list, in build order: what the goals could not be built as authored, then what the dressing
-        // pass did not place. Both are complaints on a world that exists, so a caller reads one channel.
-        List<Finding>? complaints = goalComplaints.Count > 0 || dressed.Declines.Count > 0
-            ? [.. goalComplaints, .. dressed.Declines]
+        // One list, in build order: what the build could not raise as authored — a goal over the ceiling, a
+        // made thing standing in something stamped — then what the dressing pass did not place. All of them
+        // are complaints on a world that exists, so a caller reads one channel.
+        List<Finding>? complaints = built.Count > 0 || dressed.Declines.Count > 0
+            ? [.. built, .. dressed.Declines]
             : null;
         return new BuiltWorld(world, spawnX, spawnY, spawnZ, resolved, provenance, complaints, columns, dressed,
                               groundTop);

@@ -1097,6 +1097,20 @@ against and stays at the height it was drawn. `SK16` names the made thing and ho
 nothing beneath them. A complaint and never a refusal: a balloon, a ship in the air, a statue on a spire is a
 legitimate board, and the way to say so is to take the layer's `seat` off.
 
+**And it complains where a made thing stands in something built.** The two halves of a board are laid by
+different passes that do not read each other. A made thing is the rasterizer's — it is drawn at the floor it
+states and is in the world before anything is stamped — while a wool cage, a spawn cube, an objective and a
+dressing-placed building all seat on the **terrain's** surface, which is every column's top with the made
+things taken out. So a balloon drawn where a house is going, or a house placed under a balloon, is nobody's
+error to catch: the blocks interleave in the columns they share, the later pass winning each cell it writes,
+and what stands there is one inside the other. `SK18` names the made thing, what it is standing in, how many
+columns they share and the first of them. It is read off the finished world's **provenance** rather than off
+the document, because that is the one place all four passes have registered — `SK10` skips a made-thing layer
+by design, a thing drawn over ground being no lost gap, and a stamped structure is not a layer at all. A
+complaint, and deliberately not a refusal: a gantry over a shed or a hull in a dry dock is a board somebody
+meant, and which of the two moves is the author's call. Raising the made thing is usually the smaller change,
+since it is drawn at an absolute floor and has nothing seated on it.
+
 **And it complains where a shape belongs to no group.** A group is the unit the symmetry orbit is fanned
 by — the build reads each mirroring group's `shapeIds` and copies exactly those shapes onto their images — so
 a shape no group lists is built once, on the side it was drawn on, with no image anywhere. `SK17` names the

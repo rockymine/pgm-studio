@@ -6554,6 +6554,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   hollowed into a whole-board island was refilled to the flat by the reflection of the ground round it —
   measured, a five-block delve came out level with the meadow, silently. `SK9` is silent on all of this and
   correctly so: two adds at one floor are ordinary ground.
+- **A made thing standing in something built is named (`TS70`, `SK18`).** A board is laid by passes that do
+  not read each other. A made thing — a layer stating `kind: "prop"` — is the rasterizer's and is in the world
+  before anything is stamped; a wool cage, a spawn cube, an objective and a dressing-placed building all seat
+  on the **terrain's** surface, which is every column's top with the made things taken out. So neither half
+  knows about the other: their blocks interleave in the columns they share, the later pass winning each cell,
+  and what stands there is a balloon with a house inside it. Nothing else could see it — `SK10` skips a
+  made-thing layer by design and a stamped structure is not a layer at all — so it is read off the finished
+  world's **provenance**, the one place all four passes have registered, at the branch that was already
+  deciding whether a made thing's column had been built on. Grouped per made thing and per built thing, so one
+  gantry through one shed is one sentence carrying the shared column count and the first of them. A complaint
+  rather than a refusal, because a thing drawn deliberately around a structure is a board somebody meant and
+  which of the two moves is the author's call.
+  (`Export/WorldBuilder`, `Pgm/Sketch/SketchRules`; `MadeThingInBuiltTests`) (`TS70`)
 - **A shape that reaches no group is named, and stops being written (`TS66`, `C61`, `SK17`).** Group
   membership is what the build fans across the symmetry orbit, what a relief is keyed by and what carries a
   `keepClear` mark — and it is derived in the browser, where `polygon-clipping` has inputs it cannot answer

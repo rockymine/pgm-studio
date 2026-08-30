@@ -166,4 +166,19 @@ public static class SketchRules
     /// <remarks>List the shape in the group its ground belongs to. The Sketch tool recomputes group membership on every edit, so opening the layout and moving the shape writes it back in; a document written by hand or by a tool names its groups itself and has to name this shape too. A layer stating no groups at all is not this — the whole of it mirrors — and a role-tagged room piece is never listed, by design.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string ShapeInNoGroup = "SK17";
+
+    /// <summary>A made thing and a built thing standing in the same columns. A made thing — a layer stating
+    /// <c>kind: "prop"</c> — is laid by the rasterizer, before anything is stamped, and every stamper writes
+    /// where it is told: a wool cage, a spawn cube, an objective and a dressing-placed building all seat on
+    /// the <b>terrain's</b> surface, which is every column's top with the made things taken out. So neither
+    /// half knows about the other. The blocks interleave in the columns they share, the later pass winning
+    /// each cell it writes, and what stands there is a balloon with a house inside it.
+    ///
+    /// <para>Nothing else names it. <c>SK10</c> is the gate for two layers driven into each other and skips a
+    /// made thing by design, since a thing drawn over ground is not a lost gap; and a stamped structure is not
+    /// a layer at all, so no layer-against-layer walk could reach it. This is read off the finished world's
+    /// provenance instead, which is the one place all four passes have registered.</para></summary>
+    /// <remarks>Move one of the two — which one is the author's call, and the finding names both so it can be made. Raising the made thing is usually the smaller change: it is drawn at an absolute floor and has nothing seated on it, while a building is placed against the ground, the routes and the other buildings. A complaint rather than a refusal: a thing deliberately drawn around a structure — a gantry over a shed, a hull in a dry dock — is a legitimate board, and this is the read that tells the two apart from a fault.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature)]
+    public const string MadeThingInBuilt = "SK18";
 }
