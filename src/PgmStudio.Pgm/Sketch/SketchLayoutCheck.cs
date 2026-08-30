@@ -212,6 +212,29 @@ public static class SketchLayoutCheck
                     Severity.Complaint, Field: $"{where}.shapeIds",
                     Subjects: group.Id is { Length: > 0 } id ? [id] : null));
 
+        // SK17 — a shape no group lists. The fan is read off each mirroring group's shapeIds, so a shape no
+        // list names is built where it was drawn and nowhere else. Only where the board fans at all, and
+        // never for a layer stating no groups (the whole of that layer mirrors) or for a role-tagged room
+        // piece (never listed, by design). A shape drawing nothing is SK4's to report.
+        if (Symmetry.OrbitAxes(mode).Length > 0)
+            foreach (var (layer, index) in SketchLayout.Stack(layout).Select((layer, at) => (layer, at)))
+            {
+                if (layer.Groups.Count == 0) continue;
+                var listed = new HashSet<string>(layer.Groups.SelectMany(group => group.ShapeIds), StringComparer.Ordinal);
+                foreach (var (shape, at) in layer.Shapes.Select((shape, at) => (shape, at)))
+                {
+                    if (shape.Role is not null || shape.Id.Length == 0 || listed.Contains(shape.Id)) continue;
+                    if (!Kinds.Contains(shape.Type ?? "") || Empty(shape) is not null) continue;
+                    findings.Add(new Finding(SketchRules.ShapeInNoGroup,
+                        $"'{shape.Id}' on layer '{layer.Id}' is in none of the layer's {layer.Groups.Count} "
+                        + "group(s), and the symmetry orbit is fanned per group — the shape is built once, "
+                        + "where it was drawn, and has no image on the other side. Its group's relief and "
+                        + "keep-clear go with the list, so it takes neither. List it in the group whose "
+                        + "ground it is part of",
+                        Severity.Complaint, Field: $"layers[{index}].layout.shapes[{at}]", Subjects: [shape.Id]));
+                }
+            }
+
         // SK12 — one id, two groups. The relief is stored under the id and so is a placement's group, so a
         // board carrying it twice has no single answer to either.
         foreach (var group in Groups(layout).Select(entry => entry.Group)

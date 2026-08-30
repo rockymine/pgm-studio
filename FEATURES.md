@@ -6527,6 +6527,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   hollowed into a whole-board island was refilled to the flat by the reflection of the ground round it —
   measured, a five-block delve came out level with the meadow, silently. `SK9` is silent on all of this and
   correctly so: two adds at one floor are ordinary ground.
+- **A shape that reaches no group is named, and stops being written (`TS66`, `C61`, `SK17`).** Group
+  membership is what the build fans across the symmetry orbit, what a relief is keyed by and what carries a
+  `keepClear` mark — and it is derived in the browser, where `polygon-clipping` has inputs it cannot answer
+  for. Two outlines drawn to abut put a vertex a fraction of a block off the neighbour's edge; the sweepline
+  unions them and then throws on every intersection against that union, and `_intersects` read the throw as
+  "no". The shape left every group's `shapeIds`, built where it was drawn, and got no image — while the canvas
+  went on drawing its mirror, a group's outline being the union of the ground it fused rather than the shapes
+  it lists. `geometry/polygon.js` now answers from the rings where the clipper throws (`polysOverlap`:
+  containment either way, then any pair of edges meeting), and `SK17` names a shape no group on its layer
+  lists, since a document can arrive in that state by other roads. Evidence: `rockymine-map-experiment`, whose
+  ground layer draws an eleven-vertex basin at y25 between two masses it shares vertex chains with. It stands
+  in 3,923 columns over `x[-132..-8] z[30..75]`, and **3,921 of the 3,923** its `rot_180` image should stand
+  in over `x[7..131] z[-76..-31]` were air, while `s1`, `s2` and `s3` on the same board mirrored correctly.
+  Listed, 8 remain — the cell the fused boundary samples either side of.
 - **A lid over a hole is not a fill (`TS39`, `SK13`).** A subtract states a board's negative space and an
   override add that puts ground back in one is refused — but a layer holds **one span per column**, so an
   override add resting *above* the subtract's own floor moves that single span up and records nothing beneath

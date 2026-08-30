@@ -454,6 +454,15 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
+- [ ] **TS67 — `SK4` counts a polygon's vertices and never its area.** A polygon of three vertices or more
+  with no area — every point on one line — passes the gate and draws no ground, which is the fault `SK4`
+  already names for a rectangle ("a rectangle with no area"). Extend `SketchLayoutCheck.Empty`'s
+  `polygon`/`lasso` case to the shoelace area beside the vertex count, and say which of the two it is.
+  `docs/tools/sketch.md`.
+
+  *`showcase/19-mountain-range` carries two: `br-crag-5` is seven vertices all at x=7, `br-flank-2` seven
+  all at x=−7. Both pass every gate and contribute nothing.*
+
 - [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
   from across the map, which means its walls are not in the tone family under its feet. Complain where a
   building's wall material and the terrain ringing its footprint resolve to one `TerrainPalette` family, and

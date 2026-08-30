@@ -155,4 +155,15 @@ public static class SketchRules
     /// <remarks>Move the thing over ground, or take the layer's `seat` off so its floors are the absolute heights it states. The finding names the made thing and how many of its columns found nothing beneath them.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string SeatedOnNothing = "SK16";
+
+    /// <summary>A shape no group on its layer lists. A group is the unit the symmetry orbit is fanned by —
+    /// the build reads each mirroring group's <c>shapeIds</c> and copies those shapes onto their images — so
+    /// a shape no list names is drawn once, on the side it was drawn on, and has no image anywhere. Nothing
+    /// else catches it: the shape is in the document, it rasterizes where the author put it, the drawn
+    /// mirror outline still covers it because a group's outline is the union of the ground it fused and not
+    /// the shapes it lists, and half a landmass is missing only in the world. The same list carries the
+    /// group's relief and its keep-clear fan, so an unlisted shape takes neither.</summary>
+    /// <remarks>List the shape in the group its ground belongs to. The Sketch tool recomputes group membership on every edit, so opening the layout and moving the shape writes it back in; a document written by hand or by a tool names its groups itself and has to name this shape too. A layer stating no groups at all is not this — the whole of it mirrors — and a role-tagged room piece is never listed, by design.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string ShapeInNoGroup = "SK17";
 }

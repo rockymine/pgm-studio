@@ -11,7 +11,7 @@
 import polygonClipping from "../vendor/polygon-clipping.js";
 import { toRing, ringCentroid } from "./shape.js";
 import { applySymmetry } from "./symmetry.js";
-import { pointInRing } from "./polygon.js";
+import { pointInRing, polysOverlap } from "./polygon.js";
 
 /** Convert a shape to a polygon-clipping MultiPolygon `[[ring]]` (empty for a degenerate shape). */
 export function shapeToMultiPoly(shape) {
@@ -201,8 +201,16 @@ function _intersectUnionComponents(sp, union, toComponentIdx, groups, toAssign) 
   }
 }
 
+// Do these two multipolygons share ground? The clipper answers it, and where the clipper refuses the
+// question — a sweepline failure on a vertex a fraction of a block off another shape's edge — the rings do.
+// A thrown answer is not "no": read as one it takes the shape out of every group it belongs to, and a shape
+// in no group is rasterized where it was drawn and never fanned onto its symmetry orbit.
 function _intersects(a, b) {
-  try { return polygonClipping.intersection(a, b).length > 0; } catch { return false; }
+  try { return polygonClipping.intersection(a, b).length > 0; }
+  catch (err) {
+    console.warn("boolean: intersection failed, reading the rings instead —", err?.message ?? err);
+    return a.some(polyA => b.some(polyB => polysOverlap(polyA, polyB)));
+  }
 }
 
 // Group indices that have solid area in afterSub (produced by the normal-subtract step, not purely
