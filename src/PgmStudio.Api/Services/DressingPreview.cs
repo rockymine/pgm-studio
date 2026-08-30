@@ -17,8 +17,8 @@ namespace PgmStudio.Api.Services;
 ///
 /// <para>Two views, because a prop varies along two axes and no one view shows both. From <b>above</b> a
 /// path's paving and an area's density read — where the gravel thins, where a flower patch gathers. From the
-/// <b>side</b> the props' own shapes read — a tree's silhouette, a boulder's half-buried profile — neither of
-/// which is visible in a top-down cell.</para>
+/// <b>side</b> the props' own shapes read — a tree's silhouette, the way a boulder stands on the ground —
+/// neither of which is visible in a top-down cell.</para>
 ///
 /// <para>The side view is a <b>projection</b>, not a cut (<see cref="BlockSideView"/>): every row is looked
 /// through and the nearest block wins, shaded by how far back it stands. A single row through a tree meets its

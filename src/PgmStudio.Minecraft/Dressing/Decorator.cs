@@ -130,7 +130,7 @@ public readonly record struct DressingPlacement(
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
 /// structure stampers seat rooms and objectives on raw stone; the painter rewrites that stone's surface into
-/// grass, quartz and clay; this adds the terrain's life on top — a route worn across it, rock half-buried in
+/// grass, quartz and clay; this adds the terrain's life on top — a route worn across it, rock bedded into
 /// it, trees standing on it, cover growing over it.
 ///
 /// <para>Running <b>after</b> the painter is what makes it tractable rather than merely conventional. The one
@@ -918,7 +918,7 @@ public static class Decorator
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims.Storey claims,
         List<Finding> declined)
     {
-        var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
+        var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach, boulder.Seed);
         return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }
 

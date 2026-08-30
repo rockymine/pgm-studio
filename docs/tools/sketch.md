@@ -736,8 +736,8 @@ of the same kind and knobs differ from each other while any one prop re-exports 
 
 `docs/world-export/decoration.md` is the pass this phase feeds, one section per tool and each carrying its
 `DR*` rules: how a flora field reads the paint under it, how a stroke's band is derived from its centreline, how
-a boulder is seated half-buried, how a tree is copied or grown, and how a channel is dug. Two of those reach
-further. A grown tree is scored against `tree-corpus.md`, the 75 hand-built trees that are the measured ground
+a boulder is bedded into the ground it stands on, how a tree is copied or grown, and how a channel is dug.
+Two of those reach further. A grown tree is scored against `tree-corpus.md`, the 75 hand-built trees that are the measured ground
 truth for what a tree looks like; and the building prop stamps `structures.md`'s house, which is why what it
 can be made of runs past what this phase can state.
 
@@ -750,7 +750,7 @@ Six things can be placed, in three placement geometries.
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
 | Tree | `tree` | a click | a `template` oak, height 12 |
-| Boulder | `boulder` | a click | a `round` mossy stone, size 2.5 |
+| Boulder | `boulder` | a click | a `round` mossy erratic, size 4 |
 
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
 questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
@@ -797,12 +797,13 @@ where the shape is the author's and `wood` (the same six) is all that is left to
 two or three, `whorled` for the ring-every-few-courses conifer against the broadleaf, and `leafSize`. Each
 form reads only its own fields, so the others are inert rather than wrong.
 
-**A boulder** takes a `form` — `round` (one lobe, half buried), `angular` (one heavily eroded lobe),
-`outcrop` (one wide flat lobe, a low shelf rather than a rock) or `cairn` (three shrinking lobes stacked) — a
-`size`, a `mossy` flag for whether moss creeps onto the sky-lit faces, and `rock`, a full terrain material
-like a stroke's paving. A rock's material resolves in the **boulder's own frame** rather than the map's, so a
-mottled stone carries the same mottling to every image of its orbit instead of sampling whatever the world
-pattern says where each image happened to land.
+**A boulder** is a glacial erratic: a mass standing on the ground, bedded a third of its height into it. It
+takes a `form` — `round` (a weathered erratic), `angular` (the same rock, its surface broken), `outcrop` (wide
+flat lobes with their middle at the surface, a low shelf rather than a rock) or `cairn` (three shrinking lobes
+stacked) — a `size` from 2 to 10 blocks of reach, default 4, a `mossy` flag for whether moss creeps onto the
+sky-lit faces, and `rock`, a full terrain material like a stroke's paving. A rock's material resolves in the
+**boulder's own frame** rather than the map's, so a mottled stone carries the same mottling to every image of
+its orbit instead of sampling whatever the world pattern says where each image happened to land.
 
 **Ground cover** is the one place a density field is the point: a drawn ring filled by `coverage` at a feature
 `scale` over some `octaves`, split by `fernShare`, `flowerShare` (with its own `flowerScale`) and `tallShare`.

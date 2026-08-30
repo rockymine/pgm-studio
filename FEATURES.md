@@ -6161,7 +6161,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Dressing — what stands on the terrain, not what it is made of (G161).** The world's last pass, after
   `TerrainPainter`: where the painter can only change what a stone cell becomes, the `Decorator`
   (`PgmStudio.Minecraft/Dressing`, `docs/world-export/decoration.md` `DR*`) adds cells — plants in the air above
-  the surface, half-buried rock, grown trees — and repaints the ones a route crosses. It runs last because the
+  the surface, rock bedded into it, grown trees — and repaints the ones a route crosses. It runs last because the
   one fact it needs is what the paint just decided: soil takes cover, quartz takes none, and a column whose top
   block is a stamp takes nothing at all.
   **Everything is placed, not sprinkled.** A tree is cover and a boulder is a wall, so where each one stands
@@ -6180,7 +6180,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   Behind them: `TreeSkeleton` growing limbs as Catmull-Rom splines with a leader knob, upward pull and
   per-step jitter; `SweptVolume` filling each as a capsule; `TreeCrown` placing one cluster per outer tip
   with a seam of air between neighbours, so a viewer reads each patch as its own branch's; `Blob`-eroded
-  quadric lobes in four rock forms, half below the surface.
+  quadric lobes in four rock forms, standing on the surface and bedded into it.
 - **A grown tree is built to what 75 hand-built ones measure (G171, G172, G174, G175).** The corpus of
   `docs/world-export/tree-corpus.md` is now the grower's law, and the same harnesses score the result.
   **Nothing is emitted that the tree does not hold**: `TreeCrown.Rooted` keeps only foliage reaching wood
@@ -6199,6 +6199,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   none forking: the conifer against the broadleaf, an author's toggle on the tree's own panel. Gated by
   `DressingAlgorithmTests` over a height and seed sweep. (`PgmStudio.Geom/Algorithms/TreeSkeleton.cs`,
   `TreeCrown.cs`, `SweptVolume.cs`; `tools/tree-corpus/grower-gate.cs`, `wood-skeleton.cs --grower`) (G171, G172, G174, G175)
+- **A boulder is a glacial erratic (WE64, the author's ruling).** A rock a glacier carried and left stands on
+  the ground and is bedded into it — `BoulderShapes.Bed`, 30% of its height — rather than being sunk to its
+  middle, which halved it and left a dome the full width of the thing and a third of its height. It is big:
+  `size` runs 2 to 10 with a default of 4, and at 7 an erratic fills 1,093 blocks, stands **10 courses** over
+  the ground and measures 15 across, against 678 blocks, 6 and 15 before. Its silhouette is its own —
+  `BoulderShapes.Of(form, size, seed)` throws a haunch and a shoulder out on bearings hashed from the rock's
+  seed, so two rocks of one form are two rocks — and `Blob`'s erosion samples at a **three-block scale**
+  rather than per block, which weathers the surface into facets instead of chewing it: the per-block field
+  detached chips, an angular rock of size 7 coming out in three pieces with blocks standing in mid-air at
+  (−308, 10, 48) and (−312, 11, 51). The outcrop is the one form that still emerges from the surface.
+  (`Minecraft/Dressing/DressingModel.BoulderShapes`, `PlacedProp.BoulderProp`, `Geom/Algorithms/Blob.cs`,
+  `SketchDressingInspector`, `js/studio/dressing/dressing-doc.js`; `BoulderShapesTests`) (WE64)
 - **Fairness is structural, not a filter (G162).** Every prop declares a `PropClass`. Cosmetic props —
   one-block plants — scatter freely; a flower one team has and the other does not decides nothing. Gameplay
   props are generated **once**, on the orbit's canonical representative, in the prop's own local frame, then

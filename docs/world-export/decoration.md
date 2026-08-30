@@ -329,27 +329,51 @@ The **outline** still exists, in `Geom.PathBand`, and does a different job: it i
 show where a route runs. The two deliberately differ — an outline cannot draw a gap — so the preview shows
 the corridor and the fill decides what within it is paved.
 
-## 5. Boulders — half-buried, scattered (`DR-SC`)
+## 5. Boulders — erratics, standing on the ground (`DR-SC`)
 
 A boulder is the first decoration that is genuinely 3-D, and it is the same shape-mask-in-a-box the
 objective stampers already build. Seat a `BlockBox` on `SurfaceTop` (via `SurfaceYOver`), then fill the
 cells that pass an ellipsoid test — `((x−cx)/rx)² + (y/ry)² ≤ 1`, the squared-distance mask `StampCore`'s
-`Inset` and `StampDestroyable`'s `InPlusSection` are the precedent for. Half the ellipsoid sits below the
-surface, so the rock reads as emerging from the ground rather than dropped on it. Perturb the radius with a
-noise sample for an angular, weathered read; stack two or three lobes for a cairn; flatten `ry` for a wide
-outcrop. The finish is a material and a micro-mask: stone, andesite, mossy cobble, blackstone — and moss
-creeping onto the top-lit faces, itself a tiny `Unit` mask, so the finish carries its own micro-flora.
+`Inset` and `StampDestroyable`'s `InPlusSection` are the precedent for. The finish is a material and a
+micro-mask: stone, andesite, mossy cobble, blackstone — and moss creeping onto the top-lit faces, itself a
+tiny `Unit` mask, so the finish carries its own micro-flora.
+
+**What a boulder is, is a glacial erratic** (the author's ruling): a mass a glacier carried and left, large,
+rounded but irregular, standing on the ground with weight. That decides its proportion, its seating and its
+surface, and each of the three is a separate statement in `BoulderShapes`.
+
+It stands on the ground rather than emerging from it. `BoulderShapes.Bed` is the share of the rock's height
+below the surface — **0.30**, so its middle is lifted clear of `y = 0` and only its foot is under. That is
+enough that no course shows daylight beneath it and enough to seat it on a bank; sinking the middle to the
+surface instead halves the rock and leaves a dome the full width of the thing and a third of its height,
+which reads as a knuckle of bedrock rather than as something carried here. The one form that genuinely
+emerges is the **outcrop**, and it is the one whose middle stays at the surface. The lift also puts the
+widest course a little above the ground, so a rock overhangs its own foot the way a perched erratic does: on
+a size-7 round rock, 23 of its 151 footprint columns stand over air, none by more than three courses.
+
+It is big. A rock's `size` is its reach from the middle and runs **2 to 10**, a default of 4 — a rock a
+player takes cover behind rather than a stone they step over. At size 7 an erratic fills about 1,100 blocks,
+stands **10 courses** over the ground and measures **15 across**; at 10 it is 3,100 blocks, 14 courses and
+22 across.
+
+Its silhouette is its own. `BoulderShapes.Of(form, size, seed)` answers three lobes — a main mass, a haunch
+at its foot and a shoulder over it, the latter two thrown out on bearings hashed from the rock's own seed —
+so the plan outline is a rounded irregular blob and the elevation leans, and two rocks of one form and size
+standing near each other are two rocks. `Geom.Blob` fills them: a quadric eroded by a noise field sampled in
+the lobe's own frame at a **scale of three blocks**, which weathers the surface into facets. A field that
+turns over every block chews the whole surface at once — the result is lumpy rather than eroded whatever the
+amplitude, and at the amplitude an angular rock wants it detaches chips: an `angular` rock of size 7 came
+out in three pieces with two blocks standing in mid-air at (−308, 10, 48) and (−312, 11, 51).
 
 A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, rock
-material, moss flag and seed. The rock is a full `TerrainMaterial` like the stroke's pave and the channel's bank,
-resolved in the boulder's **own frame** rather than the map's — offsets from its anchor, before it knows where
-on the map it goes. That is what keeps a mirrored pair one rock: resolving against map coordinates would give
-two teams the same shape in different colours, which is the thing the whole fan exists to prevent. Depth is
-measured down from the rock's own crust, so a layer stack reads as a weathered skin over a core rather than as
-the terrain bands it names anywhere else, and the moss mask is laid over whatever the material resolved. `BoulderShapes.Of(form, size)` answers with the lobes and `Geom.Blob` fills them
-— a quadric eroded by a noise field sampled in the lobe's own frame, which is what makes an angular rock
-angular rather than a dented sphere. A boulder is a solid volume standing on the ground, so where it stands
-is cover, which is why it is placed rather than scattered.
+material, moss flag and seed. Round and angular are the same erratic at two erosion amplitudes. The rock is a
+full `TerrainMaterial` like the stroke's pave and the channel's bank, resolved in the boulder's **own frame**
+rather than the map's — offsets from its anchor, before it knows where on the map it goes. That is what keeps
+a mirrored pair one rock: resolving against map coordinates would give two teams the same shape in different
+colours, which is the thing the whole fan exists to prevent. Depth is measured down from the rock's own crust,
+so a layer stack reads as a weathered skin over a core rather than as the terrain bands it names anywhere
+else, and the moss mask is laid over whatever the material resolved. A boulder is a solid volume standing on
+the ground, so where it stands is cover, which is why it is placed rather than scattered.
 
 ## 6. Trees — copied and grown (`DR-TR`)
 

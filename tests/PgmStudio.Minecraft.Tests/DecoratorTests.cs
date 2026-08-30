@@ -418,16 +418,18 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task A_boulder_is_half_buried_so_it_reads_as_emerging_from_the_ground()
+    public async Task A_boulder_stands_on_the_ground_and_is_bedded_into_it()
     {
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3 }]));
+            [new BoulderProp { Id = "b", X = 20, Z = 20, Size = 5, Mossy = false, Seed = 3 }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
-        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 7).ToList();
-        await Assert.That(rock.Any(b => b.Y >= 9)).IsTrue();                 // it stands above the ground
-        await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.Stone);   // and reaches into it
+        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 8).ToList();
+        // An erratic is a mass left standing on a surface, so its bulk is over the ground …
+        await Assert.That(rock.Max(b => b.Y)).IsGreaterThanOrEqualTo(13);
+        // … and only its foot is under, which is what stops a course of turf showing daylight beneath it.
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Stone);
     }
 
     [Test]
@@ -1425,8 +1427,8 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_boulder_size_outside_its_range_is_held_to_the_range()
     {
-        await Assert.That(new BoulderProp { Size = 999 }.Reach).IsEqualTo(7);
-        await Assert.That(new BoulderProp { Size = 0 }.Reach).IsEqualTo(1);
+        await Assert.That(new BoulderProp { Size = 999 }.Reach).IsEqualTo(10);
+        await Assert.That(new BoulderProp { Size = 0 }.Reach).IsEqualTo(2);
     }
 
     [Test]

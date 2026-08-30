@@ -46,11 +46,11 @@ public sealed record FloraSpec(
 /// <see cref="BoulderShapes"/>.</summary>
 public enum BoulderForm
 {
-    /// <summary>One round lobe, half buried.</summary>
+    /// <summary>An erratic: one rounded mass standing on the ground, weathered into broad facets.</summary>
     Round,
-    /// <summary>One heavily eroded lobe — angular and weathered.</summary>
+    /// <summary>The same mass broken up — angular and heavily weathered.</summary>
     Angular,
-    /// <summary>One wide flat lobe: a low outcrop rather than a rock.</summary>
+    /// <summary>Wide, flat lobes with their middle at the surface: a low outcrop rather than a rock.</summary>
     Outcrop,
     /// <summary>Three shrinking lobes stacked up — a cairn.</summary>
     Cairn,
@@ -108,21 +108,65 @@ public sealed record TreeSpecies(
 /// presets use. A form is a shape, so it is a table rather than a branch.</summary>
 public static class BoulderShapes
 {
-    /// <summary>The lobes of a boulder of the given form at <paramref name="size"/> blocks across, centred on
-    /// the origin with <b>half of it below y = 0</b> — a rock that sits entirely on the ground reads as
-    /// dropped, and one that emerges from it reads as always having been there.</summary>
-    public static IReadOnlyList<Geom.Algorithms.BlobLobe> Of(BoulderForm form, double size) => form switch
+    /// <summary>The lobes of a boulder of the given form at <paramref name="size"/> blocks of reach, in the
+    /// rock's own frame with the ground at <c>y = 0</c>.
+    ///
+    /// <para><b>A boulder is an erratic: it stands on the ground and is bedded into it rather than emerging
+    /// from it.</b> A rock a glacier left is a mass dropped on a surface, so its bulk is over the ground and
+    /// only its foot is under — <see cref="Bed"/> of its height, enough that no course shows daylight beneath
+    /// it and enough to seat it on a slope. The one form that genuinely emerges is
+    /// <see cref="BoulderForm.Outcrop"/>, and it is the one whose middle stays at the surface.</para>
+    ///
+    /// <para>The silhouette is <paramref name="seed"/>ed rather than fixed, because two rocks of one form
+    /// standing near each other are one rock stamped twice while their lobes are identical. An erratic is a
+    /// main mass with a haunch at its foot and a shoulder over it, both thrown out on hashed bearings, so the
+    /// plan outline is a rounded irregular blob and the elevation leans. The proportions and what they were
+    /// chosen against are <c>docs/world-export/decoration.md</c> §5.</para></summary>
+    public static IReadOnlyList<Geom.Algorithms.BlobLobe> Of(BoulderForm form, double size, uint seed) => form switch
     {
-        BoulderForm.Angular => [Lobe(0, 0, 0, size, size * 0.85, size, 0.5)],
-        BoulderForm.Outcrop => [Lobe(0, 0, 0, size * 1.45, size * 0.45, size * 1.2, 0.35)],
+        BoulderForm.Angular => Erratic(size, seed, erosion: 0.45),
+        BoulderForm.Outcrop =>
+        [
+            Lobe(0, 0, 0, size * 1.45, size * 0.55, size * 1.2, 0.35),
+            Lobe(Cos(seed, 3) * size * 0.7, size * 0.16, Sin(seed, 3) * size * 0.7,
+                 size * 0.8, size * 0.42, size * 0.7, 0.3),
+        ],
         BoulderForm.Cairn =>
         [
-            Lobe(0, 0, 0, size * 0.9, size * 0.6, size * 0.9, 0.2),
-            Lobe(-size * 0.15, size * 0.7, size * 0.1, size * 0.6, size * 0.45, size * 0.6, 0.2),
-            Lobe(-size * 0.3, size * 1.3, size * 0.2, size * 0.36, size * 0.3, size * 0.36, 0.15),
+            Lobe(0, size * 0.35, 0, size * 0.9, size * 0.62, size * 0.9, 0.2),
+            Lobe(-size * 0.15, size * 1.1, size * 0.1, size * 0.6, size * 0.45, size * 0.6, 0.2),
+            Lobe(-size * 0.3, size * 1.7, size * 0.2, size * 0.36, size * 0.3, size * 0.36, 0.15),
         ],
-        _ => [Lobe(0, 0, 0, size, size * 0.85, size, 0)],
+        _ => Erratic(size, seed, erosion: 0.16),
     };
+
+    /// <summary>The share of an erratic's height that stands below the ground: enough to bed it, not enough
+    /// to bury it. It is a share rather than a course count, so a rock of any size stands in one
+    /// proportion.</summary>
+    public const double Bed = 0.30;
+
+    /// <summary>A rock a glacier moved: one mass standing on the ground with a haunch at its foot and a
+    /// shoulder over it, each on its own hashed bearing. <paramref name="erosion"/> is what separates the two
+    /// round forms — a low one weathers the surface into broad facets, a high one breaks it.</summary>
+    private static IReadOnlyList<Geom.Algorithms.BlobLobe> Erratic(double size, uint seed, double erosion)
+    {
+        var reach = size * 0.95;                     // the main mass's vertical half-reach
+        var stand = reach * (1 - 2 * Bed);           // its middle, lifted so only Bed of the height is buried
+        return
+        [
+            Lobe(0, stand, 0, size, reach, size * 0.92, erosion),
+            Lobe(Cos(seed, 1) * size * 0.45, stand * 0.35, Sin(seed, 1) * size * 0.45,
+                 size * 0.66, reach * 0.72, size * 0.66, erosion),
+            Lobe(Cos(seed, 2) * size * 0.38, stand + reach * 0.42, Sin(seed, 2) * size * 0.38,
+                 size * 0.55, reach * 0.5, size * 0.55, erosion),
+        ];
+    }
+
+    // A bearing per lobe, hashed off the rock's own seed so every image of its orbit turns together.
+    private static double Cos(uint seed, int lobe) => Math.Cos(Bearing(seed, lobe));
+    private static double Sin(uint seed, int lobe) => Math.Sin(Bearing(seed, lobe));
+    private static double Bearing(uint seed, int lobe)
+        => Geom.Algorithms.PatternNoise.Unit(lobe, 61, seed) * Math.PI * 2;
 
     private static Geom.Algorithms.BlobLobe Lobe(double x, double y, double z, double rx, double ry, double rz, double erosion)
         => new(new Geom.Vec3(x, y, z), new Geom.Vec3(rx, ry, rz), erosion);

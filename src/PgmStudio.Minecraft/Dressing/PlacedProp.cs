@@ -249,20 +249,22 @@ public sealed record TreeProp : PlacedProp
     public override int RouteStandoff => 3;
 }
 
-/// <summary>One boulder, half-buried where it was placed.</summary>
+/// <summary>One boulder, standing bedded into the ground where it was placed.</summary>
 public sealed record BoulderProp : PlacedProp
 {
     public int X { get; init; }
     public int Z { get; init; }
     public BoulderForm Form { get; init; } = BoulderForm.Round;
 
-    /// <summary>How far the rock reaches from its centre, in blocks.</summary>
-    public double Size { get; init; } = 2.5;
+    /// <summary>How far the rock reaches from its centre, in blocks. A boulder is an erratic — a mass a
+    /// glacier carried and left — so the default is a rock a player takes cover behind rather than a stone
+    /// they step over.</summary>
+    public double Size { get; init; } = 4;
 
     /// <summary>That reach held to the range the inspector offers, for the reason
     /// <see cref="TreeProp.Reach"/> holds a tree's: it sizes both the lobes built and the sample patch a
     /// preview cuts, so an out-of-range value asks for a patch thousands of blocks across.</summary>
-    public double Reach => Math.Clamp(Size, 1, 7);
+    public double Reach => Math.Clamp(Size, 2, 10);
 
     /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
     /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit
