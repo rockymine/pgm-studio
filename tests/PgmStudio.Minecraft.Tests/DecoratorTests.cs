@@ -417,6 +417,92 @@ public sealed class DecoratorTests
         }
     }
 
+    /// <summary><b>A prop seats on its feet and is written wherever it meets air, so clearing the seat is not
+    /// the same as fitting.</b> The ground a building holds reaches one block past its stamp; a crown reaches
+    /// as far as the tree is wide. What separates a prop worth naming from one that merely brushed something
+    /// is whether the clip cut a piece off its own footing and left it in the air.</summary>
+    [Test]
+    public async Task A_tree_that_loses_a_limb_to_a_wall_it_stands_clear_of_is_named()
+    {
+        // A wall taller than the tree, eight blocks east of the stem — far enough that the seat is clear and
+        // almost every block still lands, and near enough that the crown reaches into it.
+        var (world, top) = Wall(gap: 8);
+        var report = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "oak", X = 0, Z = 0, Form = TreeForm.Grown, Wood = "oak", Height = 20, Seed = 7 }]));
+
+        var cut = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.PropCut);
+        await Assert.That(cut).IsNotNull();
+        await Assert.That(cut!.Severity).IsEqualTo(Severity.Complaint);   // the tree is in the world, as it fell
+        await Assert.That(cut.Message).Contains("oak");
+        await Assert.That(report.Trees).IsEqualTo(1);                     // and it is not declined
+    }
+
+    /// <summary>The other half of the same rule: a rock flattened along a wall is still a rock. It loses far
+    /// more of itself than the tree above does and says nothing, because a solid mass truncated at a face
+    /// severs nothing — every block that lands is still joined to the ground.</summary>
+    [Test]
+    public async Task A_boulder_flattened_against_a_wall_says_nothing()
+    {
+        var (bare, bareTop) = Wall(gap: 40);
+        Decorator.Decorate(bare, Context(bareTop, [Erratic()]));
+        var whole = Rock(bare);
+
+        var (world, top) = Wall(gap: 2);
+        var report = Decorator.Decorate(world, Context(top, [Erratic()]));
+
+        await Assert.That(Rock(world)).IsLessThan(whole * 4 / 5);         // the wall really did cut it
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.PropCut)).IsFalse();
+
+        static BoulderProp Erratic() => new() { Id = "rock", X = 0, Z = 0, Size = 7, Mossy = false, Seed = 7 };
+        static int Rock(VoxelWorld world) => Cells(world).Count(block => block.Id == Blocks.Stone && block.Y >= 8);
+    }
+
+    /// <summary>And a small tree at the same clearance the big one is named at. A crown two or three blocks
+    /// wide never reaches the wall, so the rule is about the prop's own reach and not about how close the
+    /// seat rule lets it stand.</summary>
+    [Test]
+    public async Task A_small_tree_at_the_same_clearance_says_nothing()
+    {
+        var (world, top) = Wall(gap: 8);
+        var report = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "oak", X = 0, Z = 0, Form = TreeForm.Grown, Wood = "oak", Height = 8, Seed = 7 }]));
+
+        await Assert.That(report.Trees).IsEqualTo(1);
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.PropCut)).IsFalse();
+    }
+
+    /// <summary>A plate with a wall standing on it `gap` blocks east of the origin, taller than anything these
+    /// tests place, so the obstruction is the wall rather than the top of it.</summary>
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> Top) Wall(int gap)
+    {
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = -40; z < 40; z++)
+        for (var x = -40; x < 40; x++)
+        {
+            for (var y = 0; y < 7; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, 7, z, Blocks.Grass);
+            top[(x, z)] = 8;
+        }
+        for (var y = 8; y < 48; y++)
+        for (var z = -14; z < 14; z++)
+        for (var x = gap; x < gap + 6; x++)
+            world.SetBlock(x, y, z, Blocks.IronBlock, 0);
+        return (world, top);
+    }
+
+    /// <summary>Every block standing over the plate <see cref="Wall"/> builds, the wall's own excluded.</summary>
+    private static IEnumerable<(int X, int Y, int Z, int Id)> Cells(VoxelWorld world)
+    {
+        for (var y = 8; y < 70; y++)
+        for (var z = -40; z < 40; z++)
+        for (var x = -40; x < 40; x++)
+        {
+            var block = world.GetBlock(x, y, z);
+            if (block.Id is not (Blocks.Air or Blocks.IronBlock)) yield return (x, y, z, block.Id);
+        }
+    }
+
     [Test]
     public async Task A_boulder_stands_on_the_ground_and_is_bedded_into_it()
     {

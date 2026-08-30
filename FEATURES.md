@@ -6211,6 +6211,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (−308, 10, 48) and (−312, 11, 51). The outcrop is the one form that still emerges from the surface.
   (`Minecraft/Dressing/DressingModel.BoulderShapes`, `PlacedProp.BoulderProp`, `Geom/Algorithms/Blob.cs`,
   `SketchDressingInspector`, `js/studio/dressing/dressing-doc.js`; `BoulderShapesTests`) (WE64)
+- **A prop cut in two by what it reaches into is named (WE66, `DR-CUT`).** A prop is asked about at its
+  **feet** — the keep-outs, the claims and the ground are read at the cells of its lowest course — and every
+  block above them is written wherever it meets air. So clearing the seat is not the same as fitting: the
+  ground a building holds reaches one block past its stamp, which keeps a stem out of a wall and says nothing
+  about a crown eight blocks wide. Where the obstruction takes out the blocks joining a limb to the body, the
+  far half of that limb is still in open air and is still written, and the world holds a piece of tree
+  floating beside a building with nothing declined. The finding is raised off what was **severed** from the
+  prop's own footing rather than off how much was lost, which is what separates the two states a clip
+  produces: an erratic flattened against a wall loses **36% of its 1,089 blocks and severs none**, while a
+  twenty-course grown oak eight blocks clear of the same wall places **429 of its 430** and leaves a limb in
+  the air. Counted against the prop as it would have stood on open ground, since a crown gathered at the
+  branch tips is several pieces already, and by shared faces, a block held at a corner having air on all six
+  of its own. A complaint, not a decline: the prop stays as the clip left it and moving it or shrinking it is
+  the author's call. (`Minecraft/Dressing/Decorator.Fan`, `GroundClaims.DressingRules`;
+  `DecoratorTests`) (WE66)
 - **Fairness is structural, not a filter (G162).** Every prop declares a `PropClass`. Cosmetic props —
   one-block plants — scatter freely; a flower one team has and the other does not decides nothing. Gameplay
   props are generated **once**, on the orbit's canonical representative, in the prop's own local frame, then

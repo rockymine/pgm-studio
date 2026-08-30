@@ -118,7 +118,9 @@ public readonly record struct DressingPlacement(
     /// <summary>Everything this pass actually put down, each with the columns it owns. Never null.</summary>
     public IReadOnlyList<PlacementClaim> Placements => Claimed ?? [];
 
-    /// <summary>Every prop that did not land, and why. Never null.</summary>
+    /// <summary>What the pass has to say about the props it was given, and why — every prop that did not
+    /// land, and every prop that landed as less than itself. Read the severity: a decline is a prop that is
+    /// not in the world, a complaint is one that is, in a state worth looking at. Never null.</summary>
     public IReadOnlyList<Finding> Declines => Declined ?? [];
 
     /// <summary>Just the buildings — what a caller asking about <em>built</em> things wants, now that the
@@ -1075,21 +1077,88 @@ public static class Decorator
         }
 
         var covered = new List<List<(int X, int Z)>>();
+        var worst = (Severed: 0, Blocked: 0, Landed: 0, At: default((int X, int Y, int Z)?));
         foreach (var (anchor, turned, baseY) in images)
         {
             var cells = new HashSet<(int X, int Z)>();
+            var wanted = new HashSet<(int X, int Y, int Z)>(turned.Count);
+            var landed = new HashSet<(int X, int Y, int Z)>(turned.Count);
+            (int X, int Y, int Z)? stoppedAt = null;
             foreach (var cell in turned)
             {
                 var (wx, wy, wz) = (anchor.X + cell.X, baseY + cell.Y, anchor.Z + cell.Z);
                 if (wy is < 1 or >= VoxelWorld.MaxHeight) continue;
-                if (!cell.Buried && world.GetBlock(wx, wy, wz).Id != Blocks.Air) continue;
+                wanted.Add((wx, wy, wz));
+                if (!cell.Buried && world.GetBlock(wx, wy, wz).Id != Blocks.Air)
+                {
+                    stoppedAt ??= (wx, wy, wz);
+                    continue;
+                }
                 world.SetBlock(wx, wy, wz, cell.Id, cell.Data);
                 claims.Claim(wx, wz, ClaimKind.Scatter, id);
                 cells.Add((wx, wz));        // a column, once, however many of the prop's blocks stand in it
+                landed.Add((wx, wy, wz));
             }
             covered.Add([.. cells]);
+
+            var (blocked, severed) = Cost(world, wanted, landed);
+            if (severed > worst.Severed) worst = (severed, blocked, landed.Count, stoppedAt);
         }
+
+        if (worst.Severed >= DressingRules.ClipSevered)
+            declined.Add(new Finding(DressingRules.PropCut,
+                $"{kind} '{id}' seats clear of what it then reaches into: {worst.Blocked} of its blocks are "
+                + $"inside something already standing and were not written, and that cut {worst.Severed} more "
+                + $"off its own footing, which stand in the air. {worst.Landed} block(s) are in the world"
+                + (worst.At is { } at ? $"; first stopped at ({at.X}, {at.Y}, {at.Z})" : "")
+                + ". A prop seats on its feet and is written wherever it meets air, so standing clear of a "
+                + "wall is not the same as fitting beside one — move it further off, or make it smaller",
+                Severity.Complaint, Subjects: [id]));
+
         return new Placed(images.Count, covered);
+    }
+
+    /// <summary>What the clip cost this prop: the blocks it could not write, plus the blocks it did write that
+    /// the clip cut off from its own feet.
+    ///
+    /// <para>Counted against the prop as it would have stood on open ground rather than in absolute terms,
+    /// because a prop is not obliged to be one piece to begin with — a crown gathered at the branch tips is
+    /// several. What is asked is which of the parts that <em>were</em> joined to the feet no longer are, so a
+    /// rock flattened along a wall reads as a few blocks lost and a crown severed from its trunk reads as the
+    /// whole crown. Face adjacency, because a block joined to its neighbour at a corner alone has air on all
+    /// six of its own faces and is seen straight past.</para></summary>
+    private static (int Blocked, int Severed) Cost(VoxelWorld world, IReadOnlySet<(int X, int Y, int Z)> wanted,
+                                                   IReadOnlySet<(int X, int Y, int Z)> landed)
+    {
+        if (wanted.Count == landed.Count) return (0, 0);
+        var whole = Reaching(world, wanted, wanted);
+        var left = Reaching(world, landed, landed);
+        return (wanted.Count - landed.Count,
+                whole.Count(cell => landed.Contains(cell) && !left.Contains(cell)));
+    }
+
+    /// <summary>The cells of <paramref name="body"/> that reach the ground under the prop through a chain of
+    /// shared faces: those resting on a block the world already had, and everything joined to one of those.
+    /// <paramref name="occupied"/> is what counts as solid while the walk runs.</summary>
+    private static HashSet<(int X, int Y, int Z)> Reaching(
+        VoxelWorld world, IReadOnlySet<(int X, int Y, int Z)> body, IReadOnlySet<(int X, int Y, int Z)> occupied)
+    {
+        var held = new HashSet<(int X, int Y, int Z)>();
+        var frontier = new Queue<(int X, int Y, int Z)>();
+        foreach (var cell in body)
+        {
+            var under = (X: cell.X, Y: cell.Y - 1, Z: cell.Z);
+            if (!occupied.Contains(under) && under.Y >= 0
+                && world.GetBlock(under.X, under.Y, under.Z).Id != Blocks.Air && held.Add(cell))
+                frontier.Enqueue(cell);
+        }
+        while (frontier.Count > 0)
+        {
+            var (x, y, z) = frontier.Dequeue();
+            foreach (var next in new[] { (x + 1, y, z), (x - 1, y, z), (x, y + 1, z), (x, y - 1, z), (x, y, z + 1), (x, y, z - 1) })
+                if (body.Contains(next) && held.Add(next)) frontier.Enqueue(next);
+        }
+        return held;
     }
 
     /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at — plus, where it

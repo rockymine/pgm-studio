@@ -151,6 +151,11 @@ one stage rather than four:
   it refuses ground that is missing or kept clear rather than half-placing itself. What it *rests* on needs
   real ground; what it merely reaches over does not — a crown or a boulder lobe may overhang a drop or a void,
   which is why a marker can seat at an island's edge and still lean out past it.
+  **Only the feet are asked about, and the rest is written wherever it meets air** — a cell of the prop
+  standing where something already is is skipped and nothing else happens. That is the right rule for a prop
+  meeting terrain, and it is why clearing the seat is not the same as fitting: the ground a building holds
+  reaches one block past its stamp (`DR-CLAIM`), which keeps a stem out of a wall and says nothing about a
+  crown eight blocks wide. `DR-CUT` is what closes the gap, and §2.1 is what it draws the line on.
 - **The fan (G162).** Every prop is placed once and stamped at **every image of its orbit**, in the prop's own
   local frame, with each offset **turned** by that image's transform. An author draws one half of a map and
   gets a fair one, which is the contract the layout itself has had all along — and the canvas draws the
@@ -166,6 +171,48 @@ one stage rather than four:
   and the delta between two mirrored cells is just the mirrored delta — so the turn is a plain rotation with
   no half-cell correction, which the anchor's own mirroring has already applied. A stamp is all-or-nothing
   per image: if one image's ground is missing or kept clear, that image is skipped rather than clipped.
+
+
+### 2.1 Being clipped, and being cut in two (`DR-CUT`)
+
+A prop written into whatever air is left comes out in one of two states, and only one of them is a fault.
+
+**Truncated** is a prop with a face taken off it. A rock pushed against a wall fills the air beside the wall
+and stops; every block it places still stands on the ground or on another of its own blocks, and what a
+player sees is a rock against a wall — which is what an author putting a rock against a wall meant. It can
+cost a great deal of the prop and still be right: measured against a wall two blocks off its centre, an
+erratic of size 7 loses **36% of its 1,089 blocks** and severs none of them.
+
+**Cut in two** is a prop whose obstruction took out the blocks that joined a piece of it to the rest. A limb
+runs into a wall, the cells inside the wall are skipped, and the far half of that limb — still in open air,
+so still written — now stands with nothing under it and nothing beside it. Nothing declines, the tree is in
+the world, and there is a piece of tree floating next to a building.
+
+The second is what `DR-CUT` names, and it is counted against the prop **as it would have stood on open
+ground** rather than in absolute terms, because a prop is not obliged to be one piece to begin with: a crown
+gathered at the branch tips is several. What is asked is which of the parts that *were* joined to the feet no
+longer are. Face adjacency, because a block joined to its neighbour at a corner alone has air on all six of
+its own faces and is seen straight past.
+
+The threshold is `DressingRules.ClipSevered` blocks cut away, not a share of the prop — a share is the
+truncation measure, and it is the boulder's answer rather than this one. Against a wall taller than the tree:
+
+| prop | clearance from the wall | blocked | cut off | `DR-CUT` |
+|---|---|---|---|---|
+| grown oak, height 8 | 2 | 8 | 6 | — |
+| grown oak, height 12 | 2 | 33 | 3 | — |
+| grown oak, height 20 | 2 | 57 | 79 | raised |
+| grown oak, height 20 | 8 | 1 | 39 | raised |
+| grown oak, height 32 | 2 | 140 | 162 | raised |
+| grown oak, height 32 | 8 | 23 | 43 | raised |
+| erratic, size 4–10 | 2 | 51–1,060 | 0 | — |
+
+The height-20 row at eight blocks' clearance is the whole case for the rule: **429 of its 430 blocks are in
+the world** and a limb is floating. No measure of how much landed can see that, which is why the finding is
+raised off what was severed and reports both numbers.
+
+A prop is left exactly as the clip left it, floating piece included. This is a complaint: the author moves
+the prop or makes it smaller, and neither is a decision the pass can take for them.
 
 ## 3. Flora overlay — the paint-aware overlay (`DR-FL`)
 
