@@ -48,7 +48,7 @@ shape whether a layout was hand-drawn or compiled from a plan.
 | Key | Holds |
 |---|---|
 | `setup` | `mirror_mode`, the symmetry `center`, and the `bbox` the canvas frames on open |
-| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `prop` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
+| `layers[]` | the stacked slabs — each `{id, name, base_y, layout:{shapes, groups}}`, plus `kind`, `part_of` and `seat` where the layer holds a made thing. Always at least one; a flat board is a stack of one, called `ground` |
 | `themes` · `mapTheme` | the terrain-paint registry and the map-wide default |
 | `roomStyles` | the two bound room shells — `cage` (wool) and `spawn` |
 | `dressing` | every placed prop |
@@ -308,7 +308,7 @@ Three optional fields on a layer say so, and nothing else changes about how it i
 | Field | Takes | Says |
 |---|---|---|
 | `kind` | `ground` · `made` | what the layer holds. Absent is `ground` |
-| `prop` | any name | which made thing this layer belongs to, where a thing spans several |
+| `part_of` | any name | the made thing this layer is one slice of, where a thing spans several. Absent, the layer is a whole by itself and answers to its own `id` |
 | `seat` | `ground` | that the layer's floors are taken from the ground beneath it rather than stated absolutely |
 
 **`kind` is what keeps the stacking rules off it.** `SK10` reads two layers whose spans meet as a gap that is
@@ -326,8 +326,8 @@ with the same three moves, over the whole made thing rather than over one rectan
 under the columns the thing **rests on** decides one drop, every layer of the thing is shifted by it together,
 and the ground standing above the settled floor is cut out of the whole footprint so a bank the thing digs
 into stops at its own hull. **The drop is one number for the whole thing, not one per layer** — a keel that
-settled independently of the deck above it would not be a ship — which is exactly what `prop` is for: layers
-sharing a `prop` name seat as a unit, and a layer with no `prop` seats on its own.
+settled independently of the deck above it would not be a ship — which is exactly what `part_of` is for:
+layers naming one `part_of` seat as a unit, and a layer naming none seats on its own.
 
 **What it rests on is the columns whose own span starts at its lowest course, not its whole shadow.** A crane
 standing on a quay with its jib reaching out over the harbour covers water it never touches, and reading the

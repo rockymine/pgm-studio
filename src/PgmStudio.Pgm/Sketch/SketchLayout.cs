@@ -291,11 +291,13 @@ public sealed class SketchLayer
     /// hill has no gap to lose, and a raised arm is not standable ground somebody forgot a stair to.</para></summary>
     [JsonPropertyName("kind")]   public string? Kind { get; set; }
 
-    /// <summary>Which made thing this layer belongs to, where it belongs to one. A sculpture is one thing to
-    /// an author and many layers to the rasterizer — a column's runs are split across them — so the name is
-    /// what lets a strip draw one row for it, a filter address it, and a drag move every layer of it
-    /// together.</summary>
-    [JsonPropertyName("prop")]   public string? Prop { get; set; }
+    /// <summary>The made thing this layer is one slice of, where it is a slice of one. A sculpture is a
+    /// single thing to an author and many layers to the rasterizer — a column's runs are split across them —
+    /// so this is what lets a strip draw one row for it, a filter address it, and a drag move every layer of
+    /// it together. Absent, the layer is a whole by itself and answers to its own <see cref="Id"/>: the name
+    /// states the relation rather than the thing, because the reason the field exists is that one balloon is
+    /// eight layers.</summary>
+    [JsonPropertyName("part_of")] public string? PartOf { get; set; }
 
     /// <summary>How the layer's floors meet the ground: absent, every shape's <c>floor</c> is the absolute
     /// height it states; <c>ground</c> takes the whole layer down onto the lowest solid column under its own

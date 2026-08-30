@@ -119,7 +119,7 @@ public static class SketchRasterizer
         if (seated.Count == 0) return segments;
 
         var thingOf = seated.ToDictionary(layer => layer.Id!,
-                                          layer => layer.Prop is { Length: > 0 } prop ? prop : layer.Id!,
+                                          layer => layer.PartOf is { Length: > 0 } thing ? thing : layer.Id!,
                                           StringComparer.Ordinal);
 
         // The ground every seat is measured against is what the thing is not: terrain, and any made thing
@@ -993,7 +993,7 @@ public static class SketchRasterizer
         if (seated.Count == 0) return [];
 
         var thingOf = seated.ToDictionary(layer => layer.Id!,
-                                          layer => layer.Prop is { Length: > 0 } prop ? prop : layer.Id!,
+                                          layer => layer.PartOf is { Length: > 0 } thing ? thing : layer.Id!,
                                           StringComparer.Ordinal);
         var segments = RasterizeColumns(state);
         var ground = segments.Where(segment => !thingOf.ContainsKey(segment.Layer))

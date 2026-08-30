@@ -344,7 +344,7 @@ public sealed class SketchRasterizerTests
               {"id":"g0","type":"rectangle","operation":"add","min_x":0,"max_x":12,"min_z":0,"max_z":12,"floor":0,"base_height":9},
               {"id":"g1","type":"rectangle","operation":"add","min_x":6,"max_x":12,"min_z":0,"max_z":12,"floor":0,"base_height":13}],
             "groups":[{"id":"land","mirrors":false,"shapeIds":["g0","g1"]}]}},
-           {"id":"thing","kind":"KIND","prop":"thing"SEAT,"base_y":0,"layout":{"shapes":[
+           {"id":"thing","kind":"KIND","part_of":"thing"SEAT,"base_y":0,"layout":{"shapes":[
               {"id":"t0","type":"rectangle","operation":"add","min_x":3,"max_x":9,"min_z":3,"max_z":9,"floor":40,"base_height":4}],
             "groups":[{"id":"body","mirrors":false,"shapeIds":["t0"]}]}}]}
         """.Replace("KIND", kind).Replace("SEAT", seat);
@@ -390,10 +390,10 @@ public sealed class SketchRasterizerTests
            {"id":"ground","base_y":0,"layout":{"shapes":[
               {"id":"g0","type":"rectangle","operation":"add","min_x":0,"max_x":12,"min_z":0,"max_z":12,"floor":0,"base_height":9}],
             "groups":[{"id":"land","mirrors":false,"shapeIds":["g0"]}]}},
-           {"id":"a","kind":"made","prop":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
+           {"id":"a","kind":"made","part_of":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
               {"id":"a0","type":"rectangle","operation":"add","min_x":3,"max_x":6,"min_z":3,"max_z":6,"floor":40,"base_height":2}],
             "groups":[{"id":"ab","mirrors":false,"shapeIds":["a0"]}]}},
-           {"id":"b","kind":"made","prop":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
+           {"id":"b","kind":"made","part_of":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
               {"id":"b0","type":"rectangle","operation":"add","min_x":3,"max_x":6,"min_z":3,"max_z":6,"floor":50,"base_height":2}],
             "groups":[{"id":"bb","mirrors":false,"shapeIds":["b0"]}]}}]}
         """;
@@ -419,10 +419,10 @@ public sealed class SketchRasterizerTests
                {"id":"ground","base_y":0,"layout":{"shapes":[
                   {"id":"g0","type":"rectangle","operation":"add","min_x":0,"max_x":20,"min_z":0,"max_z":20,"floor":0,"base_height":9}],
                 "groups":[{"id":"land","mirrors":false,"shapeIds":["g0"]}]}},
-               {"id":"foot","kind":"KIND","prop":"thing","base_y":0,"layout":{"shapes":[
+               {"id":"foot","kind":"KIND","part_of":"thing","base_y":0,"layout":{"shapes":[
                   {"id":"t0","type":"rectangle","operation":"add","min_x":4,"max_x":10,"min_z":4,"max_z":10,"floor":4,"base_height":4}],
                 "groups":[{"id":"a","mirrors":false,"shapeIds":["t0"]}]}},
-               {"id":"canopy","kind":"KIND","prop":"thing","base_y":0,"layout":{"shapes":[
+               {"id":"canopy","kind":"KIND","part_of":"thing","base_y":0,"layout":{"shapes":[
                   {"id":"t1","type":"rectangle","operation":"add","min_x":2,"max_x":12,"min_z":2,"max_z":12,"floor":30,"base_height":2}],
                 "groups":[{"id":"b","mirrors":false,"shapeIds":["t1"]}]}}]}
             """.Replace("KIND", kind);

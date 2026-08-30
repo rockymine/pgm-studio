@@ -40,7 +40,7 @@ public sealed class BuildCeilingTests
     // what a balloon or a ship is drawn as. It stands on nothing and a player meets it nowhere.
     private const string Flown =
         """
-        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"groups":[]} }, { "id": "sky", "base_y": 80, "kind": "made", "prop": "balloon", "layout":{"shapes":[{"id":"s","type":"rectangle","operation":"add","min_x":-15,"min_z":5,"max_x":-5,"max_z":15,"base_height":4}],"groups":[]} }]}
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":1}],"groups":[]} }, { "id": "sky", "base_y": 80, "kind": "made", "part_of": "balloon", "layout":{"shapes":[{"id":"s","type":"rectangle","operation":"add","min_x":-15,"min_z":5,"max_x":-5,"max_z":15,"base_height":4}],"groups":[]} }]}
         """;
 
     private static MapIntent Intent() => new()
