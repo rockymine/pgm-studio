@@ -483,6 +483,30 @@ as an isolated marker into `B99`.
   *`showcase/19-mountain-range` carries two: `br-crag-5` is seven vertices all at x=7, `br-flank-2` seven
   all at x=−7. Both pass every gate and contribute nothing.*
 
+- [ ] **TS68 — `SK9` never reaches a response, because a `Decline` is filtered out of the complaint
+  channel.** `Findings.Complaints` keeps only `Severity.Complaint` — deliberately, and its docstring says
+  so — and `SK9` is the only `Severity.Decline` `SketchLayoutCheck` raises. Every publisher hands the
+  channel that narrowed list (`MapFromDocumentsEndpoint.cs` passes `loaded.Complaints?.Complaints`;
+  `PlanInspectEndpoints.cs` and `SketchEndpoints.cs` do the same), while `Complaints.Add`'s own summary
+  says it carries "complaints and declines alike". Pass the whole `Findings` at those call sites.
+  `docs/tools/sketch.md`.
+
+  *A ring wall stated `floor 6, base_height 6` over a chamber floor of `floor 0, base_height 6` stores at
+  **200 with no `Pgm-Warnings` header**, exports with the gate OPEN, and leaves a six-course trench round
+  the wall: `GET …/column?at=-7,0` answers brick y6..13 and nothing below, not even bedrock.
+  `GET …/findings` names `SK9` three times — the only read that does.*
+
+- [ ] **TS69 — A `keepClear` shape keeps every storey clear, so a lid locks the room under it.**
+  `SketchRasterizer.KeepClearCells` gathers marked shapes over every layer and `DressingScope.KeptClearAt`
+  is `(x, z)` with no layer, while `GroundClaims` beside it *is* keyed on the layer — so two props collide
+  only where they share a storey but a keep-out is a column from floor to sky. Key the keep-out on the
+  layer the marked shape is on, as the claim book already is. `docs/tools/sketch.md`.
+
+  *`showcase/24-underground`: a flora ring inside a cell on layer `under` places **0** cells while the
+  vault over it (layer `vault`, six courses up) carries `keepClear`, and **13** with the mark removed —
+  flora declines silently, so neither answer raises anything. A boulder on `under` at (0, 14), sixteen
+  courses below the monument at (0, 22), declines `OB19` for the same reason.*
+
 - [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
   from across the map, which means its walls are not in the tone family under its feet. Complain where a
   building's wall material and the terrain ringing its footprint resolve to one `TerrainPalette` family, and
