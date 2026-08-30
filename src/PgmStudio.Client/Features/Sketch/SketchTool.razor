@@ -17,6 +17,7 @@
         <Crumb Dim>Sketch</Crumb>
       </Crumbs>
       <Right>
+        @if (saveError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@saveError">@saveError</span> }
         @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />

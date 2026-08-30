@@ -6554,6 +6554,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   hollowed into a whole-board island was refilled to the flat by the reflection of the ground round it —
   measured, a five-block delve came out level with the meadow, silently. `SK9` is silent on all of this and
   correctly so: two adds at one floor are ordinary ground.
+- **A drawing in progress is stored whatever it says, and the preview draws it (`TS73`).** An edit is not
+  atomic. Putting a floor under a hole and then taking the hole away is an ordinary order to work in, and so
+  is the reverse — so a store that refuses the intermediate state does not prevent the board, it **deletes the
+  shapes the author drew to get there**. Worse, it did so invisibly: a refused `PUT` is a completed HTTP
+  round-trip, `SketchTool.SaveAsync` discarded the response, and every later autosave failed the same way, so
+  the tool went on drawing over a board the studio had last accepted several edits ago. The only symptom was
+  the 3-D view going dark, and reloading to clear it is what threw the work away. Every sketch-stage route —
+  the write, the plan merge, and the paint, dressing, relief and 3-D reads — now takes the board and rides its
+  findings back on `warnings` (`Findings.AsComplaints`), refusals included; `sketch/finish` is where the same
+  check becomes fatal, and the export composer is the gate behind that. **The 3-D preview stays true**: it
+  draws what the board builds — the subtract wins, the add it beats draws nothing, and that absence is what
+  the author needs to see — because the set algebra never fails and only the gate did. And the tool reads its
+  own answer: a write that does not land shows **Not saved**, carrying the studio's own sentence, instead of
+  silence. (`Api/Endpoints/SketchEndpoints`, `Client/Features/Sketch/SketchTool`; `SketchEndpointTests`)
+  (`TS73`)
 - **A made thing standing in something built is named (`TS70`, `SK18`).** A board is laid by passes that do
   not read each other. A made thing — a layer stating `kind: "made"` — is the rasterizer's and is in the world
   before anything is stamped; a wool cage, a spawn cube, an objective and a dressing-placed building all seat

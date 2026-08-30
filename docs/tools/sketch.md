@@ -1075,12 +1075,28 @@ A subtract is how a board states its **negative space** — the void a plan's bu
 a composed footprint leaves — and **a hole is never scenery**: what a body encircles is ground players go
 round, and a board's walls are drawn to guard it. So the negative space may be *redrawn* — the buffer rounded
 off, narrowed, moved — and never papered over. An override add, or any add on **another layer** (a subtract
-reaches only the layer it is on), puts the ground back and is **refused**, `SK13`, **422**. On the same layer
+reaches only the layer it is on), puts the ground back and is **refused**, `SK13` — at `finish`, and there
+alone. On the same layer
 a plain add draws **nothing at all** instead, because the algebra is
 `((adds − subs) ∪ override-adds) − override-subs` and a subtract beats every plain add whatever order the two
 are written in — the shape is on the canvas and not in the world, which is the rule's other half and only
 complains. Either way `SK13` names both shapes, which of the two happened, how many columns they contest and
 the northmost of them.
+
+**Where a refusal lands, and why nowhere earlier.** Every sketch-stage route — the write, the merge, and the
+paint, dressing, relief and 3-D reads — takes a board whatever its geometry says and rides the findings back
+on `warnings`, refusals included. `POST .../sketch/finish` is where the same check becomes fatal, which is the
+stage that declares the drawing done, and `MapExportComposer` is the second gate behind it.
+
+The reason is that **a sketch is a working document and an edit is not atomic.** Drawing a floor under a hole
+and then removing the hole is an ordinary order to work in; so is the reverse. A store that refuses the
+intermediate state does not prevent the board — it deletes the shapes the author drew to get there, and the
+tool cannot even see that it did, a refused PUT being a completed round-trip that throws nothing. The Sketch
+tool now reads the status and says **Not saved** with the server's own sentence when a write does not land.
+
+The same rule is why the 3-D preview stays true. It draws what the board builds — the subtract wins, the add
+it beats draws nothing, and that absence is exactly what the author needs to see — rather than going dark on
+a document the rasterizer can answer for perfectly well. The set algebra never fails; only the gate did.
 
 **Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
 as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is
@@ -1234,8 +1250,8 @@ Every endpoint is anonymous and rooted at `/api`.
 | `POST /sketch` | `{name?, width?, depth?, mode?, centerX?, centerZ?}` | `{slug}` — a `map` row at `stage=sketch`. A frame seeds the `setup`; without one the layout is `{}` and the editor uses its 120×80 `rot_180` default | — |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}` | 404 |
 | `GET /map/{slug}/sketch` | — | the stored layout, or `{}`. The `ETag` is the revision to state on the next write | 404 |
-| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · 422 `the board cannot be built as drawn` `SK2` or `SK13` · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
-| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 400 · 404 |
+| `PUT /map/{slug}/sketch` | the layout | `{}` — a **verbatim replace**, which is what makes a deletion stick; `warnings` rides beside it where the document names something it does not have (`SK3`/`SK4`/`SK5`) or carries a field the reader has nowhere to keep (`RQ3`). **The board's own geometry never refuses this write**: a drawing in progress is stored whatever it says, and every finding it raises rides back on `warnings`, `SK13` included. The `ETag` is the revision it landed at | 400 non-JSON, or 400 `{findings}` on a bound room style the house-style gate refuses · **409 `RQ5`** an `If-Match` naming a revision the layout is no longer at · 404 |
+| `PUT /map/{slug}/sketch/from-plan` | a compiled layout | `{orphaned}` — merges the finish, the relief and any author-corrected structural height onto fresh geometry, and answers the same `SK3`/`SK4`/`SK5` complaints the plain write does, over the merged document. The merged board's geometry rides back on `warnings` too, rather than refusing the merge | 409 `{findings}` one `SK1` per orphaned group (`?force=true`) · 400 · 404 |
 | `POST /map/{slug}/sketch/finish` | — | `{slug, configureUrl}` — rasterizes to world geometry, moves the map to `stage=configure`. It runs the document gate over the stored layout, so the stage that declares the drawing done is also the last one to say what will not be built, and — where a plan is stored beside it — re-reads that plan's CTW strait over the drawn ground (`CT12`) | 422 `SK6` nothing stored · 422 `SK7` nothing drawn · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 | `DELETE /map/{slug}/sketch/discard-if-empty` | — | `{discarded}` — drops a draft still at its default name with no authors and nothing drawn | — |
 

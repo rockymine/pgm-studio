@@ -38,6 +38,60 @@ public sealed class SketchEndpointTests
         await Assert.That(layout.EnumerateObject().Any()).IsFalse();
     }
 
+    /// <summary><b>A drawing in progress is stored whatever its geometry says, and the preview draws it.</b>
+    /// An edit is not atomic: putting a floor under a hole and then removing the hole is an ordinary order to
+    /// work in, and so is the reverse. A store that refuses the intermediate state does not prevent the board,
+    /// it deletes the shapes the author drew to get there — and a refused PUT is a completed round-trip that
+    /// throws nothing, so the tool cannot even see that it happened. <c>finish</c> is where the same check
+    /// becomes fatal, and this pins all three ends of that.</summary>
+    [Test]
+    public async Task A_board_its_own_gate_refuses_is_stored_and_drawn_and_refused_only_at_finish()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var slug = (await (await client.PostAsJsonAsync("/api/sketch", new { name = "Mid edit" }))
+            .Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // A mass with a hole in it, and a second layer putting the ground back under the hole — SK13, the
+        // fault an author meets halfway through carving a room.
+        const string refused = """
+            {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
+             "layers":[
+               {"id":"rock","base_y":0,"layout":{"shapes":[
+                  {"id":"mass","type":"rectangle","operation":"add","min_x":-15,"min_z":-10,"max_x":15,"max_z":10,"floor":0,"base_height":30},
+                  {"id":"hole","type":"rectangle","operation":"subtract","min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0}],
+                "groups":[{"id":"g","mirrors":false,"shapeIds":["mass","hole"]}]}},
+               {"id":"floor","base_y":0,"layout":{"shapes":[
+                  {"id":"f","type":"rectangle","operation":"add","override":true,"min_x":-2,"min_z":-6,"max_x":10,"max_z":6,"floor":0,"base_height":4}],
+                "groups":[{"id":"h","mirrors":false,"shapeIds":["f"]}]}}]}
+            """;
+        var body = new StringContent(refused, Encoding.UTF8, "application/json");
+
+        // Stored, with the finding carried rather than thrown away …
+        var put = await client.PutAsync($"/api/map/{slug}/sketch", body);
+        await Assert.That(put.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(put.Headers.TryGetValues("Pgm-Warnings", out var warned)).IsTrue();
+        await Assert.That(string.Join(" ", warned!)).Contains("SK13");
+
+        // … and it is really there: both layers survive the round-trip, which is the whole point.
+        var back = await client.GetFromJsonAsync<JsonElement>($"/api/map/{slug}/sketch");
+        await Assert.That(back.GetProperty("layers").GetArrayLength()).IsEqualTo(2);
+
+        // The 3-D read draws it rather than going dark — the algebra never fails, only the gate did.
+        var columns = await client.PostAsync($"/api/map/{slug}/sketch/columns",
+            new StringContent(refused, Encoding.UTF8, "application/json"));
+        await Assert.That(columns.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var drawn = await columns.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(drawn.GetProperty("cols").GetArrayLength()).IsGreaterThan(0);
+
+        // And finish is where it stops.
+        var finish = await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
+        await Assert.That(finish.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableEntity);
+        var refusal = await finish.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(refusal.GetProperty("message").GetString()).Contains("takes away");
+    }
+
     [Test]
     public async Task The_3D_preview_answers_a_clean_board_with_no_warnings_key()
     {

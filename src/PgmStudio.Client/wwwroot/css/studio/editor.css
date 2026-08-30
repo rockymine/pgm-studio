@@ -49,6 +49,9 @@
 .topbar-sep  { color: var(--text-muted); font-size: var(--font-base); user-select: none; }
 .topbar-crumb { font-size: var(--font-md); color: var(--text-primary); white-space: nowrap; }
 .topbar-crumb--dim { color: var(--text-secondary); }
+/* The drawing is not in the studio. Loud on purpose: it is the only thing between an author and
+   losing every edit made since the last save the server took. */
+.topbar-crumb--warn { color: var(--color-warning); font-weight: 600; max-width: 46ch; overflow: hidden; text-overflow: ellipsis; }
 
 .topbar-right {
   margin-left: auto;

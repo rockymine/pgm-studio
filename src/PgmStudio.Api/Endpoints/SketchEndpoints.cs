@@ -110,21 +110,24 @@ public sealed class SketchGetEndpoint(MapRepository repo, MapArtifactStore artif
     }
 }
 
-/// <summary>PUT /api/map/{slug}/sketch — replace the stored layout blob (the bridge's getState()). 400
-/// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
-/// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
-/// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
-
-/// <summary>PUT /api/map/{slug}/sketch — replace the stored layout blob (the bridge's getState()). 400
-/// `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
-/// <see cref="HouseStyleValidation"/> — this is where those snapshots actually enter the studio, so it is where
-/// a wrong block or a see-through roof is refused rather than silently stamped at export.</summary>
+/// <summary>PUT /api/map/{slug}/sketch — replace the stored layout blob (the bridge's getState()).
+///
+/// <para><b>A drawing in progress is stored whatever it says.</b> The board's own geometry is checked here
+/// and every finding rides back as a complaint, refusals included: a sketch is the author's working document,
+/// and the orders an edit arrives in run through states the finished board would not allow — a floor drawn
+/// under a hole before the hole goes, a wall raised before the ground it stands on. Refusing the store there
+/// loses the work, and the client cannot even see that it did. <see cref="SketchFinishEndpoint"/> is where
+/// the same check becomes fatal, which is the stage that declares the drawing done.</para>
+///
+/// <para>400 `{error, findings}` when a bound <c>roomStyles.cage</c> or <c>roomStyles.spawn</c> fails
+/// <see cref="HouseStyleValidation"/>. That one still refuses: a style snapshot enters the studio here and
+/// nowhere else, so a wrong block or a see-through roof caught anywhere later is caught at export.</para></summary>
 public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artifacts) : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
     {
         Put("/map/{slug}/sketch"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 409, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 409));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -136,13 +139,12 @@ public sealed class SketchPutEndpoint(MapRepository repo, MapArtifactStore artif
         var findings = SketchMaterialGate.Check(layoutJson);
         if (await Refusals.StopAsync(HttpContext, 400, "invalid style or theme", findings, ct)) return;
 
-        // The document's own gate: a board too large to realize is refused here, where it is stored, rather
-        // than at the preview that would have to walk it. What it merely names and does not have rides back
-        // on the success as complaints — the layout is saved, and the author is told what will not be built.
+        // The document's own gate, read but never fatal: the layout is stored and the author is told what
+        // will not be built, which is what a working document owes them.
         var layout = SketchLayout.Stated(layoutJson);
         Complaints.Unread(HttpContext, layoutJson, layout);
         var document = SketchLayoutCheck.Check(layout);
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
+        Complaints.Add(HttpContext, document.AsComplaints());
 
         var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
             "sketch layout", bytes, Revisions.Expected(HttpContext), ct);
@@ -178,7 +180,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
     public override void Configure()
     {
         Put("/map/{slug}/sketch/from-plan"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 409, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 409));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -220,7 +222,7 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
                 SketchMaterialGate.Check(merged), ct)) return;
 
         var document = SketchLayoutCheck.Check(merged);
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
+        Complaints.Add(HttpContext, document.AsComplaints());
 
         var written = await DocumentWrite.StoreAsync(artifacts, map.Id, ArtifactKind.SketchLayoutJson,
             "sketch layout", Encoding.UTF8.GetBytes(merged), Revisions.Expected(HttpContext), ct);
@@ -242,7 +244,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
     public override void Configure()
     {
         Post("/map/{slug}/sketch/paint"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -251,8 +253,7 @@ public sealed class SketchPaintEndpoint(MapRepository repo, MapArtifactStore art
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
-                SketchLayoutCheck.Check(layoutJson), ct)) return;
+        Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
         IReadOnlyList<SurfaceCell> cells;
         try { cells = TerrainPreview.SketchPaintCells(layoutJson, await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct)); }
@@ -289,7 +290,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
     public override void Configure()
     {
         Post("/map/{slug}/sketch/columns"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -302,7 +303,7 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         try { document = SketchLayoutCheck.Check(layoutJson); }
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
+        Complaints.Add(HttpContext, document.AsComplaints());
 
         WorldColumnsDto payload;
         try
@@ -348,7 +349,8 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
 /// draws — off the same pass the export runs, so what it says is what will happen.</para>
 ///
 /// <para>The cost is the build, roughly a second on a full board, which is why this is asked for rather than
-/// pushed. 422 on a layout that cannot be built or a dressing document that will not read, by the same names
+/// pushed. 422 on a dressing document that will not read; a layout that cannot be built is drawn anyway and
+/// its findings ride back as complaints, by the same names
 /// the export refuses them under.</para></summary>
 public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<DressingRunDto>
@@ -361,7 +363,7 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
     public override void Configure()
     {
         Post("/map/{slug}/sketch/dressing"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -374,7 +376,7 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
         try { document = SketchLayoutCheck.Check(layoutJson); }
         catch (JsonException fault)
         { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn", document, ct)) return;
+        Complaints.Add(HttpContext, document.AsComplaints());
 
         BuiltWorld built;
         try
@@ -466,8 +468,7 @@ public sealed class SketchProbeFootprintEndpoint(MapRepository repo) : EndpointW
                     $"a ring needs three points or more to cover any ground; this one carries {ring.Count}")], ct);
             return;
         }
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
-                SketchLayoutCheck.Check(layoutJson), ct)) return;
+        Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
         FootprintProbe.Result probe;
         try { probe = FootprintProbe.Of(layoutJson, ring); }
@@ -505,7 +506,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
     public override void Configure()
     {
         Post("/map/{slug}/sketch/relief"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -520,8 +521,7 @@ public sealed class SketchReliefEndpoint(MapRepository repo, ReliefPreviewCache 
         // Each group resumes from the surface its last preview settled on. The relaxation stops when the
         // field stops moving and discards a resume that fails to reach that tolerance, so this can only ever
         // save sweeps — never change the answer, which is what keeps a previewed surface the built one.
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
-                SketchLayoutCheck.Check(layoutJson), ct)) return;
+        Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
         Dictionary<string, HeightField> fields;
         try
@@ -565,7 +565,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
     public override void Configure()
     {
         Post("/map/{slug}/sketch/relief/read"); AllowAnonymous();
-        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(404, 422));
+        Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -574,8 +574,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
         var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
 
-        if (await Refusals.StopAsync(HttpContext, 422, "the board cannot be built as drawn",
-                SketchLayoutCheck.Check(layoutJson), ct)) return;
+        Complaints.Add(HttpContext, SketchLayoutCheck.Check(layoutJson).AsComplaints());
 
         Dictionary<string, HeightField> fields;
         SketchLayout? state;

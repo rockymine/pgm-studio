@@ -702,15 +702,36 @@ public partial class SketchTool
         await SaveAsync(token);
     }
 
+    /// <summary>What the last save did, for the topbar to say. Null while every save has landed.</summary>
+    private string? saveError;
+
+    /// <summary>Store the bridge's state, and <b>read the answer</b>.
+    ///
+    /// <para>A refused or failed PUT is a completed HTTP round-trip, so nothing is thrown and the status is
+    /// the only thing that says the drawing is not in the studio. Unread, the tool believes every edit
+    /// landed, keeps drawing over a board the server last accepted several edits ago, and the author finds
+    /// out by reloading — which is exactly when the work goes. The message is the server's own, because it
+    /// is the one that knows which shape it could not take.</para></summary>
     private async Task SaveAsync(CancellationToken token)
     {
         if (handle is null) return;
+        var was = saveError;
         try
         {
             var state = await handle.InvokeAsync<JsonElement>("getState", token);
-            await Http.PutAsJsonAsync($"api/map/{Slug}/sketch", state, token);
+            var resp = await Http.PutAsJsonAsync($"api/map/{Slug}/sketch", state, token);
+            if (resp.IsSuccessStatusCode) saveError = null;
+            else
+            {
+                var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>(token);
+                saveError = "Not saved — " + (refusal?.Message is { Length: > 0 } why ? why
+                                              : refusal?.Error is { Length: > 0 } label ? label
+                                              : $"the studio answered {(int)resp.StatusCode}.");
+            }
         }
-        catch { /* save failed (or cancelled) — the next change retries */ }
+        catch (TaskCanceledException) { return; }        // superseded by a later edit; that one reports
+        catch { saveError = "Not saved — the studio could not be reached."; }
+        if (saveError != was) await InvokeAsync(StateHasChanged);
     }
 
     // ── Finish: flush the layout, rasterize server-side, continue to Configure ──
