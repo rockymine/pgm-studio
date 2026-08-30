@@ -309,7 +309,7 @@ through leaves joined **face to face** — so a stranded leaf is not rare, it is
 leaf a viewer sees through. Clusters are small, many and perforated
 rather than few and solid, and each is sized by the branch carrying it. `TreeSkeleton.Steer` turns a child in
 its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
-the single change that moved the limbs from 24° to 60° and thinned the wood from 7.9 neighbours to 4.7.
+the single change that moved the limbs from 24° to 60° and thinned the wood from 7.9 neighbours to 5.3.
 
 Rooting on faces costs the outer **31%** of what the fill draws, and that share is the haze rather than the
 crown: read at one leaf size the foliage held goes 530 leaves a tree to 368, occupied neighbours per leaf
@@ -321,10 +321,11 @@ blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53 and 53 all the way t
 tree gets taller, not timber, and the tallest tree in the corpus carries about what a fourteen-course one
 does. The grower ran 13 → 456 over the same range, six to nine times an author's wood at the top of it,
 because both its trunk radius and its lateral count scaled with height. Both are now nearly flat in it, and
-the sweep runs 14 → 365 — the thread that makes a limb face-connected is about a tenth of that. The crown that few branches have to carry comes from the other half of the same
-finding: a hand-built crown is **24% block over its own volume**, with **every one of its leaves carrying air
-on some side** — there is no interior to it at all — so a cluster is filled a little under half rather than
-nearly whole, and a handful of big lacy clumps foliate a tree that a dozen small dense ones could not.
+the sweep runs 14 → 365 — the thread that makes a limb face-connected is about a tenth of that. The crown
+that few branches have to carry comes from the other half of the same finding: a hand-built crown is **24%
+block over its own volume**, with **every one of its leaves carrying air on some side** — there is no
+interior to it at all — so a cluster is filled a little under half rather than nearly whole, and a handful of
+big lacy clumps foliate a tree that a dozen small dense ones could not.
 
 What is not closed is the last of the density: **7.5 occupied neighbours per leaf against the corpus's 6.2**.
 It still climbs with size — 6.6 at height 6 to 8.6 at height 40 — but far less steeply than the 8.3 to 10.8 it
