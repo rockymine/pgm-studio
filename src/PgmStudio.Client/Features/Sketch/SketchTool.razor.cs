@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -628,6 +629,38 @@ public partial class SketchTool
 
     private sealed record IsoLayersMessage(IReadOnlyList<string> Layers, IReadOnlyList<string> Hidden);
 
+    /// <summary>The shapes the build did not take as they were drawn.
+    ///
+    /// <para>The picture is the world the export builds, so where the drawing and the build disagree the
+    /// screen shows the build and says nothing about the difference — and on a board of grey mass an absence
+    /// is indistinguishable from ground nobody drew. Naming the shapes is what lets an author tell the two
+    /// apart.</para>
+    ///
+    /// <para><b>Which of them lost is not derivable here, and the note does not claim it.</b> `SK13` carries
+    /// its two shapes as <c>[add, subtract]</c> either way, and the same pair means opposite things: an
+    /// override add on another layer fills the void and the <em>subtract</em> is what the world does not
+    /// hold, while a plain add on the subtract's own layer draws nothing and the <em>add</em> is. So the
+    /// note names the pair and the finding's own sentence, on hover, says what happened to which.</para>
+    /// </summary>
+    private IReadOnlyList<Finding> isoNotBuilt = [];
+
+    /// <summary>The shapes those findings name, deduplicated — one shape contested by two others is one
+    /// shape, listed once.</summary>
+    private IReadOnlyList<string> IsoContested =>
+        [.. isoNotBuilt.SelectMany(finding => finding.Subjects ?? []).Distinct(StringComparer.Ordinal)];
+
+    /// <summary>Every finding behind the note, in full, for the tooltip: the rule and its own sentence.</summary>
+    private string IsoContestedWhy => string.Join("\n\n", isoNotBuilt.Select(f => $"{f.Rule} — {f.Message}"));
+
+    [JSInvokable]
+    public void OnIsoNotBuilt(string json)
+    {
+        isoNotBuilt = JsonSerializer.Deserialize<List<Finding>>(json, Wire) ?? [];
+        StateHasChanged();
+    }
+
+    private static readonly JsonSerializerOptions Wire = new(JsonSerializerDefaults.Web);
+
     /// <summary>The bridge couldn't show the read-only 3-D preview; fall back to 2-D and disable the toggle.
     /// <paramref name="reason"/> is empty when WebGL itself is missing and the build's own sentence when the
     /// board would not build — two different things to do about it, so the note says which.</summary>
@@ -759,8 +792,12 @@ public partial class SketchTool
                 Nav.NavigateTo($"maps?stage=configure&just={Slug}");
                 return;
             }
+            // The sentence, not the label: "the board cannot be built as drawn" says nothing an author can
+            // act on, while the finding under it names the shapes and the columns they contest.
             var refusal = await resp.Content.ReadFromJsonAsync<RefusalDto>();
-            finishError = refusal?.Error is { Length: > 0 } label ? label : "Finish failed.";
+            finishError = refusal?.Message is { Length: > 0 } why ? why
+                        : refusal?.Error is { Length: > 0 } label ? label
+                        : "Finish failed.";
         }
         catch { finishError = "Finish failed."; }
 

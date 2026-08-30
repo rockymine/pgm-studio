@@ -6563,12 +6563,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the 3-D view going dark, and reloading to clear it is what threw the work away. Every sketch-stage route —
   the write, the plan merge, and the paint, dressing, relief and 3-D reads — now takes the board and rides its
   findings back on `warnings` (`Findings.AsComplaints`), refusals included; `sketch/finish` is where the same
-  check becomes fatal, and the export composer is the gate behind that. **The 3-D preview stays true**: it
-  draws what the board builds — the subtract wins, the add it beats draws nothing, and that absence is what
-  the author needs to see — because the set algebra never fails and only the gate did. And the tool reads its
-  own answer: a write that does not land shows **Not saved**, carrying the studio's own sentence, instead of
-  silence. (`Api/Endpoints/SketchEndpoints`, `Client/Features/Sketch/SketchTool`; `SketchEndpointTests`)
-  (`TS73`)
+  check becomes fatal, and the export composer is the gate behind that. **The 3-D preview stays true rather
+  than going dark**: the set algebra never fails, only the gate in front of it did, so the preview draws the
+  world the export builds. And because that picture shows the build and says nothing about where it differs
+  from the drawing, the preview now **names the shapes a finding is about** and carries the finding's own
+  sentence on hover — it does not claim which of them lost, because that is not derivable from the finding:
+  `SK13` carries `[add, subtract]` either way, and an override add on another layer fills the void while a
+  plain add on the subtract's own layer draws nothing. The tool also reads its own answer at last: a write
+  that does not land shows **Not saved** and a refused `finish` shows the sentence rather than the label.
+  (`Api/Endpoints/SketchEndpoints`, `Client/Features/Sketch/SketchTool`, `js/studio/bridge/sketch-bridge.js`;
+  `SketchEndpointTests`) (`TS73`)
 - **A made thing standing in something built is named (`TS70`, `SK18`).** A board is laid by passes that do
   not read each other. A made thing — a layer stating `kind: "made"` — is the rasterizer's and is in the world
   before anything is stamped; a wool cage, a spawn cube, an objective and a dressing-placed building all seat

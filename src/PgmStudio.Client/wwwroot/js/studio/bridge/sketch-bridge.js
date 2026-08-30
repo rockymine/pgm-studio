@@ -292,9 +292,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     const seq = ++isoSeq;
     const built = await fetchColumns(state);
     if (seq !== isoSeq || view !== "iso") return;   // left the preview, or a newer entry overtook this one
-    if (!built.payload) { canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return; }
+    if (!built.payload) {
+      // A build that did not happen has nothing to report as left out; a stale list would name shapes
+      // against a picture that is not on screen.
+      fire("OnIsoNotBuilt", "[]");
+      canvas.hideIso(); view = "2d"; fire("OnIsoUnavailable", built.error); return;
+    }
 
     isoPayload = built.payload; isoStamp = state;
+    // What the build left out. The preview draws the world the export builds, so a shape the board's own
+    // algebra discards is simply not in the picture — and an absence looks exactly like ground nobody drew.
+    // The findings name which shapes, so the host can say so rather than leaving the author to notice.
+    fire("OnIsoNotBuilt", JSON.stringify(built.payload.warnings ?? []));
     // A layer the board no longer has is not left hidden: it would be a switch the host cannot show and the
     // author cannot turn back on.
     const names = isoPayload.layers ?? [];
@@ -308,7 +317,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   // Answers {payload} or {error}: the reason travels because the host shows it. A refused build carries the
   // studio's own envelope — a rule id and a sentence — and dropping that on the floor is what made every
-  // failure read as "no WebGL", including on a browser that has it.
+  // failure read as "no WebGL", including on a browser that has it. A build that succeeds carries `warnings`
+  // on the payload for the same reason: what it could not put in the world is the half a picture cannot show.
   async function fetchColumns(state) {
     if (!slug) return { error: "this sketch has no map to build" };
     try {

@@ -563,6 +563,10 @@ svg.lucide { width: var(--icon-md); height: var(--icon-md); }
   user-select: none;
 }
 
+/* A shape the board's own algebra discarded. The preview cannot show it — that is the point — so the note
+   is the only thing that tells an absence apart from ground nobody drew. */
+.canvas-note--warn { color: var(--color-warning); cursor: help; }
+
 /* The 3-D preview while its world is being built. The view swaps at once and fills in when the columns land,
    so this covers an empty scene for about a second — long enough that its absence would read as a dead click,
    short enough that a progress bar would be worse than a word. */

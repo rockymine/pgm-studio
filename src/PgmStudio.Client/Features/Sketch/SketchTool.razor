@@ -18,7 +18,7 @@
       </Crumbs>
       <Right>
         @if (saveError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@saveError">@saveError</span> }
-        @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--dim">@finishError</span> }
+        @if (finishError is not null) { <span class="topbar-crumb topbar-crumb--warn" title="@finishError">@finishError</span> }
         <span class="topbar-crumb topbar-crumb--dim">@groupLabel</span>
         <Button Variant="icon" Icon="undo-2" Title="Undo" Disabled="@(!canUndo)" OnClick="Undo" />
         <Button Variant="icon" Icon="redo-2" Title="Redo" Disabled="@(!canRedo)" OnClick="Redo" />
@@ -158,6 +158,15 @@
             @if (isoUnavailable)
             {
               <span class="canvas-note" title="@IsoNoteTitle">@IsoNote</span>
+            }
+            @* The picture is the world the export builds, so where the drawing and the build disagree the
+               screen shows the build and says nothing about the difference. Name the shapes; the finding's
+               own sentence, on hover, says what happened to which. *@
+            @if (threeD && IsoContested.Count > 0)
+            {
+              <span class="canvas-note canvas-note--warn" title="@IsoContestedWhy">
+                drawn and built differ: @string.Join(", ", IsoContested)
+              </span>
             }
             <ViewModeToggle ThreeD="threeD" Disabled="@isoUnavailable"
                             Title="@(isoUnavailable ? IsoNoteTitle : "Isometric height preview (read-only)")"
