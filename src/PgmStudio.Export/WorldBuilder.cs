@@ -111,8 +111,8 @@ public static class WorldBuilder
         var columns = SketchRasterizer.RasterizeColumns(layoutJson);
         // Which layers are made things, read before the terrain so the terrain can answer where the GROUND
         // is rather than what is highest. Everything below that rests on the board asks that question.
-        var propLayers = SketchRasterizer.PropLayers(SketchLayout.Stated(layoutJson));
-        var terrain = TerrainBuilder.Build(columns, propLayers);
+        var madeLayers = SketchRasterizer.MadeLayers(SketchLayout.Stated(layoutJson));
+        var terrain = TerrainBuilder.Build(columns, madeLayers);
         var world = terrain.World;
         int Surface(int x, int z) => PositionSnap.SurfaceY((x, z), terrain.Ground, 1);
 
@@ -296,12 +296,12 @@ public static class WorldBuilder
         // A made thing is painted over its own span. Ground's bands run from the bedrock course whatever its
         // floor, so only a prop layer hands its floors over; the painter takes what it is given and asks
         // nothing about kinds.
-        var propFloors = propLayers
+        var madeFloors = madeLayers
             .Where(terrain.FloorByLayer.ContainsKey)
             .ToDictionary(layer => layer, layer => terrain.FloorByLayer[layer]);
         TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
-                             propFloors);
+                             madeFloors);
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders bedded into
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
@@ -352,7 +352,7 @@ public static class WorldBuilder
         // and every stamper having claimed what it wrote. Grouped by the pair so one gantry through one shed
         // is one sentence rather than a sentence per column.
         var shared = new Dictionary<(string Layer, string Built, string Unit), (int Cells, int X, int Z)>();
-        foreach (var layer in propLayers)
+        foreach (var layer in madeLayers)
             if (terrain.SurfaceByLayer.TryGetValue(layer, out var madeCells))
                 foreach (var cell in madeCells.Keys)
                     if (provenance.PassAt(cell.X, cell.Z) != ProvenancePass.Structure)
@@ -384,7 +384,7 @@ public static class WorldBuilder
         // board is a house the dressing pass has just placed. The number is written back onto the intent, so
         // the <max-build-height> the XML declares and the altitude the markers are stamped at are one number
         // rather than two agreeing by habit.
-        var maxBuildHeight = Math.Min(BuildCeiling.Of(HighestBuilt(world, groundTop, provenance, columns, propLayers)),
+        var maxBuildHeight = Math.Min(BuildCeiling.Of(HighestBuilt(world, groundTop, provenance, columns, madeLayers)),
                                       VoxelWorld.MaxHeight - 1);
         intent = intent with { Build = (intent.Build ?? new BuildIntent()) with { MaxHeight = maxBuildHeight } };
         var markerFloor = Math.Clamp(
@@ -459,14 +459,14 @@ public static class WorldBuilder
     /// wanted.</para></summary>
     private static int HighestBuilt(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> groundTop, WorldProvenance provenance,
-        IReadOnlyList<ColumnSegment> columns, IReadOnlySet<string> propLayers)
+        IReadOnlyList<ColumnSegment> columns, IReadOnlySet<string> madeLayers)
     {
         var highest = groundTop.Count > 0 ? groundTop.Values.Max() : 0;
 
         var made = new Dictionary<(int X, int Z), List<(int Floor, int Top)>>();
         foreach (var segment in columns)
         {
-            if (!propLayers.Contains(segment.Layer)) continue;
+            if (!madeLayers.Contains(segment.Layer)) continue;
             if (!made.TryGetValue(segment.Cell, out var spans)) made[segment.Cell] = spans = [];
             spans.Add((segment.YFloor, segment.YTop));
         }

@@ -336,7 +336,7 @@ public sealed class SketchRasterizerTests
     /// a 6x6 slab drawn at an absolute floor well above it.</summary>
     private const string SeatOnGround = ",\"seat\":\"ground\"";
 
-    private static string Hillside(string seat, string kind = "prop") =>
+    private static string Hillside(string seat, string kind = "made") =>
         """
         {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
          "layers":[
@@ -390,10 +390,10 @@ public sealed class SketchRasterizerTests
            {"id":"ground","base_y":0,"layout":{"shapes":[
               {"id":"g0","type":"rectangle","operation":"add","min_x":0,"max_x":12,"min_z":0,"max_z":12,"floor":0,"base_height":9}],
             "groups":[{"id":"land","mirrors":false,"shapeIds":["g0"]}]}},
-           {"id":"a","kind":"prop","prop":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
+           {"id":"a","kind":"made","prop":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
               {"id":"a0","type":"rectangle","operation":"add","min_x":3,"max_x":6,"min_z":3,"max_z":6,"floor":40,"base_height":2}],
             "groups":[{"id":"ab","mirrors":false,"shapeIds":["a0"]}]}},
-           {"id":"b","kind":"prop","prop":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
+           {"id":"b","kind":"made","prop":"thing","seat":"ground","base_y":0,"layout":{"shapes":[
               {"id":"b0","type":"rectangle","operation":"add","min_x":3,"max_x":6,"min_z":3,"max_z":6,"floor":50,"base_height":2}],
             "groups":[{"id":"bb","mirrors":false,"shapeIds":["b0"]}]}}]}
         """;
@@ -428,7 +428,7 @@ public sealed class SketchRasterizerTests
             """.Replace("KIND", kind);
 
         var storeys = SketchLayout.Parse(Board("ground"));
-        var made = SketchLayout.Parse(Board("prop"));
+        var made = SketchLayout.Parse(Board("made"));
 
         await Assert.That(SketchRasterizer.OverlappingLayerSpans(storeys).Count).IsGreaterThan(0);
         await Assert.That(SketchRasterizer.OverlappingLayerSpans(made)).IsEmpty();

@@ -168,7 +168,7 @@ public static class SketchRules
     public const string ShapeInNoGroup = "SK17";
 
     /// <summary>A made thing and a built thing standing in the same columns. A made thing — a layer stating
-    /// <c>kind: "prop"</c> — is laid by the rasterizer, before anything is stamped, and every stamper writes
+    /// <c>kind: "made"</c> — is laid by the rasterizer, before anything is stamped, and every stamper writes
     /// where it is told: a wool cage, a spawn cube, an objective and a dressing-placed building all seat on
     /// the <b>terrain's</b> surface, which is every column's top with the made things taken out. So neither
     /// half knows about the other. The blocks interleave in the columns they share, the later pass winning

@@ -894,11 +894,11 @@ public static class SketchRasterizer
         // A made thing is not a deck. It stands on the ground and sinks into whatever it stands on, so the
         // courses it shares with the terrain are the seat rather than a lost gap, and a pair holding one is
         // not two layers driven into each other.
-        var props = PropLayers(state);
+        var made = MadeLayers(state);
         var byCell = new Dictionary<(int X, int Z), List<ColumnSegment>>();
         foreach (var segment in RasterizeColumns(state))
         {
-            if (props.Contains(segment.Layer)) continue;
+            if (made.Contains(segment.Layer)) continue;
             if (!byCell.TryGetValue(segment.Cell, out var here)) byCell[segment.Cell] = here = [];
             here.Add(segment);
         }
@@ -951,9 +951,9 @@ public static class SketchRasterizer
         // The walk is over terrain alone: a dome on columns, a raised arm and an antenna are all standable
         // ground under open sky that nothing reaches, all true, and none of them a way onto a deck somebody
         // forgot to draw.
-        var props = PropLayers(state);
+        var made = MadeLayers(state);
         var ground = WalkGround.OfSpans(
-            RasterizeColumns(state).Where(segment => !props.Contains(segment.Layer))
+            RasterizeColumns(state).Where(segment => !made.Contains(segment.Layer))
                                    .Select(segment => (segment.X, segment.Z, segment.YFloor, segment.YTop)));
         if (ground.Ground.Count == 0) return [];
 
@@ -1014,8 +1014,8 @@ public static class SketchRasterizer
 
     /// <summary>The ids of the layers holding a made thing rather than terrain — what the stacking rules skip.
     /// A layer that names no kind is ground, which is every board drawn before the word existed.</summary>
-    public static HashSet<string> PropLayers(SketchLayout? state) =>
-        [.. ResolveLayers(state).Where(layer => layer.IsProp).Select(layer => layer.Id!)];
+    public static HashSet<string> MadeLayers(SketchLayout? state) =>
+        [.. ResolveLayers(state).Where(layer => layer.IsMade).Select(layer => layer.Id!)];
 
     // ── 4-step set algebra over a shape group, carrying each cell's column ─────────────────────────
     private static Dictionary<(int, int), (int Top, int Floor)> RasterGroup(IEnumerable<SketchShape> shapes)

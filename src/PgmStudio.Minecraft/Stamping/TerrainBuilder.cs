@@ -13,14 +13,14 @@ namespace PgmStudio.Minecraft.Stamping;
 /// <param name="FloorByLayer">Where each layer's own span starts, cell by cell — the other end of the pair
 /// above. Only a pass painting a layer that is not ground reads it: terrain's bands run from the bedrock
 /// course whatever its floor, and a made thing's run over its own span.</param>
-/// <param name="PropLayers">Which of those layers are made things rather than ground, so
+/// <param name="MadeLayers">Which of those layers are made things rather than ground, so
 /// <see cref="Ground"/> can leave them out. A board that names none reads the same as one that has none.</param>
 public sealed record BuiltTerrain(
     VoxelWorld World,
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> SurfaceByLayer,
     IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> FloorByLayer,
-    IReadOnlySet<string>? PropLayers = null)
+    IReadOnlySet<string>? MadeLayers = null)
 {
     private IReadOnlyDictionary<(int X, int Z), int>? ground;
 
@@ -33,7 +33,7 @@ public sealed record BuiltTerrain(
     /// so a goal reading it stood on the cloud, eighty-three blocks up and over a build ceiling it had itself
     /// pushed nowhere near. Read it for the cells it covers; read this for a height.</para></summary>
     public IReadOnlyDictionary<(int X, int Z), int> Ground =>
-        ground ??= PropLayers is { Count: > 0 } made ? SurfaceExcept(made) : SurfaceTop;
+        ground ??= MadeLayers is { Count: > 0 } made ? SurfaceExcept(made) : SurfaceTop;
 
     /// <summary>The ground a thing placed on <paramref name="layer"/> stands on: that layer's own surfaces,
     /// or — for a placement naming no layer, and for one naming a layer this board does not have —

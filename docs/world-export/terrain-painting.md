@@ -351,7 +351,7 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    fill reaches down to it. A made thing's column does not: a hull flying at y24 has no bedrock course and no
    fill under it, and its span is what it is made of — the column beneath belongs to somebody else. So where a
    base is stated the resolver emits no bedrock band and lets fill stop there, and `TerrainPainter.Paint`
-   takes the per-layer floors of every `prop` layer from `BuiltTerrain.FloorByLayer` for exactly that. Without
+   takes the per-layer floors of every `made` layer from `BuiltTerrain.FloorByLayer` for exactly that. Without
    it a made thing's fill band claims the whole column beneath it and only the stone-only invariant stops the
    damage — which makes the *order* of the layer list load-bearing, a plinth painted after the colossus
    standing on it coming out brass.

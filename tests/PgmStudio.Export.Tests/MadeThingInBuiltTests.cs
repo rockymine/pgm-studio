@@ -8,7 +8,7 @@ namespace PgmStudio.Export.Tests;
 
 /// <summary>
 /// <b>A made thing and a built thing do not read each other, so the world holds one inside the other.</b> A
-/// layer stating <c>kind: "prop"</c> is laid by the rasterizer before anything is stamped, and every stamper
+/// layer stating <c>kind: "made"</c> is laid by the rasterizer before anything is stamped, and every stamper
 /// seats on the terrain's surface — which is every column's top with the made things taken out. Neither half
 /// asks about the other, their blocks interleave in the columns they share, and nothing declines.
 ///
@@ -31,7 +31,7 @@ public sealed class MadeThingInBuiltTests
     }
 
     /// <summary>The seed's layout with an eight-block envelope hanging at y30 over (x, z) — a balloon, drawn
-    /// the way `opus5-slipway` draws one: its own layer, `kind: "prop"`, at an absolute floor.</summary>
+    /// the way `opus5-slipway` draws one: its own layer, `kind: "made"`, at an absolute floor.</summary>
     private static string WithBalloon(string layout, int x, int z)
     {
         var doc = JsonNode.Parse(layout)!.AsObject();
@@ -39,7 +39,7 @@ public sealed class MadeThingInBuiltTests
         {
             ["id"] = "balloon",
             ["name"] = "balloon",
-            ["kind"] = SketchLayer.PropKind,
+            ["kind"] = SketchLayer.MadeKind,
             ["base_y"] = 0,
             ["layout"] = new JsonObject
             {

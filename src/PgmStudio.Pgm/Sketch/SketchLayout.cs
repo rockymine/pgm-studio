@@ -284,7 +284,7 @@ public sealed class SketchLayer
     [JsonPropertyName("base_y")] public double BaseY { get; set; }
 
     /// <summary>What this layer holds: <c>ground</c> — terrain, the stacking model every rule below is written
-    /// for — or <c>prop</c>, a made thing standing on the ground rather than being it. Absent is ground.
+    /// for — or <c>made</c>, a made thing standing on the ground rather than being it. Absent is ground.
     ///
     /// <para>A made thing is neither terrain nor a dressing prop. It is drawn out of layers because that is
     /// what can hold it, and the word is what keeps the stacking rules off it: a solid sculpture sinking into a
@@ -304,14 +304,14 @@ public sealed class SketchLayer
     [JsonPropertyName("seat")]   public string? Seat { get; set; }
 
     /// <summary>Whether this layer is a made thing rather than terrain.</summary>
-    [JsonIgnore] public bool IsProp => string.Equals(Kind, PropKind, StringComparison.OrdinalIgnoreCase);
+    [JsonIgnore] public bool IsMade => string.Equals(Kind, MadeKind, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>Whether this layer's floors are taken from the ground under it.</summary>
     [JsonIgnore] public bool SeatsOnGround => string.Equals(Seat, GroundSeat, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The two words <see cref="Kind"/> takes, and the one <see cref="Seat"/> does.</summary>
     public const string GroundKind = "ground";
-    public const string PropKind = "prop";
+    public const string MadeKind = "made";
     public const string GroundSeat = "ground";
 
     /// <summary>The shapes drawn on it, and the groups they group into.</summary>

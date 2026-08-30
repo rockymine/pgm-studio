@@ -115,6 +115,20 @@ symmetry fan with its group, so a marked shape on a mirrored group keeps its ima
 own height is not read — a one-block-tall subtract carves exactly as deep as a hundred-block one. That is the
 difference from relief, and it is the whole of it: relief moves a surface, a subtract removes it.
 
+**A subtract with a lid over it is a roofed void, and it is the shortest way to state underground space.**
+A subtract has no `y` at all — it is a set of `(x, z)` cells, which is why its own height is not read — so it
+cannot hollow a column out from the middle. What it can do is state that a column is empty and let something
+else stand over it: an **override add above the subtract's own floor** takes the layer's one span with it and
+records nothing beneath, so the void the subtract stated is still void, with a deck on top. Measured on a
+landmass built `[0..20)` with a subtract through it and an override add stated at `floor 14`: the column comes
+back holding `[14..17)` and nothing else, and the board raises **no finding at all**. The same lid stated at
+`floor 0` — at the subtract's own floor — is the fill `SK13` refuses.
+
+That is the whole rule, and the two halves of it are one sentence: an override add **above** the subtract's
+floor is a lid and is silent; **at or below** it is a fill and is refused. So a chamber under a hill can be
+stated as the ground it is not rather than built as walls and a ceiling around a gap — the negative space
+first, then what roofs it.
+
 **A hollow ring is one polygon and not two shapes.** A subtract is refused wherever an add sits over or
 under it (`SK13`, below), so a ring wall cannot be a disc with a smaller disc taken out of it on any layer
 that also carries a floor or a roof. What it is instead is one polygon that traces its outer ring, slits
@@ -293,16 +307,16 @@ Three optional fields on a layer say so, and nothing else changes about how it i
 
 | Field | Takes | Says |
 |---|---|---|
-| `kind` | `ground` · `prop` | what the layer holds. Absent is `ground` |
+| `kind` | `ground` · `made` | what the layer holds. Absent is `ground` |
 | `prop` | any name | which made thing this layer belongs to, where a thing spans several |
 | `seat` | `ground` | that the layer's floors are taken from the ground beneath it rather than stated absolutely |
 
 **`kind` is what keeps the stacking rules off it.** `SK10` reads two layers whose spans meet as a gap that is
 not in the world, and `SK11` reads a mass under open sky that nothing reaches as a way onto a deck somebody
 forgot to draw. Both are right about terrain and wrong about a sculpture: a solid form sinking into a hill has
-no gap to lose, and a raised arm, a dome on columns, an antenna is not standable ground. A `prop` layer is
+no gap to lose, and a raised arm, a dome on columns, an antenna is not standable ground. A `made` layer is
 therefore out of `SK10`'s pair walk and out of `SK11`'s detached-mass walk, and the rules stay exactly as
-strict about the ground they were written for. Nothing else reads `kind`: a `prop` layer rasterizes, paints,
+strict about the ground they were written for. Nothing else reads `kind`: a `made` layer rasterizes, paints,
 themes and mirrors identically.
 
 **`seat` is where the house model is borrowed from.** A house prop seats on the lowest column of its own
@@ -331,7 +345,7 @@ drawn; `SK16` says so as a complaint, because a sculpture in open sky is a legit
 it is simply to state no seat.
 
 **A seated layer is painted over its own span.** Terrain's bands run from the bedrock course to the surface,
-which is nonsense for a hull flying at y24 — its fill band would claim the whole column beneath it. A `prop`
+which is nonsense for a hull flying at y24 — its fill band would claim the whole column beneath it. A `made`
 layer's bands run over `[its own floor, its own top]` instead. `docs/world-export/terrain-painting.md` §5
 carries that half.
 
@@ -1034,7 +1048,7 @@ fires.
 standable mass, sixteen places or more, that **stands over other ground** and that nothing joins to the rest
 of the board — with the count and the lowest place's coordinates, so it can be flown to.
 
-**Both of those walks skip a made thing.** A `prop` layer is out of `SK10`'s pair walk and out of `SK11`'s, so
+**Both of those walks skip a made thing.** A `made` layer is out of `SK10`'s pair walk and out of `SK11`'s, so
 a hull sunk into a hill and a dome on columns raise nothing. The rules read the ground and the decks over it,
 which is what they are about.
 

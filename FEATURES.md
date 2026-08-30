@@ -6555,7 +6555,7 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   measured, a five-block delve came out level with the meadow, silently. `SK9` is silent on all of this and
   correctly so: two adds at one floor are ordinary ground.
 - **A made thing standing in something built is named (`TS70`, `SK18`).** A board is laid by passes that do
-  not read each other. A made thing — a layer stating `kind: "prop"` — is the rasterizer's and is in the world
+  not read each other. A made thing — a layer stating `kind: "made"` — is the rasterizer's and is in the world
   before anything is stamped; a wool cage, a spawn cube, an objective and a dressing-placed building all seat
   on the **terrain's** surface, which is every column's top with the made things taken out. So neither half
   knows about the other: their blocks interleave in the columns they share, the later pass winning each cell,
