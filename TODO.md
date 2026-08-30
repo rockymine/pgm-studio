@@ -13,6 +13,10 @@ browser cannot say. The library's entries are a sequence — the client before t
 controls, the controls before the fields they carry — so this board runs over the soft cap on purpose and
 takes nothing new until the shape lands. Anything found while working goes to `BACKLOG.md`.
 
+**One group is here out of order, on the author's call.** *What a subtract means* is not the library
+programme and was filed while working on `TS73`; it sits above the storey group because the measurement that
+prompted it is fresh and the rule it questions is one an author meets while drawing.
+
 **The frame is settled, so the fields land in it.** The editor page is an outline, its fields beside it and
 the preview as a companion column, and a flat document draws every section at once — so `B261`'s generated
 field set and `B260`'s three controls are built once, into the shape that keeps them.
@@ -55,6 +59,25 @@ it, what they can *see* while saying it, and what is on the shelf to say it abou
   renamed on either side is two rows with nothing saying they are one theme, and nothing can say whether a
   snapshot is behind the row it came from. Wants a note on the copied theme recording the library row, which
   slots into `B44`'s snapshot record rather than duplicating it.
+
+## What a subtract means, now that nothing at the sketch stage refuses one
+
+`TS73` moved every sketch-stage refusal to `finish`, which uncovered a policy the gate had been hiding: the
+rasterizer has always been able to floor and roof a subtract's void, and only `SK13` said no.
+
+- [ ] **TS74 — `SK13` cannot tell a fill from a floor, so a subtract cannot mark a room.** A subtract is
+  what an author reaches for to say *this column is void*, and flooring and roofing that void is the use it
+  is reached for — but `SK13` refuses every add over a subtracted cell alike, at any height, on any layer.
+  Give it the cut it is missing: an add whose **top is at or below the subtract's stated `floor`** is the
+  ground under the void and says nothing; one whose span crosses that floor is the fill the rule is for.
+  `SketchRasterizer.AddsOverSubtracts` already carries both floors and decides `survives` from them, so the
+  test is a comparison it can make where it stands. `docs/tools/sketch.md` and `docs/refusals.md` carry the
+  rule's two halves and both change with it.
+
+  *Measured on the running studio: `rock` a mass `[0..30)` with a subtract over a 12×12, `floor` a plain add
+  `[0..4)` and `ceil` a plain add `[11..30)`, each on its own layer, builds the column `y0..3` solid, **void
+  `y4..10` — seven courses** — `y11..29` solid. A room, with rock under it. It previews, and `finish`
+  answers 422 `SK13` twice.*
 
 ## The storey a placement rests on
 
