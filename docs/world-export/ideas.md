@@ -22,6 +22,15 @@ says so.
   and accept the fused mass as intentional. Cheap to detect (the prop's own bounds against the axis), and
   cheap to test — the fairness check that counts unmirrored cover cells already exists.
 
+  An **area** prop centred on the axis is the same fault wearing a different symptom, measured on
+  `pgm-studio-mapgen/showcase/26-lamps-and-gallery`: a flora ring drawn `[[-11,-7],[11,-7],[11,7],[-11,7]]`
+  is exactly its own `rot_180` image under that board's cell map, so the fan has nowhere to stamp a second
+  copy and the noise mask inside it is whatever world coordinates give. **44 columns of that hall differ
+  from their image, and every one of them differs only in flora** — the terrain, the deck, the stairs and
+  the lamps are exact, checked column by column at or below `y29`. The two teams get different cover in a
+  room whose stone is identical. First mismatch at `(−11, 2)`, grass at `y6`, against nothing at
+  `(10, −3)`.
+
 - **G167 — readability & playability budget** — nothing yet stops decoration from narrowing a corridor below
   the bridge-width minimum, walling a lane, burying a monument, or over-cluttering until the map is
   unreadable. The layout generator has a two-currency budget and the `BZ`/`LN`/traversability laws; dressing
