@@ -330,6 +330,19 @@ A thing whose footprint covers no ground at all has nothing to measure against a
 drawn; `SK16` says so as a complaint, because a sculpture in open sky is a legitimate board and the word for
 it is simply to state no seat.
 
+**A seat is upward-looking, so it cannot reach a room under a roof.** The ground a cell offers is the
+**highest** `YTop` any non-thing layer has there — under a landmass that is the landmass — and only then is
+the lowest of those taken across the thing's resting cells. So a made thing drawn inside a chamber and asked
+to seat does not land on the chamber floor; it lands on the field over it, and the cut clears a course of
+that field to take it. Measured on a chamber whose floor tops out at `y5` under a landmass at `y14..21`: a
+five-by-five block stated `floor: 7` built at **`y7..9`** with no `seat`, and at **`y21..23`** with
+`seat: "ground"`, moving the grass at `(0, 10)` from `y21` down to `y20`. Nothing is raised either way.
+
+That is the right rule for what a seat is for — a thing put on the ground finds the ground — and it means
+the word is simply not the one for a cellar. **State the floors of anything indoors absolutely.** The
+capability is not the seat's: a made thing that states no `seat` builds exactly where it is drawn, which is
+what a room's contents want.
+
 **A seated layer is painted over its own span.** Terrain's bands run from the bedrock course to the surface,
 which is nonsense for a hull flying at y24 — its fill band would claim the whole column beneath it. A `prop`
 layer's bands run over `[its own floor, its own top]` instead. `docs/world-export/terrain-painting.md` §5

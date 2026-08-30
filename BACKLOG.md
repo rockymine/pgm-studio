@@ -452,6 +452,36 @@ as an isolated marker into `B99`.
   *and again on `opus5-undercroft`, whose only structures are two spawn rooms: the frame reaches to the
   redstone lines at y1 under the markers, so the board's own margin paints as void on a board 80 wide.*
 
+### The dressing catalogue: what a prop can be, and where it can stand
+
+Both came out of building a room under a hill (`pgm-studio-mapgen/showcase/24-underground`) and neither is
+a missing *capability* — the layer system draws both, measured below. What is missing is the catalogue
+entry: a made thing is drawn shape by shape at an absolute floor, and a prop is clicked once and seated,
+fanned across the orbit and kept off the routes. An underground room wants the second for both of these.
+
+- [ ] **WE82 — There is no lamp in the dressing catalogue, so a room the studio builds is dark.**
+  `PlacedProp`'s six derived kinds are `stroke`, `water`, `tree`, `boulder`, `flora` and `house`, and none
+  of them emits. Add a `lamp`: a point prop carrying the block it is made of and how many courses over its
+  resting cell it hangs, so it seats and fans like a boulder does. The blocks are already in
+  `BlockPaletteData` — glowstone 89, sea lantern 169, jack o'lantern 91, torch 50 — and `Decorator.Seats`
+  already answers the resting course. `docs/world-export/decoration.md` gains the section.
+
+  *what the layer system already does, measured on Gaolstone's chamber: four one-block shapes on a
+  `kind: "prop"` layer at `floor 12`, themed to those four ids, build **glowstone at (−14, 9) y12**, **sea
+  lantern at (−10, 9) y12**, **jack o'lantern at (−6, 9) y12** and **torch `50:5` at (−2, 9) y12** — the
+  data value survives, so the studio can already write a standing torch. It cannot place one.*
+
+- [ ] **WE83 — A prop's only vertical control is which storey it names, so it cannot stand on a ledge.**
+  `PlacedProp` carries `Id`, `Layer`, `Seed` and its kind's own knobs; `DressingContext.GroundFor` answers
+  the named layer's surface and `SurfaceTop` where none is named. So a prop lands on a storey's floor or on
+  the terrain, and there is no shape for a lantern halfway up a shaft, a boulder on a ledge, or anything on
+  a wall head. Add a `lift` beside `Layer` — courses above the resting cell, seated first and raised after
+  — so the seat rule stays the one rule and the offset is stated once.
+  `docs/world-export/decoration.md` §2.
+
+  *a made-thing layer states `floor` absolutely and lands exactly there — Gaolstone's own vault is one — so
+  the geometry exists; what does not is a way to say it about a thing the dressing pass places.*
+
 ### What a gate says, and what it fails to say
 
 - [ ] **WE80 — A prop whose enum field will not parse is stored, then thrown out of every later read.**
