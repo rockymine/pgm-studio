@@ -454,6 +454,26 @@ as an isolated marker into `B99`.
 
 ### What a gate says, and what it fails to say
 
+- [ ] **WE80 — A prop whose enum field will not parse is stored, then thrown out of every later read.**
+  `DressingJson.ParseProp` raises `DressingParseException` for an unreadable enum, and nothing catches it:
+  `POST /map/from-documents` stores the document with no finding, and the next `column`, `export` or
+  `preflight` answers **500 `RQ2`** — the studio's own fault — for a fault that is the document's. Parse the
+  dressing at store time and answer a named decline carrying the prop id, the field and the words the enum
+  has, the way `SK3` does for a shape kind. `docs/world-export/decoration.md`.
+
+  *`{"kind":"boulder","form":"rounded"}` against `BoulderForm` (round · angular · outcrop · cairn): stored
+  200 with no warning, then `GET /map/{slug}/column` 500s with
+  `prop 'erratic-0' (#26): field 'form' could not be read`.*
+
+- [ ] **WE81 — A malformed house style crashes the gate that exists to name it.**
+  `HouseStyleValidation.CheckOres` walks `Materials(style)` into `RoomPart.At(step)` and dereferences a part
+  that is not there, so a style whose `wall` is a bare material instead of a `{stack:{bands}}` answers
+  **500 `RQ2`** instead of an `HS*` refusal. Guard the walk and let the gate say which field is wrong.
+  `docs/tools/library.md`.
+
+  *`POST /map/from-documents` with `wall` replaced by `{"kind":"solid","id":98,"data":0}` →
+  `NullReferenceException at RoomPart.At` (`HouseStyleValidation.cs:229`, `:179`).*
+
 - [ ] **TS67 — `SK4` counts a polygon's vertices and never its area.** A polygon of three vertices or more
   with no area — every point on one line — passes the gate and draws no ground, which is the fault `SK4`
   already names for a rectangle ("a rectangle with no area"). Extend `SketchLayoutCheck.Empty`'s
