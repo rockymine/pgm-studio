@@ -16,7 +16,7 @@ public sealed record DressingCountsDto(int Plants, int Boulders, int Trees, int 
 /// <param name="Plan">The patch from above, as SVG — where a path's paving and an area's density read.
 /// <c>?format=png&amp;view=plan</c> answers the same view as an image.</param>
 /// <param name="Section">The same patch cut open, as SVG — the only view a tree's silhouette or a boulder's
-/// half-buried profile is visible in. <c>?format=png&amp;view=section</c> answers it as an image.</param>
+/// profile against the ground is visible in. <c>?format=png&amp;view=section</c> answers it as an image.</param>
 /// <param name="Counts">What the pass placed, so a knob doing nothing is told apart from one whose effect is
 /// too small to see at card size.</param>
 public sealed record DressingPreviewDto(string Plan, string Section, DressingCountsDto Counts);

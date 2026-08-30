@@ -243,9 +243,9 @@
             </button>
           }
         </div>
-        <Field Label="Size (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Size, 2.5):0.0}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="10" max="70" step="1"
-                 value="@((int)(Num(PropFields.Size, 2.5) * 10))"
+        <Field Label="Size (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Size, 4):0.0}")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
+                 value="@((int)(Num(PropFields.Size, 4) * 10))"
                  @oninput="e => Set(PropFields.Size, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Rock</h2></div>
         <p class="section-desc">What the boulder is cut from. It is resolved in the rock's own frame rather

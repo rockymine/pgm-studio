@@ -13,18 +13,56 @@ namespace PgmStudio.Geom.Algorithms;
 public static class SweptVolume
 {
     /// <summary>The cells within a radius of <paramref name="path"/>, the radius running from
-    /// <paramref name="startRadius"/> at the first sample to <paramref name="endRadius"/> at the last. Cells
-    /// are yielded as they are stamped, so a caller that writes into a set gets each one once whatever the
-    /// overlap.</summary>
+    /// <paramref name="startRadius"/> at the first sample to <paramref name="endRadius"/> at the last, joined
+    /// into a run every cell of which shares a <b>face</b> with the next. Cells are yielded as they are
+    /// stamped, so a caller that writes into a set gets each one once whatever the overlap.
+    ///
+    /// <para>The face is the load-bearing half. A limb thinner than a block is one cell per sample, and two
+    /// consecutive samples can cross two or three block boundaries at once — which leaves the cells they
+    /// stamp touching along an edge or at a corner, a join a viewer sees straight through and reads as two
+    /// blocks hanging in the air. So the walk from one sample's cell to the next is broken into single-axis
+    /// steps (<see cref="Between"/>), and every cell of those steps is stamped.</para></summary>
     public static IEnumerable<(int X, int Y, int Z)> Sweep(
         IReadOnlyList<Vec3> path, double startRadius, double endRadius)
     {
         if (path.Count == 0) yield break;
+        (int X, int Y, int Z)? previous = null;
         for (var i = 0; i < path.Count; i++)
         {
             var t = path.Count > 1 ? (double)i / (path.Count - 1) : 0;
             var radius = startRadius + (endRadius - startRadius) * t;
+            var here = Cell(path[i]);
+            if (previous is { } from)
+                foreach (var step in Between(from, here)) yield return step;
             foreach (var cell in Ball(path[i], radius)) yield return cell;
+            previous = here;
+        }
+    }
+
+    /// <summary>The block a point sits in — the one <see cref="Ball"/> stamps whatever the radius, and the
+    /// one a run is threaded through.</summary>
+    public static (int X, int Y, int Z) Cell(Vec3 point)
+        => ((int)Math.Round(point.X), (int)Math.Round(point.Y), (int)Math.Round(point.Z));
+
+    /// <summary>The cells threading <paramref name="from"/> to <paramref name="to"/> one axis at a time, so
+    /// consecutive cells share a face. The axis advanced at each step is the one whose share of the walk is
+    /// furthest behind, which keeps the staircase on the straight line between the two rather than turning
+    /// all of one axis before starting the next. <paramref name="from"/> is not yielded and
+    /// <paramref name="to"/> is.</summary>
+    public static IEnumerable<(int X, int Y, int Z)> Between((int X, int Y, int Z) from, (int X, int Y, int Z) to)
+    {
+        int stepX = Math.Sign(to.X - from.X), stepY = Math.Sign(to.Y - from.Y), stepZ = Math.Sign(to.Z - from.Z);
+        int spanX = Math.Abs(to.X - from.X), spanY = Math.Abs(to.Y - from.Y), spanZ = Math.Abs(to.Z - from.Z);
+        var steps = spanX + spanY + spanZ;
+        int errorX = 0, errorY = 0, errorZ = 0;
+        var cell = from;
+        for (var taken = 0; taken < steps; taken++)
+        {
+            errorX += spanX; errorY += spanY; errorZ += spanZ;
+            if (spanX > 0 && errorX >= errorY && errorX >= errorZ) { cell.X += stepX; errorX -= steps; }
+            else if (spanY > 0 && errorY >= errorZ) { cell.Y += stepY; errorY -= steps; }
+            else { cell.Z += stepZ; errorZ -= steps; }
+            yield return cell;
         }
     }
 

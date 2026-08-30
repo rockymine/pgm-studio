@@ -83,11 +83,16 @@ public static class TreeCrown
         return PatternNoise.Unit(cell.X, cell.Y, cell.Z, seed + 31) < Density ? owner : null;
     }
 
-    /// <summary>The foliage that is actually held: the leaves reaching wood through a chain of leaves, and no
-    /// others. A cluster's rim and the seams between clusters both shed the odd cell that touches nothing, and
-    /// a single perforated cell on a rim is a leaf block floating in the air once the tree is placed. Filtering
-    /// on reachability rather than tuning the fill until specks are rare is what makes the guarantee absolute:
-    /// an author's 75 trees carry 11 stranded leaves between them, and a generator can carry none.</summary>
+    /// <summary>The foliage that is actually held: the leaves reaching wood through a chain of leaves joined
+    /// <b>face to face</b>, and no others. A cluster's rim and the seams between clusters both shed cells that
+    /// touch nothing, and the density roll leaves specks inside a cluster; every one of those is a leaf block
+    /// hanging in the air once the tree is placed.
+    ///
+    /// <para>The face is what makes it a guarantee rather than a measure. A chain through corners holds a
+    /// crown together only in a 3×3×3 reading — on screen a block joined to its neighbour at a corner has air
+    /// on all six of its faces and is seen through, so a crown rooted that way still reads as a haze of specks
+    /// around the branch. Rooting through faces emits one solid body per tree: whatever it keeps is joined to
+    /// the wood by a path a player could walk along the blocks.</para></summary>
     public static HashSet<(int X, int Y, int Z)> Rooted(
         IEnumerable<(int X, int Y, int Z)> leaves, IReadOnlySet<(int X, int Y, int Z)> wood)
     {
@@ -95,19 +100,22 @@ public static class TreeCrown
         var held = new HashSet<(int X, int Y, int Z)>();
         var frontier = new Queue<(int X, int Y, int Z)>();
         foreach (var leaf in foliage)
-            if (Around(leaf).Any(wood.Contains) && held.Add(leaf)) frontier.Enqueue(leaf);
+            if (Adjoining(leaf).Any(wood.Contains) && held.Add(leaf)) frontier.Enqueue(leaf);
         while (frontier.Count > 0)
-            foreach (var next in Around(frontier.Dequeue()))
+            foreach (var next in Adjoining(frontier.Dequeue()))
                 if (foliage.Contains(next) && held.Add(next)) frontier.Enqueue(next);
         return held;
     }
 
-    private static IEnumerable<(int X, int Y, int Z)> Around((int X, int Y, int Z) cell)
+    /// <summary>The six cells a cell shares a face with — what "held" means to a viewer.</summary>
+    private static IEnumerable<(int X, int Y, int Z)> Adjoining((int X, int Y, int Z) cell)
     {
-        for (var dy = -1; dy <= 1; dy++)
-            for (var dz = -1; dz <= 1; dz++)
-                for (var dx = -1; dx <= 1; dx++)
-                    if (dx != 0 || dy != 0 || dz != 0) yield return (cell.X + dx, cell.Y + dy, cell.Z + dz);
+        yield return (cell.X + 1, cell.Y, cell.Z);
+        yield return (cell.X - 1, cell.Y, cell.Z);
+        yield return (cell.X, cell.Y + 1, cell.Z);
+        yield return (cell.X, cell.Y - 1, cell.Z);
+        yield return (cell.X, cell.Y, cell.Z + 1);
+        yield return (cell.X, cell.Y, cell.Z - 1);
     }
 
     /// <summary>The block range the whole crown can touch — the union of its clusters, with room for the

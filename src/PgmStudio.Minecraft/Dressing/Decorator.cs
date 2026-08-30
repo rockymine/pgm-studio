@@ -130,7 +130,7 @@ public readonly record struct DressingPlacement(
 /// <summary>
 /// The dressing pass: the third and last walk over a realized world (docs/world-export/decoration.md). The
 /// structure stampers seat rooms and objectives on raw stone; the painter rewrites that stone's surface into
-/// grass, quartz and clay; this adds the terrain's life on top — a route worn across it, rock half-buried in
+/// grass, quartz and clay; this adds the terrain's life on top — a route worn across it, rock bedded into
 /// it, trees standing on it, cover growing over it.
 ///
 /// <para>Running <b>after</b> the painter is what makes it tractable rather than merely conventional. The one
@@ -918,7 +918,7 @@ public static class Decorator
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims.Storey claims,
         List<Finding> declined)
     {
-        var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach);
+        var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach, boulder.Seed);
         return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }
 
@@ -1077,19 +1077,66 @@ public static class Decorator
         var covered = new List<List<(int X, int Z)>>();
         foreach (var (anchor, turned, baseY) in images)
         {
-            var cells = new HashSet<(int X, int Z)>();
+            var landing = new Dictionary<(int X, int Y, int Z), PropCell>(turned.Count);
             foreach (var cell in turned)
             {
-                var (wx, wy, wz) = (anchor.X + cell.X, baseY + cell.Y, anchor.Z + cell.Z);
-                if (wy is < 1 or >= VoxelWorld.MaxHeight) continue;
-                if (!cell.Buried && world.GetBlock(wx, wy, wz).Id != Blocks.Air) continue;
-                world.SetBlock(wx, wy, wz, cell.Id, cell.Data);
-                claims.Claim(wx, wz, ClaimKind.Scatter, id);
-                cells.Add((wx, wz));        // a column, once, however many of the prop's blocks stand in it
+                var at = (X: anchor.X + cell.X, Y: baseY + cell.Y, Z: anchor.Z + cell.Z);
+                if (at.Y is < 1 or >= VoxelWorld.MaxHeight) continue;
+                if (!cell.Buried && world.GetBlock(at.X, at.Y, at.Z).Id != Blocks.Air) continue;
+                landing[at] = cell;
+            }
+
+            var held = Standing(world, landing.Keys);
+            var cells = new HashSet<(int X, int Z)>();
+            foreach (var (at, cell) in landing)
+            {
+                if (!held.Contains(at)) continue;
+                world.SetBlock(at.X, at.Y, at.Z, cell.Id, cell.Data);
+                claims.Claim(at.X, at.Z, ClaimKind.Scatter, id);
+                cells.Add((at.X, at.Z));    // a column, once, however many of the prop's blocks stand in it
             }
             covered.Add([.. cells]);
         }
         return new Placed(images.Count, covered);
+    }
+
+    /// <summary>The part of a landing prop that something holds up: the cells resting on a block the world
+    /// already had, and every cell reaching one of those through a chain of shared faces.
+    ///
+    /// <para>A prop is clipped by whatever is already standing where it wanted to be, and a clip can cut it in
+    /// two — a canopy on the far side of a tower, a lobe past a wall. The part beyond the cut is joined to
+    /// nothing and hangs in the air, so it is not placed. Face adjacency rather than a 3×3×3 reading, because
+    /// a block held at a corner has air on all six of its own faces and a viewer sees straight past
+    /// it.</para></summary>
+    private static HashSet<(int X, int Y, int Z)> Standing(
+        VoxelWorld world, IReadOnlyCollection<(int X, int Y, int Z)> landing)
+    {
+        var body = landing as IReadOnlySet<(int X, int Y, int Z)>
+                   ?? new HashSet<(int X, int Y, int Z)>(landing);
+        var held = new HashSet<(int X, int Y, int Z)>();
+        var frontier = new Queue<(int X, int Y, int Z)>();
+        foreach (var cell in body)
+        {
+            var under = (X: cell.X, Y: cell.Y - 1, Z: cell.Z);
+            if (!body.Contains(under) && under.Y >= 0
+                && world.GetBlock(under.X, under.Y, under.Z).Id != Blocks.Air && held.Add(cell))
+                frontier.Enqueue(cell);
+        }
+        while (frontier.Count > 0)
+            foreach (var next in Adjoining(frontier.Dequeue()))
+                if (body.Contains(next) && held.Add(next)) frontier.Enqueue(next);
+        return held;
+    }
+
+    /// <summary>The six cells a cell shares a face with.</summary>
+    private static IEnumerable<(int X, int Y, int Z)> Adjoining((int X, int Y, int Z) cell)
+    {
+        yield return (cell.X + 1, cell.Y, cell.Z);
+        yield return (cell.X - 1, cell.Y, cell.Z);
+        yield return (cell.X, cell.Y + 1, cell.Z);
+        yield return (cell.X, cell.Y - 1, cell.Z);
+        yield return (cell.X, cell.Y, cell.Z + 1);
+        yield return (cell.X, cell.Y, cell.Z - 1);
     }
 
     /// <summary>Whether a prop can stand at an anchor, and the Y its own origin sits at — plus, where it

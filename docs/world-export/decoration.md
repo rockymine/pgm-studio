@@ -151,6 +151,11 @@ one stage rather than four:
   it refuses ground that is missing or kept clear rather than half-placing itself. What it *rests* on needs
   real ground; what it merely reaches over does not — a crown or a boulder lobe may overhang a drop or a void,
   which is why a marker can seat at an island's edge and still lean out past it.
+  **A prop places only the part of itself something holds up** (`Decorator.Standing`). Whatever is already
+  standing where the prop wanted to be clips it, and a clip can cut it in two: the cells resting on a block
+  the world already had are kept, so is everything reaching one of those through a chain of shared **faces**,
+  and the rest is not written. Without that a grown tree three blocks from a forty-course tower placed 32
+  blocks of crown on the tower's far side with nothing under them, and one growing against the tower left 584.
 - **The fan (G162).** Every prop is placed once and stamped at **every image of its orbit**, in the prop's own
   local frame, with each offset **turned** by that image's transform. An author draws one half of a map and
   gets a fair one, which is the contract the layout itself has had all along — and the canvas draws the
@@ -329,26 +334,51 @@ The **outline** still exists, in `Geom.PathBand`, and does a different job: it i
 show where a route runs. The two deliberately differ — an outline cannot draw a gap — so the preview shows
 the corridor and the fill decides what within it is paved.
 
-## 5. Boulders — half-buried, scattered (`DR-SC`)
+## 5. Boulders — erratics, standing on the ground (`DR-SC`)
 
 A boulder is the first decoration that is genuinely 3-D, and it is the same shape-mask-in-a-box the
 objective stampers already build. Seat a `BlockBox` on `SurfaceTop` (via `SurfaceYOver`), then fill the
 cells that pass an ellipsoid test — `((x−cx)/rx)² + (y/ry)² ≤ 1`, the squared-distance mask `StampCore`'s
-`Inset` and `StampDestroyable`'s `InPlusSection` are the precedent for. Half the ellipsoid sits below the
-surface, so the rock reads as emerging from the ground rather than dropped on it. Perturb the radius with a
-noise sample for an angular, weathered read; stack two or three lobes for a cairn; flatten `ry` for a wide
-outcrop. The finish is a material and a micro-mask: stone, andesite, mossy cobble, blackstone — and moss
-creeping onto the top-lit faces, itself a tiny `Unit` mask, so the finish carries its own micro-flora.
+`Inset` and `StampDestroyable`'s `InPlusSection` are the precedent for. The finish is a material and a
+micro-mask: stone, andesite, mossy cobble, blackstone — and moss creeping onto the top-lit faces, itself a
+tiny `Unit` mask, so the finish carries its own micro-flora.
+
+**What a boulder is, is a glacial erratic** (the author's ruling): a mass a glacier carried and left, large,
+rounded but irregular, standing on the ground with weight. That decides its proportion, its seating and its
+surface, and each of the three is a separate statement in `BoulderShapes`.
+
+It stands on the ground rather than emerging from it. `BoulderShapes.Bed` is the share of the rock's height
+below the surface — **0.30**, so its middle is lifted clear of `y = 0` and only its foot is under. That is
+enough that no course shows daylight beneath it and enough to seat it on a bank; sinking the middle to the
+surface instead halves the rock and leaves a dome the full width of the thing and a third of its height,
+which reads as a knuckle of bedrock rather than as something carried here. The one form that genuinely
+emerges is the **outcrop**, and it is the one whose middle stays at the surface. The lift also puts the
+widest course a little above the ground, so a rock overhangs its own foot the way a perched erratic does: on
+a size-7 round rock, 23 of its 151 footprint columns stand over air, none by more than three courses.
+
+It is big. A rock's `size` is its reach from the middle and runs **2 to 10**, a default of 4 — a rock a
+player takes cover behind rather than a stone they step over. At size 7 an erratic fills about 1,100 blocks,
+stands **10 courses** over the ground and measures **15 across**; at 10 it is 3,100 blocks, 14 courses and
+22 across.
+
+Its silhouette is its own. `BoulderShapes.Of(form, size, seed)` answers three lobes — a main mass, a haunch
+at its foot and a shoulder over it, the latter two thrown out on bearings hashed from the rock's own seed —
+so the plan outline is a rounded irregular blob and the elevation leans, and two rocks of one form and size
+standing near each other are two rocks. `Geom.Blob` fills them: a quadric eroded by a noise field sampled in
+the lobe's own frame at a **scale of three blocks**, which weathers the surface into facets. A field that
+turns over every block chews the whole surface at once — the result is lumpy rather than eroded whatever the
+amplitude, and at the amplitude an angular rock wants it detaches chips: an `angular` rock of size 7 came
+out in three pieces with two blocks standing in mid-air at (−308, 10, 48) and (−312, 11, 51).
 
 A `BoulderProp` is placed at a cell and carries its own form (round, angular, outcrop, cairn), size, rock
-material, moss flag and seed. The rock is a full `TerrainMaterial` like the stroke's pave and the channel's bank,
+material, moss flag and seed. Round and angular are the same erratic at two erosion amplitudes. The rock is a
+full `TerrainMaterial` like the stroke's pave and the channel's bank,
 resolved in the boulder's **own frame** rather than the map's — offsets from its anchor, before it knows where
 on the map it goes. That is what keeps a mirrored pair one rock: resolving against map coordinates would give
 two teams the same shape in different colours, which is the thing the whole fan exists to prevent. Depth is
 measured down from the rock's own crust, so a layer stack reads as a weathered skin over a core rather than as
-the terrain bands it names anywhere else, and the moss mask is laid over whatever the material resolved. `BoulderShapes.Of(form, size)` answers with the lobes and `Geom.Blob` fills them
-— a quadric eroded by a noise field sampled in the lobe's own frame, which is what makes an angular rock
-angular rather than a dented sphere. A boulder is a solid volume standing on the ground, so where it stands
+the terrain bands it names anywhere else, and the moss mask is laid over whatever the material resolved.
+A boulder is a solid volume standing on the ground, so where it stands
 is cover, which is why it is placed rather than scattered.
 
 ## 6. Trees — copied and grown (`DR-TR`)
@@ -391,13 +421,31 @@ clusters keep a **seam of air** between them: a cell fills only when it clearly 
 (nearest-cluster ownership, the seam where two are equidistant), so a viewer still reads each patch as its own
 branch's instead of one merged mass. Most of the air is those seams; a little of it is perforation inside a
 cluster, which at this size ragged-edges a puff rather than hollowing a ball. Whatever the fill leaves behind,
-**only foliage that reaches wood through foliage is emitted** (`TreeCrown.Rooted`) — a leaf floating in the air
-is not made rare, it is made impossible. A few short strands hang below each disc for a broken lower edge.
+**only foliage that reaches wood through a chain of leaves joined face to face is emitted**
+(`TreeCrown.Rooted`) — a leaf floating in the air is not made rare, it is made impossible. A few short strands
+hang below each disc for a broken lower edge.
+
+**The face is what makes that a guarantee rather than a measure.** A chain through corners holds a crown
+together only in a 3×3×3 reading: on screen a block joined to its neighbour at a corner has air on all six of
+its faces, is seen straight through, and reads as a leaf hanging in space. Rooted through corners the crown
+carried **8.4% of its blocks** in exactly that state and came out in a median 73 separate bodies; rooted
+through faces it is **one body, none of it seen through**, at the cost of the outer 31% of the fill, which was
+the haze rather than the crown. The corpus's own gates survive the change — leaves touching wood directly go
+30.3% (hand-built) against 41.9%, and occupied neighbours per leaf 6.2 against 7.6, where a solid measured
+12.5.
 
 The laterals come in two arrangements, and they are two trees rather than two settings of one. **Staggered**
 puts one branch at a time up the trunk, spiralling — every broadleaf. **Whorled** gathers them into rings a
 fixed 5.2 courses apart, each ring shorter than the one below and none of them forking — the conifer, whose
 cone comes from the ring lengths and from each cluster being sized by its own branch.
+
+**A limb is a run whose every block shares a face with the next.** `SweptVolume.Sweep` stamps a ball at each
+sample of the spline, and a limb thinner than a block is one cell per sample — so two consecutive samples that
+cross two block boundaries at once leave the cells they stamp touching along an edge, which is a break a
+player sees straight through. The sweep therefore threads the walk from one sample's cell to the next one axis
+at a time (`SweptVolume.Between`, a Bresenham staircase) and stamps every cell of it. Without that thread
+**396 of 768 grown trunks and 5,472 of 10,362 branches came out severed**, a 20-course trunk parting between
+(0,3,0) and (−1,4,0) and carrying on above the break.
 
 Both trees are the same stamper as the boulder: a trunk-and-limbs volume plus a leaf mask over a box, and
 both end at one place that turns those cells into blocks — so the wood, the no-decay bit every leaf carries,
@@ -426,12 +474,13 @@ intended trade: a forest that clumps by itself is quicker to get and impossible 
 across a lane is exactly the thing worth aiming.
 
 The crown described above is the intent; `tree-corpus.md` is the measured record of what the code builds,
-against 75 hand-built trees. It reports the gap — the cluster seated beyond its own branch tip, the missing
-tiers — and the thresholds a generated crown can be gated on. It reads the wood the same way, with the
-foliage disregarded: a generated limb leaves the trunk at 41° off vertical where an author's leaves at 59°,
-and reaches half as far relative to its own trunk; the wood carries half again as many neighbours per block
-as an author's and barely thins on the way out. It also locates why generated twigs come apart — a swept ball
-between radius 0.5 and 0.866 can fill no cell at all.
+against 75 hand-built trees. It carries the thresholds a generated crown is gated on — foliage reaching wood,
+a quarter of it touching wood outright, occupied neighbours per leaf under about nine — and the measures the
+grower is scored against on each. It reads the wood the same way, with the foliage disregarded: how far a limb
+leaves the trunk by, how far it reaches against the trunk's own, how the wood thins as it runs out. What it
+does not read is the join, which is where both remaining defects lived: it counts a block held at a corner as
+held, and a tree whose every limb is a corner-joined chain measures as one piece there while a player sees a
+column of floating blocks.
 
 ### 6.1 Read as a point, not a mass
 

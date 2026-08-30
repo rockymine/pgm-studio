@@ -39,7 +39,8 @@ export function defaultProp(kind, seed) {
       return { ...base, x: 0, z: 0, form: "template", species: "oak", wood: "oak", height: 12,
                stems: 1, leader: 0.55, flow: 0.45, branchAngle: 0.55, levels: 2, leafSize: 0.6 };
     case "boulder":
-      return { ...base, x: 0, z: 0, form: "round", size: 2.5, mossy: true,
+      // An erratic: the rock a glacier left, big enough to take cover behind rather than step over.
+      return { ...base, x: 0, z: 0, form: "round", size: 4, mossy: true,
                rock: { kind: "solid", id: 1, data: 0 } };
     case "house":
       // No style of its own until one is picked from the library: an empty object deserializes to the C#

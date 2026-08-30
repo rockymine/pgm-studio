@@ -31,8 +31,10 @@ public static class Blob
                     + Sq(d.Z / Math.Max(0.01, lobe.Radii.Z));
         if (lobe.Erosion > 0)
         {
-            // Sampled at three times the block rate so the bite is per-block-ish rather than a smooth bulge.
-            var noise = PatternNoise.Value((int)Math.Round(d.X * 3), (int)Math.Round(d.Y * 3), (int)Math.Round(d.Z * 3), seed, 3, 3);
+            // Sampled at the block rate against a scale of three, so a bite is a facet a few blocks across —
+            // the weathered read. A field that turns over every block instead chews the whole surface at once
+            // and the result is lumpy rather than eroded, whatever the amplitude.
+            var noise = PatternNoise.Value((int)Math.Round(d.X), (int)Math.Round(d.Y), (int)Math.Round(d.Z), seed, 3, 2);
             quadric += (noise - 0.5) * lobe.Erosion;
         }
         return quadric <= 1;

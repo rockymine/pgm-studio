@@ -199,7 +199,8 @@ The proportion to fix is the one measured in blocks, not the knob read on its ow
 The last two rows are defects rather than differences of taste. The grown stem never runs flat, so no limb
 ever leaves horizontally. And **18 of 96 grown trees emit wood in more than one piece**, with 10 blocks
 touching no wood at all, against 3 trees and 2 blocks in the corpus — where the corpus's are an author's
-slips, the grower's are one line of arithmetic.
+slips, the grower's are one line of arithmetic. That is the reading a 3×3×3 neighbourhood gives; the section
+below reads the same trees on faces, and the figure there is far worse.
 
 That line is in `SweptVolume.Ball`, and the wood network is what exposed it. A ball's membership test is the
 distance from the limb's continuous centre to the *integer coordinate* of a candidate cell, so a centre
@@ -252,6 +253,29 @@ Three thresholds the corpus supports directly, as a gate on generated foliage: a
 reach wood through a chain of leaves, at least **25%** touch wood directly, and occupied neighbours per leaf
 below about **9**. The corpus sits at 99.95%, 30.3% and 6.2; the grower sat at 98.7%, 18.7% and 13.1.
 
+## Every reading here counts a corner as a hold, and a player does not
+
+The 3×3×3 neighbourhood every measure above is taken in is the right one for asking whether a body is
+connected and the wrong one for asking whether a viewer sees it as connected. A block joined to its
+neighbour at a corner has air on all six of its own faces: light passes it on every side, and it reads as a
+block hanging in space beside a tree rather than as part of one. The corpus is nearly free of that by
+construction — of its 4,044 blocks of wood **0.3% are held by a corner alone**, and its foliage hangs
+diagonally in **10.6%** of cases, which is the lace at a crown's rim rather than a break in it.
+
+Read on faces the grown tree was not a tree at all. Over 32 trees placed through the dressing pass on a flat
+board — every height from 6 to 40, one to three stems, staggered and whorled — **27,228 blocks came out as
+3,106 separate bodies**, of which 3,069 rested on nothing at all and **1,912 had air on all six faces**. The
+worst, a forty-course three-stem oak at (308, −114), stood as 394 bodies with 235 blocks floating. The
+template tree over the same board is one body per tree with nothing floating, which is what made the grower
+unusable while the vanilla tree was not.
+
+Both halves have one cause each, and neither is visible to a corner-counting reading. The wood's is the
+**sweep**: a limb thinner than a block is one cell per sample, so a pair of samples crossing two block
+boundaries at once leaves an edge join, and **396 of 768 trunks and 5,472 of 10,362 branches came out
+severed** — a twenty-course trunk parting between (0, 3, 0) and (−1, 4, 0) and carrying on above the break.
+The foliage's is **rooting**: a crown grown from a 45% density roll is speckled, and rooting it through
+corners keeps every speck the roll leaves standing alone.
+
 ## What the grower does with it
 
 Every finding above is now law in the code, and the figures below are the same measures taken off the grower
@@ -271,14 +295,26 @@ with:
 | wood neighbours per block | 7.9 | **4.7** | 6.3 |
 | first-order limb, off vertical | 24° | **60°** | 59° |
 | first-order limb, reach against the trunk's | 0.20 | **0.42** | 0.40 |
+| trunks severed on a face reading | 396 of 768 | **0** | — |
+| branches severed on a face reading | 5,472 of 10,362 | **0** | — |
+| a placed tree's bodies, on a face reading | 3,106 over 32 | **32 over 32** | — |
+| a placed tree's blocks with air on all six faces | 1,912 | **0** | — |
 
-Six changes carry it. `SweptVolume.Ball` stamps the block its centre sits in whatever the radius, which is
-what stops a twig from evaporating and takes the wood from 81% to 100% in one piece. `TreeCrown` seats each
+Eight changes carry it. `SweptVolume.Ball` stamps the block its centre sits in whatever the radius, which is
+what stops a twig from evaporating and takes the wood from 81% to 100% in one piece, and `SweptVolume.Sweep`
+threads the walk from one sample's cell to the next one axis at a time, which is what makes the run a limb
+rather than a dotted line. `TreeCrown` seats each
 cluster **on** its tip rather than beyond it, and `TreeCrown.Rooted` emits only the foliage that reaches wood
-through foliage — so a stranded leaf is not rare, it is impossible. Clusters are small, many and perforated
+through leaves joined **face to face** — so a stranded leaf is not rare, it is impossible, and neither is a
+leaf a viewer sees through. Clusters are small, many and perforated
 rather than few and solid, and each is sized by the branch carrying it. `TreeSkeleton.Steer` turns a child in
 its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
 the single change that moved the limbs from 24° to 60° and thinned the wood from 7.9 neighbours to 4.7.
+
+Rooting on faces costs the outer **31%** of what the fill draws, and that share was the haze rather than the
+crown: over the same sweep the foliage held goes 530 leaves a tree to 368, while occupied neighbours per leaf
+barely move (7.3 to 7.6) and leaves touching wood directly rise from 31.8% to 41.9% against the corpus's
+30.3%, because what a face rooting drops is the fringe furthest from the wood.
 
 **A hand-built tree's wood barely grows with its height.** Read per tree and bucketed, the corpus carries 23
 blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53 and 53 all the way to 40 — an author adds crown as a

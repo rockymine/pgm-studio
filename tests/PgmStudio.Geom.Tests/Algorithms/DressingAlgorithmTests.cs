@@ -206,6 +206,45 @@ public sealed class DressingAlgorithmTests
             }
     }
 
+    [Test]
+    public async Task A_thin_limb_that_turns_two_ways_at_once_is_still_joined_face_to_face()
+    {
+        // A twig is one cell per sample, and a sample that crosses two block boundaries at once leaves the
+        // two cells touching along an edge. Stamping the two balls alone gives a run whose blocks have air on
+        // all six faces, which is a chain of floating blocks on screen however a 3×3×3 reading counts it.
+        List<Vec3> path = [new(0, 0, 0), new(0.9, 0.9, 0.9), new(1.8, 1.8, 1.8), new(2.7, 2.7, 2.7)];
+        var balls = path.SelectMany(point => SweptVolume.Ball(point, 0.55)).ToHashSet();
+        await Assert.That(FacePieces(balls)).IsGreaterThan(1);
+
+        var swept = SweptVolume.Sweep(path, 0.55, 0.55).ToHashSet();
+        await Assert.That(FacePieces(swept)).IsEqualTo(1);
+        await Assert.That(swept.IsSupersetOf(balls)).IsTrue();   // the thread is added, nothing is taken away
+    }
+
+    [Test]
+    public async Task A_bridge_between_two_cells_steps_one_axis_at_a_time_and_lands_on_the_far_one()
+    {
+        for (var dz = -3; dz <= 3; dz++)
+        for (var dy = -3; dy <= 3; dy++)
+        for (var dx = -3; dx <= 3; dx++)
+        {
+            var from = (X: 5, Y: 9, Z: -2);
+            var to = (X: from.X + dx, Y: from.Y + dy, Z: from.Z + dz);
+            var walk = SweptVolume.Between(from, to).ToList();
+            await Assert.That(walk.Count).IsEqualTo(Math.Abs(dx) + Math.Abs(dy) + Math.Abs(dz));
+            if (walk.Count == 0) continue;
+
+            await Assert.That(walk[^1]).IsEqualTo(to);
+            var previous = from;
+            foreach (var step in walk)
+            {
+                var moved = Math.Abs(step.X - previous.X) + Math.Abs(step.Y - previous.Y) + Math.Abs(step.Z - previous.Z);
+                await Assert.That(moved).IsEqualTo(1);
+                previous = step;
+            }
+        }
+    }
+
     // ── the grown tree ─────────────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_grown_tree_has_a_trunk_that_climbs_the_whole_way()
@@ -299,14 +338,39 @@ public sealed class DressingAlgorithmTests
     public async Task A_leaf_that_cannot_reach_wood_is_never_emitted()
     {
         HashSet<(int X, int Y, int Z)> wood = [(0, 0, 0), (0, 1, 0), (0, 2, 0)];
-        // Two leaves on the wood, one chained off those, and one across a gap that nothing holds.
+        // A leaf on the wood, one chained off it face to face, one hanging off that chain by a corner alone,
+        // and one across a gap that nothing holds.
         List<(int X, int Y, int Z)> drawn = [(1, 2, 0), (1, 3, 0), (2, 4, 0), (7, 7, 7)];
 
         var held = TreeCrown.Rooted(drawn, wood);
 
         await Assert.That(held).Contains((1, 2, 0));
-        await Assert.That(held).Contains((2, 4, 0));       // reached through the chain, not directly
+        await Assert.That(held).Contains((1, 3, 0));       // reached through the chain, not directly
+        // A corner is not a hold: that block has air on all six faces and is seen through as a floating leaf.
+        await Assert.That(held).DoesNotContain((2, 4, 0));
         await Assert.That(held).DoesNotContain((7, 7, 7)); // floating, so it is not placed at all
+    }
+
+    [Test]
+    public async Task A_grown_tree_is_one_body_and_no_block_of_it_hangs_in_the_air()
+    {
+        // The whole of what "nothing floats" means, over the knob space a placed tree can ask for: the wood
+        // and the foliage together read as one connected mass, and not one block of it is seen through.
+        foreach (var height in new double[] { 6, 9, 12, 16, 20, 26, 32, 40 })
+        foreach (var whorled in new[] { false, true })
+        foreach (var stems in new[] { 1, 2, 3 })
+        for (uint seed = 1; seed <= 4; seed++)
+        {
+            var shape = new TreeShape(Height: height, Stems: stems, Levels: 2, BranchAngle: 1.1,
+                Flow: 0.45, Leader: 0.55, Whorled: whorled);
+            var (wood, leaves) = Built(shape, seed);
+            var body = new HashSet<(int X, int Y, int Z)>(wood);
+            body.UnionWith(leaves);
+
+            await Assert.That(FacePieces(wood)).IsEqualTo(1);
+            await Assert.That(FacePieces(body)).IsEqualTo(1);
+            await Assert.That(body.Count(cell => !Faces(cell).Any(body.Contains))).IsEqualTo(0);
+        }
     }
 
     [Test]
@@ -436,6 +500,58 @@ public sealed class DressingAlgorithmTests
             count++;
         }
         return count;
+    }
+
+    private static IEnumerable<(int X, int Y, int Z)> Faces((int X, int Y, int Z) cell)
+    {
+        yield return (cell.X + 1, cell.Y, cell.Z);
+        yield return (cell.X - 1, cell.Y, cell.Z);
+        yield return (cell.X, cell.Y + 1, cell.Z);
+        yield return (cell.X, cell.Y - 1, cell.Z);
+        yield return (cell.X, cell.Y, cell.Z + 1);
+        yield return (cell.X, cell.Y, cell.Z - 1);
+    }
+
+    /// <summary>How many bodies these cells read as on screen: a block joined to its neighbour only at an edge
+    /// or a corner has air on all six faces and is seen straight through, so face adjacency is the connectivity
+    /// a viewer actually perceives.</summary>
+    private static int FacePieces(HashSet<(int X, int Y, int Z)> cells)
+    {
+        var pending = new HashSet<(int X, int Y, int Z)>(cells);
+        var count = 0;
+        while (pending.Count > 0)
+        {
+            var seed = pending.First();
+            pending.Remove(seed);
+            var queue = new Queue<(int X, int Y, int Z)>([seed]);
+            while (queue.Count > 0)
+                foreach (var next in Faces(queue.Dequeue()))
+                    if (pending.Remove(next)) queue.Enqueue(next);
+            count++;
+        }
+        return count;
+    }
+
+    /// <summary>A tree exactly as the dressing pass builds one: the wood swept from the limbs, and the foliage
+    /// the crown holds over it.</summary>
+    private static (HashSet<(int X, int Y, int Z)> Wood, HashSet<(int X, int Y, int Z)> Leaves) Built(
+        TreeShape shape, uint seed, double leafSize = 0.6)
+    {
+        var tree = TreeSkeleton.Grow(shape, seed);
+        var wood = new HashSet<(int X, int Y, int Z)>();
+        foreach (var limb in tree.Limbs)
+            foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
+                wood.Add(cell);
+
+        var clusters = TreeCrown.Clusters(tree.Tips, leafSize, shape.Size, seed);
+        var (min, max) = TreeCrown.Bounds(clusters);
+        var drawn = new List<(int X, int Y, int Z)>();
+        for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)
+        for (var z = (int)Math.Floor(min.Z); z <= (int)Math.Ceiling(max.Z); z++)
+        for (var x = (int)Math.Floor(min.X); x <= (int)Math.Ceiling(max.X); x++)
+            if (!wood.Contains((x, y, z)) && TreeCrown.OwnerAt(clusters, new Vec3(x, y, z), seed) is not null)
+                drawn.Add((x, y, z));
+        return (wood, TreeCrown.Rooted(drawn, wood));
     }
 
     // ── the channel bed ────────────────────────────────────────────────────────────────────────────

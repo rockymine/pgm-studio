@@ -303,7 +303,7 @@ public static class WorldBuilder
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
                              propFloors);
 
-        // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders half-buried in
+        // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders bedded into
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
         // fact it needs is what the surface now *is* — soil takes flora, a plaza's quartz does not — and the
         // painter has just decided that per cell. Everything here was placed by hand and every prop is fanned

@@ -418,16 +418,69 @@ public sealed class DecoratorTests
     }
 
     [Test]
-    public async Task A_boulder_is_half_buried_so_it_reads_as_emerging_from_the_ground()
+    public async Task A_tree_clipped_by_what_is_already_standing_leaves_no_piece_in_the_air()
+    {
+        // A wall where the crown wants to be. What survives the clip is whatever is still joined to the tree's
+        // own feet; what the wall cut off from them is joined to nothing and is not placed at all.
+        TreeProp Oak() => new() { Id = "t", X = 20, Z = 20, Form = TreeForm.Grown, Wood = "oak", Height = 32, Seed = 7 };
+
+        HashSet<(int X, int Y, int Z)> Grown(bool walled, out VoxelWorld built)
+        {
+            var (world, top) = Plateau(size: 60, from: -20);
+            if (walled)
+                for (var y = 8; y < 48; y++)
+                for (var z = -20; z < 40; z++)
+                    world.SetBlock(23, y, z, Blocks.IronBlock, 0);
+            Decorator.Decorate(world, Context(top, [Oak()]));
+            built = world;
+            return [.. Placed(world, top.Keys, 8, 60)
+                .Where(block => block.Id is Blocks.Log or Blocks.Leaves)
+                .Select(block => (block.X, block.Y, block.Z))];
+        }
+
+        var whole = Grown(walled: false, out _);
+        var tree = Grown(walled: true, out var world);
+        await Assert.That(tree).IsNotEmpty();
+        await Assert.That(tree.Count).IsLessThan(whole.Count);        // the wall really did cut it
+        await Assert.That(tree.Any(cell => cell.X > 23)).IsFalse();   // and nothing landed on its far side
+
+        // And every block of what did land is held up: it stands on something, or on something that does.
+        static IEnumerable<(int X, int Y, int Z)> Faces((int X, int Y, int Z) cell)
+        {
+            yield return (cell.X + 1, cell.Y, cell.Z);
+            yield return (cell.X - 1, cell.Y, cell.Z);
+            yield return (cell.X, cell.Y + 1, cell.Z);
+            yield return (cell.X, cell.Y - 1, cell.Z);
+            yield return (cell.X, cell.Y, cell.Z + 1);
+            yield return (cell.X, cell.Y, cell.Z - 1);
+        }
+
+        var held = new HashSet<(int X, int Y, int Z)>();
+        var frontier = new Queue<(int X, int Y, int Z)>();
+        foreach (var cell in tree)
+            if (!tree.Contains((cell.X, cell.Y - 1, cell.Z))
+                && world.GetBlock(cell.X, cell.Y - 1, cell.Z).Id != Blocks.Air && held.Add(cell))
+                frontier.Enqueue(cell);
+        while (frontier.Count > 0)
+            foreach (var next in Faces(frontier.Dequeue()))
+                if (tree.Contains(next) && held.Add(next)) frontier.Enqueue(next);
+
+        await Assert.That(held.Count).IsEqualTo(tree.Count);
+    }
+
+    [Test]
+    public async Task A_boulder_stands_on_the_ground_and_is_bedded_into_it()
     {
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3 }]));
+            [new BoulderProp { Id = "b", X = 20, Z = 20, Size = 5, Mossy = false, Seed = 3 }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
-        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 7).ToList();
-        await Assert.That(rock.Any(b => b.Y >= 9)).IsTrue();                 // it stands above the ground
-        await Assert.That(world.GetBlock(20, 6, 20).Id).IsEqualTo(Blocks.Stone);   // and reaches into it
+        var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 8).ToList();
+        // An erratic is a mass left standing on a surface, so its bulk is over the ground …
+        await Assert.That(rock.Max(b => b.Y)).IsGreaterThanOrEqualTo(13);
+        // … and only its foot is under, which is what stops a course of turf showing daylight beneath it.
+        await Assert.That(world.GetBlock(20, 7, 20).Id).IsEqualTo(Blocks.Stone);
     }
 
     [Test]
@@ -1425,8 +1478,8 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_boulder_size_outside_its_range_is_held_to_the_range()
     {
-        await Assert.That(new BoulderProp { Size = 999 }.Reach).IsEqualTo(7);
-        await Assert.That(new BoulderProp { Size = 0 }.Reach).IsEqualTo(1);
+        await Assert.That(new BoulderProp { Size = 999 }.Reach).IsEqualTo(10);
+        await Assert.That(new BoulderProp { Size = 0 }.Reach).IsEqualTo(2);
     }
 
     [Test]

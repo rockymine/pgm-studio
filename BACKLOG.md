@@ -1163,6 +1163,16 @@ counted rather than eyeballed — and two are the material a species is supposed
   each tip is a cluster, so the honest next step is to let a cluster cover more than one tip rather than to
   starve the crown. `tools/tree-corpus/grower-gate.cs --by-height` against `census.cs` is the reading.
 
+- [ ] **WE66 — A prop clipped away to nothing places nothing and says nothing.** `Decorator.Fan` reports a
+  `DR-*` decline when a prop cannot *seat*, and nothing at all when a prop seats and is then cut down by
+  whatever is already standing where it wanted to be. `Decorator.Standing` now drops the part no longer joined
+  to the prop's own feet, so the silent case has a new tail: a prop can place a handful of blocks, or none.
+  Report it — the prop's id, how many of its blocks landed — as a complaint beside the declines the pass
+  already answers with, so an author looking at a preview with no tree in it is told why.
+
+  *a 32-course grown tree with a 40-course tower through its trunk places 3 blocks of the 731 it would have
+  placed on open ground, and the build reports nothing.*
+
 ### Distance, and the walk every measure is taken with
 
 `Geom.Walk` is the traversal now — eight-connected and octile, charging a climb in the blocks a player places,
