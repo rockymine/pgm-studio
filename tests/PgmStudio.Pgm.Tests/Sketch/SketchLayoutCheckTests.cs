@@ -66,6 +66,43 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
+    public async Task A_shape_no_group_lists_is_named_because_it_is_built_without_its_mirror_image()
+    {
+        // The fan is read off each mirroring group's shapeIds, so a shape no list names stands once. Nothing
+        // else says so: it rasterizes where it was drawn and the drawn group outline still covers it.
+        var findings = SketchLayoutCheck.Check(Layout(
+            Rect + ""","""
+            + """{"id":"s2","type":"rectangle","operation":"add","min_x":10,"max_x":40,"min_z":-20,"max_z":20,"floor":8,"base_height":12}"""));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.ShapeInNoGroup);
+        await Assert.That(findings.Refuses).IsFalse();
+        await Assert.That(finding.SubjectIds).IsEquivalentTo(new[] { "s2" });
+        await Assert.That(finding.Message).Contains("no image on the other side");
+    }
+
+    [Test]
+    public async Task A_board_that_does_not_mirror_loses_no_image_to_an_unlisted_shape()
+    {
+        var findings = SketchLayoutCheck.Check(Layout(
+            Rect + ""","""
+            + """{"id":"s2","type":"rectangle","operation":"add","min_x":10,"max_x":40,"min_z":-20,"max_z":20,"floor":8,"base_height":12}""",
+            mode: "none"));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.ShapeInNoGroup)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_role_tagged_room_piece_is_never_listed_in_a_group_and_is_not_reported_for_it()
+    {
+        // A room places no terrain of its own, so it is deliberately absent from every group's shapeIds.
+        var findings = SketchLayoutCheck.Check(Layout(
+            Rect + ""","""
+            + """{"id":"spawn-red","role":"spawn","type":"rectangle","operation":"add","min_x":-5,"max_x":5,"min_z":-5,"max_z":5}"""));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.ShapeInNoGroup)).IsFalse();
+    }
+
+    [Test]
     public async Task A_relief_keyed_to_an_island_that_is_not_there_is_named()
     {
         var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"group-2":{"kind":"hills"}}"""));

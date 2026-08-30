@@ -76,9 +76,9 @@ canvas layer can then reuse or test it.
 | Module | Role |
 |---|---|
 | `geometry/transform.js` | world↔SVG coordinate math — the single bridge between block space and screen space |
-| `geometry/polygon.js` | **the** point-in-polygon home (`pointInRing`), rasterisation, half-plane clip |
+| `geometry/polygon.js` | **the** point-in-polygon home (`pointInRing`, `pointInPoly`), the ring-level `polysOverlap` predicate, rasterisation, half-plane clip |
 | `geometry/shape.js` | the unified primitive model: rectangle / circle / polygon / lasso, `toRing`/`toBounds`/`containsPoint` |
-| `geometry/boolean.js` | group booleans over `polygon-clipping` — the one sketch-domain geometry layer |
+| `geometry/boolean.js` | group booleans over `polygon-clipping` — the one sketch-domain geometry layer; falls back to `polysOverlap` where the clipper throws (§5.1) |
 | `geometry/decompose-cut.js` | lane decomposition: lasso enclosure, edge markers, splitting a piece at two seams |
 | `geometry/symmetry.js` | the JS twin of `PgmStudio.Geom.Symmetry` (see the warning in `CLAUDE.md`) |
 | `geometry/islands.js`, `region-convert.js` | GeoJSON coercion; PGM `+1`-rule bounds conversions |
@@ -154,6 +154,26 @@ All of them route through the one predicate in `geometry/polygon.js`. That singl
 it looks: two subtly different copies of a point-in-polygon test is how a hit test starts behaving
 differently in one tool than another, which is precisely the bug a duplicate copy in `decompose-cut.js`
 was set up to cause before it was removed.
+
+### 5.1 Where the clipper refuses the question
+
+`polygon-clipping` is a sweepline, and a sweepline has inputs it cannot answer for. Two outlines drawn to
+abut — the gesture that makes a sunken bed sit flush in the ground around it — put a vertex a fraction of a
+block off a neighbour's edge, and the split that produces leaves a segment the sweep can no longer find in
+its own tree: `union` succeeds and every `intersection` against the result throws.
+
+**A throw is not an answer, and reading it as `false` is worse than propagating it.** `assignShapesToGroups`
+asks the intersection which group each shape contributes to, so a `false` there takes the shape out of every
+group — and group membership is what the server fans across the symmetry orbit, what a relief is keyed by,
+and what carries a `keepClear` mark. The shape then builds where it was drawn and nowhere else, with the
+group *outline* still drawn mirrored around it, because an outline is the union of the ground a group fused
+rather than the shapes it lists. `SK17` is the gate that catches the state once a document is in it
+(`docs/tools/sketch.md`).
+
+So `_intersects` answers from the rings instead: `polysOverlap` in `geometry/polygon.js` takes containment
+either way, then any pair of edges meeting, over `[exterior, ...holes]` polygons — the same predicate the
+clipper computes, without the sweep. An edge that only touches counts, since two shapes drawn to abut are one
+landmass. It runs on the error path alone, and the throw is logged rather than swallowed.
 
 **Sketch and Plan share one selection model built on top of these hit tests, not two.** Both are two levels: a
 plain click picks the unit its canvas states — a group in `SketchCanvas`, a box in `PlanCanvas` — and two

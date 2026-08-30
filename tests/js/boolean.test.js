@@ -92,6 +92,27 @@ test("restoreGroupMeta pairs two records with two groups by strongest overlap fi
   assert.deepEqual(groups.map(i => i.id), ["north", "south"]);
 });
 
+// ── a clipper that refuses the question ──────────────────────────────────────
+// Two outlines drawn to abut, with one corner landing 0.07 blocks off the other's edge instead of on it.
+// polygon-clipping unions them into one component and then throws on every intersection against that
+// union ("Unable to find segment … in SweepLine tree"), which is the shape of the near-degenerate input
+// authoring produces whenever a vertex is dropped beside a neighbour's edge rather than exactly on it.
+const abutting = [
+  { id: "sunken", type: "polygon", operation: "add", override: false,
+    vertices: [[-46, 30], [-15, 35], [-7, 54], [-15, 70], [-40, 62]] },
+  { id: "north", type: "polygon", operation: "add", override: false,
+    vertices: [[-40, 62], [1, 75], [13, 96], [-34, 131], [-105, 120], [-108, 73], [-90, 76]] },
+];
+
+test("a shape whose intersection the clipper cannot answer is still assigned to its group", () => {
+  const { groups, addUnion, afterSub, overrideAddUnion } = computeGroups(abutting);
+  assignShapesToGroups(abutting, groups, addUnion, overrideAddUnion, afterSub);
+  const listed = new Set(groups.flatMap(g => g.shapeIds));
+  // Both, and neither dropped: the fan is read off shapeIds, so a shape in no group has no mirror image
+  // and takes no part in its group's relief.
+  assert.deepEqual([...listed].sort(), ["north", "sunken"]);
+});
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 test("shapeToMultiPoly wraps a ring; degenerate → []", () => {
   assert.equal(shapeToMultiPoly(rect("a", 0, 0, 4, 4))[0][0].length, 5);

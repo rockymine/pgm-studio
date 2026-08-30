@@ -66,3 +66,68 @@ export function clipHalfPlane(poly, ox, oz, nx, nz) {
   }
   return output;
 }
+
+/** Point-in-polygon for a `[exterior, ...holes]` polygon: inside the exterior and outside every hole. */
+export function pointInPoly(px, pz, poly) {
+  if (!poly.length || !pointInRing(px, pz, poly[0])) return false;
+  for (let index = 1; index < poly.length; index++) if (pointInRing(px, pz, poly[index])) return false;
+  return true;
+}
+
+/**
+ * Do two `[exterior, ...holes]` polygons share any ground? Read off the rings themselves — containment
+ * either way, then any pair of edges meeting — so it answers for the near-degenerate configurations a
+ * sweepline clipper refuses to: a vertex a fraction of a block off another shape's edge, two outlines
+ * drawn to share a run of vertices. Rings may be given open or closed, and an edge that only touches
+ * counts: two shapes drawn to abut are one landmass.
+ */
+export function polysOverlap(first, second) {
+  if (!first.length || !second.length) return false;
+  for (const [x, z] of first[0]) if (pointInPoly(x, z, second)) return true;
+  for (const [x, z] of second[0]) if (pointInPoly(x, z, first)) return true;
+  for (const ringA of first)
+    for (const ringB of second)
+      if (ringsMeet(ringA, ringB)) return true;
+  return false;
+}
+
+/** Every edge of a ring, as `[[x,z], [x,z]]` pairs, whether the ring repeats its first point or not. */
+function ringEdges(ring) {
+  if (ring.length < 2) return [];
+  const [firstX, firstZ] = ring[0];
+  const [lastX, lastZ] = ring[ring.length - 1];
+  const count = firstX === lastX && firstZ === lastZ ? ring.length - 1 : ring.length;
+  const edges = [];
+  for (let index = 0; index < count; index++) edges.push([ring[index], ring[(index + 1) % count]]);
+  return edges;
+}
+
+/** Do any two edges of these rings meet — crossing, touching or overlapping? */
+function ringsMeet(ringA, ringB) {
+  const edgesB = ringEdges(ringB);
+  for (const [fromA, toA] of ringEdges(ringA))
+    for (const [fromB, toB] of edgesB)
+      if (segmentsMeet(fromA, toA, fromB, toB)) return true;
+  return false;
+}
+
+/** Which side of the line through from→to the point falls: 1 left, −1 right, 0 collinear. */
+function side(from, to, point) {
+  const cross = (to[0] - from[0]) * (point[1] - from[1]) - (to[1] - from[1]) * (point[0] - from[0]);
+  return cross > 0 ? 1 : cross < 0 ? -1 : 0;
+}
+
+/** Is the point inside the bounding box of from→to? Read only where the three are already collinear. */
+function within(from, to, point) {
+  return Math.min(from[0], to[0]) <= point[0] && point[0] <= Math.max(from[0], to[0])
+      && Math.min(from[1], to[1]) <= point[1] && point[1] <= Math.max(from[1], to[1]);
+}
+
+/** Do two segments meet? Opposite sides both ways is a crossing; a collinear endpoint in range is a touch. */
+function segmentsMeet(fromA, toA, fromB, toB) {
+  const sideFromB = side(fromA, toA, fromB), sideToB = side(fromA, toA, toB);
+  const sideFromA = side(fromB, toB, fromA), sideToA = side(fromB, toB, toA);
+  if (sideFromB !== sideToB && sideFromA !== sideToA) return true;
+  return (sideFromB === 0 && within(fromA, toA, fromB)) || (sideToB === 0 && within(fromA, toA, toB))
+      || (sideFromA === 0 && within(fromB, toB, fromA)) || (sideToA === 0 && within(fromB, toB, toA));
+}

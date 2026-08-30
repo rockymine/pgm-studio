@@ -1096,6 +1096,17 @@ against and stays at the height it was drawn. `SK16` names the made thing and ho
 nothing beneath them. A complaint and never a refusal: a balloon, a ship in the air, a statue on a spire is a
 legitimate board, and the way to say so is to take the layer's `seat` off.
 
+**And it complains where a shape belongs to no group.** A group is the unit the symmetry orbit is fanned
+by — the build reads each mirroring group's `shapeIds` and copies exactly those shapes onto their images — so
+a shape no group lists is built once, on the side it was drawn on, with no image anywhere. `SK17` names the
+shape and its layer. Nothing else says so, and every surface that could is looking elsewhere: the shape
+rasterizes where the author put it, so the board is not missing it; and the canvas draws a group's **outline**,
+which is the union of the ground the group fused rather than the shapes it lists, so a shape fused into the
+outline but absent from the list is drawn mirrored and built unmirrored. The same list carries the group's
+relief and its keep-clear fan, so an unlisted shape takes neither of those either. A layer stating no groups at
+all is outside this — the whole of that layer mirrors — and so is a role-tagged room piece, which is never
+listed by design.
+
 **What separates that from a donut is the order, and only within one layer.** A body and the hole cut out of
 it are written in that order — an exterior ring then its interior rings, a compiled footprint then the buffers
 stating its negative space — so a subtract *following* an add on that add's own layer is its hole and says

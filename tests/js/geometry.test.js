@@ -4,7 +4,8 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 
 import { buildTransform, buildInverseTransform, toScreen } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/transform.js";
-import { pointInRing, rasterisePolygon, clipHalfPlane } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/polygon.js";
+import { pointInRing, rasterisePolygon, clipHalfPlane, pointInPoly, polysOverlap }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/polygon.js";
 import { applySymmetry, applySymmetryToBounds } from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/symmetry.js";
 import { blockToExtentBounds, drawnBoundsFromBlocks, regionToBounds2d, sketchShapeToPgmRegion }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/region-convert.js";
@@ -74,6 +75,31 @@ test("pointInRing inside/outside", () => {
   assert.equal(pointInRing(5, 5, sq), true);
   assert.equal(pointInRing(15, 5, sq), false);
   assert.equal(pointInRing(-1, 5, sq), false);
+});
+
+test("pointInPoly reads the exterior and every hole", () => {
+  const withHole = [[[0, 0], [10, 0], [10, 10], [0, 10]], [[3, 3], [7, 3], [7, 7], [3, 7]]];
+  assert.equal(pointInPoly(1, 1, withHole), true);
+  assert.equal(pointInPoly(5, 5, withHole), false);
+  assert.equal(pointInPoly(20, 20, withHole), false);
+  assert.equal(pointInPoly(1, 1, []), false);
+});
+
+test("polysOverlap answers containment, crossing, abutment and disjointness", () => {
+  const square = (minX, minZ, maxX, maxZ) => [[[minX, minZ], [maxX, minZ], [maxX, maxZ], [minX, maxZ]]];
+  assert.equal(polysOverlap(square(0, 0, 10, 10), square(3, 3, 6, 6)), true);   // one inside the other
+  assert.equal(polysOverlap(square(3, 3, 6, 6), square(0, 0, 10, 10)), true);   // and the other way round
+  assert.equal(polysOverlap(square(0, 0, 10, 10), square(5, 5, 15, 15)), true); // corners crossing
+  assert.equal(polysOverlap(square(0, 0, 10, 10), square(10, 0, 20, 10)), true);// sharing one whole edge
+  assert.equal(polysOverlap(square(0, 0, 10, 10), square(11, 0, 20, 10)), false);
+  // A closed ring reads the same as the open one it repeats the first point of.
+  assert.equal(polysOverlap([[[0, 0], [10, 0], [10, 10], [0, 10], [0, 0]]], square(5, 5, 15, 15)), true);
+});
+
+test("polysOverlap keeps a shape sitting in a hole out of the polygon around it", () => {
+  const ring = [[[0, 0], [20, 0], [20, 20], [0, 20]], [[5, 5], [15, 5], [15, 15], [5, 15]]];
+  assert.equal(polysOverlap(ring, [[[8, 8], [12, 8], [12, 12], [8, 12]]]), false); // clear of the hole's wall
+  assert.equal(polysOverlap(ring, [[[8, 8], [18, 8], [18, 12], [8, 12]]]), true);  // reaching through it
 });
 
 test("rasterisePolygon fills cell centres", () => {
