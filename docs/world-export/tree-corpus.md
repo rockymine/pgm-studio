@@ -286,13 +286,13 @@ with:
 | | before | after | corpus |
 |---|---|---|---|
 | leaves reaching wood through leaves | 98.7% | **100%** | 99.95% |
-| leaves touching wood directly | 14.8% | **36%** | 30.3% |
-| occupied neighbours per leaf | 12.5 | **7.3** | 6.2 |
-| leaves enclosed on all six faces | 7.2% | **0.0%** | 1.7% |
+| leaves touching wood directly | 14.8% | **48%** | 30.3% |
+| occupied neighbours per leaf | 12.5 | **7.5** | 6.2 |
+| leaves enclosed on all six faces | 7.2% | **0.4%** | 1.7% |
 | trees carrying a stranded leaf | 36% | **0%** | 0% |
 | worst stranded island | 189 blocks | **0** | 2 blocks |
 | trees whose wood is in one piece | 81% | **100%** | 96% |
-| wood neighbours per block | 7.9 | **4.7** | 6.3 |
+| wood neighbours per block | 7.9 | **5.3** | 6.3 |
 | first-order limb, off vertical | 24° | **60°** | 59° |
 | first-order limb, reach against the trunk's | 0.20 | **0.42** | 0.40 |
 | trunks severed on a face reading | 396 of 768 | **0** | — |
@@ -311,27 +311,27 @@ rather than few and solid, and each is sized by the branch carrying it. `TreeSke
 its parent's own frame, so a branch angle is the angle a branch actually leaves by even off a vertical trunk —
 the single change that moved the limbs from 24° to 60° and thinned the wood from 7.9 neighbours to 4.7.
 
-Rooting on faces costs the outer **31%** of what the fill draws, and that share was the haze rather than the
-crown: over the same sweep the foliage held goes 530 leaves a tree to 368, while occupied neighbours per leaf
-barely move (7.3 to 7.6) and leaves touching wood directly rise from 31.8% to 41.9% against the corpus's
-30.3%, because what a face rooting drops is the fringe furthest from the wood.
+Rooting on faces costs the outer **31%** of what the fill draws, and that share is the haze rather than the
+crown: read at one leaf size the foliage held goes 530 leaves a tree to 368, occupied neighbours per leaf
+barely move (7.3 to 7.6), and leaves touching wood directly rise from 31.8% to 41.9%, because what a face
+rooting drops is the fringe furthest from the wood.
 
 **A hand-built tree's wood barely grows with its height.** Read per tree and bucketed, the corpus carries 23
 blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53 and 53 all the way to 40 — an author adds crown as a
 tree gets taller, not timber, and the tallest tree in the corpus carries about what a fourteen-course one
 does. The grower ran 13 → 456 over the same range, six to nine times an author's wood at the top of it,
 because both its trunk radius and its lateral count scaled with height. Both are now nearly flat in it, and
-the sweep runs 13 → 322. The crown that few branches have to carry comes from the other half of the same
+the sweep runs 14 → 365 — the thread that makes a limb face-connected is about a tenth of that. The crown that few branches have to carry comes from the other half of the same
 finding: a hand-built crown is **24% block over its own volume**, with **every one of its leaves carrying air
 on some side** — there is no interior to it at all — so a cluster is filled a little under half rather than
 nearly whole, and a handful of big lacy clumps foliate a tree that a dozen small dense ones could not.
 
-What is not closed is the last of the density: **8.6 occupied neighbours per leaf against the corpus's 6.2**.
-It still climbs with size — 8.0 at height 6 to 9.9 at height 40 — but far less steeply than the 8.3 to 10.8 it
-climbed before, and `--by-height` is the switch that shows it. The gate in
-`DressingAlgorithmTests` holds it under 11 — enough to catch a return to the solid, not enough to claim the
+What is not closed is the last of the density: **7.5 occupied neighbours per leaf against the corpus's 6.2**.
+It still climbs with size — 6.6 at height 6 to 8.6 at height 40 — but far less steeply than the 8.3 to 10.8 it
+climbed before, and the climb is only visible when the sweep is read per height. The gate in
+`DressingAlgorithmTests` holds it under 9.5 — enough to catch a return to the solid, not enough to claim the
 gap is shut. The other half of the same gap is that a generated tree still carries more wood for its foliage
-than an author's: 2.2 leaves per block against a corpus that runs 2.7 to 13.4 on its own large trees.
+than an author's: 2.3 leaves per block against a corpus that runs 2.7 to 13.4 on its own large trees.
 
 The conifer is most of the way there. A whorled tree rings its whole trunk — three to five branches at one
 height, the next ring 5.2 courses up, each ring shorter than the one below, none of them forking, and a spire

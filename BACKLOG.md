@@ -1163,6 +1163,17 @@ counted rather than eyeballed — and two are the material a species is supposed
   each tip is a cluster, so the honest next step is to let a cluster cover more than one tip rather than to
   starve the crown. `tools/tree-corpus/grower-gate.cs --by-height` against `census.cs` is the reading.
 
+- [ ] **WE67 — Five documents name a `tools/tree-corpus/` that is not there.** The directory was swept with
+  the rest of the one-off investigation, and the prose that pointed at it stayed: `docs/doc-status.md` lists
+  `tools/tree-corpus/README.md` as a document and names the directory as `tree-corpus.md`'s source, and two
+  `BACKLOG.md` entries name `crown-profile.cs` and `grower-gate.cs --by-height` as the reading to take. A
+  reader following any of them finds nothing. Reword each to say what to measure rather than which deleted
+  script measured it, and decide the `FEATURES.md` line that cites the same two files as the shipped
+  capability's location — a provenance citation is stable, a path is not.
+
+  *`ls tools/tree-corpus` answers `No such file or directory`; `grep -rn "tools/tree-corpus" docs/ FEATURES.md
+  BACKLOG.md` answers five lines.*
+
 - [ ] **WE66 — A prop clipped away to nothing places nothing and says nothing.** `Decorator.Fan` reports a
   `DR-*` decline when a prop cannot *seat*, and nothing at all when a prop seats and is then cut down by
   whatever is already standing where it wanted to be. `Decorator.Standing` now drops the part no longer joined
