@@ -46,7 +46,7 @@ public static class PlanRules
     public const string PlacementOnBuffer = "PL6";
 
     /// <summary>A placement falls outside the piece it names.</summary>
-    /// <remarks>The placement's <c>at</c> is a fraction of the named piece's rect, so both components belong in 0..1. A value outside that lands the marker off its own piece.</remarks>
+    /// <remarks>The placement's <c>at</c> is an offset in blocks from the named piece's minimum corner, so both components belong in 0..the piece's block span on that axis — its cell width times <c>globals.cell</c>. A value outside that lands the marker off its own piece.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Plan)]
     public const string PlacementOutside = "PL7";
 
