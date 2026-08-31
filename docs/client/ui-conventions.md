@@ -40,7 +40,9 @@ error line and the hint slots, and the input itself is `ChildContent`. `NumberFi
 two inputs with enough shape of their own to be components; `Select` is the dropdown, taking its rows as
 `SelectOption` values — a value, the word it is offered under, the note it carries on hover and the heading it
 sits under — so grouping and labelling are decided once rather than at each site that offers a list; and
-`AuthorsEditor` is the shared author/contributor block every tool's Identity step uses.
+`AuthorsEditor` is the shared author/contributor block every tool's Identity step uses — each row's mark
+is an initial over a hue hashed from the row's own uuid or name, so a page carrying authors fetches nothing
+from outside the studio to draw them.
 
 **Data** — `Section` (`panel-section` plus its header, description, help, actions and footer), `SectionHeader`
 on its own, `ListRow` (the list row with its swatch, label, tag, go-arrow and a `Trailing` slot for a control

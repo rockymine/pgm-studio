@@ -693,3 +693,14 @@ public sealed class RoomStyleCourseRow
 // PgmStudio.Domain's DoorMaterials. They are not restated here: the same strings have to satisfy the column,
 // the wire and the client's editor, and a second copy next to the column is exactly how they would come to
 // disagree.
+
+/// <summary>A player a lookup has already resolved (M0028) — the uuid the <c>map.xml</c> stores, the name it
+/// was resolved from or to, and when. Kept so the same handful of people an author types are not asked of
+/// Mojang on every intent write.</summary>
+[Table("minecraft_player")]
+public sealed class MinecraftPlayerRow
+{
+    [PrimaryKey, Column("uuid"), NotNull] public string Uuid { get; set; } = "";
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("fetched_at")] public DateTime FetchedAt { get; set; }
+}

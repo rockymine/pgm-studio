@@ -100,4 +100,48 @@ public sealed class IntentWriteTests
 
         await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Fable 5" });
     }
+
+    /// <summary><b>A person the intent names under a string nobody could be called is refused, not dropped.</b>
+    /// A name no Minecraft account carries is a pseudonym and stores; a string that is not a name at all
+    /// cannot, and the answer says which person it meant. A row that vanished from a 200 is what makes an
+    /// author believe somebody was credited (<c>TC2</c>).</summary>
+    [Test]
+    [Arguments("<script>alert(1)</script>", "meta.authors[0].name")]
+    [Arguments("two  spaces", "meta.authors[0].name")]
+    [Arguments("a whole paragraph of prose pasted into the name field by accident", "meta.authors[0].name")]
+    public async Task A_person_named_something_that_is_not_a_name_refuses_the_write(string stated, string field)
+    {
+        var (client, slug) = await MapWithAnAuthorAsync();
+        using var _ = client;
+
+        var body = JsonSerializer.Serialize(new
+        {
+            meta = new { name = "Weirgate", authors = new object[] { new { name = stated } } },
+        });
+        var stored = await PutIntentAsync(client, $"/api/map/{slug}/intent", body);
+
+        await Assert.That((int)stored.StatusCode).IsEqualTo(400);
+        var refusal = await stored.Content.ReadFromJsonAsync<JsonElement>();
+        var finding = refusal.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
+
+        await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Opus 5" })
+            .Because("a refused write changed nothing");
+    }
+
+    /// <summary>The pseudonym itself is the other half, at this tier: a name Mojang cannot answer for is
+    /// stored as the person it names, with no account behind it and no complaint about that.</summary>
+    [Test]
+    public async Task A_pseudonym_reaches_the_map_with_no_account_behind_it()
+    {
+        var (client, slug) = await MapWithAnAuthorAsync();
+        using var _ = client;
+
+        var stored = await PutIntentAsync(client, $"/api/map/{slug}/intent",
+            """{"meta":{"name":"Weirgate","authors":[{"name":"Haiku 4.5"},{"name":"O'Brien"}]}}""");
+        await Assert.That(stored.IsSuccessStatusCode).IsTrue().Because(await stored.Content.ReadAsStringAsync());
+
+        await Assert.That(await AuthorsOfAsync(client, slug)).IsEquivalentTo(new[] { "Haiku 4.5", "O'Brien" });
+    }
 }

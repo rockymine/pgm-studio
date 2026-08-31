@@ -102,18 +102,18 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 22 | 3,938 | `Playability/` 12 · `Region/` 3 · `Footprint/` 2 · `Scan/` 2 · `Suggest/` 2 · 1 at root |
-| `Api` | 92 | 12,094 | `Endpoints/` 52 · `Services/` 36 · `Http/` 3 · 1 at root |
-| `Client` | 201 | 23,829 | `Features/` 115 (nested) · `Components/` 67 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
+| `Api` | 93 | 12,181 | `Endpoints/` 52 · `Services/` 37 · `Http/` 3 · 1 at root |
+| `Client` | 201 | 23,881 | `Features/` 115 (nested) · `Components/` 67 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
 | `Contracts` | 31 | 3,002 | flat |
-| `Data` | 14 | 2,470 | `Features/` 4 · `Map/` 4 · `Theme/` 3 · `Schema/` 2 · `Plan/` 1 |
+| `Data` | 15 | 2,530 | `Map/` 5 · `Features/` 4 · `Theme/` 3 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 26 | 2,611 | flat |
 | `Export` | 10 | 2,198 | flat |
 | `Geom` | 48 | 5,882 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 5 · 17 at root |
 | `Import` | 4 | 471 | flat |
-| `Migrations` | 28 | 1,778 | `Migrations/` 27 · 1 at root |
+| `Migrations` | 29 | 1,808 | `Migrations/` 28 · 1 at root |
 | `Minecraft` | 88 | 17,541 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 150 | 24,666 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 7 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 7 | 748 | flat |
+| `Vocabulary` | 8 | 819 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest
@@ -155,7 +155,7 @@ The friction is that their names do not announce the order they come in.
 | 3 | `MapIntent` (`map_intent_json`) | `Pgm/Authoring` | what the author *wants*: teams, spawns, objectives, regions — the **configure** tool's input |
 | 4 | `MapXml` + entities | `Domain/MapModel.cs` | what a finished map *is*, parsed and typed |
 | 5 | the `Dict` doc (`xml_data.json`) | `Pgm/JsonTree.cs` | the loose `Dictionary<string, object?>` tree — the round-trip currency the **edit** tool patches |
-| 6 | `*Row` POCOs (39 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
+| 6 | `*Row` POCOs (40 tables) | `Data/Schema/Entities.cs` | the relational shape — the hybrid persistence model |
 | 7 | wire DTOs | `Contracts/*.cs` | what crosses `/api` to the client |
 
 **Two decisions shape representation 6, and both are about what deserves a column.** The map contract is

@@ -90,20 +90,16 @@ cannot touch dev data. A full sweep takes roughly forty minutes here, most of it
 per-page boot.
 
 **One check fails where the container cannot reach Mojang.** The smoke sweep's *edit tool is clean* reads a
-404 from `/api/minecraft/player`, which is the studio answering honestly: the endpoint resolves a username
-through Mojang, and where `api.mojang.com` is unreachable the lookup cannot answer a player. It is the
-server-side half of the same network fact `ALLOWED_FAULTS` already tolerates for the avatar images, and it
-is not tolerated — a 404 from our own API is exactly what that allowlist refuses to wave through. Check
-`curl -m 10 https://api.mojang.com/users/profiles/minecraft/Notch` before reading it as a defect: no answer
-at all means the run is on a network without egress, and every other spec passing is the real result.
+404 from `/api/minecraft/player?name=Notch`, which is the studio answering honestly: `Notch` is shaped like a
+Minecraft account, so the question is worth asking, and where `api.mojang.com` is unreachable there is no
+account to answer with. It is not tolerated — `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` holds one
+entry, for a fetch the sweep itself cancelled, and a 404 from the studio's own API is exactly what that list
+refuses to wave through. Check `curl -m 10 https://api.mojang.com/users/profiles/minecraft/Notch` before
+reading it as a defect: no answer at all means the run is on a network without egress, and every other spec
+passing is the real result. `RP63` is the open decision about which way that check should go.
 
-**The browser has no egress, and the author avatars need one.** The client renders a player head per author
-(`AuthorsEditor.razor`), fetched by UUID from `mc-heads.net`, and headless Chromium is not proxied — a
-foreground `curl` reaches that host through the agent proxy, so the host is not blocked, the browser simply
-has no route to it. The fetch fails with `net::ERR_CONNECTION_RESET` on every page carrying the author rail.
-That is a fact about the network rather than about the studio, so `ALLOWED_FAULTS` in
-`tests/e2e/lib/harness.mjs` tolerates it for that one host: the pages still fail the sweep on a request of
-their own, and an avatar answering 4xx is still a fault.
+Nothing else on those pages wants the network. The author rows draw their own marks, and a name no lookup can
+answer is stored as a pseudonym, so a container with no egress renders and saves the Identity form intact.
 
 The suite drives **Chromium only**, so a rendering defect that exists in another engine cannot appear in it
 — which is why the browser-specific canvas artifact recorded in `BACKLOG.md` was found by hand and stays

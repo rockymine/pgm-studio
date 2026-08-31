@@ -2,13 +2,14 @@ using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using PgmStudio.Client.Components;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Client.Features.Configure;
 
-// Identity phase body: edits the intent's meta slice (name + authors/contributors). The author rows +
-// their username resolution are delegated to the shared AuthorsEditor; only verified usernames (resolved
-// to a uuid) are written to the intent, so a bad name is caught at the source and never reaches the
-// generated map. Edits patch the cascaded wizard's working Intent and mark it dirty; the wizard persists
-// meta when the phase is left.
+// Identity phase body: edits the intent's meta slice (name + authors/contributors). The author rows and the
+// account lookup behind them are delegated to the shared AuthorsEditor; what is written to the intent is
+// every row that names somebody, since PGM takes an author as an account or as a pseudonym. Edits patch the
+// cascaded wizard's working Intent and mark it dirty; the wizard persists meta when the phase is left.
 public partial class IdentityPhase
 {
     [CascadingParameter] public ConfigureTool Wizard { get; set; } = default!;
@@ -53,10 +54,13 @@ public partial class IdentityPhase
         Wizard.MarkDirty();
     }
 
-    // Only verified usernames (resolved to a uuid, no error) reach the intent — an unchecked / unknown
-    // name is never persisted, so it can't silently survive into the generated map.
+    // Every row that names somebody reaches the intent. PGM takes a person as an account or as a pseudonym
+    // and either alone is a whole author, so a name no Minecraft account carries is the second kind rather
+    // than a failed lookup — the API resolves the uuid where there is one and keeps the stated name where
+    // there is not. What is dropped is a row that is not a name at all (AuthorNames.IsWritable), because
+    // there is nobody in it to credit.
     private static JsonArray Confirmed(IEnumerable<AuthorRow> people) =>
-        new(people.Where(p => p.Uuid.Length > 0 && !p.Error && p.Name.Trim().Length > 0)
+        new(people.Where(p => !p.Error && AuthorNames.IsWritable(p.Name.Trim()))
                   .Select(p => (JsonNode)new JsonObject
                   {
                       ["name"] = p.Name.Trim(),

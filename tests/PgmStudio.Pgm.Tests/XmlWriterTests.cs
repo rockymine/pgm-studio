@@ -278,4 +278,32 @@ public sealed class XmlWriterTests
         await Assert.That(back.Modes.Single().Id).IsEqualTo("mode-beacon");
         await Assert.That(back.Destroyables.Single().Modes).IsEquivalentTo(new[] { "mode-beacon" });
     }
+    /// <summary><b>A pseudonym is the element's own text.</b> PGM takes a person as an account — a
+    /// <c>uuid</c> it resolves to a player — or as a pseudonym, and either alone is a whole author. A name no
+    /// Minecraft account carries is the second kind, so it is written as text and never as an empty
+    /// <c>uuid</c>, which PGM would refuse to resolve. This is what makes a name the editor could not look up
+    /// storable rather than droppable (<c>TC2</c>).</summary>
+    [Test]
+    public async Task An_author_with_no_account_is_written_as_the_elements_text()
+    {
+        var m = new MapXml
+        {
+            Name = "Test", Version = "1.0.0",
+            Authors =
+            [
+                new Author { Uuid = "", Role = "author", Name = "Opus 5" },
+                new Author { Uuid = "fe3608b7-d105-4029-8800-34b3147065b6", Role = "author", Name = "rockymine" },
+                new Author { Uuid = "", Role = "contributor", Name = "Haiku 4.5" },
+            ],
+        };
+
+        var xml = XmlWriter.ToXml(m);
+
+        await Assert.That(xml).Contains("<author>Opus 5</author>");
+        await Assert.That(xml).Contains("<contributor>Haiku 4.5</contributor>");
+        await Assert.That(xml).Contains("uuid=\"fe3608b7-d105-4029-8800-34b3147065b6\"")
+            .Because("an account is still written as its uuid");
+        await Assert.That(xml).DoesNotContain("uuid=\"\"")
+            .Because("an empty uuid is a player PGM cannot resolve");
+    }
 }

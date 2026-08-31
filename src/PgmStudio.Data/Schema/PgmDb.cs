@@ -36,6 +36,7 @@ public sealed class PgmDb : DataConnection
     public ITable<SegmentRow> Segments => this.GetTable<SegmentRow>();
     public ITable<MapArtifactRow> Artifacts => this.GetTable<MapArtifactRow>();
     public ITable<SymmetryRow> Symmetries => this.GetTable<SymmetryRow>();
+    public ITable<MinecraftPlayerRow> MinecraftPlayers => this.GetTable<MinecraftPlayerRow>();
     public ITable<PlanRow> Plans => this.GetTable<PlanRow>();
     public ITable<StyleRow> Styles => this.GetTable<StyleRow>();
     public ITable<ThemeRow> Themes => this.GetTable<ThemeRow>();

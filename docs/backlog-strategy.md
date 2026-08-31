@@ -32,8 +32,9 @@ Twenty-two verified defects were live behind that when this was read. A core tha
 200; a stacked board's paint ran down a column it should have stopped at; a degenerate polygon cleared every
 sketch gate and drew no ground. The suite said none of it.
 
-Twelve of the twenty-two have since landed with a test each, and what stands below is the ten that have
-not — `FEATURES.md` carries the rest under the ids that delivered them.
+Most have since landed with a test each, one was withdrawn on the author's ruling (`TS32`: fusing pieces by
+surface is what the compiler is for), and what stands below is the five that remain — `FEATURES.md` carries
+the rest under the ids that delivered them.
 
 That is the fact the whole strategy turns on: **a defect nobody can fail on is a defect that comes back.**
 The board is currently the only place these are written down, and a board entry is not a gate. So the fix
@@ -48,18 +49,10 @@ Confirmed by reading the code at the cited site. Grouped by what the defect cost
 they are worth fixing in — a map that is silently wrong is worse than a message that is wrong, which is worse
 than a record that is wrong.
 
-### The map is silently wrong
-
-| id | the defect | site |
-|---|---|---|
-| `TS32` | `PlanCompiler` groups pieces by `Surface`, unions their rects and names the result `s{n}`. Every piece name is gone before the layout exists. | `PlanCompiler.cs:115` |
-
 ### A gate's verdict is wrong
 
 | id | the defect | site |
 |---|---|---|
-| `G231` | `LintEl1` takes `p.Surface − plan.Globals.Surface` where `EL1`'s own text states the land-interface delta. On a four-tread flight over a global of 9 it complains at treads 1 and 3 and says nothing about 2 and 4. | `PlanValidator.cs:557` |
-| `B150` | `FillRatio` reads `ctx.Board`, derived from the `PlanModel`, and answers in plan cells. The sketch is where the ground is: its `add` shapes push the coast past the plan pieces and its `subtract` cuts the holes, and neither reaches the term. | `GlobalsTerms.cs:23` |
 | `WS17` | `Walk.Standing` qualifies any surface with `Headroom` clear, roofs included, so `traversability` and `coverage` route over a house. The ruling exists — a house is not walked over — but the mechanism is still open: `WorldBuilder` claims every spawn and wool room *floor* as `ProvenancePass.Structure`, so excluding structure columns takes the ground a match is played over out of the walk. Bounding the rise is what is left, and it wants a number. | `Walk.cs:255` |
 | `TS31` | `SketchRasterizer.DetachedMasses` drops any component sharing no column with a second one, so it reports a storey whose stair was never drawn and never an island standing *beside* the board — the case an author actually draws by accident. | `SketchRasterizer.cs:978` |
 
@@ -68,7 +61,6 @@ than a record that is wrong.
 | id | the defect | site |
 |---|---|---|
 | `CV21` | `world-canvas.js` declares `painter.layer("build", () => {})` and no painter ever appends to it; `setBuildVisible` has no caller outside the class. An empty group with a visibility switch nobody throws. | `world-canvas.js:663,305` |
-| `C45` | `AuthorsEditor.razor:39` renders `https://mc-heads.net/avatar/{uuid}/16` as an `<img src>` — the runtime-CDN shape `CLAUDE.md` § *JS dependencies* rules out, in image form, and already dead in a container with no egress. | `AuthorsEditor.razor:39` |
 
 ### The record is wrong
 
@@ -109,8 +101,9 @@ the entries listed after it are what stop being separate work once it lands.
 **`PlanCompiler` fuses by surface height and drops every identity in the plan.** One `GroupBy(p => p.Surface)`
 followed by a rectilinear union produces `s0`, `s1`, `s2` — so a piece name cannot address anything
 downstream, a wall's seam has no two pieces left to sit between, and a coast has to be restated beside the
-plan that already described it. `TS32` · `B213` · `TS30` · `B107`, and four of `drive.py`'s fourteen keys
-(`themeByHeight`, `themeById`, both `shapeProps`) exist only to address the accident.
+plan that already described it. Fusing is deliberate — a compiled layout is a layout, not a copy of the plan
+— so what rides on it is the seam a wall needs and the addressing four of `drive.py`'s fourteen keys
+(`themeByHeight`, `themeById`, both `shapeProps`) exist to work around. `B213` · `TS30` · `B107`.
 
 **A layer is first-class in the export and an afterthought everywhere else.** `CoreIntent` carries `Layer`;
 `CorePlacement` does not. `DressingDoc.add` stamps the storey; `SketchDressingInspector` has no field for it.
@@ -123,9 +116,10 @@ around that boundary each mislead in their own way. `G161` · `TN2` · `TN6` · 
 `B249`.
 
 **A term measures the artifact it can reach rather than the one the claim is about.** `G8` measures the plan
-where the ground is in the sketch; `EL1` measures against the global surface where the rule states the
-interface; the top-down frames on every column where the height profile frames on ground; the walk climbs a
-roof because nothing tells it a roof is a building. `B150` · `G231` · `B103` · `WS17` · `B96` · `B143`.
+where the ground is in the sketch; the top-down frames on every column where the height profile frames on
+ground; the walk climbs a roof because nothing tells it a roof is a building. `WS17` · `B96`. `B150`,
+`G231`, `B103` and `B143` were this cause and have landed: each moved a term onto the artifact its claim is
+about rather than the one nearest to hand.
 
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
@@ -134,7 +128,7 @@ authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `S40` · `C9`
 
 ## The questions no reading of this repository can answer
 
-Thirty-one entries name a ruling or a decision in their own text, and twenty-one of those still carry the
+Thirty-one entries name a ruling or a decision in their own text, and seventeen of those still carry the
 question unanswered. `CLAUDE.md` is explicit that these cannot be derived — the corpus shows what authors
 did, the code shows what the tool does, and neither says what is correct — so **no amount of work drains this
 part of the board.** It drains in one sitting of answers, and it is the single highest-leverage move
@@ -146,26 +140,20 @@ The questions, stated so they can be answered in a line each:
 2. `TS50` — what may a placement say on its own, once recipes are rows? (follows `TS49`)
 3. `WE28` — should a relief be keyed by layer *plus* island, or ride on the layer that carries it?
 4. `TS63` — is the wanted form list final at arch, ziggurat, ellipse wall, tapered tower and domed roof?
-5. `B151` — is `WL8` a hard term, or is the rule document wrong?
-6. `B144` — how do height and paint resolve an overlap, where one takes the taller shape and the other the
+5. `B144` — how do height and paint resolve an overlap, where one takes the taller shape and the other the
    smaller?
-7. `WE2` — should a roof's eave descend by `pitch` at all?
-8. `B225` — does a course marching under a neighbour's verge stop at the verge or at the wall?
-9. `WE3` — cap the float/leak pair at the plate, deepen the plate, or drop the plate under cores?
-10. `B213` — which of the four wall-seam fixes: don't fuse across a wall, make the wall a dressing prop,
-    both, or auto-extend it at export?
-11. `B243` — what is the absolute minimum width of a frontline crossing, in blocks?
-12. `G161` — state the interior in the panel, or run structural findings in the live feed?
-13. `B55` — which API paths read a map *as played*, and which read it as written?
-14. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
-15. `B70` — which view should a library card carry?
-16. `TC2` — what does a pseudonym row look like: an accepted unresolved name, or an explicit toggle?
-17. `C45` — what does an author row show without a fetched avatar?
-18. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-19. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the author rail reaching for a
-    network the gate cannot assume?
-20. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
-21. `B181` — what share of a board's width may a `subtract` take?
+6. `WE2` — should a roof's eave descend by `pitch` at all?
+7. `B225` — does a course marching under a neighbour's verge stop at the verge or at the wall?
+8. `WE3` — cap the float/leak pair at the plate, deepen the plate, or drop the plate under cores?
+9. `B243` — what is the absolute minimum width of a frontline crossing, in blocks?
+10. `G161` — state the interior in the panel, or run structural findings in the live feed?
+11. `B55` — which API paths read a map *as played*, and which read it as written?
+12. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
+13. `B70` — which view should a library card carry?
+14. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
+15. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the smoke check naming a player?
+16. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
+17. `B181` — what share of a board's width may a `subtract` take?
 
 Three more are decisions of scheduling rather than of gameplay and can be taken without the oracle: `P7`
 (whether the scan passes consolidate), `B249` (whether a per-call refusal override is wanted at all) and
@@ -198,13 +186,16 @@ board's weight off a column whose job is to say what is next.
 into work small enough to state in a paragraph or withdraws it. Nothing else on this list is worth starting
 first, because five of the causes in the section above have a question sitting in them.
 
-**Phase 1 — the verified defect run.** The confirmed defects, in the order they are tabled above: the
-silently-wrong map first, then the wrong verdicts, then the studio's own faults, then the record. Each lands
-with a test that fails on the old behaviour — that is the deliverable, not the fix, and the twelve tests the
-first eleven fixes carry were each run red against the unfixed source before being trusted. What is left of
-the run is the six that need a ruling first (`TS32`, `B150`, `CV21`, `C45`, `RP49`, and `TS31`, whose filed
-fix is contradicted by a measurement in the code it would change), `G231` and `WS17`, and the three
-measurement entries that belong to Phase 4.
+**Phase 1 — the verified defect run.** The confirmed defects, in the order they are tabled above: the wrong
+verdicts first, then the studio's own faults, then the record. Each lands with a test that fails on the old
+behaviour — that is the deliverable, not the fix, and the tests the landed fixes carry were each run red
+against the unfixed source before being trusted, with one stated exception: `C45`/`TC2` added types that did
+not exist, so their tests cannot be run against a tree without them, and the guarantee they pin — that a name
+no account could carry reaches no request — is one the code could not previously make. What is left of the
+run is `WS17` (the ruling is given and the mechanism is open — bounding the rise wants a number), `CV21`
+(needs `PGMDev/PGM` read on void filters and a board built with the defects on purpose), `TS31` (whose filed
+fix is contradicted by a measurement in the code it would change), and the three measurement entries that
+belong to Phase 4.
 
 **Phase 2 — fix the causes, not the entries.** The five foundations, each in the order that maximises what it
 closes: the compiler's lost identity (4 entries), the layer word (7), the live findings feed (7), the term's

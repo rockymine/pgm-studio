@@ -320,6 +320,14 @@ request could not be acted on* — so all of them are `RQ1`, at 400, with `field
 has a name. A caller writing one parser for the studio is the whole point of there being one envelope, and a
 route phrasing its own parameter fault costs exactly that.
 
+**A person stated under something that is not a name** is the same rule over a field inside the document.
+`PUT /map/{slug}/intent` refuses an author or contributor whose name is empty, past `AuthorNames.MaxLength`,
+carries two spaces in a row, or holds a character outside letters, digits, spaces and `.,-_'`, with `field`
+naming the person — `meta.authors[0].name` — and nothing written. A name **Mojang cannot answer for is not
+this**: PGM takes a person as an account or as a pseudonym and either alone is a whole author, so an
+unresolvable name stores as the second kind. What is refused is a string nobody could be called, and it is
+refused rather than skipped because the alternative is a 200 crediting fewer people than the author listed.
+
 **`RQ3` — a field went unread.** The document carried a property the reader had nowhere to keep. It is a
 **complaint**, so it rides on the success response under `warnings` and the work still happens: the readers
 upgrade stored documents in place and carry retired names forward, so a stored document legitimately holds

@@ -25,16 +25,17 @@ public static class IntentWrite
     /// read.</summary>
     public static async Task<EditApplied> StoreAndProjectAsync(
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-        MojangClient mojang, string slug, long mapId, string body, long? expected, CancellationToken ct)
+        PlayerLookup players, string slug, long mapId, string body, long? expected, CancellationToken ct)
     {
         var intent = Stated(body) ?? new MapIntent();
+        if (Unnamable(intent) is { } named) return new(named);
 
         var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.MapIntentJson, "intent",
             JsonSerializer.SerializeToUtf8Bytes(intent, MapArtifactStore.Json), expected, ct);
         if (written.Refusal is { } refusal) return new(refusal);
 
         // A stated name is looked up here (async, outside the pure generator) so an account gets its uuid.
-        var authors = await ResolveAuthorsAsync(mojang, intent, ct);
+        var authors = await ResolveAuthorsAsync(players, intent, ct);
         var applied = await MapEdit.RunAsync(repo, reader, writer, slug,
             doc => { IntentGenerator.Apply(doc, intent); if (authors is not null) doc["authors"] = authors; return new Dict(); },
             expected: null, ct);
@@ -43,6 +44,31 @@ public static class IntentWrite
         // number is a different one and answering it would arm the caller's next write against the wrong
         // document.
         return applied with { Revision = written.Revision };
+    }
+
+    /// <summary>The refusal for a person the intent states under a name nobody could be called, or null
+    /// where every one of them is storable. A name Mojang does not know is a pseudonym and passes here; what
+    /// does not is a string that is not a name at all — over
+    /// <see cref="AuthorNames.MaxLength"/> characters, opening or closing on a space, or carrying something
+    /// outside letters, digits, spaces and <c>.,-_'</c>. It is <c>RQ1</c> because it is the posted document
+    /// that cannot be acted on, and it names the field so the caller does not have to search for which
+    /// person it meant. Refusing is the point: a row dropped in silence is what makes an author believe
+    /// somebody was credited.</summary>
+    private static Refusal? Unnamable(MapIntent intent)
+    {
+        if (intent.Meta is not { } meta) return null;
+        List<Finding> refused = [];
+        foreach (var (people, role) in new[] { (meta.Authors, "authors"), (meta.Contributors, "contributors") })
+        {
+            for (var at = 0; at < people.Count; at++)
+            {
+                var stated = people[at].Name.Trim();
+                if (AuthorNames.Refuse(stated) is { } why)
+                    refused.Add(new Finding(RequestRules.Unreadable, $"'{stated}' cannot be stored as a person: {why}",
+                        Field: $"meta.{role}[{at}].name"));
+            }
+        }
+        return refused.Count == 0 ? null : new Refusal(400, "not a name", refused);
     }
 
     /// <summary>What a body states as an intent, or null where it states none. A body that will not read as
@@ -66,7 +92,7 @@ public static class IntentWrite
     // never given — which is what a compiled intent does, since it carries a `meta` naming the map and no
     // people in it. Clearing the authors is the metadata route's, where a stated empty list means exactly
     // that.
-    private static async Task<List<object?>?> ResolveAuthorsAsync(MojangClient mojang, MapIntent intent, CancellationToken ct)
+    private static async Task<List<object?>?> ResolveAuthorsAsync(PlayerLookup players, MapIntent intent, CancellationToken ct)
     {
         if (intent.Meta is not { } m) return null;
         var resolved = new List<object?>();
@@ -75,9 +101,10 @@ public static class IntentWrite
             foreach (var person in people.Where(p => p.Name.Trim().Length > 0))
             {
                 var stated = person.Name.Trim();
-                var (uuid, name) = ("", stated);
-                try { (uuid, name) = await mojang.LookupAsync(stated, ct); }
-                catch { /* not an account — the stated name stands on its own as a pseudonym */ }
+                // Null is "no account is called that" — the stated name stands on its own as a pseudonym,
+                // which is a whole author in PGM's model. A name that could not be stored at all was
+                // refused before the intent was written (Unnamable), so every name reaching here is one.
+                var (uuid, name) = await players.ResolveAsync(stated, ct) ?? ("", stated);
                 resolved.Add(new Dict
                 {
                     ["uuid"] = uuid, ["name"] = name, ["role"] = role,

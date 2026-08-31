@@ -22,7 +22,7 @@ namespace PgmStudio.Api.Endpoints;
 /// </summary>
 public sealed class MapFromDocumentsEndpoint(
     MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-    WorldFeatureWriter features, PgmDb db, MojangClient mojang)
+    WorldFeatureWriter features, PgmDb db, PlayerLookup players)
     : Endpoint<MapFromDocumentsRequest, MapLoadedDto>
 {
     public override void Configure() { Post("/map/from-documents"); AllowAnonymous(); Description(b => b.Refuses(422)); }
@@ -30,7 +30,7 @@ public sealed class MapFromDocumentsEndpoint(
     public override async Task HandleAsync(MapFromDocumentsRequest request, CancellationToken ct)
     {
         var loaded = await MapFromDocuments.LoadAsync(
-            HttpContext, request, repo, reader, writer, artifacts, features, db, mojang, ct);
+            HttpContext, request, repo, reader, writer, artifacts, features, db, players, ct);
 
         if (loaded.Refusal is { } refusal)
         {

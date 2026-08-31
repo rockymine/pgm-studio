@@ -157,6 +157,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **An author is an account or a pseudonym, and the editor takes both — with nothing fetched to draw one
+  (C45, TC2).** PGM reads a person as a `uuid` it resolves to a player or as the `<author>` element's own
+  text, and either alone is a whole author. `PgmStudio.Vocabulary/AuthorNames.cs` states the two questions
+  that follow, in the one leaf the browser and the API both reach so they cannot disagree: `IsAccountName`
+  is Mojang's own shape (3–16 of letters, digits, underscore) and says a lookup is worth making;
+  `IsWritable` is the wider set that may be stored at all — letters, digits, single interior spaces and
+  `.,-_'` up to 32 characters — with `Refuse` giving the sentence the field shows. A row shaped like an
+  account resolves to its canonical uuid and spelling; a name no account carries, and a lookup that could
+  not be made, both leave the row a pseudonym rather than an error, so `Opus 5` is typed, kept and saved
+  where it used to be flagged and silently dropped by `IdentityPhase`'s `p.Uuid.Length > 0` filter.
+  `Api/Services/PlayerLookup.cs` puts the same shape check in front of Mojang server-side and a 30-day
+  cache behind it (`PlayerNameStore`, `minecraft_player`, `M0028`), so the handful of people an author types
+  on every board cost one request between them. And where a name cannot be stored at all, `PUT
+  …/intent` now answers **400 `RQ1`** naming the person (`meta.authors[0].name`) rather than writing the map
+  without them — a 200 that credits fewer people than were listed is the failure being closed, so it is
+  refused at both ends or it is kept at both. And an author row's mark is now drawn from the row — an
+  initial over a hue hashed from its uuid or name — rather than fetched as a player head from
+  `mc-heads.net`, which was an unpinned third-party request from the user's own browser on every page
+  carrying authors, and the first thing to fail on a restricted network; the e2e harness lost the
+  `ALLOWED_FAULTS` entry that existed only to tolerate it. (C45, TC2)
 - **One keyboard, one registry, and the help is generated from it (C53).** `wwwroot/js/studio/shared/keys.js`
   owns the app's single `keydown` listener and the registry every binding lives in. An entry is
   `{ id, keys, label, group, run, when?, priority?, inField?, passive? }`, and `label` and `group` are
@@ -239,8 +259,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   placing group rather than from a stated number, so a tool added to `DressingTools.All` leaves a working
   phase green, and names the three it drives — `Stroke`, `Water`, `Tree` — once, so the offer check and the
   clicks cannot disagree about what a tool is called: the drive reaches the path and channel drags past its
-  first click. `ALLOWED_FAULTS` tolerates the author avatars' third-party host: whether a run reaches it is
-  a fact about that run's network, while a failed request of the page's own still fails the sweep.
+  first click.
 - **The canvases share their machinery instead of re-deriving it (CV13 + CV14).** Two shapes of
   duplication, both of which had already cost something:
   - **The layer z-stack was stated twice per canvas** — once by the `#…Layer` field declarations, once by
@@ -434,7 +453,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   behaviour change. Entry-page naming (`SketchCreate`/`ImportPhase`) deferred. (C26)
 - **Identity phase label unified + Sketch on the phase model** — the identity surface is **`Identity`**
   everywhere (Configure `Map Info`/Edit `Overview` → `IdentityPhase`). The Sketch tool became a phase host:
-  an **`Info`** phase with `Identity` (editable name + username-verified **authors**, via the shared
+  an **`Info`** phase with `Identity` (editable name + **authors**, via the shared
   `AuthorsEditor` + the map-metadata endpoint — sketches are map rows) and `Settings` (symmetry) steps,
   plus a **`Draw`** phase (the canvas, kept mounted/hidden across phase switches). The canvas **auto-grows
   to the drawn content** (plan-editor model — working bounds = content + a one-chunk buffer, snapped to
@@ -446,15 +465,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
 - **Shared `AuthorsEditor` across every tool + abandoned-draft cleanup** — the Edit and Configure Identity
   phases dropped their duplicated author/contributor rows + Mojang resolution for the shared `AuthorsEditor`
   (the Sketch Info phase already used it), so all tools credit authors identically; each phase keeps only
-  its own load/save (Edit → map metadata, Configure → the intent meta slice, verified-only). `AuthorsEditor`
+  its own load/save (Edit → map metadata, Configure → the intent meta slice). `AuthorsEditor`
   now resolves a row either way — stored uuid → name **or** stored name → uuid — so a name-only row (the
-  Configure intent's shape) shows its head on load. And a **New sketch** draft left untouched is auto-discarded
+  Configure intent's shape) is matched to its account on load. And a **New sketch** draft left untouched is auto-discarded
   (`DELETE /api/map/{slug}/sketch/discard-if-empty`, called on the tool's dispose) when still pristine —
   sketch stage, default name, no authors, no shapes — so an abandoned click no longer litters the dashboard.
   Verified: curl (discard keeps renamed/drawn drafts) + Playwright (leave an empty draft → gone). (C27)
 - **Plan tool on the phase model (map route)** — a map-backed plan (`/maps/{slug}/plan`) is now a phase host
   like Sketch: the rail is `Info`/`Draw`. The new `PlanInfoPhase` has an `Info` phase with **Identity**
-  (plan name + username-verified authors via the shared `AuthorsEditor`, saved to the map-metadata endpoint)
+  (plan name + authors via the shared `AuthorsEditor`, saved to the map-metadata endpoint)
   and **Settings** (the plan globals — symmetry + cell/surface/headroom/max-players — rendered here and
   forwarded to the plan-doc bridge by the host). The **Draw** phase is the canvas workspace (kept mounted,
   hidden across switches, re-measured on return), its sidebar stripped of name/globals and given an
@@ -3058,11 +3077,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   a topbar text indicator — **Saved · Saving… · Unsaved** (no icons); done is the rail's green dot. Phase
   bodies patch `Intent` + call `MarkDirty` via a cascaded wizard ref. Doc: §12. (ND4, NS)
 - **Map Info phase (N00)** — the identity slice: map name + authors + contributors → intent `meta`, edited
-  on a form that writes the working intent live and gates `Next` until there's a name and ≥1 **verified**
-  author. Usernames are checked against Mojang **on blur** (`GET /minecraft/player`, reusing the Overview
-  editor's flow) → canonical name + mc-heads avatar head, or a flagged error; only verified names reach the
-  intent, so a bad username can't survive into the map. Version / mode / objective are shown locked
-  (generator-derived); the server re-resolves usernames → UUIDs on the save `PUT`. (`InfoPhase`; N00)
+  on a form that writes the working intent live and gates `Next` until there's a name and at least one
+  author. A row shaped like a Minecraft account is resolved **on blur** (`GET /minecraft/player`, reusing
+  the Overview editor's flow) to its canonical name and uuid; anything else that is a name stands as a
+  pseudonym. Version / mode / objective are shown locked (generator-derived); the server re-resolves
+  usernames → UUIDs on the save `PUT`. (`InfoPhase`; N00, TC2)
 - **World · Scan sub-step (N01)** — a read-only review of the extracted world: the centre panel is the
   reused edit-page `WorldCanvas` (its navigation toolbar — pan/zoom · fit island · reset — and its island
   base ↔ surface "Blocks" layer toggle), with a cleaned-base summary (the corpus-fixed noise exclusions)

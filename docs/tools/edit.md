@@ -212,7 +212,7 @@ refused as `RQ5` — the third 409 in that list — and one stating nothing writ
 | Endpoint | Does |
 |---|---|
 | `PATCH /map/{slug}/metadata` | name, version, objective, max build height, authors |
-| `GET /minecraft/player[?name=\|uuid=]` | one player as `{uuid, name}`, resolved through Mojang — what turns a typed username into the canonical uuid an author entry is stored under, and a stored uuid back into a name to show |
+| `GET /minecraft/player[?name=\|uuid=]` | one player as `{uuid, name}` — what turns a typed username into the canonical uuid an author entry is stored under, and a stored uuid back into a name to show. Two things stand in front of Mojang: a value not shaped like an account name is never asked about, and a pair already resolved is answered from `minecraft_player` for thirty days. **404** means no account is called that, which the editor reads as a pseudonym rather than an error |
 | `POST` · `PATCH` · `DELETE /map/{slug}/teams[/{teamId}]` | the teams |
 | `POST` · `PATCH` · `DELETE /map/{slug}/spawns[/{regionId}]` | a spawn's region, team, yaw and kit |
 | `PATCH` · `DELETE /map/{slug}/observer-spawn` | the `<default>` spawn |

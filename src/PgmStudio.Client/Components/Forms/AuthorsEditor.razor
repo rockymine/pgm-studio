@@ -1,18 +1,20 @@
 @namespace PgmStudio.Client.Components
+@using PgmStudio.Vocabulary
 @inject HttpClient Http
 @inject IJSRuntime JS
 
-@* Author/contributor editor — rows of Minecraft usernames resolved on blur to a head + canonical name
-   (an unknown username flags an error and clears the stored uuid). Reusable across the map tools: the
-   parent owns load/save (the metadata endpoint), this owns the rows + resolution and raises OnChanged on
-   every edit. Pass Contributors to show a second list; omit it for an authors-only tool. *@
+@* Author/contributor editor — rows of people, each of whom PGM takes as an account or as a pseudonym.
+   A row shaped like a Minecraft account is resolved on blur to its canonical uuid and spelling; anything
+   else that is a name at all stands as typed. Reusable across the map tools: the parent owns load/save
+   (the metadata endpoint), this owns the rows + resolution and raises OnChanged on every edit. Pass
+   Contributors to show a second list; omit it for an authors-only tool. *@
 
 <Section Title="Authors">
   <Actions><Button OnClick="() => Add(Authors)">+ Add</Button></Actions>
   <ChildContent>
     <div class="author-list">
       @foreach (var p in Authors) { @Row(p, Authors) }
-      @if (Authors.Count == 0) { <p class="section-desc">Add at least one author — credited by Minecraft username.</p> }
+      @if (Authors.Count == 0) { <p class="section-desc">Add at least one author — a Minecraft username, or any name.</p> }
     </div>
   </ChildContent>
 </Section>
@@ -35,10 +37,13 @@
     private RenderFragment Row(AuthorRow p, List<AuthorRow> list) => __builder =>
     {
         <div class="author-row">
-            <img class="author-avatar" width="16" height="16" alt=""
-                 src="@(string.IsNullOrEmpty(p.Uuid) ? AvatarEmpty : $"https://mc-heads.net/avatar/{p.Uuid}/16")" />
+            <span class="author-mark @(p.Uuid.Length > 0 ? "author-mark--account" : null)"
+                  style="@MarkStyle(p)" aria-hidden="true">@Initial(p)</span>
             <input class="field-input author-name @(p.Error ? "field-input--error" : null)" type="text"
-                   placeholder="Minecraft username" title="@(p.Error ? "No Minecraft account with this username" : p.Uuid)"
+                   placeholder="Minecraft username, or any name"
+                   title="@(p.Error ? AuthorNames.Refuse(p.Name.Trim())
+                            : p.Uuid.Length > 0 ? p.Uuid
+                            : "Stored as a pseudonym — no Minecraft account is called this")"
                    value="@p.Name"
                    @oninput="e => { p.Name = e.Value?.ToString() ?? string.Empty; NotifyChanged(); }"
                    @onblur="() => ResolveName(p)" />

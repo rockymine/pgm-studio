@@ -41,7 +41,7 @@ public static class MapFromDocuments
     public static async Task<MapLoad> LoadAsync(
         HttpContext http, MapFromDocumentsRequest request,
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
-        WorldFeatureWriter features, PgmDb db, MojangClient mojang, CancellationToken ct)
+        WorldFeatureWriter features, PgmDb db, PlayerLookup players, CancellationToken ct)
     {
         var name = request.Name;
         if (string.IsNullOrWhiteSpace(name)) name = StatedName(request.Intent);
@@ -84,7 +84,7 @@ public static class MapFromDocuments
             // Then the intent, which stores it and projects the document from it — and only then the authors,
             // because that projection is what would overwrite them.
             var applied = await IntentWrite.StoreAndProjectAsync(
-                repo, reader, writer, artifacts, mojang, slug, mapId, request.Intent.GetRawText(),
+                repo, reader, writer, artifacts, players, slug, mapId, request.Intent.GetRawText(),
                 expected: null, ct);
             if (applied.Refusal is { } refused)
             {

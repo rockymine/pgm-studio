@@ -180,10 +180,30 @@ this tool and the Edit tool.
 
 One form: the map's display name and its authors and contributors. PGM takes a person as an **account** — a
 `uuid` it resolves to a player — **or** a **pseudonym**, the element's own text, and either alone is a whole
-author; `PUT /map/{slug}/intent` and `PATCH /map/{slug}/metadata` both accept either. The editor offers only
-the account half: a typed value is looked up against Mojang on blur and a miss is flagged, so a name Mojang
-does not know cannot be entered here and a pseudonym has to be written through the API (`TC2`). The phase is
-complete with a name and at least one author, and that is the one gate that blocks the very first Next.
+author; `PUT /map/{slug}/intent` and `PATCH /map/{slug}/metadata` both accept either, and so does the editor.
+
+A typed row settles on blur, and the first question asked of it is the shape of the name rather than
+Mojang's opinion of it: an account name is three to sixteen of letters, digits and underscore, which is
+Mojang's own rule (`AuthorNames.IsAccountName`). A value of that shape is looked up, and where an account
+answers the row takes its canonical uuid and spelling — the uuid is what the `map.xml` prefers to carry, so
+it is worth the request. Everything else is a **pseudonym**, in three cases that are deliberately one: a
+value no account could be called, so nothing is asked; a value that is shaped like one and answers nothing;
+and a lookup that could not be made at all. In each the stated name stands, the uuid stays empty, and the row
+is saved. An author working with no route to Mojang states the people on their map and the credits hold.
+
+What the field refuses is narrower, and it refuses out loud. A string that is not a name anybody could be
+called — empty, past thirty-two characters, opening or closing on a space, carrying two in a row, or holding
+anything outside letters, digits, spaces and `.,-_'` — is marked on the row, and `AuthorNames.Refuse` gives
+the sentence under it. That is also the only row the phase drops from what it saves, because there is nobody
+in it to credit. The rule is one constant in `PgmStudio.Vocabulary`, read by the browser and by the API, so
+the two cannot disagree about what a name is.
+
+A row's mark is drawn from what the row already holds — an initial over a hue hashed from its identity, the
+uuid where an account answered and the name otherwise — rather than fetched as a player head from a host
+outside the studio. One person keeps their colour across every tool that draws this editor.
+
+The phase is complete with a name and at least one author, and that is the one gate that blocks the very
+first Next.
 
 ### World — Scan · Islands · Symmetry
 
@@ -323,9 +343,16 @@ becomes **Export**. It is enabled only when the pre-flight gate is open.
 ## What it refuses
 
 **Each phase gates the next**, and the gate is the presence of its slice rather than a form validation:
-Identity needs a name and one resolved author, World a confirmed symmetry, Teams a non-empty team list, Build
+Identity needs a name and one author, World a confirmed symmetry, Teams a non-empty team list, Build
 a build slice. The objective phases share **one** gate — the map needs *an* objective, of any kind — so a DTC
 map is never held up by an empty wool slice and a CTW map is never asked for a core.
+
+**A person stated under something that is not a name refuses the write.** `PUT /map/{slug}/intent` answers
+**400** `RQ1` for an author or contributor whose name is empty, past thirty-two characters, carries two
+spaces in a row, or holds a character outside letters, digits, spaces and `.,-_'`, with `field` naming the
+person — `meta.authors[0].name` — and no part of the write happening. A name Mojang cannot answer for is not
+this: that is a pseudonym and it stores. The refusal exists because the alternative is a 200 that quietly
+credits fewer people than the author listed, which nothing downstream can notice.
 
 **The export gate is two of the four checks.** `GET /api/map/{slug}/xml` answers **409** with the isolated
 points named when traversability fails, and the same document would throw on a round-trip failure. Both the
@@ -434,8 +461,8 @@ writes: apart from the import and one island toggle, **Configure has exactly one
 | Endpoint | Body | Answers | Fails with |
 |---|---|---|---|
 | `GET /map/{slug}/intent` | — | the stored intent, or an empty one | 404 unknown map |
-| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **409 `RQ5`** a stale `If-Match` · 404 · 422 the stored map will not carry the projection |
-| `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags; `warnings` carries any field of the **posted** intent the reader had nowhere to keep (`RQ3`) | 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
+| `PUT /map/{slug}/intent` | the whole intent | `{}` — stores it and re-projects the document; `warnings` carries any field the intent reader has nowhere to keep (`RQ3`), which is a slice the author stated and the map will not carry. An `If-Match` names the **intent's** revision, which is what `GET …/intent` answered; the projection that follows rewrites the map and is not guarded by it | **400 `RQ1`** a person named something that is not a name, `field` naming them · **409 `RQ5`** a stale `If-Match` · 404 · 422 the stored map will not carry the projection |
+| `PUT /map/{slug}/intent/from-plan` | a compiled intent | the projected map, carrying the stored **authors and contributors** onto it and nothing else — a rebuild clears the confirmed symmetry and the island-team tags; `warnings` carries any field of the **posted** intent the reader had nowhere to keep (`RQ3`) | **400 `RQ1`** a person named something that is not a name · 404 · **409 `RQ5`** a stale `If-Match` · 422 the stored map will not carry the projection |
 
 **Getting a world in**
 

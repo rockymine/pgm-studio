@@ -27,17 +27,6 @@ intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are lan
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit. Only
 the focus-integration polish remains.
 
-- [ ] **TC2 — The Identity editor cannot state a pseudonym, and drops one in silence.** PGM takes a person
-  as an account (a `uuid`) or a pseudonym (the element's own text), and both codec halves plus
-  `PATCH /map/{slug}/metadata` accept either. The editor does not: `AuthorsEditor.ResolveName` clears the
-  uuid and sets `Error` when Mojang does not know the typed value, and `IdentityPhase.razor.cs:59` then
-  filters the row out with `p.Uuid.Length > 0` — so `Opus 5` is typed, flagged, and dropped without a word
-  reaching the saved intent. Decide what a pseudonym row looks like (an accepted unresolved name, or an
-  explicit "pseudonym" toggle beside the lookup), then stop the silent filter: an unusable row is refused
-  out loud or it is kept. `Components/Forms/AuthorsEditor.razor.cs`, `Features/Configure/IdentityPhase.razor.cs`,
-  `Features/Edit/`. Evidence: `PUT /map/x/intent` with `meta.authors = ["Opus 5"]` round-trips to
-  `<author>Opus 5</author>`; the same name typed into Configure Identity never reaches the intent.
-
 - [ ] **N08 — Monument Y via side-view + per-side focus.** The side-view (`SliceView`) already sets Y on
   **spawn** and **wool-spawn** (`SpawnStep`/`WoolSpawnStep`, `FEATURES.md`); the open slice is the rest:
   (a) wire the side-view into **`WoolMonumentsStep`** so a monument's Y is editable, not read-only
@@ -1232,16 +1221,26 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
 ## The remainder: work no concept above has claimed
 
 
+- [ ] **C62 — Three CSS rules describe a component nothing renders.** `components.css:989–1004` carries an
+  `AUTHOR CHIP (avatar + resolved player name — used in map detail view)` block — `.map-author-chip`,
+  `.map-author-avatar`, `.map-author-name` — and no markup in the repo uses any of the three: `grep -r
+  "map-author" src/ tests/` hits only that CSS. The comment names a surface (the map detail view) that
+  either never shipped or lost the rows since, so a reader looking for the author chip finds a definition
+  and no component. Delete the block, or build the chip the comment names and say which page carries it.
+  `src/PgmStudio.Client/wwwroot/css/studio/components.css:989`. The class list in
+  `docs/client/ui-conventions.md` names no chip either, so nothing else has to move with it.
+
 - [ ] **RP63 — The e2e sweep cannot pass where the container has no egress, and the decision is the
   author's.** `./tools/e2e.sh all` ends `e2e: FAIL` on one check — smoke's *edit tool is clean*, from
   `HTTP 404: /api/minecraft/player?name=Notch`. The endpoint resolves a username through Mojang, and
   `curl -m 10 https://api.mojang.com/...` answers nothing at all in the cloud container, so the 404 is the
-  studio being honest about a host it cannot reach. `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` already
-  tolerates the browser half of the same fact (the `mc-heads.net` avatars) and deliberately refuses to wave
-  through a 4xx, which is what makes this a decision rather than a bug: either the allowlist gains a
-  **route-scoped** entry (a 404 from `/api/minecraft/player` only, so every other endpoint's 404 still
-  fails), or the author rail stops reaching for a network the gate cannot assume. Evidence: 269 checks pass
-  and this one fails, on a branch touching nothing in `Api/Endpoints/MinecraftEndpoints.cs` or
+  studio being honest about a host it cannot reach. `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` holds one
+  entry, for a fetch the sweep itself cancelled, and deliberately refuses to wave through a 4xx — which is
+  what makes this a decision rather than a bug: either the allowlist gains a **route-scoped** entry (a 404
+  from `/api/minecraft/player` only, so every other endpoint's 404 still fails), or the smoke check stops
+  naming a player the gate cannot assume a route to. Nothing else on the page wants the network: the author
+  rows draw their own marks and an unanswered name is stored as a pseudonym (`C45`, `TC2`). Evidence: 269
+  checks pass and this one fails, on a branch touching nothing in `Api/Endpoints/MinecraftEndpoints.cs` or
   `Components/Forms/AuthorsEditor.razor`. `docs/cloud-setup.md` states the symptom.
 
 - [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
@@ -1331,19 +1330,6 @@ braces, worth having once the studio is used by someone who did not write it.
   the drawer is in: label the button for the state (*Fix the plan first*, or the count of blocking findings)
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
-
-- [ ] **C45 — The authors editor fetches every avatar from a third-party host at render time.**
-  `AuthorsEditor.razor:39` renders `https://mc-heads.net/avatar/{uuid}/16` as an `<img src>`, so every author
-  row on the Overview and the plan's Identity step is an unpinned request from the user's own browser to a
-  host nobody here reviews — the runtime-CDN shape `CLAUDE.md` § *JS dependencies* rules out, in image form,
-  and dead the moment egress is restricted. It is dead already: headless Chromium in the cloud container
-  answers `net::ERR_CONNECTION_RESET` for it, which is two of `configure-objectives`' ten checks. **The
-  username lookup behind the row has the same problem and now costs a second spec**: `/api/minecraft/player`
-  proxies to Mojang server-side, the container reaches neither, and `paint` filters the 404 out of its
-  cleanliness check exactly as `configure-objectives` does — two specs carrying a filter for one dependency. Decide what
-  an author row shows without it — the uuid's own colour, an initial, a vendored silhouette — and whether a
-  fetched avatar is worth a server-side proxy with a cache. `AvatarEmpty` beside it is already the
-  no-uuid case, so there is a fallback to widen rather than one to invent.
 
 - [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
 (`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
