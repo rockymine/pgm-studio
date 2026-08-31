@@ -347,12 +347,12 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   stays authoritative about where while the author stays authoritative about how high.*
 
 - [ ] **RP49 — `doc-status.md` describes a `docs/` tree that no longer exists.** The file whose subject is
-  whether the documents are current is itself the stalest thing in the repository. Of its **50 rows citing a
-  document path, 33 name a file that is not there** — the whole `docs/contracts/` folder it is written around
+  whether the documents are current is itself the stalest thing in the repository. Of its **58 rows citing a
+  document path, 38 name a file that is not there** — the whole `docs/contracts/` folder it is written around
   was split by subject long ago, so `contracts/plan-editor.md`, `contracts/sketch-relief.md`,
-  `contracts/canvas-interaction.md` and thirty more resolve to nothing. Of the 17 that do resolve, **15 carry
-  the wrong line count** and two are right: `generator/ideas.md` is listed at 191 lines and is 471,
-  `world-export/decoration.md` at 504 and is 744, `tools/capabilities.md` at 478 and is 707.
+  `contracts/canvas-interaction.md` and thirty-five more resolve to nothing. Of the 20 that do resolve,
+  **17 carry the wrong line count** and three are right: `generator/rules.md` is listed at 616 lines and is
+  889, `generator/model.md` at 1505 and is 1522, `generator/evaluator.md` at 479 and is 494.
 
   A reader cannot tell which rows to trust, so the whole file reads as noise — and a row being right is
   indistinguishable from a row being stale, which is the failure *Documents rot silently* describes, in the
@@ -362,17 +362,19 @@ editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's
   prose can hold — the path and what the document covers. Decide which before rewriting the 50 rows, because
   hand-restoring counts buys a table that is wrong again by the next commit.
 
-  *Measured 2026-08-22 by resolving each cited path against the tree and counting the lines behind the ones
-  that resolve.*
+  *Measured by resolving each cited path against the tree and counting the lines behind the ones that
+  resolve.*
 
 - [ ] **RP47 — The history sweep's grep was one phrasing of several.** `RP10` swept
   `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
-  it. A second reading finds **31 comments across 27 files** outside `Migrations/` carrying the same fault in
+  it. A second reading finds **27 comments across 23 files** outside `Migrations/` carrying the same fault in
   other words — `previously`, `formerly`, `the old …`, `had been`, `stopped being`, `before this said`:
-  `DocAccess.cs:7` ("Previously copy-pasted…"), `PlanValidator.cs:112` ("Both were previously separate…"),
-  `FannedGraph.cs:100` ("The old full-corridor-width floor here misread…"), `UnitPlacement.cs:18`,
-  `Composer.cs:32`, `HubBoxEmitter.cs:184`, `SpawnTerms.cs:54` and twenty-four more. Rewrite each as a fact
-  about the present shape, the way `RP10` did.
+  `PlanValidator.cs:112` ("Both were previously separate…"), `RequiredFields.cs:70` ("did so to thirteen
+  tests before this said so"), `WoolObjectivesStep.razor.cs:190` ("hand-added previously"), `Composer.cs`,
+  `HubBoxEmitter.cs`, `SpawnTerms.cs` and twenty-one more. The grep also catches a handful of sentences
+  that are facts about the present shape — "terrain authored against the old fusion has nowhere correct to
+  land" — so the sweep reads each hit rather than rewriting on the match. Rewrite the rest as a fact about
+  the present shape, the way `RP10` did.
 
   **`Migrations/` is excluded and stays so.** A migration's subject *is* the shape it converts from, so "the
   old columns are read as the defaults" is a statement about the data it meets rather than about a state that
@@ -1404,8 +1406,8 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **RP61 — The library seeder throws on two rows whose names differ only by case.** Five sites in
-  `src/PgmStudio.Api/Services/LibrarySeed.cs` (`SeedThemesAsync`, `SeedStylesAsync` and their siblings) build
+- [ ] **RP61 — The library seeder throws on two rows whose names differ only by case.** Eight sites in
+  `src/PgmStudio.Api/Services/LibrarySeed.cs` (lines 51, 54, 117, 120, 180, 283, 347, 457) build
   their idempotency map as `.GroupBy(row => row.Name)` — ordinal — feeding
   `.ToDictionary(…, StringComparer.OrdinalIgnoreCase)`, so two rows named `meadow` and `Meadow` group as two
   keys and collide as one: `ArgumentException` out of `ToDictionary`, on every app start, since the seed runs
@@ -1433,9 +1435,9 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
 
 ### User Experience and Graphical User Interface
 
-- [ ] **C51 — Twenty-nine selects outside the authoring surface are still hand-rolled.** `Select` and
-  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`); the plan tool carries 6
-  raw `<select>`, the sketch tool 9, Edit 6, Configure 5 and the design showcase 1. Each is the same
+- [ ] **C51 — Twenty-eight selects outside the authoring surface are still hand-rolled.** `Select` and
+  `StyleSelect` serve the library and the terrain components (`B259`, `FEATURES.md`); the plan tool carries 7
+  raw `<select>`, the sketch tool 7, Edit 6, Configure 5 and the design showcase 1. Each is the same
   options-and-a-value question written as markup, so a group, a per-row note or a disabled row has to be
   re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
   *Forms* tier already names it.
@@ -1558,8 +1560,9 @@ feature section.
   that one is two builds at once, this one is one build after another.
 
 - [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
-  build.** Each is a sentence pointing at something that is not there, and each is silenced in all five
-  `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`):
+  build.** Each is a sentence pointing at something that is not there, and each is silenced in all nine
+  `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`, `Analysis`,
+  `Contracts`, `Geom`, `Vocabulary`):
 
   | id | the defect | what to look for |
   |---|---|---|
@@ -1568,18 +1571,19 @@ feature section.
   | **CS0419** | a cref matches several overloads and silently picks one | `<see cref="Foo"/>` where `Foo` has more than one signature |
   | **CS1734** | a `<paramref>` names a parameter that was renamed | the name in the prose against the name in the signature |
 
-  **One member of the family no warning catches, and it misleads hardest.** Five docstrings open **two
+  **One member of the family no warning catches, and it misleads hardest.** Twenty-one docstrings open **two
   `<summary>` blocks on one member**, the first describing something other than what follows it — a docstring
   left behind when the member under it went away. The XML is well formed, so `CS1570` says nothing; the
   compiler concatenates both into that member's entry and the tooltip leads with a sentence about something
   else. Found by scanning `src/` for comment blocks with more than one `<summary>` open, which is what to
-  re-run: `UnitRequests.cs:6`, `UnitSeating.cs:6`, `Producibility.cs:124`,
-  `SketchDressingInspector.razor.cs:263`, `PlacedProp.cs:251`.
+  re-run: `TraversabilityRender.cs` twice, `MapExportComposer.cs` twice, `UnitRequests.cs:6`,
+  `UnitSeating.cs:6`, `Producibility.cs:125`, `SketchDressingInspector.razor.cs:267`, `PlacedProp.cs:296`,
+  `SketchRasterizer.cs:8`, `AnalysisEndpoints.cs:16`, `EditDtos.cs:5` and ten more.
 
-  *measured 2026-08-16 by dropping the four ids from `NoWarn` and rebuilding clean: **148 distinct sites over
-  55 files** — 90 CS1573, 34 CS1574, 14 CS0419, 10 CS1734. The entry's earlier count of 36 over 26 files was
-  the tail of one project, not the sweep. Worst files: `TerrainTheme.cs` (9), `SpawnBoxEmitter.cs` (7),
-  `FrontlineBoxEmitter.cs` (7), `MapExportComposer.cs` (7). `CS1587` stays silenced on purpose — a docstring
+  *measured by dropping the four ids from `NoWarn` and rebuilding clean: **299 distinct sites over
+  85 files** — 227 CS1573, 39 CS1574, 21 CS0419, 12 CS1734. Worst files: `LibraryDtos.cs` (56),
+  `TerrainTheme.cs` (12), `TerrainProfile.cs` (12), `Decorator.cs` (9), `WorldBuilder.cs` (8),
+  `SpawnBoxEmitter.cs` (7). `CS1587` stays silenced on purpose — a docstring
   on a local function, which the compiler never emits.*
 
 - [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
@@ -1616,7 +1620,7 @@ feature section.
   re-implementing `workspace-sidebar`, `card-grid`, `badge` and `filter-chip` under their own names. The atoms
   inside them have been picked up where they fit; the layout has not.
 
-  **Polish**: fold the one `section-heading` use into `SectionHeader`, and drop the 84 inline `style=`
+  **Polish**: fold the one `section-heading` use into `SectionHeader`, and drop the 87 inline `style=`
   occurrences now expressible as component params (`Fill`, `Full`, a modifier `Class`).
 
 - [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
@@ -1694,8 +1698,8 @@ feature section.
   is still worth considering, and is independent of the above.
 
 - [ ] **CV12 — Two thirds of the JS layer is never loaded by a test, and the bridges are the reachable
-  third.** Of 55 studio modules (12,694 lines), the 333 tests in `tests/js/` reach 28 (4,677 lines); the
-  other **27 files / 8,017 lines are never imported**, which `--experimental-test-coverage` reports as
+  third.** Of 59 studio modules (16,013 lines), the 405 tests in `tests/js/` reach 31 (5,114 lines); the
+  other **28 files / 10,899 lines are never imported**, which `--experimental-test-coverage` reports as
   *absent* rather than zero, so the report reads healthier than the tree is. The untested set is the whole
   interactive layer: every canvas (`world-canvas` 1046, `plan-canvas` 1017, `sketch-canvas` 871,
   `canvas-base`, `sideview-canvas`), every bridge, every controller, `iso-webgl` and `studio.js`.
