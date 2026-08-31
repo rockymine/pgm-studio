@@ -45,7 +45,7 @@ test("rectContainsCell is half-open on the far edge", () => {
 // ── hit-testing ─────────────────────────────────────────────────────────────
 test("pieceAtCell / zoneAtCell return the topmost containing item", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "a", role: "lane", rect: [0, 0, 4, 4] }, { id: "b", role: "hub", rect: [1, 1, 2, 2] }],
     zones: [{ id: "z", rect: [0, 0, 2, 2] }],
   });
@@ -57,44 +57,44 @@ test("pieceAtCell / zoneAtCell return the topmost containing item", () => {
 
 test("markerCell / attachMarker resolve piece-relative offsets", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],
-    placements: { spawns: [{ piece: "bar", at: [1, 2], facing: "front" }] },
+    placements: { spawns: [{ piece: "bar", at: [5, 10], facing: "front" }] },
   });
   assert.deepEqual(markerCell(doc, doc.placements.spawns[0]), [2, 7]);
   // Dropping a marker at absolute cell (2,7) re-derives the same offset on the piece under it.
-  assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [1, 2] });
+  assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [5, 10] });
   assert.equal(attachMarker(doc, 40, 40), null);   // no piece under → cannot attach
 });
 
-test("attachMarker snaps a fractional drop to the half-cell lattice", () => {
+test("attachMarker snaps a fractional drop to the half-block lattice", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],
   });
   assert.equal(snapHalf(1.4), 1.5);
   assert.equal(snapHalf(1.1), 1);
-  // dropping at fractional cell (2.4, 6.6) on piece origin (1,5) → offset (1.4,1.6) snaps to (1.5,1.5)
-  assert.deepEqual(attachMarker(doc, 2.4, 6.6), { piece: "bar", at: [1.5, 1.5] });
-  // an integer drop still yields an integer offset (back-compat)
-  assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [1, 2] });
+  // dropping at fractional cell (2.4, 6.6) on piece origin (1,5) → offset (7, 8) blocks, already on the lattice
+  assert.deepEqual(attachMarker(doc, 2.4, 6.6), { piece: "bar", at: [7, 8] });
+  // a cell-corner drop lands on a whole block offset
+  assert.deepEqual(attachMarker(doc, 2, 7), { piece: "bar", at: [5, 10] });
 });
 
-test("attachMarker snaps a 2×2-room click to the nearest half-cell lattice point (no per-cell bias)", () => {
+test("attachMarker snaps a 2×2-room click to the nearest half-block lattice point", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "room", role: "piece", rect: [3, 3, 2, 2] }],   // 2×2-cell room, cells x∈{3,4}, z∈{3,4}
   });
-  // a click at the room's exact centre (absolute cell (4,4)) → the room-centre lattice point [1,1]
-  assert.deepEqual(attachMarker(doc, 4, 4), { piece: "room", at: [1, 1] });
-  // a click inside the first cell's interior → the cell-centre lattice point [0.5,0.5]
-  assert.deepEqual(attachMarker(doc, 3.5, 3.5), { piece: "room", at: [0.5, 0.5] });
-  // render position matches the compiler formula piece.min + at·cell — the room-centre marker sits
+  // a click at the room's exact centre (absolute cell (4,4)) → block offset [5,5], a grid line on both axes
+  assert.deepEqual(attachMarker(doc, 4, 4), { piece: "room", at: [5, 5] });
+  // a click at the first cell's own centre → block offset [2.5,2.5], a block centre on both
+  assert.deepEqual(attachMarker(doc, 3.5, 3.5), { piece: "room", at: [2.5, 2.5] });
+  // render position matches the compiler formula piece.min + at — the room-centre marker sits
   // on the shared cell corner (block (20,20) at cell 5), not offset into a cell.
   const centred = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "room", role: "piece", rect: [3, 3, 2, 2] }],
-    placements: { wools: [{ piece: "room", at: [1, 1] }] },
+    placements: { wools: [{ piece: "room", at: [5, 5] }] },
   });
   assert.deepEqual(markerCell(centred, centred.placements.wools[0]), [4, 4]);
   assert.deepEqual(markerAtWorld(centred, 20, 20), { kind: "marker", markerKind: "wool", index: 0 });
@@ -114,11 +114,11 @@ test("nextFacing cycles front → right → back → left → front", () => {
 // ── pick priority (markers paint above pieces) ────────────────────────────────
 test("markerAtWorld picks a marker within its radius; pickAtWorld prefers it over the piece under it", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
-    placements: { spawns: [{ piece: "p", at: [1, 1], facing: "front" }] },
+    placements: { spawns: [{ piece: "p", at: [5, 5], facing: "front" }] },
   });
-  // marker at cell (1,1) → block point (5, 5) (piece.min + at·cell, no half-cell offset)
+  // an offset of 5 blocks on a piece at the origin → block point (5, 5)
   assert.deepEqual(markerAtWorld(doc, 5, 5), { kind: "marker", markerKind: "spawn", index: 0 });
   // a click on the marker selects it even though a piece covers that cell (paint order: markers on top)
   assert.deepEqual(pickAtWorld(doc, 5, 5), { kind: "marker", markerKind: "spawn", index: 0 });
@@ -131,16 +131,16 @@ test("markerAtWorld picks a marker within its radius; pickAtWorld prefers it ove
 
 test("markerAtWorld breaks ties to the later-painted (topmost) marker", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
-    placements: { spawns: [{ piece: "p", at: [1, 1], facing: "front" }], wools: [{ piece: "p", at: [1, 1] }] },
+    placements: { spawns: [{ piece: "p", at: [5, 5], facing: "front" }], wools: [{ piece: "p", at: [5, 5] }] },
   });
   // both markers share the same cell; allMarkers paints spawns before wools, so the wool wins the tie
   assert.deepEqual(markerAtWorld(doc, 5, 5), { kind: "marker", markerKind: "wool", index: 0 });
 });
 
 test("pickAtWorld falls to a zone only when no marker or piece is hit", () => {
-  const doc = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_180" }, zones: [{ id: "z", rect: [0, 0, 2, 2] }] });
+  const doc = normalizeDoc({ plan: 2, globals: { cell: 5, symmetry: "rot_180" }, zones: [{ id: "z", rect: [0, 0, 2, 2] }] });
   assert.deepEqual(pickAtWorld(doc, 2, 2), { kind: "zone", id: "z" });
   assert.equal(pickAtWorld(doc, 99, 99), null);
 });
@@ -157,7 +157,7 @@ test("sameSelection compares piece/zone ids and marker kind+index", () => {
 // ── height-map ────────────────────────────────────────────────────────────────
 test("surfaceRange / pieceSurface resolve inherited surfaces across pieces", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
     pieces: [{ id: "a", role: "piece", rect: [0, 0, 1, 1] }, { id: "b", role: "piece", rect: [1, 0, 1, 1], surface: 15 }],
   });
   assert.equal(pieceSurface(doc, doc.pieces[0]), 9);    // inherited from globals
@@ -177,20 +177,20 @@ test("surfaceFraction maps a surface onto 0..1; a flat plan pins to the top of t
 // ── mirror ghost ────────────────────────────────────────────────────────────
 test("pieceMirrorImages fans one image per orbit axis, honouring mirrors:false", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "a", role: "lane", rect: [1, 1, 2, 2] }, { id: "b", role: "mid", rect: [3, 3, 1, 1], mirrors: false }],
   });
   const imgs = pieceMirrorImages(doc);
   assert.equal(imgs.length, 1);                   // only the mirroring piece, one rot_180 image
   assert.deepEqual(imgs[0].bounds, { min_x: -15, min_z: -15, max_x: -5, max_z: -5 });
 
-  const doc4 = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_90" }, pieces: [{ id: "a", role: "lane", rect: [1, 1, 2, 2] }] });
+  const doc4 = normalizeDoc({ plan: 2, globals: { cell: 5, symmetry: "rot_90" }, pieces: [{ id: "a", role: "lane", rect: [1, 1, 2, 2] }] });
   assert.equal(pieceMirrorImages(doc4).length, 3);   // rot_90 fans three quarter-turn images
 });
 
 test("zoneMirrorImages fans zones (and holes) about the origin per orbit axis", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     zones: [{ id: "z", rect: [1, 1, 2, 2], holes: [[1, 1, 1, 1]] }],
   });
   const imgs = zoneMirrorImages(doc);
@@ -199,13 +199,13 @@ test("zoneMirrorImages fans zones (and holes) about the origin per orbit axis", 
   assert.deepEqual(imgs[0].bounds, { min_x: -15, min_z: -15, max_x: -5, max_z: -5 });
   assert.deepEqual(imgs[0].holes, [{ min_x: -10, min_z: -10, max_x: -5, max_z: -5 }]);
 
-  const doc4 = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_90" }, zones: [{ id: "z", rect: [1, 1, 1, 1], holes: [] }] });
+  const doc4 = normalizeDoc({ plan: 2, globals: { cell: 5, symmetry: "rot_90" }, zones: [{ id: "z", rect: [1, 1, 1, 1], holes: [] }] });
   assert.equal(zoneMirrorImages(doc4).length, 3);   // rot_90 fans three quarter-turn images
 });
 
 test("viewBounds includes zone mirror ghosts (never cut off)", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     zones: [{ id: "z", rect: [1, 1, 2, 2], holes: [] }],
   });
   // content (5,5)-(15,15) unioned with its ghost (-15,-15)-(-5,-5)
@@ -214,7 +214,7 @@ test("viewBounds includes zone mirror ghosts (never cut off)", () => {
 
 test("markerMirrorImages mirrors marker centres about the origin", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "bar", role: "lane", rect: [1, 1, 1, 1] }],
     placements: { spawns: [{ piece: "bar", at: [0, 0], facing: "front" }] },
   });
@@ -225,7 +225,7 @@ test("markerMirrorImages mirrors marker centres about the origin", () => {
 
 test("pieceMirrorImages ghosts a piece with an inherited (unset) surface", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
     pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],   // no explicit surface
   });
   const imgs = pieceMirrorImages(doc);
@@ -236,7 +236,7 @@ test("pieceMirrorImages ghosts a piece with an inherited (unset) surface", () =>
 
 test("viewBounds spans content plus its ghost images (never cut off)", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180", surface: 9 },
     pieces: [{ id: "bar", role: "lane", rect: [1, 5, 2, 6] }],
     placements: { spawns: [{ piece: "bar", at: [0, 0], facing: "front" }] },
   });
@@ -244,14 +244,14 @@ test("viewBounds spans content plus its ghost images (never cut off)", () => {
   assert.deepEqual(viewBounds(doc), { min_x: -15, min_z: -55, max_x: 15, max_z: 55 });
   assert.equal(viewBounds(emptyDoc()), null);
 
-  const doc4 = normalizeDoc({ plan: 1, globals: { cell: 5, symmetry: "rot_90" }, pieces: [{ id: "a", role: "lane", rect: [4, 4, 1, 1] }] });
+  const doc4 = normalizeDoc({ plan: 2, globals: { cell: 5, symmetry: "rot_90" }, pieces: [{ id: "a", role: "lane", rect: [4, 4, 1, 1] }] });
   // Three quarter-turn images fan the single cell into all four quadrants.
   assert.deepEqual(viewBounds(doc4), { min_x: -25, min_z: -25, max_x: 25, max_z: 25 });
 });
 
 test("contentBounds encloses pieces, zones and markers", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "a", role: "lane", rect: [0, 0, 2, 2] }],
     zones: [{ id: "z", rect: [-1, -1, 1, 1] }],
   });
@@ -260,7 +260,7 @@ test("contentBounds encloses pieces, zones and markers", () => {
 });
 
 test("allMarkers flattens spawns/wools/iron with kind + index", () => {
-  const doc = normalizeDoc({ plan: 1, placements: { spawns: [{ piece: "a", at: [0, 0] }], wools: [{ piece: "a", at: [1, 0] }], iron: [] } });
+  const doc = normalizeDoc({ plan: 2, placements: { spawns: [{ piece: "a", at: [0, 0] }], wools: [{ piece: "a", at: [1, 0] }], iron: [] } });
   assert.deepEqual(allMarkers(doc).map(m => [m.kind, m.index]), [["spawn", 0], ["wool", 0]]);
 });
 
@@ -285,7 +285,7 @@ test("canonicalRole folds legacy/unknown roles to piece, keeps intent + annotati
 
 test("normalizeDoc maps legacy piece roles on load", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "a", role: "lane", rect: [0, 0, 2, 2] }, { id: "b", role: "wool-room", rect: [2, 0, 2, 2] }],
   });
   assert.equal(doc.pieces[0].role, "piece");
@@ -295,7 +295,7 @@ test("normalizeDoc maps legacy piece roles on load", () => {
 
 test("normalizeDoc and toJson round-trip a buffer piece verbatim", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "buffer", role: "buffer", rect: [0, 0, 2, 2] },
              { id: "buffer-2", role: "buffer", rect: [3, 0, 2, 2], mirrors: false }],
   });
@@ -307,7 +307,7 @@ test("normalizeDoc and toJson round-trip a buffer piece verbatim", () => {
 
 test("pieceMirrorImages fans a buffer with mirrors unset and skips one with mirrors:false", () => {
   const doc = normalizeDoc({
-    plan: 1, globals: { cell: 5, symmetry: "rot_180" },
+    plan: 2, globals: { cell: 5, symmetry: "rot_180" },
     pieces: [{ id: "buffer", role: "buffer", rect: [1, 1, 2, 2] },
              { id: "buffer-2", role: "buffer", rect: [3, 3, 1, 1], mirrors: false }],
   });
@@ -318,7 +318,7 @@ test("pieceMirrorImages fans a buffer with mirrors unset and skips one with mirr
 
 test("toggleWall raises a mark and takes it off again, order-insensitive", () => {
   // Which face the chests open on is derived, not authored, so a click decides only whether the wall stands.
-  const doc = normalizeDoc({ plan: 1 });
+  const doc = normalizeDoc({ plan: 2 });
   assert.equal(toggleWall(doc, "a", "b"), true);
   assert.deepEqual(doc.walls, [{ a: "a", b: "b" }]);         // no side: nothing here names a face
   assert.equal(toggleWall(doc, "b", "a"), false);            // same pair reversed → the same mark, removed
@@ -347,7 +347,7 @@ test("fromJson → toJson round-trips a seed plan's data", () => {
   assert.equal(doc.pieces.length, 8);
   assert.deepEqual(doc.pieces.find(p => p.id === "piece-2").rect, [-3, 4, 2, 7]);
   assert.equal(doc.pieces.find(p => p.id === "wool").role, "wool-room");
-  assert.deepEqual(doc.placements.spawns[0], { id: "spawn-1", piece: "spawn", at: [1, 1], facing: "front" });
+  assert.deepEqual(doc.placements.spawns[0], { id: "spawn-1", piece: "spawn", at: [5, 5], facing: "front" });
   assert.equal(doc.placements.wools.length, 2);
 });
 
@@ -370,7 +370,7 @@ test("markerList maps each kind to its own list, and an unknown kind to nothing"
 
 test("a destroyable placement round-trips, keeping only its authored fields", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     placements: {
       destroyables: [
         { piece: "bar-w", at: [2, 3] },
@@ -397,7 +397,7 @@ test("allMarkers includes destroyables, tagged with their kind", () => {
 
 test("a core placement round-trips, keeping only its authored knobs", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     placements: {
       cores: [
         { piece: "mid", at: [2, 2] },
@@ -420,7 +420,7 @@ test("a core placement round-trips, keeping only its authored knobs", () => {
 test("openTop:false and float:0 survive normalize (falsy but authored)", () => {
   // A naive `if (c.openTop)` would drop an explicit false, and `if (c.float)` an explicit 0 — which is the
   // 27% of cores that rest directly on the floor, the case where float matters most.
-  const doc = normalizeDoc({ plan: 1, placements: { cores: [{ piece: "mid", at: [0, 0], openTop: false, float: 0, leak: 5 }] } });
+  const doc = normalizeDoc({ plan: 2, placements: { cores: [{ piece: "mid", at: [0, 0], openTop: false, float: 0, leak: 5 }] } });
   assert.equal(doc.placements.cores[0].openTop, false);
   assert.equal(doc.placements.cores[0].float, 0);
   assert.equal(doc.placements.cores[0].leak, 5);
@@ -430,13 +430,13 @@ test("openTop:false and float:0 survive normalize (falsy but authored)", () => {
 
 test("normalizeDoc defaults boxes to [] and folds an unknown kind to mid", () => {
   assert.deepEqual(emptyDoc().boxes, []);
-  const doc = normalizeDoc({ plan: 1, boxes: [{ id: "b", kind: "nonsense", rect: [0, 0, 2, 2] }] });
+  const doc = normalizeDoc({ plan: 2, boxes: [{ id: "b", kind: "nonsense", rect: [0, 0, 2, 2] }] });
   assert.equal(doc.boxes[0].kind, "mid");
 });
 
 test("a box's members are kept only when named, so a containment box stays bare", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     boxes: [
       { id: "a", kind: "wool", rect: [0, 0, 2, 2] },
       { id: "b", kind: "hub", rect: [0, 0, 2, 2], members: [] },
@@ -451,7 +451,7 @@ test("a box's members are kept only when named, so a containment box stays bare"
 
 test("boxMembers takes the generating pieces wholly inside, never annotations", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [
       { id: "entry", role: "piece", rect: [0, 0, 2, 1] },
       { id: "room", role: "wool-room", rect: [2, 0, 1, 1] },
@@ -465,7 +465,7 @@ test("boxMembers takes the generating pieces wholly inside, never annotations", 
 
 test("named members win over containment and ignore the rect", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [
       { id: "entry", role: "piece", rect: [0, 0, 2, 1] },
       { id: "far", role: "piece", rect: [8, 8, 1, 1] },
@@ -483,7 +483,7 @@ test("rectContainsRect counts touching edges as inside", () => {
 
 test("boxAtCell takes the smallest containing box, whatever the draw order", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     boxes: [{ id: "inner", kind: "wool", rect: [1, 1, 2, 2] }, { id: "outer", kind: "hub", rect: [0, 0, 4, 4] }],
   });
   assert.equal(boxAtCell(doc, 0, 0)?.id, "outer");   // only the outer box covers this cell
@@ -493,7 +493,7 @@ test("boxAtCell takes the smallest containing box, whatever the draw order", () 
 
 test("boxOfPiece finds the box that groups a piece (what Escape pops out to)", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "p", role: "piece", rect: [1, 1, 1, 1] }, { id: "loose", role: "piece", rect: [9, 9, 1, 1] }],
     boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }],
   });
@@ -503,10 +503,10 @@ test("boxOfPiece finds the box that groups a piece (what Escape pops out to)", (
 
 test("pickAtWorld picks the box over its pieces, and drill reaches past it", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }],
     boxes: [{ id: "b", kind: "hub", rect: [0, 0, 4, 4] }],
-    placements: { spawns: [{ piece: "p", at: [0, 2], facing: "front" }] },
+    placements: { spawns: [{ piece: "p", at: [0, 10], facing: "front" }] },
   });
   // Single-click: the marker still wins on its own tight radius; elsewhere the box (the group) does.
   assert.deepEqual(pickAtWorld(doc, 0, 10), { kind: "marker", markerKind: "spawn", index: 0 });
@@ -517,12 +517,12 @@ test("pickAtWorld picks the box over its pieces, and drill reaches past it", () 
 });
 
 test("an unboxed plan is unaffected by the group model", () => {
-  const doc = normalizeDoc({ plan: 1, pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }] });
+  const doc = normalizeDoc({ plan: 2, pieces: [{ id: "p", role: "piece", rect: [0, 0, 4, 4] }] });
   assert.deepEqual(pickAtWorld(doc, 10, 10), { kind: "piece", id: "p" });
 });
 
 test("boxes fan into the mirror ghost and widen the view bounds", () => {
-  const doc = normalizeDoc({ plan: 1, globals: { symmetry: "rot_180" }, boxes: [{ id: "b", kind: "hub", rect: [1, 1, 2, 2] }] });
+  const doc = normalizeDoc({ plan: 2, globals: { symmetry: "rot_180" }, boxes: [{ id: "b", kind: "hub", rect: [1, 1, 2, 2] }] });
   const images = boxMirrorImages(doc);
   assert.equal(images.length, 1);
   assert.deepEqual(images[0].bounds, { min_x: -15, min_z: -15, max_x: -5, max_z: -5 });
@@ -544,7 +544,7 @@ test("the shifted-frontline exemplars carry their partition as typed boxes", () 
 // ── marker identity ─────────────────────────────────────────────────────────
 test("every marker is minted an id, counting per kind across the whole set", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     placements: {
       spawns: [{ piece: "home", at: [1, 1] }],
       cores: [{ piece: "mid", at: [0, 0] }, { piece: "mid", at: [2, 2] }],
@@ -558,7 +558,7 @@ test("an authored id is kept, and a later marker mints around it", () => {
   // Identity is the author's to set — an id that means something to them must survive a load, and the mint
   // has to route around it rather than issue the same name twice.
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     placements: { cores: [{ id: "core-2", piece: "mid", at: [0, 0] }, { piece: "mid", at: [2, 2] }] },
   });
   assert.deepEqual(doc.placements.cores.map(c => c.id), ["core-2", "core-1"]);
@@ -568,7 +568,7 @@ test("a duplicate id is not an id — the later marker is re-minted", () => {
   // Two markers answering to one name is worse than no name: a finding or an agent naming it would resolve
   // to whichever came first, silently.
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     placements: { cores: [{ id: "heart", piece: "mid", at: [0, 0] }, { id: "heart", piece: "mid", at: [2, 2] }] },
   });
   assert.equal(doc.placements.cores[0].id, "heart");
@@ -577,7 +577,7 @@ test("a duplicate id is not an id — the later marker is re-minted", () => {
 
 test("ids are unique across kinds, not merely within one", () => {
   const doc = normalizeDoc({
-    plan: 1,
+    plan: 2,
     placements: { wools: [{ id: "core-1", piece: "vault", at: [0, 0] }], cores: [{ piece: "mid", at: [0, 0] }] },
   });
   assert.equal(doc.placements.cores[0].id, "core-2");

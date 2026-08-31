@@ -8,12 +8,12 @@ namespace PgmStudio.Pgm.Compose;
 /// approximately across versions. Bump when a change to the pipeline alters the geometry a given
 /// (request, seed) produces — or the document it is written into: the promise is that a descriptor reproduces
 /// its <b>plan</b>, and a plan whose globals carry a different set of fields is a different plan even when
-/// every rectangle in it is where it was. <c>measured-ceiling-1</c> is the second kind, twice over: the
-/// globals gained a stated build ceiling and then lost it again when the author's rule turned out to measure
-/// the built terrain instead.</summary>
+/// every rectangle in it is where it was. <c>markers-in-blocks-1</c> is the second kind: every board it
+/// composes stands exactly where it did, and each states its markers as block offsets under document version
+/// 2 rather than as cell offsets under version 1.</summary>
 public static class ComposerVersion
 {
-    public const string Current = "measured-ceiling-1";
+    public const string Current = "markers-in-blocks-1";
 }
 
 /// <summary>

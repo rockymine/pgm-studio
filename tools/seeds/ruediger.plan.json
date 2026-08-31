@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "custom ctw map"
   },
@@ -423,8 +423,8 @@
       {
         "piece": "spawn-room",
         "at": [
-          1,
-          1
+          5,
+          5
         ],
         "facing": "left"
       }
@@ -433,8 +433,8 @@
       {
         "piece": "wool-a-room",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

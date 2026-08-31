@@ -13,7 +13,7 @@ public sealed class PlanBoxesTests
 {
     private const string Json = """
     {
-      "plan": 1,
+      "plan": 2,
       "meta": { "name": "T" },
       "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "headroom": 11 },
       "pieces": [
@@ -60,7 +60,7 @@ public sealed class PlanBoxesTests
     public async Task An_unknown_kind_loads_as_the_unclassified_mid()
     {
         var plan = PlanModel.Parse("""
-        { "plan": 1, "globals": {}, "pieces": [], "boxes": [ { "id": "b", "kind": "nonsense", "rect": [0,0,1,1] } ] }
+        { "plan": 2, "globals": {}, "pieces": [], "boxes": [ { "id": "b", "kind": "nonsense", "rect": [0,0,1,1] } ] }
         """)!;
         await Assert.That(plan.Boxes[0].Kind).IsEqualTo(PlanBoxKinds.Mid);
     }
@@ -68,7 +68,7 @@ public sealed class PlanBoxesTests
     [Test]
     public async Task A_plan_without_boxes_has_an_empty_list_not_null()
     {
-        var plan = PlanModel.Parse("""{ "plan": 1, "globals": {}, "pieces": [] }""")!;
+        var plan = PlanModel.Parse("""{ "plan": 2, "globals": {}, "pieces": [] }""")!;
         await Assert.That(plan.Boxes).IsEmpty();
     }
 

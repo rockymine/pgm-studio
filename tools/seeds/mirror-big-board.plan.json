@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "mirror-wool-two-sided-raised-spawn-multi-wool-elevation-rich-big-board"
   },
@@ -508,8 +508,8 @@
       {
         "piece": "spawn-2",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ],
         "facing": "right"
       }
@@ -518,15 +518,15 @@
       {
         "piece": "wool",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       },
       {
         "piece": "wool-2",
         "at": [
-          2.0,
-          1.0
+          10,
+          5
         ]
       }
     ],
@@ -534,8 +534,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.0,
-          2.0
+          5,
+          10
         ]
       }
     ]

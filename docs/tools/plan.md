@@ -51,7 +51,7 @@ compile ever answers anything else.
 
 ```json POST /api/plan/compile
 {
-  "plan": 1,
+  "plan": 2,
   "meta": { "name": "Example board" },
   "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
@@ -68,12 +68,12 @@ compile ever answers anything else.
     { "id": "lane-e",   "rect": [3, -1, 2, 4], "kind": "water-lane" }
   ],
   "placements": {
-    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [1, 1], "facing": "front" } ],
-    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [1, 1] } ],
-    "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [0.5, 0.5] } ],
-    "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [2, 1],
+    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [5, 5], "facing": "front" } ],
+    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [5, 5] } ],
+    "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [2.5, 2.5] } ],
+    "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [10, 5],
                         "style": "cube-3", "materials": "obsidian", "float": 4 } ],
-    "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5], "layer": "undercroft",
+    "cores":        [ { "id": "core-1", "piece": "approach", "at": [5, 25], "layer": "undercroft",
                         "lava": 3, "lavaHeight": 3, "float": 6, "leak": 5 } ]
   },
   "walls":  [ { "a": "approach", "b": "bridgehead" } ],
@@ -94,14 +94,25 @@ Every footprint is in **signed integer proxy cells** relative to the symmetry ce
 origin `(0, 0)`. One cell spans `globals.cell` blocks, so a cell rect `[x, z, w, h]` covers blocks
 `[x·cell, (x+w)·cell)` on X and the same on Z. Heights are blocks, not cells.
 
-Marker positions are stored **piece-relative**: a marker names the piece it rides and an `at` offset in cells
-from that piece's minimum corner, snapped to a half-cell lattice. It resolves to the block
-`piece.min + at·cell`, so a whole offset lands on a cell corner — the centre of a 2×2-cell room — and a half
-offset on a cell centre. A marker that rides no piece cannot exist: the canvas refuses to drop one over empty
-grid, and the validator errors on a hand-written marker whose piece is unknown or is a buffer.
+**Cells state the ground and blocks state what stands on it.** A piece, a zone, a buffer and a box are cell
+rects — the coarse grid the board is drawn on — and everything placed *inside* a piece is in blocks, because
+what stands there is block-resolution and a cell grid cannot say where it goes. A 7-block hall is not
+expressible in fifths of itself, and the `WX` rules already state every minimum in blocks and never in cells.
+
+Marker positions are stored **piece-relative**: a marker names the piece it rides and an `at` offset in
+**blocks** from that piece's minimum corner, snapped to the **half-block lattice** — the same one the export
+snaps to (`PositionSnap.SnapHalfXZ`), so a whole offset is a block grid line and a `.5` a block centre, which
+is the parity that sizes the pad (`WX3`). A marker that rides no piece cannot exist: the canvas refuses to
+drop one over empty grid, and the validator errors on a hand-written marker whose piece is unknown or is a
+buffer.
+
+**The document states its own shape version**, `plan`, and this build reads **2**. A document stating another
+version is refused `PL15` rather than read: version 1 stated a marker's `at` in cells, which is the same
+numbers at a different distance, and the unit a coordinate is in is not visible in the coordinate. A document
+stating no version at all is read as the current one.
 
 **A destroyable and a core are the one exception.** `piece` may be empty, and `at` then reads as an
-**absolute** cell offset from the symmetry centre — the same frame a piece's own `rect` is authored in — so a
+**absolute** block offset from the symmetry centre — so a
 goal can stand on ground that exists only as an authored sketch shape, with no plan piece manufactured to
 carry it (`B128`). The canvas does not yet offer a way to draw this; a hand-written or agent-authored document
 can.
@@ -438,7 +449,7 @@ moving the example's destroyable onto the wool-room piece answers:
 
 Every gate in the studio answers in that shape, and the rule ids are catalogued in `docs/refusals.md`.
 
-**Structural errors** (`PlanValidator.Check`) block a compile with 422, each citing a `PL*` rule where the check is the plan's own and the document's own id where it is not — `DC1`/`DC2` for a core, `OB14` for a two-team goal, `OB17` for a goal footprint, `WX*` for a room frame. They are: overlapping pieces at
+**Structural errors** (`PlanValidator.Check`) block a compile with 422, each citing a `PL*` rule where the check is the plan's own and the document's own id where it is not — `DC1`/`DC2` for a core, `OB14` for a two-team goal, `OB17` for a goal footprint, `WX*` for a room frame. `PL15` comes first and alone: a document naming a shape version this build does not read has every coordinate below it measured in the wrong unit, so nothing else is asked of it. The rest are: overlapping pieces at
 different surfaces; a placement referencing an unknown piece, a buffer, or a position outside its piece — a
 destroyable or a core with an empty `piece` is not this error, since an absolute goal names no piece to be
 unknown or outside of; a core with `float` set without `leak` or the reverse; a core lava footprint or height

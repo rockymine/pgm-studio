@@ -87,6 +87,15 @@ public static class PlanRules
     [Rule(RuleCategory.Conflict, RuleConcern.Plan)]
     public const string MixedMirrors = "PL12";
 
+    /// <summary>The document states a shape version this build does not read. A marker's <c>at</c> is an
+    /// offset in blocks from its piece's minimum corner, and an earlier version stated the same field in
+    /// cells — the same numbers, a different distance — so a document that names another version is refused
+    /// rather than read under the wrong unit.</summary>
+    /// <remarks>Convert the document to the current version. Nothing about a stale plan is recoverable by
+    /// inspection: the unit a coordinate is in is not visible in the coordinate.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan)]
+    public const string StaleVersion = "PL15";
+
     /// <summary>Two pieces meet at a single point and along no edge, and nothing else joins them. A corner is
     /// never a connection — a point has no walkable corridor mouth — so the board reads as one area where
     /// players find two, and the diagonal is the sneaky crossing that is not there. Suppressed where the pair
@@ -169,6 +178,17 @@ public static class PlanValidator
         var findings = new List<Finding>();
         void Error(string rule, string message, params string[] subjects) =>
             findings.Add(new Finding(rule, message, Subjects: subjects.Length > 0 ? subjects : null));
+
+        // PL15 — the shape version, first and alone: every coordinate below is read under the units this
+        // version states, so a document from another one is refused rather than measured wrongly.
+        if (plan.Version != PlanModel.CurrentVersion)
+        {
+            Error(PlanRules.StaleVersion,
+                $"this plan states version {plan.Version}; this build reads version "
+                + $"{PlanModel.CurrentVersion} — marker offsets are blocks from the piece corner, and version 1 "
+                + "stated them in cells");
+            return findings;
+        }
 
         // different-surface overlaps: two pieces claim the same ground at incompatible heights — no coherent
         // surface, a genuine structural error. (Narrow seams connect and are legal; corner contacts are author
@@ -366,7 +386,7 @@ public static class PlanValidator
         if (piece is null || piece.Value.Role != role) return null;
 
         var rect = piece.Value.Rect;
-        var (markerX, markerZ) = ResolveBlock(rect, at, d.Cell);
+        var (markerX, markerZ) = PlanMarkers.Block(rect, at);
         List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdge is null
             ? [.. PlanCompiler.WoolEntrySegments(d, pieceId)
                 .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ))]
@@ -374,7 +394,7 @@ public static class PlanValidator
         List<(double X, double Z)> ironMarkers = spawnDoorEdge is null
             ? []
             : [.. plan.Placements.Iron.Where(ir => ir.Piece == pieceId)
-                .Select(ir => ResolveBlock(rect, ir.At, d.Cell))];
+                .Select(ir => PlanMarkers.Block(rect, ir.At))];
         var room = RoomFrames.ResolveRoom(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ,
             markerX, markerZ, entries, spawnDoorEdge, ironMarkers, out var refusal);
         if (refusal is not null)
@@ -410,11 +430,12 @@ public static class PlanValidator
                 $"{kind} references non-generating buffer '{pieceId}'", Subjects: [pieceId]));
             return;
         }
+        // The offset is in blocks and the piece's rect in cells, so the bound is the piece's block span.
         double x = at[0], z = at[1];
-        int w = piece.Rect.Width, h = piece.Rect.Height;
+        int w = piece.Rect.Width * d.Cell, h = piece.Rect.Height * d.Cell;
         if (x < 0 || z < 0 || x > w || z > h)
             findings.Add(new Finding(PlanRules.PlacementOutside,
-                $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h})", Subjects: [pieceId]));
+                $"{kind} at [{x},{z}] falls outside piece '{pieceId}' (0..{w}, 0..{h} blocks)", Subjects: [pieceId]));
     }
 
     // Build the fanned piece graph (land + gap edges), then check each wool node is reachable from a capturing
@@ -539,7 +560,7 @@ public static class PlanValidator
         {
             var piece = d.Piece(s.Piece);
             if (piece is null) continue;
-            var (bx, bz) = ResolveBlock(piece.Value.Rect, s.At, d.Cell);
+            var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, s.At);
             // back = the piece half farther from the centre along its dominant axis
             var r = piece.Value.Rect;
             bool zAxis = r.Depth >= r.Width;
@@ -626,7 +647,7 @@ public static class PlanValidator
         {
             var piece = d.Piece(ir.Piece);
             if (piece is null) continue;                       // unknown-piece handled as a structural error
-            var (bx, bz) = ResolveBlock(piece.Value.Rect, ir.At, d.Cell);
+            var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, ir.At);
             bool inside = spawnPieces.Any(sp =>
                 bx >= sp.Rect.MinX && bx <= sp.Rect.MaxX && bz >= sp.Rect.MinZ && bz <= sp.Rect.MaxZ);
             if (!inside) yield return Lint("ST2", $"iron at ({bx:0},{bz:0}) outside the spawn piece", ir.Piece);
@@ -738,7 +759,7 @@ public static class PlanValidator
             var piece = d.Piece(s.Piece);
             if (piece is null) continue;
             var (dirX, dirZ) = DoorDirection(s.Facing);
-            var (markerX, markerZ) = ResolveBlock(piece.Value.Rect, s.At, d.Cell);
+            var (markerX, markerZ) = PlanMarkers.Block(piece.Value.Rect, s.At);
 
             // walk the ray out of the spawn piece, then count crossable ground until the first bare block
             double x = markerX, z = markerZ;
@@ -941,7 +962,7 @@ public static class PlanValidator
     {
         var piece = d.Piece(pieceId);
         if (piece is null) return null;
-        var (markerX, markerZ) = ResolveBlock(piece.Value.Rect, at, d.Cell);
+        var (markerX, markerZ) = PlanMarkers.Block(piece.Value.Rect, at);
         // ObjectiveFootprint speaks the stamper's inclusive block box; BlockRect's max is exclusive.
         var box = ObjectiveFootprint.Centred(markerX, markerZ, width, depth);
         return new BlockRect(box.MinX, box.MinZ, box.MaxX + 1, box.MaxZ + 1);
@@ -967,8 +988,6 @@ public static class PlanValidator
 
     // ── shared helpers ──────────────────────────────────────────────────────────────────────────────────
 
-    private static (double X, double Z) ResolveBlock(BlockRect piece, double[] at, int cell) =>
-        (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
 
     private static bool Touches(BlockRect a, BlockRect b)
     {

@@ -50,7 +50,7 @@ public sealed class PlanInspectEndpointTests
 
         // a (piece) — b (wool-room) is a terrain↔room seam; a — c abut and carry a wall mark.
         const string plan = """
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,20]},
                      {"id":"b","role":"wool-room","rect":[10,0,10,10]},
                      {"id":"c","role":"piece","rect":[10,10,10,10]} ],

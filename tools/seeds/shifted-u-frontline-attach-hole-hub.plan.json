@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "shifted-u-frontline-attach-hole-hub"
   },
@@ -198,8 +198,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.5,
-          1
+          7.5,
+          5
         ],
         "facing": "back"
       }
@@ -208,15 +208,15 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       },
       {
         "piece": "wool-2",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

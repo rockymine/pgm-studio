@@ -25,15 +25,15 @@ public sealed class SpawnAndWoolAnchorTests
     // would land on each other's ground and the higher surface would decide both floors, which measures the
     // fixture rather than the rule.
     private static PlanModel PlanAt(int spawnSurface, int woolSurface) => PlanModel.Parse($$"""
-        { "plan":1, "globals":{"symmetry":"mirror_z","surface":9,"cell":5},
+        { "plan":2, "globals":{"symmetry":"mirror_z","surface":9,"cell":5},
           "pieces":[
             {"id":"spawn-a","role":"spawn","rect":[-8,-14,6,6],"surface":{{spawnSurface}}},
             {"id":"lane","role":"lane","rect":[-8,-8,16,16],"surface":20},
             {"id":"wool-a","role":"wool-room","rect":[2,8,6,6],"surface":{{woolSurface}}}
           ],
           "placements":{
-            "spawns":[{"piece":"spawn-a","at":[0.5,0.5],"facing":"front"}],
-            "wools":[{"piece":"wool-a","at":[0.5,0.5]}]
+            "spawns":[{"piece":"spawn-a","at":[2.5,2.5],"facing":"front"}],
+            "wools":[{"piece":"wool-a","at":[2.5,2.5]}]
           } }
         """)!;
 

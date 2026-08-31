@@ -88,8 +88,14 @@ public static class PlanBoxKinds
 /// </summary>
 public sealed class PlanModel
 {
-    /// <summary>The document's own shape version. 1 is the only one there has been.</summary>
-    [JsonPropertyName("plan")]       public int Version { get; set; } = 1;
+    /// <summary>The document's own shape version. <see cref="CurrentVersion"/> is what this build reads;
+    /// anything else is refused rather than guessed at, because the units a number is in are not visible in
+    /// the number.</summary>
+    [JsonPropertyName("plan")]       public int Version { get; set; } = CurrentVersion;
+
+    /// <summary>The shape version this build reads. Marker offsets are blocks from the piece's minimum
+    /// corner; a version-1 document stated them in cells and is converted rather than accepted.</summary>
+    public const int CurrentVersion = 2;
 
     /// <summary>What the plan is called and any note beside it, or absent for an unnamed one.</summary>
     [JsonPropertyName("meta")]       public PlanMeta? Meta { get; set; }
@@ -431,10 +437,10 @@ public sealed class PlanPlacements
     }
 }
 
-/// <summary>A spawn on <see cref="Piece"/> at piece-relative cell offset <see cref="At"/>, facing
+/// <summary>A spawn on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>, facing
 /// <see cref="Facing"/> — absolute board directions (<c>front</c>=−z, <c>back</c>=+z, <c>left</c>=−x,
 /// <c>right</c>=+x), fanned per orbit image. The offset
-/// is in cells on a half-cell lattice (0.5 steps) so a marker can sit at the middle of a 2×2-cell block; whole
+/// is in blocks on a half-block lattice (0.5 steps) so a marker can sit at a block centre; whole
 /// integers (the common case) round-trip verbatim.</summary>
 public sealed class SpawnPlacement : IPlanMarker
 {
@@ -446,7 +452,7 @@ public sealed class SpawnPlacement : IPlanMarker
     [JsonPropertyName("piece")]  public string Piece { get; set; } = "";
 
     /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
-    /// is half-cell, so a marker can sit at the middle of a 2×2-cell block.</summary>
+    /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]     public double[] At { get; set; } = [0, 0];
 
     /// <summary>Which way the player faces on arriving, in absolute board directions: <c>front</c> is −z,
@@ -455,7 +461,7 @@ public sealed class SpawnPlacement : IPlanMarker
     [JsonPropertyName("facing")] public string Facing { get; set; } = "front";
 }
 
-/// <summary>A wool on <see cref="Piece"/> at half-cell offset <see cref="At"/>. <see cref="Color"/> is optional;
+/// <summary>A wool on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>. <see cref="Color"/> is optional;
 /// empty = auto (the team's first wool takes the team colour, later wools take distinct dyes).</summary>
 public sealed class WoolPlacement : IPlanMarker
 {
@@ -467,7 +473,7 @@ public sealed class WoolPlacement : IPlanMarker
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
 
     /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
-    /// is half-cell, so a marker can sit at the middle of a 2×2-cell block.</summary>
+    /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 
     /// <summary>The wool's colour, or absent to have one chosen: the team's first wool takes the team colour
@@ -475,7 +481,7 @@ public sealed class WoolPlacement : IPlanMarker
     [JsonPropertyName("color")] public string? Color { get; set; }
 }
 
-/// <summary>An iron (resource) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>.</summary>
+/// <summary>An iron (resource) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>.</summary>
 public sealed class IronPlacement : IPlanMarker
 {
     /// <summary>What a finding indicts this marker by, and what an agent holding a reference to it names.
@@ -486,19 +492,19 @@ public sealed class IronPlacement : IPlanMarker
     [JsonPropertyName("piece")] public string Piece { get; set; } = "";
 
     /// <summary>Where on that piece, as an <c>[x, z]</c> offset in cells from its minimum corner. The lattice
-    /// is half-cell, so a marker can sit at the middle of a 2×2-cell block.</summary>
+    /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]    public double[] At { get; set; } = [0, 0];
 }
 
 /// <summary>
-/// A destroyable (DTM objective) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/>, owned by
+/// A destroyable (DTM objective) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>, owned by
 /// the authored team-0 unit and fanned to one per orbit image — the wool marker's shape, since a destroyable is
 /// likewise a goal one team defends. The marker is the structure's <b>anchor column</b>; the box itself floats
 /// <see cref="Float"/> blocks above the ground the relief actually leaves under that column, so no Y is
 /// authored.
 /// <para><see cref="Piece"/> may be empty (B128): a destroyable is the one marker kind that need not ride a
-/// plan piece at all. With a piece, <see cref="At"/> is a cell offset from its minimum corner, same as every
-/// other marker; with none, <see cref="At"/> is an absolute cell offset from the symmetry centre — the frame a
+/// plan piece at all. With a piece, <see cref="At"/> is a block offset from its minimum corner, same as every
+/// other marker; with none, <see cref="At"/> is an absolute block offset from the symmetry centre — the frame a
 /// piece's own <c>rect</c> is authored in — so a goal can stand on ground that exists only as an authored
 /// sketch shape, with no plan piece manufactured to carry it.</para>
 /// <para>Every structure parameter is optional and defaulted by the compiler, because the defaults are the
@@ -515,7 +521,7 @@ public sealed class DestroyablePlacement : IPlanMarker
     /// which is what lets a goal stand on ground that exists only as an authored sketch shape.</summary>
     [JsonPropertyName("piece")]     public string Piece { get; set; } = "";
 
-    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-cells: from the piece's minimum corner
+    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-blocks: from the piece's minimum corner
     /// where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]        public double[] At { get; set; } = [0, 0];
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
@@ -536,12 +542,12 @@ public sealed class DestroyablePlacement : IPlanMarker
 }
 
 /// <summary>
-/// A core (DTC objective) marker on <see cref="Piece"/> at half-cell offset <see cref="At"/> — the destroyable
+/// A core (DTC objective) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/> — the destroyable
 /// marker's shape, since a core is likewise one team's goal to defend, fanned to one per orbit image. The
 /// marker is the casing's anchor column; the box floats <see cref="Float"/> blocks above the ground the relief
 /// actually leaves under that column.
 /// <para><see cref="Piece"/> may be empty, the same absolute addressing a destroyable takes (B128): with a
-/// piece, <see cref="At"/> is a cell offset from its minimum corner; with none, an absolute cell offset from
+/// piece, <see cref="At"/> is a block offset from its minimum corner; with none, an absolute block offset from
 /// the symmetry centre, so a core can ride an authored sketch landform with no plan piece carrying it.</para>
 /// <para><see cref="Float"/> and <see cref="Leak"/> are one knob (DC2): escaping lava free-falls to the
 /// terrain at <c>B − float</c> while the core leaks at <c>y ≤ B − leak</c>, so together they say how far
@@ -558,7 +564,7 @@ public sealed class CorePlacement : IPlanMarker
     /// which is what lets a goal stand on ground that exists only as an authored sketch shape.</summary>
     [JsonPropertyName("piece")]    public string Piece { get; set; } = "";
 
-    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-cells: from the piece's minimum corner
+    /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-blocks: from the piece's minimum corner
     /// where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]       public double[] At { get; set; } = [0, 0];
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
@@ -600,4 +606,20 @@ public sealed class PlanWall
     /// share.</summary>
     [JsonPropertyName("b")] public string B { get; set; } = "";
 
+}
+
+/// <summary>Where a marker actually is. A placement states its position as an <c>at</c> offset from the
+/// minimum corner of the piece it rides, in <b>blocks</b> on the half-block lattice — the same lattice the
+/// export snaps to (<c>PositionSnap.SnapHalfXZ</c>), so a whole offset is a block grid line and a <c>.5</c> a
+/// block centre. Cell rects state the board's ground and blocks state what stands on it, so the two frames
+/// are named rather than converted at each call site.</summary>
+public static class PlanMarkers
+{
+    /// <summary>The marker's block position on a piece whose rect is already in blocks.</summary>
+    public static (double X, double Z) Block(BlockRect piece, double[] at) =>
+        (piece.MinX + at[0], piece.MinZ + at[1]);
+
+    /// <summary>The same position in cells, for a reader working on the plan's own grid.</summary>
+    public static (double X, double Z) Cell(CellRect rect, double[] at, int cell) =>
+        (rect.X + at[0] / (double)cell, rect.Z + at[1] / (double)cell);
 }

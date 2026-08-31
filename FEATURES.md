@@ -5108,6 +5108,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A marker states where it is in blocks, and the plan says which unit that is (TN10).** `at` was an offset
+  in **cells** on a half-cell lattice while everything downstream is blocks, so in a 20-block piece a marker
+  had nine legal positions per axis out of the 41 the half-block lattice the export snaps to would allow — a
+  spawn could not stand at block 3. `at` is now **blocks from the piece's minimum corner**, on that same
+  half-block lattice, for every marker kind and for the absolute anchor a piece-less goal carries. The rule
+  the plan states is one sentence: **cells state the ground and blocks state what stands on it**, so piece,
+  zone, buffer and box rects are unchanged. `WX3`'s parity is untouched — a whole offset is a grid line, a
+  `.5` a block centre. `PlanModel.CurrentVersion` is **2**, an omitted `plan` key reads as the current
+  version, and a document naming another one is refused `PL15` rather than measured in the wrong unit;
+  `M0029` converts the `plan` corpus and every `plan_json` artifact by the exact multiply, and the 49 seeds
+  convert with it, so no marker moves. `PlanMarkers.Block`/`.Cell` replace four scattered derivations of the
+  same answer (`PlanCompiler`, `PlanValidator`, `BoardDeriver`, `SurfaceNav`), and `CheckInside` now bounds a
+  block offset against the piece's block span. The composer converts at its one emission boundary
+  (`Composer.MarkerOffset`), where a mixed-parity marker is nudged half a **block** rather than half a cell —
+  the nearest legal point its comment always claimed — so `ComposerVersion` is `markers-in-blocks-1` and the
+  fingerprints are re-recorded. (TN10)
 - **A wool room lays no bedrock, and the ground under it is painted (WE68).** `ST1` filled every wool-room
   piece solid from `y=0` so the room could not be tunnelled into from below — which the room region's own
   `enter` filter already denies at every depth, so the fill bought nothing and stood where the author drew

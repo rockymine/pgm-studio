@@ -41,11 +41,11 @@ public sealed class PlanEvaluateEndpointTests
         // the score instead of discarded. The spawn's own egress seam is SP8's, so the pair that carries EL1
         // sits away from it.
         const string plan = """
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[ {"id":"spawn","role":"spawn","rect":[-1,4,2,2],"surface":13},
                      {"id":"step","role":"piece","rect":[-1,0,2,4],"surface":13},
                      {"id":"shelf","role":"piece","rect":[1,0,2,4],"surface":10} ],
-          "placements":{ "spawns":[ {"id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front"} ] } }
+          "placements":{ "spawns":[ {"id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front"} ] } }
         """;
         var resp = await client.PostAsync("/api/plan/evaluate",
             new StringContent(plan, Encoding.UTF8, "application/json"));
@@ -65,12 +65,12 @@ public sealed class PlanEvaluateEndpointTests
         // A spawn and a wool two cells apart (10 blocks by traversal) violate WL2's 20-block floor. Single-unit
         // symmetry keeps it a bare minimal pair.
         const string plan = """
-        { "plan":1, "globals":{"cell":5,"symmetry":"none"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"none"},
           "pieces":[ {"id":"spawn","role":"spawn","rect":[0,0,2,2]},
                      {"id":"wool","role":"wool-room","rect":[2,0,2,2]} ],
           "placements":{
-            "spawns":[ {"piece":"spawn","at":[1,1],"facing":"front"} ],
-            "wools":[ {"piece":"wool","at":[1,1]} ],
+            "spawns":[ {"piece":"spawn","at":[5,5],"facing":"front"} ],
+            "wools":[ {"piece":"wool","at":[5,5]} ],
             "iron":[] } }
         """;
         var resp = await client.PostAsync("/api/plan/evaluate", new StringContent(plan, Encoding.UTF8, "application/json"));

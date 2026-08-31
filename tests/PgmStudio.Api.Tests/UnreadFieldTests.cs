@@ -40,11 +40,11 @@ public sealed class UnreadFieldTests
         """;
 
     private const string Plan = """
-        {"plan":1,"meta":{"name":"read whole"},
+        {"plan":2,"meta":{"name":"read whole"},
          "globals":{"cell":5,"symmetry":"rot_180","maxPlayers":12,"surface":9},
          "pieces":[{"id":"a","role":"spawn","rect":[0,0,4,4]}],
          "zones":[],
-         "placements":{"spawns":[{"id":"sp","piece":"a","at":[2,2],"facing":"front"}],
+         "placements":{"spawns":[{"id":"sp","piece":"a","at":[10,10],"facing":"front"}],
                        "wools":[],"iron":[],"destroyables":[],"cores":[]},
          "walls":[],"boxes":[]}
         """;

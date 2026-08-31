@@ -12,7 +12,7 @@ namespace PgmStudio.Pgm.Tests.Evaluate;
 public sealed class LayoutEvaluatorTests
 {
     private static readonly string ErrorPlanJson = """
-        {"plan":1,"globals":{"cell":1,"symmetry":"none"},
+        {"plan":2,"globals":{"cell":1,"symmetry":"none"},
          "pieces":[{"id":"w","role":"piece","rect":[0,0,2,2]}],
          "placements":{"wools":[{"piece":"w","at":[5,5]}]}}
         """;

@@ -18,14 +18,14 @@ public sealed class PlanCompilerTests
 
     private const string Unit = """
         "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]} ],
-        "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"front"} ],
-                       "wools":[ {"piece":"wr","at":[1,1]} ] }
+        "placements":{ "spawns":[ {"piece":"lane","at":[5,25],"facing":"front"} ],
+                       "wools":[ {"piece":"wr","at":[5,5]} ] }
         """;
 
     [Test]
     public async Task Rot_180_yields_two_teams_red_and_blue()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
         await Assert.That(intent.Teams!.Select(t => t.Id)).IsEquivalentTo(new[] { "red", "blue" });
         await Assert.That(intent.Spawns.Count).IsEqualTo(2);
         await Assert.That(intent.Wools!.Count).IsEqualTo(2);
@@ -34,7 +34,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Protection_and_room_are_the_marker_pieces_full_footprint()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
         // Spawn protection = the whole 'lane' piece (rect [1,5,2,6] → blocks x 5..15, z 25..55), not the
         // smaller stamped cube around the spawn point.
         var prot = intent.Spawns.Single(s => s.Team == "red").Protection.Single();
@@ -47,7 +47,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Rot_90_yields_four_teams_in_orbit_order()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_90"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_90"}, {{Unit}} }"""));
         await Assert.That(intent.Teams!.Select(t => t.Id).ToList()).IsEquivalentTo(new[] { "red", "blue", "yellow", "green" });
         await Assert.That(intent.Spawns.Count).IsEqualTo(4);
     }
@@ -55,7 +55,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task Front_facing_spawn_faces_the_centre()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
         var red = intent.Spawns.Single(s => s.Team == "red");
         // team-0 spawn resolves to block (10,50); front (toward 0,0) quantizes to -Z → yaw 180
         await Assert.That(red.Point.X).IsEqualTo(10);
@@ -71,9 +71,9 @@ public sealed class PlanCompilerTests
         // facing is absolute (front=−z, back=+z, left=−x, right=+x): an authored `right` spawn faces +x (east,
         // yaw 270) on team 0, independent of where the piece sits, and its rot_180 image faces −x (west, yaw 90).
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5},
           "pieces":[ {"id":"lane","role":"piece","rect":[1,5,2,6]} ],
-          "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"right"} ] } }
+          "placements":{ "spawns":[ {"piece":"lane","at":[5,25],"facing":"right"} ] } }
         """);
         var (_, intent) = PlanCompiler.Compile(p);
         var red = intent.Spawns.Single(s => s.Team == "red");
@@ -87,7 +87,7 @@ public sealed class PlanCompilerTests
     [Test]
     public async Task First_wool_takes_the_team_colour()
     {
-        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
+        var (_, intent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, {{Unit}} }"""));
         await Assert.That(intent.Wools!.Single(w => w.Owner == "red").Color).IsEqualTo("red");
         await Assert.That(intent.Wools!.Single(w => w.Owner == "blue").Color).IsEqualTo("blue");
     }
@@ -96,9 +96,9 @@ public sealed class PlanCompilerTests
     public async Task An_explicit_wool_colour_is_respected()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180"},
+        { "plan":2, "globals":{"symmetry":"rot_180"},
           "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]} ],
-          "placements":{ "wools":[ {"piece":"lane","at":[1,1],"color":"magenta"} ] } }
+          "placements":{ "wools":[ {"piece":"lane","at":[5,5],"color":"magenta"} ] } }
         """);
         var (_, intent) = PlanCompiler.Compile(p);
         await Assert.That(intent.Wools!.All(w => w.Color == "magenta")).IsTrue();
@@ -108,7 +108,7 @@ public sealed class PlanCompilerTests
     public async Task Build_areas_fan_across_the_orbit_and_dedupe_self_images()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5},
           "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]} ],
           "zones":[ {"id":"mid","rect":[-3,-5,6,10]}, {"id":"bridge","rect":[3,7,2,2]} ] }
         """);
@@ -125,7 +125,7 @@ public sealed class PlanCompilerTests
     public async Task Observer_defaults_to_surface_plus_fifteen_and_the_ceiling_is_left_to_the_world_build()
     {
         var (_, intent) = PlanCompiler.Compile(Plan($$"""
-        { "plan":1, "globals":{"symmetry":"rot_180","surface":9}, {{Unit}} }
+        { "plan":2, "globals":{"symmetry":"rot_180","surface":9}, {{Unit}} }
         """));
         await Assert.That(intent.Observer!.Point.Y).IsEqualTo(24);
         await Assert.That(intent.Build!.MaxHeight).IsNull();
@@ -137,9 +137,9 @@ public sealed class PlanCompilerTests
         // a .5 offset on the half-cell lattice lands the marker on a 2.5-block half-cell: piece origin block
         // (0,0) + 0.5·5. The raw fractional coordinate flows through un-rounded (downstream floors it).
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5},
           "pieces":[ {"id":"lane","role":"lane","rect":[0,0,2,2]} ],
-          "placements":{ "wools":[ {"piece":"lane","at":[0.5,0.5]} ] } }
+          "placements":{ "wools":[ {"piece":"lane","at":[2.5,2.5]} ] } }
         """);
         var (_, intent) = PlanCompiler.Compile(p);
         await Assert.That(intent.Wools!.Any(w => w.Spawn.X == 2.5 && w.Spawn.Z == 2.5)).IsTrue();
@@ -152,16 +152,16 @@ public sealed class PlanCompilerTests
         // identical — same layout shapes + fanned bbox, same intent (teams/spawns/wools/build/structures).
         const string unit = """
             "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]} ],
-            "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"front"} ],
-                           "wools":[ {"piece":"wr","at":[1,1]} ] }
+            "placements":{ "spawns":[ {"piece":"lane","at":[5,25],"facing":"front"} ],
+                           "wools":[ {"piece":"wr","at":[5,5]} ] }
             """;
-        var (baseLayout, baseIntent) = PlanCompiler.Compile(Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180","cell":5}, {{unit}} }"""));
+        var (baseLayout, baseIntent) = PlanCompiler.Compile(Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180","cell":5}, {{unit}} }"""));
         var (bufLayout, bufIntent) = PlanCompiler.Compile(Plan($$"""
-            { "plan":1, "globals":{"symmetry":"rot_180","cell":5},
+            { "plan":2, "globals":{"symmetry":"rot_180","cell":5},
               "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]},
                          {"id":"buffer","role":"buffer","rect":[1,5,2,2]} ],
-              "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"front"} ],
-                             "wools":[ {"piece":"wr","at":[1,1]} ] } }
+              "placements":{ "spawns":[ {"piece":"lane","at":[5,25],"facing":"front"} ],
+                             "wools":[ {"piece":"wr","at":[5,5]} ] } }
             """));
 
         await Assert.That(Ser(bufLayout)).IsEqualTo(Ser(baseLayout));
@@ -173,7 +173,7 @@ public sealed class PlanCompilerTests
     {
         // two abutting same-surface bars → one unioned shape, one island
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,2,4]}, {"id":"b","role":"lane","rect":[0,4,2,4]} ] }
         """);
         var (layout, _) = PlanCompiler.Compile(p);
@@ -185,10 +185,10 @@ public sealed class PlanCompilerTests
     // A spawn-role piece abutting a wool-room-role piece at one surface — S25's motivating case, since the
     // single-height generator fuses same-plane pieces into one polygon.
     private const string StructuralUnit = """
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,2,2]}, {"id":"wr","role":"wool-room","rect":[2,0,2,2]} ],
-          "placements":{ "spawns":[ {"piece":"sp","at":[1,1],"facing":"front"} ],
-                         "wools":[ {"piece":"wr","at":[1,1]} ] } }
+          "placements":{ "spawns":[ {"piece":"sp","at":[5,5],"facing":"front"} ],
+                         "wools":[ {"piece":"wr","at":[5,5]} ] } }
         """;
 
     [Test]
@@ -236,7 +236,7 @@ public sealed class PlanCompilerTests
         // each other (a gap between them). The surface-11 group is disjoint yet both patches must surface — the
         // union must not drop the smaller one.
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"bridge","role":"piece","rect":[0,0,6,2]},
                      {"id":"a","role":"piece","rect":[0,2,2,2],"surface":11},
                      {"id":"b","role":"piece","rect":[4,2,2,2],"surface":11} ] }
@@ -262,7 +262,7 @@ public sealed class PlanCompilerTests
         // others over a 5-block (narrow) border. Narrow seams connect, so all four join one component and union
         // into a single island; the union splits into one shape per distinct surface (a stacked plateau).
         var p = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"bar","role":"piece","rect":[0,0,1,3]},
                      {"id":"step1","role":"piece","rect":[1,0,1,1]},
                      {"id":"step2","role":"piece","rect":[1,1,1,1],"surface":11},
@@ -286,7 +286,7 @@ public sealed class PlanCompilerTests
         // Four pieces frame a one-cell hole at cell (1,1) — blocks 5..10 on both axes. The patch's outline is
         // only its outer boundary, so without the declared void the hole would rasterize as solid ground.
         var (layout, _) = PlanCompiler.Compile(Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"n","role":"piece","rect":[0,0,3,1]}, {"id":"s","role":"piece","rect":[0,2,3,1]},
                      {"id":"w","role":"piece","rect":[0,1,1,1]}, {"id":"e","role":"piece","rect":[2,1,1,1]} ] }
         """));
@@ -310,13 +310,13 @@ public sealed class PlanCompilerTests
         // resolve is a map that will not load, and nothing between here and the server would say so.
         // rot_90 is the widest fan there is (four teams), so it exercises the whole team half of the choice.
         var (_, intent) = PlanCompiler.Compile(Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_90","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_90","cell":5,"surface":9},
           "pieces":[ {"id":"w1","role":"wool-room","rect":[2,2,2,2]},
                      {"id":"w2","role":"wool-room","rect":[6,2,2,2]},
                      {"id":"w3","role":"wool-room","rect":[2,6,2,2]} ],
-          "placements":{ "wools":[ {"piece":"w1","at":[1,1]},
-                                   {"piece":"w2","at":[1,1]},
-                                   {"piece":"w3","at":[1,1]} ] } }
+          "placements":{ "wools":[ {"piece":"w1","at":[5,5]},
+                                   {"piece":"w2","at":[5,5]},
+                                   {"piece":"w3","at":[5,5]} ] } }
         """));
         await Assert.That(intent.Wools.Count).IsEqualTo(12);
         foreach (var wool in intent.Wools)
@@ -329,7 +329,7 @@ public sealed class PlanCompilerTests
         // a buffer half over a lane, half off its end: the covered half is inert, the open half is negative
         // space that was never terrain — so the lane keeps every block it generates.
         var (layout, _) = PlanCompiler.Compile(Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"lane","role":"piece","rect":[0,0,2,2]},
                      {"id":"over","role":"buffer","rect":[1,0,2,2]} ] }
         """));

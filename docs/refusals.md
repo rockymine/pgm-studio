@@ -175,6 +175,7 @@ The structural plan rules, in full:
 | `PL12` | a connected landmass mixes fanned and non-fanned pieces, so it has no coherent orbit image |
 | `PL13` | a bedrock wall is drawn on the wool room's own interface — the wall and the room stamp through each other; place it ~15 blocks out, on the approach piece's outer interface |
 | `PL14` | a wool colour names something that is not a dye |
+| `PL15` | the document states a shape version this build does not read — every coordinate under it would be measured in the wrong unit, so it is refused rather than guessed at, and it is reported alone |
 
 And the building rules, which the dressing document and the room library are both held to:
 

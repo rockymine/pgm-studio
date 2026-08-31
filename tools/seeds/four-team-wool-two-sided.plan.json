@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "four-team-hole-wool-two-sided-isolated-spawn-elevation-rich"
   },
@@ -175,8 +175,8 @@
       {
         "piece": "spawn",
         "at": [
-          3.0,
-          1.0
+          15,
+          5
         ],
         "facing": "left"
       }
@@ -185,8 +185,8 @@
       {
         "piece": "wool",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       }
     ],
@@ -194,8 +194,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       }
     ]

@@ -60,11 +60,11 @@ internal static class PlanBoardScene
         int maxX = rects.Max(r => r.X + r.Width), maxZ = rects.Max(r => r.Z + r.Height);
 
         var markers = new List<MarkerFan>();
-        foreach (var m in plan.Placements.Iron) FanMarker(markers, pieceRect, m, axes, order, "iron", null);
-        foreach (var m in plan.Placements.Wools) FanMarker(markers, pieceRect, m, axes, order, "wool", m.Color);
-        foreach (var m in plan.Placements.Spawns) FanMarker(markers, pieceRect, m, axes, order, "spawn", null);
-        foreach (var m in plan.Placements.Destroyables) FanMarker(markers, pieceRect, m, axes, order, "destroyable", null);
-        foreach (var m in plan.Placements.Cores) FanMarker(markers, pieceRect, m, axes, order, "core", null);
+        foreach (var m in plan.Placements.Iron) FanMarker(markers, pieceRect, m, axes, order, plan.Globals.Cell, "iron", null);
+        foreach (var m in plan.Placements.Wools) FanMarker(markers, pieceRect, m, axes, order, plan.Globals.Cell, "wool", m.Color);
+        foreach (var m in plan.Placements.Spawns) FanMarker(markers, pieceRect, m, axes, order, plan.Globals.Cell, "spawn", null);
+        foreach (var m in plan.Placements.Destroyables) FanMarker(markers, pieceRect, m, axes, order, plan.Globals.Cell, "destroyable", null);
+        foreach (var m in plan.Placements.Cores) FanMarker(markers, pieceRect, m, axes, order, plan.Globals.Cell, "core", null);
 
         return new Scene(pieces, zones, markers, zoneHoles, minX, minZ, maxX - minX, maxZ - minZ);
     }
@@ -81,16 +81,16 @@ internal static class PlanBoardScene
     }
 
     private static void FanMarker(List<MarkerFan> markers, IReadOnlyDictionary<string, CellRect> pieceRect,
-        IPlanMarker marker, string[] axes, int order, string kind, string? color)
+        IPlanMarker marker, string[] axes, int order, int cell, string kind, string? color)
     {
         var at = marker.At;
         if (at.Length < 2) return;
-        // absolute base-unit cell = host piece origin + the marker's offset (markerCell); no half-cell nudge,
-        // so a centred marker (At = [1,1] on a 2×2 piece) lands dead centre. A destroyable or a core may name
-        // no piece at all (B128), in which case `At` is already absolute about the symmetry centre.
+        // absolute base-unit cell = the host piece's origin plus the marker's block offset in cells, so a
+        // centred marker lands dead centre. A destroyable or a core may name no piece at all (B128), in which
+        // case `At` is already absolute about the symmetry centre.
         double bx, bz;
-        if (marker.Piece.Length == 0) { bx = at[0]; bz = at[1]; }
-        else if (pieceRect.TryGetValue(marker.Piece, out var rect)) { bx = rect.X + at[0]; bz = rect.Z + at[1]; }
+        if (marker.Piece.Length == 0) { bx = at[0] / (double)cell; bz = at[1] / (double)cell; }
+        else if (pieceRect.TryGetValue(marker.Piece, out var rect)) (bx, bz) = PlanMarkers.Cell(rect, at, cell);
         else return;
 
         for (var k = 0; k < order; k++)

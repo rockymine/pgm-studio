@@ -20,14 +20,14 @@ public sealed class GoalDistancesTests
         // One lane down +z: spawn at the back, monument forward of it — the destroy topology. The enemy
         // spawn is the rot_180 image at the far end, so its walk to this goal is the lane's whole length.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,8] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"lane","at":[1,2],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"lane","at":[5,10],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """);
 
@@ -47,14 +47,14 @@ public sealed class GoalDistancesTests
         // The B128 shape: a goal naming no piece, its `at` an absolute cell position. It sits on the mid
         // ground the lane fans across, so both walks exist and the enemy leg is the longer one.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,8] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"","at":[0,1],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"","at":[0,5],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """);
 
@@ -71,14 +71,14 @@ public sealed class GoalDistancesTests
         // The goal stands on its own island, no zone bridges it: the walk does not exist, and the read says
         // so instead of measuring through the air.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,4,2,4] },
             { "id":"islet","role":"piece","rect":[6,4,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"islet","at":[1,1],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"islet","at":[5,5],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """);
 
@@ -93,9 +93,9 @@ public sealed class GoalDistancesTests
     public async Task A_wool_only_plan_reads_empty()
     {
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[ { "id":"spawn","role":"spawn","rect":[-1,8,2,2] } ],
-          "placements":{ "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ] } }
+          "placements":{ "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ] } }
         """);
 
         await Assert.That(GoalDistances.Read(plan)).IsEmpty();
@@ -106,16 +106,16 @@ public sealed class GoalDistancesTests
     /// <summary>A lane with two goals on it, the second forward of the first. Their own pair and both
     /// against the images are what `Pairs` answers.</summary>
     private static PlanModel TwoGoalLane() => Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,8] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
             "destroyables":[
-              { "id":"near","piece":"lane","at":[1,6],"style":"pillar-3","materials":"obsidian" },
-              { "id":"far","piece":"lane","at":[1,1],"style":"pillar-3","materials":"obsidian" } ] } }
+              { "id":"near","piece":"lane","at":[5,30],"style":"pillar-3","materials":"obsidian" },
+              { "id":"far","piece":"lane","at":[5,5],"style":"pillar-3","materials":"obsidian" } ] } }
         """);
 
     [Test]
@@ -151,15 +151,15 @@ public sealed class GoalDistancesTests
         // A pair is a fact about the board and its walk is the thing that is unknown, so an unreachable goal
         // answers the same pairs with no number rather than dropping them and shrinking the set a term reads.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,8] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
             "destroyables":[
-              { "id":"on-lane","piece":"lane","at":[1,4],"style":"pillar-3","materials":"obsidian" },
-              { "id":"nowhere","piece":"absent","at":[400,400],"style":"pillar-3","materials":"obsidian" } ] } }
+              { "id":"on-lane","piece":"lane","at":[5,20],"style":"pillar-3","materials":"obsidian" },
+              { "id":"nowhere","piece":"absent","at":[2000,2000],"style":"pillar-3","materials":"obsidian" } ] } }
         """);
 
         var pairs = GoalDistances.Pairs(plan);
@@ -176,14 +176,14 @@ public sealed class GoalDistancesTests
         // One goal per team is the ordinary destroy board: it has no own pair for GO2 to read, and exactly
         // one opposing pair — the monument against its own mirror — for GO3.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,8] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"lane","at":[1,2],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"lane","at":[5,10],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """);
 

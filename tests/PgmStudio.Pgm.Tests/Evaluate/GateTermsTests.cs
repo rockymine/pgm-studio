@@ -19,7 +19,7 @@ public sealed class GateTermsTests
     public async Task Structural_integrity_fires_on_a_placement_outside_its_piece()
     {
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":1,"symmetry":"none"},
              "pieces":[{"id":"w","role":"piece","rect":[0,0,2,2]}],
              "placements":{"wools":[{"piece":"w","at":[5,5]}]}}
             """);
@@ -33,7 +33,7 @@ public sealed class GateTermsTests
     public async Task Structural_integrity_is_clean_on_an_in_bounds_placement()
     {
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":1,"symmetry":"none"},
              "pieces":[{"id":"w","role":"piece","rect":[0,0,2,2]}],
              "placements":{"wools":[{"piece":"w","at":[1,1]}]}}
             """);
@@ -47,7 +47,7 @@ public sealed class GateTermsTests
     {
         // cell 5, a 1×3-cell zone is 5 blocks wide < the 10-block corridor minimum → G2 lint present.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"a","role":"piece","rect":[0,0,4,4]}],
              "zones":[{"id":"z","rect":[0,0,1,3]}]}
             """);
@@ -62,7 +62,7 @@ public sealed class GateTermsTests
     {
         // two pieces meeting at a single corner in separate land components → PC-C lint.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"a","role":"piece","rect":[0,0,2,2]},{"id":"b","role":"piece","rect":[2,2,2,2]}]}
             """);
         await Assert.That(new LintRejectTerm("PC-C").Measure(ctx).Violation).IsNotNull();
@@ -73,7 +73,7 @@ public sealed class GateTermsTests
     {
         // a 2×3-cell zone is 10 blocks wide = the corridor minimum → no G2.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"a","role":"piece","rect":[0,0,4,4]}],
              "zones":[{"id":"z","rect":[0,0,2,3]}]}
             """);
@@ -87,7 +87,7 @@ public sealed class GateTermsTests
     {
         // two pieces 25 blocks apart, bridged by one zone spanning both → an out-of-band 25-block hop.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":1,"symmetry":"none"},
              "pieces":[{"id":"a","role":"piece","rect":[0,0,10,10]},{"id":"b","role":"piece","rect":[35,0,10,10]}],
              "zones":[{"id":"z","rect":[0,0,45,10]}]}
             """);
@@ -114,7 +114,7 @@ public sealed class GateTermsTests
     {
         // wool piece 0..2, mid-band 2..6 — the band touches the wool (0-cell clearance) → BZ6.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":1,"symmetry":"none"},
              "pieces":[{"id":"w","role":"piece","rect":[0,0,2,2]}],
              "zones":[{"id":"mid-band","rect":[2,0,4,2]}],
              "placements":{"wools":[{"piece":"w","at":[1,1]}]}}
@@ -133,7 +133,7 @@ public sealed class GateTermsTests
     {
         // wool piece 0..2, mid-band 4..8 — a full two-cell gap satisfies BZ6.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":1,"symmetry":"none"},
              "pieces":[{"id":"w","role":"piece","rect":[0,0,2,2]}],
              "zones":[{"id":"mid-band","rect":[4,0,4,2]}],
              "placements":{"wools":[{"piece":"w","at":[1,1]}]}}
@@ -148,10 +148,10 @@ public sealed class GateTermsTests
     {
         // spawn and wool on one lane, ~10 blocks apart by surface path (cell 5) < WL2's 20-block floor.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,4]}],
-             "placements":{"spawns":[{"piece":"lane","at":[1,0],"facing":"front"}],
-                           "wools":[{"piece":"lane","at":[1,2]}]}}
+             "placements":{"spawns":[{"piece":"lane","at":[5,0],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,10]}]}}
             """);
         var score = new SpawnWoolFloor().Measure(ctx);
         await Assert.That(score.Violation).IsNotNull();
@@ -163,10 +163,10 @@ public sealed class GateTermsTests
     {
         // 5 cells = 25 blocks by surface path ≥ the 20-block floor.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,7]}],
-             "placements":{"spawns":[{"piece":"lane","at":[1,0],"facing":"front"}],
-                           "wools":[{"piece":"lane","at":[1,5]}]}}
+             "placements":{"spawns":[{"piece":"lane","at":[5,0],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,25]}]}}
             """);
         await Assert.That(new SpawnWoolFloor().Measure(ctx).Violation).IsNull();
     }

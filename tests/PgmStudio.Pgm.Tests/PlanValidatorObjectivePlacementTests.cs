@@ -24,7 +24,7 @@ public sealed class PlanValidatorObjectivePlacementTests
 
     /// <summary>A 20×20 island with a two-team symmetry, so the objective tools are legal (OB14).</summary>
     private static string Land(string placements) => $$"""
-    { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+    { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
       "pieces":[ {"id":"land","role":"piece","rect":[0,0,20,20]} ],
       "placements":{ {{placements}} } }
     """;
@@ -70,7 +70,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         // The footprint straddles two pieces that meet: every block still stands on something, so nothing
         // fires. A rule testing the marker's own piece alone would refuse this.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
           "pieces":[ {"id":"west","role":"piece","rect":[0,0,10,20]},
                      {"id":"east","role":"piece","rect":[10,0,10,20]} ],
           "placements":{ "cores":[ {"piece":"west","at":[9,10],"size":5} ] } }
@@ -81,7 +81,7 @@ public sealed class PlanValidatorObjectivePlacementTests
     // ── spawn and wool rooms ────────────────────────────────────────────────────────────────────────────
 
     private const string RoomBoard = """
-    { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+    { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
       "pieces":[ {"id":"home","role":"spawn","rect":[0,0,20,20]},
                  {"id":"mid","role":"piece","rect":[20,0,30,20]} ],
       "placements":{ "spawns":[ {"piece":"home","at":[10,10]} ], CORE } }
@@ -111,7 +111,7 @@ public sealed class PlanValidatorObjectivePlacementTests
         // The vault abuts a lane so its room resolves at all — an unreachable wool room refuses at WX6
         // before it has a frame, and a rule about frames has nothing to say about a room that has none.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
           "pieces":[ {"id":"vault","role":"wool-room","rect":[0,0,20,20]},
                      {"id":"lane","role":"piece","rect":[20,0,20,20]},
                      {"id":"home","role":"spawn","rect":[40,0,20,20]} ],

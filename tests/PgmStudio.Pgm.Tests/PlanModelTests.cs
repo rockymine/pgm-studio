@@ -13,16 +13,16 @@ public sealed class PlanModelTests
     {
         const string json = """
         {
-          "plan": 1,
+          "plan": 2,
           "meta": { "name": "T" },
           "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9, "headroom": 11 },
           "pieces": [ { "id": "a", "role": "lane", "rect": [1, 5, 2, 6] },
                       { "id": "b", "role": "mid", "rect": [1, 1, 2, 2], "surface": 13, "mirrors": false } ],
           "zones": [ { "id": "z", "rect": [-3, -5, 6, 10], "holes": [ [-1, -1, 2, 2] ] } ],
           "placements": {
-            "spawns": [ { "piece": "a", "at": [1, 5], "facing": "front" } ],
-            "wools":  [ { "piece": "a", "at": [1, 8], "color": "orange" } ],
-            "iron":   [ { "piece": "a", "at": [0, 4] } ]
+            "spawns": [ { "piece": "a", "at": [5, 25], "facing": "front" } ],
+            "wools":  [ { "piece": "a", "at": [5, 40], "color": "orange" } ],
+            "iron":   [ { "piece": "a", "at": [0, 20] } ]
           }
         }
         """;
@@ -45,7 +45,7 @@ public sealed class PlanModelTests
     public async Task Legacy_piece_roles_map_to_piece_and_intent_roles_survive()
     {
         var plan = PlanModel.Parse("""
-        { "plan":1,
+        { "plan":2,
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,2,2]},
                      {"id":"b","role":"hub","rect":[2,0,2,2]},
                      {"id":"c","role":"mid","rect":[4,0,2,2]},
@@ -67,7 +67,7 @@ public sealed class PlanModelTests
         // Canonical preserves the buffer annotation role (Normalize must not fold it to piece); an unknown role
         // still folds to piece.
         var plan = PlanModel.Parse("""
-        { "plan":1,
+        { "plan":2,
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,2,2]},
                      {"id":"x","role":"nonsense","rect":[2,0,2,2]} ] }
         """)!;
@@ -88,7 +88,7 @@ public sealed class PlanModelTests
     public async Task Walls_parse_and_round_trip()
     {
         var plan = PlanModel.Parse("""
-        { "plan":1,
+        { "plan":2,
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,2,2]}, {"id":"b","role":"piece","rect":[2,0,2,2]} ],
           "walls":[ {"a":"a","b":"b"} ] }
         """)!;
@@ -104,7 +104,7 @@ public sealed class PlanModelTests
     [Test]
     public async Task Absent_optional_color_is_null_and_defaults_apply()
     {
-        var plan = PlanModel.Parse("""{ "plan": 1, "placements": { "wools": [ { "piece": "a", "at": [0, 0] } ] } }""")!;
+        var plan = PlanModel.Parse("""{ "plan": 2, "placements": { "wools": [ { "piece": "a", "at": [0, 0] } ] } }""")!;
         await Assert.That(plan.Placements.Wools[0].Color).IsNull();
         await Assert.That(plan.Globals.Cell).IsEqualTo(5);              // default cell
         await Assert.That(plan.Globals.Symmetry).IsEqualTo("rot_180");

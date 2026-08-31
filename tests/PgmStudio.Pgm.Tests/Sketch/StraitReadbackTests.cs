@@ -18,11 +18,11 @@ public sealed class StraitReadbackTests
     /// <summary>A two-team wool board whose team islands stand 30 blocks apart — inside the band, so the
     /// plan's own CT12 passes and there is a verdict for the raster to move.</summary>
     private const string Banded = """
-    { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+    { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
       "pieces":[ {"id":"home","role":"spawn","rect":[-2,-5,4,2]} ],
       "zones":[ {"id":"strait","rect":[-2,-3,4,6]} ],
-      "placements":{ "spawns":[ {"piece":"home","at":[2,1],"facing":"front"} ],
-                     "wools":[ {"piece":"home","at":[1,1]} ] } }
+      "placements":{ "spawns":[ {"piece":"home","at":[10,5],"facing":"front"} ],
+                     "wools":[ {"piece":"home","at":[5,5]} ] } }
     """;
 
     private static (PlanModel Plan, string Layout) Compiled(params string[] extraShapes)
@@ -82,7 +82,7 @@ public sealed class StraitReadbackTests
     public async Task A_board_with_no_wool_is_not_this_rules_to_judge()
     {
         var plan = PlanModel.Parse(Banded.Replace("""
-            "wools":[ {"piece":"home","at":[1,1]} ]
+            "wools":[ {"piece":"home","at":[5,5]} ]
         """.Trim(), """ "wools":[] """))!;
         var (layout, _) = PlanCompiler.Compile(plan);
 

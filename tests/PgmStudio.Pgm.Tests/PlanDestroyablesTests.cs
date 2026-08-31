@@ -15,13 +15,13 @@ public sealed class PlanDestroyablesTests
     // rot_180 → order 2, so one authored marker is two destroyables: red's and blue's.
     private const string Json = """
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [
             { "id": "bar-w", "role": "piece", "rect": [0, 0, 2, 2], "surface": 12 }
           ],
           "placements": {
-            "destroyables": [ { "piece": "bar-w", "at": [1, 1] } ]
+            "destroyables": [ { "piece": "bar-w", "at": [5, 5] } ]
           }
         }
         """;
@@ -57,8 +57,8 @@ public sealed class PlanDestroyablesTests
     [Test]
     public async Task Authored_parameters_win_over_the_defaults()
     {
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""",
-            """{ "piece": "bar-w", "at": [1, 1], "style": "cube-4", "materials": "gold block", "float": 7, "name": "The Vault" }""");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""",
+            """{ "piece": "bar-w", "at": [5, 5], "style": "cube-4", "materials": "gold block", "float": 7, "name": "The Vault" }""");
         var b = Compile(json)[0];
         await Assert.That(b.Style).IsEqualTo("cube-4");
         await Assert.That(b.Materials).IsEqualTo("gold block");
@@ -70,8 +70,8 @@ public sealed class PlanDestroyablesTests
     public async Task PGM_requires_a_name_so_the_compiler_derives_one_per_owner_and_index()
     {
         // Two markers for one team: the first is the team's monument, the second is numbered.
-        var json = Json.Replace("""[ { "piece": "bar-w", "at": [1, 1] } ]""",
-            """[ { "piece": "bar-w", "at": [1, 1] }, { "piece": "bar-w", "at": [0, 0] } ]""");
+        var json = Json.Replace("""[ { "piece": "bar-w", "at": [5, 5] } ]""",
+            """[ { "piece": "bar-w", "at": [5, 5] }, { "piece": "bar-w", "at": [0, 0] } ]""");
         var d = Compile(json);
         await Assert.That(d.Where(x => x.Owner == "red").Select(x => x.Name))
             .IsEquivalentTo(new[] { "Red Monument", "Red Monument 2" });
@@ -83,15 +83,15 @@ public sealed class PlanDestroyablesTests
     public async Task A_plan_with_no_destroyable_carries_none_rather_than_an_empty_list()
     {
         // Every CTW map is this case: the intent must look exactly as it did before destroyables existed.
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", "");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""", "");
         await Assert.That(PlanCompiler.Compile(PlanModel.Parse(json)!).Intent.Destroyables).IsNull();
     }
 
     [Test]
     public async Task An_unknown_style_is_an_error_not_a_silent_default()
     {
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""",
-            """{ "piece": "bar-w", "at": [1, 1], "style": "pyramid" }""");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""",
+            """{ "piece": "bar-w", "at": [5, 5], "style": "pyramid" }""");
         var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("pyramid"))).IsTrue();
     }
@@ -99,7 +99,7 @@ public sealed class PlanDestroyablesTests
     [Test]
     public async Task A_marker_outside_its_piece_is_an_error()
     {
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "bar-w", "at": [9, 9] }""");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""", """{ "piece": "bar-w", "at": [45, 45] }""");
         var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f => f.Severity == Severity.Refusal && f.Message.Contains("destroyable"))).IsTrue();
     }
@@ -111,13 +111,13 @@ public sealed class PlanDestroyablesTests
     [Test]
     public async Task A_marker_with_no_piece_compiles_by_absolute_board_position()
     {
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "", "at": [3, -4] }""");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""", """{ "piece": "", "at": [15, -20] }""");
         var d = Compile(json);
 
         await Assert.That(d.Count).IsEqualTo(2);
-        // Absolute `at` resolves the same way a piece's own rect does: cells·globals.cell from the centre.
-        await Assert.That(d[0].Anchor.X).IsEqualTo(3.0 * 5);
-        await Assert.That(d[0].Anchor.Z).IsEqualTo(-4.0 * 5);
+        // Absolute `at` is blocks from the symmetry centre, the same unit a piece-relative offset is in.
+        await Assert.That(d[0].Anchor.X).IsEqualTo(15.0);
+        await Assert.That(d[0].Anchor.Z).IsEqualTo(-20.0);
         // Still fans across the orbit like every other destroyable, as blocks rather than as positions.
         await Assert.That(d[0].Anchor.X + d[1].Anchor.X).IsEqualTo(-1);
         await Assert.That(d[0].Anchor.Z + d[1].Anchor.Z).IsEqualTo(-1);
@@ -127,11 +127,11 @@ public sealed class PlanDestroyablesTests
     [Test]
     public async Task Omitting_piece_entirely_is_also_absolute()
     {
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "at": [2, 2] }""");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""", """{ "at": [10, 10] }""");
         var d = Compile(json);
         await Assert.That(d.Count).IsEqualTo(2);
-        await Assert.That(d[0].Anchor.X).IsEqualTo(2.0 * 5);
-        await Assert.That(d[0].Anchor.Z).IsEqualTo(2.0 * 5);
+        await Assert.That(d[0].Anchor.X).IsEqualTo(10.0);
+        await Assert.That(d[0].Anchor.Z).IsEqualTo(10.0);
     }
 
     // The compile-time gate has no ground truth for an absolute marker (the landform it will ride is
@@ -140,7 +140,7 @@ public sealed class PlanDestroyablesTests
     [Test]
     public async Task A_marker_with_no_piece_is_not_a_dangling_reference()
     {
-        var json = Json.Replace("""{ "piece": "bar-w", "at": [1, 1] }""", """{ "piece": "", "at": [3, -4] }""");
+        var json = Json.Replace("""{ "piece": "bar-w", "at": [5, 5] }""", """{ "piece": "", "at": [15, -20] }""");
         var findings = PlanValidator.Check(PlanModel.Parse(json)!);
         await Assert.That(findings.Any(f =>
             f.Severity == Severity.Refusal && f.Message.Contains("unknown piece"))).IsFalse();
@@ -153,10 +153,10 @@ public sealed class PlanDestroyablesTests
     {
         var json = """
             {
-              "plan": 1,
+              "plan": 2,
               "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
               "pieces": [ { "id": "bar-w", "role": "piece", "rect": [0, 0, 2, 2], "surface": 12 } ],
-              "placements": { "spawns": [ { "piece": "", "at": [1, 1], "facing": "front" } ] }
+              "placements": { "spawns": [ { "piece": "", "at": [5, 5], "facing": "front" } ] }
             }
             """;
         var findings = PlanValidator.Check(PlanModel.Parse(json)!);

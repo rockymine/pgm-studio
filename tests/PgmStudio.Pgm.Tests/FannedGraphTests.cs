@@ -26,7 +26,7 @@ public sealed class FannedGraphTests
         // L and R sit 30 blocks apart with no land between; three edge-adjacent zones tile the void into one
         // buildable region touching both, so a builder chains across it — L reaches R.
         const string plan = """
-        { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
           "pieces":[ {"id":"L","role":"lane","rect":[0,0,10,10]}, {"id":"R","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z2","rect":[20,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
         """;
@@ -39,7 +39,7 @@ public sealed class FannedGraphTests
         // the middle zone is gone: the void is not tiled, the two zones form separate regions each touching one
         // piece, and there is no land bridge → L cannot reach R.
         const string plan = """
-        { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
           "pieces":[ {"id":"L","role":"lane","rect":[0,0,10,10]}, {"id":"R","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
         """;

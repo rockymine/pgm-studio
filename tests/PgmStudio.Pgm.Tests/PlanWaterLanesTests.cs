@@ -13,12 +13,12 @@ public sealed class PlanWaterLanesTests
 
     private const string Unit = """
         "pieces":[ {"id":"lane","rect":[1,5,2,6]}, {"id":"wr","role":"wool-room","rect":[-3,5,2,2]} ],
-        "placements":{ "spawns":[ {"piece":"lane","at":[1,5],"facing":"front"} ],
-                       "wools":[ {"piece":"wr","at":[1,1]} ] }
+        "placements":{ "spawns":[ {"piece":"lane","at":[5,25],"facing":"front"} ],
+                       "wools":[ {"piece":"wr","at":[5,5]} ] }
         """;
 
     private static PlanModel WithZones(string zones) =>
-        Plan($$"""{ "plan":1, "globals":{"symmetry":"rot_180"}, "zones":{{zones}}, {{Unit}} }""");
+        Plan($$"""{ "plan":2, "globals":{"symmetry":"rot_180"}, "zones":{{zones}}, {{Unit}} }""");
 
     [Test]
     public async Task A_zone_with_no_kind_is_a_build_zone()

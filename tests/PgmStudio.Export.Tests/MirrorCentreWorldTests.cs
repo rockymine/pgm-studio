@@ -17,28 +17,28 @@ public sealed class MirrorCentreWorldTests
 {
     private const string Destroyables = """
         {
-          "plan": 1,
+          "plan": 2,
           "meta": { "name": "Mirror Probe" },
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [
             { "id": "bar-w", "role": "piece", "rect": [1, -2, 4, 4], "surface": 12 }
           ],
           "placements": {
-            "destroyables": [ { "piece": "bar-w", "at": [2, 2] } ]
+            "destroyables": [ { "piece": "bar-w", "at": [10, 10] } ]
           }
         }
         """;
 
     private const string Cores = """
         {
-          "plan": 1,
+          "plan": 2,
           "meta": { "name": "Mirror Probe" },
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [
             { "id": "bar-w", "role": "piece", "rect": [1, -2, 4, 4], "surface": 12 }
           ],
           "placements": {
-            "cores": [ { "piece": "bar-w", "at": [2, 2] } ]
+            "cores": [ { "piece": "bar-w", "at": [10, 10] } ]
           }
         }
         """;

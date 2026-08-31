@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "build-interface-dos-and-donts"
   },
@@ -388,8 +388,8 @@
       {
         "piece": "spawn",
         "at": [
-          1,
-          1
+          5,
+          5
         ],
         "facing": "right"
       }
@@ -398,15 +398,15 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       },
       {
         "piece": "wool-3",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

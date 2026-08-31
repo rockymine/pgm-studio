@@ -21,7 +21,7 @@ public sealed class ClosureAnalysisTests
     [Test]
     public async Task A_rot_180_ring_encloses_a_central_hole()
     {
-        var sizes = ClosureAnalysis.HoleSizes(Plan($$"""{ "plan":1, "globals":{"cell":1,"symmetry":"rot_180"}, "pieces":[ {{Ring}} ] }"""));
+        var sizes = ClosureAnalysis.HoleSizes(Plan($$"""{ "plan":2, "globals":{"cell":1,"symmetry":"rot_180"}, "pieces":[ {{Ring}} ] }"""));
         await Assert.That(sizes).IsEquivalentTo(new[] { 4 });
     }
 
@@ -31,7 +31,7 @@ public sealed class ClosureAnalysisTests
         // the buffer sits exactly in the centre void; because it is an annotation it never rasterizes, so the
         // hole stays measured at its full size.
         var withBuffer = ClosureAnalysis.HoleSizes(Plan($$"""
-            { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+            { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
               "pieces":[ {{Ring}}, {"id":"buffer-hole","role":"buffer","rect":[-1,-1,2,2]} ] }
             """));
         await Assert.That(withBuffer).IsEquivalentTo(new[] { 4 });
@@ -43,7 +43,7 @@ public sealed class ClosureAnalysisTests
         // the control: an identical rect as a generating piece plugs the void → the hole vanishes. This is the
         // failure a buffer must avoid (erasing the rotation hole it documents).
         var plugged = ClosureAnalysis.HoleSizes(Plan($$"""
-            { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+            { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
               "pieces":[ {{Ring}}, {"id":"plug","role":"piece","rect":[-1,-1,2,2]} ] }
             """));
         await Assert.That(plugged).IsEmpty();

@@ -32,7 +32,7 @@ public sealed class PlanValidatorTests
         // a thin (< corridor) shared border is walkable terrain — it connects, and it is not linted (PC-S is
         // retired; narrow seams are legal, corridor quality is judged later on the assembled footprint).
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,9]}, {"id":"b","role":"lane","rect":[10,0,10,10]} ] }
         """);
         await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
@@ -44,7 +44,7 @@ public sealed class PlanValidatorTests
     {
         // a bare corner touch is harmless → PC-C lint, no error.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[10,10,10,10]} ] }
         """);
         await Assert.That(Lint(p, "PC-C")).IsTrue();
@@ -57,14 +57,14 @@ public sealed class PlanValidatorTests
         // a and b touch only at the point (10,10), but c lands with both (border on x=10 with a, on z=10 with
         // b), so all three are one land component — the corner is harmless → no PC-C.
         var connected = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"lane","rect":[10,10,10,10]},
                      {"id":"c","role":"lane","rect":[10,0,10,10]} ] }
         """);
         // the bare corner alone (no connecting land) stays a finding — the sneaky diagonal between separate areas.
         var alone = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"lane","rect":[10,10,10,10]} ] }
         """);
@@ -76,7 +76,7 @@ public sealed class PlanValidatorTests
     public async Task Different_surface_overlap_is_an_error()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"mid","rect":[5,5,10,10],"surface":13} ] }
         """);
         await Assert.That(Refused(p, PlanRules.SurfaceClash)).IsTrue();
@@ -88,12 +88,12 @@ public sealed class PlanValidatorTests
         // the fan copies whole islands, so a landmass half fanned and half not has no coherent orbit image;
         // the compiler throws on it, and the validator must refuse it first so the gate can name the pieces.
         var mixed = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"mid","rect":[0,10,10,10],"mirrors":false} ] }
         """);
         var apart = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"mid","rect":[0,15,10,10],"mirrors":false} ] }
         """);
@@ -108,14 +108,14 @@ public sealed class PlanValidatorTests
         // entered (the author's ruling): the device belongs an approach out. Same geometry, wall moved one
         // interface back — legal.
         var onTheRoom = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"none"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"none"},
           "pieces":[ {"id":"wool","role":"wool-room","rect":[0,0,2,2]},
                      {"id":"approach","role":"piece","rect":[2,0,4,2]},
                      {"id":"hub","role":"piece","rect":[6,0,4,2]} ],
           "walls":[ {"a":"wool","b":"approach"} ] }
         """);
         var anApproachOut = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"none"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"none"},
           "pieces":[ {"id":"wool","role":"wool-room","rect":[0,0,2,2]},
                      {"id":"approach","role":"piece","rect":[2,0,4,2]},
                      {"id":"hub","role":"piece","rect":[6,0,4,2]} ],
@@ -130,7 +130,7 @@ public sealed class PlanValidatorTests
     public async Task Placement_outside_its_piece_is_an_error()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]} ],
           "placements":{ "spawns":[ {"piece":"a","at":[20,0],"facing":"front"} ] } }
         """);
@@ -141,7 +141,7 @@ public sealed class PlanValidatorTests
     public async Task Unknown_piece_reference_is_an_error()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]} ],
           "placements":{ "wools":[ {"piece":"ghost","at":[0,0]} ] } }
         """);
@@ -155,7 +155,7 @@ public sealed class PlanValidatorTests
         // than mis-coloured, and the auto-assignment the compiler would otherwise reach for is what an
         // ABSENT colour asks for, so substituting it would answer a question the plan did not ask.
         var named = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]} ],
           "placements":{ "wools":[ {"piece":"w","at":[1,1],"color":"chartreuse"} ] } }
         """);
@@ -166,7 +166,7 @@ public sealed class PlanValidatorTests
         foreach (var written in new[] { "light_blue", "Light Blue", "light_gray" })
         {
             var spelled = Plan($$"""
-            { "plan":1, "globals":{"cell":1},
+            { "plan":2, "globals":{"cell":1},
               "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]} ],
               "placements":{ "wools":[ {"piece":"w","at":[1,1],"color":"{{written}}"} ] } }
             """);
@@ -175,7 +175,7 @@ public sealed class PlanValidatorTests
 
         // Saying nothing is the documented way to have one picked, so it is never the refusal.
         var unstated = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]} ],
           "placements":{ "wools":[ {"piece":"w","at":[1,1]} ] } }
         """);
@@ -187,9 +187,9 @@ public sealed class PlanValidatorTests
     {
         // spawn island and wool island, no zone to bridge them → the wool can't be reached
         var p = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"s","role":"lane","rect":[1,4,2,2]}, {"id":"w","role":"wool-room","rect":[10,10,2,2]} ],
-          "placements":{ "spawns":[ {"piece":"s","at":[1,1],"facing":"front"} ], "wools":[ {"piece":"w","at":[1,1]} ] } }
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ], "wools":[ {"piece":"w","at":[5,5]} ] } }
         """);
         await Assert.That(Refused(p, PlanRules.WoolUnreachable)).IsTrue();
     }
@@ -199,12 +199,12 @@ public sealed class PlanValidatorTests
     {
         // frontline hub → spawn → wool: the wool sits behind the spawn, so no frontline path avoids it
         var p = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"hub","role":"hub","rect":[-1,2,2,2]},
                      {"id":"s","role":"lane","rect":[-1,4,2,2]},
                      {"id":"w","role":"wool-room","rect":[-1,6,2,2]} ],
           "zones":[ {"id":"mid","rect":[-1,-2,2,4]} ],
-          "placements":{ "spawns":[ {"piece":"s","at":[1,1],"facing":"front"} ], "wools":[ {"piece":"w","at":[1,1]} ] } }
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ], "wools":[ {"piece":"w","at":[5,5]} ] } }
         """);
         await Assert.That(Refused(p, "SP1")).IsTrue();
     }
@@ -218,11 +218,11 @@ public sealed class PlanValidatorTests
     {
         // the SP1 plan above with its one `zones` entry taken out: same pieces, same placements, same shape.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"hub","role":"hub","rect":[-1,2,2,2]},
                      {"id":"s","role":"lane","rect":[-1,4,2,2]},
                      {"id":"w","role":"wool-room","rect":[-1,6,2,2]} ],
-          "placements":{ "spawns":[ {"piece":"s","at":[1,1],"facing":"front"} ], "wools":[ {"piece":"w","at":[1,1]} ] } }
+          "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ], "wools":[ {"piece":"w","at":[5,5]} ] } }
         """);
 
         await Assert.That(Refused(p, "SP1")).IsFalse().Because("no wool is refused for a zone nobody declared");
@@ -238,12 +238,12 @@ public sealed class PlanValidatorTests
     {
         // a and b abut over a 10-block border (a real land interface) → wall ok; a and c are disjoint → error.
         var ok = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10]} ],
           "walls":[ {"a":"a","b":"b"} ] }
         """);
         var bad = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"c","role":"piece","rect":[40,0,10,10]} ],
           "walls":[ {"a":"a","b":"c"} ] }
         """);
@@ -281,7 +281,7 @@ public sealed class PlanValidatorTests
     {
         // a different-surface overlap (error) between a/b and a narrow zone (G2 lint) each name their subjects
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"mid","rect":[5,5,10,10],"surface":13} ],
           "zones":[ {"id":"z","rect":[0,20,8,20]} ] }
         """);
@@ -303,7 +303,7 @@ public sealed class PlanValidatorTests
         // the buffer overlaps both 'a' (surface 9) and 'b' (surface 13); if it were terrain those overlaps would
         // be different-surface errors. As a non-generating annotation it is absent from d.Contacts → no error.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
                      {"id":"b","role":"piece","rect":[0,20,10,10],"surface":13},
                      {"id":"buffer","role":"buffer","rect":[0,0,10,30]} ] }
@@ -319,17 +319,17 @@ public sealed class PlanValidatorTests
     public async Task EL1_names_a_seam_a_player_cannot_walk_up_and_leaves_a_buffer_alone()
     {
         var step = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
                      {"id":"high","role":"piece","rect":[10,0,10,10],"surface":12} ] }
         """);
         var walkable = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
                      {"id":"high","role":"piece","rect":[10,0,10,10],"surface":10} ] }
         """);
         var buffer = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
                      {"id":"buffer","role":"buffer","rect":[10,0,10,10],"surface":12} ] }
         """);
@@ -346,7 +346,7 @@ public sealed class PlanValidatorTests
     [Test]
     public async Task EL1_says_nothing_about_a_lone_piece_however_its_surface_sits()
     {
-        var lone = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10],"surface":12} ] }""");
+        var lone = Plan("""{ "plan":2, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10],"surface":12} ] }""");
         await Assert.That(Lint(lone, "EL1")).IsFalse();
     }
 
@@ -357,7 +357,7 @@ public sealed class PlanValidatorTests
     public async Task EL1_is_silent_on_a_flight_of_one_block_treads()
     {
         var flight = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"field","role":"piece","rect":[0,0,20,10]},
                      {"id":"tread-1","role":"piece","rect":[0,10,20,2],"surface":10},
                      {"id":"tread-2","role":"piece","rect":[0,12,20,2],"surface":11},
@@ -373,12 +373,12 @@ public sealed class PlanValidatorTests
     {
         // nothing may be placed on a buffer — it produces no ground for a marker to sit on.
         var spawn = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ],
           "placements":{ "spawns":[ {"piece":"buffer","at":[5,5],"facing":"front"} ] } }
         """);
         var wool = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ],
           "placements":{ "wools":[ {"piece":"buffer","at":[5,5]} ] } }
         """);
@@ -391,8 +391,8 @@ public sealed class PlanValidatorTests
     [Test]
     public async Task G2_fires_on_a_narrow_zone_and_not_on_a_wide_one()
     {
-        var narrow = Plan("""{ "plan":1, "globals":{"cell":1}, "zones":[ {"id":"z","rect":[0,0,8,20]} ] }""");
-        var wide = Plan("""{ "plan":1, "globals":{"cell":1}, "zones":[ {"id":"z","rect":[0,0,10,20]} ] }""");
+        var narrow = Plan("""{ "plan":2, "globals":{"cell":1}, "zones":[ {"id":"z","rect":[0,0,8,20]} ] }""");
+        var wide = Plan("""{ "plan":2, "globals":{"cell":1}, "zones":[ {"id":"z","rect":[0,0,10,20]} ] }""");
         await Assert.That(Lint(narrow, "G2")).IsTrue();
         await Assert.That(Lint(wide, "G2")).IsFalse();
     }
@@ -401,12 +401,12 @@ public sealed class PlanValidatorTests
     public async Task G5_fires_on_a_long_hop_and_not_on_an_in_range_one()
     {
         var far = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z","rect":[0,0,50,10]} ] }
         """);
         var ok = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[25,0,10,10]} ],
           "zones":[ {"id":"z","rect":[0,0,35,10]} ] }
         """);
@@ -418,12 +418,12 @@ public sealed class PlanValidatorTests
     public async Task SP2_fires_when_the_spawn_is_in_the_front_half()
     {
         var front = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"lane","role":"lane","rect":[0,50,10,40]} ],
           "placements":{ "spawns":[ {"piece":"lane","at":[5,5],"facing":"front"} ] } }
         """);
         var back = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"lane","role":"lane","rect":[0,50,10,40]} ],
           "placements":{ "spawns":[ {"piece":"lane","at":[5,35],"facing":"front"} ] } }
         """);
@@ -435,13 +435,13 @@ public sealed class PlanValidatorTests
     public async Task BZ5_fires_when_a_zone_touches_a_spawn_piece()
     {
         var touching = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"s","role":"lane","rect":[0,10,10,10]} ],
           "zones":[ {"id":"z","rect":[0,0,10,10]} ],
           "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
         """);
         var clear = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"s","role":"lane","rect":[0,30,10,10]} ],
           "zones":[ {"id":"z","rect":[0,0,10,10]} ],
           "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
@@ -456,19 +456,19 @@ public sealed class PlanValidatorTests
     {
         // a spawn-role piece exists; iron on a separate (non-spawn) piece → ST2 fires.
         var outside = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,10,10]}, {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
           "placements":{ "iron":[ {"piece":"ln","at":[5,5]} ] } }
         """);
         // iron sits inside the spawn piece → no ST2.
         var inside = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,10,10]}, {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
           "placements":{ "iron":[ {"piece":"sp","at":[5,5]} ] } }
         """);
         // no spawn-role piece at all → ST2 dormant even with stray iron.
         var noSpawnRole = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
           "placements":{ "iron":[ {"piece":"ln","at":[5,5]} ] } }
         """);
@@ -485,7 +485,7 @@ public sealed class PlanValidatorTests
     [Test]
     public async Task An_empty_plan_has_no_land_to_build()
     {
-        var p = Plan("""{ "plan":1, "globals":{"cell":1} }""");
+        var p = Plan("""{ "plan":2, "globals":{"cell":1} }""");
         await Assert.That(Missing(p, "no pieces")).IsTrue();
     }
 
@@ -495,7 +495,7 @@ public sealed class PlanValidatorTests
         // buffers and other non-generating roles produce no terrain, so a plan of nothing but them is as empty
         // as a blank document.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10]} ] }
         """);
         await Assert.That(Missing(p, "no pieces")).IsTrue();
@@ -505,7 +505,7 @@ public sealed class PlanValidatorTests
     public async Task A_plan_with_land_but_no_spawn_cannot_be_loaded()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ] }
         """);
         await Assert.That(Missing(p, "no spawn")).IsTrue();
@@ -516,7 +516,7 @@ public sealed class PlanValidatorTests
     {
         // the spawn and objective complaints are consequences of there being no plan at all — saying all three
         // buries the one fact the author needs.
-        var p = Plan("""{ "plan":1, "globals":{"cell":1} }""");
+        var p = Plan("""{ "plan":2, "globals":{"cell":1} }""");
         await Assert.That(PlanValidator.Completeness(p).Count).IsEqualTo(1);
     }
 
@@ -524,7 +524,7 @@ public sealed class PlanValidatorTests
     public async Task A_missing_objective_is_a_complaint_not_a_block()
     {
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
           "placements":{"spawns":[{"piece":"a","at":[1,1]}]} }
         """);
@@ -540,7 +540,7 @@ public sealed class PlanValidatorTests
     public async Task Any_one_objective_kind_silences_the_complaint(string kind)
     {
         var p = Plan($$"""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ],
           "placements":{"spawns":[{"piece":"a","at":[1,1]}],"{{kind}}":[{"piece":"a","at":[5,5]}]} }
         """);
@@ -553,7 +553,7 @@ public sealed class PlanValidatorTests
         // Validate() runs on every candidate the composer scores and on every keystroke in the editor, where a
         // half-built plan is normal — so an incomplete plan must not read as a structural error there.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]} ] }
         """);
         await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
@@ -570,7 +570,7 @@ public sealed class PlanValidatorTests
         // A room has no facing, so every land seam an attacker can arrive across is a door and all of them
         // are measured — which is the one way this differs from SP8's forward-only read.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":11},
                      {"id":"west","role":"lane","rect":[0,0,10,10],"surface":9},
                      {"id":"east","role":"lane","rect":[0,20,10,10],"surface":9} ],
@@ -579,7 +579,7 @@ public sealed class PlanValidatorTests
         await Assert.That(LintCount(p, "WL11")).IsEqualTo(2);
 
         var level = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":11},
                      {"id":"west","role":"lane","rect":[0,0,10,10],"surface":11},
                      {"id":"east","role":"lane","rect":[0,20,10,10],"surface":10} ],
@@ -594,7 +594,7 @@ public sealed class PlanValidatorTests
         // A wall to build up and a drop with no way back out are different problems on the same seam, and an
         // attacker meets one of them at the end of the run that decides the map.
         var wall = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":9},
                      {"id":"approach","role":"lane","rect":[0,0,10,10],"surface":14} ],
           "placements":{ "wools":[ {"piece":"room","at":[5,5]} ] } }
@@ -604,7 +604,7 @@ public sealed class PlanValidatorTests
         await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
 
         var pit = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"room","role":"wool-room","rect":[0,10,10,10],"surface":14},
                      {"id":"approach","role":"lane","rect":[0,0,10,10],"surface":9} ],
           "placements":{ "wools":[ {"piece":"room","at":[5,5]} ] } }
@@ -619,7 +619,7 @@ public sealed class PlanValidatorTests
         // WL11 is about the seam a cage's door is cut on. A wool marker on ordinary ground has no room and
         // no entries, so there is nothing for the rule to be about.
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"lane","role":"lane","rect":[0,10,10,10],"surface":11},
                      {"id":"west","role":"lane","rect":[0,0,10,10],"surface":9} ],
           "placements":{ "wools":[ {"piece":"lane","at":[5,5]} ] } }
@@ -633,7 +633,7 @@ public sealed class PlanValidatorTests
         // the seam ahead of the door steps 2 (un-walkable bare) → SP8; the identical step behind the spawn
         // is a legitimate back wall and is not the egress
         var p = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10],"surface":11},
                      {"id":"ahead","role":"lane","rect":[0,0,10,10],"surface":9},
                      {"id":"behind","role":"lane","rect":[0,20,10,10],"surface":9} ],
@@ -642,7 +642,7 @@ public sealed class PlanValidatorTests
         await Assert.That(LintCount(p, "SP8")).IsEqualTo(1);
 
         var flat = Plan("""
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10],"surface":11},
                      {"id":"ahead","role":"lane","rect":[0,0,10,10],"surface":11} ],
           "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
@@ -656,7 +656,7 @@ public sealed class PlanValidatorTests
         // five blocks of apron then nothing → SP9; the same doorstep opening onto a build zone is the
         // gap-only spawn's egress bridge and stands
         var shortApron = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10]},
                      {"id":"apron","role":"lane","rect":[0,5,10,5]} ],
           "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
@@ -664,7 +664,7 @@ public sealed class PlanValidatorTests
         await Assert.That(Lint(shortApron, "SP9")).IsTrue();
 
         var bridged = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"s","role":"spawn","rect":[0,10,10,10]} ],
           "zones":[ {"id":"egress","rect":[0,-5,10,15]} ],
           "placements":{ "spawns":[ {"piece":"s","at":[5,5],"facing":"front"} ] } }
@@ -677,7 +677,7 @@ public sealed class PlanValidatorTests
     {
         // the wall seat 15 out from the room's entry, over a 10-block mouth — the author's geometry, clean
         var seated = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]},
                      {"id":"a","role":"lane","rect":[0,10,10,15]},
                      {"id":"h","role":"lane","rect":[0,25,10,10]} ],
@@ -687,7 +687,7 @@ public sealed class PlanValidatorTests
 
         // the same wall with a four-deep approach stands 4 from the entrance → too close
         var close = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]},
                      {"id":"a","role":"lane","rect":[0,10,10,4]},
                      {"id":"h","role":"lane","rect":[0,14,10,10]} ],
@@ -697,7 +697,7 @@ public sealed class PlanValidatorTests
 
         // a 30-block interface is a room face, not a lane mouth
         var wide = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,10,30,15]},
                      {"id":"h","role":"lane","rect":[0,25,30,10]} ],
           "walls":[ {"a":"a","b":"h"} ] }
@@ -709,13 +709,13 @@ public sealed class PlanValidatorTests
     public async Task A_role_piece_over_the_cap_fires_ST9()
     {
         var oversized = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,30,30]} ] }
         """);
         await Assert.That(Lint(oversized, "ST9")).IsTrue();
 
         var atCap = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,20,20]} ] }
         """);
         await Assert.That(Lint(atCap, "ST9")).IsFalse();
@@ -726,14 +726,14 @@ public sealed class PlanValidatorTests
     {
         // two zones whose union is a plain rectangle: one zone would have drawn it → stitched
         var stitched = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "zones":[ {"id":"za","rect":[0,0,10,5]}, {"id":"zb","rect":[0,5,10,5]} ] }
         """);
         await Assert.That(Lint(stitched, "BZ11")).IsTrue();
 
         // an L-shaped region needs two rectangles — that is decomposition, not stitching
         var elbow = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "zones":[ {"id":"za","rect":[0,0,10,5]}, {"id":"zb","rect":[0,5,5,5]} ] }
         """);
         await Assert.That(Lint(elbow, "BZ11")).IsFalse();
@@ -746,19 +746,19 @@ public sealed class PlanValidatorTests
         // (sunspit's foreshore read exactly this). The spawn anchors the island to its team — an un-anchored
         // crossing reads as a team's own internal bridge, not a front.
         var funnel = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"front","role":"lane","rect":[-8,-4,16,3]} ],
           "zones":[ {"id":"dock","rect":[-8,-1,2,2]} ],
-          "placements":{ "spawns":[ {"piece":"front","at":[8,1],"facing":"front"} ] } }
+          "placements":{ "spawns":[ {"piece":"front","at":[40,5],"facing":"front"} ] } }
         """);
         await Assert.That(Lint(funnel, "FR8")).IsTrue();
 
         // the same face with the zone spanning it: share 1.00 → the fit every authored board shows
         var spanning = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"front","role":"lane","rect":[-8,-4,16,3]} ],
           "zones":[ {"id":"dock","rect":[-8,-1,16,2]} ],
-          "placements":{ "spawns":[ {"piece":"front","at":[8,1],"facing":"front"} ] } }
+          "placements":{ "spawns":[ {"piece":"front","at":[40,5],"facing":"front"} ] } }
         """);
         await Assert.That(Lint(spanning, "FR8")).IsFalse();
     }
@@ -772,20 +772,20 @@ public sealed class PlanValidatorTests
     {
         // a 10-block face docked across its whole width: FR8 reads 1.00 and says nothing.
         var narrow = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"front","role":"lane","rect":[-1,-4,2,3]} ],
           "zones":[ {"id":"dock","rect":[-1,-1,2,2]} ],
-          "placements":{ "spawns":[ {"piece":"front","at":[1,1],"facing":"front"} ] } }
+          "placements":{ "spawns":[ {"piece":"front","at":[5,5],"facing":"front"} ] } }
         """);
         await Assert.That(Lint(narrow, "FR8")).IsFalse().Because("the crossing spans its whole face");
         await Assert.That(Lint(narrow, "FR9")).IsTrue().Because("ten blocks is under the fifteen a crossing wants");
 
         // the same board with a face wide enough to cross: both quiet.
         var wide = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"front","role":"lane","rect":[-2,-4,4,3]} ],
           "zones":[ {"id":"dock","rect":[-2,-1,4,2]} ],
-          "placements":{ "spawns":[ {"piece":"front","at":[2,1],"facing":"front"} ] } }
+          "placements":{ "spawns":[ {"piece":"front","at":[10,5],"facing":"front"} ] } }
         """);
         await Assert.That(Lint(wide, "FR9")).IsFalse();
     }
@@ -795,21 +795,21 @@ public sealed class PlanValidatorTests
     {
         // rot_180 fans the authored team island opposite itself: a 10-block strait under one zone → too close
         var narrow = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"home","role":"spawn","rect":[-2,-3,4,2]} ],
           "zones":[ {"id":"strait","rect":[-2,-1,4,2]} ],
-          "placements":{ "spawns":[ {"piece":"home","at":[2,1],"facing":"front"} ],
-                         "wools":[ {"piece":"home","at":[1,1]} ] } }
+          "placements":{ "spawns":[ {"piece":"home","at":[10,5],"facing":"front"} ],
+                         "wools":[ {"piece":"home","at":[5,5]} ] } }
         """);
         await Assert.That(Lint(narrow, "CT12")).IsTrue();
 
         // the same board pushed out to a 30-block strait sits inside the band
         var banded = Plan("""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180"},
           "pieces":[ {"id":"home","role":"spawn","rect":[-2,-5,4,2]} ],
           "zones":[ {"id":"strait","rect":[-2,-3,4,6]} ],
-          "placements":{ "spawns":[ {"piece":"home","at":[2,1],"facing":"front"} ],
-                         "wools":[ {"piece":"home","at":[1,1]} ] } }
+          "placements":{ "spawns":[ {"piece":"home","at":[10,5],"facing":"front"} ],
+                         "wools":[ {"piece":"home","at":[5,5]} ] } }
         """);
         await Assert.That(Lint(banded, "CT12")).IsFalse();
     }

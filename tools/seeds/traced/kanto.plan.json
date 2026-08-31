@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "kanto"
   },
@@ -199,8 +199,8 @@
         "id": "spawn-1",
         "piece": "spawn",
         "at": [
-          3,
-          1.5
+          15,
+          7.5
         ],
         "facing": "back"
       }
@@ -210,16 +210,16 @@
         "id": "wool-1",
         "piece": "wool-2",
         "at": [
-          1.5,
-          1.5
+          7.5,
+          7.5
         ]
       },
       {
         "id": "wool-2",
         "piece": "wool",
         "at": [
-          1.5,
-          1.5
+          7.5,
+          7.5
         ]
       }
     ],
@@ -228,16 +228,16 @@
         "id": "iron-1",
         "piece": "spawn",
         "at": [
-          1,
-          6
+          5,
+          30
         ]
       },
       {
         "id": "iron-2",
         "piece": "spawn",
         "at": [
-          5,
-          6
+          25,
+          30
         ]
       }
     ],

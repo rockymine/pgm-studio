@@ -16,7 +16,7 @@ public sealed class PlanStructuresTests
     // separate spawn island carrying iron (renews) and a loose iron marker on 'far' (does not).
     private const string Json = """
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9 },
           "pieces": [
             { "id": "wool", "role": "wool-room", "rect": [0, 4, 2, 2], "surface": 13 },
@@ -25,9 +25,9 @@ public sealed class PlanStructuresTests
             { "id": "sp",   "role": "spawn",     "rect": [4, 0, 2, 2] }
           ],
           "placements": {
-            "spawns": [ { "piece": "sp", "at": [1, 1], "facing": "front" } ],
-            "wools":  [ { "piece": "wool", "at": [1, 1] } ],
-            "iron":   [ { "piece": "sp", "at": [1, 1] }, { "piece": "far", "at": [1, 1] } ]
+            "spawns": [ { "piece": "sp", "at": [5, 5], "facing": "front" } ],
+            "wools":  [ { "piece": "wool", "at": [5, 5] } ],
+            "iron":   [ { "piece": "sp", "at": [5, 5] }, { "piece": "far", "at": [5, 5] } ]
           },
           "walls": [ { "a": "mid", "b": "far" } ]
         }

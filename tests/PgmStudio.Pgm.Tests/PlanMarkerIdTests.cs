@@ -20,7 +20,7 @@ public sealed class PlanMarkerIdTests
     public async Task A_plan_written_before_markers_had_ids_gains_them_on_load()
     {
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "placements":{ "spawns":[{"piece":"home","at":[1,1]}],
                          "cores":[{"piece":"mid","at":[0,0]},{"piece":"mid","at":[2,2]}] } }
         """);
@@ -34,7 +34,7 @@ public sealed class PlanMarkerIdTests
         // Identity is the author's to set: an id that means something to them must survive a load, and the
         // mint has to step around it rather than issue the same name twice.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "placements":{ "cores":[{"id":"core-2","piece":"mid","at":[0,0]},{"piece":"mid","at":[2,2]}] } }
         """);
         await Assert.That(plan.Placements.Cores.Select(core => core.Id)).IsEquivalentTo(new[] { "core-2", "core-1" });
@@ -46,7 +46,7 @@ public sealed class PlanMarkerIdTests
         // Two markers answering to one name is worse than no name: a finding or an agent naming it would
         // resolve to whichever came first, silently.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "placements":{ "cores":[{"id":"heart","piece":"mid","at":[0,0]},{"id":"heart","piece":"mid","at":[2,2]}] } }
         """);
         await Assert.That(plan.Placements.Cores[0].Id).IsEqualTo("heart");
@@ -58,7 +58,7 @@ public sealed class PlanMarkerIdTests
     {
         // A finding names one id; if a wool and a core could both be "core-1" it would resolve to either.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "placements":{ "wools":[{"id":"core-1","piece":"vault","at":[0,0]}],
                          "cores":[{"piece":"mid","at":[0,0]}] } }
         """);
@@ -69,7 +69,7 @@ public sealed class PlanMarkerIdTests
     public async Task Ids_round_trip_through_the_wire_format()
     {
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "placements":{ "cores":[{"id":"heart","piece":"mid","at":[0,0]}] } }
         """);
         await Assert.That(Plan(plan.ToJson()).Placements.Cores[0].Id).IsEqualTo("heart");
@@ -81,7 +81,7 @@ public sealed class PlanMarkerIdTests
         // The mint walks Placements.All(); a kind missing from that pass would silently keep an empty id and
         // be unnameable, which is the failure this whole change is about.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "placements":{ "spawns":[{"piece":"p","at":[0,0]}], "wools":[{"piece":"p","at":[0,0]}],
                          "iron":[{"piece":"p","at":[0,0]}], "destroyables":[{"piece":"p","at":[0,0]}],
                          "cores":[{"piece":"p","at":[0,0]}] } }
@@ -96,7 +96,7 @@ public sealed class PlanMarkerIdTests
         // The point of the ids: an OB17 refusal is about one marker, and pulsing the whole piece under it
         // says the wrong thing about which one is wrong.
         var plan = Plan("""
-        { "plan":1, "globals":{"cell":1,"symmetry":"rot_180"},
+        { "plan":2, "globals":{"cell":1,"symmetry":"rot_180"},
           "pieces":[ {"id":"land","role":"piece","rect":[0,0,20,20]} ],
           "placements":{ "cores":[ {"id":"heart","piece":"land","at":[19,10],"size":5} ] } }
         """);

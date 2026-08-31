@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "outback_outback_edition"
   },
@@ -349,8 +349,8 @@
         "id": "spawn-1",
         "piece": "spawn",
         "at": [
-          2,
-          1.5
+          10,
+          7.5
         ],
         "facing": "back"
       }
@@ -360,16 +360,16 @@
         "id": "wool-1",
         "piece": "wool",
         "at": [
-          1.5,
-          1.5
+          7.5,
+          7.5
         ]
       },
       {
         "id": "wool-2",
         "piece": "wool-2",
         "at": [
-          1.5,
-          1.5
+          7.5,
+          7.5
         ]
       }
     ],
@@ -378,8 +378,8 @@
         "id": "iron-1",
         "piece": "spawn",
         "at": [
-          2,
-          3
+          10,
+          15
         ]
       }
     ],

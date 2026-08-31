@@ -19,15 +19,6 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
 
 ## The piece that does four jobs: the region, the marker, and the building on it
 
-- [ ] **TN10 — A marker moves in 2.5-block steps, so a spawn cannot stand at block 3.** `at` is an offset in
-  **cells** on a half-cell lattice while everything downstream is blocks: in a 20-block piece that is nine
-  legal positions per axis out of the 41 the half-block lattice the export snaps to
-  (`PositionSnap.SnapHalfXZ`) would allow. Make `at` **blocks relative to the piece's minimum corner**, on the
-  half-block lattice, for every marker kind; `plan-doc.js snapHalf` follows. `WX3`'s parity is unchanged — a
-  whole offset is a grid line, a `.5` a block centre. Bump `PlanModel.Version` to **2** and refuse version 1
-  rather than guess a unit. The conversion is `at × globals.cell`, exact on the half-block lattice, so no
-  marker moves: convert the 49 seeds under `tools/seeds/` and the stored `plan_json` rows.
-
 - [ ] **B178 — The plan piece is the building, so a wide platform with a small hall cannot be asked for.**
   Give the spawn and wool placements a stated **`footprint`**: `[x, z, w, h]` in blocks from the piece's
   minimum corner, `4×4` to `20×20`, inside the piece and containing its marker. `RoomFrames.ResolveRoom` takes

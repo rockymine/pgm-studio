@@ -141,7 +141,7 @@ public static class WoolBoxEmitter
         };
         foreach (var p in a.Terrain) plan.Pieces.Add(new PlanPiece { Id = p.Id, Role = p.Role, Rect = p.Rect });
         plan.Pieces.Add(new PlanPiece { Id = a.WoolRoom.Id, Role = a.WoolRoom.Role, Rect = a.WoolRoom.Rect });
-        plan.Placements.Wools.Add(new WoolPlacement { Piece = a.WoolRoom.Id, At = a.At });
+        plan.Placements.Wools.Add(new WoolPlacement { Piece = a.WoolRoom.Id, At = Composer.MarkerOffset(a.At, plan.Globals.Cell) });
         return plan;
     }
 }

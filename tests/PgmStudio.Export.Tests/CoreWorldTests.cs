@@ -24,19 +24,19 @@ public sealed class CoreWorldTests
 {
     private const string Json = """
         {
-          "plan": 1,
+          "plan": 2,
           "meta": { "name": "DTC Probe" },
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [
             { "id": "bar-w", "role": "piece", "rect": [1, -2, 4, 4], "surface": 12 }
           ],
           "placements": {
-            "cores": [ { "piece": "bar-w", "at": [2, 2] } ]
+            "cores": [ { "piece": "bar-w", "at": [10, 10] } ]
           }
         }
         """;
 
-    private const string Marker = """{ "piece": "bar-w", "at": [2, 2] }""";
+    private const string Marker = """{ "piece": "bar-w", "at": [10, 10] }""";
 
     private static (VoxelWorld World, MapIntent Resolved) Build(string json)
     {
@@ -86,7 +86,7 @@ public sealed class CoreWorldTests
     public async Task Open_top_lifts_the_lava_to_the_rim()
     {
         var (world, resolved) = Build(Json.Replace(Marker,
-            """{ "piece": "bar-w", "at": [2, 2], "openTop": true }"""));
+            """{ "piece": "bar-w", "at": [10, 10], "openTop": true }"""));
         var box = resolved.Cores![0].Box!.Value;
         var midX = (box.MinX + box.MaxX) / 2;
         var midZ = (box.MinZ + box.MaxZ) / 2;

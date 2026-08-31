@@ -47,7 +47,7 @@ public sealed class PlanCompileEndpointTests
 
         // A different-surface overlap is a structural error → the compile is blocked, findings returned.
         const string plan = """
-        { "plan":1, "globals":{"cell":1,"surface":9},
+        { "plan":2, "globals":{"cell":1,"surface":9},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"mid","rect":[5,5,10,10],"surface":13} ] }
         """;
         var resp = await client.PostAsync("/api/plan/compile", new StringContent(plan, Encoding.UTF8, "application/json"));

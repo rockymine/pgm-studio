@@ -19,7 +19,7 @@ public sealed class PlanVoidsTests
         """;
 
     private static PlanModel RingPlan(string extraPieces = "") => Plan($$"""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9}, {{Ring}}{{extraPieces}} ] }
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9}, {{Ring}}{{extraPieces}} ] }
         """);
 
     private static List<PlanPiece> Buffers(PlanModel plan) =>
@@ -43,7 +43,7 @@ public sealed class PlanVoidsTests
         // made paintable, and it must not be how its negative space stops being stated.
         var stepped = Plan(
             """
-            { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+            { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
               "pieces":[ {"id":"n","role":"piece","rect":[0,0,3,1],"surface":9},
                          {"id":"s","role":"piece","rect":[0,2,3,1],"surface":12},
                          {"id":"w","role":"piece","rect":[0,1,1,1],"surface":10},
@@ -58,7 +58,7 @@ public sealed class PlanVoidsTests
     public async Task A_plan_that_encloses_nothing_is_returned_unchanged()
     {
         var plan = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,2,4]}, {"id":"b","role":"piece","rect":[0,4,2,4]} ] }
         """);
         // the same instance back, so a caller can persist unconditionally and write only on a real change
@@ -103,7 +103,7 @@ public sealed class PlanVoidsTests
     {
         // a non-mirroring ring: its void must not fan either, or the orbit copy would carve live terrain
         var neutral = Plan("""
-        { "plan":1, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
           "pieces":[ {"id":"n","role":"piece","rect":[0,0,3,1],"mirrors":false},
                      {"id":"s","role":"piece","rect":[0,2,3,1],"mirrors":false},
                      {"id":"w","role":"piece","rect":[0,1,1,1],"mirrors":false},

@@ -23,7 +23,7 @@ public sealed class CoreSuggesterWorldTests
 {
     private static string Plan(string cores, string extra = "") => $$"""
         {
-          "plan": 1,
+          "plan": 2,
           "meta": { "name": "Core Detection Probe" },
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [ { "id": "bar-w", "role": "piece", "rect": [1, -2, 4, 4], "surface": 12 } ],
@@ -53,7 +53,7 @@ public sealed class CoreSuggesterWorldTests
     [Test]
     public async Task Every_core_the_plan_placed_is_proposed_where_it_was_placed()
     {
-        var (found, resolved) = Detect(Plan("""{ "piece": "bar-w", "at": [2, 2] }"""));
+        var (found, resolved) = Detect(Plan("""{ "piece": "bar-w", "at": [10, 10] }"""));
 
         // rot_180 fans one authored marker into two cores; both must be found and neither invented.
         await Assert.That(resolved.Cores!.Count).IsEqualTo(2);
@@ -72,7 +72,7 @@ public sealed class CoreSuggesterWorldTests
     [Test]
     public async Task The_proposed_parameters_are_the_ones_the_plan_asked_for()
     {
-        var (found, _) = Detect(Plan("""{ "piece": "bar-w", "at": [2, 2] }"""));
+        var (found, _) = Detect(Plan("""{ "piece": "bar-w", "at": [10, 10] }"""));
         var core = found[0];
 
         // The compiler's defaults: 5×5×5 casing, shell 1, a 3×3×3 lava interior, capped.
@@ -87,7 +87,7 @@ public sealed class CoreSuggesterWorldTests
     {
         // The flag has to survive the round trip, because it is the difference between a goal players can see
         // into and one they must breach.
-        var (found, _) = Detect(Plan("""{ "piece": "bar-w", "at": [2, 2], "openTop": true, "float": 6, "leak": 5 }"""));
+        var (found, _) = Detect(Plan("""{ "piece": "bar-w", "at": [10, 10], "openTop": true, "float": 6, "leak": 5 }"""));
 
         await Assert.That(found).IsNotEmpty();
         await Assert.That(found.All(core => core.OpenTop)).IsTrue();
@@ -123,10 +123,10 @@ public sealed class CoreSuggesterWorldTests
         // The terrain, spawn platforms and structures a plan builds must not read as a sealed lava container.
         var plan = PlanModel.Parse("""
             {
-              "plan": 1,
+              "plan": 2,
               "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
               "pieces": [ { "id": "bar-w", "role": "piece", "rect": [1, -2, 4, 4] } ],
-              "placements": { "spawns": [ { "piece": "bar-w", "at": [2, 2], "facing": "front" } ] }
+              "placements": { "spawns": [ { "piece": "bar-w", "at": [10, 10], "facing": "front" } ] }
             }
             """)!;
         var (layout, intent) = PlanCompiler.Compile(plan);

@@ -28,14 +28,14 @@ public sealed class DestroyableWorldTests
     // keeps the structure clear of the terrain edge.
     private const string Json = """
         {
-          "plan": 1,
+          "plan": 2,
           "meta": { "name": "DTM Probe" },
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [
             { "id": "bar-w", "role": "piece", "rect": [1, -2, 4, 4], "surface": 12 }
           ],
           "placements": {
-            "destroyables": [ { "piece": "bar-w", "at": [2, 2] } ]
+            "destroyables": [ { "piece": "bar-w", "at": [10, 10] } ]
           }
         }
         """;
@@ -54,7 +54,7 @@ public sealed class DestroyableWorldTests
     }
 
     // The authored marker, and the same marker restated with fields on it.
-    private const string Marker = """{ "piece": "bar-w", "at": [2, 2] }""";
+    private const string Marker = """{ "piece": "bar-w", "at": [10, 10] }""";
 
     // ── the material a goal's size is built for (DC3) ──────────────────────────────────────────────
     [Test]
@@ -64,7 +64,7 @@ public sealed class DestroyableWorldTests
         // which is a grind rather than a raid. The world is built and the goal stands — in ender stone — so
         // it is a complaint, and the map.xml declares what was actually laid.
         var built = Built(Json.Replace(Marker,
-            """{ "piece": "bar-w", "at": [2, 2], "style": "cube-3", "materials": "obsidian" }"""));
+            """{ "piece": "bar-w", "at": [10, 10], "style": "cube-3", "materials": "obsidian" }"""));
 
         var complaints = built.Declines.Where(f => f.Rule == ObjectiveRules.StyleMaterial).ToList();
         await Assert.That(complaints.Count).IsEqualTo(2);          // one per orbit image
@@ -90,7 +90,7 @@ public sealed class DestroyableWorldTests
     public async Task A_material_the_studio_cannot_build_is_corrected_rather_than_written_through()
     {
         var built = Built(Json.Replace(Marker,
-            """{ "piece": "bar-w", "at": [2, 2], "materials": "diamond block" }"""));
+            """{ "piece": "bar-w", "at": [10, 10], "materials": "diamond block" }"""));
 
         var complaint = built.Declines.First(f => f.Rule == ObjectiveRules.StyleMaterial);
         await Assert.That(complaint.Message).Contains("diamond block");
@@ -146,8 +146,8 @@ public sealed class DestroyableWorldTests
     public async Task The_material_the_author_named_is_the_block_that_lands()
     {
         var (world, resolved) = Build(Json.Replace(
-            """{ "piece": "bar-w", "at": [2, 2] }""",
-            """{ "piece": "bar-w", "at": [2, 2], "style": "cube-3", "materials": "emerald block" }"""));
+            """{ "piece": "bar-w", "at": [10, 10] }""",
+            """{ "piece": "bar-w", "at": [10, 10], "style": "cube-3", "materials": "emerald block" }"""));
         var box = resolved.Destroyables![0].Box!.Value;
         await Assert.That(world.GetBlock(box.MinX, box.MinY, box.MinZ).Id).IsEqualTo(Blocks.EmeraldBlock);
         await Assert.That((box.Width, box.Height, box.Depth)).IsEqualTo((3, 3, 3));
@@ -211,12 +211,12 @@ public sealed class DestroyableWorldTests
     {
         const string json = """
             {
-              "plan": 1,
+              "plan": 2,
               "meta": { "name": "Mesa Probe" },
               "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
               "pieces": [],
               "placements": {
-                "destroyables": [ { "piece": "", "at": [2, 2] } ]
+                "destroyables": [ { "piece": "", "at": [10, 10] } ]
               }
             }
             """;
@@ -259,7 +259,7 @@ public sealed class DestroyableWorldTests
     {
         const string json = """
             {
-              "plan": 1,
+              "plan": 2,
               "meta": { "name": "Ashen Quarry mesa probe" },
               "globals": { "cell": 1, "symmetry": "rot_180", "surface": 41, "headroom": 28 },
               "pieces": [],

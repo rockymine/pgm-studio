@@ -98,7 +98,7 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
 
 ```json
 {
-  "plan": 1,
+  "plan": 2,
   "meta": { "name": "Composed p12 t2 #0" },
   "globals": { "cell": 5, "symmetry": "rot_180", "maxPlayers": 12, "surface": 9 },
   "pieces": [
@@ -111,8 +111,8 @@ players under `rot_180`, exactly as `POST /api/compose/pin` stored it:
   ],
   "zones": [ { "id": "mid-band", "rect": [-2, -2, 4, 4], "holes": [] } ],
   "placements": {
-    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [1, 1], "facing": "front" } ],
-    "wools":  [ { "id": "wool-1",  "piece": "wool-a-room", "at": [1, 1] } ],
+    "spawns": [ { "id": "spawn-1", "piece": "spawn-room", "at": [5, 5], "facing": "front" } ],
+    "wools":  [ { "id": "wool-1",  "piece": "wool-a-room", "at": [5, 5] } ],
     "iron": [], "destroyables": [], "cores": []
   },
   "cliffs": [], "walls": [],

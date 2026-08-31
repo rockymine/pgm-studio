@@ -17,7 +17,7 @@ public sealed class PlanCompilerReliefTests
     // whole authored half sits at positive x/z and its image lands at negative x/z untouched.
     private const string Json = """
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 1, "symmetry": "rot_180", "surface": 8 },
           "pieces": [
             { "id": "ground", "role": "piece", "rect": [0, 0, 80, 60] },

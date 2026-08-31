@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "isolated-spawn-multiple-team-approaches-multi-steps"
   },
@@ -175,8 +175,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ],
         "facing": "right"
       }
@@ -185,8 +185,8 @@
       {
         "piece": "wool",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       }
     ],

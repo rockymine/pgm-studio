@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "big-board-wool-two-sided-plaza-parallel-mid"
   },
@@ -212,8 +212,8 @@
       {
         "piece": "spawn",
         "at": [
-          1,
-          5
+          5,
+          25
         ],
         "facing": "front"
       }
@@ -222,8 +222,8 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],
@@ -231,8 +231,8 @@
       {
         "piece": "spawn",
         "at": [
-          2,
-          1
+          10,
+          5
         ]
       }
     ]

@@ -20,7 +20,7 @@ public sealed class PlanCompilerSpawnFacingTests
     // open wall is left (dx=-1, dz=0), which FacingDir maps to yaw 90.
     private static string Plan(string facing) => $$"""
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 1, "symmetry": "rot_180" },
           "pieces": [
             { "id": "board", "role": "piece", "rect": [0, 0, 20, 20] },
@@ -53,7 +53,7 @@ public sealed class PlanCompilerSpawnFacingTests
         // choice among several safe ones.
         var p = """
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 1, "symmetry": "rot_180" },
           "pieces": [
             { "id": "west",  "role": "piece", "rect": [0, 5, 10, 10] },
@@ -76,7 +76,7 @@ public sealed class PlanCompilerSpawnFacingTests
         // so the authored facing survives untouched.
         var p = """
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 1, "symmetry": "rot_180" },
           "pieces": [ { "id": "sp", "role": "spawn", "rect": [0, 0, 10, 10] } ],
           "placements": { "spawns": [ { "piece": "sp", "at": [5, 5], "facing": "front" } ] }

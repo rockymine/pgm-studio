@@ -147,29 +147,32 @@ public static class Composer
 
         plan.Placements.Spawns.Add(new SpawnPlacement
         {
-            Piece = unit.Spawn.Piece, At = LegalizeMarker(unit.Spawn.At, plan.Globals.Cell),
+            Piece = unit.Spawn.Piece, At = MarkerOffset(unit.Spawn.At, plan.Globals.Cell),
             Facing = unit.Spawn.Facing,
         });
         foreach (var wool in unit.Wools)
             plan.Placements.Wools.Add(new WoolPlacement
             {
-                Piece = wool.Piece, At = LegalizeMarker(wool.At, plan.Globals.Cell),
+                Piece = wool.Piece, At = MarkerOffset(wool.At, plan.Globals.Cell),
             });
 
         return plan;
     }
 
+    // The emitters work in cells; a placement states blocks, so the conversion happens here, at the one
+    // boundary where an emitted point becomes a stored offset.
+    //
     // A marker must land on the block lattice with one parity on both axes (WX3): a grid line on both (the
     // 2×2 pad) or a block centre on both (3×3/1×1) — the room pad is always square. A room centre is mixed
     // exactly when the room is an odd number of blocks across on one axis only, so the emitters' centred
-    // markers need the offending axis nudged half a cell onto a grid line — the nearest legal point.
-    private static double[] LegalizeMarker(double[] at, int cell)
+    // markers need the offending axis nudged half a block onto a grid line — the nearest legal point.
+    internal static double[] MarkerOffset(double[] atCells, int cell)
     {
-        bool OnGrid(double component) => component * cell == Math.Floor(component * cell);
+        double[] at = [atCells[0] * cell, atCells[1] * cell];
+        bool OnGrid(double component) => component == Math.Floor(component);
         if (OnGrid(at[0]) == OnGrid(at[1])) return at;
         var axis = OnGrid(at[0]) ? 1 : 0;
-        var adjusted = (double[])at.Clone();
-        adjusted[axis] = Math.Max(0, adjusted[axis] - 0.5);
-        return adjusted;
+        at[axis] = Math.Max(0, at[axis] - 0.5);
+        return at;
     }
 }

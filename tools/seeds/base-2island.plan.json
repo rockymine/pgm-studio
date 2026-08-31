@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "base-2-island"
   },
@@ -89,8 +89,8 @@
       {
         "piece": "spawn",
         "at": [
-          1,
-          1
+          5,
+          5
         ],
         "facing": "front"
       }
@@ -99,8 +99,8 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

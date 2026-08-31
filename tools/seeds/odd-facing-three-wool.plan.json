@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "odd-facing-spawn-multi-wool-wool-two-sided-elevation-rich"
   },
@@ -291,8 +291,8 @@
       {
         "piece": "spawn",
         "at": [
-          3.0,
-          1.0
+          15,
+          5
         ],
         "facing": "left"
       }
@@ -301,22 +301,22 @@
       {
         "piece": "wool-2",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       },
       {
         "piece": "wool",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       },
       {
         "piece": "wool-3",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       }
     ],
@@ -324,8 +324,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       }
     ]

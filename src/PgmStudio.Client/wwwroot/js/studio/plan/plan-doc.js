@@ -2,7 +2,7 @@
  * Pure plan-document model + geometry for the plan editor — NO DOM. All footprint coordinates are
  * signed integer proxy *cells* relative to the symmetry centre (the origin); one cell spans
  * `globals.cell` blocks. Pieces/zones are `[x, z, w, h]` cell rects; marker positions are stored
- * piece-relative (`piece` id + `at` cell offset). The document object mirrors the plan wire format
+ * piece-relative (`piece` id + `at` block offset). The document object mirrors the plan wire format
  * (`*.plan.json`) so import/export round-trips it verbatim.
  *
  * The canvas renders in block units: `rectCellsToBlocks` scales a cell rect by `globals.cell`, and the
@@ -342,24 +342,26 @@ export function surfaceFraction(surf, range) {
   return (surf - range.min) / (range.max - range.min);
 }
 
-/** Snap a value to the nearest half-cell step (0.5 in cell units) — the marker lattice. */
+/** Snap a value to the nearest half-block step — the marker lattice, and the one the export snaps to. */
 export function snapHalf(v) { return Math.round(v * 2) / 2; }
 
-/** The absolute cell of a marker (its piece's origin + the piece-relative offset), or null if orphaned. */
+/** The absolute cell of a marker (its piece's origin plus its block offset in cells), or null if orphaned. */
 export function markerCell(doc, marker) {
   const p = pieceById(doc, marker.piece);
-  return p ? [p.rect[0] + marker.at[0], p.rect[1] + marker.at[1]] : null;
+  const cell = doc.globals.cell;
+  return p ? [p.rect[0] + marker.at[0] / cell, p.rect[1] + marker.at[1] / cell] : null;
 }
 
 /**
  * Attach a marker dropped at absolute cell `(cx, cz)` (fractional allowed): the piece under it + the
- * piece-relative offset snapped to the nearest half-cell lattice point, or null when no piece sits under
- * the cell (markers must ride a piece). The offset resolves to block `piece.min + at·cell`, so an integer
- * offset lands on a cell corner (the centre of a 2×2-cell room) and a half offset on a cell centre.
+ * piece-relative offset in blocks, snapped to the nearest half-block lattice point, or null when no piece
+ * sits under the cell (markers must ride a piece). A whole offset lands on a block grid line and a half
+ * offset on a block centre, which is the parity the pad is sized by (`WX3`).
  */
 export function attachMarker(doc, cx, cz) {
   const p = pieceAtCell(doc, Math.floor(cx), Math.floor(cz));
-  return p ? { piece: p.id, at: [snapHalf(cx - p.rect[0]), snapHalf(cz - p.rect[1])] } : null;
+  const cell = doc.globals.cell;
+  return p ? { piece: p.id, at: [snapHalf((cx - p.rect[0]) * cell), snapHalf((cz - p.rect[1]) * cell)] } : null;
 }
 
 // ── wall marks (land-interface annotations) ─────────────────────────────────

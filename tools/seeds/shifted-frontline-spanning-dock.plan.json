@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "shifted-frontline-spanning-dock",
     "notes": "The g-hub funnel at the composer's own scale: every corridor and wall 2 cells, not 1. Isolates the spanning dock \u2014 a frontline face bridging a bay-fronted hub's bay, holding on both shoulders \u2014 from the half-scale tracing of the plan it was duplicated from."
@@ -169,8 +169,8 @@
       {
         "piece": "spawn",
         "at": [
-          1,
-          1
+          5,
+          5
         ],
         "facing": "back"
       }
@@ -179,15 +179,15 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       },
       {
         "piece": "wool-2",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

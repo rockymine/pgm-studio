@@ -13,18 +13,18 @@ public sealed class PlanCoresTests
 {
     private const string Json = """
         {
-          "plan": 1,
+          "plan": 2,
           "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 11 },
           "pieces": [
             { "id": "bar-w", "role": "piece", "rect": [0, 0, 2, 2], "surface": 12 }
           ],
           "placements": {
-            "cores": [ { "piece": "bar-w", "at": [1, 1] } ]
+            "cores": [ { "piece": "bar-w", "at": [5, 5] } ]
           }
         }
         """;
 
-    private const string Marker = """{ "piece": "bar-w", "at": [1, 1] }""";
+    private const string Marker = """{ "piece": "bar-w", "at": [5, 5] }""";
 
     private static List<CoreIntent> Compile(string json) =>
         PlanCompiler.Compile(PlanModel.Parse(json)!).Intent.Cores!;
@@ -61,7 +61,7 @@ public sealed class PlanCoresTests
     {
         // Unlike a destroyable, which PGM rejects nameless — so the compiler must NOT invent one here.
         await Assert.That(Compile(Json)[0].Name).IsEqualTo(string.Empty);
-        var named = Json.Replace(Marker, """{ "piece": "bar-w", "at": [1, 1], "name": "The Heart" }""");
+        var named = Json.Replace(Marker, """{ "piece": "bar-w", "at": [5, 5], "name": "The Heart" }""");
         await Assert.That(Compile(named)[0].Name).IsEqualTo("The Heart");
     }
 
@@ -72,7 +72,7 @@ public sealed class PlanCoresTests
     public async Task The_stated_interior_decides_the_casing()
     {
         var json = Json.Replace(Marker,
-            """{ "piece": "bar-w", "at": [1, 1], "lava": 5, "lavaHeight": 4, "openTop": true, "float": 3, "leak": 4 }""");
+            """{ "piece": "bar-w", "at": [5, 5], "lava": 5, "lavaHeight": 4, "openTop": true, "float": 3, "leak": 4 }""");
         var c = Compile(json)[0];
         await Assert.That((c.Lava, c.LavaHeight)).IsEqualTo((5, 4));
         await Assert.That((c.Size, c.Height, c.Shell)).IsEqualTo((7, 5, 1))
@@ -81,7 +81,7 @@ public sealed class PlanCoresTests
         await Assert.That((c.Float, c.Leak)).IsEqualTo((3, 4));
 
         var capped = Json.Replace(Marker,
-            """{ "piece": "bar-w", "at": [1, 1], "lava": 5, "lavaHeight": 4 }""");
+            """{ "piece": "bar-w", "at": [5, 5], "lava": 5, "lavaHeight": 4 }""");
         await Assert.That(Compile(capped)[0].Height).IsEqualTo(6).Because("a cap is the sixth course");
     }
 
@@ -99,7 +99,7 @@ public sealed class PlanCoresTests
         await Assert.That(Validate(atCap).Any(f => f.Rule == ObjectiveRules.FloatCap)).IsFalse();
 
         static string Marked(int floatBlocks) =>
-            $$"""{ "piece": "bar-w", "at": [1, 1], "float": {{floatBlocks}}, "leak": 5 }""";
+            $$"""{ "piece": "bar-w", "at": [5, 5], "float": {{floatBlocks}}, "leak": 5 }""";
     }
 
     [Test]
@@ -110,7 +110,7 @@ public sealed class PlanCoresTests
         var high = ObjectiveDefaults.MaxFloat + 4;
         var json = Json
             .Replace("\"cores\":", "\"destroyables\":")
-            .Replace(Marker, $$"""{ "piece": "bar-w", "at": [1, 1], "float": {{high}} }""");
+            .Replace(Marker, $$"""{ "piece": "bar-w", "at": [5, 5], "float": {{high}} }""");
         await Assert.That(Validate(json).Any(f => f.Rule == ObjectiveRules.FloatCap)).IsTrue();
     }
 
@@ -123,7 +123,7 @@ public sealed class PlanCoresTests
     public async Task Float_and_leak_together_state_the_dig_depth(int floatBlocks, int leak, int expected)
     {
         var json = Json.Replace(Marker,
-            $$"""{ "piece": "bar-w", "at": [1, 1], "float": {{floatBlocks}}, "leak": {{leak}} }""");
+            $$"""{ "piece": "bar-w", "at": [5, 5], "float": {{floatBlocks}}, "leak": {{leak}} }""");
         await Assert.That(Compile(json)[0].DigDepth).IsEqualTo(expected);
         // The intent and the stamper must agree on the rule, or the world and the XML tell different stories.
         await Assert.That(ObjectiveDefaults.DigDepth(leak, floatBlocks)).IsEqualTo(expected);
@@ -135,14 +135,14 @@ public sealed class PlanCoresTests
     public async Task Authoring_one_of_the_pair_without_the_other_is_an_error(string half)
     {
         // Silently pairing it with the other's default is a dig depth nobody chose.
-        var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [1, 1], {{half}} }""");
+        var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [5, 5], {{half}} }""");
         await Assert.That(Errors(Validate(json), "without its pair")).IsTrue();
     }
 
     [Test]
     public async Task Authoring_both_halves_is_fine()
     {
-        var json = Json.Replace(Marker, """{ "piece": "bar-w", "at": [1, 1], "float": 3, "leak": 5 }""");
+        var json = Json.Replace(Marker, """{ "piece": "bar-w", "at": [5, 5], "float": 3, "leak": 5 }""");
         await Assert.That(Errors(Validate(json), "without its pair")).IsFalse();
         await Assert.That(Errors(Validate(Json), "without its pair")).IsFalse().Because("neither half is authored");
     }
@@ -159,7 +159,7 @@ public sealed class PlanCoresTests
     [Arguments("lavaHeight", 9)]
     public async Task A_core_outside_the_offered_range_is_an_error(string knob, int value)
     {
-        var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [1, 1], "{{knob}}": {{value}} }""");
+        var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [5, 5], "{{knob}}": {{value}} }""");
         await Assert.That(Errors(Validate(json), "outside")).IsTrue();
     }
 
@@ -171,7 +171,7 @@ public sealed class PlanCoresTests
         foreach (var open in new[] { false, true })
         {
             var json = Json.Replace(Marker,
-                $$"""{ "piece": "bar-w", "at": [1, 1], "lava": {{lava}}, "lavaHeight": {{height}}, "openTop": {{(open ? "true" : "false")}} }""");
+                $$"""{ "piece": "bar-w", "at": [5, 5], "lava": {{lava}}, "lavaHeight": {{height}}, "openTop": {{(open ? "true" : "false")}} }""");
             await Assert.That(Errors(Validate(json), "outside")).IsFalse();
             var c = Compile(json)[0];
             await Assert.That(c.Size - 2 * c.Shell).IsEqualTo(lava);
@@ -199,7 +199,7 @@ public sealed class PlanCoresTests
     [Test]
     public async Task A_marker_outside_its_piece_is_an_error()
     {
-        var json = Json.Replace(Marker, """{ "piece": "bar-w", "at": [9, 9] }""");
+        var json = Json.Replace(Marker, """{ "piece": "bar-w", "at": [45, 45] }""");
         await Assert.That(Errors(Validate(json), "core")).IsTrue();
     }
 
@@ -209,7 +209,7 @@ public sealed class PlanCoresTests
     [Test]
     public async Task A_core_with_no_piece_compiles_by_absolute_board_position()
     {
-        var json = Json.Replace(Marker, """{ "piece": "", "at": [-2, 6] }""");
+        var json = Json.Replace(Marker, """{ "piece": "", "at": [-10, 30] }""");
         var c = Compile(json);
 
         await Assert.That(c.Count).IsEqualTo(2);
@@ -223,7 +223,7 @@ public sealed class PlanCoresTests
     [Test]
     public async Task A_core_with_no_piece_is_not_a_dangling_reference()
     {
-        var json = Json.Replace(Marker, """{ "piece": "", "at": [-2, 6] }""");
+        var json = Json.Replace(Marker, """{ "piece": "", "at": [-10, 30] }""");
         await Assert.That(Errors(Validate(json), "unknown piece")).IsFalse();
     }
 }

@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "mirror-rotate-multi-wool-elevation-rich-wide-frontline"
   },
@@ -456,8 +456,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ],
         "facing": "right"
       }
@@ -466,15 +466,15 @@
       {
         "piece": "wool-2",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       },
       {
         "piece": "wool",
         "at": [
-          1.0,
-          1.0
+          5,
+          5
         ]
       }
     ],

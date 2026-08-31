@@ -46,11 +46,13 @@ internal static class SurfaceNav
     /// <summary>As above, straight off the plan — for a reader that has no <see cref="EvalContext"/>.</summary>
     public static (int, int)? MarkerCell(PlanModel plan, string pieceId, double[] at, IReadOnlySet<(int, int)> walkable)
     {
+        var cell = plan.Globals.Cell;
         if (string.IsNullOrEmpty(pieceId))
-            return Snap(((int)Math.Floor(at[0]), (int)Math.Floor(at[1])), walkable);
+            return Snap(((int)Math.Floor(at[0] / (double)cell), (int)Math.Floor(at[1] / (double)cell)), walkable);
         var piece = plan.Pieces.FirstOrDefault(p => p.Id == pieceId);
         if (piece is null) return null;
-        return Snap(((int)Math.Floor(piece.Rect.X + at[0]), (int)Math.Floor(piece.Rect.Z + at[1])), walkable);
+        var (cx, cz) = PlanMarkers.Cell(piece.Rect, at, cell);
+        return Snap((((int)Math.Floor(cx)), (int)Math.Floor(cz)), walkable);
     }
 
     // Snaps onto the canonical square (Chebyshev) ring rather than the diamond (Manhattan) one: the square

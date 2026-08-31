@@ -88,7 +88,7 @@ public sealed class ContactGraphTests
         // need no void crossing, so the zone yields no a–b gap link. c is a separate island the same zone
         // also touches → the cross-component links to it remain.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"lane","rect":[10,0,10,10]},
                      {"id":"c","role":"mid","rect":[0,25,10,10]} ],
@@ -106,7 +106,7 @@ public sealed class ContactGraphTests
         // a and b are disjoint (a 10-block void between them); the zone sits BELOW, abutting the bottom edge of
         // each. Their nearest connecting span runs above the zone (outside it), so the zone links neither.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"lane","rect":[20,0,10,10]} ],
           "zones":[ {"id":"z","rect":[0,10,30,10]} ] }
@@ -120,7 +120,7 @@ public sealed class ContactGraphTests
     {
         // the zone fills the 10-block void between a and b; their nearest span runs THROUGH it → one 10-hop link.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"lane","rect":[20,0,10,10]} ],
           "zones":[ {"id":"z","rect":[10,0,10,10]} ] }
@@ -136,7 +136,7 @@ public sealed class ContactGraphTests
         // a and c face each other across a wide zone, but b sits in the middle of that void — the a–c span runs
         // over b's interior, so a and c are not linked (a–b and b–c, each spanning their own clear void, are).
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]},
                      {"id":"b","role":"mid","rect":[20,0,10,10]},
                      {"id":"c","role":"lane","rect":[40,0,10,10]} ],
@@ -178,7 +178,7 @@ public sealed class ContactGraphTests
     public async Task Overlapping_zones_merge_into_one_region()
     {
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[5,5,10,10]} ] }
         """)!;
         var d = ContactGraph.Build(plan);
@@ -192,7 +192,7 @@ public sealed class ContactGraphTests
     {
         // z1 and z2 share the border x=10 over z∈[0,10] — a positive-length edge → one continuous region.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[10,0,10,10]} ] }
         """)!;
         var d = ContactGraph.Build(plan);
@@ -205,7 +205,7 @@ public sealed class ContactGraphTests
         // z1 and z2 meet only at the point (10,10): a lone diagonal is not a continuous buildable surface, so
         // they stay two regions (the same rule as a piece corner contact).
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[10,10,10,10]} ] }
         """)!;
         var d = ContactGraph.Build(plan);
@@ -217,7 +217,7 @@ public sealed class ContactGraphTests
     public async Task Disjoint_zones_do_not_merge()
     {
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "zones":[ {"id":"z1","rect":[0,0,10,10]}, {"id":"z2","rect":[20,0,10,10]} ] }
         """)!;
         var d = ContactGraph.Build(plan);
@@ -230,7 +230,7 @@ public sealed class ContactGraphTests
         // a and b straddle a 30-block void; three edge-adjacent zones tile it into one region. The straight
         // nearest span is covered by the merged rects seam-to-seam → a and b gap-link across the chain.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z2","rect":[20,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
         """)!;
@@ -246,7 +246,7 @@ public sealed class ContactGraphTests
         // the middle zone is missing, so the void is not tiled: the two surviving zones each touch only one
         // piece and form separate regions → no a–b link.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"lane","rect":[0,0,10,10]}, {"id":"b","role":"lane","rect":[40,0,10,10]} ],
           "zones":[ {"id":"z1","rect":[10,0,10,10]}, {"id":"z3","rect":[30,0,10,10]} ] }
         """)!;
@@ -284,7 +284,7 @@ public sealed class ContactGraphTests
 
         // a sub-corridor seam surfaces as a narrow segment (still a positive-length connector, not a corner)
         var narrowPlan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5]} ] }
         """)!;
         var nd = ContactGraph.Build(narrowPlan);
@@ -300,7 +300,7 @@ public sealed class ContactGraphTests
     {
         // a 5-block shared border is walkable terrain — the pair reads as one island, not two.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,5]}, {"id":"b","role":"piece","rect":[10,0,10,5]} ] }
         """)!;
         var d = ContactGraph.Build(plan);
@@ -314,7 +314,7 @@ public sealed class ContactGraphTests
         // a 1x3 bar plus three stepped 1x1 pieces (distinct surfaces), each abutting over a 5-block border →
         // all four join through narrow land interfaces into a single component (the author's 2x3 staircase).
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":5,"surface":9},
+        { "plan":2, "globals":{"cell":5,"surface":9},
           "pieces":[ {"id":"bar","role":"piece","rect":[0,0,1,3]},
                      {"id":"step1","role":"piece","rect":[1,0,1,1]},
                      {"id":"step2","role":"piece","rect":[1,1,1,1],"surface":11},
@@ -331,7 +331,7 @@ public sealed class ContactGraphTests
         // two pieces diagonally across the point (10,10): a corner contact never connects, so they stay two
         // components even though a walkable seam would (a positive shared border is required, a point is not).
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
                      {"id":"b","role":"piece","rect":[10,10,10,10]} ] }
         """)!;
@@ -345,7 +345,7 @@ public sealed class ContactGraphTests
     {
         // a and b abut over a 10-block land border; a wall mark on the pair → one wall interface + a flagged segment.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]}, {"id":"b","role":"piece","rect":[10,0,10,10]} ],
           "walls":[ {"a":"b","b":"a"} ] }
         """)!;
@@ -361,7 +361,7 @@ public sealed class ContactGraphTests
     {
         // a (piece) abuts b (wool-room) → the seam flags woolRoom; a wool-room↔wool-room seam does not.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
                      {"id":"b","role":"wool-room","rect":[10,0,10,10]},
                      {"id":"c","role":"wool-room","rect":[20,0,10,10]} ] }
@@ -390,7 +390,7 @@ public sealed class ContactGraphTests
         // buffer were terrain). Because a buffer is non-generating it never enters the derived structure: it is
         // not a derived piece, appears in no relation, and does not merge a and b into one component.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10]},
                      {"id":"buffer","role":"buffer","rect":[10,0,10,10]},
                      {"id":"b","role":"piece","rect":[20,0,10,10]} ] }
@@ -415,7 +415,7 @@ public sealed class ContactGraphTests
     {
         // lane sits above a zone, abutting on z=10; its facing edge is the bottom edge z=10.
         var plan = PlanModel.Parse("""
-        { "plan":1, "globals":{"cell":1},
+        { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"lane","role":"lane","rect":[0,0,20,10]} ],
           "zones":[ {"id":"z","rect":[0,10,20,10]} ] }
         """)!;

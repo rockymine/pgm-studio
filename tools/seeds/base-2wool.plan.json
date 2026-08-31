@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "Base 2-Wool"
   },
@@ -121,8 +121,8 @@
       {
         "piece": "spawn",
         "at": [
-          1,
-          1
+          5,
+          5
         ],
         "facing": "front"
       }
@@ -131,15 +131,15 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       },
       {
         "piece": "wool-2",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

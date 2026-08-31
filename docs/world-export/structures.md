@@ -94,7 +94,7 @@ marker is never freely placeable.
   match on both axes: a mixed-parity marker (a grid line in x, a block centre in z) has no square
   pad and is **refused at validation**, pointing at the two legal lattice choices. The composer
   never emits one: a room an odd number of blocks across on one axis has a mixed centre, so
-  assembly nudges that axis half a cell onto a grid line (`Composer.LegalizeMarker`).
+  assembly nudges that axis half a block onto a grid line (`Composer.MarkerOffset`).
 
 - **WX4** *Clearance and minimal shift.* The pad keeps **at least one block of clear floor to every
   wall**. A marker too close to a wall (the sharp case: cell 4, marker at the centre of a corner

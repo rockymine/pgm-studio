@@ -15,18 +15,18 @@ public sealed class SoftTermsTests
 
     // two wools on one connected lane piece, ~15 blocks apart by surface path (cell 5) — below WL7's band low
     private const string CloseWoolsJson = """
-        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+        {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,6]}],
-         "placements":{"wools":[{"piece":"lane","at":[1,1]},{"piece":"lane","at":[1,4]}]}}
+         "placements":{"wools":[{"piece":"lane","at":[5,5]},{"piece":"lane","at":[5,20]}]}}
         """;
 
     // a straight lane with the spawn at one end and two wools at different depths — spawn→wool 20 and 45
     // blocks by traversal, so the spread is 25
     private const string UnbalancedWoolsJson = """
-        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+        {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,10]}],
-         "placements":{"spawns":[{"piece":"lane","at":[1,0.5],"facing":"front"}],
-                       "wools":[{"piece":"lane","at":[1,4.5]},{"piece":"lane","at":[1,9.5]}]}}
+         "placements":{"spawns":[{"piece":"lane","at":[5,2.5],"facing":"front"}],
+                       "wools":[{"piece":"lane","at":[5,22.5]},{"piece":"lane","at":[5,47.5]}]}}
         """;
 
     /// <summary><b>The fill ratio is ground over the ground's own frame.</b> A build zone is buildable void
@@ -38,15 +38,15 @@ public sealed class SoftTermsTests
     {
         // A 4x4 cell block of land with a wool on it, and a build zone stretching four cells clear of it.
         const string board = """
-        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+        {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"land","role":"piece","rect":[0,0,4,4]}],
          "zones":[{"id":"bridge","rect":[4,0,4,4]}],
-         "placements":{"wools":[{"piece":"land","at":[2,2]}]}}
+         "placements":{"wools":[{"piece":"land","at":[10,10]}]}}
         """;
         const string alone = """
-        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+        {"plan":2,"globals":{"cell":5,"symmetry":"none"},
          "pieces":[{"id":"land","role":"piece","rect":[0,0,4,4]}],
-         "placements":{"wools":[{"piece":"land","at":[2,2]}]}}
+         "placements":{"wools":[{"piece":"land","at":[10,10]}]}}
         """;
 
         var withZone = new FillRatio().Value(Ctx(board, SeedEnvelopes.Default));
@@ -220,7 +220,7 @@ public sealed class SoftTermsTests
     {
         // no wools → no lane shapes → the metric does not apply → clean, not a violation.
         var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"p","role":"piece","rect":[0,0,4,4]}]}
             """, SeedEnvelopes.Default);
         await Assert.That(new LaneWidth().Value(ctx)).IsNull();
@@ -250,10 +250,10 @@ public sealed class SoftTermsTests
     {
         // spawn and wool on one lane piece, ~10 blocks apart by surface path — below WL2's band low.
         var score = new SpawnWoolDistance().Measure(Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"lane","role":"piece","rect":[0,0,2,4]}],
-             "placements":{"spawns":[{"piece":"lane","at":[1,0],"facing":"front"}],
-                           "wools":[{"piece":"lane","at":[1,2]}]}}
+             "placements":{"spawns":[{"piece":"lane","at":[5,0],"facing":"front"}],
+                           "wools":[{"piece":"lane","at":[5,10]}]}}
             """, SeedEnvelopes.Default));
         await Assert.That(score.Violation).IsNotNull();
         await Assert.That(score.Violation!.RuleId).IsEqualTo("WL2");
@@ -282,14 +282,14 @@ public sealed class SoftTermsTests
     public async Task Wool_wool_distance_does_not_apply_to_a_single_wool()
     {
         var score = new WoolWoolDistance().Measure(Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"w1","role":"piece","rect":[0,0,2,2]}],
-             "placements":{"wools":[{"piece":"w1","at":[1,1]}]}}
+             "placements":{"wools":[{"piece":"w1","at":[5,5]}]}}
             """, SeedEnvelopes.Default));
         await Assert.That(new WoolWoolDistance().Value(Ctx("""
-            {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+            {"plan":2,"globals":{"cell":5,"symmetry":"none"},
              "pieces":[{"id":"w1","role":"piece","rect":[0,0,2,2]}],
-             "placements":{"wools":[{"piece":"w1","at":[1,1]}]}}
+             "placements":{"wools":[{"piece":"w1","at":[5,5]}]}}
             """, SeedEnvelopes.Default))).IsNull();
         await Assert.That(score.Violation).IsNull();
     }

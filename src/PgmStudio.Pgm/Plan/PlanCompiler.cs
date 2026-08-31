@@ -216,7 +216,7 @@ public static class PlanCompiler
                 var s = plan.Placements.Spawns[spawnIndex];
                 var piece = d.Piece(s.Piece);
                 if (piece is null) continue;
-                var (bx, bz) = Resolve(piece.Value.Rect, s.At, d.Cell);
+                var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, s.At);
                 var (fx, fz) = BoardFacing(d, piece.Value, FacingDir(s.Facing));
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 var prot = d.FanRect(piece.Value.Rect, k);
@@ -241,7 +241,7 @@ public static class PlanCompiler
                     Iron = piece.Value.Role == PlanRoles.Spawn
                         ? [.. plan.Placements.Iron.Where(ir => ir.Piece == s.Piece).Select(ir =>
                             {
-                                var (ix, iz) = Resolve(piece.Value.Rect, ir.At, d.Cell);
+                                var (ix, iz) = PlanMarkers.Block(piece.Value.Rect, ir.At);
                                 var (fanX, fanZ) = d.FanPoint(ix, iz, k);
                                 return new Pt(fanX, piece.Value.Surface, fanZ);
                             })]
@@ -262,7 +262,7 @@ public static class PlanCompiler
                 var w = plan.Placements.Wools[i];
                 var piece = d.Piece(w.Piece);
                 if (piece is null) continue;
-                var (bx, bz) = Resolve(piece.Value.Rect, w.At, d.Cell);
+                var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, w.At);
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 var color = !string.IsNullOrEmpty(w.Color) ? w.Color
                     : i == 0 ? teams[k].Color
@@ -446,7 +446,7 @@ public static class PlanCompiler
             if (framedSpawnPieces.Contains(ir.Piece)) continue;
             var piece = d.Piece(ir.Piece);
             if (piece is null) continue;
-            var (bx, bz) = Resolve(piece.Value.Rect, ir.At, d.Cell);
+            var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, ir.At);
             var renew = piece.Value.Role == PlanRoles.Spawn;
             for (var k = 0; k < d.Order; k++)
             {
@@ -568,14 +568,12 @@ public static class PlanCompiler
     private static StampId Stamp(string kind, string authoredId, int index, int image)
         => new(kind, string.IsNullOrEmpty(authoredId) ? index.ToString(System.Globalization.CultureInfo.InvariantCulture) : authoredId, image);
 
-    // Piece-relative half-cell offset → block coordinate (piece origin + offset·cell). A .5 offset lands on a
-    // 2.5-block half-cell; downstream flooring/snapping is the export pipeline's job, so the raw value flows on.
-    private static (double X, double Z) Resolve(BlockRect piece, double[] at, int cell) =>
-        (piece.MinX + at[0] * cell, piece.MinZ + at[1] * cell);
+    // A destroyable's or a core's anchor in blocks. Downstream flooring and snapping is the export
+    // pipeline's job, so the raw value flows on.
 
     // A destroyable's or a core's anchor — the one marker kind that may ride no piece at all. A named
-    // piece resolves exactly as every other marker's does; an empty one reads `at` as an absolute cell offset
-    // from the symmetry centre, the same frame a piece's own rect is authored in, so a goal can stand on
+    // piece resolves exactly as every other marker's does; an empty one reads `at` as an absolute block
+    // offset from the symmetry centre, so a goal can stand on
     // ground that exists only as an authored sketch shape with no plan piece behind it. `Surface` here is the
     // plan's own flat nominal height — informational only, carried on the compiled intent for a caller with
     // no built world to read yet — never the goal's real Y, which WorldBuilder resolves later against
@@ -583,10 +581,10 @@ public static class PlanCompiler
     // Null when a named piece does not resolve — the validator has already reported the dangling reference.
     private static (double X, double Z, int Surface)? ResolveGoalAnchor(PlanModel plan, ContactGraph d, string pieceId, double[] at)
     {
-        if (string.IsNullOrEmpty(pieceId)) return (at[0] * d.Cell, at[1] * d.Cell, plan.Globals.Surface);
+        if (string.IsNullOrEmpty(pieceId)) return (at[0], at[1], plan.Globals.Surface);
         var piece = d.Piece(pieceId);
         if (piece is null) return null;
-        var (x, z) = Resolve(piece.Value.Rect, at, d.Cell);
+        var (x, z) = PlanMarkers.Block(piece.Value.Rect, at);
         return (x, z, piece.Value.Surface);
     }
 

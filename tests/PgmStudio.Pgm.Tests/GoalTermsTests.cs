@@ -18,14 +18,14 @@ public sealed class GoalTermsTests
     // One lane down +z with the spawn at the back and a monument on it — the destroy topology from the
     // GoalDistances tests, with the monument's position the knob the two cases turn.
     private static string LanePlan(double monumentZ) => $$"""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,8] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"lane","at":[1,{{monumentZ}}],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"lane","at":[5,{{monumentZ * 5}}],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """;
 
@@ -68,14 +68,14 @@ public sealed class GoalTermsTests
     // A lane long enough (30 cells = 150 blocks) that a monument's own-spawn walk can land clear of GO4's
     // band on either side, not just the shorter LanePlan's own-spawn range.
     private static string LongLanePlan(double monumentZ) => $$"""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,30,2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,30] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"lane","at":[1,{{monumentZ}}],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"lane","at":[5,{{monumentZ * 5}}],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """;
 
@@ -130,10 +130,10 @@ public sealed class GoalTermsTests
     }
 
     private const string NoGoalPlan = """
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[ { "id":"spawn","role":"spawn","rect":[-1,8,2,2],"surface":13 },
                      { "id":"lane","role":"piece","rect":[-1,0,2,8] } ],
-          "placements":{ "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ] } }
+          "placements":{ "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ] } }
         """;
     // ── GO2 and GO3: goal against goal ────────────────────────────────────────────────────────────────
 
@@ -141,29 +141,29 @@ public sealed class GoalTermsTests
     // as far the other side of the axis, so where the pair stands sets both bands at once: the own walk is
     // the gap between them and the opposing walks run through `mid`.
     private static string PairPlan(double near, double far, int laneCells) => $$"""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,{{laneCells}},2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,{{laneCells}}] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
             "destroyables":[
-              { "id":"near","piece":"lane","at":[1,{{near}}],"style":"pillar-3","materials":"obsidian" },
-              { "id":"far","piece":"lane","at":[1,{{far}}],"style":"pillar-3","materials":"obsidian" } ] } }
+              { "id":"near","piece":"lane","at":[5,{{near * 5}}],"style":"pillar-3","materials":"obsidian" },
+              { "id":"far","piece":"lane","at":[5,{{far * 5}}],"style":"pillar-3","materials":"obsidian" } ] } }
         """;
 
     // One goal a team, the ordinary destroy board: no own pair for GO2, and exactly one opposing pair —
     // the monument against its own mirror — for GO3 to read.
     private static string SoloPlan(double monumentZ, int laneCells) => $$"""
-        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[
             { "id":"spawn","role":"spawn","rect":[-1,{{laneCells}},2,2],"surface":13 },
             { "id":"lane","role":"piece","rect":[-1,0,2,{{laneCells}}] },
             { "id":"mid","role":"piece","rect":[-1,-2,2,2] } ],
           "placements":{
-            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front" } ],
-            "destroyables":[ { "id":"monument-1","piece":"lane","at":[1,{{monumentZ}}],
+            "spawns":[ { "id":"spawn-1","piece":"spawn","at":[5,5],"facing":"front" } ],
+            "destroyables":[ { "id":"monument-1","piece":"lane","at":[5,{{monumentZ * 5}}],
                                "style":"pillar-3","materials":"obsidian" } ] } }
         """;
 

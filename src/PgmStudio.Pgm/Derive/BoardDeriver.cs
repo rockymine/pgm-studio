@@ -89,7 +89,8 @@ public static class BoardDeriver
                 int isl = islandOf[room.First()];
                 var arm = new HashSet<(int, int)>();
                 foreach (var c in room) foreach (var nb in Cells.N4(c)) if (filled.ContainsKey(nb) && !room.Contains(nb)) arm.Add(nb);
-                approaches.Add((isl, MarkerBlock(piece.Rect, w.At, k, axes).X, MarkerBlock(piece.Rect, w.At, k, axes).Z, Cells.Components(arm)));
+                var (markerX, markerZ) = MarkerCell(piece.Rect, w.At, plan.Globals.Cell, k, axes);
+                approaches.Add((isl, markerX, markerZ, Cells.Components(arm)));
             }
 
         // frontline edges — a void-facing OUTSIDE edge (buildable AND empty neighbour; never an interior seam). An
@@ -549,10 +550,10 @@ public static class BoardDeriver
         for (var cx = x1; cx < x2; cx++) for (var cz = z1; cz < z2; cz++) yield return (cx, cz);
     }
 
-    // a marker's block coordinate at image k (piece origin + half-cell offset, fanned)
-    public static (double X, double Z) MarkerBlock(CellRect rect, double[] at, int k, string[] axes)
+    // a marker's cell coordinate at image k — the piece's origin plus its block offset in cells, fanned
+    public static (double X, double Z) MarkerCell(CellRect rect, double[] at, int cell, int k, string[] axes)
     {
-        double cx = rect.X + at[0], cz = rect.Z + at[1];   // in cells
+        var (cx, cz) = PlanMarkers.Cell(rect, at, cell);
         if (k > 0) { var (fx, fz) = Symmetry.Apply(cx, cz, axes[k - 1], 0, 0); cx = fx; cz = fz; }
         return (cx, cz);   // in cells; caller scales by cell
     }

@@ -13,7 +13,7 @@ namespace PgmStudio.Api.Tests;
 public sealed class PlanAsciiEndpointTests
 {
     private const string Plan = """
-        {"plan":1,"globals":{"cell":5,"symmetry":"none","surface":9},
+        {"plan":2,"globals":{"cell":5,"symmetry":"none","surface":9},
          "pieces":[{"id":"slab","role":"piece","rect":[0,0,20,12]}]}
         """;
 

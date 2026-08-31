@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "double-frontline-pocket-mid-rotation-stone"
   },
@@ -128,8 +128,8 @@
       {
         "piece": "spawn",
         "at": [
-          1,
-          1
+          5,
+          5
         ],
         "facing": "left"
       }
@@ -138,8 +138,8 @@
       {
         "piece": "wool",
         "at": [
-          1,
-          1
+          5,
+          5
         ]
       }
     ],

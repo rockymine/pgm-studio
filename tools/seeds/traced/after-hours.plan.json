@@ -1,5 +1,5 @@
 {
-  "plan": 1,
+  "plan": 2,
   "meta": {
     "name": "after hours"
   },
@@ -88,8 +88,8 @@
       {
         "piece": "spawn",
         "at": [
-          1.5,
-          1.5
+          7.5,
+          7.5
         ],
         "facing": "front"
       }
@@ -98,8 +98,8 @@
       {
         "piece": "wool",
         "at": [
-          1.5,
-          1.5
+          7.5,
+          7.5
         ]
       }
     ],
