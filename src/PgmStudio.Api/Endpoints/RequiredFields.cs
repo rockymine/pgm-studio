@@ -66,8 +66,8 @@ internal sealed class RequiredFields : IGlobalPreProcessor
     /// supplied" and the two need no separating.
     ///
     /// <para>Empty is a different thing and belongs to the gates. A theme binding no buckets is a theme with
-    /// an empty list, not a theme missing one — refusing it here answered 400 to a request that should have
-    /// been a 404, and did so to thirteen tests before this said so. The same for a blank string: a style
+    /// an empty list, not a theme missing one, and refusing it here would answer 400 where the request wants a
+    /// 404. The same for a blank string: a style
     /// named <c>""</c> is a fault about the name's <i>value</i>, which is the kind of judgement the endpoint's
     /// own gate makes with a rule id that says what is wrong with it.</para>
     /// </summary>

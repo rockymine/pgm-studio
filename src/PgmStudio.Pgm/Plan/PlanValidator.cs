@@ -109,9 +109,8 @@ public static class PlanValidator
     /// <b>Whether what the plan says is coherent</b> — the structural errors that block a compile and the lint
     /// that rides along with it, in one answer. The only verb for that question: a caller asking whether the
     /// plan is refused reads <see cref="Findings.Refuses"/> rather than counting, and a caller wanting only the
-    /// blocking half reads <see cref="Findings.Refusals"/>. Both were previously separate public methods, which
-    /// is how four entry points came to answer one question and how a rule added to this class could be reached
-    /// through whichever of them its author happened to find.
+    /// blocking half reads <see cref="Findings.Refusals"/>. One entry point rather than several is the point: a
+    /// rule added to this class is reached by every caller, instead of by whichever door its author found.
     /// </summary>
     public static Findings Check(PlanModel plan)
     {

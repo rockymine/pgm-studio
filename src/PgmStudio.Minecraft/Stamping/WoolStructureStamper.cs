@@ -40,7 +40,7 @@ public sealed record WoolStructure
 
     /// <summary>The building around the wool, or null for wool on open ground. A house style rather than a
     /// room style, because this is the stamping shape: a stored room style reaches it through
-    /// <see cref="HouseStyle.AsHouse"/>, and a caller that wants a gabled roof over its wool can simply say
+    /// <c>HouseStyle.AsHouse</c>, and a caller that wants a gabled roof over its wool can simply say
     /// so.</summary>
     public HouseStyle? Shell { get; init; } = HouseStyle.Wool;
 

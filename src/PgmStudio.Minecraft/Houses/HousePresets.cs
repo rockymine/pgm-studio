@@ -652,7 +652,7 @@ public static class HousePresets
     /// columns would stand at the corners of the deck. And the lid is a <see cref="RoofForm.Flat"/> roof laid
     /// in air, which writes nothing at all — so the top of the stack is open to the sky.</para>
     ///
-    /// <para>What holds it up is the storey below's <see cref="Storey.Ceiling"/>: the slab across the interior
+    /// <para>What holds it up is the storey below's <c>Ceiling</c>: the slab across the interior
     /// is the deck a player stands on, and the ladder that any stack of storeys carries is the way up onto it.
     /// The one cost is that the parapet storey still states the three blocks of clear a storey may not go under,
     /// so the building reserves two courses it never writes (G171).</para>

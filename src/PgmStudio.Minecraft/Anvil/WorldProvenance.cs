@@ -58,7 +58,7 @@ public enum ProvenancePass { Ground, Structure, Made, Prop }
 /// pairs the two halves of a board by asking rather than by matching cell sets geometrically and hoping.</para>
 ///
 /// <para>A world the studio only <em>scanned</em> carries no provenance at all: nothing recorded what placed
-/// its blocks, so a renderer falls back to the material estimate (<see cref="RenderCategories.Of(int)"/>)
+/// its blocks, so a renderer falls back to the material estimate (<c>RenderCategories.Of</c>)
 /// and says so rather than pretending to a certainty it does not have.</para>
 /// </summary>
 public sealed class WorldProvenance

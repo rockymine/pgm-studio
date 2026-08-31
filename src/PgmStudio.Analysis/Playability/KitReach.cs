@@ -53,15 +53,15 @@ public static class KitReach
     /// budget would.</param>
     /// <param name="Wools">One reading per wool the team must capture.</param>
     public sealed record TeamReach(string Team, string Kit, int Budget, bool WaterBucket, List<WoolReach> Wools);
-    /// <summary>What every team's kit can reach.</summary>
-    /// <param name="HaveLayers">Whether the map has scanned column data. False means nothing was measured,
-    /// not that nothing is reachable.</param>
+    /// <summary>What every team's kit can reach. </summary>
+    /// <param name="HaveLayers">Whether the map has scanned column data. False means nothing was measured, not
+    /// that nothing is reachable.</param>
     /// <param name="Severity">The worst verdict over every team.</param>
     /// <param name="Message">That verdict in a sentence.</param>
     /// <param name="Teams">One reading per team.</param>
     public sealed record Result(bool HaveLayers, string Severity, string Message, List<TeamReach> Teams);
 
-    /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>.</param>
+    /// <summary><b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>.</summary>
     public static Result Check(Dict data, SegmentIndex? segments, int margin = 16,
         IReadOnlyList<NavPoint>? declared = null)
     {

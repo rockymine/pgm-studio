@@ -76,7 +76,7 @@ public static class PatternNoise
     /// <summary>Fractional Brownian motion: <paramref name="octaves"/> octaves of value noise summed at halving
     /// scale and amplitude, normalised to [0,1). One octave is plain value noise; more octaves add finer detail.
     /// <para>Kept for callers that want the raw sum — the path roughness reads it. A field that is going to be
-    /// <em>cut into bands</em> wants <see cref="Field"/> instead, which holds its spread constant.</para></summary>
+    /// <em>cut into bands</em> wants <c>Field</c> instead, which holds its spread constant.</para></summary>
     public static double Fbm(int x, int z, uint seed, int scale, int octaves)
     {
         double sum = 0, amp = 1, norm = 0; int sc = Math.Max(1, scale);
@@ -110,7 +110,7 @@ public static class PatternNoise
         _ => (0.5114, 0.2169),
     };
 
-    /// <summary>How much of [0,1) one standard deviation of a <see cref="Field"/> spans. Chosen so a field cut
+    /// <summary>How much of [0,1) one standard deviation of a <c>Field</c> spans. Chosen so a field cut
     /// into four or five bands puts a few percent in each outer band rather than nothing: it is what makes the
     /// last material an author names actually appear.</summary>
     private const double FieldSpread = 0.21;

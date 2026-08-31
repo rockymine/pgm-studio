@@ -17,7 +17,7 @@ public enum GoalMarkerShape
 
 /// <summary>
 /// Stamps a small coloured marker high above a goal — a wool room, a destroyable, or a core — so a player
-/// crossing open ground can tell where the goal is without a map. It floats <see cref="Clearance"/> blocks
+/// crossing open ground can tell where the goal is without a map. It floats <c>Clearance</c> blocks
 /// above the map's authored build-height cap, never below it: a marker inside build range is a marker a
 /// player could bury under a tower, and the whole point is that nobody can reach or grief it.
 /// <para>Coordinates are absolute world blocks; every caller stamps one marker per already-fanned goal
@@ -31,7 +31,7 @@ public static class GoalMarkerStamper
 
     /// <summary>Stamp the marker centred on (<paramref name="centerX"/>, <paramref name="centerZ"/>), its
     /// lowest block at <paramref name="floorY"/>, in <paramref name="woolDamage"/> wool. <paramref
-    /// name="floorY"/> is the caller's to place — <see cref="BuildCeiling.MarkerOver"/> blocks over the
+    /// name="floorY"/> is the caller's to place — <c>BuildCeiling.MarkerOver</c> blocks over the
     /// build-height cap, clamped so the shape still fits under the world ceiling.</summary>
     public static void Stamp(
         VoxelWorld world, int centerX, int centerZ, int floorY, int woolDamage,

@@ -34,22 +34,22 @@ public static class DressingScope
     }
 
     /// <summary>What the pass must leave bare, and what each cell is being kept for. Four sources, and each
-    /// matters for its own reason: the <b>intent</b> names what the map is played through — spawns,
-    /// objectives, the structures stamped for them — and a prop there would block a route or bury a goal; the
-    /// <b>world</b> shows what is already standing, and a column whose surface is not the terrain's own is a
-    /// structure the pass has no business planting on; the <b>layout</b> carries the shapes that say they are
-    /// not ground to dress (<see cref="SketchShape.KeepClear"/>), which is the only way a wall or a crop bed
-    /// drawn as terrain can be told from the terrain beside it; and the <b>approach</b> in front of every door
-    /// is the lane players walk out through (<see cref="ApproachAt"/>), which is part of what the door is for.
-    /// <para>Read from the finished world rather than re-derived, which is the same argument that puts the pass
-    /// after the painter: the answer is already there to be looked at.</para>
+    /// matters for its own reason: the <b>intent</b> names what the map is played through — spawns, objectives,
+    /// the structures stamped for them — and a prop there would block a route or bury a goal; the <b>world</b>
+    /// shows what is already standing, and a column whose surface is not the terrain's own is a structure the
+    /// pass has no business planting on; the <b>layout</b> carries the shapes that say they are not ground to
+    /// dress (<see cref="SketchShape.KeepClear"/>), which is the only way a wall or a crop bed drawn as terrain
+    /// can be told from the terrain beside it; and the <b>approach</b> in front of every door is the lane players
+    /// walk out through (<see cref="ApproachAt"/>), which is part of what the door is for. <para>Read from the
+    /// finished world rather than re-derived, which is the same argument that puts the pass after the painter:
+    /// the answer is already there to be looked at.</para>
     /// <para>Not the map contract's <c>protection</c>. That is a region rule about what a player may enter and
     /// break; this is a keep-out with no gameplay meaning of its own, and one word for both is what invited the
     /// inference that a goal must stand somewhere protected. It <em>reads</em> a spawn's protection areas,
-    /// because ground a player may not enter is ground a prop has no business standing on — but what it
-    /// answers is the other thing.</para></summary>
-    /// <param name="layoutJson">The sketch layout, for the shapes that mark themselves kept clear. Absent
-    /// reads the intent and the world alone, which is every board that marks none.</param>
+    /// because ground a player may not enter is ground a prop has no business standing on — but what it answers
+    /// is the other thing.</para>
+    /// <para><b>layoutJson</b> — The sketch layout, for the shapes that mark themselves kept clear. Absent reads
+    /// the intent and the world alone, which is every board that marks none.</para></summary>
     public static Func<int, int, KeepOut?> KeptClearAt(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, MapIntent intent,
         string? layoutJson = null, int margin = 2)

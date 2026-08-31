@@ -10,9 +10,9 @@ namespace PgmStudio.Pgm.Shapes;
 /// (approach's room, the hub's interfaces, the frontline's face) finishes them later.
 ///
 /// <para>Everything is one atom recombined <b>along shared edges</b> (§3): a spine plus <c>K</c> arms
-/// (<see cref="SpineArms"/> — T at K=1, Π/F at K=2, E at K=3, the arm placement a knob, <b>3 arms the maximum</b>),
-/// four bars around a void (<see cref="Ring"/>), a ring with one longer bar so a loop slides along it
-/// (<see cref="P"/>), a ring with a shorter U docked on its edge for a second void (<see cref="DoubleHole"/>), and
+/// (<c>SpineArms</c> — T at K=1, Π/F at K=2, E at K=3, the arm placement a knob, <b>3 arms the maximum</b>),
+/// four bars around a void (<c>Ring</c>), a ring with one longer bar so a loop slides along it
+/// (<c>P</c>), a ring with a shorter U docked on its edge for a second void (<c>DoubleHole</c>), and
 /// two loops on a shared baseline (<see cref="TwoUOnI"/>). Each classifies back to itself through
 /// <see cref="ShapeClassifier.ClassifyBody"/> — the emit↔derive mirror for the body layer. Shapes are emitted in a
 /// canonical frame (spines horizontal on top, arms hanging down; rings axis-aligned); a box too small for the
@@ -170,7 +170,7 @@ public static class BodyEmitter
         ]);
     }
 
-    /// <summary>A ring with an <b>L docked on its right edge</b> — the G glyph. Unlike the <see cref="DoubleHole"/>'s
+    /// <summary>A ring with an <b>L docked on its right edge</b> — the G glyph. Unlike the <c>DoubleHole</c>'s
     /// U (two arms closing an enclosed bay), the L is a single upright plus the shared bottom bar as its foot, so its
     /// recess is a <b>bay open at the top</b> (three walls: the ring's right leg, the L's upright, the bottom bar) —
     /// a second void the docking frontline seals flush into a <b>taller hole</b>, beside the ring's smaller one. The

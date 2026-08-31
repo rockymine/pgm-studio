@@ -86,14 +86,13 @@ public static class GroundCoverage
         double DeadShare, IReadOnlyList<Patch> DeadPatches, int UnnamedDeadPatches, bool HaveRoutes,
         int[] Traffic, int Journeys, IReadOnlyList<Marker> Markers);
 
-    /// <summary>Read the coverage of a map: its document for the waypoints and rules, the scanned columns
-    /// for the ground a walk runs on, and the dressing's prop cells for the decorated class.
-    ///
-    /// <para>The picture is one pixel a cell, so a stacked column is drawn once however many storeys it
-    /// carries — but the journeys under it are walked storey by storey, which is what decides whether the
-    /// ground is used at all.</para></summary>
-    /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>. Without them
-    /// a board whose goals are not placed yet traces spawn to spawn and calls everything else dead.</param>
+    /// <summary>Read the coverage of a map: its document for the waypoints and rules, the scanned columns for the
+    /// ground a walk runs on, and the dressing's prop cells for the decorated class. <para>The picture is one
+    /// pixel a cell, so a stacked column is drawn once however many storeys it carries — but the journeys under
+    /// it are walked storey by storey, which is what decides whether the ground is used at all.</para>
+    /// <para><b>declared</b> — Goals the document cannot carry — see <see cref="NavPoints.Of"/>. Without them a
+    /// board whose goals are not placed yet traces spawn to spawn and calls everything else
+    /// dead.</para></summary>
     public static Result Read(Dict data, SegmentIndex? segments,
         IReadOnlyList<(int X, int Z)> propCells, (int, int, int, int)? bbox = null, int margin = 16,
         IReadOnlyList<NavPoint>? declared = null)

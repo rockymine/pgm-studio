@@ -250,9 +250,9 @@ public sealed class SketchRoomStyles
     public static JsonElement Open { get; } = JsonDocument.Parse("null").RootElement;
 }
 
-/// <summary>A stacked slab (S7): its shapes/groups at a Y offset. The whole 2-D editor authors one layer;
-/// the rasterizer stacks them — a cell's column is the layer's <c>[floor, top]</c> shifted by <c>base_y</c>.</summary>
-/// <summary>One layer of the drawing: the shapes on it, and the height its ground starts at.</summary>
+/// <summary>One layer of the drawing: the shapes on it, and the height its ground starts at. The 2-D editor
+/// authors one layer at a time and the rasterizer stacks them, so a cell's column is the layer's
+/// <c>[floor, top]</c> shifted by <c>base_y</c>.</summary>
 public sealed class SketchLayer
 {
     /// <summary>The id and name a compiled plan's single layer takes. A flat board is a stack of one, and

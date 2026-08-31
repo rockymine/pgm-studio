@@ -16,7 +16,7 @@
          The doc-comment diagnostics are off for the reason `Domain` states: CS1591 demands a comment on
          every public member, and the rest flag defects in comments nothing read. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574;CS1734;CS0419;CS1587</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1587</NoWarn>
   </PropertyGroup>
 
 </Project>

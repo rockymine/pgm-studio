@@ -28,7 +28,7 @@ internal readonly record struct Frame(char PrimaryAxis, int Sign)
         PrimaryAxis == 'z' ? (v, Sign * u) : (Sign * u, v);
 
     /// <summary>Map a generalized rect (<c>uMin..uMin+uSpan</c>, <c>vMin..vMin+vSpan</c>) to a real cell rect
-    /// <c>[x, z, w, h]</c> (<see cref="PlanPiece.Rect"/> convention).</summary>
+    /// <c>[x, z, w, h]</c> (<c>PlanPiece.Rect</c> convention).</summary>
     public CellRect ToRect(int uMin, int uSpan, int vMin, int vSpan)
     {
         var (x1, z1) = ToPoint(uMin, vMin);
@@ -38,7 +38,7 @@ internal readonly record struct Frame(char PrimaryAxis, int Sign)
         return new(minX, minZ, maxX - minX, maxZ - minZ);
     }
 
-    /// <summary>The piece-relative offset (a <see cref="SpawnPlacement.At"/>/<see cref="WoolPlacement.At"/>
+    /// <summary>The piece-relative offset (a <c>SpawnPlacement.At</c>/<c>WoolPlacement.At</c>
     /// value) of the generalized point (u,v) within the piece occupying (uMin,uSpan,vMin,vSpan).</summary>
     public double[] LocalAt(int uMin, int uSpan, int vMin, int vSpan, double u, double v)
     {

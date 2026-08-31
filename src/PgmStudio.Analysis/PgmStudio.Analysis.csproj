@@ -17,7 +17,7 @@
     <!-- Three of this project's records are answered directly by /api routes, so their docstrings are what
          the published schema says about those fields. Without the file the fields cross undescribed. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574;CS1734;CS0419;CS1587</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1587</NoWarn>
   </PropertyGroup>
 
 </Project>

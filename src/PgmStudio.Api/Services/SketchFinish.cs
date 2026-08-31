@@ -12,9 +12,9 @@ namespace PgmStudio.Api.Services;
 /// <summary>What rasterizing a stored drawing came to: either a refusal — the status it is answered under, the
 /// gate's short label and the findings — or the geometry that was written, with whatever the board complained
 /// about on the way. The complaints ride on the success because this is the last stage that can still say what
-/// the board names and does not have.</summary>
-/// <param name="Cells">How many ground columns the drawing rasterized to.</param>
-/// <param name="Islands">How many landmasses those columns fall into.</param>
+/// the board names and does not have. <para><b>Cells</b> — How many ground columns the drawing rasterized
+/// to.</para>
+/// <para><b>Islands</b> — How many landmasses those columns fall into.</para></summary>
 public sealed record SketchFinished(
     Refusal? Refusal, int Cells = 0, int Islands = 0, Findings? Complaints = null);
 

@@ -5,30 +5,28 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Painting;
 
 /// <summary>The theme-agnostic geometric facts of one paintable terrain column
-/// (docs/world-export/terrain-painting.md §5, stage 1). Three nested edge tests, widest last:
-/// <see cref="VoidEdge"/> fires only where the column borders the void — the landmass's true outside;
-/// <see cref="OpenEdge"/> adds a lower neighbour, so any drop counts (the base rim); <see cref="ClosedEdge"/>
-/// adds every other plateau boundary (a structure, or a different plateau at the same height — TP3). A
-/// staircase of stacked plateaus is open-edged and closed-edged all the way up its treads, and void-edged only
-/// at its outer face, which is the distinction a rim mode picks between.
-/// <see cref="VoidDrop"/>/<see cref="TerrainDrop"/> are the shallowest exposed
-/// drop's floor Y toward the void / toward lower terrain, or -1 when there is none — the wall's lower bound,
-/// split so the TP9 toggle can take the void one alone. <see cref="PerimeterArc"/> is the column's arc index
-/// along its landmass's outer void-facing perimeter (0-based around the loop), or -1 when the column is not on
-/// an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13).
-///
-/// <para><see cref="Inset"/> is the axis running the other way, measured in the same pass: how far <em>in</em>
-/// from the void-facing edge the column stands, 0 on the edge itself and -1 off the footprint. The arc says how
-/// far <em>round</em> the edge a cell sits and the inset how far in from it, which is the pair a band can be
-/// read along in either direction. <b>The walk crosses an elevation step</b> — it runs over the whole footprint,
-/// so a staircase of plateaus gets one set of bands running across the treads and up the hill rather than a set
-/// per tread. That is the author's call, made so the reading stays available on ground that is not flat; on flat
+/// (docs/world-export/terrain-painting.md §5, stage 1). Three nested edge tests, widest last: <see
+/// cref="VoidEdge"/> fires only where the column borders the void — the landmass's true outside; <see
+/// cref="OpenEdge"/> adds a lower neighbour, so any drop counts (the base rim); <see cref="ClosedEdge"/> adds
+/// every other plateau boundary (a structure, or a different plateau at the same height — TP3). A staircase of
+/// stacked plateaus is open-edged and closed-edged all the way up its treads, and void-edged only at its outer
+/// face, which is the distinction a rim mode picks between. <see cref="VoidDrop"/>/<see cref="TerrainDrop"/> are
+/// the shallowest exposed drop's floor Y toward the void / toward lower terrain, or -1 when there is none — the
+/// wall's lower bound, split so the TP9 toggle can take the void one alone. <see cref="PerimeterArc"/> is the
+/// column's arc index along its landmass's outer void-facing perimeter (0-based around the loop), or -1 when the
+/// column is not on an outer boundary — what a wall-run pattern reads to wrap the perimeter (TP13). <para><see
+/// cref="Inset"/> is the axis running the other way, measured in the same pass: how far <em>in</em> from the
+/// void-facing edge the column stands, 0 on the edge itself and -1 off the footprint. The arc says how far
+/// <em>round</em> the edge a cell sits and the inset how far in from it, which is the pair a band can be read
+/// along in either direction. <b>The walk crosses an elevation step</b> — it runs over the whole footprint, so a
+/// staircase of plateaus gets one set of bands running across the treads and up the hill rather than a set per
+/// tread. That is the author's call, made so the reading stays available on ground that is not flat; on flat
 /// ground, which is what the concept is reached for most of the time, the two readings coincide anyway. Nothing
-/// paints from it yet — the authored shape that spends it is `B199`/`B200`.</para></summary>
-/// <param name="Base">The lowest course the column's bands run from. Zero for terrain, whose bands start at
-/// the bedrock floor; a made thing's own floor where the column belongs to one, because a sculpture flying at
-/// y24 has no bedrock course and no fill reaching down to one — its span is what it is made of and the column
-/// under it is somebody else's.</param>
+/// paints from it yet — the authored shape that spends it is `B199`/`B200`.</para>
+/// <para><b>Base</b> — The lowest course the column's bands run from. Zero for terrain, whose bands start at the
+/// bedrock floor; a made thing's own floor where the column belongs to one, because a sculpture flying at y24 has
+/// no bedrock course and no fill reaching down to one — its span is what it is made of and the column under it is
+/// somebody else's.</para></summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
     int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1, int Base = 0);
@@ -58,8 +56,8 @@ public sealed class TerrainProfile
 
     private readonly IReadOnlyDictionary<(int X, int Z), int>? _base;
 
-    /// <param name="floorAt">Where each column's bands start, for a pass over a made thing rather than over
-    /// terrain. Absent, every column starts at the bedrock course, which is what ground is.</param>
+    /// <summary><b>floorAt</b> is where each column's bands start, for a pass over a made thing rather than over
+    /// terrain. Absent, every column starts at the bedrock course, which is what ground is.</summary>
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
                           IReadOnlyDictionary<(int X, int Z), int>? floorAt = null)
     {

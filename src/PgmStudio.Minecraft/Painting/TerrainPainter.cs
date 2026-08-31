@@ -83,7 +83,7 @@ public static class TerrainPainter
 
     /// <summary>
     /// The blocks one column paints, <b>top cell first</b>, as <c>(y, id, data)</c>. This is where a resolved
-    /// band becomes actual blocks, and it is deliberately the only such place: <see cref="Paint"/> walks the
+    /// band becomes actual blocks, and it is deliberately the only such place: <c>Paint</c> walks the
     /// whole sequence and writes it into the world, while a top-down preview takes the first element and
     /// stops. Neither can resolve a cell differently from the other, and the preview pays one material
     /// resolve per column rather than one per block — the difference between reading a footprint's surface

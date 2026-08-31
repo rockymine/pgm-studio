@@ -123,12 +123,6 @@ public static class Producibility
     public static PlanProducibility ReadPlan(PlanModel plan) => new(Read(plan), UnitFindings(plan));
 
     /// <summary>
-    /// The rules that are properties of the <b>arrangement</b>, not of one box: the parallel-fronts guard, the
-    /// frontline's pinned face demand, and the seat-separation law. Each is asked of the composer's own
-    /// predicate where one exists (<see cref="Composer.FrontFacesSymmetric"/>,
-    /// <see cref="SeatGeometry.TooClose"/>) rather than restated here.
-    /// </summary>
-    /// <summary>
     /// The growth frame an <b>authored</b> unit sits in. <see cref="Frame.For"/> fixes the sign per symmetry
     /// because a composed unit always grows on the +u side — but an authored plan may be drawn on either side of
     /// the axis, and reading <c>u</c> the wrong way round makes the min-u pieces the unit's <b>back</b>. Every
@@ -176,6 +170,12 @@ public static class Producibility
         return patches;
     }
 
+    /// <summary>
+    /// The rules that are properties of the <b>arrangement</b>, not of one box: the parallel-fronts guard, the
+    /// frontline's pinned face demand, and the seat-separation law. Each is asked of the composer's own
+    /// predicate where one exists (<c>Composer.FrontFacesSymmetric</c>,
+    /// <see cref="SeatGeometry.TooClose"/>) rather than restated here.
+    /// </summary>
     private static Findings UnitFindings(PlanModel plan)
     {
         var findings = new List<Finding>();

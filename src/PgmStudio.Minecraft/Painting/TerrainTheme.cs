@@ -21,21 +21,20 @@ public enum RimEdges { Void, Drop, Boundary }
 /// <c>Boundary</c> beside a database that says <c>boundary</c>.</summary>
 public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(JsonNamingPolicy.CamelCase);
 
-/// <summary>Where a block sits for the material resolver: its world coordinate, its bucket, its depth below
-/// the top of that bucket's band (0 = the band's top course) — the parameter a layered material (grass over
-/// dirt) reads — the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage nibble,
-/// -1 = neutral), and <see cref="PerimeterArc"/>, the cell's arc index along the outer void-facing wall (-1
-/// off it) that a wall-run pattern reads (TP13).</summary>
-/// <param name="PerimeterRun">Which axis the wall runs along where this cell sits
-/// (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.RunAlongX"/> or <c>RunAlongZ</c>), or 0 off a wall. The
-/// arc says how far round the face a cell is and the turn how sharply the face bends; this says which way the
-/// face is <em>going</em>, which is what a block with a direction of its own needs. A log laid across a wall
-/// rather than along it points its cut end at whoever is looking.</param>
-/// <param name="Inset">How many steps <em>in</em> from the landmass's void-facing edge the column stands — 0 on
-/// the edge itself, -1 off the footprint. The plan-direction axis, and the companion to
-/// <paramref name="PerimeterArc"/>: the arc says how far <em>round</em> the edge a cell sits and this how far
-/// in from it, so a band stack can be read along either. The walk crosses an elevation step, so on a staircase
-/// the count runs across the treads and up the hill rather than restarting on each.</param>
+/// <summary>Where a block sits for the material resolver: its world coordinate, its bucket, its depth below the
+/// top of that bucket's band (0 = the band's top course) — the parameter a layered material (grass over dirt)
+/// reads — the <see cref="TeamData"/> of the team that owns the cell (a 0–15 wool/clay damage nibble, -1 =
+/// neutral), and <see cref="PerimeterArc"/>, the cell's arc index along the outer void-facing wall (-1 off it)
+/// that a wall-run pattern reads (TP13). <para><b>PerimeterRun</b> — Which axis the wall runs along where this
+/// cell sits (<see cref="PgmStudio.Geom.Algorithms.GridBoundary.RunAlongX"/> or <c>RunAlongZ</c>), or 0 off a
+/// wall. The arc says how far round the face a cell is and the turn how sharply the face bends; this says which
+/// way the face is <em>going</em>, which is what a block with a direction of its own needs. A log laid across a
+/// wall rather than along it points its cut end at whoever is looking.</para>
+/// <para><b>Inset</b> — How many steps <em>in</em> from the landmass's void-facing edge the column stands — 0 on
+/// the edge itself, -1 off the footprint. The plan-direction axis, and the companion to <paramref
+/// name="PerimeterArc"/>: the arc says how far <em>round</em> the edge a cell sits and this how far in from it,
+/// so a band stack can be read along either. The walk crosses an elevation step, so on a staircase the count runs
+/// across the treads and up the hill rather than restarting on each.</para></summary>
 public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1)
 {
     private readonly (int X, int Z)? sample;
@@ -140,24 +139,19 @@ public static class Materials
         material is null or SolidMaterial { Id: Blocks.Air };
 }
 
-/// <summary>
-/// A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11), or a
-/// cobble rim then two rings of stone brick then a field.
-///
-/// <para><b>The axis is stated rather than implied</b> (<see cref="BandAxis"/>). Down from the top of the
-/// bucket is what this always meant and stays the default; in from the landmass's edge is the same stack read
-/// along <see cref="BucketContext.Inset"/> instead. One type with the axis named, not two types differing in
-/// which property they read — the bands, the thicknesses and the run-out rule are identical and only the
-/// distance differs.</para>
-///
-/// <para><b><see cref="Beyond"/> is what shows where the stack claims nothing</b>, which is the half
-/// <see cref="BandEnding.HandOver"/> leaves to whoever holds the axis. Unset it is stone, the fill every
-/// unclaimed block already falls to — right for a depth stack, whose bucket is its whole space, and wrong for
-/// a ring stack that is meant to stop a few rings in and let the ground it sits on show. Under
-/// <see cref="BandEnding.Repeat"/> nothing is ever unclaimed and this is never reached.</para>
-/// </summary>
-/// <param name="From">Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
-/// other axis, and zero everywhere else.</param>
+/// <summary> A <see cref="BandStack"/> read along a distance — grass over two dirt, a wall's banded riser (TP11),
+/// or a cobble rim then two rings of stone brick then a field. <para><b>The axis is stated rather than
+/// implied</b> (<see cref="BandAxis"/>). Down from the top of the bucket is what this always meant and stays the
+/// default; in from the landmass's edge is the same stack read along <see cref="BucketContext.Inset"/> instead.
+/// One type with the axis named, not two types differing in which property they read — the bands, the thicknesses
+/// and the run-out rule are identical and only the distance differs.</para>
+/// <para><b><see cref="Beyond"/> is what shows where the stack claims nothing</b>, which is the half <see
+/// cref="BandEnding.HandOver"/> leaves to whoever holds the axis. Unset it is stone, the fill every unclaimed
+/// block already falls to — right for a depth stack, whose bucket is its whole space, and wrong for a ring stack
+/// that is meant to stop a few rings in and let the ground it sits on show. Under <see cref="BandEnding.Repeat"/>
+/// nothing is ever unclaimed and this is never reached.</para>
+/// <para><b>From</b> — Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
+/// other axis, and zero everywhere else.</para></summary>
 public sealed record LayeredMaterial(
     BandStack Stack,
     BandAxis Axis = BandAxis.Depth,

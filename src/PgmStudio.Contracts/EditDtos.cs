@@ -2,16 +2,15 @@ using System.Text.Json.Serialization;
 
 namespace PgmStudio.Contracts;
 
-/// <summary>
-/// What an edit to a stored map answers. Every one of these is built by an editor in <c>Pgm/Editing</c>,
-/// one project below <c>Contracts</c>, so each is <b>declared</b> at its route rather than mapped there — a
-/// second walk of the same dictionary here would be free to disagree with the first.
-/// <c>EditAnswerShapeTests</c> holds each record to what its editor writes.
-///
-/// <para>The shapes are few because the answers are: most edits hand back nothing — <see cref="AppliedDto"/>,
-/// beside the other acknowledgements — a few hand back the id the caller now names the thing by, and three
-/// hand back the row they just wrote.</para>
-/// </summary>
+// What an edit to a stored map answers. Every one of these is built by an editor in Pgm/Editing, one project
+// below Contracts, so each is declared at its route rather than mapped there — a second walk of the same
+// dictionary here would be free to disagree with the first. EditAnswerShapeTests holds each record to what
+// its editor writes.
+//
+// The shapes are few because the answers are: most edits hand back nothing (AppliedDto, beside the other
+// acknowledgements), a few hand back the id the caller now names the thing by, and three hand back the row
+// they just wrote.
+
 /// <summary>A region was created, and this is the id every later route names it by. Region ids are the
 /// author's words rather than row numbers, which is why this is not <see cref="CreatedDto"/>.</summary>
 /// <param name="Id">The region's name — the author's word where they gave one, else the one the editor

@@ -47,7 +47,7 @@ public static class FrontGuard
     /// front-side offset (toward the box-corner the front face meets — along-coord 0 when
     /// <paramref name="frontAtLow"/>, else the <paramref name="edgeLen"/> end) is under
     /// <see cref="BufferCells"/>, walk backward along the edge to the nearest position that is buffered,
-    /// lies wholly within a free run, and keeps the <paramref name="gap"/> from every <paramref name="blocked"/>
+    /// lies wholly within a free run, and keeps the <c>gap</c> from every <paramref name="blocked"/>
     /// interval. Returns the original seat when it is already buffered, the nearest buffered position when it is
     /// not, or <c>null</c> when no clear backward position exists (the caller records a <see cref="FlushSeat"/>
     /// for <see cref="Resolve"/>).</summary>
@@ -203,7 +203,7 @@ public static class FrontGuard
     }
 
     /// <summary>The lawful dock position on an edge <b>farthest from the front</b>, or <c>null</c>: the seat must
-    /// lie wholly within a free run, keep the <paramref name="gap"/> from every <paramref name="blocked"/>
+    /// lie wholly within a free run, keep the <c>gap</c> from every <paramref name="blocked"/>
     /// interval, and keep <paramref name="guard"/> cells from the front-side end (<paramref name="frontAtLow"/>
     /// naming which end that is; 0 for the back edge, where no end faces the front). The relocation half of the
     /// guard reads it — a wool moving to the mirror lateral or the back edge lands as far off the front as that

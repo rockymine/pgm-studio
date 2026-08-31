@@ -273,17 +273,16 @@ public readonly record struct WindowSeat(WallSegment Wall, int Lo, int Width, in
 /// </summary>
 public static class HouseWindows
 {
-    /// <summary>Every window seat on a building's walls, run by run in the order the plan lists them. Empty
-    /// when the style asks for none, when the wall is too short to hold one clear of its corners, or when the
-    /// opening would not fit between the floor and the wall's last course.
-    ///
-    /// <para>A run rather than a facing is what a window is seated in, so a building that turns a corner seats
-    /// each of its walls on its own length: an L's six walls are six runs, and the short one beside the turn
-    /// takes what it can hold rather than what the whole side could.</para></summary>
-    /// <param name="hosts">Whether the wall at one cell of a run is a block the window may be cut into, or
-    /// null where the style names no host and any cell will do. Passed as a question rather than as the wall
-    /// itself: the seater decides <em>where</em> a window goes and has no business knowing what a wall is made
-    /// of, and the caller that does know can answer by resolving it.</param>
+    /// <summary>Every window seat on a building's walls, run by run in the order the plan lists them. Empty when
+    /// the style asks for none, when the wall is too short to hold one clear of its corners, or when the opening
+    /// would not fit between the floor and the wall's last course. <para>A run rather than a facing is what a
+    /// window is seated in, so a building that turns a corner seats each of its walls on its own length: an L's
+    /// six walls are six runs, and the short one beside the turn takes what it can hold rather than what the
+    /// whole side could.</para>
+    /// <para><b>hosts</b> — Whether the wall at one cell of a run is a block the window may be cut into, or null
+    /// where the style names no host and any cell will do. Passed as a question rather than as the wall itself:
+    /// the seater decides <em>where</em> a window goes and has no business knowing what a wall is made of, and
+    /// the caller that does know can answer by resolving it.</para></summary>
     public static List<WindowSeat> Seats(
         WindowStyle style, IReadOnlyList<WallSegment> walls,
         int wallExtent, IReadOnlyList<WallOpening>? doors, Func<WallSegment, int, bool>? hosts = null)

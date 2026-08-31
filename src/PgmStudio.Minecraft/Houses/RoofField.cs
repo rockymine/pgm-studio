@@ -55,18 +55,22 @@ public sealed class RoofField
     public bool RidgeAlongX => acrossZ;
 
     /// <param name="form">Which roof this is.</param>
+/// <param name="wallMinX">The wall line the roof stands on, as its own bounds: the X lower edge.</param>
+/// <param name="wallMinZ">The wall line's Z lower edge.</param>
+/// <param name="wallMaxX">The wall line's X upper edge.</param>
+/// <param name="wallMaxZ">The wall line's Z upper edge.</param>
     /// <param name="overhang">How far past the walls the roof reaches, in blocks.</param>
     /// <param name="baseY">The course the roof stands at over the wall line — one above the wall's last.</param>
     /// <param name="pitch">Rise per block travelled inward — in whole courses, or in <em>half</em> courses when
     /// <paramref name="inHalves"/> is set.</param>
     /// <param name="front">The wall a shed falls to and a saltbox turns its steep side toward. Every other form
     /// ignores it: a gable and a hip are symmetric, and a flat lid has no slope to point.</param>
-    /// <param name="inHalves">Whether the roof climbs in half blocks, laying a slab on every odd step. The
-    /// field is measured in halves either way; a whole-course roof is simply one that steps two at a time, so
-    /// the forms' arithmetic is untouched and a roof laid in cubes answers exactly what it always did.</param>
-    /// <param name="ridgeAlongX">Which way the ridge runs, or null to take it from the proportions. A building
-    /// of several wings answers this per wing (<see cref="Wing.RidgeAlongX"/>), because whether two of them
-    /// make a junction is whether their ridges cross and their own shapes cannot know that.</param>
+    /// <param name="inHalves">Whether the roof climbs in half blocks, laying a slab on every odd step. The field
+    /// is measured in halves either way; a whole-course roof is simply one that steps two at a time, so the
+    /// forms' arithmetic is untouched and a roof laid in cubes answers exactly what it always did.</param>
+    /// <param name="ridgeAlongX">Which way the ridge runs, or null to take it from the proportions. A building of
+    /// several wings answers this per wing (<see cref="Wing.RidgeAlongX"/>), because whether two of them make a
+    /// junction is whether their ridges cross and their own shapes cannot know that.</param>
     public RoofField(
         RoofForm form, int wallMinX, int wallMinZ, int wallMaxX, int wallMaxZ,
         int overhang, int baseY, int pitch, RoomEdge front, bool inHalves = false,

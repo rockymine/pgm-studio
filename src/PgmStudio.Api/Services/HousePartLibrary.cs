@@ -18,7 +18,7 @@ namespace PgmStudio.Api.Services;
 /// <para>A part composes to a <em>fragment</em> of a <see cref="HouseStyle"/> rather than to a whole one,
 /// since a roof is not a building. The fragment is applied over a house by <see cref="RoomStyleLibrary"/>;
 /// to draw a part on its own the library gives it a sample building to sit on, which is what
-/// <see cref="OnSample"/> is for — a roof with no walls under it is a picture of nothing.</para>
+/// <c>OnSample</c> is for — a roof with no walls under it is a picture of nothing.</para>
 /// </summary>
 public sealed class HousePartLibrary(HousePartStore parts, ThemeStore styles)
 {

@@ -61,7 +61,7 @@ public sealed record MonumentCandidate(
 /// <em>text</em> as a label (not just keyword-matches), requires the declared pedestal under an air cell,
 /// and falls back to armour-stand and pure-geometry anchors.
 ///
-/// Reads the Anvil world (like <see cref="MonumentSliceExtractor"/>): <c>layer_segment.parquet</c> can't
+/// Reads the Anvil world (like <c>MonumentSliceExtractor</c>): <c>layer_segment.parquet</c> can't
 /// drive this — it stores only per-column solid-run extents, no block materials, signs or entities. Its
 /// role here is downstream (snap/validate a suggestion onto buildable ground), not detection.
 /// </summary>
@@ -239,7 +239,7 @@ public static class MonumentSuggester
                 if (!pedSpecific || !capCurated) continue;
                 // ACCESSIBLE: the cell needs ≥1 air horizontal neighbour, else it's a sealed pocket in terrain,
                 // not a placeable monument (corpus: 99.7% of these monuments have an open side). Cell-level
-                // accessibility — supersedes the old buried-pedestal + open-sky reject.
+                // accessibility, which is a narrower question than whether the pedestal is buried or the sky open.
                 if (Faces.All(f => blocks.ContainsKey((x + f.dx, y + 1, z + f.dz)))) continue;
                 // A clay FLOOR with a cap (≥3 same-clay neighbours) is terrain, not an isolated clay pedestal.
                 if (below.Id == StainedClayId && SameMassNeighbours(x, y, z, StainedClayId) >= 3) continue;

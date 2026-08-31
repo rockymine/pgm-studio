@@ -14,30 +14,28 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export;
 
-/// <summary>The synthesised world plus the world spawn and a <em>resolved</em> intent — the authored intent
-/// with spawn/wool positions snapped to the structures the world actually places and each monument's
-/// location filled in from its in-cube air cell, so the exported <c>map.xml</c> agrees with the world.
-/// <see cref="Provenance"/> is which pass claimed each column, kept beside the voxels because a block cannot
-/// carry the answer itself — a caller writing the world to disk persists it alongside
-/// (<see cref="WorldProvenanceFile"/>) so a render reading the region back gets the same recorded answer a
-/// render taken right after the build already would.</summary>
-/// <param name="Declined">Everything the build could not do as it was authored: a goal whose material its own
-/// size is wrong for or whose structure reaches over the build ceiling (<c>DC3</c>, <c>OB23</c>), and every
-/// prop the dressing pass did not place (a <c>DR-*</c> each), carrying the goal's or the prop's id as its
-/// subject. None of them stops the work — the world was built — and the two kinds are told apart by the
-/// severity each carries: the goals are complaints, since the goal stands and the remark is about how, and
-/// every prop is a <see cref="Severity.Decline"/>, since it is not in the world at all. Either way the
-/// caller that asked for the build has to be told rather than sent looking in a sidecar.
-/// <para>Null when nothing was declined, the same convention the pass itself answers in — read
-/// <see cref="Declines"/>, which never is.</para></param>
-/// <param name="Columns">The ground this build stood on, as the rasterizer read it — one solid span per cell.
-/// Carried rather than re-derived: every gate that asks where the ground is has to ask the reading the world
-/// was actually built from, and a second <see cref="SketchRasterizer.RasterizeColumns"/> over the same layout
-/// is a second answer free to disagree with the first.</param>
-/// <param name="Dressing">What the dressing pass placed and what it declined, as the pass itself reported it.
-/// Carried rather than left inside the build because the claim a prop made — the cells a stroke's style,
-/// coverage and seed actually decided on — is reachable no other way, and a keep-out computed against a guess
-/// at it is a keep-out tuned to the wrong distances.</param>
+/// <summary>The synthesised world plus the world spawn and a <em>resolved</em> intent — the authored intent with
+/// spawn/wool positions snapped to the structures the world actually places and each monument's location filled
+/// in from its in-cube air cell, so the exported <c>map.xml</c> agrees with the world. <see cref="Provenance"/>
+/// is which pass claimed each column, kept beside the voxels because a block cannot carry the answer itself — a
+/// caller writing the world to disk persists it alongside (<see cref="WorldProvenanceFile"/>) so a render reading
+/// the region back gets the same recorded answer a render taken right after the build already would.
+/// <para><b>Declined</b> — Everything the build could not do as it was authored: a goal whose material its own
+/// size is wrong for or whose structure reaches over the build ceiling (<c>DC3</c>, <c>OB23</c>), and every prop
+/// the dressing pass did not place (a <c>DR-*</c> each), carrying the goal's or the prop's id as its subject.
+/// None of them stops the work — the world was built — and the two kinds are told apart by the severity each
+/// carries: the goals are complaints, since the goal stands and the remark is about how, and every prop is a <see
+/// cref="Severity.Decline"/>, since it is not in the world at all. Either way the caller that asked for the build
+/// has to be told rather than sent looking in a sidecar. <para>Null when nothing was declined, the same
+/// convention the pass itself answers in — read <see cref="Declines"/>, which never is.</para></para>
+/// <para><b>Columns</b> — The ground this build stood on, as the rasterizer read it — one solid span per cell.
+/// Carried rather than re-derived: every gate that asks where the ground is has to ask the reading the world was
+/// actually built from, and a second <c>SketchRasterizer.RasterizeColumns</c> over the same layout is a second
+/// answer free to disagree with the first.</para>
+/// <para><b>Dressing</b> — What the dressing pass placed and what it declined, as the pass itself reported it.
+/// Carried rather than left inside the build because the claim a prop made — the cells a stroke's style, coverage
+/// and seed actually decided on — is reachable no other way, and a keep-out computed against a guess at it is a
+/// keep-out tuned to the wrong distances.</para></summary>
 public sealed record BuiltWorld(
     VoxelWorld World, int SpawnX, int SpawnY, int SpawnZ, MapIntent ResolvedIntent, WorldProvenance Provenance,
     IReadOnlyList<Finding>? Declined = null,

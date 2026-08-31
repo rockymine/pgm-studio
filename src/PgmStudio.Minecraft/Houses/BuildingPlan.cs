@@ -171,7 +171,7 @@ public readonly record struct Wing(int MinX, int MinZ, int MaxX, int MaxZ, WingS
 /// turns a corner cannot, and keeping both would be two implementations of one idea — so there is one, and a
 /// single-rectangle building is the case where it happens to agree with arithmetic.</para>
 ///
-/// <para><b>It is a plan and not a footprint, because <see cref="Geom.Footprint"/> is the other thing</b>: the
+/// <para><b>It is a plan and not a footprint, because <c>Geom.Footprint</c> is the other thing</b>: the
 /// ground a relief is solved over, a landmass held as a dense grid. Both were called <c>Footprint</c>, and
 /// <c>Minecraft</c> references <c>Geom</c>, so both were in scope in every file that meant this one — a name
 /// over two meanings rather than two spellings of one, which is the shape that reads correctly right up to

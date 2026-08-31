@@ -29,8 +29,8 @@ public static class PlanBoardSvg
     private const int LegendRowHeight = 16;
     private const int LegendSwatch = 10;
 
-    /// <param name="scale">Pixels per proxy cell.</param>
-    /// <param name="pad">Pixel margin around the board.</param>
+    /// <summary><b>scale</b> is pixels per proxy cell.
+    /// <para><b>pad</b> — Pixel margin around the board.</para></summary>
     public static string Render(PlanModel plan, int scale = 9, int pad = 10)
     {
         var scene = PlanBoardScene.Build(plan);

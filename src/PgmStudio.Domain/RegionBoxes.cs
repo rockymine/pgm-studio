@@ -79,13 +79,13 @@ public static class RegionBoxes
         return hiX < loX || hiY < loY || hiZ < loZ ? null : new BlockBox(loX, loY, loZ, hiX, hiY, hiZ);
     }
 
-    /// <summary>The XZ-only footprint a region covers, height ignored — the reduction <see cref="Of"/>
+    /// <summary>The XZ-only footprint a region covers, height ignored — the reduction <c>Of</c>
     /// cannot give a <c>rectangle</c> region, since a rectangle carries no Y bounds to begin with (it is
     /// unbounded on that axis by construction, "cuboid / rectangle" in <see cref="Region"/>'s own field
     /// comment). Every leaf collapses to its XZ span here — a <c>cuboid</c>'s Y range along with it — so a
     /// caller asking only "which columns does this region touch" (a buildable footprint, not a volume to
     /// fill) gets an answer neither the full <see cref="BlockBox"/> reduction nor a rectangle's absent Y
-    /// bounds can supply. Same additive-children convention as <see cref="Of"/>: a union or intersect
+    /// bounds can supply. Same additive-children convention as <c>Of</c>: a union or intersect
     /// contributes every child, a complement or negative only its first (the part being subtracted from,
     /// not the subtraction), and a shape that does not reduce contributes nothing rather than a guess.</summary>
     public static IReadOnlyList<BlockBox> FootprintXZ(IReadOnlyDictionary<string, Region> registry, string regionId) =>

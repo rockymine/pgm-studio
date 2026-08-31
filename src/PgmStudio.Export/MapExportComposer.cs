@@ -15,16 +15,15 @@ namespace PgmStudio.Export;
 using Dict = Dictionary<string, object?>;
 using PgmStudio.Geom;
 
-/// <summary>The outcome of composing a map for export: either a refusal — the status it is answered under,
-/// the gate's short label and the findings themselves — or the composed <c>map.xml</c>. For a
-/// sketch-originated map <see cref="World"/> also carries the synthesised voxel world so the caller can bundle
-/// its region files.
+/// <summary>The outcome of composing a map for export: either a refusal — the status it is answered under, the
+/// gate's short label and the findings themselves — or the composed <c>map.xml</c>. For a sketch-originated map
+/// <see cref="World"/> also carries the synthesised voxel world so the caller can bundle its region files.
 /// <para>A refusal is handed over as findings rather than as a rendered body: this composer sits below
-/// <c>Api</c>, and the layer that answers HTTP is the one that renders the envelope, so a caller cannot tell
-/// how deep the refusal was raised.</para></summary>
-/// <param name="Doc">The composed map document, on success — what the XML was written from, and what a
-/// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing
-/// the XML it just wrote.</param>
+/// <c>Api</c>, and the layer that answers HTTP is the one that renders the envelope, so a caller cannot tell how
+/// deep the refusal was raised.</para>
+/// <para><b>Doc</b> — The composed map document, on success — what the XML was written from, and what a
+/// post-export read (the coverage measure, a headless driver's own analysis) consumes without re-parsing the XML
+/// it just wrote.</para></summary>
 public sealed record ExportComposition(
     Refusal? Refusal, string? Xml, BuiltWorld? World, Dict? Doc = null);
 
@@ -42,17 +41,17 @@ public sealed record ExportComposition(
 /// </summary>
 public static class MapExportComposer
 {
-    /// <param name="isIntent">Whether the map was authored through the declarative intent model — gates the
-    /// traversability check below (corpus maps have none and export unconditionally).</param>
-    /// <param name="segments">The map's scanned layer segments, for the traversability check. Only read when
-    /// <paramref name="isIntent"/> is true; null when the map was never scanned.</param>
-    /// <param name="intent">The stored authoring intent. Required (and always non-null in practice) when
+    /// <summary><b>isIntent</b> is whether the map was authored through the declarative intent model — gates the
+    /// traversability check below (corpus maps have none and export unconditionally).
+    /// <para><b>segments</b> — The map's scanned layer segments, for the traversability check. Only read when
+    /// <paramref name="isIntent"/> is true; null when the map was never scanned.</para>
+    /// <para><b>intent</b> — The stored authoring intent. Required (and always non-null in practice) when
     /// <paramref name="layoutBytes"/> is not null — a sketch-originated map resolves it against the world it
-    /// builds; ignored otherwise.</param>
-    /// <param name="surfacePalette">The cached scanned surface palette, for a non-sketch intent map's CTW
-    /// boilerplate. Ignored for a sketch map, which has no scanned surface.</param>
-    /// <param name="resources">The cached resource blocks, for a non-sketch intent map's renewables. Ignored
-    /// for a sketch map, which derives its own renewable cubes from the world it just built.</param>
+    /// builds; ignored otherwise.</para>
+    /// <para><b>surfacePalette</b> — The cached scanned surface palette, for a non-sketch intent map's CTW
+    /// boilerplate. Ignored for a sketch map, which has no scanned surface.</para>
+    /// <para><b>resources</b> — The cached resource blocks, for a non-sketch intent map's renewables. Ignored for
+    /// a sketch map, which derives its own renewable cubes from the world it just built.</para></summary>
     public static ExportComposition Compose(
         Dict doc, byte[]? layoutBytes, bool isIntent, SegmentIndex? segments, MapIntent? intent,
         IReadOnlySet<int>? surfacePalette, IReadOnlyList<(string Type, int X, int Y, int Z)> resources)
@@ -188,33 +187,28 @@ public static class MapExportComposer
 
     // ── EX2 · EX3 · EX4 — is this a map, and is it the map its author stated? ──────────────────────────────
 
-    /// <summary>
-    /// Whether the document about to be written is a map at all, and whether it is the map the intent stated.
-    ///
-    /// <para><b>Every other gate here quantifies over a collection, so a board with nothing on it satisfies all
-    /// of them.</b> <c>OB17</c> asks whether a goal stands in void, <c>OB19</c> whether a prop crowds one, and
-    /// the traversability check whether spawn and wool points reach each other — over empty lists, each is
-    /// vacuously true. Two authoring-trial boards exported clean on exactly that: a ten-line <c>map.xml</c> with
-    /// a name, a gamemode, an empty objective and a hunger rule, and every stage answered 200.</para>
-    ///
+    /// <summary> Whether the document about to be written is a map at all, and whether it is the map the intent
+    /// stated. <para><b>Every other gate here quantifies over a collection, so a board with nothing on it
+    /// satisfies all of them.</b> <c>OB17</c> asks whether a goal stands in void, <c>OB19</c> whether a prop
+    /// crowds one, and the traversability check whether spawn and wool points reach each other — over empty
+    /// lists, each is vacuously true. Two authoring-trial boards exported clean on exactly that: a ten-line
+    /// <c>map.xml</c> with a name, a gamemode, an empty objective and a hunger rule, and every stage answered
+    /// 200.</para>
     /// <para><b>The second question is the one those boards actually needed.</b> Their plan carried two spawns
-    /// and two destroyables. The author did state them; they were lost somewhere between the plan and the
-    /// export, which is a harder failure than an author writing nothing and is invisible to any gate reading
-    /// one side alone. This is the last point that sees both, so it is where the two are compared.</para>
-    ///
+    /// and two destroyables. The author did state them; they were lost somewhere between the plan and the export,
+    /// which is a harder failure than an author writing nothing and is invisible to any gate reading one side
+    /// alone. This is the last point that sees both, so it is where the two are compared.</para>
     /// <para><b>Almost nothing here is a judgement about how a map plays.</b> A map with no spawn cannot be
-    /// entered, which is mechanical; a count that went in and did not come out is arithmetic. The one ruling
-    /// is the author's and is stated as such: the three gamemodes the studio authors — CTW, DTM, DTC — are
-    /// played by teams, so a map that states an objective must state who contests it.</para>
-    ///
-    /// <para>Whether a map needs an objective <em>at all</em> is still not asked here. <c>PL3</c> already says
-    /// a plan with no goal has nothing to win, as a complaint because which goal a map carries is the
-    /// author's, and a second copy of one rule under an export id is the duplication the shared vocabulary
-    /// exists to prevent. It is also the half that could not be reported — this gate answers into a response
-    /// whose body is XML or a zip, which has nowhere for a complaint to ride.</para>
-    /// </summary>
-    /// <param name="intent">The resolved intent, where one is in hand. Null on a path that has only the
-    /// document, which leaves the carried-through comparison unasked rather than guessed at.</param>
+    /// entered, which is mechanical; a count that went in and did not come out is arithmetic. The one ruling is
+    /// the author's and is stated as such: the three gamemodes the studio authors — CTW, DTM, DTC — are played by
+    /// teams, so a map that states an objective must state who contests it.</para>
+    /// <para>Whether a map needs an objective <em>at all</em> is still not asked here. <c>PL3</c> already says a
+    /// plan with no goal has nothing to win, as a complaint because which goal a map carries is the author's, and
+    /// a second copy of one rule under an export id is the duplication the shared vocabulary exists to prevent.
+    /// It is also the half that could not be reported — this gate answers into a response whose body is XML or a
+    /// zip, which has nowhere for a complaint to ride.</para>
+    /// <para><b>intent</b> — The resolved intent, where one is in hand. Null on a path that has only the
+    /// document, which leaves the carried-through comparison unasked rather than guessed at.</para></summary>
     public static Findings Playable(MapIntent? intent, Dict doc)
     {
         var findings = new List<Finding>();
@@ -301,8 +295,6 @@ public static class MapExportComposer
         ]);
     }
 
-    /// <summary>Every column the board draws — a walkable surface, the same reading a scanned map's
-    /// <c>segment</c> rows give.</summary>
     /// <summary>The rasterizer's own spans as the walk reads a scan: a cell standing on two layers answers
     /// twice here, so the gate sees the storeys the sketch drew rather than their shadow.</summary>
     private static SegmentIndex Rasterized(IReadOnlyList<ColumnSegment> columns)
@@ -317,30 +309,16 @@ public static class MapExportComposer
         return findings.Count == 0 ? null : Refuse("objective placement", [.. findings]);
     }
 
-    /// <summary>
-    /// <b><c>OB17</c> — every goal that stands where a goal may not: over the void, inside a spawn room, or
-    /// inside a wool room.</b> Asked against the ground the rasterizer actually produced rather than the
-    /// plan's rectangles, so it reads the world about to be written; a map begun in Sketch never passes the
-    /// compile gate at all, which is what makes this the only reading every map gets.
-    ///
-    /// <para>Public because the export is not the only place worth asking it. It refuses here, where a map in
-    /// that state cannot be shipped; <c>POST …/sketch/columns</c> asks the same question of the same build and
-    /// carries the answer as complaints, so an author hears it while drawing rather than at the door.</para>
-    /// </summary>
-    /// <summary>
-    /// <b><c>WX11</c> — every stamped structure whose neighbours have no ground to meet it on.</b> A
-    /// foundation seals the column under the whole footprint and levels it at the footprint's own highest,
-    /// so where the cell beside a building is void, or well below the floor it stands on, what the building
-    /// shows the world is a sheer face of bedrock: a wall nobody drew, at a height nobody chose.
-    ///
-    /// <para>Read off the provenance rather than the intent, so it covers everything a pass stamped — a wool
-    /// cage, a spawn cube, a placed building — by the identity each already recorded, and needs no list of
-    /// what a structure is. A complaint: a building on a ledge is a real thing to draw, and the world builds
-    /// either way.</para>
-    /// </summary>
-    /// <param name="surface">The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>.
-    /// Not the board's highest: what stands over a cell is not what a building beside it steps down to, and
-    /// a balloon flying over a field would read as a fifty-block plinth under the shed on it.</param>
+    /// <summary> <b><c>WX11</c> — every stamped structure whose neighbours have no ground to meet it on.</b> A
+    /// foundation seals the column under the whole footprint and levels it at the footprint's own highest, so
+    /// where the cell beside a building is void, or well below the floor it stands on, what the building shows
+    /// the world is a sheer face of bedrock: a wall nobody drew, at a height nobody chose. <para>Read off the
+    /// provenance rather than the intent, so it covers everything a pass stamped — a wool cage, a spawn cube, a
+    /// placed building — by the identity each already recorded, and needs no list of what a structure is. A
+    /// complaint: a building on a ledge is a real thing to draw, and the world builds either way.</para>
+    /// <para><b>surface</b> — The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>. Not the
+    /// board's highest: what stands over a cell is not what a building beside it steps down to, and a balloon
+    /// flying over a field would read as a fifty-block plinth under the shed on it.</para></summary>
     public static Findings CheckStructureSites(
         IReadOnlyDictionary<(int X, int Z), int> surface, WorldProvenance provenance)
     {
@@ -381,6 +359,16 @@ public static class MapExportComposer
         return findings;
     }
 
+    /// <summary>
+    /// <b><c>OB17</c> — every goal that stands where a goal may not: over the void, inside a spawn room, or
+    /// inside a wool room.</b> Asked against the ground the rasterizer actually produced rather than the
+    /// plan's rectangles, so it reads the world about to be written; a map begun in Sketch never passes the
+    /// compile gate at all, which is what makes this the only reading every map gets.
+    ///
+    /// <para>Public because the export is not the only place worth asking it. It refuses here, where a map in
+    /// that state cannot be shipped; <c>POST …/sketch/columns</c> asks the same question of the same build and
+    /// carries the answer as complaints, so an author hears it while drawing rather than at the door.</para>
+    /// </summary>
     public static Findings CheckGoalPlacement(
         IReadOnlyList<ColumnSegment> columns, MapIntent goals)
     {

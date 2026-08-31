@@ -8,9 +8,9 @@ namespace PgmStudio.Pgm.Authoring;
 ///
 /// <para>A plan states the map's <b>structure</b> — teams, spawns, wools, build zones, the stamped
 /// structures — and rebuilding is how a change to the plan reaches the map, so the compiler's version of
-/// those wins by design. The question is what a plan cannot state, because that is what a plain replace was
-/// deleting: the map's <b>authors and contributors</b>. The compiler writes <c>"authors": []</c>, so every
-/// rebuild wiped the credits off a map that had been through Configure.</para>
+/// those wins by design. The question is what a plan cannot state, because that is what a plain replace
+/// deletes: the map's <b>authors and contributors</b>. The compiler writes <c>"authors": []</c>, so a rebuild
+/// that carried nothing across would take the credits off every map that has been through Configure.</para>
 ///
 /// <para>The carried set is deliberately just that, and the two slices left out are the interesting
 /// half:</para>

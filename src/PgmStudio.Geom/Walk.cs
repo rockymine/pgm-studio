@@ -303,20 +303,18 @@ public static class Walk
     }
 
     /// <summary>Which places can reach each other, as a place → component id map with ids from 1. Two places
-    /// share an id exactly when a route runs between them, so a deck and the gallery under it are one
-    /// component only where something joins them.
-    ///
-    /// <para>The flood is over the same edges <see cref="Between"/> solves across, which is what stops a
-    /// connectivity verdict and a distance disagreeing about whether there is a way.</para>
-    ///
-    /// <para><paramref name="rise"/> is what separates two questions a board is asked. Unbounded — the
-    /// default — a step is any the clearance admits, however high, because a player carries blocks and pays
-    /// for the climb: that is whether anyone <b>can</b> get there, which is what a gate refusing an
-    /// unreachable objective means. Bounded to <see cref="FreeRise"/> it is whether the ground itself
-    /// <b>joins</b>, since a rise the player has to build is a way nobody drew. The bound applies to a fall
-    /// too: a cliff a player can only drop off is not a connection between the two sides of it.</para>
-    /// </summary>
-    /// <param name="rise">The tallest step between two places, up or down, that counts as joining them.</param>
+    /// share an id exactly when a route runs between them, so a deck and the gallery under it are one component
+    /// only where something joins them. <para>The flood is over the same edges <see cref="Between"/> solves
+    /// across, which is what stops a connectivity verdict and a distance disagreeing about whether there is a
+    /// way.</para>
+    /// <para><paramref name="rise"/> is what separates two questions a board is asked. Unbounded — the default —
+    /// a step is any the clearance admits, however high, because a player carries blocks and pays for the climb:
+    /// that is whether anyone <b>can</b> get there, which is what a gate refusing an unreachable objective means.
+    /// Bounded to <see cref="FreeRise"/> it is whether the ground itself <b>joins</b>, since a rise the player
+    /// has to build is a way nobody drew. The bound applies to a fall too: a cliff a player can only drop off is
+    /// not a connection between the two sides of it.</para>
+    /// <para><b>rise</b> — The tallest step between two places, up or down, that counts as joining
+    /// them.</para></summary>
     public static Dictionary<WalkPlace, int> Components(WalkGround ground, int rise = int.MaxValue)
     {
         var labels = new Dictionary<WalkPlace, int>();

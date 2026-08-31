@@ -294,25 +294,6 @@ public sealed record FloraProp : PlacedProp
 }
 
 /// <summary>
-/// A building standing on the terrain: one or more touching rectangles an author dragged, and the shell to
-/// raise on them.
-///
-/// <para>It is the same <see cref="HouseStyle"/> a wool cage and a spawn cube are stamped with, and the same
-/// <see cref="HouseStamper"/> raises it — but nothing else is shared, and the difference is worth stating.
-/// A <b>room</b>'s footprint comes from its plan piece (WX1), it is stamped before the painter, and it carries
-/// a pad, monuments, chests and an entry contract because the map is played through it. A <b>prop</b>'s
-/// footprint is rectangles someone drew, it is stamped after the painter with the rest of the dressing, and it
-/// carries none of those: it is scenery a player can walk into, not a room the objectives live in.</para>
-///
-/// <para><b>A wing is stored as its two opposite corners</b> rather than as an origin and a size, so the fan
-/// mirrors it as the <em>shape</em> it is — the rule an area prop's outline already follows. A rectangle turned
-/// through ninety degrees is a rectangle whose width and depth have swapped, and taking two corners round the
-/// orbit says that without the stamp having to know it happened. <see cref="Wings"/> is a list of these: one
-/// entry is the plain rectangle every board carried until <c>G177</c>, and more than one is an L, a T or a U —
-/// still one house under one style, the shape <see cref="HouseStamper"/> already takes as a
-/// <see cref="Houses.BuildingPlan"/> of touching <see cref="Wing"/> rectangles.</para>
-/// </summary>
-/// <summary>
 /// One wing as an author drew it: the two opposite corners of its rectangle, and everything it states about
 /// itself.
 ///
@@ -348,6 +329,25 @@ public static class HousePropRules
     public const string PastCap = "HP3";
 }
 
+/// <summary>
+/// A building standing on the terrain: one or more touching rectangles an author dragged, and the shell to
+/// raise on them.
+///
+/// <para>It is the same <see cref="HouseStyle"/> a wool cage and a spawn cube are stamped with, and the same
+/// <see cref="HouseStamper"/> raises it — but nothing else is shared, and the difference is worth stating.
+/// A <b>room</b>'s footprint comes from its plan piece (WX1), it is stamped before the painter, and it carries
+/// a pad, monuments, chests and an entry contract because the map is played through it. A <b>prop</b>'s
+/// footprint is rectangles someone drew, it is stamped after the painter with the rest of the dressing, and it
+/// carries none of those: it is scenery a player can walk into, not a room the objectives live in.</para>
+///
+/// <para><b>A wing is stored as its two opposite corners</b> rather than as an origin and a size, so the fan
+/// mirrors it as the <em>shape</em> it is — the rule an area prop's outline already follows. A rectangle turned
+/// through ninety degrees is a rectangle whose width and depth have swapped, and taking two corners round the
+/// orbit says that without the stamp having to know it happened. <see cref="HouseProp.Wings"/> is a list of these: one
+/// entry is a plain rectangle, and more than one is an L, a T or a U —
+/// still one house under one style, the shape <see cref="HouseStamper"/> already takes as a
+/// <see cref="Houses.BuildingPlan"/> of touching <see cref="Wing"/> rectangles.</para>
+/// </summary>
 public sealed record HouseProp : PlacedProp
 {
     /// <summary>The rectangles the building stands on, each with whatever it states about itself. They abut and

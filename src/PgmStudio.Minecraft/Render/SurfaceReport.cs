@@ -58,9 +58,9 @@ public static class SurfaceReport
     private readonly record struct Cell(int Ground, int GroundData, int GroundY, int Decor, int DecorData,
                                         int Depth, int Bed, int BedData, bool Built, bool Shaded);
 
-    /// <param name="Unnamed">The full cubes on the ground that no <see cref="TerrainPalette"/> family names —
-    /// what the render's own magenta stands for, broken out by block rather than left as one undifferentiated
-    /// colour. Empty when the vocabulary covers everything the board actually used.</param>
+    /// <summary><b>Unnamed</b> is the full cubes on the ground that no <see cref="TerrainPalette"/> family names
+    /// — what the render's own magenta stands for, broken out by block rather than left as one undifferentiated
+    /// colour. Empty when the vocabulary covers everything the board actually used.</summary>
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh,
         Dictionary<(int X, int Z), (int Id, int Data)> Ground, int ColumnCount,
         IReadOnlyList<(string Name, int Count)> Unnamed);

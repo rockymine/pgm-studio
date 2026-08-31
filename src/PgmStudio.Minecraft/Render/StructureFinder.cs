@@ -116,9 +116,6 @@ public static class StructureFinder
             WorldProvenanceFile.TryRead(regionDir)) is null ? 1 : 0;
     }
 
-    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.
-    /// <paramref name="provenance"/> is the record the build kept (<see cref="BuiltWorld.Provenance"/> via
-    /// <c>PgmStudio.Export</c>); null reads by the step-tested material estimate.</summary>
     /// <summary>The finished structure census as bytes, for a caller that wants the image rather than a
     /// file. Null where the world decodes to no column.</summary>
     public static byte[]? Png(VoxelWorld world, int scale, int minimumArea,

@@ -14,7 +14,7 @@ namespace PgmStudio.Minecraft.Stamping;
 /// defence is built. A goal takes one on the ground beside the monument a team is defending — on the terrain,
 /// not in the bedrock plate buried under it, which is three courses down and out of sight.</para>
 ///
-/// <para><see cref="Embed"/> is what both go through, and the niche is the same at either: the chest replaces one
+/// <para><c>Embed</c> is what both go through, and the niche is the same at either: the chest replaces one
 /// block and the block over it is carved to air so the lid opens, since a solid block directly above a chest
 /// blocks it. Nothing else is touched — at the wall the column behind the chest stays bedrock and so does the
 /// whole far face, so a full vertical bedrock wall still stands: break the chest and meet bedrock, not a way

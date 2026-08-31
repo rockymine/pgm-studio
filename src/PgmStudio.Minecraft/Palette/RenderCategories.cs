@@ -31,7 +31,7 @@ public static class RenderCategories
     public const int VoidRgb = 0x0E0E12;
 
     /// <summary>Open water — a saturated cyan distinct from every other category here and from the terrain
-    /// tones <see cref="TerrainPalette"/> offers, so a river or a lane reads as water at a glance.</summary>
+    /// tones <see cref="Painting.TerrainPalette"/> offers, so a river or a lane reads as water at a glance.</summary>
     public const int WaterRgb = 0x00B4D8;
 
     /// <summary>A tree or anything grown — a vibrant violet no terrain in the game ever wears, chosen so a

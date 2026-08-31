@@ -7,8 +7,7 @@ using System.Text.Json;
 namespace PgmStudio.Api.Services;
 
 /// <summary>What replacing a stored document came to: a refusal, or the revision the map's copy is now at.
-/// </summary>
-/// <param name="Revision">What the caller now holds, to guard its next write with.</param>
+/// <para><b>Revision</b> — What the caller now holds, to guard its next write with.</para></summary>
 public sealed record DocumentWritten(Refusal? Refusal, long? Revision = null);
 
 /// <summary>

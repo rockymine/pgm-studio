@@ -13,7 +13,7 @@ namespace PgmStudio.Minecraft.Painting;
 /// <c>StylePresetsTests</c> against the JSON they were authored as, so a hand edit that changes what one paints
 /// has to be a deliberate one.</para>
 ///
-/// <para>Unlike <see cref="HousePresets"/>'s materials these belong to no building: they are ground, and a
+/// <para>Unlike <see cref="Houses.HousePresets"/>'s materials these belong to no building: they are ground, and a
 /// theme binds them to a bucket. The seed reads them alongside the house and theme materials.</para>
 /// </summary>
 public static class StylePresets

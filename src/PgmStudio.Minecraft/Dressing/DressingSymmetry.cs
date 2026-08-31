@@ -4,18 +4,15 @@ using PgmStudio.Geom.Algorithms;
 
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>
-/// How a map is mirrored, and the two things the dressing pass does about it.
-///
-/// <para>Fanning a <em>site</em> across the orbit is not enough, and the difference is the whole reason this
-/// type exists. Place the same boulder at a cell and at its mirror and the two rocks occupy mirrored
-/// <em>positions</em> but the
-/// same <em>shape</em> — so one team's rock bulges east and the other's bulges east too, and the cover each
-/// gives differs cell by cell. What has to be fanned is the prop: generated once on the authored unit, then
-/// placed at each image <b>turned by that image's transform</b>, exactly as the layout's own geometry is. That
-/// is <see cref="TurnOffset"/>, and it is why a prop is built in its own local frame first.</para>
-/// </summary>
-/// <param name="Mode">The map's symmetry mode (<c>rot_180</c>, <c>mirror_x</c>, …), or null for none.</param>
+/// <summary> How a map is mirrored, and the two things the dressing pass does about it. <para>Fanning a
+/// <em>site</em> across the orbit is not enough, and the difference is the whole reason this type exists. Place
+/// the same boulder at a cell and at its mirror and the two rocks occupy mirrored <em>positions</em> but the same
+/// <em>shape</em> — so one team's rock bulges east and the other's bulges east too, and the cover each gives
+/// differs cell by cell. What has to be fanned is the prop: generated once on the authored unit, then placed at
+/// each image <b>turned by that image's transform</b>, exactly as the layout's own geometry is. That is <see
+/// cref="TurnOffset"/>, and it is why a prop is built in its own local frame first.</para>
+/// <para><b>Mode</b> — The map's symmetry mode (<c>rot_180</c>, <c>mirror_x</c>, …), or null for
+/// none.</para></summary>
 public sealed record DressingSymmetry(string? Mode = null, double CenterX = 0, double CenterZ = 0)
 {
     /// <summary>Nothing is mirrored — every prop is placed once, where it was generated.</summary>

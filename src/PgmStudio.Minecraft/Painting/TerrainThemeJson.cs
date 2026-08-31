@@ -114,9 +114,8 @@ public static class TerrainThemeJson
             obj.Remove("palette"); obj.Remove("rim"); obj.Remove("rimWidth");
         }
 
-        // A layer stack was a bare `layers` list — one rule written out beside two others that read the same
-        // bands along a different distance. It is a `BandStack` now: the bands under a name of their own, plus
-        // what the stack does where they run out, which had been assumed rather than said.
+        // A stored stack may carry a bare `layers` list where today's shape is a `BandStack`: the bands under
+        // a name of their own, plus what the stack does where they run out. The list is read forward into it.
         if (obj["stack"] is null && obj["layers"] is JsonArray layers)
         {
             obj["stack"] = Stacked(layers, "thickness");

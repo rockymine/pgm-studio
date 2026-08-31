@@ -28,7 +28,7 @@
          The genuinely broken ones — CS1570/1584, malformed XML that truncates a member's entry in the file —
          were fixed rather than silenced, because those are what would corrupt what this reads. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574;CS1734;CS0419;CS1587</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1587</NoWarn>
     <ImplicitUsings>enable</ImplicitUsings>
     <UserSecretsId>4249fc15-7c58-46ac-82a7-128f030a6a0f</UserSecretsId>
   </PropertyGroup>

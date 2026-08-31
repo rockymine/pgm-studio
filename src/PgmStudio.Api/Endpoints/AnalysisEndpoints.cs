@@ -14,7 +14,6 @@ namespace PgmStudio.Api.Endpoints;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>Shared loader: map row + the reconstructed document, or null (→ 404) when absent.</summary>
 /// <summary>GET /api/map/{slug}/regions — derived region facets + category counts.</summary>
 public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : EndpointWithoutRequest<RegionsDto>
 {

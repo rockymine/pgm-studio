@@ -97,10 +97,10 @@ public sealed class FannedGraph
     }
 
     // Reachability adjacency on bare fanned rects: any positive edge border connects — Narrow seams included,
-    // matching ContactGraph.Components. The old full-corridor-width floor here misread a lane docking across
-    // the SEAM of two host pieces (a 10-block mouth split 5+5 over two slot pieces whose joint edge is one
-    // straight interface) as disconnected — the "wool unreachable" misfire; the walkable surface has no such
-    // per-piece-pair cut. NOTE the one remaining divergence from the rect-layer authority (review 6.5): any
+    // matching ContactGraph.Components. A full-corridor-width floor would read a lane docking across the SEAM
+    // of two host pieces (a 10-block mouth split 5+5 over two slot pieces whose joint edge is one straight
+    // interface) as disconnected, and the walkable surface has no such per-piece-pair cut. NOTE the one
+    // remaining divergence from the rect-layer authority (review 6.5): any
     // area overlap connects here regardless of surface delta, whereas Components unions an overlap only when
     // SurfaceDelta == 0 — settling that needs per-node surface, not carried here yet.
     private static bool LandAdjacent(BlockRect a, BlockRect b)

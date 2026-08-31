@@ -23,7 +23,7 @@
          The genuinely broken ones — CS1570/1584, malformed XML that truncates a member's entry in the file —
          were fixed rather than silenced, because those are what would corrupt what this reads. -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CS1591;CS1573;CS1574;CS1734;CS0419;CS1587</NoWarn>
+    <NoWarn>$(NoWarn);CS1591;CS1587</NoWarn>
   </PropertyGroup>
 
 </Project>

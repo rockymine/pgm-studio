@@ -7,12 +7,11 @@ namespace PgmStudio.Api.Services;
 
 using Dict = Dictionary<string, object?>;
 
-/// <summary>What one edit to a map's document came to: a refusal, or what the editor produced and the
-/// revision the map is now at.</summary>
-/// <param name="Result">The editor's own answer — the team it added, the orbit it computed — which the route
-/// hands back unchanged.</param>
-/// <param name="Revision">What the caller now holds, to guard its next write with. Present only where the
-/// write landed.</param>
+/// <summary>What one edit to a map's document came to: a refusal, or what the editor produced and the revision
+/// the map is now at. <para><b>Result</b> — The editor's own answer — the team it added, the orbit it computed —
+/// which the route hands back unchanged.</para>
+/// <para><b>Revision</b> — What the caller now holds, to guard its next write with. Present only where the write
+/// landed.</para></summary>
 public sealed record EditApplied(Refusal? Refusal, object? Result = null, long? Revision = null);
 
 /// <summary>

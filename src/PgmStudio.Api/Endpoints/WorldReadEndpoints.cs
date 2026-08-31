@@ -18,29 +18,23 @@ using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Api.Endpoints;
 
-/// <summary>
-/// Reading a built world back — the eight pictures and one text read that until now existed only behind
-/// <c>PgmStudio.RoundTrip</c>'s flags.
-///
-/// <para><b>Everything an agent does runs through the API and the API describes itself, except the one thing
-/// it does after building: look at what it built.</b> A renderer reachable only from a .NET binary is a
-/// capability no schema names, so a brief had to carry a table of flags and an agent had to know the binary
-/// existed. These are the same renderers, over the same world, answering over HTTP — and what each one draws
-/// is written once, as the endpoint description the schema publishes.</para>
-///
-/// <para><b>The world is built for the request.</b> A map that ships its own region files has one on disk, but
-/// a sketch-authored map's world exists only as the layout and the intent it is derived from — the same
-/// position <c>GET …/export</c> is in, and it builds one too. The build here runs <b>no gate</b>, deliberately:
-/// a board that fails one is exactly the board somebody needs to look at, and a read-back that refuses the
-/// broken case is a read-back that is never there when it is wanted.</para>
-///
-/// <para>The map document is projected from the resolved intent rather than composed through the export, for
-/// the same reason: the projection is what the overlays need — the spawns, the goals and the apply rules a
-/// picture draws on top of the terrain — and going through the export would lose the world to the first gate
-/// that fired.</para>
-/// </summary>
-/// <param name="Doc">The projected map document as read, which the walk needs for the <c>enter</c> rules a
-/// named team is barred by — the same projection <paramref name="Map"/> is deserialized from.</param>
+/// <summary> Reading a built world back — the eight pictures and one text read, over HTTP as well as behind
+/// <c>PgmStudio.RoundTrip</c>'s flags. <para><b>Everything an agent does runs through the API and the API
+/// describes itself, except the one thing it does after building: look at what it built.</b> A renderer reachable
+/// only from a .NET binary is a capability no schema names, so a brief had to carry a table of flags and an agent
+/// had to know the binary existed. These are the same renderers, over the same world, answering over HTTP — and
+/// what each one draws is written once, as the endpoint description the schema publishes.</para>
+/// <para><b>The world is built for the request.</b> A map that ships its own region files has one on disk, but a
+/// sketch-authored map's world exists only as the layout and the intent it is derived from — the same position
+/// <c>GET …/export</c> is in, and it builds one too. The build here runs <b>no gate</b>, deliberately: a board
+/// that fails one is exactly the board somebody needs to look at, and a read-back that refuses the broken case is
+/// a read-back that is never there when it is wanted.</para>
+/// <para>The map document is projected from the resolved intent rather than composed through the export, for the
+/// same reason: the projection is what the overlays need — the spawns, the goals and the apply rules a picture
+/// draws on top of the terrain — and going through the export would lose the world to the first gate that
+/// fired.</para>
+/// <para><b>Doc</b> — The projected map document as read, which the walk needs for the <c>enter</c> rules a named
+/// team is barred by — the same projection <paramref name="Map"/> is deserialized from.</para></summary>
 internal sealed record BuiltRead(BuiltWorld Built, MapXml? Map, string Name,
     Dictionary<string, object?>? Doc = null);
 

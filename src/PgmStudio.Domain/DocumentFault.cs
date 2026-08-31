@@ -5,7 +5,7 @@ namespace PgmStudio.Domain;
 /// <summary>
 /// A posted document that will not parse, naming the field it broke on.
 ///
-/// <para>A reader cannot answer <see cref="Findings"/> — it stops at the first thing that makes producing a
+/// <para>A reader cannot answer <see cref="Vocabulary.Findings"/> — it stops at the first thing that makes producing a
 /// value impossible rather than collecting everything wrong — so it throws, and <c>docs/refusals.md</c> says
 /// the exception carries its finding so the gate above answers in the one shape anyway. That held for a
 /// dressing document (<c>DR-DOC</c>) and nowhere else: every other reader threw a bare

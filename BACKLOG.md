@@ -324,25 +324,6 @@ so they wait for the frame rather than being built into the one it replaces.
   stays authoritative about where while the author stays authoritative about how high.*
 
 
-- [ ] **RP47 — The history sweep's grep was one phrasing of several.** `RP10` swept
-  `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
-  it. A second reading finds **27 comments across 23 files** outside `Migrations/` carrying the same fault in
-  other words — `previously`, `formerly`, `the old …`, `had been`, `stopped being`, `before this said`:
-  `PlanValidator.cs:112` ("Both were previously separate…"), `RequiredFields.cs:70` ("did so to thirteen
-  tests before this said so"), `WoolObjectivesStep.razor.cs:190` ("hand-added previously"), `Composer.cs`,
-  `HubBoxEmitter.cs`, `SpawnTerms.cs` and twenty-one more. The grep also catches a handful of sentences
-  that are facts about the present shape — "terrain authored against the old fusion has nowhere correct to
-  land" — so the sweep reads each hit rather than rewriting on the match. Rewrite the rest as a fact about
-  the present shape, the way `RP10` did.
-
-  **`Migrations/` is excluded and stays so.** A migration's subject *is* the shape it converts from, so "the
-  old columns are read as the defaults" is a statement about the data it meets rather than about a state that
-  no longer exists.
-
-  *The grep: `^\s*(///|//).*(previously|formerly|before this said|the old |used to be|had been|stopped being)`
-  over `src/`, minus `Migrations/`. Worth leaving in the commit message so the next reading starts where this
-  one stopped.*
-
 - [ ] **C46 — The Export button says nothing while the world is being built.** `GET /map/{slug}/export`
   answers in 0.3–0.7 s on a 100×140 board (`docs/tools/configure.md`), which is short enough that no job or
   poll is warranted and long enough that the control sits inert with no sign the click landed. Disable it for
@@ -1330,33 +1311,6 @@ braces, worth having once the studio is used by someone who did not write it.
   the drawer is in: label the button for the state (*Fix the plan first*, or the count of blocking findings)
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
-
-- [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
-  build.** Each is a sentence pointing at something that is not there, and each is silenced in all nine
-  `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`, `Analysis`,
-  `Contracts`, `Geom`, `Vocabulary`):
-
-  | id | the defect | what to look for |
-  |---|---|---|
-  | **CS1573** | a method documents some parameters and not others | a `<param>` list shorter than the signature — usually a parameter added later |
-  | **CS1574** | a `<see cref>` names something that does not resolve | a member that was renamed or moved to another type |
-  | **CS0419** | a cref matches several overloads and silently picks one | `<see cref="Foo"/>` where `Foo` has more than one signature |
-  | **CS1734** | a `<paramref>` names a parameter that was renamed | the name in the prose against the name in the signature |
-
-  **One member of the family no warning catches, and it misleads hardest.** Twenty-one docstrings open **two
-  `<summary>` blocks on one member**, the first describing something other than what follows it — a docstring
-  left behind when the member under it went away. The XML is well formed, so `CS1570` says nothing; the
-  compiler concatenates both into that member's entry and the tooltip leads with a sentence about something
-  else. Found by scanning `src/` for comment blocks with more than one `<summary>` open, which is what to
-  re-run: `TraversabilityRender.cs` twice, `MapExportComposer.cs` twice, `UnitRequests.cs:6`,
-  `UnitSeating.cs:6`, `Producibility.cs:125`, `SketchDressingInspector.razor.cs:267`, `PlacedProp.cs:296`,
-  `SketchRasterizer.cs:8`, `AnalysisEndpoints.cs:16`, `EditDtos.cs:5` and ten more.
-
-  *measured by dropping the four ids from `NoWarn` and rebuilding clean: **299 distinct sites over
-  85 files** — 227 CS1573, 39 CS1574, 21 CS0419, 12 CS1734. Worst files: `LibraryDtos.cs` (56),
-  `TerrainTheme.cs` (12), `TerrainProfile.cs` (12), `Decorator.cs` (9), `WorldBuilder.cs` (8),
-  `SpawnBoxEmitter.cs` (7). `CS1587` stays silenced on purpose — a docstring
-  on a local function, which the compiler never emits.*
 
 - [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
   attribution half is done (B43 swept every "port of X.py" / "matches Python" reference out of `src/` and

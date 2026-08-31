@@ -1,13 +1,11 @@
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>
-/// The globals a plan derives from its player count alone: land budget, fanned board size, and the cell
-/// region the team-unit grower may fill. See <see cref="Envelope.Derive"/>.
-/// </summary>
+/// <summary> The globals a plan derives from its player count alone: land budget, fanned board size, and the cell
+/// region the team-unit grower may fill. See <see cref="Envelope.Derive"/>. </summary>
 /// <param name="Symmetry">The resolved symmetry mode (never null).</param>
 /// <param name="Teams">2 or 4.</param>
-/// <param name="PlayersPerTeam">The clamped per-team player count — some structure rules key on it
-/// directly rather than on the land budget (a third wool lane wants a big team, WL6).</param>
+/// <param name="PlayersPerTeam">The clamped per-team player count — some structure rules key on it directly
+/// rather than on the land budget (a third wool lane wants a big team, WL6).</param>
 /// <param name="Cell">Blocks per proxy cell.</param>
 /// <param name="Surface">Base island surface height.</param>
 /// <param name="BoardWidthBlocks">The fanned board's non-doubled-axis extent, in blocks.</param>
@@ -15,7 +13,11 @@ namespace PgmStudio.Pgm.Compose;
 /// blocks. Equal to <see cref="BoardWidthBlocks"/> for the 4-team square board.</param>
 /// <param name="LandPerTeam">The per-team land budget (blocks²) the grower targets — G8's player-count
 /// coupling.</param>
-/// <param name="UnitMinX">The authored unit's cell bounds — the region the allocator may fill.</param>
+/// <param name="UnitMinX">The authored unit's cell bounds — the region the allocator may fill. The four
+/// corners are one statement; a unit is the box between them.</param>
+/// <param name="UnitMinZ">The Z lower bound of that box.</param>
+/// <param name="UnitMaxX">The X upper bound of that box.</param>
+/// <param name="UnitMaxZ">The Z upper bound of that box.</param>
 public sealed record ComposeEnvelope(
     string Symmetry,
     int Teams,

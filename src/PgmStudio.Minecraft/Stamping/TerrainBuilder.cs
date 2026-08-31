@@ -3,18 +3,19 @@ using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Stamping;
 
-/// <summary>The synthesised terrain plus, per footprint cell, its surface top (the first air Y above the
-/// solid column) — the reference structures rest on and spawns snap to.</summary>
-/// <param name="SurfaceTop">The first air Y above each column, over the whole board — where a thing placed
-/// at a cell stands when it names no layer, and what every stamper snaps to.</param>
+/// <summary>The synthesised terrain plus, per footprint cell, its surface top (the first air Y above the solid
+/// column) — the reference structures rest on and spawns snap to. </summary>
+/// <param name="World">The synthesised terrain itself — the blocks every later pass stamps into.</param>
+/// <param name="SurfaceTop">The first air Y above each column, over the whole board — where a thing placed at a
+/// cell stands when it names no layer, and what every stamper snaps to.</param>
 /// <param name="SurfaceByLayer">The same read taken one layer at a time, layer id → its own cells' tops. A
-/// stacked board has a surface per storey and the whole-board answer only ever names the highest, so this is
-/// what a pass addressing a particular storey — painting it, seating something on it — reads instead.</param>
-/// <param name="FloorByLayer">Where each layer's own span starts, cell by cell — the other end of the pair
-/// above. Only a pass painting a layer that is not ground reads it: terrain's bands run from the bedrock
-/// course whatever its floor, and a made thing's run over its own span.</param>
-/// <param name="MadeLayers">Which of those layers are made things rather than ground, so
-/// <see cref="Ground"/> can leave them out. A board that names none reads the same as one that has none.</param>
+/// stacked board has a surface per storey and the whole-board answer only ever names the highest, so this is what
+/// a pass addressing a particular storey — painting it, seating something on it — reads instead.</param>
+/// <param name="FloorByLayer">Where each layer's own span starts, cell by cell — the other end of the pair above.
+/// Only a pass painting a layer that is not ground reads it: terrain's bands run from the bedrock course whatever
+/// its floor, and a made thing's run over its own span.</param>
+/// <param name="MadeLayers">Which of those layers are made things rather than ground, so <see cref="Ground"/> can
+/// leave them out. A board that names none reads the same as one that has none.</param>
 public sealed record BuiltTerrain(
     VoxelWorld World,
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,

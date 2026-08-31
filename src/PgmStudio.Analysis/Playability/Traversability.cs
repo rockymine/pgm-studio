@@ -52,9 +52,9 @@ public static class Traversability
     public sealed record Result(bool Connected, int ComponentCount, string Severity, string Message,
         bool HaveLayers, List<Landing> Points, List<IsolatedPoint> Isolated);
 
-    /// <param name="declared">Goals the document cannot carry — see <see cref="NavPoints.Of"/>. Absent, the
-    /// verdict is over what the document states, which on a map whose goals are not placed yet is its spawns
-    /// and nothing else.</param>
+    /// <summary><b>declared</b> is goals the document cannot carry — see <see cref="NavPoints.Of"/>. Absent, the
+    /// verdict is over what the document states, which on a map whose goals are not placed yet is its spawns and
+    /// nothing else.</summary>
     public static Result Check(Dict data, SegmentIndex? segments,
         (int, int, int, int)? bbox = null, int margin = 16, IReadOnlyList<NavPoint>? declared = null)
     {

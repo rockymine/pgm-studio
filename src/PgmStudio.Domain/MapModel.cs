@@ -293,7 +293,7 @@ public sealed class MapXml
     public string Created = "";
 
     /// <summary>How finished the map is: <c>development</c> or <c>production</c>. Round-tripped verbatim;
-    /// what the studio writes onto a map it authors is <see cref="Authoring.MetaGenerator.Phase"/>.</summary>
+    /// what the studio writes onto a map it authors is <c>MetaGenerator.Phase</c>.</summary>
     public string Phase = "";
     public int? MaxBuildHeight;
     public List<Author> Authors = [];
@@ -318,7 +318,7 @@ public sealed class MapXml
     /// <c>CtwStandards</c>).
     /// <para>An id is all we hold. PGM resolves a fragment out of <c>config.getIncludesDirectory()</c> — a
     /// server directory that ships with neither the map nor the corpus — so the body is unavailable and the
-    /// rules it defines never enter the document analysed here. <see cref="MapValidity"/> warns for exactly
+    /// rules it defines never enter the document analysed here. <c>MapValidity</c> warns for exactly
     /// that reason; <c>docs/pgm/water-lanes.md</c> §3 covers the one id whose meaning is known without
     /// the body.</para>
     /// </summary>

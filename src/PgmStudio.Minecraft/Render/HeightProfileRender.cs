@@ -57,8 +57,6 @@ public static class HeightProfileRender
         return Emit(chunks, outPng, scale, contourInterval, greyscale, markWater, drawContours, name) is null ? 1 : 0;
     }
 
-    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/> — no round trip
-    /// through a region file.</summary>
     /// <summary>The finished elevation picture as bytes, for a caller that wants the image rather than a
     /// file. Null where the world holds no ground column.</summary>
     public static byte[]? Png(VoxelWorld world, int scale, int contourInterval, bool greyscale,

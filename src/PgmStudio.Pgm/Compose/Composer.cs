@@ -29,7 +29,7 @@ public static class Composer
 
     /// <summary>The lateral slack the mid band may carry over the front it docks, in cells
     /// (<see cref="FrontHullSlackCells"/>). Zero admits every front whose hull is symmetric about the axis — the
-    /// twin front with unequal legs, the asymmetric hub form — which the old per-face test refused. A small
+    /// twin front with unequal legs, the asymmetric hub form — which a per-face test refuses. A small
     /// positive cap additionally admits a narrow front slid off-centre, at the cost of the band reaching past it
     /// by that much; the slack is <c>2 ×</c> the front hull's offset from the axis, so this allows one cell of
     /// offset per cell of cap, halved.

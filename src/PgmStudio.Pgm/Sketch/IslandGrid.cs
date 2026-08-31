@@ -1,17 +1,17 @@
 namespace PgmStudio.Pgm.Sketch;
 
-/// <summary>
-/// One plot of a grid layout: the outline to draw, the paint it wears, and nothing about where it goes — the
-/// grid decides that.
-///
-/// <para><see cref="Kind"/> is the sketch's own shape vocabulary and no more of it: <c>rectangle</c>,
-/// <c>circle</c> and <c>polygon</c>. Which fields a kind reads follows from the kind — a rectangle reads
-/// <see cref="Width"/> and <see cref="Depth"/>, a circle reads <see cref="Radius"/>, a polygon reads
-/// <see cref="Vertices"/> as offsets from the plot's own centre, so one outline can be laid at every plot
-/// without restating its coordinates.</para>
-/// </summary>
+/// <summary> One plot of a grid layout: the outline to draw, the paint it wears, and nothing about where it goes
+/// — the grid decides that. <para><see cref="Kind"/> is the sketch's own shape vocabulary and no more of it:
+/// <c>rectangle</c>, <c>circle</c> and <c>polygon</c>. Which fields a kind reads follows from the kind — a
+/// rectangle reads <see cref="Width"/> and <see cref="Depth"/>, a circle reads <see cref="Radius"/>, a polygon
+/// reads <see cref="Vertices"/> as offsets from the plot's own centre, so one outline can be laid at every plot
+/// without restating its coordinates.</para> </summary>
 /// <param name="Kind"><c>rectangle</c> · <c>circle</c> · <c>polygon</c>.</param>
-/// <param name="Theme">The id of a theme in the layout's own <c>themes</c> registry, or null for the map's.</param>
+/// <param name="Width">A rectangle's span across X, in blocks. Read by that kind alone.</param>
+/// <param name="Depth">A rectangle's span across Z, in blocks. Read by that kind alone.</param>
+/// <param name="Radius">A circle's radius, in blocks. Read by that kind alone.</param>
+/// <param name="Theme">The id of a theme in the layout's own <c>themes</c> registry, or null for the
+/// map's.</param>
 /// <param name="Name">What this plot is showing, carried onto the island so a report can name it.</param>
 /// <param name="Vertices">Polygon outline as <c>[dx, dz]</c> offsets from the plot centre.</param>
 public sealed record GridPlot(
@@ -44,11 +44,12 @@ public sealed record GridPlot(
 /// </summary>
 public static class IslandGrid
 {
-    /// <summary>The grid's own geometry: how wide the rows are, how far apart the plots sit, and how tall a
-    /// plot stands. <see cref="Pitch"/> is centre to centre, so a plot wider than the pitch overlaps its
-    /// neighbour and the two read as one landmass — which is refused rather than drawn.</summary>
-    /// <param name="Floor">The lowest course a plot's column is filled from, just above bedrock.</param>
-    /// <param name="Top">The walking surface's course, so every plot carries a wall of that height above void.</param>
+    /// <summary>The grid's own geometry: how wide the rows are, how far apart the plots sit, and how tall a plot
+    /// stands. <see cref="Pitch"/> is centre to centre, so a plot wider than the pitch overlaps its neighbour and
+    /// the two read as one landmass — which is refused rather than drawn. <para><b>Floor</b> — The lowest course
+    /// a plot's column is filled from, just above bedrock.</para>
+    /// <para><b>Top</b> — The walking surface's course, so every plot carries a wall of that height above
+    /// void.</para></summary>
     public sealed record Geometry(int Columns = 5, int Pitch = 56, int Floor = 1, int Top = 26);
 
     /// <summary>Where plot <paramref name="index"/> sits, centred on the whole grid so a catalogue of any

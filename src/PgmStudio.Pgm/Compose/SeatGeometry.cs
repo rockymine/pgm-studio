@@ -26,7 +26,7 @@ public static class SeatGeometry
 
     /// <summary>Project a <paramref name="seated"/> box onto <paramref name="edge"/> as the forbidden along-interval
     /// (box-local) a candidate of outward <paramref name="depth"/> must keep the seat gap clear of — but only when
-    /// the box lies within <paramref name="gap"/> of that edge on the <b>perpendicular</b> axis (else it is too far
+    /// the box lies within <c>gap</c> of that edge on the <b>perpendicular</b> axis (else it is too far
     /// out to constrain this edge and returns <c>null</c>). The along-gap itself is applied by <see cref="UnitSeating.SeatInRuns"/>'s
     /// inflation, so this returns the box's raw along-extent. A same-edge neighbour projects to its own dock interval
     /// (perpendicular distance 0); an adjacent-edge neighbour projects only when it hugs the shared corner — so the
@@ -61,7 +61,7 @@ public static class SeatGeometry
     internal static bool Overlap(CellRect first, CellRect second) =>
         first.X < second.X + second.Width && second.X < first.X + first.Width && first.Z < second.Z + second.Height && second.Z < first.Z + first.Height;
 
-    /// <summary>The box edge opposite <paramref name="e"/> — a neighbour's mouth faces the hub across it.</summary>
+    /// <summary>The box edge opposite <c>e</c> — a neighbour's mouth faces the hub across it.</summary>
     internal static BoxEdge Opposite(BoxEdge edge) => edge switch
     {
         BoxEdge.Top => BoxEdge.Bottom, BoxEdge.Bottom => BoxEdge.Top,
@@ -69,7 +69,7 @@ public static class SeatGeometry
     };
 
     /// <summary>The hub↔neighbour joint over a ready-made <paramref name="abutment"/> (the abutment of an overhanging
-    /// dock), granting the consumer <paramref name="w"/> as its corridor width across it. The width is the
+    /// dock), granting the consumer <c>w</c> as its corridor width across it. The width is the
     /// consumer's selection, not the hub's published capacity — see <see cref="BoxJoint.Grant"/>.</summary>
     internal static BoxJoint HubJointFrom(string hubId, string nbId, BoxAbutment abutment, int grantedWidthCells)
     {

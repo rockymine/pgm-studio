@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm;
 /// <c>&lt;id&gt;.xml</c> files. This is PGM's own arrangement — it resolves an include from
 /// <c>config.getIncludesDirectory()</c>, a server directory that ships with neither a map nor a map
 /// repository — so the library is configuration here too, and a studio with none configured simply does not
-/// resolve (<see cref="MapXml.Includes"/> still records what was referenced, and <see cref="MapValidity"/>
+/// resolve (<c>MapXml.Includes</c> still records what was referenced, and <see cref="MapValidity"/>
 /// still warns).
 ///
 /// <para>Resolution is <b>recursive</b>: a fragment may include another, and several do — <c>global</c> pulls

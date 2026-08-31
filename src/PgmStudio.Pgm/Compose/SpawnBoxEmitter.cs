@@ -17,7 +17,7 @@ public sealed record EmittedSpawn(IReadOnlyList<GrownPiece> Pieces, GrownPiece R
 /// per-box shape menu and footprint budget read directly — this and the wool box are the first two rows of
 /// the per-kind profile table.
 ///
-/// <para><see cref="Fill"/> fills a plan-cell <see cref="Box"/> the same way the wool box does — emit mouth-up,
+/// <para><c>Fill</c> fills a plan-cell <see cref="Box"/> the same way the wool box does — emit mouth-up,
 /// orient onto the docking edge via <see cref="MouthOrient"/> — and stamps the spawn specifics: every piece
 /// carries its slot and the spawn <see cref="BoxRef"/>, the room takes the <see cref="PlanRoles.Spawn"/> role,
 /// and it reports the entry-run length a wool box may dock along. The grower allocates the box against the hub's
@@ -55,9 +55,9 @@ public static class SpawnBoxEmitter
         Fill(box, mouth, family, cw, flip, roomId, out _);
 
     /// <inheritdoc cref="Fill(Box, BoxEdge, ShapeFamily, int, bool, string)"/>
-    /// <param name="rejection">On a <c>null</c> return, <b>why</b> the fill was refused — the directed reason in
+    /// <remarks>On a <c>null</c> return, <b>why</b> the fill was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary (the family's minimum box, in the mouth's frame).
-    /// <c>null</c> when the fill succeeded.</param>
+    /// <c>null</c> when the fill succeeded.</remarks>
     public static EmittedSpawn? Fill(
         Box box, BoxEdge mouth, ShapeFamily family, int cw, bool flip, string roomId,
         out FillRejection? rejection)

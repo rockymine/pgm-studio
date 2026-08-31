@@ -747,6 +747,37 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `layer` word — which picks a storey — while the subject word is `subject` on both the route and the CLI.
   The catalogue now names both. A schema test walks every flag the catalogue prints and asserts each word
   is a query parameter the published document declares, so the next one fails the build.
+- **The doc comments point at things that exist, and the four warnings that say so are on (`B220`).**
+  `CS1573`, `CS1574`, `CS0419` and `CS1734` were silenced in all nine `.csproj` that emit a documentation
+  file, and behind them stood **309 sites over 86 files**. Every one is fixed and the four ids are out of
+  `NoWarn`, so the next one fails the build rather than joining them.
+
+  Three shapes accounted for nearly all of it. A **cref reaching an assembly its own project does not
+  reference** — `BuildGenerator` from `Minecraft`, `BuiltWorld` from a project below `Export`, `Findings`
+  looked for in `Domain` after it moved to `Vocabulary` — became a code span, or the right cref where one
+  existed. An **ambiguous cref** picked an overload silently, and where the prose meant the method rather
+  than one signature it became a code span too. And a **half-stated `<param>` list** is what `CS1573` is
+  about: where a record documented the two fields worth saying and left nine self-evident ones, the prose
+  moved into the summary and the tags went; where a constructor of eleven arguments documented seven, the
+  four missing were written, because a constructor that long is a catalog and a list is the right form for
+  one. Four overloads documenting an extra argument beside an `<inheritdoc>` moved it to `<remarks>`.
+
+  **Twenty-one members opened two `<summary>` blocks**, which no warning catches: the compiler concatenates
+  both and the tooltip leads with a sentence about something else. Every one was a docstring that drifted off
+  the member it documents onto the one below — `OB17`'s onto `CheckStructureSites`, the arrangement rules'
+  onto `AuthoredFrame`, four render passes' in-memory note onto their own `Png`. Each moved back to its
+  member; two that were statements about a whole file became file comments, which is what they always were.
+
+- **The history sweep finished on the phrasings the first grep missed (`RP47`).** `RP10` swept
+  `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
+  it; **seventeen comments** carried the same fault in other words — `previously`, `the old …`, `had been`,
+  `before this said`, `had been assumed`. Each is restated as a fact about the present shape: *a fixed
+  default leg length gives a stub against a chasm* for *which is what the old fixed default did*, *one ramp
+  over all three would print a brown-clay floor the colour of brown wool* for *which is why the old single
+  ramp printed*. Nine hits that read as history and are not stay: a fork's *old map*, a stored document's
+  *old shape*, and the *old fusion* a relief has nowhere to land against are all subjects the code has in
+  front of it. `Migrations/` stays excluded, since a migration's subject is the shape it converts from.
+
 - **The comments stopped describing systems nobody can see (`RP10`).** `CLAUDE.md` § *Code comments* says a
   comment is about the code as it stands and history lives in git; **24 comments across 21 files** had a state
   that no longer exists as their subject — `RulesEndpoint` ("until now nothing answered…"), `MetaGenerator`

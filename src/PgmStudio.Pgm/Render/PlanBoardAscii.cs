@@ -37,10 +37,10 @@ public static class PlanBoardAscii
         ["spawn"] = '@', ["wool"] = '\u00a4', ["iron"] = 'i', ["destroyable"] = '!', ["core"] = 'O',
     };
 
-    /// <param name="every">Draw one character per <paramref name="every"/> cells, sampling the top-left of
+    /// <summary><b>every</b> is draw one character per <paramref name="every"/> cells, sampling the top-left of
     /// each block. A board wider than a terminal is unreadable at 1:1, and a plan's faults survive a halving —
-    /// but a route one cell wide can be sampled away, so the default is the honest 1:1 and the caller decides.</param>
-    /// <param name="width">Wrap the key at this column.</param>
+    /// but a route one cell wide can be sampled away, so the default is the honest 1:1 and the caller decides.
+    /// <para><b>width</b> — Wrap the key at this column.</para></summary>
     public static string Render(PlanModel plan, IReadOnlyList<Overlay>? overlays = null, int every = 1, int width = 100)
     {
         var scene = PlanBoardScene.Build(plan);

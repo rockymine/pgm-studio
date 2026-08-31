@@ -17,30 +17,35 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Minecraft.Dressing;
 
 /// <summary>What the dressing pass places, what it may not touch, and how the map is mirrored — everything the
-/// <see cref="Decorator"/> needs about the world beyond the world itself.</summary>
+/// <see cref="Decorator"/> needs about the world beyond the world itself. </summary>
 /// <param name="SurfaceTop">The first air Y above each column, the same grid the painter and every stamper
 /// read.</param>
 /// <param name="Props">What the author placed, in the order they were placed.</param>
-/// <param name="KeptClearAt">What keeps a cell clear of everything, or null where nothing does: a spawn, a
-/// wool room, a stated structure, a built surface, or a door's approach. A prop that landed on one would break
-/// play or read wrong, so the mask is consulted before anything else — and it answers <em>which</em>, because
-/// a decline that cannot name what stopped it is one nobody can act on. Not the map contract's
-/// <c>protection</c>, which is a region rule about what a player may enter and break; this is a keep-out with
-/// no gameplay meaning of its own.</param>
-/// <param name="Symmetry">How the map is mirrored, which decides where every prop's other images go and how
-/// each one is turned to get there.</param>
-/// <param name="IsGoalGround">The ground a destroyable or a core stands on, grown by its clearance — a
-/// narrower mask than <paramref name="KeptClearAt"/> and a different question. A goal's ground is not
-/// forbidden, it is <b>kept open</b>: grass, fern and flowers grow across it and under a floating monument
-/// the way they grow anywhere, because none of them changes what a player can see or reach. What may not
-/// stand there is <b>cover</b> — the two-block grass that hides a footstep among it, since an objective is
-/// the one thing on a map that wants its approach legible.</param>
-/// <param name="IsGoalClearance">The wider mask a <b>placed</b> prop may not rest in: the same goal ground
-/// plus a standoff square about each anchor. A tree, a boulder or a building standing here is <c>OB19</c>,
-/// and the prop is declined rather than the map refused — a goal is what the map is for, and a prop is
-/// removable, so the finding names what dropped and the map still exports. Separate from
-/// <paramref name="IsGoalGround"/> because the two answer different questions of different things: that one
-/// says what may not <em>hide</em> a goal, this says what may not <em>stand on</em> one.</param>
+/// <param name="KeptClearAt">What keeps a cell clear of everything, or null where nothing does: a spawn, a wool
+/// room, a stated structure, a built surface, or a door's approach. A prop that landed on one would break play or
+/// read wrong, so the mask is consulted before anything else — and it answers <em>which</em>, because a decline
+/// that cannot name what stopped it is one nobody can act on. Not the map contract's <c>protection</c>, which is
+/// a region rule about what a player may enter and break; this is a keep-out with no gameplay meaning of its
+/// own.</param>
+/// <param name="Symmetry">How the map is mirrored, which decides where every prop's other images go and how each
+/// one is turned to get there.</param>
+/// <param name="IsGoalGround">The ground a destroyable or a core stands on, grown by its clearance — a narrower
+/// mask than <paramref name="KeptClearAt"/> and a different question. A goal's ground is not forbidden, it is
+/// <b>kept open</b>: grass, fern and flowers grow across it and under a floating monument the way they grow
+/// anywhere, because none of them changes what a player can see or reach. What may not stand there is
+/// <b>cover</b> — the two-block grass that hides a footstep among it, since an objective is the one thing on a
+/// map that wants its approach legible.</param>
+/// <param name="IsGoalClearance">The wider mask a <b>placed</b> prop may not rest in: the same goal ground plus a
+/// standoff square about each anchor. A tree, a boulder or a building standing here is <c>OB19</c>, and the prop
+/// is declined rather than the map refused — a goal is what the map is for, and a prop is removable, so the
+/// finding names what dropped and the map still exports. Separate from <paramref name="IsGoalGround"/> because
+/// the two answer different questions of different things: that one says what may not <em>hide</em> a goal, this
+/// says what may not <em>stand on</em> one.</param>
+/// <param name="SurfaceByLayer">Each layer's own surface tops, layer id → its cells. A prop naming a layer
+/// seats on that storey rather than on the board's highest, which is what a whole-board reading answers.
+/// Absent, every prop seats on <paramref name="SurfaceTop"/>.</param>
+/// <param name="Waypoints">The points a route is traced between, so a pass that keeps ground clear of
+/// traffic knows where the traffic goes. Absent, nothing is held clear on that account.</param>
 public sealed record DressingContext(
     IReadOnlyDictionary<(int X, int Z), int> SurfaceTop,
     IReadOnlyList<PlacedProp> Props,
@@ -84,33 +89,29 @@ public sealed record DressingContext(
     public WayThrough? Ways() => Waypoints is { Count: > 1 } points ? WayThrough.Of(SurfaceTop, points) : null;
 }
 
-/// <summary>
-/// What one pass placed, for a caller that wants to report, claim or preview it rather than only write it.
-/// Counted as placed, images included — two mirrored boulders are two boulders.
-///
-/// <para><b>Every prop is reported as extents as well as a count</b>, buildings and the rest alike. It used to
-/// be buildings only, on the argument that a tree or a boulder separates from built ground by material
-/// (<see cref="BlockRoles"/>) and so needs no record. It does separate — what material cannot say is that a
-/// <em>pass</em> put it there, or which prop it belonged to, and those are the two things a read-back has to
-/// prove: a flora prop that landed nothing looks exactly like one that was never authored. Reporting the
-/// extents here is what makes the claim a product of the placement rather than a second derivation from the
-/// author's intent — see <see cref="PlacementClaim"/> for why that direction is the whole point.</para>
-/// </summary>
-/// <param name="Claimed">Every prop that landed anything, or null where none did. Read <see cref="Placements"/>
-/// instead, which never answers null — the same shape <see cref="Domain.Finding.Subjects"/> carries, so a
-/// caller never has to tell an absent list from an empty one.</param>
-/// <param name="Declined">Every whole-prop decline this pass made, or null where nothing was declined — the
-/// same null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that
-/// dropped nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell
-/// skips are not here — those are the ordinary shape of a route crossing ground the map keeps clear, not a
-/// decision an author needs restated one cell at a time — only the whole-prop causes, each of which loses
-/// something the author wrote: a house whose wings make no building, a house that collides with something
-/// already standing, a house with a
-/// cell of its footprint over no ground at all, and a tree or a boulder whose site finds no ground, lands on a
-/// column kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
-/// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a
-/// <c>DR-*</c> rule, one sentence carrying the cell and the cause, the prop's id as its subject, and
-/// <see cref="Severity.Decline"/> — the world was built, and some props are not standing in it.</para></param>
+/// <summary> What one pass placed, for a caller that wants to report, claim or preview it rather than only write
+/// it. Counted as placed, images included — two mirrored boulders are two boulders. <para><b>Every prop is
+/// reported as extents as well as a count</b>, buildings and the rest alike. A tree or a boulder does separate
+/// from built ground by material (<see cref="BlockRoles"/>), so the extents look redundant for it — but what
+/// material cannot say is that a <em>pass</em> put it there, or which
+/// prop it belonged to, and those are the two things a read-back has to prove: a flora prop that landed nothing
+/// looks exactly like one that was never authored. Reporting the extents here is what makes the claim a product
+/// of the placement rather than a second derivation from the author's intent — see <see cref="PlacementClaim"/>
+/// for why that direction is the whole point.</para>
+/// <para><b>Claimed</b> — Every prop that landed anything, or null where none did. Read <see cref="Placements"/>
+/// instead, which never answers null — the same shape <see cref="Vocabulary.Finding.Subjects"/> carries, so a
+/// caller never has to tell an absent list from an empty one.</para>
+/// <para><b>Declined</b> — Every whole-prop decline this pass made, or null where nothing was declined — the same
+/// null-when-empty convention <paramref name="Claimed"/> carries, for the same reason: a pass that dropped
+/// nothing compares equal to one that placed a board with nothing to drop. A path's own per-cell skips are not
+/// here — those are the ordinary shape of a route crossing ground the map keeps clear, not a decision an author
+/// needs restated one cell at a time — only the whole-prop causes, each of which loses something the author
+/// wrote: a house whose wings make no building, a house that collides with something already standing, a house
+/// with a cell of its footprint over no ground at all, and a tree or a boulder whose site finds no ground, lands
+/// on a column kept clear or already claimed, or stands nearer to the road than its own kind's standoff allows.
+/// <para>Each is a <see cref="Finding"/> like every other thing this studio says is wrong: a <c>DR-*</c> rule,
+/// one sentence carrying the cell and the cause, the prop's id as its subject, and <see cref="Severity.Decline"/>
+/// — the world was built, and some props are not standing in it.</para></para></summary>
 public readonly record struct DressingPlacement(
     int Plants = 0, int Boulders = 0, int Trees = 0, int PathCells = 0, int WaterCells = 0, int Houses = 0,
     IReadOnlyList<PlacementClaim>? Claimed = null, IReadOnlyList<Finding>? Declined = null)

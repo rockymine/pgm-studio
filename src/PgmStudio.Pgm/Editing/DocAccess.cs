@@ -4,9 +4,9 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Shared accessors for the PGM document dict that the declarative generators all need: get-or-create
-/// the <c>regions</c>/<c>filters</c> maps and any top-level list. Previously copy-pasted into each slice
-/// generator (Teams/Build/Wool); centralised here so the "ensure the container exists, then return it"
-/// semantics live in one place.
+/// the <c>regions</c>/<c>filters</c> maps and any top-level list. They live here rather than in each slice
+/// generator (Teams/Build/Wool) so the "ensure the container exists, then return it" semantics are stated
+/// once.
 /// </summary>
 internal static class DocAccess
 {

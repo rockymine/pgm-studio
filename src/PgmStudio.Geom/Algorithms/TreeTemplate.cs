@@ -13,14 +13,14 @@ public enum CanopyProfile
     Umbrella,
 }
 
-/// <summary>
-/// A vanilla tree's proportions. This is the <em>other</em> tree, and it is deliberately not the grown one:
-/// a trunk of a known height under a canopy of a known shape, which is the tree almost every map wants and
-/// the only tree a player reads as "an oak".
-/// </summary>
+/// <summary> A vanilla tree's proportions. This is the <em>other</em> tree, and it is deliberately not the grown
+/// one: a trunk of a known height under a canopy of a known shape, which is the tree almost every map wants and
+/// the only tree a player reads as "an oak". </summary>
+/// <param name="Profile">The canopy's silhouette — which radius table the crown is cut from.</param>
 /// <param name="TrunkHeight">Courses of bare trunk under the canopy.</param>
 /// <param name="CanopyRadius">How far the canopy reaches from the trunk at its widest.</param>
-/// <param name="Lean">How far the trunk's top is displaced from its foot, in blocks. Only an acacia leans.</param>
+/// <param name="Lean">How far the trunk's top is displaced from its foot, in blocks. Only an acacia
+/// leans.</param>
 /// <param name="WideTrunk">A 2×2 trunk rather than a single column — a dark oak.</param>
 public sealed record TemplateShape(
     double TrunkHeight = 5,
@@ -120,7 +120,7 @@ public static class TreeTemplate
 }
 
 /// <summary>The radii behind <see cref="CanopyProfile"/> — profile-as-data, the same seam
-/// <see cref="BoulderShapes"/> uses for a rock's form. A profile is a shape, so it is a table rather than a
+/// <c>BoulderShapes</c> uses for a rock's form. A profile is a shape, so it is a table rather than a
 /// branch.</summary>
 public static class CanopyProfiles
 {

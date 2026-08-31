@@ -43,9 +43,12 @@ public static class Editability
     /// question and collapsing them loses which one the map wrote.</summary>
     private readonly record struct Verdict(string Kind, bool Negated);
 
-    /// <param name="IsVoid">Whether each column is void to PGM — no block at y=0 — which is the question a
-    /// void filter asks and the one a placement over nothing has to answer. Meaningless where
-    /// <paramref name="HasY0"/> is false, since without a scan there is no layer to read it from.</param>
+    /// <summary>The pass's answer: the grid it read, one <see cref="EditZone"/> byte per column, and the two
+    /// facts a caller needs beside it.
+    ///
+    /// <para><b>IsVoid</b> — whether each column is void to PGM, meaning no block at y=0. It is the question a
+    /// void filter asks and the one a placement over nothing has to answer. Meaningless where <b>HasY0</b> is
+    /// false, since without a scan there is no layer to read it from.</para></summary>
     public sealed record Result(
         int MinX, int MinZ, int MaxX, int MaxZ, int Width, int Height,
         byte[] Zone, bool[] IsVoid, Dictionary<string, int> Counts, bool HasY0)

@@ -85,9 +85,9 @@ public static class FrontlineBoxEmitter
         Fill(box, form, cw, faceGrouping, out _, spineMouth, faceWidth, armLayout);
 
     /// <inheritdoc cref="Fill(Box, CompoundRead, int, OfferGrouping, BoxEdge, int?, IReadOnlyList{ValueTuple{int, int}})"/>
-    /// <param name="rejection">On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
+    /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary, carrying the body emitter's own message (including the
-    /// fat-L thin-leg guard) rather than discarding it. <c>null</c> when the fill succeeded.</param>
+    /// fat-L thin-leg guard) rather than discarding it. <c>null</c> when the fill succeeded.</remarks>
     public static EmittedFrontline? Fill(
         Box box, CompoundRead form, int cw, OfferGrouping faceGrouping, out FillRejection? rejection,
         BoxEdge spineMouth = BoxEdge.Top,

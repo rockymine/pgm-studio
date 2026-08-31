@@ -158,7 +158,7 @@ public sealed record CellMaterial(uint Seed, int CellSize, int Jitter, int Warp,
 /// can share a boundary, which is what makes a stop list read as a ramp from one material to the next rather
 /// than as a set of patches; and the band areas fall off towards the ends, so the first and last stop are
 /// accents and the middle ones are the body. <c>Octaves</c> adds finer detail without narrowing the field — see
-/// <see cref="PatternNoise.Field"/> — so raising it does not starve the outer stops.
+/// <c>PatternNoise.Field</c> — so raising it does not starve the outer stops.
 ///
 /// <para>Shared so that noise, turbulence and electric differ only in the <see cref="PatternNoise.NoiseShape"/>
 /// each octave takes, which is the whole of the difference between them — the same way a wall run and a wall
@@ -387,7 +387,7 @@ public sealed record CheckerMaterial(int Size, TerrainMaterial Even, TerrainMate
 /// <para>At a <b>corner</b> the wall has faces on both axes and a laid log would show a sawn end on one of
 /// them, so the log stands up there — which is what a corner post is, and what the checkerboard does for the
 /// same reason. A beam that wants to carry on <em>past</em> the corner and show its end is a different thing
-/// and belongs to the building rather than to the wall (<see cref="HouseStyle.Beams"/>).</para>
+/// and belongs to the building rather than to the wall (<c>HouseStyle.Beams</c>).</para>
 /// </summary>
 public sealed record LaidLogMaterial(int Id, int Data = 0) : TerrainMaterial
 {

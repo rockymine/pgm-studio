@@ -22,8 +22,8 @@ internal readonly record struct PaletteEntry(int Id, int Meta, uint Rgb, string 
 ///
 /// <para>Rows are grouped by family so a sub-type set can be read as a unit, and the families that repeat
 /// across many ids — the six woods, the eight stone slabs, the three dye families — are expanded from one
-/// declaration rather than restated per id, which is what kept the old table's spruce door birch-coloured
-/// and its acacia door spruce-coloured.</para>
+/// declaration rather than restated per id: a per-id table is one where a spruce door can be birch-coloured
+/// and nothing says so.</para>
 /// </summary>
 internal static class BlockPaletteData
 {
@@ -39,7 +39,7 @@ internal static class BlockPaletteData
 
     // The three dye families do NOT share a colour ramp: wool is the dye applied to a fibrous white,
     // stained glass is the saturated dye itself, and stained clay is that dye burnt into terracotta —
-    // which is why the old single ramp printed a brown-clay floor the same colour as brown wool.
+    // which is why one ramp over all three would print a brown-clay floor the colour of brown wool.
     // All three are texture means, not the dye-item ramp: those two ramps exist side by side in the game
     // and are not the same numbers, and the one an item is tinted with is not the one a placed block shows.
     private static readonly uint[] WoolRgb =

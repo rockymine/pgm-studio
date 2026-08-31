@@ -113,7 +113,7 @@ public static class TeamUnitAllocator
     }
 
     /// <summary>Choose the four wall widths of a ring-bodied <paramref name="form"/> filling a
-    /// <paramref name="boxW"/>×<paramref name="boxH"/> box at corridor width <paramref name="cw"/>, or
+    /// <paramref name="boxW"/>×<paramref name="boxH"/> box at corridor width <c>cw</c>, or
     /// <c>null</c> for an even-walled ring (and for every form without one).
     ///
     /// <para>Widening <b>spends the box's slack</b>: a wall thickens and the hole loses those cells, the box does

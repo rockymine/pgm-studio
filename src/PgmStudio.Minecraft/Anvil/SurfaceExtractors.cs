@@ -11,7 +11,7 @@ public readonly record struct SurfaceBlock(int WorldX, int WorldZ, int WorldY, i
 public static class SurfaceExtractors
 {
     /// <summary>
-    /// Highest non-excluded, non-air block per column (top-down). <paramref name="maxBuildHeight"/>
+    /// Highest non-excluded, non-air block per column (top-down). <c>maxBuildHeight</c>
     /// caps the scan (inclusive) to ignore structures above the playable ceiling.
     /// </summary>
     // Default exclude for the Base extractor — the PISTON_MOVING_PIECE build-boundary marker
@@ -24,7 +24,7 @@ public static class SurfaceExtractors
     /// picture. Everything here is <b>noise that is never ground</b>, whatever map it is in: water and lava
     /// (the usual island <i>bridge</i>), foliage (overlapping leaves/logs/canopy), redstone lines, cobweb, and
     /// the invisible block-36 marker. Specks like a lone cobweb never form an island anyway
-    /// (<see cref="IslandDetector"/>'s min-size prune drops them); this set targets the <i>connected</i> masses.
+    /// (<c>IslandDetector</c>'s min-size prune drops them); this set targets the <i>connected</i> masses.
     /// <para><b>Stained glass (95) is deliberately not here</b> — it moved to <see cref="FloorMarkerIds"/>,
     /// which applies only at the world floor. It sat here as a blanket exclusion, and that was two mistakes in
     /// one: it deleted glass wherever glass was lowest, which on the_high_seas meant a 30,872-column glass sea
@@ -96,18 +96,18 @@ public static class SurfaceExtractors
     /// foliage/water reads at its high floor and detaches from the terrace), this also reports the
     /// intermediate stair/ledge surfaces, so stair-aware detection can keep a walkable structure attached.
     /// </summary>
-    /// <inheritdoc cref="CleanColumns(IEnumerable{AnvilRegion.Chunk}, PhantomErasure)"/>
+    /// <inheritdoc cref="CleanColumns(IEnumerable{AnvilRegion.Chunk}, PhantomErasure, IReadOnlySet{int})"/>
     public static IEnumerable<CleanColumn> CleanColumns(IEnumerable<AnvilRegion.Chunk> chunks) =>
         CleanColumns(chunks, PhantomErasure.None);
 
-    /// <param name="erased">What the map deletes before the first tick (<see cref="PhantomErasure"/>). Those
+    /// <remarks>What the map deletes before the first tick (<see cref="PhantomErasure"/>). Those
     /// blocks are skipped as if they were air, because at the moment the match starts that is what they are:
     /// a build-floor sheet laid to satisfy the void filter is gone before anyone plays, and counting it as
-    /// ground merges the islands it bridges. <see cref="PhantomErasure.None"/> reads the world as it sits.</param>
+    /// ground merges the islands it bridges. <see cref="PhantomErasure.None"/> reads the world as it sits.</remarks>
     /// <inheritdoc cref="CleanColumns(IEnumerable{AnvilRegion.Chunk})"/>
-    /// <param name="excludeIds">The noise set, defaulting to <see cref="CleanBaseExclude"/>. A parameter for the
+    /// <remarks>The noise set, defaulting to <see cref="CleanBaseExclude"/>. A parameter for the
     /// same reason <see cref="Base"/>'s is: a measurement that compares two readings of one world has to be able
-    /// to state both.</param>
+    /// to state both.</remarks>
     public static IEnumerable<CleanColumn> CleanColumns(IEnumerable<AnvilRegion.Chunk> chunks, PhantomErasure erased,
                                                        IReadOnlySet<int>? excludeIds = null)
     {

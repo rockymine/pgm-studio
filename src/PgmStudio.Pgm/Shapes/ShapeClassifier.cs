@@ -32,7 +32,7 @@ public enum LaneRead { I, L, Z, Complex, Plaza, None }
 /// terminal on a room-run stub its own width, lifting it off the crossbar. One extra piece (the stub) is the
 /// whole difference.</para>
 ///
-/// <para><b>Open read.</b> <see cref="ClassifyOpen"/> is the terminal-less variant — the same reflex-corner read
+/// <para><b>Open read.</b> <c>ClassifyOpen</c> is the terminal-less variant — the same reflex-corner read
 /// on the thin corridor the terminal caps, self-delimited at any hub/plaza, returning a <see cref="LaneRead"/>.</para>
 /// </summary>
 public static class ShapeClassifier

@@ -1,11 +1,11 @@
 using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Painting;
 
-/// <summary>One block a terrain-paint material may resolve to, with everything a picker needs to show it:
-/// the id/data pair a <see cref="SolidMaterial"/> carries, its display <see cref="Name"/>, the
-/// <see cref="Group"/> it is offered under, and the <see cref="Hex"/> swatch colour.</summary>
-/// <param name="InFamily">Whether <paramref name="Group"/> names a tone family — the unit a pattern is filled
-/// from — rather than one of the three sixteen-shade colour families.</param>
+/// <summary>One block a terrain-paint material may resolve to, with everything a picker needs to show it: the
+/// id/data pair a <see cref="SolidMaterial"/> carries, its display <see cref="Name"/>, the <see cref="Group"/> it
+/// is offered under, and the <see cref="Hex"/> swatch colour. <para><b>InFamily</b> — Whether <paramref
+/// name="Group"/> names a tone family — the unit a pattern is filled from — rather than one of the three
+/// sixteen-shade colour families.</para></summary>
 public readonly record struct PaintBlock(int Id, int Data, string Name, string Group, string Hex, bool InFamily);
 
 /// <summary>One family, whole — the blocks it holds in the order they are offered, and the <see cref="Rgb"/>

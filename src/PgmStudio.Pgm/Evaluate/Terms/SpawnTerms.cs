@@ -52,9 +52,9 @@ public sealed class SpawnWoolDistance : SoftTerm
 
 /// <summary>WL2 as a hard floor: the spawn and its nearest wool must be at least <see cref="MinBlocks"/> blocks
 /// apart <b>by the walk</b> (the same measure as <see cref="SpawnWoolDistance"/>, not
-/// straight-line). Replaces the old Euclidean gate lint — the generator already clears this comfortably (the
-/// authored floor is ~30 by traversal), so the switch is byte-identical; the surface measure is simply the
-/// correct one to guard against a future generator cramming a wool onto spawn.</summary>
+/// straight-line). The generator clears it comfortably — the authored floor is ~30 by traversal — so it costs
+/// nothing today; the surface measure is the correct one to guard against a generator cramming a wool onto
+/// spawn, which a Euclidean gate would let through wherever the walk round is long.</summary>
 public sealed class SpawnWoolFloor : ILayoutTerm
 {
     /// <summary>WL2's 20 blocks, now read as real travel rather than straight-line.</summary>

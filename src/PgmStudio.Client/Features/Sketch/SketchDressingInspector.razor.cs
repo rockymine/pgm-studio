@@ -264,9 +264,6 @@ public partial class SketchDressingInspector
         await RefreshPreview();
     }
 
-    /// <summary>Apply an option — its key, plus whatever else the option implies. A species is a starting
-    /// shape rather than only a pair of blocks, so picking "spruce" and keeping an oak's proportions would name
-    /// a tree it is not; the card carries those proportions so the client keeps no second species table.</summary>
     /// <summary>Switch a tree between its two forms. The wood cards are drawn on the tree being shaped, so
     /// they are fetched after the switch rather than before it.</summary>
     private async Task SetForm(string form)

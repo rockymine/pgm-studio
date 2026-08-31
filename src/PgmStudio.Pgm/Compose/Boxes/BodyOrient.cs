@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Compose;
 /// The body twin of <see cref="MouthOrient"/>: orient a canonical <b>spine-top</b> <see cref="ShapeBody"/> onto
 /// any box edge — the one copy the terminal-free box kinds share (the hub's front-flip, the frontline's spine
 /// dock). A body is emitted spine-up (its reference edge on <see cref="BoxEdge.Top"/>); <see cref="To"/> moves
-/// that reference to <paramref name="spine"/>: <see cref="BoxEdge.Top"/> is the identity, <see cref="BoxEdge.Bottom"/>
+/// that reference to <c>spine</c>: <see cref="BoxEdge.Top"/> is the identity, <see cref="BoxEdge.Bottom"/>
 /// a vertical mirror, <see cref="BoxEdge.Left"/>/<see cref="BoxEdge.Right"/> a quarter turn (transposing the box).
 /// Piece and vacancy rects, and vacancy mouths, all follow the transform.
 /// </summary>

@@ -5,16 +5,14 @@ using PgmStudio.Geom.Relief;
 
 namespace PgmStudio.Pgm.Sketch;
 
-/// <summary>
-/// Rasterizes a sketch layout (the <c>sketch_layout_json</c> blob) into the solid block cells of the
-/// finished world (docs/tools/sketch.md). Pure: no DOM, no DB. <see cref="Rasterize"/>
-/// yields the (x,z) footprint; <see cref="RasterizeColumns"/> also carries each cell's vertical span
-/// <c>[YFloor, YTop]</c>, where <c>Floor</c> is the shape's elevation and <c>Height</c> its thickness:
-/// <c>YTop = base_y + floor + height</c>. Height is a uniform <c>base_height</c>, or, for a polygon/lasso
-/// whose <c>anchor_heights</c> line up with its vertices, a per-vertex thickness TIN-interpolated across
-/// the footprint (<see cref="Triangulation"/>). Mirrors the JS geometry it must agree with (circle =
-/// 64-gon, Bézier = 16 samples/edge); per-group mirror copies follow the saved group <c>shapeIds</c>.
-/// </summary>
+// Rasterizes a sketch layout (the sketch_layout_json blob) into the solid block cells of the finished world
+// (docs/tools/sketch.md). Pure: no DOM, no DB. Rasterize yields the (x,z) footprint; RasterizeColumns also
+// carries each cell's vertical span [YFloor, YTop], where Floor is the shape's elevation and Height its
+// thickness: YTop = base_y + floor + height. Height is a uniform base_height, or, for a polygon or lasso
+// whose anchor_heights line up with its vertices, a per-vertex thickness TIN-interpolated across the
+// footprint through Triangulation. Mirrors the JS geometry it must agree with (circle = 64-gon, Bézier = 16
+// samples per edge); per-group mirror copies follow the saved group shapeIds.
+
 /// <summary>Two shapes on one layer where the world holds only the upper: <paramref name="Lost"/> is the
 /// shape whose ground is not in the built board, <paramref name="Kept"/> the one that replaced it.</summary>
 public readonly record struct StackedShapes(string Layer, string Lost, string Kept);
@@ -212,20 +210,19 @@ public static class SketchRasterizer
         return kept;
     }
 
-    /// <summary>Every relief-bearing group's solved surface, keyed by group id, with each field's heights
-    /// already shifted into world Y by its layer's <c>base_y</c>. This is the same solve the build runs, from
-    /// the same entry point, so a preview drawn from it cannot show a surface the world will not have —
-    /// which is the only reason a preview is worth drawing.
-    ///
-    /// <para>A group appears once. A layout that names the same group on two layers is malformed, and
-    /// showing the lower of the two would be a quieter wrong answer than showing the first.</para></summary>
-    /// <param name="warmStart">The surface each group's last solve settled on, asked for by group id and
+    /// <summary>Every relief-bearing group's solved surface, keyed by group id, with each field's heights already
+    /// shifted into world Y by its layer's <c>base_y</c>. This is the same solve the build runs, from the same
+    /// entry point, so a preview drawn from it cannot show a surface the world will not have — which is the only
+    /// reason a preview is worth drawing. <para>A group appears once. A layout that names the same group on two
+    /// layers is malformed, and showing the lower of the two would be a quieter wrong answer than showing the
+    /// first.</para>
+    /// <para><b>warmStart</b> — The surface each group's last solve settled on, asked for by group id and
     /// footprint. Resuming from it is a head start and never a different answer — the solver discards a resume
-    /// that fails to settle — so a caller with nothing to offer simply omits this.</param>
-    /// <param name="remember">Handed each group's solve as the solver produced it, for a caller keeping
-    /// surfaces to resume from. It is the <b>unshifted</b> field, and the pairing is the point: what comes
-    /// back from this method has its layer's <c>base_y</c> added, and feeding that back as a head start would
-    /// seed the next solve a whole layer too high.</param>
+    /// that fails to settle — so a caller with nothing to offer simply omits this.</para>
+    /// <para><b>remember</b> — Handed each group's solve as the solver produced it, for a caller keeping surfaces
+    /// to resume from. It is the <b>unshifted</b> field, and the pairing is the point: what comes back from this
+    /// method has its layer's <c>base_y</c> added, and feeding that back as a head start would seed the next
+    /// solve a whole layer too high.</para></summary>
     public static Dictionary<string, HeightField> ReliefFields(
         string layoutJson, Func<string, Footprint, double[]?>? warmStart = null,
         Action<string, HeightField>? remember = null)
@@ -925,27 +922,23 @@ public static class SketchRasterizer
                                   entry.Value.X, entry.Value.Z, entry.Value.Cells))];
     }
 
-    /// <summary>Every mass of standable ground that <b>stands over other ground</b> and that nothing joins to
-    /// it. A raised mass with no way onto it, in other words — which is the one shape of this that is a fault
-    /// rather than a choice.
-    ///
-    /// <para><b>A mass beside another is a landmass, not a fault.</b> Two landmasses across a void are how a
-    /// board is normally drawn — the build zone bridges them at the intent tier, which a sketch does not
-    /// state — so a mass sharing no column with any other says nothing. What is reported is a mass some of
+    /// <summary>Every mass of standable ground that <b>stands over other ground</b> and that nothing joins to it.
+    /// A raised mass with no way onto it, in other words — which is the one shape of this that is a fault rather
+    /// than a choice. <para><b>A mass beside another is a landmass, not a fault.</b> Two landmasses across a void
+    /// are how a board is normally drawn — the build zone bridges them at the intent tier, which a sketch does
+    /// not state — so a mass sharing no column with any other says nothing. What is reported is a mass some of
     /// whose columns also carry ground in another mass: something floating above another thing, with nothing
     /// between them. Measured, the discriminator is the whole difference between a useful finding and noise:
     /// without it `thunderstorm`, a one-layer board of ordinary landmasses, reports eight.</para>
-    ///
-    /// <para>Ground under a roof says nothing either: that is a room, and a room with no door is the
-    /// author's to have. Only a mass with open sky over some of it is reported.</para>
-    ///
-    /// <para>Joined means walked, not reached: the flood is bounded to <see cref="JoinedRise"/>, so what
-    /// counts is a way the author <b>drew</b>. Unbounded it would find one onto every exposed deck, because
-    /// a player carrying blocks can pillar up to any of them and the walk prices that climb rather than
-    /// refusing it — which is the right answer to "can anyone get there" and the wrong one to "is there a way
-    /// up". The bound cuts both ways: a cliff a player can only drop off does not join its two sides.</para>
-    /// </summary>
-    /// <param name="floor">Masses smaller than this are a ledge or a rasterizer sliver, not a place.</param>
+    /// <para>Ground under a roof says nothing either: that is a room, and a room with no door is the author's to
+    /// have. Only a mass with open sky over some of it is reported.</para>
+    /// <para>Joined means walked, not reached: the flood is bounded to <see cref="JoinedRise"/>, so what counts
+    /// is a way the author <b>drew</b>. Unbounded it would find one onto every exposed deck, because a player
+    /// carrying blocks can pillar up to any of them and the walk prices that climb rather than refusing it —
+    /// which is the right answer to "can anyone get there" and the wrong one to "is there a way up". The bound
+    /// cuts both ways: a cliff a player can only drop off does not join its two sides.</para>
+    /// <para><b>floor</b> — Masses smaller than this are a ledge or a rasterizer sliver, not a
+    /// place.</para></summary>
     public static List<DetachedMass> DetachedMasses(SketchLayout? state, int floor = 16)
     {
         // The walk is over terrain alone: a dome on columns, a raised arm and an antenna are all standable

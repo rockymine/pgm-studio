@@ -26,9 +26,9 @@ public static class PlanBoardPng
         new("BUILD ZONE", BuildZoneRgb), new("WATER LANE", WaterLaneRgb, Hatched: true),
     ];
 
-    /// <param name="scale">Pixels per proxy cell. Raster has no lossless zoom, so this defaults higher than
-    /// the SVG's own default — legible at the fixed size an image reader actually opens it at.</param>
-    /// <param name="pad">Pixel margin around the board.</param>
+    /// <summary><b>scale</b> is pixels per proxy cell. Raster has no lossless zoom, so this defaults higher than
+    /// the SVG's own default — legible at the fixed size an image reader actually opens it at.
+    /// <para><b>pad</b> — Pixel margin around the board.</para></summary>
     public static byte[] Render(PlanModel plan, int scale = 14, int pad = 16)
     {
         var scene = PlanBoardScene.Build(plan);

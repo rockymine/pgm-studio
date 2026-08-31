@@ -33,8 +33,8 @@ Twenty-two verified defects were live behind that when this was read. A core tha
 sketch gate and drew no ground. The suite said none of it.
 
 Most have since landed with a test each, one was withdrawn on the author's ruling (`TS32`: fusing pieces by
-surface is what the compiler is for), and what stands below is the three that remain — `FEATURES.md`
-carries the rest under the ids that delivered them.
+surface is what the compiler is for), and what stands below is the one that remains — `FEATURES.md` carries
+the rest under the ids that delivered them.
 
 That is the fact the whole strategy turns on: **a defect nobody can fail on is a defect that comes back.**
 The board is currently the only place these are written down, and a board entry is not a gate. So the fix
@@ -45,22 +45,13 @@ One entry of 140 does this.
 
 ## The verified defects
 
-Confirmed by reading the code at the cited site. Grouped by what the defect costs, because that is the order
-they are worth fixing in — a map that is silently wrong is worse than a message that is wrong, which is worse
-than a record that is wrong.
-
-### A gate's verdict is wrong
-
-| id | the defect | site |
-|---|---|---|
-| `TS31` | `SketchRasterizer.DetachedMasses` drops any component sharing no column with a second one, so it reports a storey whose stair was never drawn and never an island standing *beside* the board — the case an author actually draws by accident. | `SketchRasterizer.cs:978` |
-
-### The record is wrong
-
-| id | the defect | measured today |
-|---|---|---|
-| `B220` | Doc-comment defects behind `NoWarn`: **299 distinct sites over 85 files** — 227 CS1573, 39 CS1574, 21 CS0419, 12 CS1734. `LibraryDtos.cs` carries 56 of them. Separately, **21 members open two `<summary>` blocks** in one docstring, which no warning catches. | rebuild with the four ids un-silenced |
-| `RP47` | **27 comments over 23 files** outside `Migrations/` still carry history in the phrasings `RP10`'s grep missed. | the entry's own grep |
+Confirmed by reading the code at the cited site. One is left of the twenty-two, and it is the one whose filed
+fix is contradicted by the code it would change: **`TS31`** — `SketchRasterizer.DetachedMasses`
+(`SketchRasterizer.cs:978`) drops any component sharing no column with a second one, so it reports a storey
+whose stair was never drawn and never an island standing *beside* the board, which is the case an author
+actually draws by accident. Fixing it as filed catches the first and still misses the second, and whether a
+mass beside the board is a fault at all is the author's to say — `SK11` already complains about ground
+standing *over* other ground and stays silent for one merely beside it.
 
 Three more are reported with measured evidence and were not re-confirmed here, because confirming them wants
 a built world rather than a reading: `B145` (a spawn or wool piece's interior is unthemed), `B154`
@@ -70,21 +61,19 @@ build-region marker as solid ground).
 ## The board's numbers rot faster than its prose
 
 Six figures were re-measured against the tree. Every one had moved, and four of the six had moved the wrong
-way. Two of the entries have since been fixed and carry their corrected figures out with them; the four that
-remain are here:
+way. Four of the entries have since been fixed and carried their corrected figures out with them; the two
+that remain are here:
 
 | entry | the board says | measured today |
 |---|---|---|
-| `B220` | 148 sites over 55 files; 5 double-`<summary>`; four ids silenced in five `.csproj` | **299 over 85**; **21**; silenced in **nine** |
-| `RP47` | 31 comments over 27 files | **27 over 23** |
 | `C51` | 29 hand-rolled selects | **28** |
 | `CV12` | 55 studio modules, 12,694 lines | **59 modules, 16,013 lines** |
 
 The prose in each of those entries is still true; only the quantities lie. That is the same failure
 `project-structure.md`'s size table had before `RP8` gave it `tools/census.sh`, and it has the same fix:
-**a measurement a script can retake is retaken by a script, or it is not written down.** Three entries here
-are nothing *but* a measurement — `B220`, `RP49` and `RP47` — so each should ship as a gate rather than as a
-sweep, and the gate is the deliverable.
+**a measurement a script can retake is retaken by a script, or it is not written down.** `B220` and `RP47`
+were the worked examples and shipped that way: the first ends with the four warning ids out of `NoWarn`, so
+the compiler holds the line, and neither entry's count had to be re-measured because neither entry survives.
 
 ## Five causes under thirty-one entries
 
@@ -196,11 +185,11 @@ emptied concept by concept"* — applied to groups it has already named.
 capped, and it should not be interrupted by anything above except a Phase 1 defect in the surface it is
 building.
 
-**Phase 4 — gate the hygiene so it stops returning.** `B220` ends by taking the four ids out of `NoWarn`, not
-by fixing 299 sites and leaving them silenced. `RP49` ends by generating the table or deleting the counts.
-`RP47` and the comment-id sweep end with the grep in the same place `census.sh --check` sits. `C51` and `C12`
-end by adopting the component or deleting it — a component that exists and is unadopted is the drift, not the
-markup.
+**Phase 4 — gate the hygiene so it stops returning.** `B220` and `RP47` are done and were done this way:
+the four warning ids are out of `NoWarn`, so the compiler refuses the next doc comment pointing at something
+that is not there rather than silencing it. What is left of the phase is the comment-id sweep, which ends
+with its grep in the same place `census.sh --check` sits, and `C51`/`C12`, which end by adopting the
+component or deleting it — a component that exists and is unadopted is the drift, not the markup.
 
 **Phase 5 — the roadmap, moved out.** Not emptied: relocated to the ideas files, where an entry with no end
 condition is allowed to sit.

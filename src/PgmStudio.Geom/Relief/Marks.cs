@@ -143,33 +143,26 @@ public sealed record ScarpMark(double[][] Points, double High, double Low,
     public double Grade => Math.Abs(High - Low) / Math.Max(1, FaceWidth);
 }
 
-/// <summary>
-/// A shape of ground lifted or lowered, rather than a height stated. Every <see cref="Mark"/> is a
-/// <em>constraint</em> — the ground here <b>is</b> twelve — and constraints are what a solver needs but not
-/// what a hand wants: stated as a position and a radius they can only make a round hill, and the roundness is
-/// not a style, it is the shape of the only footprint that could be typed.
-///
-/// <para>A push takes a drawn ring and raises the ground inside it, falling away outside over a stated
-/// distance, so the landform's plan is whatever was drawn. It applies to the solved surface rather than into
-/// it, which is what makes pushes <b>compose</b>: two over the same ground add, where two constraints would
-/// have to argue.</para>
-///
+/// <summary> A shape of ground lifted or lowered, rather than a height stated. Every <see cref="Mark"/> is a
+/// <em>constraint</em> — the ground here <b>is</b> twelve — and constraints are what a solver needs but not what
+/// a hand wants: stated as a position and a radius they can only make a round hill, and the roundness is not a
+/// style, it is the shape of the only footprint that could be typed. <para>A push takes a drawn ring and raises
+/// the ground inside it, falling away outside over a stated distance, so the landform's plan is whatever was
+/// drawn. It applies to the solved surface rather than into it, which is what makes pushes <b>compose</b>: two
+/// over the same ground add, where two constraints would have to argue.</para>
 /// <para>The falloff is distance from the ring <b>across the land</b>, never from a centre — a radial falloff
 /// rounds a long thin push off within a few blocks of its own outline and cannot keep the hollow inside a
 /// crescent's curve at all.</para>
-/// </summary>
-/// <param name="Amounts">A lift per ring vertex instead of one for the whole outline, interpolated around the
-/// ring and wrapped so a closed loop has no seam. This is what makes a drawn ridge a ridge rather than a
-/// plateau with a shaped edge. Null uses <paramref name="Amount"/> the whole way round.</param>
-/// <param name="Crown">How much higher the middle of the push stands than its edge. Zero is a flat top;
-/// positive domes it; negative dishes it into a hollow whose rim is the drawn outline.
-///
-/// <para>What "the middle" means is not authored, because the shape already knows: it is the deepest point of
-/// the outline measured inward, which is the medial axis. For a round push that is a <b>point</b> and the
-/// result is a dome; for a long one it is a <b>line</b> and the result is a ridge whose crest follows the
-/// shape's own spine.</para></param>
-/// <param name="Roughness">How far the falloff distance wanders against a noise field, so the skirt is not a
-/// clean offset of the outline — the difference between a hill and an extruded logo.</param>
+/// <para><b>Amounts</b> — A lift per ring vertex instead of one for the whole outline, interpolated around the
+/// ring and wrapped so a closed loop has no seam. This is what makes a drawn ridge a ridge rather than a plateau
+/// with a shaped edge. Null uses <paramref name="Amount"/> the whole way round.</para>
+/// <para><b>Crown</b> — How much higher the middle of the push stands than its edge. Zero is a flat top; positive
+/// domes it; negative dishes it into a hollow whose rim is the drawn outline. <para>What "the middle" means is
+/// not authored, because the shape already knows: it is the deepest point of the outline measured inward, which
+/// is the medial axis. For a round push that is a <b>point</b> and the result is a dome; for a long one it is a
+/// <b>line</b> and the result is a ridge whose crest follows the shape's own spine.</para></para>
+/// <para><b>Roughness</b> — How far the falloff distance wanders against a noise field, so the skirt is not a
+/// clean offset of the outline — the difference between a hill and an extruded logo.</para></summary>
 public sealed record PushMark(double[][] Ring, double Amount, double Falloff = 10, double Roughness = 0,
                               uint Seed = 1, double[]? Amounts = null, double Crown = 0)
 {

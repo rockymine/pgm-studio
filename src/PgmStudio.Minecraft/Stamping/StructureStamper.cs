@@ -156,7 +156,7 @@ public static class StructureStamper
     /// <para><b>The chest stands on the ground under the monument</b>, not on the plate. The plate is what
     /// goes into the terrain; the supply is what a defender walks up to, and one set into the plate is three
     /// courses down with whole ground over it — a cache nobody can see, reach, or guess at. So it takes
-    /// <see cref="DefenseChest.Embed"/> directly at the centre column's own surface, with the course over it
+    /// <c>DefenseChest.Embed</c> directly at the centre column's own surface, with the course over it
     /// carved for the lid. It has no approach to front, the monument standing over it being reached from
     /// every side, so its facing is the default.</para></summary>
     public static void StampPlatform(

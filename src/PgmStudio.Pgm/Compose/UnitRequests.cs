@@ -3,8 +3,9 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>What the unit needs hung off its hub, sized before any position exists: one <see cref="NeighbourRequest"/>
-/// per neighbour, and the dock style each one implies.</summary>
+// What the unit needs hung off its hub, sized before any position exists: one NeighbourRequest per
+// neighbour, and the dock style each one implies.
+
 /// <summary>A neighbour box to seat against the hub: the hub <see cref="Side"/> it docks, its box
 /// <see cref="Kind"/>, its outward <see cref="Depth"/> (perpendicular to the hub edge) and along-edge
 /// <see cref="Along"/> extent (cells), and its <see cref="Id"/>. Sizing is frame- and form-independent (it
@@ -24,8 +25,8 @@ internal sealed record NeighbourRequest(UnitSide Side, BoxKind Kind, int Depth, 
 /// <item><see cref="ContactPatch"/> — the frontline is a face, not a corridor, so it has no entry at all;
 /// what must hold is that every stretch where it meets a run is at least a lane wide.</item>
 /// </list>
-/// <b>Derived, never sampled</b> — see <see cref="StyleOf"/>. The style falls out of the family roll that
-/// already happened in <see cref="WoolRequest"/>; there is no "which dock style" draw anywhere.
+/// <b>Derived, never sampled</b> — see <c>StyleOf</c>. The style falls out of the family roll that
+/// already happened in <c>WoolRequest</c>; there is no "which dock style" draw anywhere.
 /// </summary>
 internal enum DockStyle { FullMouth, Overhang, ContactPatch }
 

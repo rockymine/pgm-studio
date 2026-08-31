@@ -50,7 +50,7 @@ public static class BoxFiller
     }
 
     /// <summary>Recover the box-local <see cref="EmittedShape"/> of a placed fill — the slot-typed terrain and
-    /// room rects shifted back to the box origin — so <see cref="BoxInterfaces.Of"/> can read the edge facts the
+    /// room rects shifted back to the box origin — so <c>BoxInterfaces.Of</c> can read the edge facts the
     /// docking gate maps. (Only the geometry the gate reads is reconstructed; the marker offset and vacancies
     /// ride along unused.)</summary>
     private static EmittedShape BoxLocal(EmittedApproach a, Box box)

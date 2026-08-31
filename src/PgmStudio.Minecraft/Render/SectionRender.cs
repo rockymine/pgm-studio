@@ -74,7 +74,6 @@ public static class SectionRender
             scale, yMin, yMax, tickInterval, depth) is null ? 1 : 0;
     }
 
-    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
     /// <summary>The finished cut as bytes, for a caller that wants the image rather than a file. Null where
     /// nothing stands along the plane asked for.</summary>
     public static byte[]? Png(VoxelWorld world, SectionAxis axis, int rangeMin, int rangeMax,

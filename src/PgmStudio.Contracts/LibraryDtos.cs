@@ -4,11 +4,9 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Contracts;
 
 /// <summary>One reusable terrain-paint style (GET /api/styles) — a named material recipe, as the save
-/// request plus the row's id and its card picture.</summary>
-/// <param name="Id">The row number a theme binds it by.</param>
-/// <param name="Preview">The card picture of the material, rendered through the real painter: a library is
-/// browsed by what its entries look like, so the picture travels with the row rather than costing one
-/// request per card.</param>
+/// request plus the row's id, which a theme binds it by, and its card picture. The preview is rendered
+/// through the real painter: a library is browsed by what its entries look like, so the picture travels with
+/// the row rather than costing one request per card.</summary>
 public sealed record StyleDto(long Id, string Name, string Kind, string Params, string Preview)
     : StyleSaveRequest(Name, Kind, Params);
 
@@ -46,8 +44,8 @@ public sealed record ThemeSummary(long Id, string Name, string Preview);
 
 /// <summary>A full theme (GET /api/themes/{id}): the save request plus the row's id, since an answer that
 /// restated the same fields would be one shape twice. The painter-ready JSON is served separately at
-/// GET /api/themes/{id}/json (assembled through the styles).</summary>
-/// <param name="Id">The row number a sketch pulls it in by.</param>
+/// GET /api/themes/{id}/json (assembled through the styles). The id is the row number a sketch pulls it in
+/// by; every other field is the save request's and is documented there.</summary>
 public sealed record ThemeDetail(
     long Id, string Name,
     bool BedrockRelative, int BedrockValue, string RimEdges, bool WallOnTerrainFaces,
@@ -77,7 +75,7 @@ public record ThemeSaveRequest(
 ///
 /// <para><paramref name="Name"/> is optional and the endpoint names an unnamed import "Imported theme"; it is
 /// declared nullable because that is what it is. A DTO that claims a field is required when the handler
-/// happily defaults it is a claim <see cref="Api.Endpoints.RequiredFields"/> now enforces, and the annotation
+/// happily defaults it is a claim <c>Api.Endpoints.RequiredFields</c> enforces, and the annotation
 /// is the only thing that says which fields those are.</para></summary>
 /// <param name="Name">What the imported theme is listed under. Absent means <c>Imported theme</c>.</param>
 /// <param name="ThemeJson">The painter's own theme JSON, as text — the form <c>GET /api/themes/{id}/json</c>
@@ -192,9 +190,8 @@ public sealed record RoomPorchDto(int Depth, int Inset,
 /// browsed by what its entries look like.</param>
 public sealed record RoofStyleSummary(long Id, string Name, string Preview);
 
-/// <summary>A roof style: everything above the eave — the save request plus the row's id. Its courses are
-/// the <c>roof</c>, <c>verge</c> and <c>gable</c> parts.</summary>
-/// <param name="Id">The row number a room style binds it by.</param>
+/// <summary>A roof style: everything above the eave — the save request plus the row's id, which a room
+/// style binds it by. Its courses are the <c>roof</c>, <c>verge</c> and <c>gable</c> parts.</summary>
 public sealed record RoofStyleDetail(
     long Id, string Name, string Form,
     int Pitch, int Overhang, bool RoofHole, bool RidgeCap,
@@ -236,9 +233,8 @@ public record RoofStyleSaveRequest(
 /// <param name="Preview">The card picture of the room it stamps.</param>
 public sealed record StoreyStyleSummary(long Id, string Name, int Clear, string Preview);
 
-/// <summary>A storey style: one room, as the save request plus the row's id. The courses are the
-/// <c>wall</c>, <c>post</c> and the three floor zones.</summary>
-/// <param name="Id">The row number a room style's storey stack names it by.</param>
+/// <summary>A storey style: one room, as the save request plus the row's id, which a room style's storey
+/// stack names it by. The courses are the <c>wall</c>, <c>post</c> and the three floor zones.</summary>
 public sealed record StoreyStyleDetail(
     long Id, string Name, int Clear, int BorderWidth, int InlayInset, RoomWindowDto Windows,
     IReadOnlyList<RoomCourseDto> Courses)
@@ -265,9 +261,8 @@ public record StoreyStyleSaveRequest(
 public sealed record PorchStyleSummary(long Id, string Name, string Preview);
 
 /// <summary>A porch style: the strip of footprint the walls give up and what stands on it, as the save
-/// request plus the row's id. No courses — a porch's deck is the house's floor and its canopy the roof's
-/// material, so what is left to it is its shape.</summary>
-/// <param name="Id">The row number a room style binds it by.</param>
+/// request plus the row's id, which a room style binds it by. No courses — a porch's deck is the house's
+/// floor and its canopy the roof's material, so what is left to it is its shape.</summary>
 public sealed record PorchStyleDetail(
     long Id, string Name, int Depth, int Inset, string Edge, string Roof, int RailBlock)
     : PorchStyleSaveRequest(Name, Depth, Inset, Edge, Roof, RailBlock);
@@ -297,8 +292,8 @@ public sealed record RoomStoreyDto(long StoreyStyleId, int Clear);
 
 /// <summary>A full room style (GET /api/room-styles/{id}): the save request plus the row's id, since an
 /// answer that restated the same twenty-five fields would be one shape twice and the two would drift. A part
-/// with no courses keeps the built-in finish, the way an unbound theme bucket does.</summary>
-/// <param name="Id">The row number a sketch binds it by.</param>
+/// with no courses keeps the built-in finish, the way an unbound theme bucket does. The id is the row
+/// number a sketch binds it by.</summary>
 public sealed record RoomStyleDetail(
     long Id, string Name,
     int FloorDepth, int WallHeight,

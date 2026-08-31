@@ -3,7 +3,7 @@ using fNbt;
 namespace PgmStudio.Minecraft.Anvil;
 
 /// <summary>Shared NBT scalar coercion (one home for what <c>FeatureExtractors</c>,
-/// <c>MonumentSliceExtractor</c> and <c>MonumentSuggester</c> previously each re-implemented).</summary>
+/// <c>MonumentSliceExtractor</c> and <c>MonumentSuggester</c> all need).</summary>
 internal static class Nbt
 {
     public static int? Int(NbtTag? tag) => tag switch
@@ -28,8 +28,8 @@ internal static class Nbt
 
 /// <summary>One pass over a chunk stream that indexes the non-air blocks, tile entities and entities a
 /// monument reader needs, filtered to the cells/columns it cares about. Shared by
-/// <see cref="MonumentSliceExtractor"/> and <see cref="MonumentSuggester"/> (which previously each had
-/// their own copy of this loop).</summary>
+/// <c>MonumentSliceExtractor</c> and <c>MonumentSuggester</c>, which read the same stream for different
+/// questions.</summary>
 internal static class RegionScan
 {
     /// <summary><paramref name="wantCell"/> keeps blocks and tile entities at the coordinates the caller

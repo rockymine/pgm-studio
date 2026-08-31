@@ -4,7 +4,7 @@ using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Editing;
 
 /// <summary>
-/// An edit the document will not take, carrying the <see cref="Domain.Finding"/> the endpoint answers with.
+/// An edit the document will not take, carrying the <see cref="Vocabulary.Finding"/> the endpoint answers with.
 ///
 /// <para>An edit is refused for eight reasons: six the request owns (<see cref="RequestRules"/>) and two the
 /// document does (<see cref="EditRules"/>). What travels is the finding and the status that states it, so

@@ -62,7 +62,7 @@ public static class RectilinearUnion
     }
 
     /// <summary>The ground the union of <paramref name="rects"/> encircles but no rectangle covers — the
-    /// enclosed voids an <see cref="Outlines"/> ring states as solid — as disjoint rectangles, in reading
+    /// enclosed voids an <c>Outlines</c> ring states as solid — as disjoint rectangles, in reading
     /// order. A void is found by connectivity, not by winding: the uncovered cells that cannot reach the
     /// outside are enclosed. <paramref name="filled"/> names rectangles that count as ground without joining
     /// the union, so a void something else lays into is not reported and a partly covered one comes back as

@@ -56,7 +56,6 @@ public static class TraversabilityRender
         return Emit(chunks, outPng, map, scale) is null ? 1 : 0;
     }
 
-    /// <summary>Renders a world still held in memory, via <see cref="AnvilRegion.FromWorld"/>.</summary>
     /// <summary>The finished navigability picture as bytes, for a caller that wants the image rather than a
     /// file. Null where the world holds no ground column.</summary>
     public static byte[]? Png(VoxelWorld world, MapXml? map, int scale)
@@ -132,7 +131,7 @@ public static class TraversabilityRender
     }
 
     /// <summary>The void columns this map's own apply rules make bridgeable at kickoff — the buildable
-    /// region read straight off the "not void" wiring PGM enforces, the same one <see cref="BuildGenerator"/>
+    /// region read straight off the "not void" wiring PGM enforces, the same one <c>BuildGenerator</c>
     /// writes and any hand-authored map reaches for to the same end, since PGM offers no other way to open a
     /// void gap to building. A water lane carries no apply rule of its own over its footprint (it opens by a
     /// timed fill firing later in the match, not by this wiring — <c>docs/pgm/water-lanes.md</c> §1,
@@ -157,7 +156,7 @@ public static class TraversabilityRender
     }
 
     /// <summary>Whether a block-edit filter value ultimately reads "void" — chasing the same
-    /// <c>not</c>/<c>deny</c>/<c>allow</c> wrapping <see cref="BuildGenerator"/> writes around its own
+    /// <c>not</c>/<c>deny</c>/<c>allow</c> wrapping <c>BuildGenerator</c> writes around its own
     /// <c>void</c> filter (<c>no-void = not(void)</c>), plus the inline <c>deny(void)</c> shorthand a
     /// hand-authored map can write straight into the attribute without registering a filter at all.</summary>
     private static bool GatesOnVoid(string filterValue, IReadOnlyDictionary<string, Filter> filters, HashSet<string> seen)
@@ -276,10 +275,6 @@ public static class TraversabilityRender
             }
     }
 
-    /// <summary>A column is navigable when it has ground and two blocks of clear headroom above it — nothing
-    /// standing on it and nothing overhanging it a player's head would clip. Ground itself is the same "not
-    /// decoration, not liquid, not air" read <see cref="HeightProfileRender"/> uses, so the two stage images
-    /// agree about where the ground is even though they answer different questions about it.</summary>
     /// <summary>Whether the <see cref="Walk.Headroom"/> blocks from <paramref name="from"/> up leave a player
     /// room to stand — air, or something their body passes through. A flower, a torch and a carpet are
     /// stepped past when the ground is found and must be stepped past here too, or a column reads as ground a
@@ -297,7 +292,12 @@ public static class TraversabilityRender
     }
 
     /// <summary>Each column's standing surface: the Y a player walking in at terrain level meets, or null
-    /// where the column has ground and nowhere to stand. A void column is absent.</summary>
+    /// where the column has ground and nowhere to stand. A void column is absent.
+    ///
+    /// <para>A column is navigable when it has ground and two blocks of clear headroom above it — nothing
+    /// standing on it and nothing overhanging it a player's head would clip. Ground itself is the same "not
+    /// decoration, not liquid, not air" read <see cref="HeightProfileRender"/> uses, so the two stage images
+    /// agree about where the ground is even though they answer different questions about it.</para></summary>
     private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), int?> ground)
     {
         var ids = new ushort[256 * 256];

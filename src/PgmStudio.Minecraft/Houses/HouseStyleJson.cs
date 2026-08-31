@@ -222,9 +222,6 @@ public static class HouseStyleJson
         && solid["kind"]?.GetValue<string>() == "solid"
         && solid["id"]?.GetValue<int>() == Blocks.Air;
 
-    /// <summary>A stored style, or <paramref name="fallback"/> when the text is absent or cannot be read. A
-    /// snapshot is a hand-editable leaf inside a map's layout, so a malformed one is a map that exports with
-    /// the built-in shell rather than a map that refuses to export.</summary>
     /// <summary>Deserialize, carrying a material's missing <c>kind</c> across as the refusal it is. A style's
     /// courses are terrain materials, so the same fault reaches this reader as reaches the theme's, and
     /// System.Text.Json reports it as <see cref="NotSupportedException"/> — the one type the endpoints' catch

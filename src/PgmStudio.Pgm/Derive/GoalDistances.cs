@@ -29,11 +29,11 @@ public static class GoalDistances
     public sealed record GoalWalk(
         string Id, string Kind, double? OwnSpawnBlocks, double? EnemySpawnBlocks, double? Ratio);
 
-    /// <summary>One walk between two destroy goals, in blocks. <paramref name="Opposing"/> separates the
-    /// two rules stated over it: false is a team's own pair (<c>GO2</c>), true is a goal against a goal the
-    /// other team defends (<c>GO3</c>), which on an order-2 board is the orbit image of an authored one.
-    /// A goal's own image is a pair like any other, and the one every board has.</summary>
-    /// <param name="Blocks">Null where no route joins them over the closure.</param>
+    /// <summary>One walk between two destroy goals, in blocks. <paramref name="Opposing"/> separates the two
+    /// rules stated over it: false is a team's own pair (<c>GO2</c>), true is a goal against a goal the other
+    /// team defends (<c>GO3</c>), which on an order-2 board is the orbit image of an authored one. A goal's own
+    /// image is a pair like any other, and the one every board has. <para><b>Blocks</b> — Null where no route
+    /// joins them over the closure.</para></summary>
     public sealed record GoalPair(string From, string To, bool Opposing, double? Blocks);
 
     /// <summary>Every destroyable and core's walks, or empty where the symmetry is not order 2 (the only

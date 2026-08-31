@@ -8,7 +8,7 @@ namespace PgmStudio.Minecraft.Stamping;
 /// 1-tall × 2-wide bedrock wall with a 2-sign pair on its inner face; viewed from the centre, the left sign
 /// is the map name (<c>=== / [CTW] / {name} (bold) / ===</c>) and the right sign the authors
 /// (<c>made by (italic) / {authors}</c>). Anchored on the integer corner <c>(anchorX, anchorZ)</c>; the
-/// bedrock floor sits at <paramref name="floorY"/> (the observer stands on top), 6 wide → world
+/// bedrock floor sits at <c>floorY</c> (the observer stands on top), 6 wide → world
 /// <c>anchorX-3 .. anchorX+2</c>.
 /// </summary>
 public static class ObserverPlatformStamper

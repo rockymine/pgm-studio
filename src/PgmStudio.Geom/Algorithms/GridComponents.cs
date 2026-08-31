@@ -3,7 +3,7 @@ namespace PgmStudio.Geom.Algorithms;
 /// <summary>
 /// Connected components (flood fill) over a set of integer grid cells — the one place the 4- and
 /// 8-neighbourhoods and the BFS that grows a component live. A component grows across a neighbour when it is in
-/// the set and an optional <paramref name="canJoin"/> predicate allows the link; passing no predicate joins
+/// the set and an optional <c>canJoin</c> predicate allows the link; passing no predicate joins
 /// every in-set neighbour (a plain landmass), while a predicate joins conditionally (equal height, a walkable
 /// step). Seeds are taken in raster order (x then z) and components are returned in discovery order, so ids
 /// derived from the result are reproducible whatever order the caller supplied the cells in.

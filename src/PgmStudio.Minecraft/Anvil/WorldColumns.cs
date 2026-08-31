@@ -54,7 +54,7 @@ public static class WorldColumns
 
     /// <summary>The top course of every column holding a solid block — the one number a claim recorded per
     /// column is a claim about, and what a read narrowed to a storey is compared against
-    /// (<see cref="WorldProvenance.WhereTopShows"/>). A projection of <see cref="Of"/>, so a caller that
+    /// (<c>WorldProvenance.WhereTopShows</c>). A projection of <see cref="Of"/>, so a caller that
     /// needs the runs themselves takes that instead of calling both.</summary>
     public static Dictionary<(int X, int Z), int> Tops(VoxelWorld world, BlockBox? within = null)
     {

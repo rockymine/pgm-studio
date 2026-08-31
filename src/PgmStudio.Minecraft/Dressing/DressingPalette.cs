@@ -3,14 +3,14 @@ using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Dressing;
 
-/// <summary>One plant the flora overlay may place: the block, and whether standing in it changes anything for
-/// a player. <see cref="Tall"/> plants occupy two blocks and are placed as a pair.</summary>
-/// <param name="Class">Cosmetic plants scatter freely; anything that hides a player is gameplay and gets
-/// mirrored across the orbit.</param>
+/// <summary>One plant the flora overlay may place: the block, and whether standing in it changes anything for a
+/// player. <see cref="Tall"/> plants occupy two blocks and are placed as a pair. <para><b>Class</b> — Cosmetic
+/// plants scatter freely; anything that hides a player is gameplay and gets mirrored across the
+/// orbit.</para></summary>
 public readonly record struct Plant(int Id, int Data, bool Tall, PropClass Class);
 
 /// <summary>
-/// The blocks the dressing stage places, named once. It is the sibling of <see cref="TerrainPalette"/> for the
+/// The blocks the dressing stage places, named once. It is the sibling of <see cref="Painting.TerrainPalette"/> for the
 /// terrain painter: a curated vocabulary rather than a restriction, since a spec names ids directly.
 ///
 /// <para>Two things here are load-bearing rather than cosmetic. <b>Leaves carry the no-decay bit</b>, because a

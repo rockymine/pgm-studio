@@ -36,8 +36,8 @@ public sealed class BandEndingConverter()
 /// <para><b>The axis is the caller's and the ending is the stack's.</b> A layer stack is read as depth from the
 /// top of its bucket, a room part as courses from the part's own base; a stack states neither, because the
 /// distance is measured by whoever has it. What the stack does stand for is where its bands run out —
-/// <see cref="BandEnding"/> — and that had been assumed rather than stated, which is how one rule came to be
-/// written out three times with two different answers to the same question.</para>
+/// <see cref="BandEnding"/>. Stating it here is what keeps one rule from being written out per reader, each
+/// with its own answer to the same question.</para>
 ///
 /// <para>A band that repeats does <b>not</b> reseed a pattern. A pattern's seed lives on the material and its
 /// field is sampled from world coordinates, so two bands of one material draw one field read twice rather than

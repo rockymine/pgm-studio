@@ -10,11 +10,10 @@ namespace PgmStudio.Pgm.Evaluate.Terms;
 /// measures is the shape of the board, which is what a layout term is scoring.</summary>
 internal static class SurfaceNav
 {
-    /// <summary>The cells a player can stand on or build across: the team's own (k=0) terrain ∪ build zones,
-    /// rasterized straight from the plan. Distances here are intra-team (spawn ↔ its wools), so the un-fanned
-    /// surface is both the correct one and cheaper — no board derivation, keeping the gate free of it.</summary>
     /// <summary>The walkable surface as ground a walk runs over, answering in blocks at the plan's own cell
-    /// size.</summary>
+    /// size. It is the team's own terrain unioned with the build zones, rasterized straight from the plan:
+    /// the distances taken across it are intra-team, so the un-fanned surface is the correct one and the
+    /// cheaper one, and the gate needs no board derivation.</summary>
     public static WalkGround Ground(EvalContext ctx)
         => WalkGround.Over(Walkable(ctx), ctx.Plan.Globals.Cell);
 
@@ -54,9 +53,9 @@ internal static class SurfaceNav
         return Snap(((int)Math.Floor(piece.Rect.X + at[0]), (int)Math.Floor(piece.Rect.Z + at[1])), walkable);
     }
 
-    // Snaps onto the canonical square (Chebyshev) ring rather than the diamond (Manhattan) ring this used to
-    // walk itself — the square ring is a superset at every radius, so a marker that only a diagonal-corner
-    // cell would reach (one the Manhattan ring refused) can now snap where it previously read unreachable.
+    // Snaps onto the canonical square (Chebyshev) ring rather than the diamond (Manhattan) one: the square
+    // ring is a superset at every radius, so a marker reachable only from a diagonal corner — which a
+    // Manhattan ring does not admit — still finds a cell to snap to.
     private static (int, int)? Snap((int, int) cell, IReadOnlySet<(int, int)> walkable) =>
         Cells.SnapToWalkable(cell, walkable, radius: 2);
 

@@ -432,7 +432,7 @@ public sealed record HouseStyle
     public WindowStyle Windows { get; init; } = new();
 
     /// <summary>The storeys stacked inside the building, or empty for the single storey <see cref="Wall"/>,
-    /// <see cref="Windows"/> and <see cref="Surface"/> describe on their own.
+    /// <see cref="Windows"/> and <see cref="Storey.Surface"/> describe on their own.
     ///
     /// <para>Empty is not a missing answer, it is the ordinary one — a house is one storey until it is told
     /// otherwise, and every style saved before storeys existed reads as exactly the building it always was.
@@ -639,13 +639,13 @@ public sealed record HouseStyle
 /// empty sky.</para></summary>
 public static class HouseHeights
 {
-    /// <param name="front">The wall the doors are cut through. A <see cref="RoofForm.Gable"/>, a
-    /// <see cref="RoofForm.Hip"/> and a <see cref="RoofForm.Gambrel"/> are symmetric and ignore it, but a
-    /// <see cref="RoofForm.Shed"/> and a <see cref="RoofForm.Saltbox"/> fall toward the front, so their ridge
-    /// climbs with the span <em>perpendicular to that wall</em> — which on a long building is the long span.
-    /// Answering as though the front were always one edge under-reserves by the difference between the two
-    /// spans, and a roof reserved short is clipped at the world ceiling rather than lowered. Null is the edge
-    /// a house with no doors picks for itself, so the default answer is a real one rather than a guess.</param>
+    /// <summary><b>front</b> is the wall the doors are cut through. A <see cref="RoofForm.Gable"/>, a <see
+    /// cref="RoofForm.Hip"/> and a <see cref="RoofForm.Gambrel"/> are symmetric and ignore it, but a <see
+    /// cref="RoofForm.Shed"/> and a <see cref="RoofForm.Saltbox"/> fall toward the front, so their ridge climbs
+    /// with the span <em>perpendicular to that wall</em> — which on a long building is the long span. Answering
+    /// as though the front were always one edge under-reserves by the difference between the two spans, and a
+    /// roof reserved short is clipped at the world ceiling rather than lowered. Null is the edge a house with no
+    /// doors picks for itself, so the default answer is a real one rather than a guess.</summary>
     public static int TopLayerOver(this HouseStyle style, int width, int depth, RoomEdge? front = null)
     {
         // The roof stands on what the walls reserve, air courses and all — the stamper seats it at

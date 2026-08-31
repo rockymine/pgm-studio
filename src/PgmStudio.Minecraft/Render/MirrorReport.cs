@@ -33,18 +33,17 @@ namespace PgmStudio.Minecraft.Render;
 /// </summary>
 public static class MirrorReport
 {
-    /// <summary>What the read found: the picture, and the count behind it. <see cref="Unpaired"/> is the
-    /// number a caller gates or reports on — zero is a board that mirrors exactly.</summary>
-    /// <param name="Unpaired">Columns whose solid spans differ from their orbit's.</param>
-    /// <param name="Repainted">Columns that pair by shape and differ in what they are made of. Counted apart
-    /// because they are a different fault: the ground is the same and its finish is not.</param>
+    /// <summary>What the read found: the picture, and the count behind it. <see cref="Unpaired"/> is the number a
+    /// caller gates or reports on — zero is a board that mirrors exactly. <para><b>Unpaired</b> — Columns whose
+    /// solid spans differ from their orbit's.</para>
+    /// <para><b>Repainted</b> — Columns that pair by shape and differ in what they are made of. Counted apart
+    /// because they are a different fault: the ground is the same and its finish is not.</para></summary>
     public sealed record Result(byte[] Pixels, int BlocksWide, int BlocksHigh, int Columns, int Unpaired,
                                 int Repainted);
 
     private const int Void = 0x0E0E12, PairedLow = 0x23252B, PairedHigh = 0x8E9199;
     private const int Unpaired = 0xE0483C, Repainted = 0xE8A33D, Axis = 0x4FC3F7;
 
-    /// <summary>Read a built world still in memory and write the picture.</summary>
     /// <summary>The finished symmetry picture as bytes, for a caller that wants the image rather than a
     /// file. Null where the world decodes to no column.</summary>
     public static byte[]? Png(VoxelWorld world, int scale, string? mode,

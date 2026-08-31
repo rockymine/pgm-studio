@@ -4,13 +4,19 @@ using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Derive;
 
-/// <summary>How one objective is come at, and by whom. Distances are blocks.</summary>
+/// <summary>How one objective is come at, and by whom. Distances are blocks. </summary>
+/// <param name="Goal">The objective this leg is come at — the id the plan names it by.</param>
 /// <param name="Attack">The attacker's walk from their own spawn.</param>
 /// <param name="Defend">The defender's walk from theirs — the same goal, from the other side.</param>
 /// <param name="Ways">Distinct routes in, kept when the piece sequence differs.</param>
-/// <param name="SharedRoad">True when the defender's own shortest walk runs through the attackers'
-/// merge, so both sides come up the same road; false when going round it is shorter, which is a defence
-/// arriving from behind the objective.</param>
+/// <param name="SharedRoad">True when the defender's own shortest walk runs through the attackers' merge, so both
+/// sides come up the same road; false when going round it is shorter, which is a defence arriving from behind the
+/// objective.</param>
+/// <param name="Split">Where the attackers' routes part, or null where they never do.</param>
+/// <param name="Fuse">Where they come back together on the way in, or null where they do not.</param>
+/// <param name="SplitWidth">How wide the ground is at the split, in blocks.</param>
+/// <param name="FuseWidth">How wide it is at the merge — the frontage a defender has to hold.</param>
+/// <param name="MergeToGoal">Blocks from that merge to the objective: how far in the last shared stretch runs.</param>
 /// <param name="MergeDetour">What bypassing the merge saves the defender. Zero is a shared road.</param>
 public sealed record FlowLeg(
     string Goal, int Attack, int Defend, int Ways,

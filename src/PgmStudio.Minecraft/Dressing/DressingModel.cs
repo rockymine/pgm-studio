@@ -80,9 +80,10 @@ public enum TreeForm
 /// the only thing left to choose about its material is which wood it is cut from.</summary>
 public sealed record TreeWood(string Name, int LogId, int LogData, int LeafId, int LeafData);
 
-/// <summary>A vanilla tree species as data: its wood and its proportions. A species is a row, not a class —
-/// the profile is a radius table (<see cref="Geom.Algorithms.CanopyProfiles"/>), so adding one adds no code.</summary>
-/// <param name="Height">The species' natural height in blocks: trunk plus canopy. A prop scales from it.</param>
+/// <summary>A vanilla tree species as data: its wood and its proportions. A species is a row, not a class — the
+/// profile is a radius table (<see cref="Geom.Algorithms.CanopyProfiles"/>), so adding one adds no code.
+/// <para><b>Height</b> — The species' natural height in blocks: trunk plus canopy. A prop scales from
+/// it.</para></summary>
 public sealed record TreeSpecies(
     string Name,
     TreeWood Wood,

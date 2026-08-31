@@ -3,13 +3,14 @@ using PgmStudio.Pgm.Shapes;
 
 namespace PgmStudio.Pgm.Compose;
 
-/// <summary>Turning requests into positions — one integer per neighbour, the seat, under whichever of the three
-/// dock rules its style selects.</summary>
+// Turning requests into positions — one integer per neighbour, the seat, under whichever of the three dock
+// rules its style selects.
+
 /// <summary>What a full-mouth dock produced: the placed <see cref="Box"/> rect and the
 /// <see cref="Abutment"/> it abuts the hub over, the <see cref="Request"/> <b>as it ended up</b> (a wool whose
 /// full mouth found no run is demoted to the compact <c>I</c>, so this may differ from the one passed in),
 /// and the <see cref="Flush"/> seat to hand <see cref="FrontGuard.Resolve"/> when the immediate slide found
-/// no backward position. <c>null</c> from <see cref="SeatFullMouth"/> means no legal seat at all.</summary>
+/// no backward position. <c>null</c> from <c>SeatFullMouth</c> means no legal seat at all.</summary>
 internal sealed record FullMouthDock(
     CellRect Box, BoxAbutment Abutment, NeighbourRequest Request, FrontGuard.FlushSeat? Flush);
 
@@ -134,7 +135,7 @@ public static class UnitSeating
     /// would strand a staple's second entry off the hub).
     ///
     /// <para>A wool whose mouth no run holds is demoted once to the compact <c>I</c> and retried; the request
-    /// that comes back on <see cref="FullMouthDock.NeighbourRequest"/> is the one the caller must build the box from.
+    /// that comes back on <see cref="FullMouthDock.Request"/> is the one the caller must build the box from.
     /// The no-frontline front guard then slides a lateral seat backward off the hub's front face
     /// (deterministic, no draw); a seat no backward position can hold is returned as a
     /// <see cref="FrontGuard.FlushSeat"/> for the post-pass rather than failing here.</para>
@@ -214,7 +215,7 @@ public static class UnitSeating
     /// Seat the frontline on the hub's front edge by its <b>contact patch</b> (G123). Every other neighbour docks
     /// by fitting wholly inside a free run; the frontline does not have to, because its face is what the mid
     /// meets rather than a corridor the hub must hold. So a position is legal when the face abuts the hub over at
-    /// least <paramref name="cw"/> contiguous cells of one free run — which admits a face narrower than the edge
+    /// least <c>cw</c> contiguous cells of one free run — which admits a face narrower than the edge
     /// (seated anywhere along it) and one wider than the edge (overhanging either end).
     ///
     /// <para>Returns the plan-cell box and the <b>real</b> hub↔frontline interface, clipped to the abutment and

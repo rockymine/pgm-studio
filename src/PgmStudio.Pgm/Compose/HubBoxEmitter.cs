@@ -141,9 +141,9 @@ public static class HubBoxEmitter
         Fill(box, form, cw, flipV, out _, ringWalls, armLayout);
 
     /// <inheritdoc cref="Fill(Box, CompoundRead, int, bool, RingWalls?, IReadOnlyList{ValueTuple{int, int}})"/>
-    /// <param name="rejection">On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
+    /// <remarks>On a <c>null</c> return, <b>why</b> the form was refused — the directed reason in
     /// the shared <see cref="FillRejection"/> vocabulary, carrying the body emitter's own dimension message
-    /// rather than discarding it. <c>null</c> when the fill succeeded.</param>
+    /// rather than discarding it. <c>null</c> when the fill succeeded.</remarks>
     public static EmittedHub? Fill(
         Box box, CompoundRead form, int cw, bool flipV, out FillRejection? rejection,
         RingWalls? ringWalls = null, IReadOnlyList<(int Start, int Width)>? armLayout = null)
@@ -181,7 +181,7 @@ public static class HubBoxEmitter
         {
             // the sampled legs, or the plainest lawful ones. A spine the laws admit no layout for — too short for
             // a leg beside its notch, or so long the legs could not absorb what the capped bay leaves — is refused
-            // rather than built as a stub against a chasm, which is what the old fixed default did.
+            // rather than built as a stub against a chasm, which is what a fixed default leg length gives.
             var legs = armLayout is { Count: > 0 } given ? given : DefaultArms(w, arms, cw);
             if (legs is null)
                 throw new ArgumentException(

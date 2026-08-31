@@ -6,20 +6,18 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Domain;
 
-/// <summary>
-/// One rule, as a reader meets it. <see cref="Rule"/> is the stable id a finding carries and a client keys on;
-/// <see cref="Family"/> groups it by what it is about rather than by which gate asks; <see cref="Owner"/> is
-/// where it is stated, which is the file to read next. <see cref="Means"/> and <see cref="Fix"/> are the
-/// rule's own two sentences — what it refuses, and what to do about it.
-/// </summary>
-/// <param name="Evidence">For a layout rule, how well the corpus backs it — <c>corpus</c>, <c>expert</c>,
-/// <c>open</c> or <c>guess</c>, in <c>rules.md</c>'s own terms. Null for a gate rule, which is code rather
-/// than a measured claim about how a map plays.</param>
-/// <param name="Category">What a caller does about a finding citing this rule, from the <c>[Rule]</c>
-/// attribute beside the constant. Null for a layout rule, which has no declaration site to carry one, and
-/// for a gate rule nothing raises.</param>
-/// <param name="Concerns">What the rule is about — one word or several, since a rule concerns a combination
-/// a family prefix cannot carry. Empty for a layout rule.</param>
+/// <summary> One rule, as a reader meets it. <see cref="Rule"/> is the stable id a finding carries and a client
+/// keys on; <see cref="Family"/> groups it by what it is about rather than by which gate asks; <see
+/// cref="Owner"/> is where it is stated, which is the file to read next. <see cref="Means"/> and <see
+/// cref="Fix"/> are the rule's own two sentences — what it refuses, and what to do about it.
+/// <para><b>Evidence</b> — For a layout rule, how well the corpus backs it — <c>corpus</c>, <c>expert</c>,
+/// <c>open</c> or <c>guess</c>, in <c>rules.md</c>'s own terms. Null for a gate rule, which is code rather than a
+/// measured claim about how a map plays.</para>
+/// <para><b>Category</b> — What a caller does about a finding citing this rule, from the <c>[Rule]</c> attribute
+/// beside the constant. Null for a layout rule, which has no declaration site to carry one, and for a gate rule
+/// nothing raises.</para>
+/// <para><b>Concerns</b> — What the rule is about — one word or several, since a rule concerns a combination a
+/// family prefix cannot carry. Empty for a layout rule.</para></summary>
 public sealed record RuleDoc(
     string Rule, string Family, string Owner, string Means, string? Fix = null, string? Evidence = null,
     RuleCategory? Category = null, IReadOnlyList<RuleConcern>? Concerns = null)
@@ -90,9 +88,10 @@ public static class RuleCatalog
     private static readonly Regex EvidenceTag = new(@"\[(corpus|expert|open|guess)\]", RegexOptions.Compiled);
 
     /// <summary>Every rule the given assemblies declare, plus every layout rule, ordered by family then by the
-    /// number inside the id — so <c>PL2</c> precedes <c>PL10</c>, which sorting the strings would not.</summary>
-    /// <param name="assemblies">The assemblies to read gate rules out of. Named by the caller rather than
-    /// discovered, because an assembly nothing has touched yet is not loaded and would be silently missing.</param>
+    /// number inside the id — so <c>PL2</c> precedes <c>PL10</c>, which sorting the strings would not.
+    /// <para><b>assemblies</b> — The assemblies to read gate rules out of. Named by the caller rather than
+    /// discovered, because an assembly nothing has touched yet is not loaded and would be silently
+    /// missing.</para></summary>
     public static IReadOnlyList<RuleDoc> Read(IEnumerable<Assembly> assemblies)
     {
         var rules = assemblies.SelectMany(GateRules).Concat(LayoutRules()).ToList();

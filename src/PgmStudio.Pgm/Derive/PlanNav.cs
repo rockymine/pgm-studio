@@ -99,8 +99,8 @@ public sealed class PlanNav
     private HashSet<WalkPlace> Seat(IEnumerable<(int X, int Z)> cells)
         => [.. cells.Select(cell => new WalkPlace(cell.X, cell.Z, SurfaceAt.GetValueOrDefault(cell)))];
 
-    /// <param name="lanesNavigable">Whether a water lane counts as a crossing. Off by default: a lane opens
-    /// partway through a match, so a route walked through one is not a route the opening is played on.</param>
+    /// <summary><b>lanesNavigable</b> is whether a water lane counts as a crossing. Off by default: a lane opens
+    /// partway through a match, so a route walked through one is not a route the opening is played on.</summary>
     public static PlanNav Of(PlanModel plan, bool lanesNavigable = false)
     {
         var scene = PlanBoardScene.Build(plan);

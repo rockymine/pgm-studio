@@ -29,8 +29,8 @@ public enum TopDownSubject { Combined, Ground, Structure, Made, Foliage, Objecti
 /// false-coloured hue (<see cref="RenderCategories"/>), because a render meant to be reasoned from has to
 /// separate foliage from surface from structure at a glance, and the game's own materials do not: stone,
 /// stone brick, cobblestone, andesite and gravel are all some shade of grey, so painting each its own true
-/// colour paints one grey field. <see cref="TopDownColorMode.Material"/> keeps the old per-block reading for
-/// the caller checking a theme's actual paint rather than the map's shape.
+/// colour paints one grey field. <see cref="TopDownColorMode.Material"/> reads per block instead, for the
+/// caller checking a theme's actual paint rather than the map's shape.
 ///
 /// <para><b>Relief still comes from the neighbour, not from the height.</b> Colouring a column by its
 /// absolute height would repaint terrain in a ramp that has nothing to do with the blocks, and a flat plateau
@@ -114,14 +114,15 @@ public static class TopDownRender
     /// <summary>Renders a world still held in memory — no round trip through a region file. This is what lets
     /// a generator emit its own top-down the moment it finishes building, over the exact world it just made
     /// rather than one re-read off disk. <paramref name="provenance"/> is the record the build itself kept
-    /// (<see cref="BuiltWorld.Provenance"/> via <c>PgmStudio.Export</c>); null reads by the material estimate,
+    /// (<c>BuiltWorld.Provenance</c> via <c>PgmStudio.Export</c>); null reads by the material estimate,
     /// exactly as a caller with no world build behind it — a corpus scan — already does. <paramref
     /// name="treePoints"/> is the isolated foliage layer's point-and-radius reading, from the same build's
     /// dressing document (<c>DressingScope.TreeFootprints</c>); null falls back to the leaf/log mass, exactly
-    /// as the disk-reading overload's caller with no document does.</summary>
-    /// <summary>The finished picture as bytes, for a caller that wants the image rather than a file — the
-    /// legend and the scale bar included, since those are what make it readable. Null where the world holds
-    /// no non-air column.</summary>
+    /// as the disk-reading overload's caller with no document does.
+    ///
+    /// <para>Answers the picture as bytes, for a caller that wants the image rather than a file — the legend
+    /// and the scale bar included, since those are what make it readable. Null where the world holds no
+    /// non-air column.</para></summary>
     public static byte[]? Png(VoxelWorld world, MapXml? map, int scale, int? yMax, string name,
         TopDownColorMode colorMode = TopDownColorMode.Category, TopDownSubject subject = TopDownSubject.Combined,
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)

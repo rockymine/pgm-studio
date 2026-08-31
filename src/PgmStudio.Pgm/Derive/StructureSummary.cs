@@ -11,7 +11,7 @@ namespace PgmStudio.Pgm.Derive;
 /// <see cref="GrownPiece.Slot"/>), never from a finished map's welded terrain, so it reads uniformly off a
 /// bare unit and needs no labels stored back. It is the canonical filter fact for the browse sieve (G117) and
 /// the bucket key for verdicts (G118) / duels (G120): the same read the user sees on the card.
-/// <para>Reuses the two validated classifier entry points: <see cref="ShapeClassifier.Classify"/> (approach
+/// <para>Reuses the two validated classifier entry points: <c>ShapeClassifier.Classify</c> (approach
 /// family, per wool box) and <see cref="ShapeClassifier.ClassifyBody"/> (body form, per hub/frontline box).
 /// The wool-family scan is the pattern promoted from the box gallery tool.</para>
 /// </summary>
