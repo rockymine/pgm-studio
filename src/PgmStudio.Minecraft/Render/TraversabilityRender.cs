@@ -183,7 +183,7 @@ public static class TraversabilityRender
     public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, IReadOnlyList<Marker> markers,
         IReadOnlySet<(int X, int Z)>? bridgeable = null)
     {
-        var ground = new Dictionary<(int X, int Z), bool>();   // value: navigable (has headroom)
+        var ground = new Dictionary<(int X, int Z), int?>();   // value: the standing Y, null = no headroom
         foreach (var chunk in chunks) Scan(chunk, ground);
         if (ground.Count == 0) return null;
 
@@ -197,8 +197,21 @@ public static class TraversabilityRender
         int minZ = zs.Min(), maxZ = zs.Max();
         int blocksWide = maxX - minX + 1, blocksHigh = maxZ - minZ + 1;
 
-        var navigable = ground.Where(entry => entry.Value).Select(entry => entry.Key).Concat(bridged).ToList();
-        var components = GridComponents.Label(navigable, connectivity: 4);
+        var navigable = ground.Where(entry => entry.Value is not null).Select(entry => entry.Key).Concat(bridged).ToList();
+
+        // Two navigable cells join only where the ground between them is ground rather than a wall: past
+        // Walk.WallRise a player goes round the face instead of up it, so a house, a cliff and a wall each
+        // stop the flood at their own foot. Without the bound every roof with headroom over it is a place to
+        // stand and a route runs across the building — a board reads whole that a player cannot cross. A
+        // bridged cell carries no height of its own, so it joins whatever it touches, which is what a build
+        // zone means.
+        var standing = ground.Where(entry => entry.Value is not null)
+                             .ToDictionary(entry => entry.Key, entry => entry.Value!.Value);
+        bool Joins((int X, int Z) here, (int X, int Z) there) =>
+            !standing.TryGetValue(here, out var a) || !standing.TryGetValue(there, out var b)
+            || Math.Abs(a - b) <= Walk.WallRise;
+
+        var components = GridComponents.Label(navigable, connectivity: 4, canJoin: Joins);
         var labelOf = new Dictionary<(int X, int Z), int>();
         for (var index = 0; index < components.Count; index++)
             foreach (var cell in components[index]) labelOf[cell] = index;
@@ -217,9 +230,9 @@ public static class TraversabilityRender
             for (var col = 0; col < blocksWide; col++)
             {
                 var cell = (minX + col, minZ + row);
-                if (ground.TryGetValue(cell, out var isNavigable))
+                if (ground.TryGetValue(cell, out var standingY))
                 {
-                    Raster.Set(pixels, blocksWide, col, row, isNavigable ? ComponentRgb(cell) : 0x1c1f26);
+                    Raster.Set(pixels, blocksWide, col, row, standingY is not null ? ComponentRgb(cell) : 0x1c1f26);
                     continue;
                 }
                 if (bridged.Contains(cell))
@@ -283,7 +296,9 @@ public static class TraversabilityRender
         return true;
     }
 
-    private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), bool> ground)
+    /// <summary>Each column's standing surface: the Y a player walking in at terrain level meets, or null
+    /// where the column has ground and nowhere to stand. A void column is absent.</summary>
+    private static void Scan(AnvilRegion.Chunk chunk, Dictionary<(int X, int Z), int?> ground)
     {
         var ids = new ushort[256 * 256];
         foreach (var section in AnvilRegion.Sections(chunk))
@@ -310,11 +325,11 @@ public static class TraversabilityRender
                     if (id == 0 || BlockRoles.IsLiquid(id) || BlockRoles.StandsOnGround(id)) continue;
                     solid = true;
                     if (!Clear(ids, col, y + 1)) continue;
-                    ground[cell] = true;
+                    ground[cell] = y + 1;
                     solid = false;
                     break;
                 }
-                if (solid) ground[cell] = false;
+                if (solid) ground[cell] = null;
             }
     }
 }

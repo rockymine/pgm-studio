@@ -334,24 +334,6 @@ so they wait for the frame rather than being built into the one it replaces.
   *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
   stays authoritative about where while the author stays authoritative about how high.*
 
-- [ ] **RP49 — `doc-status.md` describes a `docs/` tree that no longer exists.** The file whose subject is
-  whether the documents are current is itself the stalest thing in the repository. Of its **58 rows citing a
-  document path, 38 name a file that is not there** — the whole `docs/contracts/` folder it is written around
-  was split by subject long ago, so `contracts/plan-editor.md`, `contracts/sketch-relief.md`,
-  `contracts/canvas-interaction.md` and thirty-five more resolve to nothing. Of the 20 that do resolve,
-  **17 carry the wrong line count** and three are right: `generator/rules.md` is listed at 616 lines and is
-  889, `generator/model.md` at 1505 and is 1522, `generator/evaluator.md` at 479 and is 494.
-
-  A reader cannot tell which rows to trust, so the whole file reads as noise — and a row being right is
-  indistinguishable from a row being stale, which is the failure *Documents rot silently* describes, in the
-  document that exists to catch it. **The line counts are the part that cannot survive by hand**: they are
-  wrong between every pair of commits, exactly as `project-structure.md`'s size table was before `RP8` made
-  `tools/census.sh` write it. Either generate the table the same way, or drop the counts and keep only what
-  prose can hold — the path and what the document covers. Decide which before rewriting the 50 rows, because
-  hand-restoring counts buys a table that is wrong again by the next commit.
-
-  *Measured by resolving each cited path against the tree and counting the lines behind the ones that
-  resolve.*
 
 - [ ] **RP47 — The history sweep's grep was one phrasing of several.** `RP10` swept
   `used to |had grown|until now|was (previously|formerly)|no longer (does|did)` and left the tree clean on
@@ -465,19 +447,6 @@ as an isolated marker into `B99`.
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
 
-- [ ] **WS17 — A walk reads a building as a hill, and only one of its two fixes is safe.** *(the author's
-  ruling: a house is not walked over.)* `Walk.Standing` calls any surface with two blocks of air over it a
-  place to stand, roofs included, and `Walk` prices a climb rather than refusing it — so `traversability` and
-  `coverage`, which walk the finished world, route straight over a house and report a board whole that a
-  player cannot cross. **Excluding the columns provenance calls a structure is not available**:
-  `WorldBuilder` claims every spawn and wool room *floor* as `ProvenancePass.Structure`, so that rule takes
-  the ground a match is played over out of the walk and reports every generated board disconnected at its
-  objectives. What is left is bounding the rise the way `Walk.Components` already can, which wants a number.
-  **The blocking question: how many blocks of rise stops being a slope and starts being a wall.**
-  `docs/world-scan/read-backs.md`.
-
-  *`opus5-whinnymoor` and `opus5-rimegarth` both exported with traversability whole and buildings standing
-  across their roads.*
 
 - [ ] **G231 — `EL1` measures a piece against the global surface, not against its neighbour, so it
   complains about half a flight of stairs.** `PlanValidator.LintEl1` takes `p.Surface − globals.Surface` and

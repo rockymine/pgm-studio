@@ -4925,6 +4925,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A building is not walked over (`WS17`).** A roof carries two clear blocks of headroom like any other
+  surface, so the traversability read climbed the wall and ran its route across the building: a road blocked
+  by a house came back as one whole component, which is the direction that reads as an improvement.
+  `Walk.WallRise` is the number the author states — **more than five blocks of rise is a face a player goes
+  round, not up** — and the render's component flood takes it through the `canJoin` predicate
+  `GridComponents.Label` already carried. A bank, a ramp or a flight of steps inside the bound still joins
+  what it climbs between. The export's reachability gate is deliberately untouched: there the question is
+  whether anyone *can* get somewhere, and a player carrying blocks pays for the climb.
 - **A rebuild leaves no region the new world did not write (`B102`).** `AnvilRegionWriter.Write` created the
   directory and nothing else, so a `.mca` a previous build left behind was still a region a server loaded and
   the map read back was two builds fused — which is exactly what iterating on a spec does. The writer now

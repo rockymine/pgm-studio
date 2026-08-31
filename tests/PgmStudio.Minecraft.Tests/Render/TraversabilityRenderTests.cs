@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Render;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Geom;
 using PgmStudio.Minecraft.Palette;
 
 namespace PgmStudio.Minecraft.Tests.Render;
@@ -9,6 +10,46 @@ namespace PgmStudio.Minecraft.Tests.Render;
 /// the map's own buildable-region wiring makes bridgeable) split into connected components.</summary>
 public sealed class TraversabilityRenderTests
 {
+    /// <summary><b>A building is not walked over.</b> A roof carries two clear blocks of headroom like any
+    /// other surface, so before the rise bound the flood climbed the wall and the route ran across the
+    /// building — a road blocked by a house read as one whole component, which is the direction that looks
+    /// like an improvement. Past <see cref="Walk.WallRise"/> a face is something a player goes round
+    /// (<c>WS17</c>).</summary>
+    [Test]
+    public async Task A_building_standing_across_a_road_splits_the_walk()
+    {
+        var world = new VoxelWorld();
+        // A road nine cells long, one cell wide.
+        for (var x = 0; x <= 8; x++) world.SetBlock(x, 5, 0, Blocks.Stone);
+
+        // A solid block of building standing on the middle of it, seven courses tall — a rise of seven over
+        // the road on each side, past the bound.
+        for (var y = 6; y <= 12; y++)
+            for (var x = 3; x <= 5; x++)
+                world.SetBlock(x, y, 0, Blocks.Stone);
+
+        var result = TraversabilityRender.Render(AnvilRegion.FromWorld(world), markers: []);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.ComponentCount).IsEqualTo(3)
+            .Because("the road either side of the building, and the roof, are three separate places");
+    }
+
+    /// <summary>A rise inside the bound is ground: a bank, a ramp or a flight of steps still joins what it
+    /// climbs between, so the bound separates a wall from a slope rather than flattening every step.</summary>
+    [Test]
+    public async Task A_bank_within_the_bound_still_joins_what_it_climbs_between()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x <= 3; x++) world.SetBlock(x, 5, 0, Blocks.Stone);
+        for (var x = 4; x <= 8; x++) world.SetBlock(x, 10, 0, Blocks.Stone);   // a rise of five, at the bound
+
+        var result = TraversabilityRender.Render(AnvilRegion.FromWorld(world), markers: []);
+
+        await Assert.That(result!.ComponentCount).IsEqualTo(1)
+            .Because("five blocks is the tallest rise that is still ground");
+    }
+
     [Test]
     public async Task Two_platforms_with_no_ground_between_them_are_separate_components()
     {

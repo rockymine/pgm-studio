@@ -194,6 +194,15 @@ what is actually at a coordinate. It is the read to reach for when a picture and
 are none of them in it. `section` and `column` are the two that keep it, which is why every shipped roof fault
 was visible in a section and invisible from above.
 
+**`traversability` joins two cells only where the ground between them is ground rather than a wall.** A roof
+carries two clear blocks of headroom like any other surface, so an unbounded flood climbs a house and runs a
+route over it — a road blocked by a building reads as one whole component. The bound is `Walk.WallRise`:
+more than five blocks of rise is a face a player goes round, not up, so a house, a cliff and a wall each stop
+the flood at their own foot while a bank, a ramp or a flight of steps still joins what it climbs between. A
+bridged cell carries no height of its own and joins whatever it touches, which is what a build zone means.
+The export's reachability gate is deliberately not bounded this way: there the question is whether anyone
+*can* get somewhere, and a player carrying blocks pays for the climb.
+
 `walk` and `render/walk` are the two that answer *at what price*, which is the half `traversability` cannot
 reach: that picture says whether a board joins up, and every distance under it was a flat step count. The
 picture is the one to take first — the field shades every cell at once, so a pad four blocks over its own

@@ -2,8 +2,9 @@
 
 `BACKLOG.md` holds 133 open entries, `TODO.md` seven. This document is the reading that says which of them
 are defects, which are questions, which share a cause, and what order drains them. Its subject is the board
-itself — the same relation `doc-status.md` has to `docs/` — and it expires when the board it describes is
-gone.
+itself, and it expires when the board it describes is gone. It is the one document this work adds:
+`CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
+growing a new one, and the board had no such document.
 
 Every claim below was taken from the tree at `4765026`, not from an earlier reading of the board. Where a
 figure the board states and a figure measured today disagree, the measured one is here and the entry has been
@@ -74,7 +75,6 @@ than a record that is wrong.
 | id | the defect | measured today |
 |---|---|---|
 | `B220` | Doc-comment defects behind `NoWarn`: **299 distinct sites over 85 files** — 227 CS1573, 39 CS1574, 21 CS0419, 12 CS1734. `LibraryDtos.cs` carries 56 of them. Separately, **21 members open two `<summary>` blocks** in one docstring, which no warning catches. | rebuild with the four ids un-silenced |
-| `RP49` | `doc-status.md`'s table carries 58 rows naming a path and a line count. **38 name a file that is not there**, and of the 20 that resolve **17 carry the wrong count** — `generator/rules.md` is listed at 616 lines and is 889. | each path resolved against the tree, each count re-taken |
 | `RP47` | **27 comments over 23 files** outside `Migrations/` still carry history in the phrasings `RP10`'s grep missed. | the entry's own grep |
 
 Three more are reported with measured evidence and were not re-confirmed here, because confirming them wants
@@ -91,7 +91,6 @@ remain are here:
 | entry | the board says | measured today |
 |---|---|---|
 | `B220` | 148 sites over 55 files; 5 double-`<summary>`; four ids silenced in five `.csproj` | **299 over 85**; **21**; silenced in **nine** |
-| `RP49` | 33 of 50 rows missing; 15 of 17 counts wrong | **38 of 58**; **17 of 20** |
 | `RP47` | 31 comments over 27 files | **27 over 23** |
 | `C51` | 29 hand-rolled selects | **28** |
 | `CV12` | 55 studio modules, 12,694 lines | **59 modules, 16,013 lines** |
@@ -135,8 +134,8 @@ authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `S40` · `C9`
 
 ## The questions no reading of this repository can answer
 
-Thirty-one entries name a ruling or a decision in their own text, and about twenty-two of those still carry
-the question unanswered. `CLAUDE.md` is explicit that these cannot be derived — the corpus shows what authors
+Thirty-one entries name a ruling or a decision in their own text, and twenty-one of those still carry the
+question unanswered. `CLAUDE.md` is explicit that these cannot be derived — the corpus shows what authors
 did, the code shows what the tool does, and neither says what is correct — so **no amount of work drains this
 part of the board.** It drains in one sitting of answers, and it is the single highest-leverage move
 available.
@@ -163,11 +162,10 @@ The questions, stated so they can be answered in a line each:
 16. `TC2` — what does a pseudonym row look like: an accepted unresolved name, or an explicit toggle?
 17. `C45` — what does an author row show without a fetched avatar?
 18. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-19. `RP49` — generate `doc-status.md`'s line counts, or drop them and keep only what prose can hold?
-20. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the author rail reaching for a
+19. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the author rail reaching for a
     network the gate cannot assume?
-21. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
-22. `B181` — what share of a board's width may a `subtract` take?
+20. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
+21. `B181` — what share of a board's width may a `subtract` take?
 
 Three more are decisions of scheduling rather than of gameplay and can be taken without the oracle: `P7`
 (whether the scan passes consolidate), `B249` (whether a per-call refusal override is wanted at all) and

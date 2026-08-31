@@ -203,6 +203,16 @@ public static class Walk
     /// first have to make, so a rise of Δ costs Δ−1 blocks.</summary>
     public const int FreeRise = 1;
 
+    /// <summary>The tallest rise that still reads as ground rather than as a wall: more than five blocks is a
+    /// face a player goes round rather than up (author). A climb inside the bound is a slope, a bank or a
+    /// flight of steps; past it the two sides are separate places however much clearance stands over each.
+    ///
+    /// <para>Distinct from <see cref="FreeRise"/>, which is what a step costs — one block is free and the rest
+    /// is blocks placed. This is what a step <b>is</b>, and it is the bound a picture of where a player can
+    /// walk is drawn with: a house is not walked over.</para></summary>
+    public const int WallRise = 5;
+
+
     /// <summary>How far a player falls for nothing. Four is where fall damage starts.</summary>
     public const int FreeDrop = 3;
 
