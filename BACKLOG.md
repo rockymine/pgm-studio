@@ -175,6 +175,45 @@ below are what that would cost. Each names the question that has to be answered 
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
+## The storey a placement rests on
+
+`WE24` gave every placement an optional layer and two resolvers that agree about where a floor is. The export
+has read it since the stack landed; nothing in the browser writes it, so a stacked board can only be dressed
+and populated on its top surface. The frame is settled — the storey being drawn on is canvas chrome and a
+placement takes it — so what is left is each surface reading and writing the layer it is handed.
+
+- [ ] **B263 — A prop's layer can be neither seen nor overridden, and the canvas draws every prop alike.**
+  `DressingDoc.add` stamps the storey being drawn on, so a prop placed on an upper layer records it and
+  `DressingContext.GroundFor` resolves it (declining `DR-LAYER` where that layer has no ground). What is
+  left is the two reads: `SketchDressingInspector` has no field for `PlacedProp.Layer`, so a prop cannot be
+  moved to another storey without editing the layout by hand; and `dressing-render.js` draws a
+  gallery-floor prop exactly like a roof one, so a stacked board's dressing reads as one plane.
+
+- [ ] **B264 — No intent placement takes the active layer either.** The same optional `Layer` is on all six —
+  monument, spawn, wool, iron cube, destroyable, core — and `MapIntent` carries it at six sites, set by no
+  Configure step; `SpawnStep` states outright that its canvas is base-layer only. So on a stacked board an
+  objective stands on a lower floor only by writing the intent by hand. Under `TS45` a placement takes the
+  active layer, and what is left is the six write paths and the field on each inspector.
+
+## What a subtract means, now that nothing at the sketch stage refuses one
+
+`TS73` moved every sketch-stage refusal to `finish`, which uncovered a policy the gate had been hiding: the
+rasterizer has always been able to floor and roof a subtract's void, and only `SK13` said no.
+
+- [ ] **TS74 — `SK13` cannot tell a fill from a floor, so a subtract cannot mark a room.** A subtract is
+  what an author reaches for to say *this column is void*, and flooring and roofing that void is the use it
+  is reached for — but `SK13` refuses every add over a subtracted cell alike, at any height, on any layer.
+  Give it the cut it is missing: an add whose **top is at or below the subtract's stated `floor`** is the
+  ground under the void and says nothing; one whose span crosses that floor is the fill the rule is for.
+  `SketchRasterizer.AddsOverSubtracts` already carries both floors and decides `survives` from them, so the
+  test is a comparison it can make where it stands. `docs/tools/sketch.md` and `docs/refusals.md` carry the
+  rule's two halves and both change with it.
+
+  *Measured on the running studio: `rock` a mass `[0..30)` with a subtract over a 12×12, `floor` a plain add
+  `[0..4)` and `ceil` a plain add `[11..30)`, each on its own layer, builds the column `y0..3` solid, **void
+  `y4..10` — seven courses** — `y11..29` solid. A room, with rock under it. It previews, and `finish`
+  answers 422 `SK13` twice.*
+
 ## A made thing is a third kind, and it is drawn out of layers
 
 **The author's ruling.** The shape tool draws **terrain** — shapes and a relief. The dressing pass places
@@ -236,6 +275,45 @@ so they wait for the frame rather than being built into the one it replaces.
   /plan/columns` and `POST /map/{slug}/sketch/columns`, are map-scoped, so no library editor can ask for one.
   Answer columns for a stamped style world and drive the existing bridge from it, so a house can be turned in
   3-D where it is authored. Supersedes the server-rendered `Iso` SVG in `HouseViews`.
+
+## The library: a browse page, an editor page, and the rail between them
+
+The shape has landed: the rail carries the six kinds, `/library` chooses between them, and an entry opens a
+page laid out as an outline, its fields and a preview companion. What is left is what an author can *say* on
+it, what they can *see* while saying it, and what is on the shelf to say it about.
+
+### What the author can say
+
+- [ ] **B261 — The theme editor mirrors a schema the API already publishes.** `GET /api/terrain/patterns`
+  answers every material kind and field, typed, as the painter's deserializer takes them — and the client
+  never calls it, keeping 422 hand-maintained lines in `Components/Terrain/ThemeVocabulary.cs` instead. A
+  kind or field added server-side reaches no editor until someone edits that file. Drive the editor from the
+  route; `B200`'s band stack is the first thing that stops being a special case. It also settles the picker
+  that offers `laidLog` and silently replaces the material with a stone `solid` when it is chosen — a kind
+  the client cannot build stops being offerable.
+
+- [ ] **B260 — Three room-style fields have no control at all.** `Beams`, `GableWindows` and `DoorHead`
+  appear nowhere in the client, so a beam, a gable window and a door lintel are authorable only over HTTP.
+  `RoofSlab`/`RoofSlabData` are carried through a save but editable only on a bound `RoofStyle` row, never on
+  the room. Five of the twenty-five fields, and the five that make a building look built.
+
+### What the author sees while authoring
+
+- [~] **B70 — The card shows the one view its knobs are invisible in.** A library card carries the section
+  alone, and a section projected onto the front wall shows a window as a patch of the same colour as the wall
+  around it, a porch as nothing at all. Which view a card should carry instead is a look-and-choose question
+  rather than a derivable one: the plan reads the roof form, its hole, its overhang and a porch's notch but no
+  window; the cutaway reads a window as the opening it is but draws a block as its own shape, which is tens of
+  kilobytes per row. The sample is now a parameter, so a card could also be judged at a proportion where more
+  reads. Wants the author's eye on which picture picks a house out of a grid.
+
+### What is on the shelf
+
+- [ ] **B47 — A theme copied onto a board loses where it came from.** Copying in matches by name, so the same
+  library theme copied twice replaces its own snapshot rather than growing a `meadow-2` — but a board theme
+  renamed on either side is two rows with nothing saying they are one theme, and nothing can say whether a
+  snapshot is behind the row it came from. Wants a note on the copied theme recording the library row, which
+  slots into `B44`'s snapshot record rather than duplicating it.
 
 ## Looking at a board that was built
 
@@ -479,10 +557,12 @@ model — everything else from that pool has moved to the heading its subject ow
   **The stacked half of this is `TS23`**, whose `Q4` is this entry's question asked over two layers rather
   than two nested tiers. Whatever settles one settles the other, and neither may answer it alone.
 
-- [ ] **B145 — Paint a spawn or wool shape's interior with its theme.** The shape is simply unthemed — not the
-  known bedrock case, and conflating them is why it keeps being dismissed:
-  `WoolStructureStamper.StampFoundation` filling a wool-room piece with bedrock from y0 is documented and
-  intended, and here there is no foundation at all. Two mechanisms, one symptom, and the second has no owner.
+- [ ] **B145 — A spawn or wool room's ground carries no theme.** A role piece reaches the sketch as a
+  role-tagged annotation and `SketchRasterizer` skips it outright (`line 1027`), so it is never a shape a
+  theme can be scoped to: the ground under a room is whatever its fused component paints, and there is no way
+  to state a room floor. It is also what `StructureStamper.StampFoundation` levels in, so the material that
+  fills a dip under a footprint is the same question. Wants a theme scope on the structural shape `TN11`
+  projects, and the levelling fill reading it.
 
   *re-probed on `marlstone-steps`: the column under the red wool at `(0, 85)` is raw `1:0` Stone from y24 down
   to y1, on a board whose `crest` theme is quartz. Reported independently by four runs.*
@@ -512,21 +592,6 @@ model — everything else from that pool has moved to the heading its subject ow
   157/201; a neutral family mixed with a warm one: 54) are superseded.*
 
 ### The house: what it stamps, where it stands, and what an author can say
-
-- [ ] **WE12 — A spawn may stand without a house and a wool may not.** The two are the same shape — a source
-  (a spawn point, a wool spawner), a protection region, and a structure over them — and the structure is
-  decoupled on one and welded to the other: an author can already say a spawn has no housing, and a wool
-  always comes with one. Nothing about the objective needs it. The house is what the studio *defaults* to,
-  not what the wool *is*: the wool is the spawner, its protection and its monument, and
-  `region-categorization.md`'s wool `room` is the protection region rather than the building. Give the wool
-  the same optional structure the spawn has, so a wool can sit in the open, in a tower, or in a house because
-  the author said so.
-
-One object with three unfinished sides. The **stamper** decides what blocks come out, and how a wing's roof
-meets a neighbour's is still argued rather than drawn; **placement** decides where a building may stand and
-what it reserves; and **authoring** is what a style can state and what a library shows back, where the model
-has outgrown the editor. The three share `HouseStyle`, `HouseStamper` and `BuildingPlan`, so a pass over any
-one of them opens the others.
 
 **The stamper.**
 
@@ -567,15 +632,6 @@ one of them opens the others.
 
 **Placement — where a building may stand, and what it reserves.**
 
-- [ ] **B178 — Give a spawn building its own stated footprint, so the plan piece describes only the ground.**
-  The piece does two jobs at once — the ground a spawn stands on, and the building raised on it — so an author
-  who wants a wide platform and a small hall cannot ask. Same class as the iron marker: something welded to a
-  plan rectangle drawn for a different purpose. The `ST9` cap (20×20) suppresses the symptom by forbidding
-  large pieces and is the workaround until this lands; both are wanted.
-
-  *author, 2026-08-14 · Ashfall Scar's spawn piece `x −40…40` builds an 80-block hall; same on `sable-marsh`
-  (90) and `tallow-weirgate` (80).*
-
 - [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
   them, which is right; where one projects into another its gable end is a wall from the ground up, which is
   also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
@@ -583,23 +639,7 @@ one of them opens the others.
   carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
   is cut through, and belongs with the openings work rather than with the roof (`G172`).
 
-- [ ] **G156 — cell-size-aware generator room sizing (WX2's generator half).** The stamped-room minimum is
-  8×8 **blocks** (`docs/world-export/structures.md` WX2) but the emitters size rooms in **cells**
-  (`ShapeEmitter.RoomDepthCells` = 2, corridor widths in cells), so a small-cell board (cell ≤ 3) can emit
-  a wool room or spawn its own export refuses. Make the room depth/width floors cell-size-aware — enough
-  cells to reach the block minimum — through `MinBox` and the spawn profile; the composer's cell-5 boards
-  already clear it by construction, so this binds only when boards go small-cell.
-
 **Authoring — what a style can say, and what a library shows back.**
-
-- [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
-  (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it
-  (`docs/world-export/structures.md` §9). The export reads all three and the stampers have always accepted
-  the third, but the step can only *bind* or *clear*, and clearing means the built-in rather than none. So a
-  map can be authored open only by writing its layout by hand. The step needs a third control per kind, and
-  `ReadBindings` needs to tell a null snapshot from a missing one — today the bridge state drops both, so an
-  open room displays as unpicked (harmless until the author touches it, since the save preserves what it
-  loaded).
 
 - [ ] **S60 — A building prop can state more than one wing; the canvas can still only drag one.** `HouseProp`
   carries `wings`, a list of touching rectangles, and `Decorator` composes them into one `Footprint` and stamps
@@ -719,20 +759,6 @@ seams support and nothing asks for, the word the model uses for a seam — and t
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
 
-- [ ] **B37 — An iron cube is gated on its marker where every other structure is gated on its footprint.**
-  `ObjectivePlacement.Check` refuses a destroyable or a core whose **footprint** overhangs the void
-  (`OB17`), because "a square grown from the marker is not the structure's ground". Iron is checked by
-  `ST2` (`PlanValidator.cs:632`), which tests the **marker block** — and only when a spawn-role piece
-  exists, so a plan whose spawns ride plain pieces gates its iron with nothing. Give the 4×4 cube the
-  footprint test the 4×4 goal already gets. Nothing new is needed: `PlacedGoal(Kind, Id, Footprint, On)`
-  is the record and `ObjectivePlacement.Grounded` the predicate, both already fed by the compile and the
-  export gates; only the message is goal-worded, so this wants its own id in the `ST` family rather than
-  `OB17`.
-
-  *Reproduced 2026-08-31 · one `lane` piece `x[-24,-8) z[-24,-8)`, a `cube-4` destroyable and an iron
-  marker both at `at:[0.5,0.5]`. The destroyable is refused `OB17 — is 4×4 and overhangs the void`; the
-  iron cube draws and stamps at `x[-26,-22) z[-26,-22)`, two columns further out, with no finding.*
-
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
   stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —
@@ -747,17 +773,6 @@ and what a `subtract` takes away.
   Check `BoxEdgeInterface`/`EdgeSpan`/`EdgeInterval` in the same pass: those name a genuine full edge
   and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
   is worth removing rather than tolerating.
-
-- [ ] **B177 — Implement `SP7`: a spawn's iron stands beside or ahead of it, never behind.** No code anywhere
-  matches `SP7` — it is written in `rules.md` and served as prose by `GET /api/rules?rule=SP7`. The ray is
-  already walked: `LintSp8`/`LintSp9` take a spawn's `Facing` through `DoorDirection` and step out of the
-  piece along it, so this is that ray asked of the **iron marker** — the offset along the door's axis,
-  complained about when negative. Separately, an iron cube enclosed by the spawn's own protection union is a
-  resource nobody may contest; that is `WX9` placeability's question and `IronResolution.Placeable` is where it
-  is answered.
-
-  *author, 2026-08-14 · Haiku CTW Rush's iron at `(−10, −65)`, five blocks behind the spawn point and inside
-  the map's `red-spawn` rectangle `(−20,−70)`–`(20,−40)`.*
 
 - [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
   rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that
