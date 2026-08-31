@@ -309,8 +309,14 @@ in four, so a core can also be placed by drawing its casing footprint over obsid
 volume is then derived the way the world-export stamper derives one, so a core described here and one built
 from a plan sit at the same height over the same terrain.
 
-**Casing** reads out the footprint, height, wall thickness, capped-or-flush lava and float, and edits exactly
-one field: **`leak`**. The reasoning is the tool's own boundary. The others describe blocks — on an imported
+**A scanned casing is read back as the nearest offered one.** A map the studio did not build carries whatever
+its own author made — a 7×7 shell two blocks thick is a real corpus core — while an authored core is chosen
+from four lava footprints and four heights (`docs/pgm/destroyables-and-cores.md` DC1). The detection is
+therefore mapped onto the preset it fits rather than kept as a size nothing can now state, and the measured
+volume it came from stays the core's region.
+
+**Casing** reads out the obsidian and the lava inside it — footprint, height, capped or flush, and float —
+and edits exactly one field: **`leak`**. The reasoning is the tool's own boundary. The others describe blocks — on an imported
 map they are measurements of obsidian that exists, and changing them would recompute a region that no longer
 scopes it; on a plan-built map they are what the export is about to place, which is the plan's statement.
 Leak is not a block: it is an attribute on the `<core>` element and nowhere else, so it belongs to the tool

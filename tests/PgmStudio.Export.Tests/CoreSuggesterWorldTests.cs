@@ -1,7 +1,11 @@
 using System.Text.Json;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
+using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Palette;
+using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
@@ -89,10 +93,24 @@ public sealed class CoreSuggesterWorldTests
         await Assert.That(found.All(core => core.OpenTop)).IsTrue();
     }
 
+    /// <summary><b>A thicker shell is measured, not assumed.</b> The studio's own cores are one block of wall
+    /// by construction — the author states the lava and the casing follows — but a scanned map is whatever
+    /// its own author built, and that is what this detector is for. So the casing is stamped straight into a
+    /// world rather than asked of a plan, which can no longer state one.</summary>
     [Test]
     public async Task A_thicker_shell_is_measured_not_assumed()
     {
-        var (found, _) = Detect(Plan("""{ "piece": "bar-w", "at": [2, 2], "size": 7, "height": 7, "shell": 2 }"""));
+        var built = new VoxelWorld();
+        var casing = new BlockBox(0, 20, 0, 6, 26, 6);
+        ObjectiveStamper.StampCore(built, casing, Blocks.Obsidian, shell: 2);
+
+        var world = new Dictionary<(int X, int Y, int Z), int>();
+        for (var x = -4; x <= 10; x++)
+        for (var z = -4; z <= 10; z++)
+        for (var y = 16; y <= 30; y++)
+            if (built.GetBlock(x, y, z).Id is var id and not 0) world[(x, y, z)] = id;
+
+        var found = CoreSuggester.Gather(world);
 
         await Assert.That(found).IsNotEmpty();
         await Assert.That(found[0].Shell).IsEqualTo(2);

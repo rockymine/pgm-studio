@@ -566,12 +566,12 @@ public sealed class CorePlacement : IPlanMarker
     /// meant. Carried straight through to the intent the compiler writes.</summary>
     [JsonPropertyName("layer")]    public string? Layer { get; set; }
 
-    /// <summary>Casing width/depth in blocks; null = 5, the dominant corpus casing.</summary>
-    [JsonPropertyName("size")]     public int? Size { get; set; }
-    /// <summary>Casing height in blocks; null = 5.</summary>
-    [JsonPropertyName("height")]   public int? Height { get; set; }
-    /// <summary>Casing thickness; null = 1 (65% of corpus cores).</summary>
-    [JsonPropertyName("shell")]    public int? Shell { get; set; }
+    /// <summary>The lava's own footprint in blocks, 2–5; null = 3, which leaves the 5×5×5 obsidian casing
+    /// that dominates the corpus. A core states its <b>interior</b>: a casing size and a wall thickness are
+    /// two numbers that can contradict each other, and this one cannot.</summary>
+    [JsonPropertyName("lava")]       public int? Lava { get; set; }
+    /// <summary>How many courses of lava stand inside it, 2–5; null = 3.</summary>
+    [JsonPropertyName("lavaHeight")] public int? LavaHeight { get; set; }
     /// <summary>Omit the cap so the lava sits flush with the rim; null = false — a real but minority style,
     /// so it is a flag rather than the default.</summary>
     [JsonPropertyName("openTop")]  public bool? OpenTop { get; set; }

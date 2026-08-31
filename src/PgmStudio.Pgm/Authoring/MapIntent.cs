@@ -524,16 +524,26 @@ public sealed record CoreIntent
     public string Name { get; init; } = "";
     /// <summary>The marker column. The casing is centred on it and floats above the terrain, so no Y is authored.</summary>
     public Pt Anchor { get; init; }
-    /// <summary>The casing's width and depth, in blocks.</summary>
-    public int Size { get; init; } = ObjectiveDefaults.CoreSize;
+    /// <summary>The lava's own footprint, in blocks (2–5). A core is stated by its <b>interior</b> rather
+    /// than by a casing size and a wall thickness: those are two numbers that can disagree, and an author
+    /// who typed a 5 against a 3 got a solid block of obsidian nothing could leak. The casing follows.</summary>
+    public int Lava { get; init; } = ObjectiveDefaults.CoreLava;
 
-    /// <summary>Its height.</summary>
-    public int Height { get; init; } = ObjectiveDefaults.CoreHeight;
+    /// <summary>How many courses of lava stand inside it (2–5).</summary>
+    public int LavaHeight { get; init; } = ObjectiveDefaults.CoreLavaHeight;
 
-    /// <summary>How thick its wall is.</summary>
-    public int Shell { get; init; } = ObjectiveDefaults.CoreShell;
     /// <summary>Omit the cap layer so the lava reaches the casing rim.</summary>
     public bool OpenTop { get; init; }
+
+    /// <summary>The casing's width and depth, in blocks — the lava walled on both sides.</summary>
+    [JsonIgnore] public int Size => ObjectiveDefaults.CoreCasing(Lava, LavaHeight, OpenTop).Size;
+
+    /// <summary>Its height: the lava's courses, its floor, and the cap where there is one.</summary>
+    [JsonIgnore] public int Height => ObjectiveDefaults.CoreCasing(Lava, LavaHeight, OpenTop).Height;
+
+    /// <summary>How thick its wall is. Fixed rather than authored — the lava footprint is measured inside
+    /// it, so a second thickness knob would only be a way of contradicting the first number.</summary>
+    [JsonIgnore] public int Shell => ObjectiveDefaults.CoreShell;
     /// <summary>Blocks of air between the ground the world build solves under <see cref="Anchor"/>'s column and
     /// the casing's underside — an offset over the ground as built, not the plan's flat nominal surface.
     /// Pairs with <see cref="Leak"/> (DC2).</summary>

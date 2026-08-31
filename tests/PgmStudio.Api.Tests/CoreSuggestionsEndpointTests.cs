@@ -113,9 +113,8 @@ public sealed class CoreSuggestionsEndpointTests
         await Assert.That(body.GetProperty("cores").GetArrayLength()).IsEqualTo(0);
 
         var defaults = body.GetProperty("defaults");
-        await Assert.That(defaults.GetProperty("size").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreSize);
-        await Assert.That(defaults.GetProperty("height").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreHeight);
-        await Assert.That(defaults.GetProperty("shell").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreShell);
+        await Assert.That(defaults.GetProperty("lava").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLava);
+        await Assert.That(defaults.GetProperty("lavaHeight").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLavaHeight);
         await Assert.That(defaults.GetProperty("float").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreFloat);
         await Assert.That(defaults.GetProperty("leak").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLeak);
     }

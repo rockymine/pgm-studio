@@ -341,9 +341,8 @@ public static class PlanCompiler
                     Name = c.Name ?? "",                 // empty is correct: PGM names a core itself
                     Anchor = new Pt(px, anchor.Surface, pz),
                     Layer = c.Layer,
-                    Size = c.Size ?? ObjectiveDefaults.CoreSize,
-                    Height = c.Height ?? ObjectiveDefaults.CoreHeight,
-                    Shell = c.Shell ?? ObjectiveDefaults.CoreShell,
+                    Lava = c.Lava ?? ObjectiveDefaults.CoreLava,
+                    LavaHeight = c.LavaHeight ?? ObjectiveDefaults.CoreLavaHeight,
                     OpenTop = c.OpenTop ?? false,
                     Float = c.Float ?? ObjectiveDefaults.CoreFloat,
                     Leak = c.Leak ?? ObjectiveDefaults.CoreLeak,

@@ -56,15 +56,22 @@ public sealed record DestroyableVocabularyDto(
 /// <summary>What an unauthored core is: its casing, its shell, how far it floats, and how far its lava may
 /// fall before the core counts as leaked. A core resting on the ground cannot leak, which is what
 /// <see cref="Float"/> is for.</summary>
-/// <param name="Size">The casing's width and depth, in blocks.</param>
-/// <param name="Height">The casing's height, in blocks.</param>
-/// <param name="Shell">How thick the casing wall is.</param>
+/// <param name="Lava">The lava's own footprint in blocks — the first of a core's three knobs, and what the
+/// casing is derived from. A core is chosen rather than designed: stating the interior is what makes a
+/// casing with no lava in it unstatable, where a size and a wall thickness are two numbers that can
+/// disagree.</param>
+/// <param name="LavaHeight">How many courses of lava stand inside it — the second knob.</param>
+/// <param name="LavaRange">The footprints on offer, low to high.</param>
+/// <param name="LavaHeightRange">The heights on offer, low to high.</param>
 /// <param name="Float">How far above the ground the casing stands. A core resting on the ground cannot
 /// leak, which is why the default is not zero.</param>
 /// <param name="Leak">How far the lava must fall below the casing to count as leaked.</param>
-/// <param name="OpenTop">Whether the casing is left uncapped, its lava flush with the rim.</param>
+/// <param name="OpenTop">Whether the casing is left uncapped, its lava flush with the rim — the third
+/// knob.</param>
 public sealed record CoreVocabularyDto(
-    int Size, int Height, int Shell, int Float, int Leak, bool OpenTop);
+    int Lava, int LavaHeight,
+    IReadOnlyList<int> LavaRange, IReadOnlyList<int> LavaHeightRange,
+    int Float, int Leak, bool OpenTop);
 
 /// <summary>
 /// The symmetry of a map's islands (<c>GET /map/{slug}/symmetry</c>) — detected on first read and cached, then

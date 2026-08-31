@@ -52,14 +52,14 @@ public sealed record CoreSuggestionsDto(
     CoreDefaultsDto Defaults,
     IReadOnlyList<CoreSuggestionDto> Cores);
 
-/// <summary>What a core is when nobody has said otherwise: how wide and tall its casing is, how thick the
-/// shell, how far it floats and how far its lava may fall before the core counts as leaked.</summary>
-/// <param name="Size">The casing's width and depth, in blocks.</param>
-/// <param name="Height">Its height.</param>
-/// <param name="Shell">How thick its wall is.</param>
+/// <summary>What a core is when nobody has said otherwise: the lava inside it, how far it floats and how far
+/// that lava may fall before the core counts as leaked. The casing follows from the interior rather than
+/// being stated beside it.</summary>
+/// <param name="Lava">The lava's footprint, in blocks.</param>
+/// <param name="LavaHeight">How many courses of it stand inside the casing.</param>
 /// <param name="Float">How far above the ground it stands. A core resting on the ground cannot leak.</param>
 /// <param name="Leak">How far its lava must fall to count as leaked.</param>
-public sealed record CoreDefaultsDto(int Size, int Height, int Shell, int Float, int Leak);
+public sealed record CoreDefaultsDto(int Lava, int LavaHeight, int Float, int Leak);
 
 /// <summary>
 /// One detected core casing. <see cref="Size"/> and <see cref="Height"/> are read off the box that was

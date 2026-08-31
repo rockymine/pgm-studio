@@ -20,9 +20,13 @@ public static class ObjectiveStamper
     public const int DefaultDestroyableFloat = ObjectiveDefaults.DestroyableFloat;
     public const int DefaultCoreFloat = ObjectiveDefaults.CoreFloat;
     public const int DefaultCoreLeak = ObjectiveDefaults.CoreLeak;
-    public const int DefaultCoreSize = ObjectiveDefaults.CoreSize;
-    public const int DefaultCoreHeight = ObjectiveDefaults.CoreHeight;
     public const int DefaultCoreShell = ObjectiveDefaults.CoreShell;
+
+    /// <summary>The casing the default interior implies — what a caller naming no shape gets. The stamper
+    /// takes a casing because that is the box it fills; the author states the lava inside it, and
+    /// <see cref="ObjectiveDefaults.CoreCasing"/> is the one place the two are converted.</summary>
+    public const int DefaultCoreSize = ObjectiveDefaults.CoreLava + 2 * ObjectiveDefaults.CoreShell;
+    public const int DefaultCoreHeight = ObjectiveDefaults.CoreLavaHeight + 2 * ObjectiveDefaults.CoreShell;
 
     // ── destroyables ────────────────────────────────────────────────────────────────
 

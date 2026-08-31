@@ -74,7 +74,7 @@ compile ever answers anything else.
     "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [2, 1],
                         "style": "cube-3", "materials": "obsidian", "float": 4 } ],
     "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5], "layer": "undercroft",
-                        "size": 5, "height": 5, "shell": 1, "float": 6, "leak": 5 } ]
+                        "lava": 3, "lavaHeight": 3, "float": 6, "leak": 5 } ]
   },
   "walls":  [ { "a": "approach", "b": "bridgehead" } ],
   "boxes":  [ { "id": "wool-box", "kind": "wool", "rect": [-4, 3, 4, 10] } ]
@@ -216,7 +216,7 @@ default removes the key rather than freezing the number.
 | Marker | Optional fields | Defaults (`GET /api/objectives/vocabulary`) |
 |---|---|---|
 | `destroyables` | `style`, `materials`, `float`, `layer`, `name` | `pillar-3`, `obsidian`, 4, the top surface, `<Team> Monument` |
-| `cores` | `size`, `height`, `shell`, `openTop`, `float`, `leak`, `layer`, `name` | 5, 5, 1, false, 6, 5, the top surface, PGM names it |
+| `cores` | `lava`, `lavaHeight`, `openTop`, `float`, `leak`, `layer`, `name` | 3, 3, false, 6, 5, the top surface, PGM names it |
 
 **`layer` is which storey the goal stands on**, and it is the one field here that is not a knob on the
 structure but a statement about where the structure is. A stacked board carries a surface per layer, so a

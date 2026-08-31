@@ -16,7 +16,7 @@ public sealed class MetaGeneratorTests
         new() { Owner = owner, Name = name, Materials = "obsidian", Anchor = new Pt(0, 8, 0), Float = 4 };
 
     private static CoreIntent Core(string owner = "red", string name = "") =>
-        new() { Owner = owner, Name = name, Anchor = new Pt(0, 8, 0), Size = 5, Height = 5, Shell = 1, Float = 6, Leak = 5 };
+        new() { Owner = owner, Name = name, Anchor = new Pt(0, 8, 0), Lava = 3, LavaHeight = 3, Float = 6, Leak = 5 };
 
     // doc["gamemode"] is a list, one id per element — never a single joined string (B155: PGM parses
     // <gamemode> as a repeated element and cannot resolve several ids written into one).

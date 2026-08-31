@@ -222,17 +222,20 @@ public static class PlanValidator
                     $"core '{(c.Float is null ? "leak" : "float")}' was set without its pair — "
                     + "float and leak only mean anything together (they set the dig depth)", c.Piece);
 
-        // A casing needs room for lava inside it: at shell s, the interior is size − 2s across. At zero or
-        // less the stamper fills a solid block of obsidian, which is a goal that can never leak.
+        // A core is stated by its interior and chosen from a closed range, so a casing with no lava in it is
+        // not a thing that can be written down. What is left to check is the range itself: a number outside
+        // it is an authoring error to name rather than a value to quietly clamp.
         foreach (var c in plan.Placements.Cores)
         {
-            var (size, height, shell) = (c.Size ?? ObjectiveDefaults.CoreSize, c.Height ?? ObjectiveDefaults.CoreHeight,
-                c.Shell ?? ObjectiveDefaults.CoreShell);
-            if (shell < 1) Error(ObjectiveRules.Casing, $"core shell {shell} is not a casing (needs ≥ 1)", c.Piece);
-            else if (size - 2 * shell < 1 || height - 2 * shell < 1)
+            if (c.Lava is { } lava && (lava < ObjectiveDefaults.MinCoreLava || lava > ObjectiveDefaults.MaxCoreLava))
                 Error(ObjectiveRules.Casing,
-                    $"core {size}×{height}×{size} with shell {shell} leaves no lava inside — "
-                    + "a solid casing is a goal that can never leak", c.Piece);
+                    $"core lava footprint {lava} is outside {ObjectiveDefaults.MinCoreLava}–"
+                    + $"{ObjectiveDefaults.MaxCoreLava} — a core is chosen from those, not sized freely", c.Piece);
+            if (c.LavaHeight is { } height
+                && (height < ObjectiveDefaults.MinCoreLavaHeight || height > ObjectiveDefaults.MaxCoreLavaHeight))
+                Error(ObjectiveRules.Casing,
+                    $"core lava height {height} is outside {ObjectiveDefaults.MinCoreLavaHeight}–"
+                    + $"{ObjectiveDefaults.MaxCoreLavaHeight}", c.Piece);
         }
 
         // OB17 — where a goal may not stand. A destroyable and a core go almost anywhere; the exceptions are
@@ -907,7 +910,9 @@ public static class PlanValidator
         }
         foreach (var c in plan.Placements.Cores)
         {
-            var (width, depth) = ObjectiveFootprint.Core(c.Size ?? ObjectiveDefaults.CoreSize);
+            var (width, depth) = ObjectiveFootprint.Core(
+                ObjectiveDefaults.CoreCasing(c.Lava ?? ObjectiveDefaults.CoreLava,
+                    c.LavaHeight ?? ObjectiveDefaults.CoreLavaHeight, c.OpenTop ?? false).Size);
             if (Footprint(d, c.Piece, c.At, width, depth) is { } rect)
                 yield return new PlacedGoal("core", c.Id, rect, c.Piece);
         }

@@ -507,30 +507,33 @@
                 }
                 else if (sel.MarkerKind == "core")
                 {
-                  <Field Label="Footprint">
+                  @* A core is chosen, not designed: the author states the lava and the casing follows, so a
+                     casing with nothing in it cannot be typed. The readout is the obsidian those two imply. *@
+                  <Field Label="Lava footprint">
                     <LabelHint>(width &amp; depth)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="1" max="64" value="@CoreSize"
-                             @onchange="@(e => SetMarkerNumber("size", Num(e.Value, CoreSize), vocabulary.Core.Size))" />
+                      <select class="field-input" value="@CoreLava"
+                              @onchange="@(e => SetMarkerNumber("lava", Num(e.Value, CoreLava), vocabulary.Core.Lava))">
+                        @foreach (var n in vocabulary.Core.LavaRange) { <option value="@n">@n × @n</option> }
+                      </select>
                     </ChildContent>
                   </Field>
-                  <Field Label="Height">
-                    <input class="field-input" type="number" min="1" max="64" value="@CoreHeight"
-                           @onchange="@(e => SetMarkerNumber("height", Num(e.Value, CoreHeight), vocabulary.Core.Height))" />
-                  </Field>
-                  <Field Label="Wall thickness">
-                    <LabelHint>(obsidian shell)</LabelHint>
+                  <Field Label="Lava height">
+                    <LabelHint>(courses)</LabelHint>
                     <ChildContent>
-                      <input class="field-input" type="number" min="1" max="16" value="@CoreShell"
-                             @onchange="@(e => SetMarkerNumber("shell", Num(e.Value, CoreShell), vocabulary.Core.Shell))" />
+                      <select class="field-input" value="@CoreLavaHeight"
+                              @onchange="@(e => SetMarkerNumber("lavaHeight", Num(e.Value, CoreLavaHeight), vocabulary.Core.LavaHeight))">
+                        @foreach (var n in vocabulary.Core.LavaHeightRange) { <option value="@n">@n</option> }
+                      </select>
                     </ChildContent>
                   </Field>
-                  <Field Label="Lava">
+                  <Field Label="Casing">
                     <label class="ctrl-row" style="cursor:pointer">
                       <input type="checkbox" class="control-input control-input--hidden" checked="@CoreOpenTop"
                              @onchange="@(e => SetMarkerField("openTop", e.Value is true ? true : null))" />
-                      <span class="plan-readout">@(CoreOpenTop ? "flush with the rim (open top)" : "capped by the casing")</span>
+                      <span class="plan-readout">@(CoreOpenTop ? "open — lava flush with the rim" : "capped over the lava")</span>
                     </label>
+                    <Footer><span class="plan-readout">@CoreCasingReadout</span></Footer>
                   </Field>
                   <Field Label="Float">
                     <LabelHint>(air under the casing)</LabelHint>

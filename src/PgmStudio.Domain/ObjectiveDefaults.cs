@@ -24,12 +24,28 @@ public static class ObjectiveDefaults
 
     // ── core (DTC) ─────────────────────────────────────────────────────────────────────────────────────
 
-    /// <summary>Casing width/depth: 5×5×5 obsidian is the dominant corpus casing (DC1).</summary>
-    public const int CoreSize = 5;
-    public const int CoreHeight = 5;
+    /// <summary>The lava's own footprint, in blocks — <b>what an author states</b>, and one of the three
+    /// knobs a core has. 3 leaves the 5×5×5 obsidian casing that dominates the corpus (DC1).</summary>
+    public const int CoreLava = 3;
 
-    /// <summary>Casing thickness — 1 block in 65% of corpus cores, leaving a 3×3×3 lava interior.</summary>
+    /// <summary>How many courses of lava stand inside the casing. The second knob.</summary>
+    public const int CoreLavaHeight = 3;
+
+    /// <summary>The closed range each of the two takes. A core is chosen from presets rather than designed:
+    /// stating the <em>interior</em> and bounding it is what makes an impossible casing unstatable, where
+    /// independent size and shell knobs let one be typed and refused a phase later.</summary>
+    public const int MinCoreLava = 2, MaxCoreLava = 5;
+    public const int MinCoreLavaHeight = 2, MaxCoreLavaHeight = 5;
+
+    /// <summary>Casing thickness. Not a knob: 1 block in 65% of corpus cores, and the wall a lava footprint
+    /// is measured inside — the author states the lava and the casing follows from it.</summary>
     public const int CoreShell = 1;
+
+    /// <summary>The casing a stated interior implies: its width and depth are the lava's footprint walled on
+    /// both sides, and its height the lava's courses plus the floor, plus the cap where there is one. An open
+    /// top is a course of casing the author gave up, so the same lava height reads one block shorter.</summary>
+    public static (int Size, int Height) CoreCasing(int lava, int lavaHeight, bool openTop) =>
+        (lava + 2 * CoreShell, lavaHeight + (openTop ? CoreShell : 2 * CoreShell));
 
     /// <summary>Blocks of air under the casing. Pairs with <see cref="CoreLeak"/> (DC2).</summary>
     public const int CoreFloat = 6;

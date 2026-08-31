@@ -719,6 +719,23 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A core is chosen, not designed (`G161`).** The plan's marker panel offered a casing size (1..64) and a
+  wall thickness (1..16), clamped independently — so a 5×5 casing with a shell of 3 was one keystroke away,
+  left `size − 2·shell = −1`, and built a solid block of obsidian nothing could leak. `PlanValidator` caught
+  it with a good message and only at the compile gate, a phase after the edit. The author's ruling replaces
+  the pair with presets, the way a destroyable already had them: **three knobs — the lava's footprint
+  (2×2 · 3×3 · 4×4 · 5×5), its height in courses (2–5), and capped or open.** The obsidian follows —
+  `lava + 2` across, `lavaHeight + 2` tall, or `+1` where an open top gives up its cap — so `CoreIntent.Size`,
+  `Height` and `Shell` are derived rather than stated and the contradiction is unrepresentable. The lint that
+  caught it is now a range check, and `PlanCoresTests` walks all thirty-two offered cores to prove every one
+  leaves lava inside its casing. The default interior is DC1's dominant 5×5×5.
+  A scanned core is read back as the nearest offer, since a corpus map carries whatever its own author built.
+  **One consequence is recorded rather than papered over:** the tallest core the offer builds tops out at
+  `MaxFloat + 7 − 1 = 18` against a ceiling standing 20 over the ground, so **`OB23` can no longer be reached
+  by any goal the studio states** — the rule stays, because the numbers it reads are the author's and may
+  move, and `BuildCeilingTests` now pins that arithmetic instead of a complaint nothing can trigger.
+  `rules.md` amendment 28. (`G161`)
+
 - **A core has no plate under it, and a destroyable still does (`WE3`).** Both goals were stamped over the
   same buried bedrock plate, three courses under the ground, so the diggable terrain beneath a core was three
   courses and a `float`/`leak` pair asking for a deeper dig asked for one the bedrock silently refused —

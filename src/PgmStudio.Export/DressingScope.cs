@@ -166,7 +166,7 @@ public static class DressingScope
         }
         foreach (var core in intent.Cores ?? [])
         {
-            var (width, depth) = ObjectiveFootprint.Core(core.Size > 0 ? core.Size : ObjectiveDefaults.CoreSize);
+            var (width, depth) = ObjectiveFootprint.Core(core.Size);
             rects.Add(Ground(core.Box, core.Anchor, width, depth));
         }
 

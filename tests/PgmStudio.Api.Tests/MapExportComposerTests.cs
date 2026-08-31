@@ -138,7 +138,7 @@ public sealed class MapExportComposerTests
                 new PgmStudio.Pgm.Authoring.CoreIntent
                 {
                     Owner = "red-team", Name = "Heart", Anchor = shared, Float = 2,
-                    Size = 5, Height = 5, Shell = 1,
+                    Lava = 3, LavaHeight = 3,
                 },
             ],
         };
@@ -176,7 +176,7 @@ public sealed class MapExportComposerTests
                 new PgmStudio.Pgm.Authoring.CoreIntent
                 {
                     Owner = "red-team", Name = "Heart", Anchor = new PgmStudio.Pgm.Authoring.Pt(30, 0, 30),
-                    Float = 2, Size = 5, Height = 5, Shell = 1,
+                    Float = 2, Lava = 3, LavaHeight = 3,
                 },
             ],
         };

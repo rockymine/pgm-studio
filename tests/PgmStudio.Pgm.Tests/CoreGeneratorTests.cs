@@ -15,7 +15,7 @@ public sealed class CoreGeneratorTests
     private static CoreIntent Sample(BlockBox? box, string owner = "red", string name = "", int leak = 5) => new()
     {
         Owner = owner, Name = name, Anchor = new Pt(10, 12, 20),
-        Size = 5, Height = 5, Shell = 1, Float = 6, Leak = leak, Box = box,
+        Lava = 3, LavaHeight = 3, Float = 6, Leak = leak, Box = box,
     };
 
     private static readonly BlockBox Box = new(8, 18, 18, 12, 22, 22);

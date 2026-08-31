@@ -94,7 +94,7 @@ plan that already described it. Fusing is deliberate — a compiled layout is a 
 
 **A gate's verdict exists only at the compile boundary.** `PlanValidator` runs at compile and not in the live
 inspect feed, so an author sets a number, sees nothing, and meets the refusal a phase later — and the surfaces
-around that boundary each mislead in their own way. `G161` · `TN2` · `TN6` · `B79` · `G163` · `WE34` ·
+around that boundary each mislead in their own way. `TN2` · `TN6` · `B79` · `G163` · `WE34` ·
 `B249`.
 
 **A term measures the artifact it can reach rather than the one the claim is about.** `G8` measures the plan
@@ -109,7 +109,7 @@ authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `S40` · `C51
 
 ## The questions no reading of this repository can answer
 
-Thirty-one entries name a ruling or a decision in their own text, and 14 of those still carry the
+Thirty-one entries name a ruling or a decision in their own text, and 13 of those still carry the
 question unanswered. `CLAUDE.md` is explicit that these cannot be derived — the corpus shows what authors
 did, the code shows what the tool does, and neither says what is correct — so **no amount of work drains this
 part of the board.** It drains in one sitting of answers, and it is the single highest-leverage move
@@ -125,14 +125,12 @@ The questions, stated so they can be answered in a line each:
    smaller?
 6. `WE2` — should a roof's eave descend by `pitch` at all?
 7. `B225` — does a course marching under a neighbour's verge stop at the verge or at the wall?
-8. `G161` — **answered**: the core gets presets, not free knobs — lava footprint, lava height, capped or
-   open. The question of where to report an impossible casing is moot once one cannot be stated.
-9. `B55` — which API paths read a map *as played*, and which read it as written?
-10. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
-11. `B70` — which view should a library card carry?
-12. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-13. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the smoke check naming a player?
-14. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
+8. `B55` — which API paths read a map *as played*, and which read it as written?
+9. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
+10. `B70` — which view should a library card carry?
+11. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
+12. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the smoke check naming a player?
+13. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
 
 Three more are decisions of scheduling rather than of gameplay and can be taken without the oracle: `P7`
 (whether the scan passes consolidate), `B249` (whether a per-call refusal override is wanted at all) and

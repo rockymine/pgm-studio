@@ -49,7 +49,7 @@ public sealed class SymmetryExpanderCarryTests
         }],
         Cores = [new CoreIntent
         {
-            Owner = "red-team", Anchor = new Pt(40, 12, 40), Size = 7, Height = 4, Shell = 2,
+            Owner = "red-team", Anchor = new Pt(40, 12, 40), Lava = 3, LavaHeight = 3,
             OpenTop = true, Float = 6, Leak = 9, Box = new BlockBox(37, 18, 37, 43, 21, 43),
         }],
         IslandTeams = new Dictionary<string, string> { ["1"] = "red-team" },
@@ -119,9 +119,11 @@ public sealed class SymmetryExpanderCarryTests
         await Assert.That(cores.Select(core => core.Owner)).IsEquivalentTo(new[] { "red-team", "blue-team" });
 
         var mirrored = cores.Single(core => core.Owner == "blue-team");
-        await Assert.That(mirrored.Size).IsEqualTo(7);
-        await Assert.That(mirrored.Height).IsEqualTo(4);
-        await Assert.That(mirrored.Shell).IsEqualTo(2);
+        await Assert.That(mirrored.Lava).IsEqualTo(3);
+        await Assert.That(mirrored.LavaHeight).IsEqualTo(3);
+        // and the casing those carry: 3 lava walled both sides, open, so its floor is the only obsidian
+        // course over the interior.
+        await Assert.That((mirrored.Size, mirrored.Height, mirrored.Shell)).IsEqualTo((5, 4, 1));
         await Assert.That(mirrored.OpenTop).IsTrue();
         await Assert.That(mirrored.Float).IsEqualTo(6);
         await Assert.That(mirrored.Leak).IsEqualTo(9);
@@ -153,11 +155,11 @@ public sealed class SymmetryExpanderCarryTests
     {
         // Author overrides win: a map whose second core was corrected by hand keeps the correction.
         var intent = Full();
-        var mine = intent.Cores![0] with { Owner = "blue-team", Size = 3, Anchor = new Pt(-1, 12, -1) };
+        var mine = intent.Cores![0] with { Owner = "blue-team", Lava = 2, Anchor = new Pt(-1, 12, -1) };
         var expanded = SymmetryExpander.Expand(intent with { Cores = [.. intent.Cores, mine] });
 
         await Assert.That(expanded.Cores!.Count).IsEqualTo(2);
-        await Assert.That(expanded.Cores.Single(core => core.Owner == "blue-team").Size).IsEqualTo(3);
+        await Assert.That(expanded.Cores.Single(core => core.Owner == "blue-team").Lava).IsEqualTo(2);
     }
 
     [Test]

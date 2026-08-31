@@ -903,6 +903,16 @@ both corrected.)
     narrow face reads a perfect 1.00. The number is the author's. `LintBoardEdges` already described it in
     its own comment before any code asked it.
 
+28. **A core is chosen, not designed (2026-08-31).** The casing knobs — size 1..64 and shell 1..16, clamped
+    independently — let an author state `size − 2·shell ≤ 0`, a solid block of obsidian nothing can leak, one
+    keystroke away in the marker panel and refused a phase later at the compile gate. The author's ruling
+    replaces them with presets, as a destroyable already had: the **lava's footprint** (2–5), its **height**
+    in courses (2–5), and **capped or open**. The obsidian follows, so the contradiction is unrepresentable
+    and `DC1`'s dominant 5×5×5 is what the default interior implies. One consequence is worth recording:
+    the tallest core the offer builds is `MaxFloat + 7 − 1 = 18` against a ceiling standing 20 over the
+    ground, so **`OB23` can no longer be reached by any goal the studio states**. The rule stays — the
+    numbers it reads are the author's and may move — but nothing today can trip it.
+
 ## Correction protocol
 
 Reply by rule id. **Frozen 2026-07-04 as the composer's v1 rule set.** Further corrections are

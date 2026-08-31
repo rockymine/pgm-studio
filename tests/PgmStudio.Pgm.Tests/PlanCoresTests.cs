@@ -65,15 +65,24 @@ public sealed class PlanCoresTests
         await Assert.That(Compile(named)[0].Name).IsEqualTo("The Heart");
     }
 
+    /// <summary>A core has three knobs and the casing follows from them: the lava's footprint, its courses,
+    /// and whether the top is capped. An open casing gave up its cap course, so the same lava stands under
+    /// one less block of obsidian.</summary>
     [Test]
-    public async Task Authored_knobs_win_over_the_defaults()
+    public async Task The_stated_interior_decides_the_casing()
     {
         var json = Json.Replace(Marker,
-            """{ "piece": "bar-w", "at": [1, 1], "size": 7, "height": 7, "shell": 2, "openTop": true, "float": 3, "leak": 4 }""");
+            """{ "piece": "bar-w", "at": [1, 1], "lava": 5, "lavaHeight": 4, "openTop": true, "float": 3, "leak": 4 }""");
         var c = Compile(json)[0];
-        await Assert.That((c.Size, c.Height, c.Shell)).IsEqualTo((7, 7, 2));
+        await Assert.That((c.Lava, c.LavaHeight)).IsEqualTo((5, 4));
+        await Assert.That((c.Size, c.Height, c.Shell)).IsEqualTo((7, 5, 1))
+            .Because("5 lava walled on both sides is 7 across; open, 4 courses need one block of floor");
         await Assert.That(c.OpenTop).IsTrue();
         await Assert.That((c.Float, c.Leak)).IsEqualTo((3, 4));
+
+        var capped = Json.Replace(Marker,
+            """{ "piece": "bar-w", "at": [1, 1], "lava": 5, "lavaHeight": 4 }""");
+        await Assert.That(Compile(capped)[0].Height).IsEqualTo(6).Because("a cap is the sixth course");
     }
 
     // ── OB22 — how far a goal may float ─────────────────────────────────────────────────
@@ -138,22 +147,37 @@ public sealed class PlanCoresTests
         await Assert.That(Errors(Validate(Json), "without its pair")).IsFalse().Because("neither half is authored");
     }
 
+    /// <summary><b>A casing with no lava in it is no longer a thing that can be written down.</b> An author
+    /// used to state a size and a wall thickness — two numbers that can contradict each other, and a 5
+    /// against a 3 left a solid block of obsidian nothing could leak. Stating the interior instead makes the
+    /// contradiction unrepresentable; what is left to check is the range, and a number outside it is named
+    /// rather than quietly clamped.</summary>
     [Test]
-    [Arguments(3, 2)]   // 3 − 2·2 = −1 across
-    [Arguments(2, 1)]   // 2 − 2·1 = 0 across
-    public async Task A_casing_with_no_room_for_lava_is_an_error(int size, int shell)
+    [Arguments("lava", 1)]
+    [Arguments("lava", 6)]
+    [Arguments("lavaHeight", 1)]
+    [Arguments("lavaHeight", 9)]
+    public async Task A_core_outside_the_offered_range_is_an_error(string knob, int value)
     {
-        // The stamper would fill a solid block of obsidian: a goal that can never leak, so never captured.
-        var json = Json.Replace(Marker,
-            $$"""{ "piece": "bar-w", "at": [1, 1], "size": {{size}}, "height": {{size}}, "shell": {{shell}} }""");
-        await Assert.That(Errors(Validate(json), "no lava inside")).IsTrue();
+        var json = Json.Replace(Marker, $$"""{ "piece": "bar-w", "at": [1, 1], "{{knob}}": {{value}} }""");
+        await Assert.That(Errors(Validate(json), "outside")).IsTrue();
     }
 
     [Test]
-    public async Task A_shell_thinner_than_one_block_is_not_a_casing()
+    public async Task Every_offered_core_leaves_lava_inside_its_casing()
     {
-        var json = Json.Replace(Marker, """{ "piece": "bar-w", "at": [1, 1], "shell": 0 }""");
-        await Assert.That(Errors(Validate(json), "not a casing")).IsTrue();
+        for (var lava = ObjectiveDefaults.MinCoreLava; lava <= ObjectiveDefaults.MaxCoreLava; lava++)
+        for (var height = ObjectiveDefaults.MinCoreLavaHeight; height <= ObjectiveDefaults.MaxCoreLavaHeight; height++)
+        foreach (var open in new[] { false, true })
+        {
+            var json = Json.Replace(Marker,
+                $$"""{ "piece": "bar-w", "at": [1, 1], "lava": {{lava}}, "lavaHeight": {{height}}, "openTop": {{(open ? "true" : "false")}} }""");
+            await Assert.That(Errors(Validate(json), "outside")).IsFalse();
+            var c = Compile(json)[0];
+            await Assert.That(c.Size - 2 * c.Shell).IsEqualTo(lava);
+            await Assert.That(c.Height - (open ? 1 : 2) * c.Shell).IsEqualTo(height)
+                .Because($"lava {lava}×{height}{(open ? " open" : "")} has to survive the casing it implies");
+        }
     }
 
     [Test]

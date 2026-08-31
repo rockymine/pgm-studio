@@ -18,6 +18,10 @@ public sealed class ObjectiveVocabularyEndpoint : EndpointWithoutRequest<Objecti
             DestroyableStyles.Slug(ObjectiveDefaults.Style), ObjectiveDefaults.Materials,
             ObjectiveDefaults.DestroyableFloat),
         new CoreVocabularyDto(
-            ObjectiveDefaults.CoreSize, ObjectiveDefaults.CoreHeight, ObjectiveDefaults.CoreShell,
+            ObjectiveDefaults.CoreLava, ObjectiveDefaults.CoreLavaHeight,
+            [.. Enumerable.Range(ObjectiveDefaults.MinCoreLava,
+                ObjectiveDefaults.MaxCoreLava - ObjectiveDefaults.MinCoreLava + 1)],
+            [.. Enumerable.Range(ObjectiveDefaults.MinCoreLavaHeight,
+                ObjectiveDefaults.MaxCoreLavaHeight - ObjectiveDefaults.MinCoreLavaHeight + 1)],
             ObjectiveDefaults.CoreFloat, ObjectiveDefaults.CoreLeak, OpenTop: false)), ct);
 }

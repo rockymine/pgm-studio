@@ -26,9 +26,8 @@ public sealed class CoreIntentWireTests
               "owner": "red",
               "name": "Red Core",
               "anchor": { "x": 10.5, "y": 12, "z": 20.5 },
-              "size": 7,
-              "height": 4,
-              "shell": 2,
+              "lava": 5,
+              "lavaHeight": 2,
               "float": 6,
               "leak": 9,
               "openTop": true,
@@ -48,9 +47,11 @@ public sealed class CoreIntentWireTests
         await Assert.That(core.Owner).IsEqualTo("red");
         await Assert.That(core.Name).IsEqualTo("Red Core");
         await Assert.That((core.Anchor.X, core.Anchor.Y, core.Anchor.Z)).IsEqualTo((10.5, 12d, 20.5));
-        await Assert.That(core.Size).IsEqualTo(7);
-        await Assert.That(core.Height).IsEqualTo(4);
-        await Assert.That(core.Shell).IsEqualTo(2);
+        await Assert.That(core.Lava).IsEqualTo(5);
+        await Assert.That(core.LavaHeight).IsEqualTo(2);
+        // and the casing they imply, which is what the stamper fills: an open top gives up the cap course,
+        // so two courses of lava stand under three of obsidian rather than four.
+        await Assert.That((core.Size, core.Height, core.Shell)).IsEqualTo((7, 3, 1));
         await Assert.That(core.Float).IsEqualTo(6);
         await Assert.That(core.Leak).IsEqualTo(9);
         await Assert.That(core.OpenTop).IsTrue();
@@ -98,7 +99,7 @@ public sealed class CoreIntentWireTests
         var intent = JsonSerializer.Deserialize<MapIntent>("""
             {
               "wools": [ { "owner": "red", "color": "blue", "spawn": { "x": 1, "y": 2, "z": 3 } } ],
-              "cores": [ { "owner": "blue", "anchor": { "x": 4, "y": 5, "z": 6 }, "size": 5, "height": 5,
+              "cores": [ { "owner": "blue", "anchor": { "x": 4, "y": 5, "z": 6 }, "lava": 3, "lavaHeight": 3,
                            "box": { "minX": 0, "minY": 10, "minZ": 0, "maxX": 4, "maxY": 14, "maxZ": 4 } } ]
             }
             """, Web)!;

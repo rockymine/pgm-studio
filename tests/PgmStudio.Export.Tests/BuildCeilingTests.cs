@@ -132,16 +132,20 @@ public sealed class BuildCeilingTests
                 new CoreIntent
                 {
                     Owner = "red", Name = "Red Core", Anchor = new Pt(0, 0, 0),
-                    Size = 5, Height = 20, Shell = 1,
+                    Lava = 3, LavaHeight = 5,
                     Float = ObjectiveDefaults.MaxFloat, Leak = ObjectiveDefaults.CoreLeak,
                 },
             ],
         });
 
-        await Assert.That(floated.ResolvedIntent.Cores![0].Box!.Value.MaxY)
-            .IsGreaterThan(bare.ResolvedIntent.Build!.MaxHeight!.Value);
         await Assert.That(floated.ResolvedIntent.Build!.MaxHeight)
             .IsEqualTo(bare.ResolvedIntent.Build!.MaxHeight);
+
+        // And a goal cannot reach the DERIVED ceiling at all: the tallest one a core can be is
+        // MaxFloat + the tallest casing the offered interiors imply, which is under BuildCeiling.OverGround.
+        // The complaint below it is therefore about a ceiling the author stated, not one the ground gave.
+        await Assert.That(floated.ResolvedIntent.Cores![0].Box!.Value.MaxY)
+            .IsLessThanOrEqualTo(bare.ResolvedIntent.Build!.MaxHeight!.Value);
     }
 
     /// <summary>A goal marker hangs five over the cap, which is one rule for every goal kind — the
@@ -158,40 +162,41 @@ public sealed class BuildCeilingTests
         await Assert.That(built.World.GetBlock(-10, floor - 1, 10).Id).IsEqualTo(Blocks.Air);
     }
 
-    /// <summary>The derived half of the cap (OB23): a goal's own structure standing over the line players may
-    /// build to. The blocks above it can still be broken, so nothing is unwinnable — what is wrong is a goal
-    /// contested from ground nobody may build up to reach — which is why it is a complaint on a built world
-    /// rather than a refusal, and why it is asked here rather than at the plan gate: the ceiling is twenty
-    /// over what the map <em>actually built</em>, which a plan has not solved yet.</summary>
+    /// <summary><b>No goal the studio can state reaches the ceiling any more.</b> <c>OB23</c> complains when
+    /// a goal's own structure tops out over the line players may build to, and it was reachable while a core
+    /// stated its casing freely: twenty courses of obsidian at the most a goal may float cleared the cap by
+    /// eleven. A core is chosen from four interiors now, so the tallest is five courses of lava under a floor
+    /// and a cap — seven — and <c>MaxFloat + 7 − 1</c> is eighteen against the ceiling's twenty. A
+    /// destroyable's own styles stop at four courses and never came near it.
+    ///
+    /// <para>So this pins the arithmetic rather than the complaint. The rule stays because the numbers it
+    /// reads are the author's and may move; what no longer exists is a way to build a goal that trips it.</para></summary>
     [Test]
-    public async Task A_goal_over_the_cap_is_a_complaint_naming_its_top_and_the_ceiling()
+    public async Task No_offered_core_can_stand_over_the_build_ceiling()
     {
-        // It takes both knobs to reach the line: at the most a goal may float, only a casing taller than the
-        // clearance leaves can top out over the ceiling — a core, since a destroyable's own styles stop at
-        // four courses.
-        var floated = Intent() with
+        for (var lava = ObjectiveDefaults.MinCoreLava; lava <= ObjectiveDefaults.MaxCoreLava; lava++)
+        for (var height = ObjectiveDefaults.MinCoreLavaHeight; height <= ObjectiveDefaults.MaxCoreLavaHeight; height++)
+        foreach (var open in new[] { false, true })
         {
-            Cores =
-            [
-                new CoreIntent
-                {
-                    Owner = "red", Name = "Red Core", Anchor = new Pt(0, 0, 0),
-                    Size = 5, Height = 20, Shell = 1,
-                    Float = ObjectiveDefaults.MaxFloat, Leak = ObjectiveDefaults.CoreLeak,
-                },
-            ],
-        };
-        var built = WorldBuilder.Build(Flat, floated);
-        var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
-        var top = built.ResolvedIntent.Cores![0].Box!.Value.MaxY;
+            var built = WorldBuilder.Build(Flat, Intent() with
+            {
+                Cores =
+                [
+                    new CoreIntent
+                    {
+                        Owner = "red", Name = "Red Core", Anchor = new Pt(0, 0, 0),
+                        Lava = lava, LavaHeight = height, OpenTop = open,
+                        Float = ObjectiveDefaults.MaxFloat, Leak = ObjectiveDefaults.CoreLeak,
+                    },
+                ],
+            });
+            var cap = built.ResolvedIntent.Build!.MaxHeight!.Value;
+            var top = built.ResolvedIntent.Cores![0].Box!.Value.MaxY;
 
-        // The fixture only says anything if the goal really does stand over the line.
-        await Assert.That(top).IsGreaterThan(cap);
-
-        var complaint = built.Declines.Single(f => f.Rule == ObjectiveRules.OverBuildCeiling);
-        await Assert.That(complaint.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(complaint.Message).Contains($"y{top}");
-        await Assert.That(complaint.Message).Contains($"y{cap}");
+            await Assert.That(top).IsLessThanOrEqualTo(cap)
+                .Because($"lava {lava}x{height}{(open ? " open" : "")} at the most a goal may float");
+            await Assert.That(built.Declines.Any(f => f.Rule == ObjectiveRules.OverBuildCeiling)).IsFalse();
+        }
     }
 
     [Test]

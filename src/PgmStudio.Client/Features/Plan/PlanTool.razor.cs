@@ -672,9 +672,21 @@ public partial class PlanTool
     private string DestroyableMaterials => sel?.Materials ?? vocabulary.Destroyable.Materials;
     private int DestroyableFloat => sel?.Float ?? vocabulary.Destroyable.Float;
 
-    private int CoreSize => sel?.Size ?? vocabulary.Core.Size;
-    private int CoreHeight => sel?.Height ?? vocabulary.Core.Height;
-    private int CoreShell => sel?.Shell ?? vocabulary.Core.Shell;
+    private int CoreLava => sel?.Lava ?? vocabulary.Core.Lava;
+    private int CoreLavaHeight => sel?.LavaHeight ?? vocabulary.Core.LavaHeight;
+
+    /// <summary>The obsidian the two stated numbers imply, so the author reads the structure they are
+    /// building rather than the interior alone. The wall is one block on every side, and an open top gives
+    /// up the cap course.</summary>
+    private string CoreCasingReadout
+    {
+        get
+        {
+            var size = CoreLava + 2;
+            var height = CoreLavaHeight + (CoreOpenTop ? 1 : 2);
+            return $"{size}×{size}×{height} obsidian, {CoreLava}×{CoreLava}×{CoreLavaHeight} lava inside";
+        }
+    }
     private int CoreFloat => sel?.Float ?? vocabulary.Core.Float;
     private int CoreLeak => sel?.Leak ?? vocabulary.Core.Leak;
     private bool CoreOpenTop => sel?.OpenTop ?? vocabulary.Core.OpenTop;
@@ -702,9 +714,10 @@ public partial class PlanTool
 
     private sealed class CoreVocabulary
     {
-        [JsonPropertyName("size")] public int Size { get; set; }
-        [JsonPropertyName("height")] public int Height { get; set; }
-        [JsonPropertyName("shell")] public int Shell { get; set; }
+        [JsonPropertyName("lava")] public int Lava { get; set; }
+        [JsonPropertyName("lavaHeight")] public int LavaHeight { get; set; }
+        [JsonPropertyName("lavaRange")] public List<int> LavaRange { get; set; } = [];
+        [JsonPropertyName("lavaHeightRange")] public List<int> LavaHeightRange { get; set; } = [];
         [JsonPropertyName("float")] public int Float { get; set; }
         [JsonPropertyName("leak")] public int Leak { get; set; }
         [JsonPropertyName("openTop")] public bool OpenTop { get; set; }
@@ -1221,9 +1234,8 @@ public partial class PlanTool
         [JsonPropertyName("name")] public string? Name { get; set; }
         [JsonPropertyName("style")] public string? Style { get; set; }
         [JsonPropertyName("materials")] public string? Materials { get; set; }
-        [JsonPropertyName("size")] public int? Size { get; set; }
-        [JsonPropertyName("height")] public int? Height { get; set; }
-        [JsonPropertyName("shell")] public int? Shell { get; set; }
+        [JsonPropertyName("lava")] public int? Lava { get; set; }
+        [JsonPropertyName("lavaHeight")] public int? LavaHeight { get; set; }
         [JsonPropertyName("float")] public int? Float { get; set; }
         [JsonPropertyName("leak")] public int? Leak { get; set; }
         [JsonPropertyName("openTop")] public bool? OpenTop { get; set; }

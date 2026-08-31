@@ -98,7 +98,7 @@ public sealed class DressingScopeTests
         var (world, surface) = Ground(-20, 40);
         var core = new MapIntent
         {
-            Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Size = 7, Height = 7, Shell = 1 }],
+            Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Lava = 5, LavaHeight = 5 }],
         };
 
         await Assert.That(DressingScope.KeptClearAt(world, surface, core)(20, 20)).IsNull();
@@ -112,7 +112,7 @@ public sealed class DressingScopeTests
         // core is authored larger — at size 7 the outer ring of the casing is the goal's own blocks.
         var core = new MapIntent
         {
-            Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Size = 7, Height = 7, Shell = 1 }],
+            Cores = [new CoreIntent { Owner = "red", Anchor = new Pt(20, 8, 20), Lava = 5, LavaHeight = 5 }],
         };
         var goalGround = DressingScope.GoalGroundAt(core);
 

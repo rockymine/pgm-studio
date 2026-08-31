@@ -656,7 +656,7 @@ public static class WorldBuilder
             resolved.Add(new CoreIntent
             {
                 Owner = c.Owner, Name = c.Name, Anchor = c.Anchor,
-                Size = c.Size, Height = c.Height, Shell = c.Shell, OpenTop = c.OpenTop,
+                Lava = c.Lava, LavaHeight = c.LavaHeight, OpenTop = c.OpenTop,
                 Float = c.Float, Leak = c.Leak, Box = box,
             });
         }

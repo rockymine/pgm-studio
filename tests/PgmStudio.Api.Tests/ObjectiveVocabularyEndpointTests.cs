@@ -30,9 +30,12 @@ public sealed class ObjectiveVocabularyEndpointTests
     public async Task The_core_defaults_are_the_generators_own()
     {
         var core = (await GetAsync()).GetProperty("core");
-        await Assert.That(core.GetProperty("size").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreSize);
-        await Assert.That(core.GetProperty("height").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreHeight);
-        await Assert.That(core.GetProperty("shell").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreShell);
+        await Assert.That(core.GetProperty("lava").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLava);
+        await Assert.That(core.GetProperty("lavaHeight").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLavaHeight);
+        // The offered footprints and heights travel with the defaults: a core is chosen from them, so a
+        // client that had to invent the list would be inventing the vocabulary.
+        await Assert.That(core.GetProperty("lavaRange").GetArrayLength()).IsEqualTo(4);
+        await Assert.That(core.GetProperty("lavaHeightRange").GetArrayLength()).IsEqualTo(4);
         await Assert.That(core.GetProperty("float").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreFloat);
         await Assert.That(core.GetProperty("leak").GetInt32()).IsEqualTo(ObjectiveDefaults.CoreLeak);
         // A capped casing is the norm; open-top is the minority style, so it is a flag rather than a default.

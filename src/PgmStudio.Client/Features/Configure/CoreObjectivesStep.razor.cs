@@ -86,7 +86,7 @@ public partial class CoreObjectivesStep
             var suggestions = await Http.GetFromJsonAsync<CoreSuggestionsDto>(query);
 
             if (suggestions?.Defaults is { } d)
-                defaults = new C.Defaults(d.Size, d.Height, d.Shell, d.Float, d.Leak);
+                defaults = new C.Defaults(d.Lava, d.LavaHeight, d.Float, d.Leak);
 
             detected = new List<C.Core>();
             foreach (var core in suggestions?.Cores ?? [])
@@ -98,10 +98,14 @@ public partial class CoreObjectivesStep
                 {
                     Owner = Ctx.IslandTeamAt(volume.CentreX, volume.CentreZ, islands, islandTeams) ?? "",
                     AnchorX = volume.CentreX, AnchorY = volume.MinY, AnchorZ = volume.CentreZ,
-                    Size = core.Size, Height = core.Height, Shell = core.Shell, Float = core.Float,
+                    // A scanned casing is whatever the map's author built; an authored one is chosen from
+                    // the offered footprints, so the detection is read back as the nearest one it fits.
+                    Lava = C.NearestLava(core.Size, core.Shell),
+                    LavaHeight = C.NearestLavaHeight(core.Height, core.Shell, core.OpenTop),
+                    Float = core.Float,
                     Leak = defaults.Leak,           // not measurable from the world; PGM's own default
                     OpenTop = core.OpenTop,
-                    Lava = core.Lava,
+                    LavaBlocks = core.Lava,
                     Volume = volume,
                 });
             }
@@ -162,7 +166,7 @@ public partial class CoreObjectivesStep
         {
             Owner = Ctx.IslandTeamAt(centreX, centreZ, islands, islandTeams) ?? "",
             AnchorX = centreX, AnchorZ = centreZ,
-            Size = size, Height = defaults.Height, Shell = defaults.Shell,
+            Lava = C.NearestLava(size, shell: 1), LavaHeight = defaults.LavaHeight,
             Float = defaults.Float, Leak = defaults.Leak,
         };
         if (await ColumnFloor.RestingYAsync(Http, Slug, centreX, centreZ) is { } restingY)

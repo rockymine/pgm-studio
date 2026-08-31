@@ -175,8 +175,11 @@ public sealed class CoreWorldTests
     {
         var core = new CoreIntent { Owner = "red-team", Anchor = new Pt(0, 12, 0) };
 
-        await Assert.That(core.Size).IsEqualTo(ObjectiveDefaults.CoreSize);
-        await Assert.That(core.Height).IsEqualTo(ObjectiveDefaults.CoreHeight);
+        await Assert.That(core.Lava).IsEqualTo(ObjectiveDefaults.CoreLava);
+        await Assert.That(core.LavaHeight).IsEqualTo(ObjectiveDefaults.CoreLavaHeight);
+        // and the casing those two imply, which is the 5×5×5 obsidian DC1 names.
+        await Assert.That(core.Size).IsEqualTo(5);
+        await Assert.That(core.Height).IsEqualTo(5);
         await Assert.That(core.Shell).IsEqualTo(ObjectiveDefaults.CoreShell);
         await Assert.That(core.Float).IsEqualTo(ObjectiveDefaults.CoreFloat);
         await Assert.That(core.Leak).IsEqualTo(ObjectiveDefaults.CoreLeak);

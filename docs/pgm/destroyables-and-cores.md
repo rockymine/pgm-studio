@@ -419,11 +419,23 @@ position, and the ground it rides can be an authored sketch shape with no piece 
 authored once, as the shape it is, rather than twice: once as a plan rectangle purely to give a marker
 something to ride, and again as the polygon it actually is.
 
-### DC1 — the core structure (default 5×5×5, shell 1, lava 3×3×3)
+### DC1 — the core structure (default lava 3×3×3, giving 5×5×5 obsidian)
 
 The dominant real core casing is **5×5×5 obsidian** (57/255 = 22%; next 7×7×7 at 12%, 4×4×4 at 7%), the shell
 is **1 block thick** (165/255 = 65%; 2 thick in 33%), and the lava interior is correspondingly **3×3×3** (the
 modal lava volume, 46). Obsidian is effectively universal.
+
+**An author states the lava, not the casing** (the author's ruling). A core is chosen from presets the way a
+destroyable is, and it has exactly three knobs: the lava's **footprint** (2×2, 3×3, 4×4 or 5×5), its
+**height** in courses (2–5), and whether the casing is **capped or open**. The obsidian follows — one block
+of wall on every side, a floor, and a cap unless the top is open — so the casing is `lava + 2` across and
+`lavaHeight + 2` tall, or `+ 1` where an open top gives up its cap course.
+
+Stating the interior is what makes a bad casing unrepresentable. A size and a wall thickness are two numbers
+that can contradict each other: a 5×5 casing with a shell of 3 leaves `5 − 2·3 = −1`, a solid block of
+obsidian nothing can leak, and that was one keystroke away in the marker panel and refused a phase later at
+the compile gate. Nothing in the offered range produces it, so the check that caught it is now a range check
+and the failure it caught cannot be typed.
 
 **The top is capped, not open.** 65% of cores enclose the lava fully (its top layer sits 1 below the casing
 rim), 24% cap it 2 below, and only 11% expose it flush with the rim. The open-top variant is real but is a

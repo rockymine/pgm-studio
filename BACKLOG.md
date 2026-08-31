@@ -572,7 +572,7 @@ model — everything else from that pool has moved to the heading its subject ow
   *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
   `ObjectiveFootprint`, the unwinnable `block="never"` case included; `PlacementClaim` answers which
   columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
-  `C44`) and what remains of it is timing — structural findings do not run in the live feed (`G161`), so a
+  `C44`) and what remains of it is timing — structural findings do not run in the live feed, so a
   refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two
   pieces touch, not how far apart two placements stand.*
 
@@ -836,16 +836,6 @@ and what a `subtract` takes away.
 
   *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
   dock's south edge sits flush on the build region's northern line at `z −20`.*
-
-- [ ] **G161 — the casing panel lets an author build a core the compiler will refuse.** `G160` put the
-  casing knobs in the plan's marker panel, clamped independently — size 1..64, shell 1..16 — so a 5×5 casing
-  with a shell of 3 is one keystroke away and leaves `size − 2·shell = −1`, a solid block of obsidian that
-  can never leak. `PlanValidator` catches it with a good message, but only at the **compile** gate (422):
-  the live inspect/evaluate feed does not run `Validate`, so the author sets the number, sees nothing, and
-  finds out a phase later. Either state the interior in the panel as the two numbers move (it is the honest
-  readout — "3×3×3 lava inside", or the reason there is none), or run the structural findings in the live
-  feed so every rule reports where the edit happened. The second is the general fix and covers the
-  destroyable style and float/leak rules too.
 
 *moved here by the author*
 

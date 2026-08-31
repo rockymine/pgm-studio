@@ -48,8 +48,8 @@ public sealed class CoreSuggestionsEndpoint(MapRepository repo, PgmDb db)
             cores = [.. cores.Where(core => core.Casing.Intersects(box))];
 
         await Send.OkAsync(new CoreSuggestionsDto(
-            new CoreDefaultsDto(ObjectiveDefaults.CoreSize, ObjectiveDefaults.CoreHeight,
-                ObjectiveDefaults.CoreShell, ObjectiveDefaults.CoreFloat, ObjectiveDefaults.CoreLeak),
+            new CoreDefaultsDto(ObjectiveDefaults.CoreLava, ObjectiveDefaults.CoreLavaHeight,
+                ObjectiveDefaults.CoreFloat, ObjectiveDefaults.CoreLeak),
             [.. cores.Select(core => new CoreSuggestionDto(
                 new CoreBoxDto(core.Casing.MinX, core.Casing.MinY, core.Casing.MinZ,
                     core.Casing.MaxX, core.Casing.MaxY, core.Casing.MaxZ),
