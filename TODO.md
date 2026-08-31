@@ -57,12 +57,18 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   put the cube on the piece ahead of the door. `<renewable region>` is the cube's own footprint, so renewal
   never depended on the protection region.*
 
-- [ ] **TN11 — The footprint has no handle on the canvas.** Draw it as a second selectable rectangle inside a
-  role piece, wearing the transform box every authoring surface uses, its drag constrained to the piece and to
-  containing the marker, with the size pill the piece already gets.
-  `PlanCompiler.AppendStructuralShape` projects the piece rect into the sketch as one locked annotation and
-  should project **both** — the region as the ground annotation it is now, and the footprint as a second
-  tagged rectangle, which is also what `B145` hangs a theme scope on.
+- [ ] **TN11 — A role piece arrives with nothing on it, and the footprint has no handle.** Drawing a `spawn`
+  or `wool-room` piece should **seed its contents**: the marker at the room's centre, the footprint the piece
+  affords, and — on a spawn — the iron in front of the door. A default nobody can see is the opacity this
+  whole split is against, so the document states all three from the moment the piece exists and the author
+  drags them. Then draw the footprint as a second selectable rectangle inside the piece, wearing the transform
+  box every authoring surface uses, its drag constrained to the piece and to containing the marker, with the
+  size pill the piece already gets. `PlanCompiler.AppendStructuralShape` projects the piece rect into the
+  sketch as one locked annotation and should project **both** — the region as the ground annotation it is now,
+  and the footprint as a second tagged rectangle, which is also what `B145` hangs a theme scope on.
+
+  *The gap is the author's: **5 blocks in front of the door, 1 on the other three sides**, which is
+  `RoomFrames.DefaultFootprint` — so the seeded rectangle and the resolver's fallback are one number.*
 
 - [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
   (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it

@@ -28,7 +28,7 @@ public sealed class RoomShellStampTests
     private static readonly (double MinX, double MinZ, double MaxX, double MaxZ) TopEntry = (-5, -5, 5, -5);
 
     private static RoomFrame Baseline(RoomEdge? spawnDoor = null) =>
-        RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, walled: true, 0, 0, spawnDoor is null ? [TopEntry] : [], spawnDoor, out _)!;
+        RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), walled: true, 0, 0, spawnDoor is null ? [TopEntry] : [], spawnDoor, out _)!;
 
     [Test]
     public async Task Wool_cage_shell_places_floor_roof_slit_strip_and_a_seam_door()

@@ -67,11 +67,20 @@ rounding it away.
 
 ## 2. The footprint rule
 
-- **WX1** *The footprint is stated, and defaults to the piece inset one block.* A wool-room or spawn piece
-  carries a shell whose footprint is the **room the plan states**, or — where it states none — the **piece
-  rect inset by one block on every side**, the one-block ring of clean floor being part of what a piece
-  promises. A 10×10 piece with no stated room carries an 8×8 shell, a 12×12 piece a 10×10 shell. The shell's
-  orientation is the rect's own; the fanned rect orients the orbit images.
+- **WX1** *The footprint is stated, and its default keeps ground in front of the door.* A wool-room or spawn
+  piece carries a shell whose footprint is the **room the plan states**. Where it states none the piece is
+  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **five** on
+  the side the door opens through, which is the largest iron cube plus the air it holds to the wall. A 20×20
+  spawn piece facing −z therefore opens as an **18×14** room with somewhere for its iron to stand, rather
+  than as an 18×18 room the cube has to make the shell shrink for. A wool room takes the plain inset: its
+  entries come from whichever sides abut it, so it has no one side to keep clear, and no iron.
+
+  **The door's gap yields to the marker.** A marker is where a player arrives and the pad is derived from it,
+  so a default that pushed the room off its own marker would move the exported spawn point on a board nobody
+  had touched. The gap takes only what leaves the marker seated where it already sat, down to the one-block
+  ring — which is why an existing 10×10 spawn piece keeps its point and simply gets a shallower room.
+
+  The shell's orientation is the rect's own; the fanned rect orients the orbit images.
 
 - **WX2** *Minimums are measured in blocks, never cells, and a wall is what the second one buys.* The
   smallest room there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side,

@@ -16,7 +16,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class SpawnStructureStamperTests
 {
-    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, walled: true, 0, 0, [], RoomEdge.NegZ, out _)!;
+    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), walled: true, 0, 0, [], RoomEdge.NegZ, out _)!;
 
     [Test]
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()

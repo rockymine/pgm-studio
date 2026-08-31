@@ -204,15 +204,54 @@ public static class RoomFrames
     public static bool FootprintTooSmall(int width, int depth, bool walled) =>
         width < MinSpan(walled) || depth < MinSpan(walled);
 
-    /// <summary>The ring of clean floor a piece keeps around the room it carries (WX1) — one block, and
-    /// part of what a piece promises rather than an accident of sizing.</summary>
-    public const int DefaultRing = 1;
+    /// <summary>The clean floor a piece keeps between its edge and the room it carries, on every side but
+    /// the one the door opens through (WX1).</summary>
+    public const int DefaultGap = 1;
 
-    /// <summary>The footprint a piece carries where none is authored (WX1): the piece inset by
-    /// <see cref="DefaultRing"/> on every side.</summary>
-    public static BlockRect DefaultFootprint(BlockRect piece) =>
-        new(piece.MinX + DefaultRing, piece.MinZ + DefaultRing,
-            piece.MaxX - DefaultRing, piece.MaxZ - DefaultRing);
+    /// <summary>The clean floor kept in front of the door (WX1): enough for the largest iron cube plus the
+    /// air it holds to the wall, so a spawn opens with somewhere for its iron to stand rather than with a
+    /// shell that has to shrink to make room.</summary>
+    public const int DefaultDoorGap = MaxIronSpan + IronGap;
+
+    /// <summary>The footprint a piece carries where none is stated (WX1): the piece inset by
+    /// <see cref="DefaultGap"/> on every side, and by up to <see cref="DefaultDoorGap"/> on the side the door
+    /// opens through. A 20×20 spawn piece facing −z opens as an 18×14 room with five blocks of ground in
+    /// front of its door — somewhere for the iron to stand without the room giving up an edge for it.
+    ///
+    /// <para><b>The door's gap yields to the marker.</b> A marker is where a player arrives and the pad is
+    /// derived from it, so a default that pushed the room off its own marker would move the spawn point
+    /// (<c>WX4</c> would clamp the pad) on a board nobody had touched. The gap therefore takes only what
+    /// leaves the marker seated where it already sat, down to the clean ring every side keeps. A piece too
+    /// small to give the door its ground still gives the room its ring, and a footprint under the minimum is
+    /// <c>WX2</c>'s to report about the room rather than about a default.</para></summary>
+    public static BlockRect DefaultFootprint(
+        BlockRect piece, RoomEdge? doorEdge, double markerX, double markerZ, bool walled)
+    {
+        BlockRect With(int doorGap)
+        {
+            int Gap(RoomEdge side) => doorEdge == side ? doorGap : DefaultGap;
+            return new BlockRect(
+                piece.MinX + Gap(RoomEdge.NegX), piece.MinZ + Gap(RoomEdge.NegZ),
+                piece.MaxX - Gap(RoomEdge.PosX), piece.MaxZ - Gap(RoomEdge.PosZ));
+        }
+        for (var gap = DefaultDoorGap; gap > DefaultGap; gap--)
+        {
+            var candidate = With(gap);
+            if (!FootprintTooSmall(candidate.Width, candidate.Depth, walled)
+                && Seats(candidate, markerX, markerZ, walled)) return candidate;
+        }
+        return With(DefaultGap);
+    }
+
+    /// <summary>Whether a footprint holds the pad its marker asks for without clamping it (WX4) — what the
+    /// door's gap is held to, so a default never moves a spawn point.</summary>
+    private static bool Seats(BlockRect footprint, double markerX, double markerZ, bool walled)
+    {
+        var inset = (walled ? 1 : 0) * (1 + PadWallClearance);
+        var pad = PlacePad(markerX, markerZ, footprint.MinX + inset, footprint.MinZ + inset,
+            footprint.MaxX - inset, footprint.MaxZ - inset);
+        return pad is { Shifted: false };
+    }
 
     /// <summary>Whether a marker's block-lattice parity differs between axes (WX3). The pad is always
     /// square, so a grid-line x with a block-centre z has no pad and refuses at validation.</summary>
@@ -253,8 +292,8 @@ public static class RoomFrames
     /// </summary>
     /// <param name="piece">The ground the room stands on: what bounds every marker, and what the footprint
     /// must lie inside.</param>
-    /// <param name="footprint">The room itself, or null for the default — the piece inset far enough to leave
-    /// a ring the iron can stand in (WX1).</param>
+    /// <param name="footprint">The room itself, or null for <see cref="DefaultFootprint"/> — the piece inset
+    /// a block, and further in front of the door so the iron has ground to stand on (WX1).</param>
     /// <param name="walled">Whether a shell will stand on the footprint's perimeter. A wall is what the
     /// interior is inset by and what the pad keeps its clearance to, so a room on open ground has neither and
     /// its least span is <see cref="MinRoomSpan"/> rather than that plus <see cref="WallCost"/>.</param>
@@ -268,7 +307,7 @@ public static class RoomFrames
     {
         refusal = null;
         int pieceMinX = piece.MinX, pieceMinZ = piece.MinZ, pieceMaxX = piece.MaxX, pieceMaxZ = piece.MaxZ;
-        var room = footprint ?? DefaultFootprint(piece);
+        var room = footprint ?? DefaultFootprint(piece, spawnDoorEdge, markerX, markerZ, walled);
         int minX = room.MinX, minZ = room.MinZ, maxX = room.MaxX, maxZ = room.MaxZ;
         var wall = walled ? 1 : 0;
 

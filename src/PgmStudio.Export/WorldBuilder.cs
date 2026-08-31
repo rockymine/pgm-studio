@@ -748,7 +748,10 @@ public static class WorldBuilder
                 (minX, minZ, minX, maxZ), (maxX, minZ, maxX, maxZ),
             ]
             : [];
-        return RoomFrames.Resolve(new BlockRect(minX, minZ, maxX, maxZ), footprint: null, walled,
+        // The footprint is stated rather than defaulted: this synthetic rect is the room a piece-less marker
+        // has always resolved to, so the shell is its own one-block inset and no door gap is taken out of it.
+        return RoomFrames.Resolve(new BlockRect(minX, minZ, maxX, maxZ),
+            new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), walled,
             anchorX, anchorZ, entries, spawnDoorEdge, out _)!;
     }
 
