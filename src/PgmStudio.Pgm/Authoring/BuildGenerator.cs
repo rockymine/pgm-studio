@@ -12,8 +12,11 @@ using PgmStudio.Geom;
 /// or both: the buildable rectangles (the over-void bridges/platforms) unioned into <c>build-area</c>,
 /// optional no-build <see cref="MapIntent.Build"/> holes subtracted as
 /// <c>buildable = complement(build-area, holes…)</c>, all wrapped in the <c>not-build-area</c> negative
-/// with void enforcement — <c>block=no-void</c> where <c>no-void = not(void)</c> — so players can't bridge
-/// over the void outside the buildable region and terrain-backed columns stay editable; and, separately,
+/// with void enforcement — <c>block-place=no-void</c> where <c>no-void = not(void)</c> — so players can't
+/// bridge over the void outside the buildable region and terrain-backed columns stay editable. Breaking is
+/// the same rule with an exception: <c>block-break=over-void-breakable</c> also admits what the dressing
+/// stage leaves hanging over the void, so a canopy past a coast can still be cut down instead of standing
+/// there for the match. And, separately,
 /// <see cref="BuildIntent.VoidEnforcement"/> — the corpus idiom
 /// (<c>block-place=deny(void)</c> over everywhere minus its exclusions) — which fires whether or not
 /// <see cref="BuildIntent.Areas"/> is declared, because a map with no buildable rectangles can still want the
@@ -30,6 +33,24 @@ public static class BuildGenerator
     private const string VoidMessage = "You may not edit the void!";
     private const string VoidEnforcementAreaId = "void-enforcement-area";
     private const string VoidEnforcementExclusionPrefix = "void-enforcement-exclusion";
+    private const string OverVoidBreakable = "over-void-breakable";
+
+    /// <summary>What the dressing stage puts over the void and a player must still be able to cut down: a
+    /// tree's own two materials and every plant the flora overlay scatters. A canopy reaching past a coast
+    /// lands in columns with nothing at y=0, and a void rule that covers breaking as well as placing seals
+    /// it there for the rest of the match — ground a player stands beside and cannot clear.
+    ///
+    /// <para>Terrain-forming blocks are deliberately absent. The exception is for what decoration left over
+    /// the void, not for the void's own ground: a sea stack or a crag is a shape the author built, and
+    /// making stone breakable out there would let a team dismantle the board.</para></summary>
+    private static readonly (string FilterId, string Material)[] OverVoidMaterials =
+    [
+        ("__ovb-log", "log"), ("__ovb-log2", "log 2"),
+        ("__ovb-leaves", "leaves"), ("__ovb-leaves2", "leaves 2"),
+        ("__ovb-grass", "long grass"), ("__ovb-dandelion", "yellow flower"),
+        ("__ovb-flower", "red rose"), ("__ovb-double", "double plant"),
+        ("__ovb-lily", "water lily"), ("__ovb-vine", "vine"),
+    ];
 
     /// <summary>Upper bound on the authored build-height cap (blocks). Keeps a stored/out-of-range value
     /// from generating a map with an unreasonable ceiling.</summary>
@@ -72,10 +93,16 @@ public static class BuildGenerator
         // "everywhere except the buildable region" — the void-enforcement wrapper.
         RegionEditor.GroupRegions(doc, new Dict { ["type"] = "negative", ["id"] = "not-build-area", ["child_ids"] = new List<object?> { buildableId } });
 
-        // void enforcement: no-void = not(void); deny block edits where it's void, in not-build-area.
+        // void enforcement, one scope at a time: no-void = not(void) denies placing where the column is void,
+        // and breaking is the same rule with what decoration leaves over the void carved out of it.
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = "is-void", ["type"] = "void" });
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = "no-void", ["type"] = "not", ["child"] = "is-void" });
-        ApplyRuleEditor.CreateApplyRule(doc, new Dict { ["block"] = "no-void", ["region"] = "not-build-area", ["message"] = VoidMessage });
+        EnsureOverVoidBreakable(doc);
+        ApplyRuleEditor.CreateApplyRule(doc, new Dict
+        {
+            ["block_place"] = "no-void", ["block_break"] = OverVoidBreakable,
+            ["region"] = "not-build-area", ["message"] = VoidMessage,
+        });
     }
 
     /// <summary>The corpus idiom, standalone: deny placing (not breaking) over the void, applied everywhere
@@ -100,10 +127,38 @@ public static class BuildGenerator
         }
 
         // block-place, not block: a player may still break a block hanging over the void (alpine_mining_ii's
-        // own comment states this is deliberate), only placing new blocks out there is denied.
+        // own comment states this is deliberate), only placing new blocks out there is denied. Breaking is
+        // left unstated rather than granted, which is the same permission by PGM's default and the shape the
+        // corpus writes.
         ApplyRuleEditor.CreateApplyRule(doc, new Dict
         {
             ["block_place"] = "deny(void)", ["region"] = VoidEnforcementAreaId, ["message"] = VoidMessage,
+        });
+    }
+
+    /// <summary>The break-side filter: allow over ground exactly as the place side does, and over the void
+    /// allow only what decoration puts there. One <c>any</c> of synthetic leaves so the serializer inlines
+    /// it, the same idiom the wool-room whitelist uses.</summary>
+    private static void EnsureOverVoidBreakable(Dict doc)
+    {
+        if (DocAccess.Filters(doc).ContainsKey(OverVoidBreakable)) return;
+
+        var materials = new List<object?>();
+        foreach (var (filterId, material) in OverVoidMaterials)
+        {
+            FilterEditor.CreateFilter(doc, new Dict { ["id"] = filterId, ["type"] = "material", ["material"] = material });
+            materials.Add(filterId);
+        }
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = "__ovb-any", ["type"] = "any", ["children"] = materials });
+        FilterEditor.CreateFilter(doc, new Dict
+        {
+            ["id"] = "__ovb-over-void", ["type"] = "all",
+            ["children"] = new List<object?> { "__ovb-any", "is-void" },
+        });
+        FilterEditor.CreateFilter(doc, new Dict
+        {
+            ["id"] = OverVoidBreakable, ["type"] = "any",
+            ["children"] = new List<object?> { "__ovb-over-void", "no-void" },
         });
     }
 
@@ -130,6 +185,10 @@ public static class BuildGenerator
         foreach (var k in regions.Keys.Where(IsGenerated).ToList()) regions.Remove(k);
         DocAccess.Filters(doc).Remove("no-void");
         DocAccess.Filters(doc).Remove("is-void");
+        DocAccess.Filters(doc).Remove(OverVoidBreakable);
+        DocAccess.Filters(doc).Remove("__ovb-any");
+        DocAccess.Filters(doc).Remove("__ovb-over-void");
+        foreach (var (filterId, _) in OverVoidMaterials) DocAccess.Filters(doc).Remove(filterId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "not-build-area" or VoidEnforcementAreaId);
     }

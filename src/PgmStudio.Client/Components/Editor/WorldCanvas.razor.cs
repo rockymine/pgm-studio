@@ -56,12 +56,12 @@ public partial class WorldCanvas
     /// (e.g. the excluded-island set) that only takes effect after the islands are rendered.</summary>
     [Parameter] public EventCallback OnReady { get; set; }
 
-    /// <summary>N03: show the <b>Buildable</b> sub-bar chip — a toggleable per-column buildability verdict
-    /// heatmap (the Build · buildable-layer step; it stays available even in RectDraw mode).</summary>
-    [Parameter] public bool ShowBuildable { get; set; }
-    /// <summary>Fired with the new on/off state when the Buildable overlay is toggled (so the host can,
+    /// <summary>Show the <b>Editable</b> sub-bar chip — a toggleable overlay of what makes each column
+    /// editable (the Build · buildable-layer step; it stays available even in RectDraw mode).</summary>
+    [Parameter] public bool ShowEditZones { get; set; }
+    /// <summary>Fired with the new on/off state when the Editable overlay is toggled (so the host can,
     /// e.g., show the legend only while it's on).</summary>
-    [Parameter] public EventCallback<bool> OnBuildableToggled { get; set; }
+    [Parameter] public EventCallback<bool> OnEditZonesToggled { get; set; }
 
     private ElementReference svgRef, wrapRef;
     /// <summary>The floating top-left readout. Its cursor and zoom elements are handed to the canvas on
@@ -160,15 +160,15 @@ public partial class WorldCanvas
         if (ok) blocksOn = !blocksOn;
     }
 
-    private bool buildableOn;
+    private bool editZonesOn;
 
-    /// <summary>N03: toggle the buildability verdict heatmap. Re-fetches each toggle-on so it reflects the
-    /// current saved build slice; stays off when there's no grid (no scan data).</summary>
-    private async Task ToggleBuildability()
+    /// <summary>Toggle the edit-zone overlay. Re-fetches each toggle-on so it reflects the current saved
+    /// build slice; stays off when there's no grid (no scan data).</summary>
+    private async Task ToggleEditZones()
     {
         if (handle is null) return;
-        var ok = await handle.InvokeAsync<bool>("setBuildability", !buildableOn);
-        if (ok) { buildableOn = !buildableOn; await OnBuildableToggled.InvokeAsync(buildableOn); }
+        var ok = await handle.InvokeAsync<bool>("setEditability", !editZonesOn);
+        if (ok) { editZonesOn = !editZonesOn; await OnEditZonesToggled.InvokeAsync(editZonesOn); }
     }
 
     /// <summary>Highlight the given region ids on the canvas (called by the activity when the sidebar selects).</summary>

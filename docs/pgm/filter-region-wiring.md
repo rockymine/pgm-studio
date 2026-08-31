@@ -40,7 +40,7 @@ and **confirmed by the author** — never auto-applied or silently mutated. Each
 
 | # | Template | Trigger (signal) | Emitted wiring | Recipe |
 |---|---|---|---|---|
-| 1 | **Build / void enforcement** | positive build region(s) in the Build Regions step (+ `layer_y0.parquet`) | group buildable regions → apply `block_place=deny(void)` (or `never`) to the **complement** | Cluster 2.4 |
+| 1 | **Build / void enforcement** | positive build region(s) in the Build Regions step (+ `layer_y0.parquet`) | group buildable regions → apply `block-place=no-void` to the **complement**, with `block-break=over-void-breakable` beside it so what decoration left over the void can still be cut down | Cluster 2.4 |
 | 2 | **Spawn protection** | a team spawn region (`spawns[].region`) | on the protection zone, apply `enter=only-<team>`; on the shared `spawns` union, `block=never` (anti-grief; `never` is built-in — no new filter), **restated as `block-break=only-<ore>` + `block-place=only-<ore>-cause-world` where ore lives in a spawn** (below); optionally `use=only-<team>` | Cluster 1.1 |
 | 3 | **Wool-room defense** | a wool-room region with a derived owner (§6 owner) | apply `enter=not-<owner>` (defender excluded) | Cluster 1.2 |
 | 4 | **Wool-room build/break** | a wool-room region | apply `block=<team>-woolrooms-filter` (team check + material whitelist) | Cluster 2.2 |
@@ -63,6 +63,15 @@ apply is where a reader of the XML looks for it.
 
 Template 1 is the canonical *suggest + confirm* flow: detect the positive build regions, propose
 "auto-group and apply the void filter to the complement?", let the author confirm/adjust/decline.
+
+**Placing and breaking are one attribute short of one rule, and the difference matters.** `block` names both
+scopes at once, so a void filter written under it seals whatever already stands over the void — and what
+stands over the void on a studio-built board is decoration, because the dressing stage scatters trees and
+flora across a coast and a canopy reaches past it. The break side therefore carries its own filter,
+`over-void-breakable = any(all(<the vegetation list>, void), no-void)`: everything placing allows, plus, over
+the void only, the log, leaves and plants the dressing palette writes. Terrain materials are deliberately
+absent — a crag or a sea stack is a shape the author built, and admitting stone out there would let a team
+mine the board apart. `EZ1` is the read-back that finds the columns this is for.
 
 The **declarative** generator wires the same shape from the other direction, unprompted: an intent
 carrying `BuildIntent.VoidEnforcement` (`new-map-authoring.md` §5b) emits `block-place="deny(void)"` over

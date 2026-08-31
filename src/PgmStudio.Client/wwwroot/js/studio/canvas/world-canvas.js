@@ -35,7 +35,7 @@
  *   Overlays / visibility
  *     setBlocksVisible(v) / loadBlockLayer(data)               top-surface block overlay
  *     connectBlocksToggle(cb,label,fetch) / autoLoadBlocks() / reloadBlocks()  block-toggle wiring
- *     setPoisVisible(v) / setBuildVisible(v) / setResolvedMode(v)  layer toggles
+ *     setPoisVisible(v) / setEditabilityVisible(v) / setResolvedMode(v)  layer toggles
  *     setSymmetry(type, cx, cz)        symmetry axis/centre overlay
  *   Islands
  *     setIslandSelect(on)              switch the select controller to island mode
@@ -142,13 +142,12 @@ export class WorldCanvas extends CanvasBase {
 
   // layer state
   #showPois   = false;
-  #showBuild  = false;
   #showBlocks = false;
   #blockData  = null;
   #blockImage = null;          // the decoded bitmap — a canvas blits an image, not a data URL
-  #showBuildability = false;   // N03 buildability overlay visibility
-  #buildabilityData = null;    // cached block-image payload so a render() reset re-paints it
-  #buildabilityImage = null;
+  #showEditability = false;    // edit-zone overlay visibility
+  #editabilityData = null;     // cached block-image payload so a render() reset re-paints it
+  #editabilityImage = null;
   #selectedNode = null;
 
   // blocks toggle wiring (set by connectBlocksToggle)
@@ -300,12 +299,6 @@ export class WorldCanvas extends CanvasBase {
     this.#paintWorld();
   }
 
-  // The `build` layer has a switch and a z-order slot but nothing that paints into it — see CV21, which
-  // owns the question of whether a Build phase was meant to fill it or whether the whole thing goes.
-  setBuildVisible(v) {
-    this.#showBuild = v;
-    this.#paintWorld();
-  }
 
   setResolvedMode(v) {
     this.#resolvedMode = v;
@@ -379,20 +372,20 @@ export class WorldCanvas extends CanvasBase {
     });
   }
 
-  // The buildability heatmap uses the same rasterize-once machinery as the block overlay (`data` is the
-  // block-image payload {xs,zs,colors,min_x,min_z,max_x,max_z} the bridge builds from /buildability).
-  setBuildabilityVisible(v) {
-    this.#showBuildability = v;
+  // The edit-zone overlay uses the same rasterize-once machinery as the block overlay (`data` is the
+  // block-image payload {xs,zs,colors,min_x,min_z,max_x,max_z} the bridge builds from /editability).
+  setEditabilityVisible(v) {
+    this.#showEditability = v;
     this.#paintWorld();
   }
 
-  loadBuildabilityLayer(data) {
-    this.#buildabilityData = data;
-    this.#buildabilityImage = null;
+  loadEditabilityLayer(data) {
+    this.#editabilityData = data;
+    this.#editabilityImage = null;
     if (!data) { this.#paintWorld(); return; }
     loadBlockImage(data, (image) => {
-      if (this.#buildabilityData !== data) return;
-      this.#buildabilityImage = image;
+      if (this.#editabilityData !== data) return;
+      this.#editabilityImage = image;
       this.#paintWorld();
     });
   }
@@ -660,10 +653,9 @@ export class WorldCanvas extends CanvasBase {
     if (!this.#painter || !this.#toSvg || this.#batching) return;
     const painter = this.#painter;
     painter.begin(this._scale, this._panX, this._panY);
-    painter.layer("build",        () => {});   // declared but unfed — CV21
     painter.layer("blocks",       () => this.#paintBlockLayer());
     painter.layer("islands",      () => this.#paintIslands());
-    painter.layer("buildability", () => this.#paintBuildabilityLayer());
+    painter.layer("editability",  () => this.#paintEditabilityLayer());
     painter.layer("symmetry",     () => paintSymmetryOverlay(painter, this.#symType, this.#symCx, this.#symCz, this.#ctx?.bounding_box));
     painter.layer("spawns",       () => this.#paintPoiLayer(POI_LAYERS[0]));
     painter.layer("regions",      () => this.#paintRegions());
@@ -715,10 +707,10 @@ export class WorldCanvas extends CanvasBase {
     this.#painter.image(this.#blockImage, blockImageBounds(this.#blockData));
   }
 
-  // The buildability heatmap is translucent so the terrain reads through it.
-  #paintBuildabilityLayer() {
-    if (!this.#showBuildability || !this.#buildabilityImage) return;
-    this.#painter.image(this.#buildabilityImage, blockImageBounds(this.#buildabilityData), { alpha: 0.5 });
+  // The edit-zone overlay is translucent so the terrain reads through it.
+  #paintEditabilityLayer() {
+    if (!this.#showEditability || !this.#editabilityImage) return;
+    this.#painter.image(this.#editabilityImage, blockImageBounds(this.#editabilityData), { alpha: 0.5 });
   }
 
   // Trace each island once, into surface coordinates. Called whenever the world or the fit changes, and

@@ -27,11 +27,11 @@
        canvas so placement can be lined up against the real terrain. No-op when the map has no scan data. *@
     <LayerChip Icon="box" Active="blocksOn" Title="Overlay the top-surface block colours"
                OnClick="ToggleBlocks">Blocks</LayerChip>
-    @if (ShowBuildable)
+    @if (ShowEditZones)
     {
-      <LayerChip Icon="hammer" Active="buildableOn"
-                 Title="Overlay the per-column buildability verdict (green buildable · orange void-denied · red never · yellow restricted)"
-                 OnClick="ToggleBuildability">Buildable</LayerChip>
+      <LayerChip Icon="hammer" Active="editZonesOn"
+                 Title="Overlay what makes each column editable (green build zone · light green ground at y=0 · yellow behind a filter · red nobody can edit)"
+                 OnClick="ToggleEditZones">Editable</LayerChip>
     }
     @if (islandIds.Count > 0)
     {

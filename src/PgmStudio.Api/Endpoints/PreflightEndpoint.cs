@@ -16,7 +16,7 @@ using Dict = Dictionary<string, object?>;
 /// <list type="number">
 /// <item><b>Round-trip</b> + <b>Mirror</b> — pure codec/categorizer checks (<see cref="Preflight"/>).</item>
 /// <item><b>Buildability</b> — every spawn / wool / monument placement must sit over solid ground (not
-/// open void), reusing <see cref="Buildability"/>.</item>
+/// open void), reusing <see cref="Editability"/>'s Y=0 read.</item>
 /// <item><b>Traversability</b> — the spawn↔wool chain must be connected, reusing <see cref="Traversability"/>
 /// — the same check <c>GET /xml</c> enforces as its 409 gate.</item>
 /// </list>
@@ -27,7 +27,6 @@ using Dict = Dictionary<string, object?>;
 public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, FeatureData feature, MapArtifactStore artifacts)
     : EndpointWithoutRequest<PreflightDto>
 {
-    private const byte Void = 2;   // Buildability verdict for an open-void column (no ground)
 
     public override void Configure() { Get("/map/{slug}/preflight"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
@@ -79,12 +78,13 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
     }
 
     // Every authored placement (spawn / wool source / monument) must sit over solid ground, not open void.
-    // Reuses the per-column buildability grid (void = no ground under the cell). Skips when there's no
-    // Y=0 layer — void can't be told from solid without it (xml-only / un-scanned map).
+    // Asks the Y=0 read directly — the same question PGM's own <void/> filter asks — rather than reading it
+    // off an edit zone, which answers why a column is editable and not whether anything is under it. Skips
+    // when there's no Y=0 layer: void can't be told from solid without it (xml-only / un-scanned map).
     private async Task<Preflight.Check> BuildabilityCheckAsync(long mapId, Dict doc, MapIntent intent, HashSet<(int, int)>? y0, CancellationToken ct)
     {
         var bb = (await feature.MapBboxAsync(mapId, ct))?.bounds;
-        var res = Buildability.Compute(doc, y0,
+        var res = Editability.Compute(doc, y0,
             bb is { } v ? ((int)v.Item1, (int)v.Item2, (int)v.Item3, (int)v.Item4) : null);
         if (!res.HasY0)
             return new("buildability", "Buildability", "skip", "no Y=0 layer — can't verify ground under placements");
@@ -99,7 +99,7 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 
         // Only an explicit void verdict fails (off-grid placements are outside the analysed box — left to
         // the connectivity check rather than flagged here, to avoid edge-rounding false positives).
-        var overVoid = placements.Where(p => CellVerdict(res, p.X, p.Z) == Void).Select(p => p.Label).ToList();
+        var overVoid = placements.Where(p => res.VoidAt(p.X, p.Z) == true).Select(p => p.Label).ToList();
         if (overVoid.Count == 0)
             return new("buildability", "Buildability", "pass", $"all {placements.Count} spawn / wool / monument placements on solid ground");
         return new("buildability", "Buildability", "fail",
@@ -107,13 +107,6 @@ public sealed class PreflightEndpoint(MapRepository repo, MapReader reader, Feat
 
         static string Team(string id) => string.IsNullOrWhiteSpace(id) ? "team" : id;
         static string WoolName(WoolIntent w) => string.IsNullOrWhiteSpace(w.Color) ? w.Owner : w.Color;
-    }
-
-    private static byte? CellVerdict(Buildability.Result res, double x, double z)
-    {
-        int ix = (int)Math.Floor(x) - res.MinX, iz = (int)Math.Floor(z) - res.MinZ;
-        if (ix < 0 || iz < 0 || ix >= res.Width || iz >= res.Height) return null;
-        return res.Verdict[iz * res.Width + ix];
     }
 
     private static Preflight.Check TraversabilityCheck(Traversability.Result trav)

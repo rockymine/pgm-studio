@@ -1331,18 +1331,6 @@ braces, worth having once the studio is used by someone who did not write it.
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
 
-- [ ] **CV21 — the world canvas has a `build` layer nothing paints into.** Stating the layer stack once
-(`CV19`) surfaced two layers with no content. One was removed there — a `block-highlight` rect created
-`visibility:hidden` whose only handle was assigned and never read. This is the other: the `build` group is
-created empty, no painter ever appends to it, and its toggle `setBuildVisible` has no caller outside the
-class — not the bridge, not any of the sixteen hosts. So it is an empty group with a visibility switch
-nobody throws. Removing it takes `setBuildVisible`, `#showBuild`, `#paintBuildRegion` and one line of the
-documented public surface with it, which is why it was left in place rather than swept during a
-behaviour-preserving refactor. Check first whether a Build phase was *meant* to fill it (the name suggests
-the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
-feature section.
-
-
 - [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
   build.** Each is a sentence pointing at something that is not there, and each is silenced in all nine
   `.csproj` that emit a documentation file (`Domain`, `Pgm`, `Minecraft`, `Export`, `Api`, `Analysis`,

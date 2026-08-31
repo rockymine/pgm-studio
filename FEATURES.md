@@ -157,6 +157,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **Every column says what makes it editable, following PGM's own resolution (CV21).** The world canvas
+  carried two layers for one idea: a `build` group nothing ever painted into, and a `buildability` overlay
+  that answered a narrower question than its name. The empty one is gone and the live one is now
+  `GET /map/{slug}/editability`, a per-column pass in the shape of traversability answering
+  `PgmStudio.Vocabulary/EditZone.cs`'s four words — **`build_zone`** (a rectangle the author drew, recovered
+  from the `negative` PGM makes them state it as), **`ground`** (nothing forbids it, which on a void-enforced
+  board is exactly the columns with a block at y=0 — the whole of what `<void/>` tests), **`filtered`** (a
+  spawn's ore, a wool room's team-and-material whitelist) and **`sealed`**.
+  Two things the old pass had wrong come with it, each proven red first. It resolved overlapping block rules
+  **last-wins** where PGM stops at the **first** application that does not abstain, so a permission carved
+  inside a blanket deny read as the deny. And it read `block_place`/`block` only, collapsing any composite
+  holding a void term into a plain void denial — which erased the one exception that matters, since **place
+  and break are separate scopes**: a canopy over the void is unplaceable-on and, where the map says so, still
+  breakable. `BuildGenerator` now says so, splitting its one `block=no-void` into
+  `block-place=no-void` + `block-break=over-void-breakable`, the latter admitting over the void what the
+  dressing stage puts there — log, leaves and every plant in the flora palette — and no terrain material, so
+  a crag stays a crag. `EZ1` reports what is left: each patch of standing ground nobody can edit, with its
+  box, outside the zones a map protects (recognised by the `enter` rule that protects them, not by name).
+  Preflight's own buildability check now asks the y=0 read directly rather than inferring void from a zone.
+  (CV21)
 - **An author is an account or a pseudonym, and the editor takes both — with nothing fetched to draw one
   (C45, TC2).** PGM reads a person as a `uuid` it resolves to a player or as the `<author>` element's own
   text, and either alone is a whole author. `PgmStudio.Vocabulary/AuthorNames.cs` states the two questions

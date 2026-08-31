@@ -10,20 +10,22 @@ import { normalizeIslands } from "../geometry/islands.js";
 // carry the category and render on their own.
 const COMPOUND_TYPES = new Set(["union", "complement", "negative", "intersect", "mirror", "translate"]);
 
-// N03: flatten a /buildability verdict grid (rows of digit codes + a class→colour legend) into the
-// block-image payload the pixelated <image> renderer consumes (one coloured cell per column).
-function buildabilityToBlockData(b) {
-  const bb = b.bbox, w = b.width, h = b.height, classes = b.classes, colors = b.colors, rows = b.rows;
+// Flatten an /editability zone grid (rows of digit codes + a zone→colour legend) into the block-image
+// payload the pixelated <image> renderer consumes: one coloured cell per column, the colour saying what
+// makes that column editable.
+function editabilityToBlockData(grid) {
+  const box = grid.bbox, width = grid.width, height = grid.height;
+  const zones = grid.zones, colors = grid.colors, rows = grid.rows;
   const xs = [], zs = [], cols = [];
-  for (let iz = 0; iz < h; iz++) {
+  for (let iz = 0; iz < height; iz++) {
     const row = rows[iz] || "";
-    for (let ix = 0; ix < w; ix++) {
-      const hex = colors[classes[row.charCodeAt(ix) - 48]];
+    for (let ix = 0; ix < width; ix++) {
+      const hex = colors[zones[row.charCodeAt(ix) - 48]];
       if (!hex) continue;
-      xs.push(bb.min_x + ix); zs.push(bb.min_z + iz); cols.push(hex);
+      xs.push(box.min_x + ix); zs.push(box.min_z + iz); cols.push(hex);
     }
   }
-  return { xs, zs, colors: cols, ...bb };
+  return { xs, zs, colors: cols, ...box };
 }
 
 /** Create an WorldCanvas on the given elements, load the map, and return a handle.
@@ -94,15 +96,15 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dotnetRef, slug, ca
       canvas.setBlocksVisible(visible);
       return true;
     },
-    // Buildability heatmap (N03): re-fetch on each toggle-on so it reflects the current saved build slice
-    // (the void-filter verdict changes as bridges/holes are added). Returns false when there's no grid.
-    async setBuildability(visible) {
+    // Edit-zone overlay: re-fetch on each toggle-on so it reflects the current saved build slice, since the
+    // zone of a column moves as bridges and holes are added. Returns false when there's no grid.
+    async setEditability(visible) {
       if (visible) {
-        const b = await fetchJson(`/api/map/${encodeURIComponent(slug)}/buildability`).catch(() => null);
-        if (!b || !(b.rows?.length)) return false;
-        canvas.loadBuildabilityLayer(buildabilityToBlockData(b));
+        const grid = await fetchJson(`/api/map/${encodeURIComponent(slug)}/editability`).catch(() => null);
+        if (!grid || !(grid.rows?.length)) return false;
+        canvas.loadEditabilityLayer(editabilityToBlockData(grid));
       }
-      canvas.setBuildabilityVisible(visible);
+      canvas.setEditabilityVisible(visible);
       return true;
     },
     resize() { canvas.resize(); },

@@ -179,7 +179,7 @@ extents, with **no block ids/data, no tile entities (signs), no entities**. The 
 — pedestal *material*, sign *text* + *facing*, armour-stand NBT — are all absent, so it cannot detect or
 classify monuments; neither can the cached `layer.parquet` (surface block per column only). The suggester
 reads the Anvil world directly, bounded to the author's box. `segment`'s reuse is **downstream**:
-it (with `/buildability`) establishes where buildable ground / air gaps are, so it's the right artifact
+it (with `/editability`) establishes where buildable ground / air gaps are, so it's the right artifact
 to **snap/validate** a suggested monument onto a surface — not to find it.
 
 ---

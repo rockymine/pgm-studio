@@ -54,7 +54,7 @@ public static class EntryDenials
             foreach (var team in teams)
             {
                 if (Allows(enter, filters, team)) continue;
-                mask ??= Buildability.RegionMask(regionRef, regions, bounds, minX, minZ, nx, nz);
+                mask ??= Editability.RegionMask(regionRef, regions, bounds, minX, minZ, nx, nz);
                 if (mask is null) break;
                 if (!denials.TryGetValue(team, out var denied)) denials[team] = denied = new bool[nx * nz];
                 for (var i = 0; i < mask.Length; i++) denied[i] |= mask[i];

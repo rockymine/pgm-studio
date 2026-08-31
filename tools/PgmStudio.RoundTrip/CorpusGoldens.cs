@@ -12,7 +12,7 @@ using Dict = System.Collections.Generic.Dictionary<string, object?>;
 
 /// <summary>
 /// A recorded digest of what the four map-level derivations make of the corpus, one entry per map: the region
-/// categorizer, buildability, traversability, and wool availability with its resource summary.
+/// categorizer, editability, traversability, and wool availability with its resource summary.
 ///
 /// <para>It answers a question the unit suites cannot — <b>did a change move a verdict on a real map, and
 /// which ones</b> — because those run on synthetic fixtures chosen to isolate one rule. A corpus map exercises
@@ -101,7 +101,7 @@ public static class CorpusGoldens
             if (segments is not null && File.Exists(segments))
             {
                 var index = new SegmentIndex(await FeatureData.ReadSegments(segments));
-                build = DescribeBuildability(Buildability.Compute(doc, index.Y0Columns()));
+                build = DescribeEditability(Editability.Compute(doc, index.Y0Columns()));
                 trav = DescribeTraversability(Traversability.Check(doc, index));
             }
             if (dir is not null && Directory.Exists(dir)) wool = await DescribeWool(doc, dir);
@@ -123,11 +123,11 @@ public static class CorpusGoldens
         return Digest(string.Join("\n", detail), $"{facets.Count} regions · {string.Join(" ", byCategory)}");
     }
 
-    private static string DescribeBuildability(Buildability.Result r)
+    private static string DescribeEditability(Editability.Result r)
     {
-        // The verdict grid is the answer itself, so it is hashed rather than summarized: a per-cell change is
+        // The zone grid is the answer itself, so it is hashed rather than summarized: a per-cell change is
         // exactly what this record exists to catch, and no count would show one.
-        var grid = Convert.ToHexString(SHA256.HashData(r.Verdict))[..16];
+        var grid = Convert.ToHexString(SHA256.HashData(r.Zone))[..16];
         var counts = r.Counts.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => $"{kv.Key}={kv.Value}");
         return Digest($"{r.MinX},{r.MinZ},{r.MaxX},{r.MaxZ}\ny0={r.HasY0}\n{grid}",
             $"{r.Width}x{r.Height} · {string.Join(" ", counts)}");

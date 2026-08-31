@@ -40,7 +40,7 @@ public static class WorldWalk
         (int MinX, int MinZ, int MaxX, int MaxZ)? bbox = null)
     {
         var grid = bbox ?? TerrainBox(data, segments, margin);
-        var build = Buildability.Compute(data, segments?.Y0Columns(), grid, margin);
+        var edit = Editability.Compute(data, segments?.Y0Columns(), grid, margin);
 
         var places = new HashSet<WalkPlace>();
         var clear = new Dictionary<WalkPlace, int>();
@@ -63,15 +63,15 @@ public static class WorldWalk
                 IslandDetector.CleanedBaseFootprint(segments.BaseColumns()).Where(floor.ContainsKey));
         var ground = new HashSet<WalkPlace>(places.Where(place => standable.Contains(place.Cell)));
 
-        // A cell is bridgeable only where the map GRANTS building: some apply rule's region covers it and
-        // does not deny it. Reading an ungoverned cell as buildable makes every cell outside every rule
-        // crossable, and a board then walks over void nobody can bridge.
+        // A cell is bridgeable only where the map GRANTS building — a build zone the author drew, or a
+        // permission somebody can satisfy. Ground that is merely editable because nothing forbids it is not
+        // a grant: reading it as one makes every cell outside every rule crossable, and a board then walks
+        // over void nobody can bridge.
         var open = new HashSet<(int X, int Z)>();
-        for (var i = 0; i < build.Verdict.Length; i++)
+        for (var i = 0; i < edit.Zone.Length; i++)
         {
-            if (!build.Governed[i]) continue;
-            if (build.Verdict[i] is not (0 or 3)) continue;      // buildable, or restricted-but-placeable
-            var cell = (build.MinX + i % build.Width, build.MinZ + i / build.Width);
+            if (!edit.Bridgeable(i)) continue;
+            var cell = (edit.MinX + i % edit.Width, edit.MinZ + i / edit.Width);
             if (!standable.Contains(cell)) open.Add(cell);
         }
 
@@ -79,7 +79,7 @@ public static class WorldWalk
         var bridgeable = new HashSet<WalkPlace>(
             open.Where(floor.ContainsKey).Select(cell => new WalkPlace(cell.X, cell.Z, floor[cell])));
 
-        return new WalkGround(ground, bridgeable, new CellRect(build.MinX, build.MinZ, build.Width, build.Height),
+        return new WalkGround(ground, bridgeable, new CellRect(edit.MinX, edit.MinZ, edit.Width, edit.Height),
             1, null, clear);
     }
 
@@ -89,7 +89,7 @@ public static class WorldWalk
     private static (int MinX, int MinZ, int MaxX, int MaxZ) TerrainBox(
         Dict data, SegmentIndex? segments, int margin)
     {
-        var (minX, minZ, maxX, maxZ) = Buildability.RegionBbox(data, margin);
+        var (minX, minZ, maxX, maxZ) = Editability.RegionBbox(data, margin);
         if (segments is null) return (minX, minZ, maxX, maxZ);
 
         foreach (var columns in (ReadOnlySpan<HashSet<(int, int)>>)

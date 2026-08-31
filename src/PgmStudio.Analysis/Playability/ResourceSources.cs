@@ -30,7 +30,7 @@ public static class ResourceSources
         var regions = MapDoc.AsDict(data.GetValueOrDefault("regions"));
         (double, double, double, double) bbox;
         if (mapBbox is { } mb) bbox = mb;
-        else { var b = Buildability.RegionBbox(data, 8); bbox = (b.minX, b.minZ, b.maxX, b.maxZ); }
+        else { var b = Editability.RegionBbox(data, 8); bbox = (b.minX, b.minZ, b.maxX, b.maxZ); }
         var outp = new List<(Geometry, string)>();
         foreach (var rn in MapDoc.AsList(data.GetValueOrDefault("renewables")).OfType<Dict>())
             if (rn.GetValueOrDefault("region_id") is string rid && regions.GetValueOrDefault(rid) is Dict reg

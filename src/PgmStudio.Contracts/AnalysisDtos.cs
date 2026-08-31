@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
@@ -14,21 +15,26 @@ public sealed record ResourceSearchRequest(Bounds2dDto? Bounds = null);
 /// an absent rectangle is refused as <c>RQ1</c> rather than defaulted.</param>
 public sealed record WoolSearchRequest(Bounds2dDto Bounds);
 
-/// <summary>GET /api/map/{slug}/buildability — per-column verdict grid (rows of digit codes).</summary>
+/// <summary>GET /api/map/{slug}/editability — which columns a player may edit, and what makes each one
+/// editable, as a grid of digit rows over a bounding box.</summary>
 /// <param name="Bbox">The ground the grid covers, in blocks.</param>
 /// <param name="Width">Cells across, which is the length of every row.</param>
 /// <param name="Height">Cells down, which is how many rows there are.</param>
-/// <param name="Classes">The verdict each digit stands for, in digit order — <c>rows[z][x]</c> minus
+/// <param name="Zones">The zone each digit stands for, in digit order — <c>rows[z][x]</c> minus
 /// <c>'0'</c> indexes into this.</param>
-/// <param name="Colors">A swatch per class, so a heatmap is drawn without the caller inventing one.</param>
-/// <param name="Counts">How many cells each class holds, keyed by class.</param>
-/// <param name="Rows">One string per grid row, each character the digit of that cell's verdict.</param>
-/// <param name="HasY0">Whether the map has column data at all. False means the grid is empty because
-/// nothing was scanned, not because nothing is buildable.</param>
-public sealed record BuildabilityDto(
+/// <param name="Colors">A swatch per zone, so a heatmap is drawn without the caller inventing one.</param>
+/// <param name="Counts">How many cells each zone holds, keyed by zone.</param>
+/// <param name="Rows">One string per grid row, each character the digit of that cell's zone.</param>
+/// <param name="Findings">What the pass has to say about the result — a component of ground a player can
+/// reach and nobody can edit raises <c>EZ1</c>. Empty on a map with nothing to report.</param>
+/// <param name="HasY0">Whether the map has column data at all. False means the void could not be read, so
+/// the grid is a reading of the rules alone rather than of the rules over the terrain.</param>
+public sealed record EditabilityDto(
     Bounds2dDto Bbox, int Width, int Height,
-    IReadOnlyList<string> Classes, IReadOnlyDictionary<string, string> Colors,
-    IReadOnlyDictionary<string, int> Counts, IReadOnlyList<string> Rows, bool HasY0);
+    [property: WordSet(typeof(EditZone))] IReadOnlyList<string> Zones,
+    IReadOnlyDictionary<string, string> Colors,
+    IReadOnlyDictionary<string, int> Counts, IReadOnlyList<string> Rows,
+    IReadOnlyList<Finding> Findings, bool HasY0);
 
 /// <summary>
 /// One landmass the world scan decomposed the map into, as <c>GET /map/{slug}/islands</c> answers it —

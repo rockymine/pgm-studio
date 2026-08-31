@@ -33,7 +33,7 @@ Twenty-two verified defects were live behind that when this was read. A core tha
 sketch gate and drew no ground. The suite said none of it.
 
 Most have since landed with a test each, one was withdrawn on the author's ruling (`TS32`: fusing pieces by
-surface is what the compiler is for), and what stands below is the five that remain — `FEATURES.md` carries
+surface is what the compiler is for), and what stands below is the four that remain — `FEATURES.md` carries
 the rest under the ids that delivered them.
 
 That is the fact the whole strategy turns on: **a defect nobody can fail on is a defect that comes back.**
@@ -55,12 +55,6 @@ than a record that is wrong.
 |---|---|---|
 | `WS17` | `Walk.Standing` qualifies any surface with `Headroom` clear, roofs included, so `traversability` and `coverage` route over a house. The ruling exists — a house is not walked over — but the mechanism is still open: `WorldBuilder` claims every spawn and wool room *floor* as `ProvenancePass.Structure`, so excluding structure columns takes the ground a match is played over out of the walk. Bounding the rise is what is left, and it wants a number. | `Walk.cs:255` |
 | `TS31` | `SketchRasterizer.DetachedMasses` drops any component sharing no column with a second one, so it reports a storey whose stair was never drawn and never an island standing *beside* the board — the case an author actually draws by accident. | `SketchRasterizer.cs:978` |
-
-### The studio breaks, or tells the author something untrue
-
-| id | the defect | site |
-|---|---|---|
-| `CV21` | `world-canvas.js` declares `painter.layer("build", () => {})` and no painter ever appends to it; `setBuildVisible` has no caller outside the class. An empty group with a visibility switch nobody throws. | `world-canvas.js:663,305` |
 
 ### The record is wrong
 
@@ -192,10 +186,9 @@ behaviour — that is the deliverable, not the fix, and the tests the landed fix
 against the unfixed source before being trusted, with one stated exception: `C45`/`TC2` added types that did
 not exist, so their tests cannot be run against a tree without them, and the guarantee they pin — that a name
 no account could carry reaches no request — is one the code could not previously make. What is left of the
-run is `WS17` (the ruling is given and the mechanism is open — bounding the rise wants a number), `CV21`
-(needs `PGMDev/PGM` read on void filters and a board built with the defects on purpose), `TS31` (whose filed
-fix is contradicted by a measurement in the code it would change), and the three measurement entries that
-belong to Phase 4.
+run is `WS17` (the ruling is given and the mechanism is open — bounding the rise wants a number), `TS31`
+(whose filed fix is contradicted by a measurement in the code it would change), and the three measurement
+entries that belong to Phase 4.
 
 **Phase 2 — fix the causes, not the entries.** The five foundations, each in the order that maximises what it
 closes: the compiler's lost identity (4 entries), the layer word (7), the live findings feed (7), the term's

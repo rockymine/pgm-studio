@@ -8,6 +8,7 @@ using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm;
 using PgmStudio.Pgm.Authoring;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -31,26 +32,35 @@ public sealed class RegionsEndpoint(MapRepository repo, MapReader reader) : Endp
     }
 }
 
-/// <summary>GET /api/map/{slug}/buildability — per-column verdict grid.</summary>
-public sealed class BuildabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<BuildabilityDto>
+/// <summary>GET /api/map/{slug}/editability — which columns a player may edit and what makes each one
+/// editable, plus what the pass has to say about the result (<c>EZ1</c>).</summary>
+public sealed class EditabilityEndpoint(MapRepository repo, MapReader reader, FeatureData feature) : EndpointWithoutRequest<EditabilityDto>
 {
-    public override void Configure() { Get("/map/{slug}/buildability"); AllowAnonymous(); Description(b => b.Refuses(404)); }
+    public override void Configure() { Get("/map/{slug}/editability"); AllowAnonymous(); Description(b => b.Refuses(404)); }
 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.WithDocOfRouteAsync(reader, HttpContext, ct) is not ({ } map, { } doc)) return;
 
-        var y0 = (await feature.SegmentsAsync(map.Id, ct))?.Y0Columns();
-        // Clip the void/buildable geometry against the canonical map box (the surface-layer extent saved at
-        // scan), not a per-pass region-AABB-plus-margin; falls back to that margin box when there's no scan.
-        var bb = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
-        var res = Buildability.Compute(doc, y0,
-            bb is { } v ? ((int)v.Item1, (int)v.Item2, (int)v.Item3, (int)v.Item4) : null);
-        var rows = Enumerable.Range(0, res.Height)
-            .Select(iz => string.Concat(Enumerable.Range(0, res.Width).Select(ix => (char)('0' + res.Verdict[iz * res.Width + ix])))).ToList();
-        await Send.OkAsync(new BuildabilityDto(
-            new Bounds2dDto(res.MinX, res.MinZ, res.MaxX, res.MaxZ), res.Width, res.Height,
-            Buildability.Classes, Buildability.ClassColors, res.Counts, rows, res.HasY0), ct);
+        var segments = await feature.SegmentsAsync(map.Id, ct);
+        // Clip against the canonical map box (the surface-layer extent saved at scan), not a per-pass
+        // region-AABB-plus-margin; falls back to that margin box when there's no scan.
+        var box = (await feature.MapBboxAsync(map.Id, ct))?.bounds;
+        var grid = box is { } b ? ((int)b.Item1, (int)b.Item2, (int)b.Item3, (int)b.Item4) : ((int, int, int, int)?)null;
+        var zones = Editability.Compute(doc, segments?.Y0Columns(), grid);
+
+        // The dead-ground read needs somewhere to stand, so it is asked only of a scanned map — the walk over
+        // an unscanned one has no ground in it and would report the whole board as fine.
+        var findings = segments is null
+            ? []
+            : DeadGround.Check(zones, WorldWalk.Ground(doc, segments,
+                bbox: (zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ)), doc);
+
+        var rows = Enumerable.Range(0, zones.Height)
+            .Select(iz => string.Concat(Enumerable.Range(0, zones.Width).Select(ix => (char)('0' + zones.Zone[iz * zones.Width + ix])))).ToList();
+        await Send.OkAsync(new EditabilityDto(
+            new Bounds2dDto(zones.MinX, zones.MinZ, zones.MaxX, zones.MaxZ), zones.Width, zones.Height,
+            EditZone.All, EditZone.Colors, zones.Counts, rows, findings, zones.HasY0), ct);
     }
 }
 

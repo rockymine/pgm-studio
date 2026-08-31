@@ -49,7 +49,10 @@ public sealed class BuildGeneratorTests
         await Assert.That(((Dict)Filters(doc)["is-void"]!)["type"]).IsEqualTo("void");
 
         var rule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "not-build-area");
-        await Assert.That(rule["block"]).IsEqualTo("no-void");
+        await Assert.That(rule["block_place"]).IsEqualTo("no-void");
+        await Assert.That(rule["block_break"]).IsEqualTo("over-void-breakable");
+        await Assert.That(rule.ContainsKey("block")).IsFalse()
+            .Because("one filter over both scopes is what seals a canopy over the void");
         await Assert.That(doc["max_build_height"]).IsEqualTo(24);
     }
 
@@ -95,11 +98,44 @@ public sealed class BuildGeneratorTests
     {
         var doc = Map();
         BuildGenerator.Apply(doc, Intent());
+        var afterOne = (Regions(doc).Count, Filters(doc).Count, Rules(doc).Count);
+
         BuildGenerator.Apply(doc, Intent());
 
         await Assert.That(Regions(doc).Keys.Count(k => k.StartsWith("build-area-"))).IsEqualTo(3);
-        await Assert.That(Filters(doc).Count).IsEqualTo(2);
         await Assert.That(Rules(doc).Count).IsEqualTo(1);
+        await Assert.That((Regions(doc).Count, Filters(doc).Count, Rules(doc).Count)).IsEqualTo(afterOne)
+            .Because("a re-apply clears exactly what it wrote, however many filters that is");
+    }
+
+    /// <summary><b>Breaking over the void is not the same question as building over it.</b> A void rule that
+    /// covers both scopes seals whatever the dressing stage left hanging past a coast — a canopy, a flower on
+    /// a ledge — for the rest of the match, since nothing out there has a block at y=0. The break side
+    /// therefore carries an exception for what decoration puts there, and for nothing that forms terrain: a
+    /// crag is a shape the author built and a team may not mine it away.</summary>
+    [Test]
+    public async Task Breaking_over_the_void_admits_what_decoration_left_there_and_no_terrain()
+    {
+        var doc = Map();
+        BuildGenerator.Apply(doc, Intent());
+
+        var breakable = (Dict)Filters(doc)["over-void-breakable"]!;
+        await Assert.That(breakable["type"]).IsEqualTo("any");
+        await Assert.That((List<object?>)breakable["children"]!).IsEquivalentTo(new object?[] { "__ovb-over-void", "no-void" })
+            .Because("allow over ground exactly as placing does, and over the void only what is listed");
+
+        var overVoid = (Dict)Filters(doc)["__ovb-over-void"]!;
+        await Assert.That(overVoid["type"]).IsEqualTo("all");
+        await Assert.That((List<object?>)overVoid["children"]!).Contains("is-void");
+
+        var materials = Filters(doc).Where(f => f.Key.StartsWith("__ovb-") && ((Dict)f.Value!)["type"] as string == "material")
+            .Select(f => ((Dict)f.Value!)["material"] as string).ToList();
+        await Assert.That(materials).Contains("leaves");
+        await Assert.That(materials).Contains("log");
+        await Assert.That(materials).Contains("long grass").Because("the flora overlay reaches past a coast too");
+        foreach (var terrain in (string[])["stone", "dirt", "grass", "sandstone", "stained clay"])
+            await Assert.That(materials).DoesNotContain(terrain)
+                .Because("the exception is for what decoration left over the void, not for the board itself");
     }
 
     [Test]
@@ -260,7 +296,7 @@ public sealed class BuildGeneratorTests
 
         await Assert.That(Rules(doc).Count).IsEqualTo(2);
         var legacyRule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "not-build-area");
-        await Assert.That(legacyRule["block"]).IsEqualTo("no-void");
+        await Assert.That(legacyRule["block_place"]).IsEqualTo("no-void");
         var standaloneRule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "void-enforcement-area");
         await Assert.That(standaloneRule["block_place"]).IsEqualTo("deny(void)");
     }

@@ -39,6 +39,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
+| `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |

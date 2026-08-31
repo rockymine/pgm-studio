@@ -27,7 +27,7 @@ public sealed class WordSetSchemaTests
     [
         typeof(MapStage), typeof(MaterialKind), typeof(ThemeBuckets), typeof(RimEdgeModes),
         typeof(RoomParts), typeof(RoofForms), typeof(PorchEdges), typeof(WindowForms),
-        typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform),
+        typeof(DoorHeadForms), typeof(DoorHeadFills), typeof(Landform), typeof(EditZone),
     ];
 
     /// <summary>The fields marked today. Nothing in the compiler can say a field <em>ought</em> to be

@@ -139,7 +139,7 @@ subtracted from that union, emitted as a PGM `complement`, and they are genuine 
 incidental overlap: the region-categorized corpus survey found **16 of 233 build maps (~7%)** using a real
 inner complement, which is why the shape has to be expressible and preserved rather than re-decomposed.
 
-Two consequences follow, and both are load-bearing elsewhere. The y=0 footprint is what `/buildability` and
+Two consequences follow, and both are load-bearing elsewhere. The y=0 footprint is what `/editability` and
 `/traversability` read, which is why **an intent authored against no scanned world cannot pass the export
 gate** — there is no substrate for either to run on. And **build must precede the objectives**, because
 traversability is computed over the build and bridge geometry: a wool's reachability is undefined until the

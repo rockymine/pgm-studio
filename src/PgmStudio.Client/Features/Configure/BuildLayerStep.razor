@@ -38,18 +38,19 @@
 
       @if (overlayOn)
       {
-      <Section Title="Buildability">
-        <p class="section-desc"><strong>Buildable</strong> shades every column by whether players can build
-          there:</p>
+      <Section Title="Edit zones">
+        <p class="section-desc"><strong>Editable</strong> shades every column by what lets a player edit it —
+          place a block or break one:</p>
         <div class="panel-list">
-          <ListRow Compact><span class="list-swatch" style="background:#4caf50"></span><span class="list-label">Buildable</span><Badge Kind="dim">solid ground / bridge</Badge></ListRow>
-          <ListRow Compact><span class="list-swatch" style="background:#f57c00"></span><span class="list-label">Void-denied</span><Badge Kind="dim">draw a bridge</Badge></ListRow>
-          <ListRow Compact><span class="list-swatch" style="background:#c62828"></span><span class="list-label">Never</span><Badge Kind="dim">always blocked</Badge></ListRow>
-          <ListRow Compact><span class="list-swatch" style="background:#fbc02d"></span><span class="list-label">Restricted</span><Badge Kind="dim">limited by a rule</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#4caf50"></span><span class="list-label">Build zone</span><Badge Kind="dim">a rectangle you drew</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#8bc34a"></span><span class="list-label">Ground</span><Badge Kind="dim">terrain at y=0</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#fbc02d"></span><span class="list-label">Behind a filter</span><Badge Kind="dim">a spawn or wool room</Badge></ListRow>
+          <ListRow Compact><span class="list-swatch" style="background:#c62828"></span><span class="list-label">Nobody</span><Badge Kind="dim">draw a bridge</Badge></ListRow>
         </div>
-        <p class="section-desc"><strong>Orange</strong> is open void where building is denied — draw a bridge
-          across it to link your islands. <strong>Green</strong> already lets players build (terrain or a
-          bridge you drew). It refreshes when you save the step.</p>
+        <p class="section-desc"><strong>Red</strong> is open void nobody may edit — draw a bridge across it to
+          link your islands. The <strong>two greens</strong> are both editable and say why: dark is a
+          rectangle you drew, light is terrain that qualifies on its own. It refreshes when you save the
+          step.</p>
       </Section>
       }
   </Sidebar>
@@ -61,9 +62,9 @@
      Which of the two a drag makes is armed on the canvas dock rather than in this sidebar: it decides what
      the very next drag does, so it belongs beside the tool that drags, wearing the colour the rectangle will
      take — the same reading Sketch's Build/Carve gives. *@
-  <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__build_authoring__" ShowBuildable="true"
+  <WorldCanvas @ref="canvas" Slug="@Slug" RectDraw="true" Category="__build_authoring__" ShowEditZones="true"
                 DrawAccent="@(HoleMode ? HoleColor : AreaColor)"
-                OnBuildableToggled="OnBuildableToggled"
+                OnEditZonesToggled="OnEditZonesToggled"
                 OnRectDrawn="OnRectDrawn" OnGeometrySaved="OnGeometrySaved" OnSelect="OnCanvasSelect" OnReady="OnCanvasReady">
     <DrawMode>
       <DockModeButton Pressed="@HoleMode" Title="@DrawModeTitle" OnClick="ToggleDrawMode">@(HoleMode ? "Hole" : "Bridge")</DockModeButton>

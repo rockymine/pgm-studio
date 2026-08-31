@@ -44,7 +44,7 @@ public partial class BuildLayerStep
     protected override void OnInitialized() => LoadFromIntent();
 
     // The canvas raises this when the Buildable chip flips; the legend is shown only while the overlay is on.
-    private void OnBuildableToggled(bool on) => overlayOn = on;
+    private void OnEditZonesToggled(bool on) => overlayOn = on;
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 

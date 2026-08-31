@@ -247,7 +247,16 @@ orbits them onto the other teams as read-only copies that are listed so the unio
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
 subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
-`block=no-void`).
+`block-place=no-void`).
+
+**Breaking out there is a second rule, and it is not the same rule.** `block-break=over-void-breakable`
+allows what placing allows, and over the void additionally admits what the dressing stage leaves hanging
+there — a tree's log and leaves, and every plant the flora overlay scatters. Without it a canopy reaching
+past a coast is sealed for the whole match, since no column out there has a block at y=0. Terrain materials
+are deliberately not in that list: a crag is a shape the author built, and a team may not mine it away.
+
+The **Editable** overlay on the canvas is the read-back of all of it — one colour per column saying what
+makes it editable, and `EZ1` on `GET …/editability` naming any patch of standing ground nobody can touch.
 
 This is the phase the pre-flight sends an author back to, because an unbridged gap is what breaks the map.
 
@@ -517,7 +526,7 @@ way a `rot_180` board's should.
 
 **Every one of them needs ground, and says whether it had any** rather than guessing. Four answer
 `haveLayers` — `traversability`, `kit-reach`, `wool-availability` and `monument-obstruction` — false on a map
-with no scanned world; `buildability` answers `hasY0` for the same question, and `coverage` answers
+with no scanned world; `editability` answers `hasY0` for the same question, and `coverage` answers
 `haveRoutes`, which is the narrower one of whether there were journeys to trace. Read the flag first: without
 columns there is nothing to connect anything across, so traversability reads every spawn and wool as isolated
 and buildability reports *skip*, and that is a fact about the map's state rather than a verdict on its
@@ -526,7 +535,7 @@ design.
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `GET /map/{slug}/traversability` | whether every spawn reaches every objective **over the ground a walk runs on** — the same places `/walk` measures a distance across, so a verdict and a distance cannot disagree about whether there is a way. A column offers a place for each surface with two clear blocks over it, so a building is not a shortcut through itself and a deck over a gallery is one component with it only where something joins them. Answers `connected`, the component count, each navigation point with the component it landed in, and every point that is cut off — with `for` naming the team an entry denial shut out, where that is the cause. A team that must **take** a goal has to stand on it; a team that **defends** one only has to reach the border of the barred ground it stands in, since its own wool room's `enter` rule keeps it out by design. This is `EX1` asked early: the export refuses on the same walk | 404 |
-| `GET /map/{slug}/buildability` | the per-column verdict grid — where players may build, as digit rows over a bounding box with a class legend and the counts | 404 |
+| `GET /map/{slug}/editability` | which columns a player may edit and **what makes each one editable**, as digit rows over a bounding box with a zone legend and the counts. The four zones are `build_zone` (a rectangle the author drew), `ground` (nothing forbids it — on a void-enforced map exactly the columns with a block at y=0), `filtered` (a spawn's ore, a wool room's team-and-material whitelist) and `sealed`. Place and break are read as the separate scopes PGM makes them, so a canopy over the void that is breakable and not placeable-on reads as a permission rather than a refusal. `findings` carries `EZ1` — a patch of standing ground nobody can edit, with its box | 404 |
 | `GET /map/{slug}/kit-reach` | the harder version of traversability: can a fresh spawn reach each wool with **only the placeable blocks its kit grants**? A map can be connected on paper and unreachable with the blocks players actually hold. `blocksNeeded` counts both halves of what a player builds — one a cell for void bridged, and Δ−1 for a rise of Δ — and beside it `blocks` says how far round the cheapest crossing goes and `drops` what it falls down on the way. Each team walks **its own** ground, with whatever an `enter` rule bars it from subtracted, so a wool behind an oversized protection reads unreachable here and not merely expensive. A spawn and a wool are each walked from the **storey their region states** — the floor of the spawn box, the wool's own `y` — so a spawn on a deck is priced along the deck rather than along whatever lies under it. Every wool is reported with the `owner` that defends it, and a team's **own** wool is never held against it — this budget is what a capture costs and a defender makes none, which is a narrower reading than the traversability verdict's, where a defender still has to reach its own room's border | 404 |
 | `GET /map/{slug}/wool-availability` | per declared wool, whether it can be obtained at all, and whether the source is repeatable or one-time — a wool nobody can pick up is a match nobody can finish | 404 |
 | `GET /map/{slug}/monument-obstruction` | each monument's block, and whether something already stands there. PGM warns on load and the wool cannot be placed, so this is the one read whose fault is invisible in every render | 404 |
@@ -585,13 +594,13 @@ GET  /api/map/voidwatch/traversability   → {connected, isolated[]}   the walk 
 GET  /api/map/voidwatch/kit-reach        → per wool, reachable with the blocks the kit grants
 GET  /api/map/voidwatch/wool-availability → per wool, obtainable at all, and repeatable or once
 GET  /api/map/voidwatch/monument-obstruction → whether anything already stands where a wool is delivered
-GET  /api/map/voidwatch/buildability     → the per-column grid of where building is allowed
+GET  /api/map/voidwatch/editability      → the per-column grid of what makes each column editable
 ```
 
-The first four carry `haveLayers` and `buildability` carries `hasY0`. **False means the map has no scanned
+The first four carry `haveLayers` and `editability` carries `hasY0`. **False means the map has no scanned
 world**, and every one of these answers over ground: without it traversability reads each spawn and wool as
-isolated and buildability skips, which says the map has not been scanned rather than that its design is
-wrong.
+isolated and the pre-flight's buildability check skips, which says the map has not been scanned rather than
+that its design is wrong.
 
 The map that goes with this document is any sketch-origin map in the corpus of built maps. On
 `no-blocks-placed-verify` — 2 teams, 4 wools — pre-flight reports 26 regions, 20 filters and 11 apply-rules,
