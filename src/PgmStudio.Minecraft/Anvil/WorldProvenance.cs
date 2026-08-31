@@ -10,7 +10,7 @@ namespace PgmStudio.Minecraft.Anvil;
 /// rather than built and stands wherever it was drawn, over water or thirty blocks up.
 /// <see cref="Prop"/> is everything else the dressing pass put down — a tree, a boulder, flora, a path, a
 /// water course — which is placed rather than built and must not read as a building.
-
+///
 /// <para><b><see cref="Made"/> is what stops a balloon reading as the ground under it.</b> A made thing's
 /// columns are the rasterizer's, so without a claim of their own they are <see cref="Ground"/>, and a render
 /// keyed on the pass then draws an envelope flying over a field as that field's surface — a house beside one

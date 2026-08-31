@@ -122,7 +122,7 @@ export function normalizeDoc(d) {
       }),
       cores: (src.placements?.cores || []).map(c => {
         const o = { id: c.id ?? "", piece: c.piece ?? "", at: [...(c.at || [0, 0])] };
-        for (const k of ["size", "height", "shell", "float", "leak"]) if (c[k] != null) o[k] = c[k];
+        for (const k of ["lava", "lavaHeight", "float", "leak"]) if (c[k] != null) o[k] = c[k];
         if (c.openTop != null) o.openTop = c.openTop;
         if (c.name) o.name = c.name;
         return o;

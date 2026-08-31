@@ -196,8 +196,14 @@ A **spawn** adds `facing` — `front` (−Z), `back` (+Z), `left` (−X) or `rig
 that are fanned per orbit image. The facing picks the wall the spawn room's door opens in, and is overridden
 at compile when it would open onto the void from a board-edge piece.
 
-A **wool** may name a `color`; empty means auto, where a team's first wool takes the team colour and later
-wools take distinct dyes from a global cursor, so every wool on the board keys to a unique colour.
+A **wool** may name a `color`, one of the sixteen dyes PGM resolves — `white`, `orange`, `magenta`,
+`light_blue`, `yellow`, `lime`, `pink`, `gray`, `silver`, `cyan`, `purple`, `blue`, `brown`, `green`, `red`,
+`black`, which `GET /api/objectives/vocabulary` serves under `wool.colors` with each one's label and swatch.
+Case and spacing are folded and `light_gray` reads as the `silver` the wire carries, matching what PGM's own
+`DyeColors` accepts; a word outside the set is refused as `PL14` rather than substituted, because the
+substitution available is the auto rule, which is what an *absent* colour asks for. Empty means auto: a team's
+first wool takes the team colour and later wools take distinct dyes from a global cursor, so every wool on the
+board keys to a unique colour.
 
 An **iron** marker is a bare position. Where its piece is a spawn-role piece carrying a spawn marker, it rides
 that spawn and is resolved beside the room — which is how an iron marker beside a spawn marker changes the
@@ -215,6 +221,7 @@ default removes the key rather than freezing the number.
 
 | Marker | Optional fields | Defaults (`GET /api/objectives/vocabulary`) |
 |---|---|---|
+| `wools` | `color` | resolved from the team and the wools before it |
 | `destroyables` | `style`, `materials`, `float`, `layer`, `name` | `pillar-3`, `obsidian`, 4, the top surface, `<Team> Monument` |
 | `cores` | `lava`, `lavaHeight`, `openTop`, `float`, `leak`, `layer`, `name` | 3, 3, false, 6, 5, the top surface, PGM names it |
 
@@ -369,8 +376,11 @@ markers, its cliff and wall marks, and its name out of any box member list with 
 
 The inspector edits the selection: a piece's id, role, surface (stepped by the surface-step preference) and
 mirror flag; a zone's id; a box's id, kind and whether its membership is frozen to a list; a marker's position,
-a spawn's facing, and every structure field of a destroyable or a core — each shown at its *effective* value,
-so an unset field renders as the number the stamper will use rather than as blank.
+a spawn's facing, a wool's dye, and every structure field of a destroyable or a core — each shown at its
+*effective* value, so an unset field renders as the number the stamper will use rather than as blank. The dye
+is the one field with no effective value to show: a wool that states no colour has one resolved against its
+team and the wools placed before it, which no single marker knows, so the picker offers *auto* as a word
+beside the sixteen dyes rather than naming a colour the compiler might not pick.
 
 Three panels share the sidebar. **Settings** holds the globals, the tracing reference and the overlay toggles
 (land interfaces, frontline edges, labels, and a height-map fill that tints pieces by surface).
@@ -419,8 +429,9 @@ Every gate in the studio answers in that shape, and the rule ids are catalogued 
 **Structural errors** (`PlanValidator.Check`) block a compile with 422, each citing a `PL*` rule where the check is the plan's own and the document's own id where it is not — `DC1`/`DC2` for a core, `OB14` for a two-team goal, `OB17` for a goal footprint, `WX*` for a room frame. They are: overlapping pieces at
 different surfaces; a placement referencing an unknown piece, a buffer, or a position outside its piece — a
 destroyable or a core with an empty `piece` is not this error, since an absolute goal names no piece to be
-unknown or outside of; a core with `float` set without `leak` or the reverse; a core casing with no interior to
-hold lava; a destroyable style that names nothing; destroyables or cores on a symmetry that is not order 2; a
+unknown or outside of; a core with `float` set without `leak` or the reverse; a core lava footprint or height
+outside the range a core is chosen from; a destroyable style that names nothing; a wool colour that names no
+dye; destroyables or cores on a symmetry that is not order 2; a
 wall on a pair that shares no land interface; a connected landmass mixing fanned and non-fanned pieces — the
 fan copies whole groups, so a `mirrors: false` piece must form its own group rather than touch mirrored
 land; a room-frame refusal on a role piece (too small for its shell, a
@@ -565,7 +576,7 @@ draws the board as characters.
 | `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, and findings citing the task that would unblock each gap. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
 | `POST /plan/ascii[?every=N]` | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. **The read that shows a relation between two rectangles**, which no number can: a sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance here and invisible in every other read of the same board. `every` draws one character per N cells for a board wider than a terminal | 400 malformed |
 | `POST /plan/columns` | `{palette, cols, min_x, min_z, max_x, max_z}` — the world the plan compiles to, as per-column runs, in the encoding `sketch.md` documents, plus, under `warnings`, every prop the dressing pass declined (`DR-*`) and everything the compiled layout names that the studio does not have (`SK3`/`SK4`/`SK5`). It compiles and builds, so it is the heaviest read here and the only one that answers what stands above the ground. It does not gate: `/plan/compile` is where a plan is refused, and a preview of an incoherent plan is still worth looking at | 400 malformed or unbuildable |
-| `GET /objectives/vocabulary` | the destroyable styles and materials, and every objective default | — |
+| `GET /objectives/vocabulary` | the destroyable styles and materials, the wool dyes with their labels and swatches, and every objective default | — |
 
 **Compiling and building**
 

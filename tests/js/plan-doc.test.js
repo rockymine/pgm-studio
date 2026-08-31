@@ -401,15 +401,19 @@ test("a core placement round-trips, keeping only its authored knobs", () => {
     placements: {
       cores: [
         { piece: "mid", at: [2, 2] },
-        { piece: "mid", at: [1, 1], size: 7, height: 7, shell: 2, openTop: true, float: 3, leak: 4, name: "The Heart" },
+        { piece: "mid", at: [1, 1], lava: 5, lavaHeight: 4, openTop: true, float: 3, leak: 4, name: "The Heart" },
+        // A casing stated as a size and a wall thickness is not a core the studio can build: the interior is
+        // what an author picks and the obsidian is derived from it, so those words carry no meaning here.
+        { piece: "mid", at: [3, 3], size: 7, height: 7, shell: 2 },
       ],
     },
   });
   // An unvaried marker carries only its identity and its position — the compiler owns the DC1/DC2 defaults.
   assert.deepEqual(doc.placements.cores[0], { id: "core-1", piece: "mid", at: [2, 2] });
   assert.deepEqual(doc.placements.cores[1], {
-    id: "core-2", piece: "mid", at: [1, 1], size: 7, height: 7, shell: 2, float: 3, leak: 4, openTop: true, name: "The Heart",
+    id: "core-2", piece: "mid", at: [1, 1], lava: 5, lavaHeight: 4, float: 3, leak: 4, openTop: true, name: "The Heart",
   });
+  assert.deepEqual(doc.placements.cores[2], { id: "core-3", piece: "mid", at: [3, 3] });
   assert.deepEqual(JSON.parse(toJson(doc)).placements.cores, doc.placements.cores);
 });
 

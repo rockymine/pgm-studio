@@ -477,6 +477,25 @@
                     </ChildContent>
                   </Field>
                 }
+                @if (sel.MarkerKind == "wool")
+                {
+                  @* A wool states a dye or states nothing. Nothing is not a default the inspector can show a
+                     value for: the compiler resolves it against the owning team and the wools placed before
+                     this one, so the option reads as what it is rather than naming a colour. *@
+                  <Field Label="Colour">
+                    <div class="field-pick-row">
+                      <span class="field-swatch" style="background:@WoolSwatch"></span>
+                      <select class="field-input" value="@WoolColor"
+                              @onchange="@(e => SetMarkerText("color", e.Value?.ToString(), string.Empty))">
+                        <option value="">Auto — team colour, then the next free dye</option>
+                        @foreach (var dye in vocabulary.Wool.Colors)
+                        {
+                          <option value="@dye.Name" selected="@(dye.Name == WoolColor)">@dye.Label</option>
+                        }
+                      </select>
+                    </div>
+                  </Field>
+                }
                 @if (sel.MarkerKind == "destroyable")
                 {
                   <Field Label="Design">
@@ -533,8 +552,8 @@
                              @onchange="@(e => SetMarkerField("openTop", e.Value is true ? true : null))" />
                       <span class="plan-readout">@(CoreOpenTop ? "open — lava flush with the rim" : "capped over the lava")</span>
                     </label>
-                    <Footer><span class="plan-readout">@CoreCasingReadout</span></Footer>
                   </Field>
+                  <p class="section-desc">@CoreCasingReadout</p>
                   <Field Label="Float">
                     <LabelHint>(air under the casing)</LabelHint>
                     <ChildContent>

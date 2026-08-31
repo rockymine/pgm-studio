@@ -1,5 +1,7 @@
 namespace PgmStudio.Pgm.Editing;
 
+using PgmStudio.Vocabulary;
+
 using Dict = Dictionary<string, object?>;
 
 /// <summary>
@@ -8,17 +10,11 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public static class WoolEditor
 {
-    private static readonly HashSet<string> ValidColors =
-    [
-        "white", "orange", "magenta", "light_blue", "yellow", "lime", "pink", "gray",
-        "silver", "cyan", "purple", "blue", "brown", "green", "red", "black",
-    ];
-
     public static Dict AddWool(Dict data, Dict payload)
     {
         EnsureGrouped(data);
-        var color = Slug(payload.GetValueOrDefault("color") as string ?? "white");
-        if (!ValidColors.Contains(color)) throw EditException.Unreadable($"invalid wool color '{color}'", "color");
+        var color = WoolColors.Normalize(payload.GetValueOrDefault("color") as string ?? "white");
+        if (!WoolColors.IsColor(color)) throw EditException.Unreadable($"invalid wool color '{color}'", "color");
         if (Wools(data).OfType<Dict>().Any(w => w.GetValueOrDefault("color") as string == color))
             throw EditException.Conflict($"wool color '{color}' already exists", [color]);
         var wool = new Dict
@@ -36,8 +32,8 @@ public static class WoolEditor
         var wool = FindWool(data, woolId);
         if (payload.ContainsKey("color"))
         {
-            var color = Slug(payload["color"] as string ?? "");
-            if (!ValidColors.Contains(color)) throw EditException.Unreadable($"invalid wool color '{color}'", "color");
+            var color = WoolColors.Normalize(payload["color"] as string ?? "");
+            if (!WoolColors.IsColor(color)) throw EditException.Unreadable($"invalid wool color '{color}'", "color");
             if (color != wool.GetValueOrDefault("color") as string && Wools(data).OfType<Dict>().Any(w => !ReferenceEquals(w, wool) && w.GetValueOrDefault("color") as string == color))
                 throw EditException.Conflict($"wool color '{color}' already exists", [color]);
             wool["color"] = color;

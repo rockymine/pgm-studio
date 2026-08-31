@@ -166,17 +166,6 @@ below are what that would cost. Each names the question that has to be answered 
   Needs a write path (sketch → intent); the read projection already exists. Then extend beyond spawn/wool to
   the other intent entities (protection / build / monuments / iron) as they each earn a sketch surface.
 
-- [ ] **S57 — The measure tool is a ruler where the question is a gap.** `sketch-canvas.js` measures the raw
-  drag between two freely-placed points and reports `Math.hypot` as "N blocks" (`#renderMeasureLabel`). The
-  question it exists to answer is how wide a void gap is — the 10–15 block lane, the jump a player can make —
-  and a free ruler eyeball-aimed at two edges is barely better than reading the cursor twice. Three parts,
-  each usable alone: **snap the endpoints** to nearby shape and island edges, reusing the `#snapTargets` /
-  `bestSnap` machinery the drag already has; **decompose the readout** into ΔX × ΔZ beside the diagonal, since
-  a lane's width is an axis extent and not a hypotenuse; and, the real target, **measure the gap rather than
-  the drag** — hover or select two islands and draw the nearest-point line between their outlines with the
-  block count on it. The islands are already computed live in JS (`computeIslands`), so the nearest-point
-  pass is the only new geometry.
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -315,17 +304,6 @@ so they wait for the frame rather than being built into the one it replaces.
   poll is warranted and long enough that the control sits inert with no sign the click landed. Disable it for
   the duration and show the same busy affordance the other long-ish reads use. The same holds for
   `GET /xml` on a sketch-origin map, which builds the identical world.
-
-- [ ] **CV16 — the authoring canvases have no frame budget, only habits.** The zoom stall (fixed in
-  `FEATURES.md`) was two unrelated per-event costs that happened to land on the same handler, and neither was
-  visible until measured: a grid rebuild whose memo was written for pan, and a `.NET` interop call per wheel
-  tick. Both are the same class of mistake — doing work per *input event* rather than per *frame* — and
-  nothing in the canvases prevents the next one. Two guards worth having: a debug overlay (or an e2e probe)
-  that reports main-thread ms per interaction burst, so a regression shows up as a number rather than as
-  someone noticing the picture go soft; and a rule that anything crossing into Blazor from a canvas handler
-  goes through the frame coalescer, since interop is the expensive edge and its cost is invisible from the JS
-  side. The screenshot approach does **not** work for this class of bug — `page.screenshot()` forces a fresh
-  raster, so a transient compositor artifact never appears in the capture; measure the handler, not the pixels.
 
 ## Mapgen authoring tasks
 
@@ -766,17 +744,6 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
   (`docs/pgm/include-resolution.md` §4)
 
-- [ ] **P7 — [Deferred decision] Consolidate the scan passes.** **`ND2` settles the
-  "consolidate vs keep" half: KEEP the exact per-pass extractors** — the World step uses them in distinct
-  roles (cleaned `Base` = detection · `Surface` = visual aid · `Segments` = vertical), so they're a feature,
-  not duplication; their per-pass default ignored-block sets (`Base` gets the expanded ND2 noise set;
-  Surface/Y0 = air-only) are the solid-policy. Still open: the byte-parity sub-question — a segment-derived
-  surface would **not** be byte-parity with the reference (endpoint-only runs also can't honour user
-  `exclude_blocks`). Pairs with A4. The naming half is settled — the family is the *scan*
-  (`SurfaceExtractors`, `SurfaceParquet`, `PgmStudio.Analysis.Scan`, `WS13`), and its rows are named for what
-  a row is rather than for the pass that wrote it (`segment`, `Q8`) — so what is left here is only whether
-  the passes themselves consolidate.
-
 ### The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
@@ -836,11 +803,6 @@ and what a `subtract` takes away.
 
   *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
   dock's south edge sits flush on the build region's northern line at `z −20`.*
-
-*moved here by the author*
-
-- **G76** — the marker inspector exposes a structure's knobs (destroyable styles, core size/shell,
-  wool colour) instead of silently defaulting.
 
 ### Trees: what a species means, and what a grown one is made of
 
@@ -1034,11 +996,6 @@ asked over.
   one, so the origin "a captured wool room" comes from G168's post-capture state — until that exists,
   computing it once per wool treated as captured is the honest stand-in. Background and the full numbers:
   `docs/gameplay/match-flow.md` §2, §4.9.
-
-- [ ] **A3 — Buildability endpoint perf (verify, then optimise if needed).** Per-cell NTS over the grid
-  was flagged slow; the endpoint is now live and user-visible (`N03`'s buildability overlay landed).
-  **First profile it under the Configure overlay** — only optimise (spatial index / batch) if it's
-  actually slow in use; otherwise close.
 
 ## What a board cannot be told, and what it cannot be asked
 
@@ -1255,6 +1212,17 @@ braces, worth having once the studio is used by someone who did not write it.
   and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
   that button rather than failing on the compile.
 
+- [ ] **TE2 — The Edit tool's wool picker spells the dyes a second way.** `ObjectivePhase` builds its colour
+  list from `GameColors.DyeColors` (`ObjectivePhase.razor.cs:201`, `:211`), whose values are the space form
+  `light blue` loaded from `game-colors.json`, and converts on every read with `.Replace('_', ' ')`. The plan
+  tool, `WoolEditor`, `PlanValidator` and both renderers read `WoolColors` (`PgmStudio.Vocabulary`), whose
+  values are the underscore form the wire carries. Two lists for one closed set of sixteen, and only one is
+  the word `map.xml` holds. `PgmStudio.Client` reaches `Vocabulary` through `Contracts`, so the picker can
+  read `WoolColors.All` and `.Label`, keeping `game-colors.json` for the chat table it is actually the oracle
+  for. **Evidence:** `game-colors.json` has no `light_gray`, so on a map whose author wrote PGM's accepted
+  alias the `<select>` at `ObjectivePhase.razor:56` has no option matching its own value and shows a colour
+  the wool is not — while the plan tool folds the same word to `silver`.
+
 - [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
   attribution half is done (B43 swept every "port of X.py" / "matches Python" reference out of `src/` and
   `tests/`). What remains is **implementation-phase and task ids** (`NS`, `N00`, `B8`, `P5`, `ND2`, …) in
@@ -1302,12 +1270,6 @@ braces, worth having once the studio is used by someone who did not write it.
   of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
   genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
   separate.
-
-  - [ ] **S10 — Auto-promote rectangles on Bézier (parked, optional).** Today S4 promotes via the inspector
-  button / `P`; a rectangle keeps its 8-handle resize and has no Bézier affordance. If we ever want a
-  rectangle's corner to sprout a Bézier handle that *implicitly* converts it to a polygon, it needs rect
-  vertex/tangent handles in `sketch-edit-controller.js` (a UX decision on resize-handles vs vertex-handles).
-  Low priority — explicit promotion already covers the need.
 
 ### Test coverage
 

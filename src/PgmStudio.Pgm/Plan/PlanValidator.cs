@@ -66,6 +66,11 @@ public static class PlanRules
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Objective, RuleConcern.Style)]
     public const string UnknownStyle = "PL10";
 
+    /// <summary>A wool colour names something that is not a dye.</summary>
+    /// <remarks>Use one of the sixteen dye names — <c>GET /api/objectives/vocabulary</c> lists them under <c>wool.colors</c>. Leave the colour out entirely to have one picked: a team's first wool takes the team colour and later wools take distinct dyes.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Objective)]
+    public const string UnknownColor = "PL14";
+
     /// <summary>A wall is drawn on a pair of pieces that share no land interface.</summary>
     /// <remarks>A wall is drawn between two pieces that share no walkable border, so there is nothing for it to divide. Move the pieces until they touch along an edge, or drop the wall.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
@@ -270,6 +275,15 @@ public static class PlanValidator
                 Error(PlanRules.UnknownStyle,
                     $"destroyable style '{b.Style}' is not one of [{string.Join(", ", DestroyableStyles.All)}]",
                     b.Piece);
+
+        // A colour PGM cannot resolve makes the wool unplaceable rather than mis-coloured, and the compiler
+        // has no honest fallback: the auto-assignment it would otherwise use is what an absent colour asks for,
+        // so silently substituting it would answer a different question from the one the plan asked.
+        foreach (var w in plan.Placements.Wools)
+            if (!string.IsNullOrEmpty(w.Color) && !WoolColors.IsColor(w.Color))
+                Error(PlanRules.UnknownColor,
+                    $"wool color '{w.Color}' is not one of [{string.Join(", ", WoolColors.All)}]",
+                    w.Piece);
 
         // OB14 — a destroyable is one team's to defend and every other team's to break, which only means
         // something at two teams: PGM marks a goal shared exactly when the count is not 2, and what a shared

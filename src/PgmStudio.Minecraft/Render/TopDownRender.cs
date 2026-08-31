@@ -3,6 +3,7 @@ using PgmStudio.Geom.Render;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Minecraft.Render;
 
@@ -480,16 +481,9 @@ public static class TopDownRender
         return new BlockBox(x, y, z, x, y, z);
     }
 
-    /// <summary>Common wool dye names → a pixel colour. Unknown names fall back to amber rather than to a
-    /// guess.</summary>
-    private static int WoolRgb(string? color) => (color ?? "").ToLowerInvariant() switch
-    {
-        "red" => 0xef4444, "blue" => 0x3b82f6, "green" or "lime" => 0x22c55e,
-        "yellow" => 0xeab308, "orange" => 0xf97316, "purple" or "magenta" => 0xa855f7,
-        "cyan" or "aqua" => 0x06b6d4, "pink" => 0xec4899, "white" => 0xf8fafc,
-        "black" => 0x334155, "brown" => 0x92400e,
-        _ => 0xfbbf24,
-    };
+    /// <summary>A wool dye as a pixel colour, from the one dye table (<see cref="WoolColors"/>). Unknown names
+    /// fall back to amber rather than to a guess.</summary>
+    private static int WoolRgb(string? color) => WoolColors.RgbOf(color);
 
     /// <summary>A PGM team colour name as a pixel colour. Unknown names fall back to white rather than to a
     /// guess, so a mis-typed colour is visible as one.</summary>

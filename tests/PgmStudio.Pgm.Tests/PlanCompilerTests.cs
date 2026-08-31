@@ -1,6 +1,7 @@
 using System.Text.Json;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Tests;
 
@@ -298,6 +299,28 @@ public sealed class PlanCompilerTests
         await Assert.That(cells.Contains((7, 7))).IsFalse();      // inside the hole — void
         await Assert.That(cells.Contains((2, 2))).IsTrue();       // on the frame — ground
         await Assert.That(cells.Contains((-7, -7))).IsFalse();    // the rot_180 copy's hole, void too
+    }
+
+    [Test]
+    public async Task Every_colour_the_compiler_picks_is_a_dye_PGM_resolves()
+    {
+        // A wool that states no colour has one picked: the team's colour for a team's first, then a cursor
+        // over distinct dyes. Both sources are lists the compiler holds rather than the dye set itself, so
+        // what has to hold is that the words they hand out are words PGM resolves — a colour it cannot
+        // resolve is a map that will not load, and nothing between here and the server would say so.
+        // rot_90 is the widest fan there is (four teams), so it exercises the whole team half of the choice.
+        var (_, intent) = PlanCompiler.Compile(Plan("""
+        { "plan":1, "globals":{"symmetry":"rot_90","cell":5,"surface":9},
+          "pieces":[ {"id":"w1","role":"wool-room","rect":[2,2,2,2]},
+                     {"id":"w2","role":"wool-room","rect":[6,2,2,2]},
+                     {"id":"w3","role":"wool-room","rect":[2,6,2,2]} ],
+          "placements":{ "wools":[ {"piece":"w1","at":[1,1]},
+                                   {"piece":"w2","at":[1,1]},
+                                   {"piece":"w3","at":[1,1]} ] } }
+        """));
+        await Assert.That(intent.Wools.Count).IsEqualTo(12);
+        foreach (var wool in intent.Wools)
+            await Assert.That(WoolColors.IsColor(wool.Color)).IsTrue();
     }
 
     [Test]

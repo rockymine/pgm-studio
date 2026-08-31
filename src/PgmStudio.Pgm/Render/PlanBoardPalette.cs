@@ -1,5 +1,7 @@
 namespace PgmStudio.Pgm.Render;
 
+using PgmStudio.Vocabulary;
+
 /// <summary>
 /// The role/zone colours <see cref="PlanBoardSvg"/> and <see cref="PlanBoardPng"/> both draw from — public,
 /// unlike the geometry in <see cref="PlanBoardScene"/>, because a colour that only the two renderers can name
@@ -47,22 +49,9 @@ public static class PlanBoardPalette
     public const string WaterLaneColor = "#2563eb";
     public const int WaterLaneRgb = 0x2563eb;
 
-    // Common wool dye names → a swatch; anything else falls back to amber.
-    public static string WoolColor(string? color) => (color ?? "").ToLowerInvariant() switch
-    {
-        "red" => "#ef4444", "blue" => "#3b82f6", "green" or "lime" => "#22c55e",
-        "yellow" => "#eab308", "orange" => "#f97316", "purple" or "magenta" => "#a855f7",
-        "cyan" or "aqua" => "#06b6d4", "pink" => "#ec4899", "white" => "#f8fafc",
-        "black" => "#334155", "brown" => "#92400e",
-        _ => "#fbbf24",
-    };
+    /// <summary>A wool marker's swatch, from the one dye table (<see cref="WoolColors"/>) the validator, the
+    /// compiler and the editor all read, so a marker draws as the block it stamps.</summary>
+    public static string WoolColor(string? color) => WoolColors.SwatchOf(color);
 
-    public static int WoolRgb(string? color) => (color ?? "").ToLowerInvariant() switch
-    {
-        "red" => 0xef4444, "blue" => 0x3b82f6, "green" or "lime" => 0x22c55e,
-        "yellow" => 0xeab308, "orange" => 0xf97316, "purple" or "magenta" => 0xa855f7,
-        "cyan" or "aqua" => 0x06b6d4, "pink" => 0xec4899, "white" => 0xf8fafc,
-        "black" => 0x334155, "brown" => 0x92400e,
-        _ => 0xfbbf24,
-    };
+    public static int WoolRgb(string? color) => WoolColors.RgbOf(color);
 }

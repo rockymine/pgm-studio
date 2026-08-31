@@ -843,8 +843,8 @@ export class PlanCanvas extends CanvasBase {
       cb({
         kind: "marker", markerKind: this.#sel.markerKind, index: this.#sel.index, id: m?.id,
         piece: m?.piece, at: m?.at, cell: c, facing: m?.facing, name: m?.name,
-        style: m?.style, materials: m?.materials,
-        size: m?.size, height: m?.height, shell: m?.shell,
+        style: m?.style, materials: m?.materials, color: m?.color,
+        lava: m?.lava, lavaHeight: m?.lavaHeight,
         float: m?.float, leak: m?.leak, openTop: m?.openTop,
       });
       return;

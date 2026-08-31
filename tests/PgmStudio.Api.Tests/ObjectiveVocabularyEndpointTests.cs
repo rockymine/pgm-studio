@@ -73,6 +73,32 @@ public sealed class ObjectiveVocabularyEndpointTests
     }
 
     [Test]
+    public async Task The_offered_dyes_are_every_colour_a_wool_may_be()
+    {
+        var wool = (await GetAsync()).GetProperty("wool");
+        var colors = wool.GetProperty("colors").EnumerateArray().Select(c => c.GetProperty("name").GetString()).ToList();
+        await Assert.That(colors).IsEquivalentTo(WoolColors.All.ToList());
+
+        // Each dye carries its own swatch: an inspector that had to derive a colour from a name would be
+        // inventing one, and the plan board's marker would then disagree with the picker beside it.
+        foreach (var dye in wool.GetProperty("colors").EnumerateArray())
+            await Assert.That(dye.GetProperty("hex").GetString())
+                .IsEqualTo(WoolColors.Swatch[dye.GetProperty("name").GetString()!]);
+    }
+
+    [Test]
+    public async Task A_wool_offers_no_default_colour_because_the_compiler_resolves_one()
+    {
+        // Unlike a destroyable's design there is no colour to show for an unstated wool: the compiler reads
+        // the owning team and the wools before it. The vocabulary says so with a word rather than a colour,
+        // and that word must not be a dye — an author picking it would be picking a real colour by accident.
+        var wool = (await GetAsync()).GetProperty("wool");
+        var auto = wool.GetProperty("auto").GetString();
+        await Assert.That(auto).IsNotNull();
+        await Assert.That(WoolColors.IsColor(auto)).IsFalse();
+    }
+
+    [Test]
     public async Task It_answers_without_a_map()
     {
         // The plan editor opens on /plan-editor with no map behind it, so a map-scoped route could not serve

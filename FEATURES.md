@@ -719,6 +719,32 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **Every marker states the structure it builds, the wool included (`G76`).** The plan inspector offered a
+  destroyable's design and a core's casing and nothing at all for a wool, whose `color` was in the document
+  model and reachable only by hand-editing the JSON. It offers the sixteen dyes now, with *auto* as a word
+  beside them rather than a colour — a wool that states nothing has one resolved against its team and the
+  wools before it, which no single marker knows, so there is no effective value to render. Behind it, the dye
+  set stops being four lists: `WoolColors` in `PgmStudio.Vocabulary` is what the validator refuses against
+  (`PL14`, a wool colour that names no dye), what `GET /objectives/vocabulary` serves under `wool.colors`, and
+  what both the plan-board SVG and the top-down raster colour a marker by. The renderers had carried an
+  eleven-name swatch of their own, so `light_blue`, `gray` and `silver` drew as the unknown amber and `lime`
+  and `magenta` drew as `green` and `purple` — five of the twelve dyes the compiler's own cursor hands out.
+  Spellings PGM resolves are folded rather than refused: case, spaces, and `light_gray` for the `silver` the
+  wire carries. (`WoolColorsTests`, `PlanValidatorTests`, `PlanCompilerTests`; G76)
+
+- **A core's knobs survive the trip to the inspector (`G161`).** The client half of the casing rework was left
+  behind: `plan-doc.js` normalised a core by the retired `size`/`height`/`shell` keys and `plan-canvas.js`
+  sent those three to the inspector, so an authored `lava` or `lavaHeight` was dropped on load and the two
+  new selects always read back the default. Both read the stated pair now, and the normaliser test asserts a
+  core written in the old words keeps none of them. (`tests/js/plan-doc.test.js`; G161)
+
+- **The editability pass is not slow, and the entry that asked can close (`A3`).** Per-cell NTS over the grid
+  was filed as a suspected cost. Measured on a board wired the way the generator wires one — a build area,
+  its `no-void` complement, `never` spawns and two material-filtered wool rooms — `Editability.Compute` runs
+  at **0.6 µs per column**: 39 ms for a 256×256 board of 65,536 columns, 21 ms for 192×192. The rest of the
+  route is grid work, not geometry — `WorldWalk.Ground` and `DeadGround.Check` walk cell sets. No index and
+  no batching: the read costs less than the request carrying it. (A3)
+
 - **A core is chosen, not designed (`G161`).** The plan's marker panel offered a casing size (1..64) and a
   wall thickness (1..16), clamped independently — so a 5×5 casing with a shell of 3 was one keystroke away,
   left `size − 2·shell = −1`, and built a solid block of obsidian nothing could leak. `PlanValidator` caught

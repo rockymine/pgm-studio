@@ -687,6 +687,16 @@ public partial class PlanTool
             return $"{size}×{size}×{height} obsidian, {CoreLava}×{CoreLava}×{CoreLavaHeight} lava inside";
         }
     }
+    /// <summary>The dye a wool marker states, or empty where it states none. Unlike the other knobs there is
+    /// no default to fall back to: an unstated colour is resolved at compile time against the marker's team and
+    /// the wools before it, which the editor cannot know from one marker.</summary>
+    private string WoolColor => sel?.Color ?? "";
+
+    /// <summary>The swatch beside the picker: the stated dye's own colour, or the neutral the auto option
+    /// stands for, since no one colour is what "auto" resolves to.</summary>
+    private string WoolSwatch
+        => vocabulary.Wool.Colors.FirstOrDefault(c => c.Name == WoolColor)?.Hex ?? "var(--border)";
+
     private int CoreFloat => sel?.Float ?? vocabulary.Core.Float;
     private int CoreLeak => sel?.Leak ?? vocabulary.Core.Leak;
     private bool CoreOpenTop => sel?.OpenTop ?? vocabulary.Core.OpenTop;
@@ -699,6 +709,7 @@ public partial class PlanTool
     {
         [JsonPropertyName("destroyable")] public DestroyableVocabulary Destroyable { get; set; } = new();
         [JsonPropertyName("core")] public CoreVocabulary Core { get; set; } = new();
+        [JsonPropertyName("wool")] public WoolVocabulary Wool { get; set; } = new();
 
         public static readonly ObjectiveVocabulary Empty = new();
     }
@@ -710,6 +721,19 @@ public partial class PlanTool
         [JsonPropertyName("style")] public string Style { get; set; } = "";
         [JsonPropertyName("materials")] public string Materials { get; set; } = "";
         [JsonPropertyName("float")] public int Float { get; set; }
+    }
+
+    private sealed class WoolVocabulary
+    {
+        [JsonPropertyName("colors")] public List<WoolColorChoice> Colors { get; set; } = [];
+        [JsonPropertyName("auto")] public string Auto { get; set; } = "auto";
+    }
+
+    private sealed class WoolColorChoice
+    {
+        [JsonPropertyName("name")] public string Name { get; set; } = "";
+        [JsonPropertyName("label")] public string Label { get; set; } = "";
+        [JsonPropertyName("hex")] public string Hex { get; set; } = "";
     }
 
     private sealed class CoreVocabulary
@@ -1239,6 +1263,7 @@ public partial class PlanTool
         [JsonPropertyName("float")] public int? Float { get; set; }
         [JsonPropertyName("leak")] public int? Leak { get; set; }
         [JsonPropertyName("openTop")] public bool? OpenTop { get; set; }
+        [JsonPropertyName("color")] public string? Color { get; set; }
         [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
         [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";
         [JsonPropertyName("members")] public List<string>? Members { get; set; }

@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Contracts;
 
@@ -35,9 +36,11 @@ public sealed record ConfigureStateDto(
 /// </summary>
 /// <param name="Destroyable">What a DTM goal may be made of, and what an unauthored one is.</param>
 /// <param name="Core">What a DTC goal may be made of, and what an unauthored one is.</param>
+/// <param name="Wool">Which dyes a CTW goal may be, and what an unstated one becomes.</param>
 public sealed record ObjectiveVocabularyDto(
     DestroyableVocabularyDto Destroyable,
-    CoreVocabularyDto Core);
+    CoreVocabularyDto Core,
+    WoolVocabularyDto Wool);
 
 /// <summary>The destroyable designs on offer and what an unauthored one is made of.</summary>
 /// <param name="Styles">The shapes a destroyable can be built as.</param>
@@ -72,6 +75,26 @@ public sealed record CoreVocabularyDto(
     int Lava, int LavaHeight,
     IReadOnlyList<int> LavaRange, IReadOnlyList<int> LavaHeightRange,
     int Float, int Leak, bool OpenTop);
+
+/// <summary>The dyes a wool goal may be. Unlike a destroyable's design there is no default colour to show: a
+/// wool the author leaves unstated takes the owning team's colour where it is that team's first, and the next
+/// unused dye where it is not, so which colour a marker ends up with is not knowable from the marker alone.
+/// That is what <see cref="Auto"/> names, and why it is a word rather than a colour.</summary>
+/// <param name="Colors">The sixteen dyes, in the order a picker reads them.</param>
+/// <param name="Auto">The label for stating no colour — the compiler picks, and a marker that says nothing
+/// stays the bare <c>{ piece, at }</c> it was placed as.</param>
+public sealed record WoolVocabularyDto(
+    IReadOnlyList<WoolColorDto> Colors,
+    string Auto);
+
+/// <summary>One dye: the word the wire carries, the label a picker shows, and the swatch it draws.</summary>
+/// <param name="Name">The underscore-form dye name <c>map.xml</c> carries.</param>
+/// <param name="Label">The same dye, title-cased for a menu.</param>
+/// <param name="Hex">Bukkit's own colour for that wool block.</param>
+public sealed record WoolColorDto(
+    [property: WordSet(typeof(WoolColors))] string Name,
+    string Label,
+    string Hex);
 
 /// <summary>
 /// The symmetry of a map's islands (<c>GET /map/{slug}/symmetry</c>) — detected on first read and cached, then

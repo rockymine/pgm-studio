@@ -149,6 +149,40 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
+    public async Task A_wool_colour_that_is_not_a_dye_is_refused()
+    {
+        // PGM resolves a wool by its dye name; a word outside the sixteen makes the goal unplaceable rather
+        // than mis-coloured, and the auto-assignment the compiler would otherwise reach for is what an
+        // ABSENT colour asks for, so substituting it would answer a question the plan did not ask.
+        var named = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]} ],
+          "placements":{ "wools":[ {"piece":"w","at":[1,1],"color":"chartreuse"} ] } }
+        """);
+        await Assert.That(Refused(named, PlanRules.UnknownColor)).IsTrue();
+
+        // Both spellings PGM itself accepts pass: it simplifies case and underscores, and reads LIGHT_GRAY as
+        // the SILVER the wire carries.
+        foreach (var written in new[] { "light_blue", "Light Blue", "light_gray" })
+        {
+            var spelled = Plan($$"""
+            { "plan":1, "globals":{"cell":1},
+              "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]} ],
+              "placements":{ "wools":[ {"piece":"w","at":[1,1],"color":"{{written}}"} ] } }
+            """);
+            await Assert.That(Refused(spelled, PlanRules.UnknownColor)).IsFalse();
+        }
+
+        // Saying nothing is the documented way to have one picked, so it is never the refusal.
+        var unstated = Plan("""
+        { "plan":1, "globals":{"cell":1},
+          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,10,10]} ],
+          "placements":{ "wools":[ {"piece":"w","at":[1,1]} ] } }
+        """);
+        await Assert.That(Refused(unstated, PlanRules.UnknownColor)).IsFalse();
+    }
+
+    [Test]
     public async Task An_isolated_wool_is_unreachable()
     {
         // spawn island and wool island, no zone to bridge them → the wool can't be reached

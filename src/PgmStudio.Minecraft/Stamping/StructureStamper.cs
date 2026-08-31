@@ -155,8 +155,8 @@ public static class StructureStamper
     /// <para><b>A destroyable stands over one and a core does not</b> (the author's ruling). A destroyable is
     /// broken from above and nothing under it is play; a core is won by digging under it until the lava
     /// leaks, so the plate would be a floor the objective's own rules tell players to break through. Capping
-    /// the dig at the plate's depth would make a <see cref="CoreIntent.Float"/>/<see cref="CoreIntent.Leak"/>
-    /// pair asking for more a pair the terrain silently refuses.</para></summary>
+    /// the dig at the plate's depth would make a core's <c>float</c>/<c>leak</c> pair asking for a deeper dig
+    /// a pair the terrain silently refuses.</para></summary>
     public static void StampPlatform(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)

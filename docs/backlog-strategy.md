@@ -1,21 +1,21 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 133 open entries, `TODO.md` seven. This document is the reading that says which of them
+`BACKLOG.md` holds 102 open entries, `TODO.md` seven. This document is the reading that says which of them
 are defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
 `CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
 growing a new one, and the board had no such document.
 
-Every claim below was taken from the tree at `4765026`, not from an earlier reading of the board. Where a
+Every claim below was measured on the board as it stands, not taken from an earlier reading of it. Where a
 figure the board states and a figure measured today disagree, the measured one is here and the entry has been
 corrected to match.
 
 ## Where the board stands
 
-The two boards carry **140 open entries over 25,010 words**: a median entry of 155 words, 48 between 150 and
-250, and **23 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
-investigating until it is". `B21` alone is 1,073 words, `B249` and `A8` 504 each. The prefix spread is
-`B` 48, `WE` 18, `G` 14, `S` 13, `TS` 10, `C` 9, `RP` 7, and eleven others in single figures.
+The two boards carry **109 open entries over 18,564 words**: a median entry of 147 words, 38 between 150 and
+250, and **13 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
+investigating until it is". `B21` alone is 1,068 words, `B249` 504 and `B37` 425. The prefix spread is
+`B` 39, `WE` 15, `G` 12, `S` 9, `TS` 8, `C` 8, and six others in single figures.
 
 The board's own id discipline holds exactly. No id appears in two of the three files, none is duplicated
 inside one, and none collides with a rule id served by `GET /api/rules` — the two checks `CLAUDE.md` rule 4
@@ -132,10 +132,9 @@ The questions, stated so they can be answered in a line each:
 12. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the smoke check naming a player?
 13. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
 
-Three more are decisions of scheduling rather than of gameplay and can be taken without the oracle: `P7`
-(whether the scan passes consolidate), `B249` (whether a per-call refusal override is wanted at all) and
-`S47` (what a pressure budget is, which the entry itself says needs labelled bad maps rather than more
-measurement).
+Two more are decisions of scheduling rather than of gameplay and can be taken without the oracle: `B249`
+(whether a per-call refusal override is wanted at all) and `S47` (what a pressure budget is, which the entry
+itself says needs labelled bad maps rather than more measurement).
 
 ## Three different things live in one file
 
@@ -144,13 +143,12 @@ measurement).
 - **Defects and blocked decisions** — the two sections above, about 45 entries once the two that appear in
   both are counted once. These genuinely belong on a board, because each has a definite end.
 - **Reach gaps** — the backend exists and the browser cannot say it. `B261`, `B260`, `B263`, `B264`, `S40`,
-  `B200`, `WE54`, `C9`, `N08`, `S25b`, `TS64`. These are the current `TODO.md` programme and are already
+  `B200`, `WE54`, `N08`, `S25b`, `TS64`. These are the current `TODO.md` programme and are already
   correctly grouped.
-- **A roadmap** — `B21` (an MCP head, 1,073 words), `B262`, `B258`, `B221`, `S46`, `S56`, `S57`, `S60`,
-  `S47`, `S34`, `S9b`, `S10`, `S12`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `G156`, `B92`, `B54`, `B9`,
-  `B37`, `B265`, `WE34`, `A3`. Twenty-six entries and **5,688 words — 22% of both boards** — describing
-  capabilities the studio does not have and nobody is blocked on. They have no end condition, and they are
-  why the board reads as unemptiable.
+- **A roadmap** — `B21` (an MCP head, 1,073 words), `B262`, `B258`, `B221`, `S46`, `S56`, `S60`, `S47`,
+  `S34`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `G156`, `B92`, `B54`, `B9`, `B37`, `B265`, `WE34`. Twenty-one
+  entries — describing capabilities the studio does not have and nobody is blocked on. They have no end
+  condition, and they are why the board reads as unemptiable.
 
 `CLAUDE.md` rule 1 already provides for the third population — *"tasks that are retired for the moment can
 live inside `docs/<project>/ideas.md`"* — and `docs/generator/ideas.md` and `docs/world-export/ideas.md` both
@@ -195,7 +193,7 @@ condition is allowed to sit.
 Four rules, each of which the repository already believes and none of which it enforces:
 
 **Nothing is filed without a reproduction.** An entry that cannot say what fails, at which coordinates, is
-the five-paragraph entry `CLAUDE.md` rule 10 warns about. Twenty-three entries are over 250 words today.
+the five-paragraph entry `CLAUDE.md` rule 10 warns about. Thirteen entries are over 250 words today.
 
 **Nothing is closed without a test.** The verified defects above are all invisible to a suite of 3,064 tests.
 `LibrarySeedTests` is the shape: pin what is wrong, so it fails when it changes in either direction.
