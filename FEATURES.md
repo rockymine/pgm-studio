@@ -774,7 +774,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `lava + 2` across, `lavaHeight + 2` tall, or `+1` where an open top gives up its cap — so `CoreIntent.Size`,
   `Height` and `Shell` are derived rather than stated and the contradiction is unrepresentable. The lint that
   caught it is now a range check, and `PlanCoresTests` walks all thirty-two offered cores to prove every one
-  leaves lava inside its casing. The default interior is DC1's dominant 5×5×5.
+  leaves lava inside its casing; `plan-objective-variants` drives the panel in a browser and reads the
+  derived obsidian back off it — 5×5×5 over a 3×3×3 interior, 5×5×4 once the cap is given up, 7×7×4 when the
+  lava widens — so the readout cannot go missing without the spec saying so. The default interior is DC1's
+  dominant 5×5×5.
   A scanned core is read back as the nearest offer, since a corpus map carries whatever its own author built.
   **One consequence is recorded rather than papered over:** the tallest core the offer builds tops out at
   `MaxFloat + 7 − 1 = 18` against a ceiling standing 20 over the ground, so **`OB23` can no longer be reached

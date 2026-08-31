@@ -28,7 +28,7 @@ const page = await newPage(browser);
 // reached through its nav rail (a state switch, so nothing is advanced or persisted to get there).
 const SURFACES = [
   { name: "plan",   path: `/maps/${seed.planSlug}/plan`,     floor: 5, screen: ["overlay", "scale"] },
-  { name: "sketch", path: `/maps/${seed.sketchSlug}/sketch`, floor: 5, screen: ["islandChrome", "handles", "center", "scale"] },
+  { name: "sketch", path: `/maps/${seed.sketchSlug}/sketch`, floor: 5, screen: ["groupChrome", "handles", "center", "scale"] },
   { name: "world",  path: `/maps/${seed.mapSlug}/edit`,      floor: 1, screen: ["overlay"],
     enter: (page) => page.click('button.nav-btn[title="Setup"]') },
 ];

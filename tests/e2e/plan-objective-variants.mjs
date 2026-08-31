@@ -56,13 +56,21 @@ await page.mouse.click(midX, midZ);
 await page.waitForTimeout(300);
 
 const opened = await body();
-checks.add("the panel names the casing's parts", /Footprint/.test(opened) && /Wall thickness/.test(opened));
+// A core is chosen, not designed: the author states the interior and the obsidian follows, so the three
+// knobs are the lava's footprint, its height, and whether the casing is capped.
+checks.add("the panel names the three knobs",
+  /Lava footprint/.test(opened) && /Lava height/.test(opened) && /Casing/.test(opened));
 checks.add("and the float/leak pair", /Float/.test(opened) && /Leak/.test(opened));
-// Defaults are served, not hardcoded on the client — 5×5, shell 1, float 6, leak 5.
+// Defaults are served, not hardcoded on the client — 3×3 lava, 3 courses, float 6, leak 5.
+const lava0 = await control("Lava footprint", "select").inputValue();
+const height0 = await control("Lava height", "select").inputValue();
 checks.add("it opens on the generator's defaults, not on blanks",
-  await field("Footprint").inputValue() === "5" && await field("Wall thickness").inputValue() === "1",
-  `${await field("Footprint").inputValue()} / ${await field("Wall thickness").inputValue()}`);
-checks.add("the lava starts capped", /capped by the casing/.test(opened));
+  lava0 === "3" && height0 === "3", `${lava0} / ${height0}`);
+// The readout is the whole point of deriving the casing: the author reads the structure they are building
+// rather than the interior alone, and a size that had to be typed beside a wall thickness could contradict it.
+checks.add("the obsidian the two imply is read back",
+  /5×5×5 obsidian, 3×3×3 lava inside/.test(opened), opened.match(/\d+×\d+×\d+ obsidian[^.]*/)?.[0] ?? "(absent)");
+checks.add("the lava starts capped", /capped over the lava/.test(opened));
 checks.add("and leak 5 under float 6 means no digging", /no digging/.test(opened));
 
 // ── a change reaches the document and comes back ──────────────────────────────────────────────────────
@@ -76,14 +84,21 @@ await page.waitForTimeout(300);
 // the leak level is half a block too high and the core leaks one course lower than the number reads.
 checks.add("the dig depth follows leak through the document", /digging 4 blocks/.test(await body()));
 
-await page.click('.field:has(.field-label:has-text("Lava")) .ctrl-row');
+await page.click('.field:has(.field-label:has-text("Casing")) .ctrl-row');
 await page.waitForTimeout(300);
-checks.add("the lava can be left flush with the rim", /open top/.test(await body()));
+const uncapped = await body();
+checks.add("the lava can be left flush with the rim", /flush with the rim/.test(uncapped));
+// An open top gives up the cap course, so the derived obsidian loses exactly one from its height.
+checks.add("and the casing loses its cap course, not its walls",
+  /5×5×4 obsidian/.test(uncapped), uncapped.match(/\d+×\d+×\d+ obsidian[^.]*/)?.[0] ?? "(absent)");
 
-await field("Footprint").fill("7");
-await field("Footprint").blur();
+await control("Lava footprint", "select").selectOption("5");
 await page.waitForTimeout(300);
-checks.add("the casing keeps its new footprint", await field("Footprint").inputValue() === "7");
+const widened = await body();
+checks.add("the casing keeps its new footprint",
+  await control("Lava footprint", "select").inputValue() === "5");
+checks.add("and the obsidian follows the interior", /7×7×4 obsidian/.test(widened),
+  widened.match(/\d+×\d+×\d+ obsidian[^.]*/)?.[0] ?? "(absent)");
 
 // ── the destroyable's designs ─────────────────────────────────────────────────────────────────────────
 checks.section("a destroyable offers the designs the stamper can build");
