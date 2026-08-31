@@ -25,7 +25,6 @@ public static class LayoutEvaluator
         new LintRejectTerm("G2"),
         new GapHopBand(),
         new BandWoolClearance(),
-        new WoolRingedHole(),
         new SpawnWoolFloor(),      // WL2 as a surface-distance floor (was the Euclidean WL2 lint)
         // soft terms — feel metrics scored against the authored seed envelopes
         new FillRatio(),

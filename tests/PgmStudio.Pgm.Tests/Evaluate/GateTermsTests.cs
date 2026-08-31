@@ -171,29 +171,4 @@ public sealed class GateTermsTests
         await Assert.That(new SpawnWoolFloor().Measure(ctx).Violation).IsNull();
     }
 
-    // ── WoolRingedHole (WL8) ────────────────────────────────────────────────────────────────────────────
-    // A rot_180 annulus (top + left bars fan to bottom + right) enclosing a central hole.
-
-    [Test]
-    public async Task Wool_ringed_hole_fires_when_a_wool_borders_the_hole()
-    {
-        var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"rot_180"},
-             "pieces":[{"id":"top","role":"piece","rect":[-3,-3,6,2]},{"id":"left","role":"piece","rect":[-3,-1,2,2]}],
-             "placements":{"wools":[{"piece":"top","at":[0,0]}]}}
-            """);
-        var score = new WoolRingedHole().Measure(ctx);
-        await Assert.That(score.Violation).IsNotNull();
-        await Assert.That(score.Violation!.RuleId).IsEqualTo("WL8");
-    }
-
-    [Test]
-    public async Task Wool_ringed_hole_is_clean_with_no_wool_on_the_ring()
-    {
-        var ctx = Ctx("""
-            {"plan":1,"globals":{"cell":1,"symmetry":"rot_180"},
-             "pieces":[{"id":"top","role":"piece","rect":[-3,-3,6,2]},{"id":"left","role":"piece","rect":[-3,-1,2,2]}]}
-            """);
-        await Assert.That(new WoolRingedHole().Measure(ctx).Violation).IsNull();
-    }
 }

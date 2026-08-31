@@ -563,15 +563,41 @@ public static class PlanValidator
         }
     }
 
-    // EL1 — plateau step unit is 2: every piece surface delta from the base is a multiple of 2.
+    // EL1 — a land seam a player cannot walk. Two pieces meeting at a surface delta of 2 or more leave a step
+    // nobody walks up bare, so the seam is a place the relief has to smooth into a ramp or a flight before the
+    // board is walkable there. The palette steps by 2 (rules.md EL1), so on an ordinary board every non-flush
+    // seam is one of these: the list is the seams to grade, which is what makes it a hint rather than a fault.
+    //
+    // SP8 and WL11 are this rule asked at the two seams where the step decides a match — a spawn's egress and
+    // a wool room's entry — and they say more about what crossing it costs. A seam either of them speaks for
+    // is left to them, so one seam is named once by the most specific rule that owns it.
     private static IEnumerable<Finding> LintEl1(PlanModel plan, ContactGraph d)
     {
-        foreach (var p in plan.Pieces)
+        var spoken = SeamsSp8AndWl11Own(plan, d);
+        foreach (var seam in PieceInterfaces.Seams(d))
         {
-            if (PlanRoles.IsAnnotation(p.Role)) continue;   // buffers produce no terrain — no plateau step to check
-            var delta = (p.Surface ?? plan.Globals.Surface) - plan.Globals.Surface;
-            if (delta % 2 != 0) yield return Lint("EL1", $"piece '{p.Id}' surface delta {delta} is not a multiple of 2", p.Id);
+            if (spoken.Contains((seam.A, seam.B))) continue;
+            var a = d.Piece(seam.A);
+            var b = d.Piece(seam.B);
+            if (a is null || b is null) continue;
+            if (PlanRoles.IsAnnotation(a.Value.Role) || PlanRoles.IsAnnotation(b.Value.Role)) continue;
+
+            var delta = Math.Abs(a.Value.Surface - b.Value.Surface);
+            if (delta < 2) continue;
+            yield return Lint("EL1",
+                $"'{seam.A}'–'{seam.B}' steps {delta} blocks — a player does not walk up more than one, so "
+                + "this seam wants a ramp or a flight in the relief", seam.A, seam.B);
         }
+    }
+
+    /// <summary>The seams <see cref="LintSp8"/> and <see cref="LintWl11"/> already report, so <c>EL1</c> does
+    /// not name them a second time in less detail.</summary>
+    private static HashSet<(string A, string B)> SeamsSp8AndWl11Own(PlanModel plan, ContactGraph d)
+    {
+        var spoken = new HashSet<(string, string)>();
+        foreach (var finding in LintSp8(plan, d).Concat(LintWl11(plan, d)))
+            if (finding.SubjectIds is [var a, var b]) spoken.Add((a, b));
+        return spoken;
     }
 
     // ST2 — when a spawn-role piece exists, every iron marker belongs inside a spawn piece (iron inside the

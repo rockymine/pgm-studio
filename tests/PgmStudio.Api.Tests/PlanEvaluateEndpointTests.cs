@@ -36,12 +36,15 @@ public sealed class PlanEvaluateEndpointTests
     {
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        // A piece one block over the base (delta 1, not the even step EL1 wants) is deterministic lint —
-        // computed by the same Check the evaluation already runs, and now answered instead of discarded.
+        // Two plain pieces meeting at a three-block step: a seam nobody walks up, which is EL1, and
+        // deterministic lint — computed by the same Check the evaluation already runs, and answered beside
+        // the score instead of discarded. The spawn's own egress seam is SP8's, so the pair that carries EL1
+        // sits away from it.
         const string plan = """
         { "plan":1, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
           "pieces":[ {"id":"spawn","role":"spawn","rect":[-1,4,2,2],"surface":13},
-                     {"id":"step","role":"piece","rect":[-1,0,2,4],"surface":10} ],
+                     {"id":"step","role":"piece","rect":[-1,0,2,4],"surface":13},
+                     {"id":"shelf","role":"piece","rect":[1,0,2,4],"surface":10} ],
           "placements":{ "spawns":[ {"id":"spawn-1","piece":"spawn","at":[1,1],"facing":"front"} ] } }
         """;
         var resp = await client.PostAsync("/api/plan/evaluate",
@@ -51,7 +54,7 @@ public sealed class PlanEvaluateEndpointTests
         var body = await resp.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(body.TryGetProperty("lint", out var lint)).IsTrue();
         var rules = lint.EnumerateArray().Select(f => f.GetProperty("rule").GetString()).ToList();
-        await Assert.That(rules).Contains("EL1");
+        await Assert.That(rules).Contains("EL1").Because(string.Join(", ", rules));
     }
 
     [Test]

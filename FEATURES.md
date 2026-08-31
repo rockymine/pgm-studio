@@ -3480,6 +3480,28 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **`EL1` names the seam a player cannot walk up, and `WL8`'s term is retired (`G231`, `B151`).** Two rules
+  that were measuring the wrong thing, in opposite directions.
+
+  `EL1` tested a piece's own surface delta from the global and complained when it was odd. That coincides
+  with the rule's odd 3–19 palette only while the global surface is itself odd — and **39 of 94 boards state
+  an even one**, where the parity inverts: silent on every off-palette surface, complaining about every
+  compliant one (`20-undercroft`, `22-indoor-pool` and `23-maze` each carry 2 off-palette pieces and reported
+  0). It now reads the **seam**: two pieces meeting at Δ≥2 leave a step nobody walks up bare, so the finding
+  is the list of seams the relief has to grade into a ramp or a flight. `SP8` and `WL11` are the same reading
+  at a spawn's egress and a wool room's entry, and a seam either of them speaks for is left to them, so one
+  seam is named once. A lone piece has no step and is silent; a flight of one-block treads is authored ground
+  and is silent, whether the stair is stated on the plan or cut later from one sketch polygon. Measured over
+  105 plans: 304 seams on 44 boards, against 145 pieces on 34.
+
+  `wool-ringed-hole` decided a **hard, blocking** verdict on piece *names*: an enclosed hole beside a wool
+  room passed only where the ring's ids shared the room's prefix, so `south-rim` failed and `wool-south-rim`
+  — the same rectangles — passed, and its second clause fired wherever fewer than two ring pieces shared that
+  prefix, which is any enclosed void beside a normally-named room. It refused nothing on any of the 33
+  committed boards carrying a wool. What it was reached for — a wool room nothing can get to — is `PL9`, a
+  walk over the fanned graph, and an isolated wool island is a sanctioned motif (`WL4`). The term, its
+  predicate and the ring bookkeeping inside `ClosureAnalysis` are gone; `WL8` stays in `rules.md` as a
+  description of approach routes and scores nothing.
 - **`model.md` rewritten as the paper it claims to be (G141).** Fifteen sections to nine, in pipeline
   order — pipeline · request · plan · shape model · allocate and fill · deriving the board · rules and
   scoring · code map · boundaries. Prose carries every claim and a table only supports one already made;

@@ -448,24 +448,6 @@ as an isolated marker into `B99`.
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
 
 
-- [ ] **G231 — `EL1` measures a piece against the global surface, not against its neighbour, so it
-  complains about half a flight of stairs.** `PlanValidator.LintEl1` takes `p.Surface − globals.Surface` and
-  raises where that is odd. EL1's own text in `docs/generator/rules.md` states the measured quantity as the
-  **land-interface** delta — "every one of the 137 measured land-interface deltas is even" — which is a
-  different number: a piece two tiers up from base sits at delta 2 over its own neighbour and delta 4 over
-  the global.
-
-  **Evidence.** `pgm-studio-mapgen`'s `showcase/05-steps`: four treads at surfaces 10, 11, 12, 13 over a
-  global of 9, every interface delta 1. EL1 complains at `tread-1` (delta 1) and `tread-3` (delta 3) and
-  says nothing about `tread-2` or `tread-4` — half a uniform flight flagged and half not, which is the tell
-  that the quantity is wrong.
-
-  **And a stair is not a plateau.** EL1's evidence is a corpus histogram of where one *plateau* meets
-  another; a flight of one-block treads is the shape a 2-block riser exists to avoid, since no player walks
-  up two blocks. So the lint should measure the interface, and it should not fire on a run of pieces whose
-  interface deltas are uniform and 1. Amending the rule text goes through `rules.md`'s own correction
-  protocol.
-
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
   are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
   — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
@@ -532,19 +514,6 @@ model — everything else from that pool has moved to the heading its subject ow
   `add` and one `subtract`**. The plan's bbox is **150 × 105 blocks**; the built world is **150 × 204**, with
   23,417 ground columns (0.77 of its own frame) and a void hole through the lower middle. The term is
   describing half the board.*
-
-- [ ] **B151 — Decide whether `WL8` is a hard term or the rule document is wrong.** `ClosureTerms.cs:5–9`
-  makes wool-ringed-hole hard; `rules.md` § "Function is read from the hole's ring" describes the same
-  arrangement as the two-approaches device, and the same plan compiles 200. Nothing says which, so an author
-  reads a refusal for a shape the law recommends.
-
-  *`opus-run2` §1.7 and §5 #7.*
-
-### Painting: the theme a document states is not what lands
-
-Four places the paint and the document disagree — an overlap resolved by opposite rules, a shape whose
-interior is never themed, a palette stacked down a column it should top, and a band stack the editor cannot
-author. Beside them, one where the *reader* disagrees with a document that is right.
 
 
 - [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
@@ -894,26 +863,21 @@ and what a `subtract` takes away.
   *author, 2026-08-14 · Haiku CTW Rush's iron at `(−10, −65)`, five blocks behind the spawn point and inside
   the map's `red-spawn` rectangle `(−20,−70)`–`(20,−40)`.*
 
-- [ ] **B213 — Keep a wall's seam intact, or make the wall follow the shape.** A wall's rect is fixed at
-  compile from the interface its two plan pieces share, and nothing afterwards holds that seam: resize or
-  re-bow either shape in the sketch tool and the wall stays where it was, spanning less than the lane it was
+- [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
+  rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that
+  seam: resize or re-bow either shape and the wall stays where it was, spanning less than the lane it was
   drawn across, with no refusal and no warning. A wall slows an attack and gives defenders a base to build on
   **without players tunnelling around it** (author) — both halves need the bedrock line cutting its lane in
-  full, so a shortened wall is a gameplay failure, not a cosmetic one.
+  full, so a shortened wall is a gameplay failure rather than a cosmetic one.
+
+  **The shape (author's call).** `PlanCompiler` does not fuse an abutting pair at equal height when a wall
+  sits on the seam between them — the fusion is what destroys it. The wall then has an interface in the
+  sketch model too, and the four vertices bounding it are **locked together**: they move as one or not at
+  all, so an organic pass can bow the coast either side and the wall's own span survives it.
 
   *`opus5-coldharbour-v2-authoring.md` §6: an organic pass bowed a wool lane's coasts past both ends of its
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
-  from 2 isolated markers to **0** — the direction that reads as an improvement. The workaround was to veto
-  any edge within 10 blocks of a wall rect, read out of `POST /plan/inspect`'s structures feed.*
-
-  **Four ways out, all the author's, and they compose rather than compete.** *(a)* Stop fusing plan pieces
-  into one sketch shape when a wall sits on the seam between them, even at equal height — the fusion is what
-  destroys the seam — and lock the four corners that bound it. *(b)* Make the wall a **dressing prop**, which
-  lets it take a diagonal, and refuse it when its cut does not cross a shape in full, i.e. when either end
-  does not land in void. *(c)* The combination: it stays authored in the plan, the shapes either side are not
-  combined, and the sketch tracks it as a prop from there on. *(d)* Store the wall's position and let the
-  **export auto-extend it** to whatever the shape has become. Settle which before building; *(a)* is the
-  smallest and *(b)* is the one that adds a capability.
+  from 2 isolated markers to **0** — the direction that reads as an improvement.*
 
 - [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
   placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
@@ -1175,36 +1139,21 @@ mirror clean and the traversability whole on every board named below.
 review measured the fault it describes. The rest wait here, and the two relief entries — `WE32` and `WE33` —
 are the mechanisms under `WE38`'s definition, so they are the first back when it lands.
 
-- [ ] **TS32 — The compile fuses terrain by surface height, so a plan's piece names do not reach the
-  layout.** A plan states named rectangles; `PlanCompiler` fuses every abutting run of them at the same
-  `base_height` into one polygon and the names are gone, so nothing downstream can address a piece. Carry the originating
-  piece ids on the compiled shape (`pieceIds: ["room-w", "ledge-w"]`), or emit one shape per piece and let
-  `RasterGroup` fuse at raster time. Either one deletes four of the driver's fourteen keys —
-  `themeByHeight`, `themeById` and both `shapeProps` — which exist only to address the accident. Lands in
-  the compiled `SketchShape` and in `docs/tools/sketch.md` § Shapes; `docs/tools/plan.md` § *what it
-  compiles to* changes in the same commit.
 
-  *`opus5-thornfell`: sixteen pieces → one polygon, `s0`. `opus5-rimegarth`: fourteen → one. `opus5-kiln-row`:
-  seven pieces at three heights → four shapes. Shape count tracks height and adjacency, never the piece.
-  Downstream cost: **five specs
-  carry a private "is this point on land" predicate** rebuilt from the plan's own rectangles, under five
-  names — `on_land`, `in_rects`, `land_halfwidth`, `cells_open`, `on_ground` — because the layout cannot
-  answer it.*
+- [ ] **TS30 — Teach an author to deform a compiled shape, rather than to restate its coast.** The compiler
+  emits a staircase of the plan's rectangles, and **a sketch outline disagreeing with the plan outline is the
+  point** (author): the plan is a rough model, and the coast is the sketch's to state. What is missing is not
+  a way to keep them in step but a way to *move* — `opus5-ravensmere` redrew its ring by hand and
+  `opus5-thornfell` bent the compiled ring in forty-two lines of Python, both because nothing in the tool or
+  the API says how a compiled polygon is made organic. `PgmStudio.Geom.RingRounding` fits the Catmull-Rom
+  handles the driver re-derived and has no caller in `src`, only a test.
 
-
-- [ ] **TS30 — An organic coast is either stated twice or computed outside the studio.** The compiler emits a
-  staircase of the plan's rectangles, which is the board's *shape* and not its *coast*. `opus5-ravensmere`
-  redrew its ring by hand in the finish — the coast stated once in the plan and once beside it, free to
-  disagree; `opus5-thornfell` bent the compiled ring instead, which moved the disagreement into forty-two
-  lines of Python. `PgmStudio.Geom.RingRounding` already fits the Catmull-Rom handles the driver re-derives —
-  and has no caller in `src`, only a test — so the missing thing is a *stated* bow: a seeded, deterministic
-  inward wander over a resampled outline, taken at compile or as a sketch operation, handed to `RingRounding`
-  rather than to a second copy of it. Two rules make it safe and belong with it — the plan's own vertices
-  never move, and nothing ever moves outward.
+  **Extremely cautious about a *stated* bow at compile** (author) — that would put the coast back in the plan.
+  The wanted thing is a sketch-side operation an author or an agent reaches for on a shape that is already
+  there, and two rules keep it safe: the plan's own vertices never move, and nothing ever moves outward.
 
   *`opus5-thornfell`: 36 compiled vertices → 99 drawn, strait measured at **26–28 blocks** over 23 transects
   against a plan stating a flat 30. A vertex moved outward would have closed it.*
-
 
 - [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
   falloff` over its skirt and at `crown / half` from the ring's edge to its medial axis, and where those two

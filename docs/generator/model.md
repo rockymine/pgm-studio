@@ -1346,7 +1346,7 @@ how good the result **reads**.
 | **knob** | a free parameter *within* legality — never changes identity | entry shift, attachment width, arm placement |
 | **target** | a **per-request, prescriptive** constraint a compose holds and verifies | none live |
 | **band** | a **descriptive** envelope measured off the seeds — advisory, scores distance | `SoftTerm` and the seed envelopes |
-| **hard term** | a well-formedness symptom on the derived board — flat penalty | `WoolRingedHole`, `GapHopBand` |
+| **hard term** | a well-formedness symptom on the derived board — flat penalty | `GapHopBand` |
 | **law** | the id-bearing author rule the mechanisms implement | `rules.md` — FR6, CT9, BZ8 |
 | **doctrine** | a meta-rule about where rules may live | "the labels drive, the deriver verifies" |
 

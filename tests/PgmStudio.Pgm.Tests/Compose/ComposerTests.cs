@@ -116,18 +116,6 @@ public sealed class ComposerTests
         await Assert.That(counts.Contains(2)).IsTrue();
     }
 
-    [Test]
-    public async Task No_closure_hole_is_ringed_by_a_wool_plateau()
-    {
-        // WL8 (two approaches around a wool) is out of the grammar: no sampled hole may border a wool piece
-        // outside the shape's own sanctioned courtyard
-        foreach (var (players, seed) in Sweep())
-        {
-            var plan = Composer.Compose(new ComposeRequest(players, seed: seed));
-            var woolPieces = plan.Placements.Wools.Select(w => w.Piece).ToHashSet();
-            await Assert.That(ClosureAnalysis.AnyHoleRingedBy(plan, woolPieces)).IsFalse();
-        }
-    }
 
     [Test]
     public async Task Box_composition_closes_the_loop_with_a_band_only_mid()

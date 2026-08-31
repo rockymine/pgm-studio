@@ -143,14 +143,16 @@ and a fall counted but not charged, routing around voids — never the straight 
   the preamble states, so the band reads high by that much and the sweep behind it is not in the repository
   to re-run (amendment 21). The evaluator does not read these numbers — `wool-wool-distance`'s band is
   learned from the teaching seeds and is already in the octile unit.
-- **WL8 [expert, new]** Wool approach routes: the default is a **single chokepoint route**;
-  real maps sometimes add **alternative routes** to the wool (and then a build zone may touch the
-  wool room — see BZ5). **[seed-needed]** The `wool-ringed-hole` sanction is a **naming contract**
-  (amendment 2026-08-16): a hole ringed around a wool passes only when the ring reads as the wool's
-  own box — its leg pieces share the wool room's **id prefix**, with at most one foreign sealing
-  piece (`ClosureAnalysis.AnyHoleRingedBy`). `south-rim` beside room `wool-south` fires the hard
-  term; renamed `wool-south-rim`, the same geometry is sanctioned. Name approach pieces after
-  their room.
+- **WL8 [expert; amendment 2026-08-31 — the term is retired]** Wool approach routes: the default is a
+  **single chokepoint route**; real maps sometimes add **alternative routes** to the wool (and then a build
+  zone may touch the wool room — see BZ5). **This is a description and no longer a scored term.** The
+  `wool-ringed-hole` term that carried it decided its verdict on **piece names**: a hole ringed around a wool
+  passed only where the ring's ids shared the room's prefix, so `south-rim` beside room `wool-south` failed
+  hard and `wool-south-rim` — the same rectangles — passed. Worse, its second clause fired wherever fewer
+  than two ring pieces shared that prefix, which is any enclosed void beside a normally-named wool room. It
+  refused nothing real: none of the 33 committed boards carrying a wool fired it, and what it was reached for
+  — a wool room nothing can get to — is `PL9`, a walk over the fanned graph. An isolated wool island is a
+  sanctioned motif (`WL4`), not a fault.
 - **WL9 [author]** **Spawn↔wool balance.** A team's wools sit **comparably far from the spawn**: the
   spread (max − min) of the per-wool spawn→wool traversal distances stays modest. A large spread means
   one wool is trivially defended (the spawn on its doorstep) while another is left to fend for itself.
@@ -476,12 +478,22 @@ the stat corpus.
 
 ## EL — Elevation
 
-- **EL1 [corpus]** Plateau step unit: **2**. The authored surface palette was base 9 + even steps
-  up (9/11/13/15/17/19 — all odd values), so every one of the 137 measured land-interface deltas
-  is even by construction: histogram Δ0 ×47, Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3. The traced
-  `big-board-…-parallel-mid` extends the palette **below base** (frontline at 7 and 5), and
-  `mirror-tiny-map-cliff` reaches **3** (its mid-cliff floor) — palette now **3–19**; terrain may
-  dip below the base standard; still odd, deltas still even.
+- **EL1 [corpus; amendment 2026-08-31]** **A land seam of Δ≥2 is ground a player cannot walk up**, and the
+  rule is the list of those seams. The plateau step unit is **2** — the authored surface palette was base 9 +
+  even steps up (9/11/13/15/17/19, all odd), extended **below base** by the traced
+  `big-board-…-parallel-mid` (frontline at 7 and 5) and down to **3** by `mirror-tiny-map-cliff`, so the
+  palette is **3–19** and the 137 measured land-interface deltas are even by construction: histogram Δ0 ×47,
+  Δ2 ×73, Δ4 ×10, Δ6 ×4, Δ8+ ×3. **The consequence is what the rule is for**: on a board built from that
+  palette every non-flush seam is a step nobody walks, so the seam wants a ramp or a flight carved into it by
+  the relief, and the lint's output is the work list for that pass rather than a fault to redraw around.
+  `SP8` and `WL11` are this same reading asked at the two seams where the step decides a match; a seam either
+  of them speaks for is theirs, so one seam is named once.
+
+  **The palette is not itself the rule, and a plan may leave it.** A flight of one-block treads is authored
+  ground: every seam in it is a walk, and the author chooses whether to state the stair on the plan
+  (`showcase/05-steps`) or state a drop and cut the stair from one sketch polygon with anchor heights and a
+  slope. The earlier reading tested a piece's own surface delta from the global — which coincides with the
+  palette only while that global is odd, and 39 of 94 boards state an even one, where it inverted (`G231`).
 - **EL2 [expert]** Height deltas across `gap`s work **both ways**: attacker builds up and arrives
   low (defensive device), or the defended wool sits low and the defender holds height advantage
   *inside* the room.
@@ -867,6 +879,14 @@ both corrected.)
     made thing occupies so a house under a balloon answers with its own ridge. `WorldBuilder` therefore
     collects the goal markers as they are decided and stamps them once the cap is known. On `opus5-slipway`
     the cap reads **68** and the markers y73, against 100 and y123 before.
+
+26. **WL8's term retired, EL1 re-aimed (2026-08-31).** `wool-ringed-hole` decided a hard verdict on
+    piece names — the same rectangles passed or failed on a rename — and refused nothing on any committed
+    board; what it was reached for is `PL9`. WL8 stays as a description of approach routes and scores
+    nothing. `EL1` now names the **seam** a player cannot walk up (Δ≥2) instead of a piece's surface delta
+    from the global, which coincided with the odd palette only while that global was odd and inverted on the
+    39 of 94 boards that state an even one. Measured over 105 plans: 304 seams on 44 boards, against the old
+    reading's 145 pieces on 34.
 
 ## Correction protocol
 

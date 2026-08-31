@@ -278,15 +278,60 @@ public sealed class PlanValidatorTests
         await Assert.That(PlanValidator.Check(p).Any(f => f.Severity == Severity.Refusal)).IsFalse();
     }
 
+    /// <summary><c>EL1</c> is asked of a seam, not of a piece: two pieces meeting at a step of two or more
+    /// leave ground nobody walks up bare, and the finding is the list of seams the relief has to grade. A
+    /// buffer produces no terrain, so a seam against one is not a seam.</summary>
     [Test]
-    public async Task EL1_stays_silent_on_a_buffer_but_still_fires_on_terrain()
+    public async Task EL1_names_a_seam_a_player_cannot_walk_up_and_leaves_a_buffer_alone()
     {
-        // a buffer produces no terrain, so an odd surface delta on it never triggers the plateau-step lint; the
-        // same delta on a generating piece still does (the skip is buffer-specific).
-        var buffer = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"buffer","role":"buffer","rect":[0,0,10,10],"surface":12} ] }""");
-        var terrain = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10],"surface":12} ] }""");
-        await Assert.That(Lint(buffer, "EL1")).IsFalse();
-        await Assert.That(Lint(terrain, "EL1")).IsTrue();
+        var step = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
+                     {"id":"high","role":"piece","rect":[10,0,10,10],"surface":12} ] }
+        """);
+        var walkable = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
+                     {"id":"high","role":"piece","rect":[10,0,10,10],"surface":10} ] }
+        """);
+        var buffer = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
+                     {"id":"buffer","role":"buffer","rect":[10,0,10,10],"surface":12} ] }
+        """);
+
+        await Assert.That(Lint(step, "EL1")).IsTrue().Because("a three-block step is not walked up");
+        await Assert.That(Lint(walkable, "EL1")).IsFalse().Because("one block is a walk");
+        await Assert.That(Lint(buffer, "EL1")).IsFalse().Because("a buffer is not terrain to step onto");
+    }
+
+    /// <summary>A piece off the old odd-surface palette is not itself the fault. What the plan states is a
+    /// height per rectangle; what a player meets is the step between two of them, and a lone piece has no
+    /// step. The rule used to test the piece's own delta from the global surface, which coincided with the
+    /// palette only while that global was odd (<c>G231</c>).</summary>
+    [Test]
+    public async Task EL1_says_nothing_about_a_lone_piece_however_its_surface_sits()
+    {
+        var lone = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"piece","rect":[0,0,10,10],"surface":12} ] }""");
+        await Assert.That(Lint(lone, "EL1")).IsFalse();
+    }
+
+    /// <summary>A flight of one-block treads is authored ground rather than a fault: every seam in it is a
+    /// step a player walks. The plan may state a staircase, or state a drop and leave the stair to a sketch
+    /// shape with anchor heights — both are the model working.</summary>
+    [Test]
+    public async Task EL1_is_silent_on_a_flight_of_one_block_treads()
+    {
+        var flight = Plan("""
+        { "plan":1, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"field","role":"piece","rect":[0,0,20,10]},
+                     {"id":"tread-1","role":"piece","rect":[0,10,20,2],"surface":10},
+                     {"id":"tread-2","role":"piece","rect":[0,12,20,2],"surface":11},
+                     {"id":"tread-3","role":"piece","rect":[0,14,20,2],"surface":12},
+                     {"id":"tread-4","role":"piece","rect":[0,16,20,2],"surface":13} ] }
+        """);
+        await Assert.That(Lint(flight, "EL1")).IsFalse()
+            .Because("every seam in the flight steps one block, which is a walk");
     }
 
     [Test]
@@ -371,14 +416,6 @@ public sealed class PlanValidatorTests
         await Assert.That(Lint(clear, "BZ5")).IsFalse();
     }
 
-    [Test]
-    public async Task EL1_fires_on_an_odd_surface_delta()
-    {
-        var odd = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"mid","rect":[0,0,10,10],"surface":12} ] }""");
-        var even = Plan("""{ "plan":1, "globals":{"cell":1,"surface":9}, "pieces":[ {"id":"a","role":"mid","rect":[0,0,10,10],"surface":13} ] }""");
-        await Assert.That(Lint(odd, "EL1")).IsTrue();
-        await Assert.That(Lint(even, "EL1")).IsFalse();
-    }
 
     [Test]
     public async Task ST2_fires_on_iron_outside_the_spawn_piece_only_when_a_spawn_role_exists()
