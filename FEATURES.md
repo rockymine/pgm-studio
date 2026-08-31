@@ -719,6 +719,22 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A core has no plate under it, and a destroyable still does (`WE3`).** Both goals were stamped over the
+  same buried bedrock plate, three courses under the ground, so the diggable terrain beneath a core was three
+  courses and a `float`/`leak` pair asking for a deeper dig asked for one the bedrock silently refused —
+  `DC2`'s `max(0, leak + 1 − float)` has no upper bound. The author's ruling is that the plate goes: a
+  destroyable is broken from above and nothing under it is play, while a core is won by digging under it
+  until the lava leaks, so bedrock at a fixed depth is a floor laid across the objective's own rules. The
+  dig is bounded by the terrain the board has. `StructureStamper.StampPlatform` and the defence chest that
+  shared its method are now two calls, because only one of them is a destroyable's: every goal a team defends
+  is worth supplying, and only a destroyable is worth flooring. (`WE3`)
+- **A crossing is at least fifteen blocks of frontline (`FR9`, `B243`).** `FR8` measures the *share* of a
+  face a crossing turns into frontline and deliberately stated no absolute width, on the reasoning that board
+  scale decides it. It does not decide it downward, and the share cannot see the case: a 10-block frontline
+  on a 10-block exposed face reads a perfect **1.00** and is still a funnel. `FR9` is the floor the author
+  set — any face carrying a frontline under **15** blocks — beside `FR8` in `LintBoardEdges`, which had
+  described the number in its own comment before anything asked it. `rules.md` amendment 27.
+
 - **Every house preset composes back to the building it went in as (`TL12`).** Five shipped presets came
   back quieter than they left: `windows` and `storey N windows` on four of them, `doorWidth` on two. Two
   causes, both of them a word written down twice. The window form's enum-to-word map knew four of the five

@@ -94,7 +94,7 @@ Orthogonal flags/data attached to a region regardless of category:
   `block_place=only-iron` rule by carving monuments out, so its descendants mix `spawn` and
   `monument`; it keeps `category=spawn` and its rules in `roles`, but no `rule_group` flag (it's
   rule-*shaped*, not a peer grouping). The editor lists rule_groups under their category but tags
-  them so the author knows editing membership re-scopes the attached rule; C9's templates use the
+  them so the author knows editing membership re-scopes the attached rule; the wiring templates use the
   flag to offer "add the new region to this group so the rule covers it too", and ungroup can warn
   that a rule is attached.
 - **`time_gated`** — the region's behavior is gated by an `after` / `time` / `pulse`

@@ -90,6 +90,6 @@ that doesn't exist); "sense" (event/region/intent fit) is a **soft warning**, no
 
 Wiring adds **no new typed shape**: the typed models are `Filter` + `ApplyRule` (`Domain/Filter.cs`, `Domain/MapModel.cs`),
 and the region view exposes its attached rules via `roles` (`region-categorization.md`). The
-templates above are pre-built `Filter` + `ApplyRule` combinations the C9 feature *emits* — not a
-persisted entity. So B1 types filters/rules straight from §9 + the `roles` view; the C9 feature
+templates above are pre-built `Filter` + `ApplyRule` combinations a wiring surface *emits* — not a
+persisted entity. So B1 types filters/rules straight from §9 + the `roles` view; a wiring surface
 (routes, suggestion engine, templates) builds on those types and cannot reshape them.

@@ -249,8 +249,14 @@ and a fall counted but not charged, routing around voids — never the straight 
   **frontline share** of the exposed run: authored crossing faces read **1.00** across the corpus
   (the BZ8/BZ9 fit), the worst incidental partial **0.40**, and the funnel fault **0.25** — a
   10-block zone on an 80-block face, invisible to players as a front. Lint fires below **⅓** on a
-  real crossing (≥10 frontline blocks). How wide a front must be in **absolute** blocks is
-  deliberately open — the board's scale decides it, and `/plan/inspect` serves the run widths raw.
+  real crossing (≥10 frontline blocks). The share is the whole of what it asks; the absolute width
+  is `FR9`.
+
+- **FR9 [author; amendment 2026-08-31]** **A crossing is at least 15 blocks of frontline.** The
+  share `FR8` measures cannot see a front that is narrow in blocks and wide in proportion: a
+  10-block frontline on a 10-block exposed face reads **1.00** and is still a funnel. Lint fires on
+  any face carrying a frontline under **15** blocks. `/plan/inspect` serves the run widths raw
+  beside it, so the number a board is held to is visible without compiling.
 
 ## MD — Mid / stepping stones
 
@@ -640,14 +646,17 @@ disagree with the one that runs.
   region diagonally beside it. The rule is scale-free — every length follows the zone and the board's
   cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`, whose
   markers are what a plan of that shape exports.
-- **ST6 [author]** *Destroyable platform*: a **5×5, one-block-thick bedrock plate**, seated
-  `StructureStamper.PlatformDepth` (**3**) courses beneath the ground's own surface block under each
-  destroyable and each core — never thicker, which would read as a wall grown out of the floor rather
+- **ST6 [author; amendment 2026-08-31]** *Destroyable platform*: a **5×5, one-block-thick bedrock
+  plate**, seated `StructureStamper.PlatformDepth` (**3**) courses beneath the ground's own surface block
+  under each **destroyable** — never thicker, which would read as a wall grown out of the floor rather
   than a plate under it. It stops the goal being undermined from below and the ground under it being
-  mined out from under it. Its **defence chest stands on the ground** at the footprint's centre column,
-  beside the monument, not in the space the plate opens under the terrain: the plate is what goes into
-  the ground, and a chest three courses down under whole terrain is a supply nobody can see or reach
-  (`StructureStamper.StampPlatform`, called from the destroyable and core stamps in `WorldBuilder`).
+  mined out from under it. **A core takes no plate**: a core is won by digging under it until its lava
+  leaks, so bedrock at a fixed depth is a floor laid across the objective's own rules, and a
+  `float`/`leak` pair asking to dig deeper than the plate would be one the terrain silently refuses.
+  The **defence chest stands on the ground** at the footprint's centre column under both goals, beside
+  the monument, not in the space the plate opens under the terrain: the plate is what goes into the
+  ground, and a chest three courses down under whole terrain is a supply nobody can see or reach
+  (`StructureStamper.StampPlatform` and `StampDefenseChest`, called from `WorldBuilder`).
 - **ST7 [author]** *Goal sky marker*: every wool room, destroyable and core carries a small marker —
   a solid 3×3×3 cube or a 3-D asterisk, the shape a per-call choice — floating clear of
   `BuildIntent.MaxHeight` (a fixed clearance above it, or above the tallest built terrain when no cap
@@ -887,6 +896,12 @@ both corrected.)
     from the global, which coincided with the odd palette only while that global was odd and inverted on the
     39 of 94 boards that state an even one. Measured over 105 plans: 304 seams on 44 boards, against the old
     reading's 145 pieces on 34.
+
+27. **FR9 — the absolute frontline floor (2026-08-31).** `FR8` deliberately left the width in blocks
+    open, on the reasoning that board scale decides it. It does not decide it downward: a crossing under
+    fifteen blocks is a funnel on any board, and the share cannot report one because a narrow front on a
+    narrow face reads a perfect 1.00. The number is the author's. `LintBoardEdges` already described it in
+    its own comment before any code asked it.
 
 ## Correction protocol
 

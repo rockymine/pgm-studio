@@ -815,10 +815,15 @@ public static class PlanValidator
         }
     }
 
-    // FR8 + CT12 — the two reads that need the fanned raster board: every frontline run at least 15 blocks
-    // wide (a narrower funnel is invisible to players), and every bridged pair of islands 15–40 blocks
-    // apart on a wool board. One delegate so the board is derived once; a plan the deriver cannot read
-    // simply yields no board lint — the structural errors already name what is wrong with it.
+    /// <summary>The narrowest frontline a crossing may be, in blocks (the author's number). Under it a front
+    /// reads as a funnel whatever share of its face it takes, which is the half <c>FR8</c>'s share cannot
+    /// see.</summary>
+    public const int MinFrontlineBlocks = 15;
+
+    // FR8, FR9 and CT12 — the three reads that need the fanned raster board: a crossing spanning the face it
+    // docks against, a frontline at least MinFrontlineBlocks wide, and every bridged pair of islands 15–40
+    // blocks apart on a wool board. One delegate so the board is derived once; a plan the deriver cannot
+    // read simply yields no board lint — the structural errors already name what is wrong with it.
     private static IEnumerable<Finding> LintBoardEdges(PlanModel plan, ContactGraph d)
     {
         BoardStructure board;
@@ -829,17 +834,28 @@ public static class PlanValidator
 
         // A crossing spans the face it docks against on every authored board (shares read 1.00, worst
         // incidental partial 0.40); the funnel fault reads 0.25 — a 10-block zone on an 80-block face. The
-        // floor sits between the two populations. How wide a front must be in absolute blocks is
-        // deliberately not ruled on: the board's scale decides it, and the runs are served raw instead.
+        // floor sits between the two populations.
         const int realCrossing = 10;
         const double shareFloor = 1.0 / 3;
         foreach (var face in PieceInterfaces.Frontages(board))
+        {
             if (face.FrontlineBlocks >= realCrossing && face.FrontlineShare < shareFloor)
                 yield return Lint("FR8",
                     $"piece '{face.Piece}' side {face.Side}: the zones turn {face.FrontlineBlocks} of its "
                     + $"{face.ExposedBlocks} exposed blocks into frontline ({face.FrontlineShare:0.00}) — a "
                     + "crossing wants to span the face it docks against, not funnel through a slice of it",
                     face.Piece);
+
+            // FR9 is the absolute floor FR8's share cannot see: a crossing narrow in blocks reads as a
+            // funnel however much of its face it takes, and a 10-block front on a 10-block face passes the
+            // share at 1.00. Only a face that has a frontline at all is asked.
+            if (face.FrontlineBlocks > 0 && face.FrontlineBlocks < MinFrontlineBlocks)
+                yield return Lint("FR9",
+                    $"piece '{face.Piece}' side {face.Side}: a {face.FrontlineBlocks}-block frontline is "
+                    + $"under the {MinFrontlineBlocks} a crossing wants — players read a front that narrow "
+                    + "as a funnel rather than as somewhere to cross",
+                    face.Piece);
+        }
 
         // CT12 judges the CTW strait: the direct crossing between the two team islands of a two-team wool
         // board. Chains over stepping stones are not straits (each hop is G5's), and a mid island between

@@ -105,11 +105,11 @@ landed: each moved a term onto the artifact its claim is about rather than the o
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
 server-side reaches no editor, why three room-style fields have no control, and why a band stack is
-authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `S40` · `C9` · `C51`.
+authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `S40` · `C51`.
 
 ## The questions no reading of this repository can answer
 
-Thirty-one entries name a ruling or a decision in their own text, and seventeen of those still carry the
+Thirty-one entries name a ruling or a decision in their own text, and 14 of those still carry the
 question unanswered. `CLAUDE.md` is explicit that these cannot be derived — the corpus shows what authors
 did, the code shows what the tool does, and neither says what is correct — so **no amount of work drains this
 part of the board.** It drains in one sitting of answers, and it is the single highest-leverage move
@@ -125,16 +125,14 @@ The questions, stated so they can be answered in a line each:
    smaller?
 6. `WE2` — should a roof's eave descend by `pitch` at all?
 7. `B225` — does a course marching under a neighbour's verge stop at the verge or at the wall?
-8. `WE3` — cap the float/leak pair at the plate, deepen the plate, or drop the plate under cores?
-9. `B243` — what is the absolute minimum width of a frontline crossing, in blocks?
-10. `G161` — state the interior in the panel, or run structural findings in the live feed?
-11. `B55` — which API paths read a map *as played*, and which read it as written?
-12. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
-13. `B70` — which view should a library card carry?
-14. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-15. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the smoke check naming a player?
-16. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
-17. `B181` — what share of a board's width may a `subtract` take?
+8. `G161` — **answered**: the core gets presets, not free knobs — lava footprint, lava height, capped or
+   open. The question of where to report an impossible casing is moot once one cannot be stated.
+9. `B55` — which API paths read a map *as played*, and which read it as written?
+10. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
+11. `B70` — which view should a library card carry?
+12. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
+13. `RP63` — a route-scoped allowlist entry for the Mojang 404, or stop the smoke check naming a player?
+14. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
 
 Three more are decisions of scheduling rather than of gameplay and can be taken without the oracle: `P7`
 (whether the scan passes consolidate), `B249` (whether a per-call refusal override is wanted at all) and

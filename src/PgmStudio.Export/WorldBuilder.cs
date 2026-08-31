@@ -599,11 +599,12 @@ public static class WorldBuilder
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
             ceiling.Add(("destroyable", GoalName(b.Name, b.Owner), owner, box));
 
-            // A buried bedrock plate under the goal, one course beneath the ground's own surface, so the
-            // monument cannot be undermined from below and the ground under it cannot be mined away.
+            // A buried bedrock plate under the goal, so the monument cannot be undermined from below and the
+            // ground under it cannot be mined away, and the defence chest set into the ground beside it.
             var (platformMinX, platformMinZ, platformMaxX, platformMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
             StructureStamper.StampPlatform(world, terrain.SurfaceFor(b.Layer), platformMinX, platformMinZ, platformMaxX, platformMaxZ);
+            StructureStamper.StampDefenseChest(world, terrain.SurfaceFor(b.Layer), platformMinX, platformMinZ, platformMaxX, platformMaxZ);
             provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per destroyable — already one orbit image per entry (PlanCompiler fans team-outer).
@@ -640,11 +641,12 @@ public static class WorldBuilder
             provenance.ClaimRect(box.MinX, box.MinZ, box.MaxX, box.MaxZ, ProvenancePass.Structure, owner);
             ceiling.Add(("core", GoalName(c.Name, c.Owner), owner, box));
 
-            // The same buried plate and defence chest a destroyable stands over: a core is a goal a team
-            // defends, and the ground under it is as much worth holding.
+            // The defence chest a destroyable stands over, and no plate: a core is won by digging under it
+            // until the lava leaks, so bedrock at a fixed depth is a floor across the objective's own rules
+            // (the author's ruling). The dig is bounded by the terrain the board actually has.
             var (plateMinX, plateMinZ, plateMaxX, plateMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
-            StructureStamper.StampPlatform(world, terrain.SurfaceFor(c.Layer), plateMinX, plateMinZ, plateMaxX, plateMaxZ);
+            StructureStamper.StampDefenseChest(world, terrain.SurfaceFor(c.Layer), plateMinX, plateMinZ, plateMaxX, plateMaxZ);
             provenance.ClaimRect(plateMinX, plateMinZ, plateMaxX, plateMaxZ, ProvenancePass.Structure, owner);
 
             // One marker per core — same already-fanned-per-orbit-image reasoning as the destroyable's.

@@ -303,7 +303,7 @@ routes are gone, reads included. `GET /map/{slug}` still carries both under `fil
 which is where anything wanting to see them looks. A map whose rules need changing needs a text editor.
 
 **Kits are named, not authored.** The free-text kit box on a spawn says which kit that spawn grants; nothing
-in the studio states what a kit contains (`C9`).
+in the studio states what a kit contains, and nothing is meant to.
 
 **Nothing is validated.** There is no pre-flight, no traversability check and no export gate, because a map
 opened here is one that already exists. Editing it into something PGM will not load is entirely possible, and

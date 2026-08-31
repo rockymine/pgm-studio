@@ -70,7 +70,7 @@ public static class RuleCatalog
         "BZ5", "BZ6", "BZ9", "BZ11",
         "CT1", "CT4", "CT5", "CT8", "CT9", "CT12",
         "EL1",
-        "FR4", "FR6", "FR8",
+        "FR4", "FR6", "FR8", "FR9",
         "G2", "G5", "G8",
         "GO1", "GO2", "GO3", "GO4",
         "LN1", "LN2",

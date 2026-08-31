@@ -729,6 +729,33 @@ public sealed class PlanValidatorTests
         await Assert.That(Lint(spanning, "FR8")).IsFalse();
     }
 
+    /// <summary><b>FR9 is the width FR8's share cannot see.</b> A narrow crossing on a narrow face takes the
+    /// whole of it — share 1.00, which is the fit every authored board shows — and is still a funnel: how
+    /// wide a front is in blocks is a different question from how much of its face it takes, and players
+    /// read the blocks. Fifteen is the author's number.</summary>
+    [Test]
+    public async Task A_crossing_narrower_than_the_floor_fires_FR9_however_much_of_its_face_it_takes()
+    {
+        // a 10-block face docked across its whole width: FR8 reads 1.00 and says nothing.
+        var narrow = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"front","role":"lane","rect":[-1,-4,2,3]} ],
+          "zones":[ {"id":"dock","rect":[-1,-1,2,2]} ],
+          "placements":{ "spawns":[ {"piece":"front","at":[1,1],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(narrow, "FR8")).IsFalse().Because("the crossing spans its whole face");
+        await Assert.That(Lint(narrow, "FR9")).IsTrue().Because("ten blocks is under the fifteen a crossing wants");
+
+        // the same board with a face wide enough to cross: both quiet.
+        var wide = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"front","role":"lane","rect":[-2,-4,4,3]} ],
+          "zones":[ {"id":"dock","rect":[-2,-1,4,2]} ],
+          "placements":{ "spawns":[ {"piece":"front","at":[2,1],"facing":"front"} ] } }
+        """);
+        await Assert.That(Lint(wide, "FR9")).IsFalse();
+    }
+
     [Test]
     public async Task Team_islands_bridged_across_a_narrow_strait_fire_CT12()
     {

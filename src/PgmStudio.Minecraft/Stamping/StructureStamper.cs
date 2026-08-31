@@ -144,21 +144,19 @@ public static class StructureStamper
     public const int PlatformDepth = 3;
 
     /// <summary>Bury a one-block-thick bedrock plate under a footprint, <see cref="PlatformDepth"/> courses
-    /// beneath the ground's own surface block, and set a defence chest into the space that opens over it: the
-    /// goal's foundation stands on ordinary terrain, and this sits below it, so a tunnel dug up from below
-    /// meets unbreakable rock before it reaches daylight and the ground the goal stands on cannot be mined
-    /// out from under it. One course is deliberately the whole of the plate — a thicker slab reads as a wall
-    /// grown out of the floor rather than a plate under it. Footprint is inclusive on every side; sampling
-    /// the whole footprint (rather than a single anchor column) is what keeps the plate level and survives
-    /// the symmetry orbit the same way every other structure here does. No-ops where the terrain is too
-    /// shallow to bury the plate under.
+    /// beneath the ground's own surface block: the goal's foundation stands on ordinary terrain and this sits
+    /// below it, so a tunnel dug up from beneath meets unbreakable rock before it reaches daylight and the
+    /// ground the goal stands on cannot be mined out from under it. One course is deliberately the whole of
+    /// the plate — a thicker slab reads as a wall grown out of the floor rather than a plate under it.
+    /// Footprint is inclusive on every side; sampling the whole footprint rather than a single anchor column
+    /// is what keeps the plate level and survives the symmetry orbit the same way every other structure here
+    /// does. No-ops where the terrain is too shallow to bury the plate under.
     ///
-    /// <para><b>The chest stands on the ground under the monument</b>, not on the plate. The plate is what
-    /// goes into the terrain; the supply is what a defender walks up to, and one set into the plate is three
-    /// courses down with whole ground over it — a cache nobody can see, reach, or guess at. So it takes
-    /// <c>DefenseChest.Embed</c> directly at the centre column's own surface, with the course over it
-    /// carved for the lid. It has no approach to front, the monument standing over it being reached from
-    /// every side, so its facing is the default.</para></summary>
+    /// <para><b>A destroyable stands over one and a core does not</b> (the author's ruling). A destroyable is
+    /// broken from above and nothing under it is play; a core is won by digging under it until the lava
+    /// leaks, so the plate would be a floor the objective's own rules tell players to break through. Capping
+    /// the dig at the plate's depth would make a <see cref="CoreIntent.Float"/>/<see cref="CoreIntent.Leak"/>
+    /// pair asking for more a pair the terrain silently refuses.</para></summary>
     public static void StampPlatform(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
         int minX, int minZ, int maxX, int maxZ)
@@ -169,10 +167,25 @@ public static class StructureStamper
         for (var x = minX; x <= maxX; x++)
         for (var z = minZ; z <= maxZ; z++)
             world.SetBlock(x, plateY, z, Blocks.Bedrock);
+    }
 
+    /// <summary>Set a goal's defence chest into the ground beside it. <b>The chest stands on the ground under
+    /// the monument</b>, never on the plate: the plate is what goes into the terrain, the supply is what a
+    /// defender walks up to, and one set into the plate is three courses down with whole ground over it — a
+    /// cache nobody can see, reach, or guess at. So it takes <c>DefenseChest.Embed</c> at the centre column's
+    /// own surface, with the course over it carved for the lid. It has no approach to front, the monument
+    /// standing over it being reached from every side, so its facing is the default.
+    ///
+    /// <para>Separate from the plate because the two do not go together: every goal a team defends is worth
+    /// supplying, and only a destroyable is worth flooring.</para></summary>
+    public static void StampDefenseChest(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
+        int minX, int minZ, int maxX, int maxZ)
+    {
         // The centre of the footprint, which is the goal's own anchor column on every footprint this is
-        // called with. The chest rests on that column's own surface rather than on the level the plate was
-        // cut at, so it stands on the ground beside the monument however the terrain runs under the plate.
+        // called with. The chest rests on that column's own surface rather than on any level a plate was cut
+        // at, so it stands on the ground beside the monument however the terrain runs under it.
+        var groundTop = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
         var (chestX, chestZ) = ((minX + maxX) / 2, (minZ + maxZ) / 2);
         DefenseChest.Embed(world, chestX, surfaceTop.GetValueOrDefault((chestX, chestZ), groundTop), chestZ,
                            DefenseChest.Facing(0, 1));

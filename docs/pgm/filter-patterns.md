@@ -548,7 +548,7 @@ showing strong convention around CTW XML authoring:
 
 ## Appendix — Filter Vocabulary & Event Matrix (what attaches to what)
 
-Reference for the editor (C3/C4) and the wiring UI (C9): the realistic filter vocabulary,
+Reference for the editor (C3/C4) and a wiring surface: the realistic filter vocabulary,
 which filter types attach to which apply events, and how composites are built. Counts are
 corpus-wide (345 maps, 7 772 filters, 3 946 apply rules) as of 2026-06-10.
 
@@ -606,7 +606,7 @@ editor (C3/C4) deliberately does **not** forbid combinations: it only rejects *d
 not the filter type alone, and stacking (`all`/`any`/`not`/`deny`) makes otherwise-odd leaves
 meaningful (e.g. `material` is meaningless on `enter`, but `all(material, team)` on `block` is the
 canonical wool-room rule). The matrix in A.2/A.3 is therefore a **suggestion/soft-warning** source
-for the C9 UI — surface the per-event vocabulary first, and *warn* (don't block) on pairings that
+for a wiring UI — surface the per-event vocabulary first, and *warn* (don't block) on pairings that
 never appear in the corpus — not a hard validator in the C3/C4 routes.
 
 ### A.5 Event × *region geometry* — where rules attach
@@ -626,6 +626,6 @@ single `block` regions appear only 5× total and `point` **never**.
 **The decisive finding:** across 345 maps there is **exactly one** `enter`/`use` rule on a
 `block`/`point` region — and it's a *synthetic* auto-generated region, not authored. So **`enter`/
 `use` on a single block or point is effectively never valid** (you can't "enter" a 1-block region):
-the C9 UI should steer player-position events to area/compound geometry and warn on block/point.
+a wiring UI should steer player-position events to area/compound geometry and warn on block/point.
 `block_*` events, by contrast, legitimately target single blocks, so block-on-block is fine.
 (`mirror`/`translate` targets resolve to their source geometry — an area — so they're area-like too.)

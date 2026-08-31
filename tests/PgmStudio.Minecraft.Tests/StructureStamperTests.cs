@@ -109,9 +109,10 @@ public sealed class StructureStamperTests
     [Test]
     public async Task The_goal_plate_is_buried_and_its_chest_stands_on_the_ground()
     {
-        // Two different depths in one stamp. The plate goes into the terrain, far enough down that a shaft
-        // meets rock before daylight; the chest is a supply a defender walks up to, so it stands on the
-        // ground beside the monument rather than in the space under it, where whole terrain would cover it.
+        // Two different depths, which is why they are two stamps. The plate goes into the terrain, far
+        // enough down that a shaft meets rock before daylight; the chest is a supply a defender walks up to,
+        // so it stands on the ground beside the monument rather than in the space under it, where whole
+        // terrain would cover it. A destroyable takes both.
         var w = new VoxelWorld();
         var surf = FlatSurface(0, 0, 20, 20, top: 21);       // first air Y 21, so the ground's top block is 20
         for (var x = 8; x <= 12; x++)
@@ -120,6 +121,7 @@ public sealed class StructureStamperTests
             w.SetBlock(x, y, z, Blocks.Stone);               // ordinary terrain for the plate to be cut into
 
         StructureStamper.StampPlatform(w, surf, minX: 8, minZ: 8, maxX: 12, maxZ: 12);
+        StructureStamper.StampDefenseChest(w, surf, minX: 8, minZ: 8, maxX: 12, maxZ: 12);
 
         await Assert.That(w.GetBlock(8, 21 - 1 - StructureStamper.PlatformDepth, 8).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(w.GetBlock(10, 21, 10).Id).IsEqualTo(Blocks.Chest);   // standing on the ground
@@ -218,18 +220,37 @@ public sealed class StructureStamperTests
     /// course over it carved so the lid can open. The space the plate's depth opens is not where it goes:
     /// three courses down under whole terrain is a supply nobody can see or reach.</summary>
     [Test]
-    public async Task Platform_stands_its_defence_chest_on_the_ground()
+    public async Task The_defence_chest_stands_on_the_ground()
     {
         var w = new VoxelWorld();
         var surf = FlatSurface(-10, -10, 10, 10, top: 20);   // first air Y 20
-        StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+        StructureStamper.StampDefenseChest(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
 
         await Assert.That(w.GetBlock(0, 20, 0).Id).IsEqualTo(Blocks.Chest);    // on the ground's own surface
         await Assert.That(w.GetBlock(0, 21, 0).Id).IsEqualTo(Blocks.Air);      // the lid's own air
         await Assert.That(w.GetBlock(1, 20, 0).Id).IsEqualTo(Blocks.Air);      // one chest, not a row
-        // Nothing is left in the space under the terrain, and the plate is whole.
-        await Assert.That(w.GetBlock(0, 17, 0).Id).IsEqualTo(Blocks.Air);
-        await Assert.That(w.GetBlock(0, 16, 0).Id).IsEqualTo(Blocks.Bedrock);
+    }
+
+    /// <summary><b>The plate and the chest are two stamps, because only one of them is a destroyable's.</b>
+    /// A core is won by digging under it until its lava leaks, so bedrock at a fixed depth is a floor laid
+    /// across the objective's own rules (the author's ruling) — but every goal a team defends is worth
+    /// supplying, so the chest is stamped under both.</summary>
+    [Test]
+    public async Task The_plate_lays_no_chest_and_the_chest_lays_no_plate()
+    {
+        var surf = FlatSurface(-10, -10, 10, 10, top: 20);
+
+        var plateOnly = new VoxelWorld();
+        StructureStamper.StampPlatform(plateOnly, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+        await Assert.That(plateOnly.GetBlock(0, 16, 0).Id).IsEqualTo(Blocks.Bedrock);
+        await Assert.That(plateOnly.GetBlock(0, 20, 0).Id).IsEqualTo(Blocks.Air)
+            .Because("a core takes this stamp's opposite number and no plate");
+
+        var chestOnly = new VoxelWorld();
+        StructureStamper.StampDefenseChest(chestOnly, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+        await Assert.That(chestOnly.GetBlock(0, 20, 0).Id).IsEqualTo(Blocks.Chest);
+        await Assert.That(chestOnly.GetBlock(0, 16, 0).Id).IsEqualTo(Blocks.Air)
+            .Because("the terrain under a core is the dig its float/leak pair asks for");
     }
 
     [Test]

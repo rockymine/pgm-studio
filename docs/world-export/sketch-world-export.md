@@ -88,24 +88,26 @@ Each of the **4 interior corners** holds **2 chests stacked** (bottom + top). A 
 
 ### 2c. The goal's buried plate, and the chest under it
 
-Every destroyable and every core stands over a **one-block-thick 5×5 bedrock plate**, buried **three courses**
-beneath the ground's own surface block and centred on the goal's anchor. Its job is a shaft: the goal's
-foundation is ordinary terrain, so without the plate a tunnel driven up from below reaches daylight under the
-monument and the ground it stands on is mined out from under it. One course is the whole of the plate — a
-thicker slab reads as a wall grown out of the floor rather than as a plate under it — and the span is fixed
-rather than matched to the structure, because what it stops is a shaft rather than the goal.
+Every destroyable stands over a **one-block-thick 5×5 bedrock plate**, buried **three courses** beneath the
+ground's own surface block and centred on the goal's anchor. Its job is a shaft: the goal's foundation is
+ordinary terrain, so without the plate a tunnel driven up from below reaches daylight under the monument and
+the ground it stands on is mined out from under it. One course is the whole of the plate — a thicker slab
+reads as a wall grown out of the floor rather than as a plate under it — and the span is fixed rather than
+matched to the structure, because what it stops is a shaft rather than the goal.
+
+**A core takes no plate** (the author's ruling). A core is won by digging under it until its lava leaks, so
+bedrock at a fixed depth would be a floor laid across the objective's own rules: the dig a `float`/`leak`
+pair asks for is bounded by the terrain the board has, not by a slab the stamper put there. The chest below
+is a core's all the same.
 
 **The depth is what makes room for the chest.** At one course down there is nothing between the surface and
-the rock; at three there are two, and a **defence chest** stands on the plate at the footprint's centre with
+the rock; at three there are two, and a **defence chest** stands at the footprint's centre with
 the course above it carved to air so the lid opens. The course above *that* is left whole, so a defender
 breaks one block of ground and drops onto the supply. It is the same 27-slot loadout an approach wall carries
 (`DefenseChest`, `docs/generator/rules.md` ST4): dark-oak and spruce planks and crafting tables to build with,
 end stone and a redstone block to reinforce, and two Efficiency II iron pickaxes. Both places are ground a
 team holds, which is why it is one chest rather than two designs.
 
-One consequence is worth stating because it is a number meeting a number: the plate caps the diggable depth
-under a core at three courses, so a `float`/`leak` pair asking for a deeper dig (DC2) asks for one the bedrock
-refuses. The shipped pair asks for none.
 
 ### 2b. Observer platform (standalone — not a cube)
 

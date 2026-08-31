@@ -166,17 +166,6 @@ below are what that would cost. Each names the question that has to be answered 
   Needs a write path (sketch → intent); the read projection already exists. Then extend beyond spawn/wool to
   the other intent entities (protection / build / monuments / iron) as they each earn a sketch surface.
 
-- [ ] **S9b — Angle/parallel snapping + droppable guide lines (parked).** S9 landed **position** alignment
-  (edges/centres snap to other shapes + the symmetry centre, with guides). The remaining picture-editor bits:
-  **angle/parallel** snapping (rotate a shape so its edges run parallel to another's — "hold two lanes
-  parallel"), and **manually droppable** guide lines shapes snap to (vs the current auto-from-shapes). Both
-  are their own work; park until needed.
-
-- [ ] **S12 — Pin the Islands tree to the top of the sketch sidebar (UI polish, parked).** Most of the weight
-  the original review named is gone: the shape palette was retired outright and Setup moved into its own Info
-  phase, so the only panel still above **Islands** is **Layers**. Collapse it behind a `<details>` accordion,
-  or pin the tree above it — the tree is read on every edit and the layer list is set once.
-
 - [ ] **S57 — The measure tool is a ruler where the question is a gap.** `sketch-canvas.js` measures the raw
   drag between two freely-placed points and reports `Math.hypot` as "N blocks" (`#renderMeasureLabel`). The
   question it exists to answer is how wide a void gap is — the 10–15 block lane, the jump a player can make —
@@ -293,9 +282,6 @@ so they wait for the frame rather than being built into the one it replaces.
   tell which. The box's own rect is already drawn by the overlay pass; it wants the entered one drawn in the
   accent, dashed, the way `SketchCanvas.#paintSelectionHighlight` draws its scope. Same file, same pass as
   the selection box it sits under.
-
-- [ ] **C9 — Kits editing UI (Teams) + per-activity status dots.** Spawn `kit` is read/sent but has no
-  edit UI; there is no status-dot system. *(Two sub-items — split if priorities diverge.)*
 
 - [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
   in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
@@ -800,13 +786,6 @@ seams support and nothing asks for, the word the model uses for a seam — and t
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
 
-- [ ] **B243 — Set the absolute minimum width of a frontline crossing.** `FR8` lands the *share* rule — a
-  crossing covering under a third of the face it docks against — and deliberately states no absolute width,
-  because board scale decides it and the example boards were never sized honestly (author). So a 10-block
-  crossing on a 30-block face passes the share and is still a funnel nobody reads as a crossing. The width is
-  a number the author states; `PieceInterfaces.Frontages` already serves `FrontlineBlocks` raw on
-  `POST /plan/inspect`, so the rule is one comparison once the number exists.
-
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
   stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —
@@ -857,32 +836,6 @@ and what a `subtract` takes away.
 
   *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
   dock's south edge sits flush on the build region's northern line at `z −20`.*
-
-- [ ] **B181 — Measure what a `subtract` cuts away and what passage it leaves.** A cut that separates the two
-  teams and a cut across one team's own approach are the same operation and no check distinguishes them. Two
-  numbers do: **the share of the board's width the cut takes**, and **the passable ground left around it** —
-  both computable from the layout before a build.
-
-  *author, 2026-08-14 · Kilnrow's `flue` subtracts `x −44…44` at `z −39…−16` and its mirror — 88 blocks of a
-  136-block board, 65% of its width — leaving two 24-wide side channels, while `z −16…16`, where the two sides
-  meet, is solid ground.*
-
-### The destroy stamps: what a goal is built out of, and what sits under it
-
-A destroyable and a core are the one structure the studio builds from a marker rather than a footprint, and
-every entry here is about the blocks around that marker: what an author may ask for, and what the editor lets
-them ask for it with.
-
-- [ ] **WE3 — A core's plate caps the dig its own float/leak pair can ask for** (author). The goal's bedrock
-  plate sits three courses under the ground (`StructureStamper.PlatformDepth`), so the diggable terrain under
-  a core is three courses and a `float`/`leak` pair stating a deeper dig states one the bedrock refuses —
-  `DC2`'s `max(0, leak + 1 − float)` is unbounded above. Two numbers, one of them the author's, so which gives
-  is a ruling rather than a derivation: cap the pair at the plate's depth and refuse past it, deepen the plate
-  to whatever the dig asks for, or drop the plate under cores and keep it under destroyables. The check, once
-  ruled, is a plan rule beside `DC2` in `PlanValidator` — both numbers are stated there.
-
-  *the shipped pair asks for no dig at all (`float 6`, `leak 5`), so nothing built today trips it; `leak 9`
-  over `float 6` asks for 4 and gets 3.*
 
 - [ ] **G161 — the casing panel lets an author build a core the compiler will refuse.** `G160` put the
   casing knobs in the plan's marker panel, clamped independently — size 1..64, shell 1..16 — so a 5×5 casing
