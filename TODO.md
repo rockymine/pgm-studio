@@ -19,14 +19,13 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
 
 ## The piece that does four jobs: the region, the marker, and the building on it
 
-- [ ] **B178 — The plan piece is the building, so a wide platform with a small hall cannot be asked for.**
-  Give the spawn and wool placements a stated **`footprint`**: `[x, z, w, h]` in blocks from the piece's
-  minimum corner, `4×4` to `20×20`, inside the piece and containing its marker. `RoomFrames.ResolveRoom` takes
-  it instead of insetting the piece by one, so the pad, the chests, the monument seats and the doors all
-  follow the building rather than the region; absent, it defaults to an inset that leaves a ring rather than a
-  single block. On the intents, `Piece` becomes `Footprint` and `WoolIntent.Room` becomes `Protection` — the
-  same word the spawn already uses for the same thing. `ST9`'s 20×20 cap moves onto the footprint and the
-  region takes `ST10`, its own **20×30**.
+- [ ] **B178 — The region and the building are two rects with one name on the intents.** `SpawnIntent.Piece`
+  and `Protection[0]` are the same rect, and `WoolIntent.Piece` and `Room[0]` likewise, so the type says twice
+  what the placement says once. Rename to the split the document already carries: `WoolIntent.Room` becomes
+  `Protection`, the word the spawn uses for the same thing, and the duplicate `Piece` goes — a null `Piece`
+  currently means "keep the legacy marker-anchored room", which is a *role* question the compiler already
+  answers. Then `ST9`'s 20×20 cap moves onto the stated footprint and the region takes `ST10`, its own
+  **20×30**; neither is enforced today, so a 30×30 piece seeds a 28×22 building and nothing says no.
 
 - [ ] **G156 — the stamped-room minimum is one number where it is two.** `WX2` states a single 6×6 floor,
   which is what a **shell** needs — walls plus a 4×4 interior — and applies it to rooms with no shell over
@@ -57,18 +56,16 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   put the cube on the piece ahead of the door. `<renewable region>` is the cube's own footprint, so renewal
   never depended on the protection region.*
 
-- [ ] **TN11 — A role piece arrives with nothing on it, and the footprint has no handle.** Drawing a `spawn`
-  or `wool-room` piece should **seed its contents**: the marker at the room's centre, the footprint the piece
-  affords, and — on a spawn — the iron in front of the door. A default nobody can see is the opacity this
-  whole split is against, so the document states all three from the moment the piece exists and the author
-  drags them. Then draw the footprint as a second selectable rectangle inside the piece, wearing the transform
-  box every authoring surface uses, its drag constrained to the piece and to containing the marker, with the
-  size pill the piece already gets. `PlanCompiler.AppendStructuralShape` projects the piece rect into the
-  sketch as one locked annotation and should project **both** — the region as the ground annotation it is now,
-  and the footprint as a second tagged rectangle, which is also what `B145` hangs a theme scope on.
+- [ ] **TN11 — The seeded footprint has no handle on the canvas.** A drawn `spawn` or `wool-room` piece now
+  states its marker and its footprint, but the only way to resize the building is to type the numbers. Draw
+  the footprint as a second selectable rectangle inside the piece, wearing the transform box every authoring
+  surface uses, its drag constrained to the piece and to containing the marker, with the size pill the piece
+  already gets. `PlanCompiler.AppendStructuralShape` projects the piece rect into the sketch as one locked
+  annotation and should project **both** — the region as the ground annotation it is now, and the footprint as
+  a second tagged rectangle, which is also what `B145` hangs a theme scope on.
 
-  *The gap is the author's: **7 blocks in front of the door, 1 on the other three sides**, which is
-  `RoomFrames.DefaultFootprint` — so the seeded rectangle and the resolver's fallback are one number.*
+  *Seeding a spawn's **iron** waits on `B177`: it is the field that task deletes, so a marker written now is
+  written into a shape about to change.*
 
 - [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
   (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it

@@ -259,6 +259,18 @@ public static class RoomFrames
     public static bool MixedParity(double markerX, double markerZ) =>
         IsGridLine(markerX) != IsGridLine(markerZ);
 
+    /// <summary>The nearest offset whose two axes share a parity (WX3). A marker centred in a room that is
+    /// odd across one axis only lands mixed, and the pad is always square, so the block-centre axis moves
+    /// half a block onto the grid line below it. Offsets are piece-relative and never negative, which is what
+    /// the floor holds.</summary>
+    public static (double X, double Z) SameParity(double markerX, double markerZ)
+    {
+        if (!MixedParity(markerX, markerZ)) return (markerX, markerZ);
+        return IsGridLine(markerX)
+            ? (markerX, Math.Max(0, markerZ - 0.5))
+            : (Math.Max(0, markerX - 0.5), markerZ);
+    }
+
     /// <summary>The door width for a wall whose interior runs <paramref name="interiorAcross"/> blocks along
     /// it (WX7): an odd wall centres a 3-wide door; an even wall takes the common 4 once the interior is 6
     /// across, narrowing to 2 at the 4-across minimum. Always ≤ interior − 2, so the door-wall corner cells

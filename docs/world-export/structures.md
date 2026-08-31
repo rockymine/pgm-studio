@@ -68,7 +68,9 @@ rounding it away.
 ## 2. The footprint rule
 
 - **WX1** *The footprint is stated, and its default keeps ground in front of the door.* A wool-room or spawn
-  piece carries a shell whose footprint is the **room the plan states**. Where it states none the piece is
+  piece carries a shell whose footprint is the **room the plan states** — the placement's `footprint`, in
+  blocks from the piece's minimum corner, which the editor writes when the piece is drawn
+  (docs/tools/plan.md). Where it states none the piece is
   inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **seven** on
   the side the door opens through, which is the largest iron cube plus the standing room it holds to the wall.
   A 20×20 spawn piece facing −z therefore opens as an **18×12** room with somewhere for its iron to stand,

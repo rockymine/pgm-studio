@@ -80,3 +80,10 @@ public sealed record PlanSaveRequest(
 /// <c>PUT …/sketch/from-plan</c> verbatim.</param>
 /// <param name="Intent">The map intent it compiles to, ready to post to <c>PUT …/intent/from-plan</c>.</param>
 public sealed record CompiledPlanDto(JsonElement Layout, JsonElement Intent);
+
+/// <summary>What a freshly drawn <c>spawn</c> or <c>wool-room</c> piece is seeded with: the marker the room is
+/// built around, and the footprint the building stands on — both piece-relative block offsets, ready to store
+/// on the placement. Absent where the piece carries no room or is too small to raise a shell on.</summary>
+/// <param name="At">The marker's <c>[x, z]</c> offset in blocks from the piece's minimum corner.</param>
+/// <param name="Footprint">The building as <c>[x, z, w, h]</c> in blocks from that same corner.</param>
+public sealed record DrawnRoomDto(double[] At, double[] Footprint);

@@ -233,9 +233,13 @@ public static class PlanCompiler
                     Point = new Pt(px, piece.Value.Surface, pz),
                     // Protect the whole spawn piece the marker sits on, not just the stamped spawn cube.
                     Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],
-                    // A spawn-role piece sizes the stamped room (WX1); a plain piece keeps the default.
+                    // A spawn-role piece bounds the stamped room (WX1); a plain piece keeps the default.
                     Piece = piece.Value.Role == PlanRoles.Spawn
                         ? new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ) : null,
+                    // The building on it, where the plan states one. It is fanned like the piece is, so an
+                    // orbit image raises the same house on its own ground.
+                    Footprint = piece.Value.Role == PlanRoles.Spawn
+                        ? FanFootprint(d, piece.Value.Rect, s.Footprint, k) : null,
                     // Iron on a spawn-role piece rides the spawn — it resolves beside the room (WX8/WX9);
                     // iron elsewhere keeps the legacy StructureIntent path below.
                     Iron = piece.Value.Role == PlanRoles.Spawn
@@ -279,6 +283,7 @@ public static class PlanCompiler
                     // The room region is the whole wool-room piece the marker sits on, not just the stamped cage.
                     Room = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
                     Piece = isRoomPiece ? new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ) : null,
+                    Footprint = isRoomPiece ? FanFootprint(d, piece.Value.Rect, w.Footprint, k) : null,
                     Entries = isRoomPiece
                         ? [.. WoolEntrySegments(d, w.Piece).Select(seg =>
                             {
@@ -610,6 +615,15 @@ public static class PlanCompiler
     //
     // A piece with no open side at all (an isolated island with no interface to anything) keeps the
     // authored facing — there is no safer wall to pick, and the marker still resolves to a door somewhere.
+    // The stated building, read off the authored piece and fanned onto this orbit image. Null where the
+    // placement states none, which leaves the shell to RoomFrames' own default (WX1).
+    private static Rect? FanFootprint(ContactGraph d, BlockRect piece, double[]? footprint, int k)
+    {
+        if (PlanMarkers.Footprint(piece, footprint) is not { } stated) return null;
+        var fanned = d.FanRect(stated, k);
+        return new Rect(fanned.MinX, fanned.MinZ, fanned.MaxX, fanned.MaxZ);
+    }
+
     private static (int Dx, int Dz) BoardFacing(ContactGraph d, DerivedPiece piece, (int Dx, int Dz) authored)
     {
         var open = OpenSides(d, piece);

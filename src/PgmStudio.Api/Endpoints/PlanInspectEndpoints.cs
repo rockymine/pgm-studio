@@ -472,3 +472,56 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
         [.. read.Unit.AsComplaints()]);
 
 }
+
+/// <summary>
+/// POST /api/plan/room?piece=&lt;id&gt; — the contents a freshly drawn <c>spawn</c> or <c>wool-room</c> piece
+/// carries: the marker the room is built around, and the footprint the building stands on. The request body is
+/// a plan wire document; the named piece is read out of it and answered with piece-relative block offsets the
+/// editor stores straight onto the placement.
+///
+/// <para>The numbers are <see cref="PieceRoom"/>'s, which are <see cref="RoomFrames.DefaultFootprint"/>'s, so
+/// the rectangle the author is handed and the one the export would have defaulted to are one number rather
+/// than two free to disagree. A piece whose role carries no room, or which is too small to raise a shell on,
+/// is answered 404 — there is nothing to seed and a rectangle its own export would refuse is worse than
+/// none.</para>
+/// </summary>
+public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
+{
+    public override void Configure()
+    {
+        Post("/plan/room"); AllowAnonymous();
+        Description(b => b.Accepts<PlanModel>("application/json").Refuses(404));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var body = await RawBody.ReadAsync(HttpContext, ct);
+        var plan = PlanModel.Stated(body);
+        if (plan is null)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "malformed plan JSON",
+                "the body is not a plan document: it is empty, or it is not JSON the plan reader accepts", ct);
+            return;
+        }
+
+        var pieceId = Query<string>("piece", false) ?? "";
+        ContactGraph d;
+        try
+        {
+            d = ContactGraph.Build(plan);
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or NullReferenceException or IndexOutOfRangeException)
+        {
+            await Refusals.UnreadableAsync(HttpContext, "invalid plan structure", ex.Message, ct);
+            return;
+        }
+
+        if (d.Piece(pieceId) is not { } piece
+            || PieceRoom.ForPiece(piece.Rect, piece.Role, "front") is not { } seed)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+        await Send.OkAsync(new DrawnRoomDto(seed.At, seed.Footprint), ct);
+    }
+}

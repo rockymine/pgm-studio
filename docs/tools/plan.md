@@ -68,8 +68,10 @@ compile ever answers anything else.
     { "id": "lane-e",   "rect": [3, -1, 2, 4], "kind": "water-lane" }
   ],
   "placements": {
-    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [5, 5], "facing": "front" } ],
-    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [5, 5] } ],
+    "spawns":       [ { "id": "spawn-1", "piece": "spawn", "at": [5, 5], "facing": "front",
+                        "footprint": [1, 2, 8, 7] } ],
+    "wools":        [ { "id": "wool-1", "piece": "wool-room", "at": [5, 5],
+                        "footprint": [1, 1, 8, 8] } ],
     "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [2.5, 2.5] } ],
     "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [10, 5],
                         "style": "cube-3", "materials": "obsidian", "float": 4 } ],
@@ -206,6 +208,21 @@ as `<kind>-<n>` in the order spawn, wool, iron, destroyable, core when absent), 
 A **spawn** adds `facing` — `front` (−Z), `back` (+Z), `left` (−X) or `right` (+X), absolute board directions
 that are fanned per orbit image. The facing picks the wall the spawn room's door opens in, and is overridden
 at compile when it would open onto the void from a board-edge piece.
+
+A **spawn** and a **wool** each state a `footprint`: the building on the piece, as `[x, z, w, h]` in blocks
+from the piece's minimum corner — the same corner the marker's `at` is measured from. The piece is the region
+holding the room and the bounds every marker on it is held to; the footprint is the room itself, so a wide
+protection region can carry a small hall. It is fanned like the piece is, so an orbit image raises the same
+building on its own ground. Absent leaves it to the resolver's default (`WX1`): the piece inset by one block
+on every side, and by up to seven in front of a spawn's door, which is the largest iron cube plus the standing
+room it holds to the wall. A footprint smaller than a room can be (`WX2`) or reaching past its piece (`WX12`)
+is refused rather than clamped.
+
+Drawing a `spawn` or `wool-room` piece **states all three at once**. The editor asks `POST /api/plan/room` for
+the room that piece carries and writes the marker and the footprint onto a new placement, so what the document
+says is what the export builds — a default nobody can see is the opacity the stated footprint is against. The
+numbers are the resolver's own, so the seeded rectangle and the fallback are one number rather than two free
+to disagree. A piece too small to raise a shell on is left bare, which is the honest signal that nothing fits.
 
 A **wool** may name a `color`, one of the sixteen dyes PGM resolves — `white`, `orange`, `magenta`,
 `light_blue`, `yellow`, `lime`, `pink`, `gray`, `silver`, `cyan`, `purple`, `blue`, `brown`, `green`, `red`,
@@ -595,6 +612,7 @@ draws the board as characters.
 | Endpoint | Answers | Fails with |
 |---|---|---|
 | `POST /plan/inspect` | `{interfaces, gapLinks, frontline, frontages, frontlineRuns, islandGaps, structures, goalDistances, goalPairs}` — the derived geometry, already in block coordinates: each interface with its `delta` (the surface step across it) and wall mark; the per-piece-side `frontages` (exposed blocks, frontline blocks, share — FR8's read); the `frontlineRuns` with widths in blocks (`FR9`'s fifteen-block floor is read off the same frontages); the `islandGaps` (each bridged pair's strait in blocks, `direct` when no third landmass shares the region — CT12's read); plus the destroy-goal walks, all of them blocks over the fanned closure: `goalDistances` is each goal's walk to its own and the enemy's spawn with the enemy÷own ratio — the numbers `goal-spawn-ratio` scores against GO1's band [3.0, 4.0] and `goal-spawn-distance` against GO4's [40, 90] — and `goalPairs` is the walk between the goals themselves, each unordered pair once, `opposing` false for a pair one team defends (GO2, [35, 65]) and true for a goal against one the other team defends (GO3, [85, 150]), a monument against its own mirror being the pair every symmetric board carries. Never withholds over structural errors; a failure degrades `structures` and the board aggregations to empty rather than failing the feed | 400 malformed or unreadable |
+| `POST /plan/room?piece=<id>` | `{at, footprint}` — the room a drawn `spawn` or `wool-room` piece carries, as piece-relative block offsets ready to store on the placement: the marker inside the room the piece affords, and the footprint the resolver would otherwise have defaulted to (`WX1`). Sized for a walled room, since a plan states no room style and a footprint that holds walls holds an open pad too | 404 the piece carries no room, or is too small to raise a shell on |
 | `POST /plan/evaluate` | `{score, valid, violations[], lint[]}` — score summed and lower-is-better, `valid` true when no hard term fired, violations hard-first with subjects and drawable evidence, and `lint` the structural validator's complaints (an unplaceable iron `WX8`, a mid-lane spawn `SP2`, an odd elevation step `EL1`, …), which never move the score. A plan with no generating piece answers `valid: false` carrying `PL1`, not an error and not an empty evaluation | 400 malformed |
 | `POST /plan/feasibility` | **a diagnostic, not a verdict on the board.** `{producible, boxes[], unit[]}` — per-box producibility, each naming the parameter tuple that reproduces it or the nearest miss and why, and findings citing the task that would unblock each gap. A plan without boxes reads empty; a plan without pieces reads `producible: false` with `PL1` in `unit`. Acting on one of these as though it were a fault in the plan means editing a board to satisfy a limitation that is the studio's | 400 malformed |
 | `POST /plan/ascii[?every=N]` | `text/plain` — the fanned board as a grid of characters, one per proxy cell, with a key. **The read that shows a relation between two rectangles**, which no number can: a sixteen-cell bar reached by a four-cell build zone is a landform 60% dead, visible at a glance here and invisible in every other read of the same board. `every` draws one character per N cells for a board wider than a terminal | 400 malformed |

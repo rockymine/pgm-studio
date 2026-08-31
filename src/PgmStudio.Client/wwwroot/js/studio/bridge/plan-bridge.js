@@ -115,7 +115,32 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       doc.pieces.push({ id, role, rect });
       canvas.setDoc(doc);
       canvas.select({ kind: "piece", id });
+      // A role piece arrives with its room already stated. The server owns the numbers (RoomFrames'
+      // own default), so the seeded rectangle and the resolver's fallback cannot drift apart.
+      if (role === "spawn" || role === "wool-room") seedRoom(id, role);
     }
+    afterEdit();
+  }
+
+  // Ask the server what this piece's room is and write it onto a placement. The piece already exists and is
+  // selected; the marker and footprint land a moment later, exactly as the live feeds do. A piece too small
+  // to raise a shell on answers 404 and is left bare, which is the honest signal that nothing fits.
+  async function seedRoom(pieceId, role) {
+    let res;
+    try {
+      res = await fetch(`/api/plan/room?piece=${encodeURIComponent(pieceId)}`,
+        { method: "POST", headers: { "Content-Type": "application/json" }, body: toJson(doc) });
+    } catch { return; }                       // offline / transient — the piece keeps the resolver's default
+    if (!res.ok) return;
+    let seed;
+    try { seed = await res.json(); } catch { return; }
+    if (!doc.pieces.some(p => p.id === pieceId)) return;   // deleted or renamed while the ask was in flight
+    const list = role === "spawn" ? doc.placements.spawns : doc.placements.wools;
+    if (list.some(m => m.piece === pieceId)) return;        // the author got there first
+    const placement = { piece: pieceId, at: seed.at, footprint: seed.footprint };
+    if (role === "spawn") placement.facing = "front";
+    list.push(placement);
+    canvas.setDoc(doc);
     afterEdit();
   }
 

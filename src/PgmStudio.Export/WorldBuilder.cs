@@ -708,7 +708,7 @@ public static class WorldBuilder
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
             var frame = RoomFrames.Resolve(
                 new BlockRect((int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ),
-                footprint: null, walled, markerX, markerZ,
+                StatedFootprint(w.Footprint), walled, markerX, markerZ,
                 [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], null, out _);
             if (frame is not null) return frame;
         }
@@ -726,12 +726,17 @@ public static class WorldBuilder
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
             var room = RoomFrames.ResolveRoom(
                 new BlockRect((int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ),
-                footprint: null, walled, markerX, markerZ, [], doorEdge,
+                StatedFootprint(s.Footprint), walled, markerX, markerZ, [], doorEdge,
                 [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
             if (room is not null) return room;
         }
         return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdge, walled), []);
     }
+
+    /// <summary>An intent rect as the block rect the resolver takes, or null where none was stated.</summary>
+    private static BlockRect? StatedFootprint(Rect? rect) => rect is { } r
+        ? new BlockRect((int)r.MinX, (int)r.MinZ, (int)r.MaxX, (int)r.MaxZ)
+        : null;
 
     // The legacy default: the room a 10×10 piece centred on the integer-snapped marker resolves to — the
     // original 8×8 shell, with a door per wall for a wool cage or the single yaw door for a spawn. Also the

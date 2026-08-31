@@ -5108,6 +5108,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A drawn role piece states its own room (B178 · TN11).** A `spawn` or `wool-room` placement carries a
+  **`footprint`** — `[x, z, w, h]` in blocks from the piece's minimum corner, fanned per orbit image — and the
+  room resolver takes it instead of insetting the piece, so a wide protection region can hold a small hall.
+  Drawing the piece writes it: the editor asks `POST /api/plan/room` and states the marker and the footprint
+  from the moment the piece exists, with `RoomFrames`' own numbers, so the seeded rectangle and the resolver's
+  fallback cannot drift apart. The seeded marker is nudged off mixed parity (`RoomFrames.SameParity`, shared
+  with the composer), so every piece a room fits on resolves with its pad on its own marker.
+- **Iron stands three blocks off the room (B178).** `IronGap` is the standing room a player has to get round
+  the cube, so a 20×20 spawn piece opens as an 18×12 room with seven blocks of ground in front of its door.
 - **A marker states where it is in blocks, and the plan says which unit that is (TN10).** `at` was an offset
   in **cells** on a half-cell lattice while everything downstream is blocks, so in a 20-block piece a marker
   had nine legal positions per axis out of the 41 the half-block lattice the export snaps to would allow — a

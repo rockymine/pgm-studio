@@ -459,6 +459,12 @@ public sealed class SpawnPlacement : IPlanMarker
     /// <c>back</c> +z, <c>left</c> −x, <c>right</c> +x. It is fanned per orbit image, so the authored unit's
     /// word is turned rather than repeated.</summary>
     [JsonPropertyName("facing")] public string Facing { get; set; } = "front";
+
+    /// <summary>The building on the piece, as an <c>[x, z, w, h]</c> rect in blocks from the piece's minimum
+    /// corner — the room the shell is stamped on, where the piece itself is only the region holding it.
+    /// Absent leaves it to the default: the piece inset by a block on every side, and by up to
+    /// <see cref="PgmStudio.Domain.RoomFrames.DefaultDoorGap"/> in front of the door.</summary>
+    [JsonPropertyName("footprint")] public double[]? Footprint { get; set; }
 }
 
 /// <summary>A wool on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>. <see cref="Color"/> is optional;
@@ -479,6 +485,12 @@ public sealed class WoolPlacement : IPlanMarker
     /// <summary>The wool's colour, or absent to have one chosen: the team's first wool takes the team colour
     /// and later wools take distinct dyes.</summary>
     [JsonPropertyName("color")] public string? Color { get; set; }
+
+    /// <summary>The building on the piece, as an <c>[x, z, w, h]</c> rect in blocks from the piece's minimum
+    /// corner — the room the shell is stamped on, where the piece itself is only the region holding it.
+    /// Absent leaves it to the default: the piece inset by a block on every side, and by up to
+    /// <see cref="PgmStudio.Domain.RoomFrames.DefaultDoorGap"/> in front of the door.</summary>
+    [JsonPropertyName("footprint")] public double[]? Footprint { get; set; }
 }
 
 /// <summary>An iron (resource) marker on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>.</summary>
@@ -622,4 +634,15 @@ public static class PlanMarkers
     /// <summary>The same position in cells, for a reader working on the plan's own grid.</summary>
     public static (double X, double Z) Cell(CellRect rect, double[] at, int cell) =>
         (rect.X + at[0] / (double)cell, rect.Z + at[1] / (double)cell);
+
+    /// <summary>The stated building on a piece whose rect is already in blocks, or null where the placement
+    /// states none and the default answers. The four numbers are <c>[x, z, w, h]</c> from the piece's
+    /// minimum corner, so the rect is anchored the same way a marker's <c>at</c> is.</summary>
+    public static BlockRect? Footprint(BlockRect piece, double[]? footprint)
+    {
+        if (footprint is not { Length: >= 4 }) return null;
+        var minX = (int)(piece.MinX + footprint[0]);
+        var minZ = (int)(piece.MinZ + footprint[1]);
+        return new BlockRect(minX, minZ, minX + (int)footprint[2], minZ + (int)footprint[3]);
+    }
 }

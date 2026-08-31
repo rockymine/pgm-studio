@@ -107,8 +107,19 @@ export function normalizeDoc(d) {
     placements: {
       // `id` leads each marker: a marker is a thing the document can refer to, the way a piece and a zone are.
       // A document written before markers had one gets it minted below, so it self-heals on load.
-      spawns: (src.placements?.spawns || []).map(s => ({ id: s.id ?? "", piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" })),
-      wools: (src.placements?.wools || []).map(w => { const o = { id: w.id ?? "", piece: w.piece ?? "", at: [...(w.at || [0, 0])] }; if (w.color) o.color = w.color; return o; }),
+      // The footprint is the building on the piece, kept only when stated — absent leaves it to the room
+      // resolver's own default, and a plan that never sized a room serialises without the field.
+      spawns: (src.placements?.spawns || []).map(s => {
+        const o = { id: s.id ?? "", piece: s.piece ?? "", at: [...(s.at || [0, 0])], facing: s.facing ?? "front" };
+        if (Array.isArray(s.footprint) && s.footprint.length >= 4) o.footprint = [...s.footprint];
+        return o;
+      }),
+      wools: (src.placements?.wools || []).map(w => {
+        const o = { id: w.id ?? "", piece: w.piece ?? "", at: [...(w.at || [0, 0])] };
+        if (w.color) o.color = w.color;
+        if (Array.isArray(w.footprint) && w.footprint.length >= 4) o.footprint = [...w.footprint];
+        return o;
+      }),
       iron: (src.placements?.iron || []).map(i => ({ id: i.id ?? "", piece: i.piece ?? "", at: [...(i.at || [0, 0])] })),
       // Every structure field is optional — the compiler defaults them — so each is kept only when authored,
       // leaving a plain marker as the { id, piece, at } it was written as.

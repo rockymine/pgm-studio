@@ -344,10 +344,15 @@ public sealed record SpawnIntent
     /// <summary>Which way players face on arriving, in degrees.</summary>
     public double Yaw { get; init; }
 
-    /// <summary>The spawn-role plan piece the marker sits on — the rect that sizes the stamped spawn room
-    /// (docs/world-export/structures.md WX1). Null on hand-authored intents and on markers placed on a
-    /// plain piece: those keep the legacy marker-anchored default room.</summary>
+    /// <summary>The spawn-role plan piece the marker sits on — the region the room stands in and the bounds
+    /// every marker on it is held to (docs/world-export/structures.md WX1). Null on hand-authored intents and
+    /// on markers placed on a plain piece: those keep the legacy marker-anchored default room.</summary>
     public Rect? Piece { get; init; }
+
+    /// <summary>The building raised on that piece — the footprint the shell is stamped on, which the plan
+    /// states and the author resizes. Null leaves it to the default: the piece inset by a block on every side
+    /// and by up to the door gap in front of the door (WX1).</summary>
+    public Rect? Footprint { get; init; }
 
     /// <summary>Iron markers on the spawn piece (fanned world points). Each resolves to a renewable iron
     /// cube beside the spawn room — outside the shell with one block of clear air, sized by the marker's
@@ -401,10 +406,15 @@ public sealed record WoolIntent
     /// owner.</summary>
     public List<MonumentIntent> Monuments { get; init; } = new();
 
-    /// <summary>The wool-room-role plan piece the marker sits on — the rect that sizes the stamped cage
-    /// (docs/world-export/structures.md WX1). Null on hand-authored intents and on markers placed on a
-    /// plain piece: those keep the legacy marker-anchored default cage.</summary>
+    /// <summary>The wool-room-role plan piece the marker sits on — the region the cage stands in and the
+    /// bounds every marker on it is held to (docs/world-export/structures.md WX1). Null on hand-authored
+    /// intents and on markers placed on a plain piece: those keep the legacy marker-anchored default cage.</summary>
     public Rect? Piece { get; init; }
+
+    /// <summary>The cage raised on that piece — the footprint the shell is stamped on, which the plan states
+    /// and the author resizes. Null leaves it to the default: the piece inset by a block on every side
+    /// (WX1). A wool room names no door, so no side of it is opened wider than the rest.</summary>
+    public Rect? Footprint { get; init; }
 
     /// <summary>The room's entry interfaces (WX6), as degenerate rects on the room piece's boundary (zero
     /// thickness across the seam), already fanned: every terrain↔room land seam plus every abutting
