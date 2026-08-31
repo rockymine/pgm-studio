@@ -4,6 +4,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -15,7 +16,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class SpawnStructureStamperTests
 {
-    private static RoomFrame Baseline() => RoomFrames.Resolve(-5, -5, 5, 5, 0, 0, [], RoomEdge.NegZ, out _)!;
+    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, walled: true, 0, 0, [], RoomEdge.NegZ, out _)!;
 
     [Test]
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
@@ -94,7 +95,7 @@ public sealed class SpawnStructureStamperTests
     public async Task Minimum_room_seats_six_and_truncates_beyond_capacity()
     {
         // The 8×8-piece minimum: 4×4 interior, 2-wide door → 4 corners + 2 back-wall mids = 6 seats.
-        var frame = RoomFrames.Resolve(0, 0, 8, 8, 4, 4, [], RoomEdge.NegZ, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, walled: true, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
         var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
         { Frame = frame, FloorY = 64, TeamColor = 11, CapturedWools = ["red", "green", "yellow", "orange", "cyan", "purple", "lime"] }).Monuments;

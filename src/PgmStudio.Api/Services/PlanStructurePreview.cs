@@ -57,7 +57,7 @@ public static class PlanStructurePreview
         var teamColor = (intent.Teams ?? []).ToDictionary(t => t.Id, t => t.Color);
         foreach (var s in intent.Spawns)
         {
-            var room = WorldBuilder.SpawnRoom(s);
+            var room = WorldBuilder.SpawnRoom(s, walled: true);
             boxes.Add(RoomBox("spawn-cube", teamColor.GetValueOrDefault(s.Team), room.Frame, surface));
             // Only a placeable iron cube is drawn (WX9): an unplaceable marker stamps nothing, so a box
             // for it would show a structure the export refuses to place.
@@ -71,7 +71,7 @@ public static class PlanStructurePreview
             }
         }
         foreach (var w in intent.Wools ?? [])
-            boxes.Add(RoomBox("wool-cage", w.Color, WorldBuilder.WoolFrame(w), surface));
+            boxes.Add(RoomBox("wool-cage", w.Color, WorldBuilder.WoolFrame(w, walled: true), surface));
 
         // Destroyables: the same ObjectiveStamper.DestroyableBox the world build stamps from, so the preview
         // cannot show a structure the export would not place (OB8). Inclusive box → +1 for the exclusive frame.

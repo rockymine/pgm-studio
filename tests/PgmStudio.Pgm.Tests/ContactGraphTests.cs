@@ -1,4 +1,5 @@
 using PgmStudio.Pgm.Plan;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Tests;
 

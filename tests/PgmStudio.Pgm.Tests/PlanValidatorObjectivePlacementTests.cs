@@ -1,6 +1,7 @@
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Tests;
 

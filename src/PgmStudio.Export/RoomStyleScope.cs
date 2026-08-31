@@ -44,13 +44,13 @@ public static class RoomStyleScope
     /// 255 and never against this — and a correction at stamp time would silently shorten a building the
     /// author drew, so this refuses at the point the style is bound.</para>
     ///
-    /// <para><b>Asked on the smallest shell a room may be</b> (<see cref="RoomFrames.MinShellSpan"/>). Every
+    /// <para><b>Asked on the smallest shell a room may be</b> (<see cref="RoomFrames.MinSpan"/> with a wall). Every
     /// sloped form climbs with the span it crosses, so a style's height is at its lowest there and a bigger
     /// footprint only ever raises it: a style refused here is one no footprint could have saved.</para></summary>
     public static Findings Check(HouseStyle? style, string field)
     {
         if (style is null) return Findings.None;       // open ground carries no shell to be too tall
-        var span = RoomFrames.MinShellSpan;
+        var span = RoomFrames.MinSpan(walled: true);
         var reach = style.TopLayerOver(span, span);
         if (reach <= BuildCeiling.OverGround) return Findings.None;
         return new List<Finding>

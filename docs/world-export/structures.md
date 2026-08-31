@@ -67,19 +67,24 @@ rounding it away.
 
 ## 2. The footprint rule
 
-- **WX1** *The piece dictates the footprint.* A wool-room or spawn piece is stamped with a shell
-  whose footprint is the **piece rect inset by one block on every side** — the one-block ring of
-  clean floor is part of the contract, not an accident of sizing. A 10×10 piece carries an 8×8
-  shell (the shipped footprint — existing plans keep their geometry, with only the wool-door width
-  changing per WX7), a 12×12 piece a 10×10 shell, a 10×20 piece an 8×18 shell. The shell's orientation is the rect's own; the fanned
-  rect orients the orbit images.
+- **WX1** *The footprint is stated, and defaults to the piece inset one block.* A wool-room or spawn piece
+  carries a shell whose footprint is the **room the plan states**, or — where it states none — the **piece
+  rect inset by one block on every side**, the one-block ring of clean floor being part of what a piece
+  promises. A 10×10 piece with no stated room carries an 8×8 shell, a 12×12 piece a 10×10 shell. The shell's
+  orientation is the rect's own; the fanned rect orients the orbit images.
 
-- **WX2** *Minimums are measured in blocks, never cells.* The smallest legal shell is **6×6**
-  (a 4×4 interior — four monument corners, chests, and a pad still fit), so the smallest legal
-  room/spawn piece is **8×8 blocks**. The plan validator rejects a smaller piece carrying the role.
-  The composer's boards clear the minimum by construction (its 2-cell rooms at cell 5 are 10×10);
-  making the generator's room sizing (`ShapeEmitter.RoomDepthCells`) cell-size-aware, so a
-  small-cell board cannot emit a room its own export refuses, is G156.
+- **WX2** *Minimums are measured in blocks, never cells, and a wall is what the second one buys.* The
+  smallest room there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side,
+  which is the same ring its four chest corners seat in. A **shell** adds the one course of wall it stands in
+  on each side, so a footprint carrying one is at least **6×6** (a 4×4 interior — four monument corners, the
+  chests, and a pad). The two are one derivation rather than two numbers: `MinRoomSpan` plus `WallCost` where
+  a wall stands. Which of them binds is therefore a question about the **binding** (§9) and not about the
+  plan, so the plan gate refuses only what no binding could save and the smaller floor is the one it asks.
+
+- **WX12** *A footprint stays inside the piece it stands on.* A piece is one rectangle at one surface, so a
+  footprint inside it is on ground by construction and crosses no interface; one reaching past it is over
+  whatever the neighbour happens to be, or over the void. This is what makes "may not overhang the void" and
+  "may not cross an interface" one containment test rather than two derivations.
 
 ## 3. The marker and the pad
 

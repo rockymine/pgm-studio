@@ -105,7 +105,7 @@ a rule that changed its name between the two would be two rules.
 |---|---|---|
 | `PL*` | the plan's own structure | `Pgm/Plan/PlanValidator.cs` → `PlanRules` |
 | `DC*` · `OB*` | destroyables, cores, goal placement, gamemodes. `OB24` is the one that needs the built world rather than the plan: two goals stamped into the same blocks, which the plan cannot see because it reads two placements at two coordinates and the volumes around them are the stamper's. Two are **complaints on a built world**: `DC3` a goal built in a material its own size is wrong for, `OB23` a goal topping out over the build ceiling — the world is built and the goal stands, which is what makes them complaints rather than declines. `OB19` is the decline beside them: the prop the pass turned away is not in the world at all | `Domain/ObjectiveRules.cs` |
-| `WX*` | room frames — the shell, the pad, the doors, the iron, and the shell's height against the build ceiling | `Domain/RoomFrames.cs` → `RoomFrameRules` |
+| `WX*` | room frames — the footprint and where it sits on its piece, the pad, the doors, the iron, and the shell's height against the build ceiling | `Domain/RoomFrames.cs` → `RoomFrameRules` |
 | `HS*` | a house style's own materials | `Minecraft/Houses/HouseStyleValidation.cs` → `HouseStyleRules` |
 | `HP*` | a placed building's shape | `Minecraft/Dressing/PlacedProp.cs` → `HousePropRules` |
 | `HJ*` | how two wings meet | `Minecraft/Houses/WingJoints.cs` → `WingJointRules` |

@@ -4,6 +4,7 @@ using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Minecraft.Tests;
 
@@ -27,7 +28,7 @@ public sealed class RoomStyleTests
     }
 
     private static RoomFrame Baseline(RoomEdge? spawnDoor = null) =>
-        RoomFrames.Resolve(-5, -5, 5, 5, 0, 0,
+        RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, walled: true, 0, 0,
             spawnDoor is null ? [(-5, -5, 5, -5)] : [], spawnDoor, out _)!;
 
     // ── the shipped shell, unmoved ─────────────────────────────────────────────────────────────────

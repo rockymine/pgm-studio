@@ -452,12 +452,12 @@ public static class MapExportComposer
         var keepOuts = new List<GoalKeepOut>();
         foreach (var spawn in goals.Spawns)
         {
-            var frame = WorldBuilder.SpawnRoom(spawn).Frame;
+            var frame = WorldBuilder.SpawnRoom(spawn, walled: true).Frame;
             keepOuts.Add(new GoalKeepOut("spawn", spawn.Team, new BlockRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)));
         }
         foreach (var wool in goals.Wools ?? [])
         {
-            var frame = WorldBuilder.WoolFrame(wool);
+            var frame = WorldBuilder.WoolFrame(wool, walled: true);
             keepOuts.Add(new GoalKeepOut("wool room", wool.Owner, new BlockRect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)));
         }
         return keepOuts;

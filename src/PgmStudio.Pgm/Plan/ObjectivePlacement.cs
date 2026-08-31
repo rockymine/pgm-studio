@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Vocabulary;
+using PgmStudio.Geom;
 namespace PgmStudio.Pgm.Plan;
 
 /// <summary>A goal and the ground it covers, in the units the placement rule compares — the footprint the

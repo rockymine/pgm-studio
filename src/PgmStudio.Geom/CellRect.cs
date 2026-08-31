@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Geom;
 
 namespace PgmStudio.Geom;
 
@@ -13,10 +14,10 @@ namespace PgmStudio.Geom;
 /// rather than a height compiled too.</para>
 ///
 /// <para><b>Not <see cref="Rect"/></b>, its neighbour in this namespace, which is the opposite convention
-/// throughout: world <b>blocks</b>, fractional, and an inclusive corner pair. Nor
-/// <c>Pgm/Derive/ContactGraph.cs</c>'s <c>BlockRect</c>, which shares this arithmetic exactly — integer,
-/// exclusive far edge — and differs only in reading world blocks where this reads grid cells. A cell is
-/// several blocks wide, so one standing in for the other is off by that factor and compiles.</para>
+/// throughout: world <b>blocks</b>, fractional, and an inclusive corner pair. Nor <see cref="BlockRect"/>,
+/// which shares this arithmetic exactly — integer, exclusive far edge — and differs only in reading world
+/// blocks where this reads grid cells. A cell is several blocks wide, so one standing in for the other is off
+/// by that factor and compiles.</para>
 /// </summary>
 /// <param name="X">Min-corner cell on the x axis.</param>
 /// <param name="Z">Min-corner cell on the z axis.</param>

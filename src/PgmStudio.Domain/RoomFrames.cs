@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 
 using PgmStudio.Vocabulary;
 
@@ -42,10 +43,19 @@ public static class RoomFrameRules
     [Rule(RuleConcern.Plan, RuleConcern.Structure)]
     public const string ShellFootprint = "WX1";
 
-    /// <summary>The piece cannot hold a shell of the least legal span once the clean ring is taken off it.</summary>
-    /// <remarks>Enlarge the piece. A room is its piece inset by the clean ring, and what is left has to hold a shell of the least legal span in both axes.</remarks>
+    /// <summary>The footprint cannot hold a room of the least legal span. A wall is what the interior is
+    /// inset by and what the pad keeps its clearance to, so the span a shell needs is four blocks more on
+    /// each axis than the span a pad and its chest corners need on open ground.</summary>
+    /// <remarks>Enlarge the footprint, or take the shell off it. A room is a pad with a ring of floor round it; a shell adds its two courses of wall and the clearance the pad keeps to them.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
-    public const string PieceTooSmall = "WX2";
+    public const string FootprintTooSmall = "WX2";
+
+    /// <summary>The footprint reaches outside the piece it stands on. A piece is one rectangle at one
+    /// surface, so a footprint inside it is on ground by construction and crosses no interface; one that
+    /// reaches past it is over whatever the neighbour happens to be, or over the void.</summary>
+    /// <remarks>Draw the footprint back inside its piece, or enlarge the piece under it. The piece is the ground the room stands on and the region that protects it; the footprint is the building raised on that ground.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
+    public const string FootprintOffPiece = "WX12";
 
     /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
     /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
@@ -152,16 +162,18 @@ public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution>
 public sealed record RoomFrame(
     int MinX, int MinZ, int MaxX, int MaxZ,
     RoomPad Pad,
-    IReadOnlyList<RoomDoor> Doors)
+    IReadOnlyList<RoomDoor> Doors,
+    int Wall = 1)
 {
     public int Width => MaxX - MinX;
     public int Depth => MaxZ - MinZ;
 
-    /// <summary>The interior floor — the footprint inside the one-block walls.</summary>
-    public int InteriorMinX => MinX + 1;
-    public int InteriorMinZ => MinZ + 1;
-    public int InteriorMaxX => MaxX - 1;
-    public int InteriorMaxZ => MaxZ - 1;
+    /// <summary>The interior floor — the footprint inside the walls, which is the whole footprint where no
+    /// shell stands over it (<see cref="Wall"/> 0). It is the row the chests and the monuments seat in.</summary>
+    public int InteriorMinX => MinX + Wall;
+    public int InteriorMinZ => MinZ + Wall;
+    public int InteriorMaxX => MaxX - Wall;
+    public int InteriorMaxZ => MaxZ - Wall;
 }
 
 /// <summary>
@@ -171,20 +183,36 @@ public sealed record RoomFrame(
 /// </summary>
 public static class RoomFrames
 {
-    /// <summary>The smallest legal shell span (WX2) — a 4×4 interior, which still seats four corner
-    /// monuments, the chest stacks and a pad.</summary>
-    public const int MinShellSpan = 6;
-
-    /// <summary>The smallest legal room/spawn piece span in blocks (WX2): the shell minimum plus the
-    /// one-block clean ring on each side.</summary>
-    public const int MinPieceSpan = MinShellSpan + 2;
+    /// <summary>The smallest room there is (WX2): a 2×2 pad and the block of clear floor it keeps on every
+    /// side, which is also the ring its four chest corners seat in. Spans are in blocks, never cells.</summary>
+    public const int MinRoomSpan = 2 + 2 * PadWallClearance;
 
     /// <summary>Clear floor kept between the pad and every wall (WX4).</summary>
     public const int PadWallClearance = 1;
 
-    /// <summary>Whether a piece is too small to stamp a room (WX2) — spans measured in blocks, never cells.</summary>
-    public static bool PieceTooSmall(int pieceWidth, int pieceDepth) =>
-        pieceWidth < MinPieceSpan || pieceDepth < MinPieceSpan;
+    /// <summary>What a wall costs a footprint on each axis: the one course it stands in, on both sides.
+    /// <see cref="MinRoomSpan"/> already carries the pad and the clearance it keeps, so a shell adds only the
+    /// courses — which is the whole difference between the two minimums (WX2).</summary>
+    public const int WallCost = 2;
+
+    /// <summary>The smallest footprint a room may take (WX2): <see cref="MinRoomSpan"/> on open ground, and
+    /// that plus what a wall costs where a shell stands over it — <b>6×6</b>, a 4×4 interior that still seats
+    /// four corner monuments, the chest stacks and a pad.</summary>
+    public static int MinSpan(bool walled) => MinRoomSpan + (walled ? WallCost : 0);
+
+    /// <summary>Whether a footprint is too small to hold a room (WX2).</summary>
+    public static bool FootprintTooSmall(int width, int depth, bool walled) =>
+        width < MinSpan(walled) || depth < MinSpan(walled);
+
+    /// <summary>The ring of clean floor a piece keeps around the room it carries (WX1) — one block, and
+    /// part of what a piece promises rather than an accident of sizing.</summary>
+    public const int DefaultRing = 1;
+
+    /// <summary>The footprint a piece carries where none is authored (WX1): the piece inset by
+    /// <see cref="DefaultRing"/> on every side.</summary>
+    public static BlockRect DefaultFootprint(BlockRect piece) =>
+        new(piece.MinX + DefaultRing, piece.MinZ + DefaultRing,
+            piece.MaxX - DefaultRing, piece.MaxZ - DefaultRing);
 
     /// <summary>Whether a marker's block-lattice parity differs between axes (WX3). The pad is always
     /// square, so a grid-line x with a block-centre z has no pad and refuses at validation.</summary>
@@ -201,12 +229,12 @@ public static class RoomFrames
     /// <inheritdoc cref="ResolveRoom"/>
     /// <remarks>The frame-only convenience: no iron markers, returns just the frame.</remarks>
     public static RoomFrame? Resolve(
-        int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
+        BlockRect piece, BlockRect? footprint, bool walled,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
         out Finding? refusal)
-        => ResolveRoom(pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ, markerX, markerZ,
+        => ResolveRoom(piece, footprint, walled, markerX, markerZ,
             entries, spawnDoorEdge, [], out refusal)?.Frame;
 
     /// <summary>
@@ -221,10 +249,17 @@ public static class RoomFrames
     /// <para>This answers a room <em>or</em> a refusal rather than a <see cref="Findings"/> list, and that is
     /// the difference between a resolve and a gate: a gate reads a document and collects everything wrong with
     /// it, while a resolve is producing a value and stops at the first thing that makes producing it
-    /// impossible. There is no second WX fault to report once the piece is too small to hold a shell.</para>
+    /// impossible. There is no second WX fault to report once the footprint is too small to hold a room.</para>
     /// </summary>
+    /// <param name="piece">The ground the room stands on: what bounds every marker, and what the footprint
+    /// must lie inside.</param>
+    /// <param name="footprint">The room itself, or null for the default — the piece inset far enough to leave
+    /// a ring the iron can stand in (WX1).</param>
+    /// <param name="walled">Whether a shell will stand on the footprint's perimeter. A wall is what the
+    /// interior is inset by and what the pad keeps its clearance to, so a room on open ground has neither and
+    /// its least span is <see cref="MinRoomSpan"/> rather than that plus <see cref="WallCost"/>.</param>
     public static ResolvedRoom? ResolveRoom(
-        int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
+        BlockRect piece, BlockRect? footprint, bool walled,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
@@ -232,39 +267,48 @@ public static class RoomFrames
         out Finding? refusal)
     {
         refusal = null;
-        var pieceWidth = pieceMaxX - pieceMinX;
-        var pieceDepth = pieceMaxZ - pieceMinZ;
-        if (PieceTooSmall(pieceWidth, pieceDepth))
+        int pieceMinX = piece.MinX, pieceMinZ = piece.MinZ, pieceMaxX = piece.MaxX, pieceMaxZ = piece.MaxZ;
+        var room = footprint ?? DefaultFootprint(piece);
+        int minX = room.MinX, minZ = room.MinZ, maxX = room.MaxX, maxZ = room.MaxZ;
+        var wall = walled ? 1 : 0;
+
+        if (FootprintTooSmall(maxX - minX, maxZ - minZ, walled))
         {
-            refusal = new Finding(RoomFrameRules.PieceTooSmall,
-                $"piece {pieceWidth}×{pieceDepth} is too small to stamp a room: the shell would be "
-                + $"{pieceWidth - 2}×{pieceDepth - 2}, minimum {MinShellSpan}×{MinShellSpan} "
-                + $"(piece ≥ {MinPieceSpan}×{MinPieceSpan} blocks)");
+            refusal = new Finding(RoomFrameRules.FootprintTooSmall,
+                $"footprint {maxX - minX}×{maxZ - minZ} is too small to hold a room: the least span is "
+                + $"{MinSpan(walled)}×{MinSpan(walled)} blocks"
+                + (walled ? $" with a shell over it, {MinRoomSpan}×{MinRoomSpan} on open ground" : ""));
+            return null;
+        }
+        if (minX < pieceMinX || minZ < pieceMinZ || maxX > pieceMaxX || maxZ > pieceMaxZ)
+        {
+            refusal = new Finding(RoomFrameRules.FootprintOffPiece,
+                $"footprint [{minX}, {minZ}]–[{maxX}, {maxZ}] reaches outside the piece it stands on "
+                + $"([{pieceMinX}, {pieceMinZ}]–[{pieceMaxX}, {pieceMaxZ}])");
             return null;
         }
         if (MixedParity(markerX, markerZ))
         {
             refusal = new Finding(RoomFrameRules.MarkerParity,
                 "marker parity differs between axes; the pad is always square — place the marker on a "
-                + "cell corner, or on a cell centre in both axes");
+                + "block grid line, or at a block centre, in both axes");
             return null;
         }
 
-        // WX1 — the shell footprint is the piece inset by the one-block clean ring.
-        int minX = pieceMinX + 1, minZ = pieceMinZ + 1, maxX = pieceMaxX - 1, maxZ = pieceMaxZ - 1;
-
-        // WX8 — each iron marker in turn: the cube sits outside the shell with one block of clear air,
-        // never fused. The room has priority: the shell pulls one edge back as far as WX2 and the room
-        // marker allow, the cube degrades by parity, and an unfittable marker resolves unplaceable (WX9).
+        // WX8 — each iron marker in turn: the cube stands in the ring between the footprint and the piece
+        // edge, one block of clear air to the shell, never fused. The room has priority: the footprint pulls
+        // one edge back as far as WX2 and the room marker allow, the cube degrades by parity, and an
+        // unfittable marker resolves unplaceable (WX9).
         var iron = new List<IronResolution>();
         foreach (var (ironX, ironZ) in ironMarkers)
-            iron.Add(PlaceIron(ironX, ironZ, pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ,
-                markerX, markerZ, ref minX, ref minZ, ref maxX, ref maxZ));
+            iron.Add(PlaceIron(ironX, ironZ, piece, walled, markerX, markerZ,
+                ref minX, ref minZ, ref maxX, ref maxZ));
 
-        // The pad's allowed region is the interior inset by the wall clearance (WX4).
+        // The pad's allowed region is the interior inset by the wall clearance (WX4) — the whole footprint
+        // where no wall stands, since there is nothing to clear.
+        var padInset = wall * (1 + PadWallClearance);
         var pad = PlacePad(markerX, markerZ,
-            minX + 1 + PadWallClearance, minZ + 1 + PadWallClearance,
-            maxX - 1 - PadWallClearance, maxZ - 1 - PadWallClearance);
+            minX + padInset, minZ + padInset, maxX - padInset, maxZ - padInset);
         if (pad is null)
         {
             refusal = new Finding(RoomFrameRules.PadClearance,
@@ -276,7 +320,7 @@ public static class RoomFrames
         if (spawnDoorEdge is { } doorEdge)
         {
             var alongX = doorEdge.AlongX();
-            var interiorAcross = alongX ? maxX - minX - 2 : maxZ - minZ - 2;
+            var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
             var width = DoorWidth(interiorAcross);
             var lo = alongX
                 ? minX + (maxX - minX - width) / 2
@@ -291,10 +335,10 @@ public static class RoomFrames
                 if (ClassifyEntry(entry, pieceMinX, pieceMinZ, pieceMaxX, pieceMaxZ) is not { } placed) continue;
                 var (edge, intervalLo, intervalHi) = placed;
                 var alongX = edge.AlongX();
-                var interiorAcross = alongX ? maxX - minX - 2 : maxZ - minZ - 2;
+                var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
                 var width = DoorWidth(interiorAcross);
-                // Centre the door on the entry interval, clamped onto the wall run between the ring corners.
-                var (runLo, runHi) = alongX ? (minX + 1, maxX - 1) : (minZ + 1, maxZ - 1);
+                // Centre the door on the entry interval, clamped onto the wall run between the corners.
+                var (runLo, runHi) = alongX ? (minX + wall, maxX - wall) : (minZ + wall, maxZ - wall);
                 var ideal = (int)Math.Round((intervalLo + intervalHi) / 2.0 - width / 2.0, MidpointRounding.AwayFromZero);
                 var lo = Math.Min(Math.Max(ideal, runLo), runHi - width);
                 doors.Add(new RoomDoor(edge, lo, width));
@@ -307,28 +351,32 @@ public static class RoomFrames
             }
         }
 
-        return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors), iron);
+        return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors, wall), iron);
     }
 
     /// <summary>Air blocks kept between an iron cube and the room shell (WX8) — the same one-block
     /// clearance the pad keeps to the walls.</summary>
     public const int IronGap = 1;
 
-    // Resolve one iron marker against the current shell, shrinking the shell in place when a legal yield
+    /// <summary>The widest cube the parity ladder offers (WX8): what a grid-line marker centres before it
+    /// degrades.</summary>
+    public const int MaxIronSpan = 4;
+
+    // Resolve one iron marker against the current footprint, shrinking it in place when a legal yield
     // exists. Size ladder by parity: a grid-line marker centres 4 then 2, a block-centre marker centres 3,
     // and a marker that is a grid line on one axis and a block centre on the other centres no square at all,
     // so it takes the whole ladder and settles half a block off centre on the odd axis. A shrink candidate
-    // pulls exactly one shell edge back to clear the cube plus gap, and is legal while the shell holds WX2
-    // and the room marker stays inside the interior; the largest retained area wins, ties broken toward
-    // moving the edge farthest from the room marker — a marker-relative choice, so orbit images shrink
+    // pulls exactly one edge back to clear the cube plus gap, and is legal while the footprint holds WX2 and
+    // the room marker stays inside the interior; the largest retained area wins, ties broken toward moving
+    // the edge farthest from the room marker — a marker-relative choice, so orbit images shrink
     // mirror-consistently.
     private static IronResolution PlaceIron(
-        double ironX, double ironZ, int pieceMinX, int pieceMinZ, int pieceMaxX, int pieceMaxZ,
+        double ironX, double ironZ, BlockRect piece, bool walled,
         double markerX, double markerZ, ref int minX, ref int minZ, ref int maxX, ref int maxZ)
     {
         int[] sizes = IsGridLine(ironX) == IsGridLine(ironZ)
-            ? IsGridLine(ironX) ? [4, 2] : [3]
-            : [4, 3, 2];
+            ? IsGridLine(ironX) ? [MaxIronSpan, 2] : [3]
+            : [MaxIronSpan, 3, 2];
         foreach (var size in sizes)
         {
             // The cube's low corner: the marker less half its span, put back on the block lattice. Rounding
@@ -337,7 +385,7 @@ public static class RoomFrames
             int Lo(double marker) => (int)Math.Round(marker - size / 2.0, MidpointRounding.AwayFromZero);
             int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
             int cubeMaxX = cubeMinX + size, cubeMaxZ = cubeMinZ + size;
-            if (cubeMinX < pieceMinX || cubeMinZ < pieceMinZ || cubeMaxX > pieceMaxX || cubeMaxZ > pieceMaxZ)
+            if (cubeMinX < piece.MinX || cubeMinZ < piece.MinZ || cubeMaxX > piece.MaxX || cubeMaxZ > piece.MaxZ)
                 continue;   // off the piece at this size — try the smaller cube
 
             bool Separated(int shellMinX, int shellMinZ, int shellMaxX, int shellMaxZ) =>
@@ -348,19 +396,20 @@ public static class RoomFrames
 
             var candidates = new List<(int MinX, int MinZ, int MaxX, int MaxZ, double EdgeDistance)>
             {
-                // one shell edge pulled back per candidate; EdgeDistance = room marker to the moved edge,
-                // on that edge's own axis
+                // one edge pulled back per candidate; EdgeDistance = room marker to the moved edge, on that
+                // edge's own axis
                 (minX, minZ, cubeMinX - IronGap, maxZ, Math.Abs(markerX - (cubeMinX - IronGap))),
                 (cubeMaxX + IronGap, minZ, maxX, maxZ, Math.Abs(markerX - (cubeMaxX + IronGap))),
                 (minX, minZ, maxX, cubeMinZ - IronGap, Math.Abs(markerZ - (cubeMinZ - IronGap))),
                 (minX, cubeMaxZ + IronGap, maxX, maxZ, Math.Abs(markerZ - (cubeMaxZ + IronGap))),
             };
-            // Legal while WX2 holds and the room marker stays inside the interior — the pad may still
-            // clamp with a WX4 shift, exactly as it can against an un-shrunk wall.
+            // Legal while WX2 holds and the room marker stays inside the interior — the pad may still clamp
+            // with a WX4 shift, exactly as it can against an un-shrunk wall.
+            var wall = walled ? 1 : 0;
             var legal = candidates
-                .Where(c => c.MaxX - c.MinX >= MinShellSpan && c.MaxZ - c.MinZ >= MinShellSpan
-                    && markerX >= c.MinX + 1 && markerX <= c.MaxX - 1
-                    && markerZ >= c.MinZ + 1 && markerZ <= c.MaxZ - 1)
+                .Where(c => !FootprintTooSmall(c.MaxX - c.MinX, c.MaxZ - c.MinZ, walled)
+                    && markerX >= c.MinX + wall && markerX <= c.MaxX - wall
+                    && markerZ >= c.MinZ + wall && markerZ <= c.MaxZ - wall)
                 .OrderByDescending(c => (c.MaxX - c.MinX) * (c.MaxZ - c.MinZ))
                 .ThenByDescending(c => c.EdgeDistance)
                 .ToList();
