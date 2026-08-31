@@ -299,12 +299,6 @@ so they wait for the frame rather than being built into the one it replaces.
   stays authoritative about where while the author stays authoritative about how high.*
 
 
-- [ ] **C46 — The Export button says nothing while the world is being built.** `GET /map/{slug}/export`
-  answers in 0.3–0.7 s on a 100×140 board (`docs/tools/configure.md`), which is short enough that no job or
-  poll is warranted and long enough that the control sits inert with no sign the click landed. Disable it for
-  the duration and show the same busy affordance the other long-ish reads use. The same holds for
-  `GET /xml` on a sketch-origin map, which builds the identical world.
-
 ## Mapgen authoring tasks
 
 **These came out of the mapgen authoring runs** — `pgm-studio-mapgen/reports/`, Grok run 1 and the five
@@ -1144,15 +1138,6 @@ hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routin
 `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
 no home on a map-backed plan.
 
-- [ ] **B79 — The plan tool must not offer Compile before the document it would compile has loaded.**
-Reached by the SPA hop from the Configuring list, the tool's canvas is in the DOM before its plan document
-is. Click **Compile** in that window and it posts `pieces: 0`, the validator correctly answers `422` `PL1`
-*"this plan has no pieces — there is no land to build"*, and the drawer opens anyway because its tabs render
-the source document. The draft button still reads **Rebuild this map** — `BuildLabel` comes from the map —
-and is `Disabled="@(compiledLayout is null || draftBusy)"`: present, correctly labelled, not actionable. A
-user who clicks quickly is told their board has no land, about a board with land. Gate the button, or the
-post, on the document having arrived.
-
 The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
 too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
 Fixing the tool makes both unnecessary.
@@ -1188,15 +1173,6 @@ confirmation already covers a mis-click at a fraction of the cost. This is the b
 braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
-
-- [ ] **TN6 — A compile that failed leaves a button promising the build it cannot do.** The compile drawer's
-  draft button is `Disabled="@(compiledLayout is null || draftBusy)"` (`PlanTool.razor:669`) while its label
-  is `BuildLabel`, which reads only whether the map is built. So a **422** leaves *Rebuild this map* on
-  screen, greyed and silent about why — and the json pane beside it still shows the plan, because
-  `compiledPlan` is set before the request. An author sees a dead button and a plan that looks fine. Say what
-  the drawer is in: label the button for the state (*Fix the plan first*, or the count of blocking findings)
-  and point at the findings list already rendered above it. Found by `map-layers` hanging thirty seconds on
-  that button rather than failing on the compile.
 
 - [ ] **TE2 — The Edit tool's wool picker spells the dyes a second way.** `ObjectivePhase` builds its colour
   list from `GameColors.DyeColors` (`ObjectivePhase.razor.cs:201`, `:211`), whose values are the space form

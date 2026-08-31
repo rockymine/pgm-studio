@@ -70,9 +70,10 @@ try {
   checks.add("no reopen control remains", reopen === 0, `${reopen} found`);
 
   // Straight to the plan from the Configuring list — one click, no intermediate list.
-  // The canvas exists before the plan document has been fetched into it, and the bridge polls the derived
-  // reads only once it has one — so a successful /plan/inspect is the signal that the editor is holding the
-  // plan rather than its blank default. Armed before the click, because it can answer before the wait.
+  // The tool gates its own Compile on the document arriving, so a click here can no longer race the load.
+  // What this waits for is one step further on: the bridge polls the derived reads once it holds a document,
+  // so a successful /plan/inspect means the whole feed has settled and the fault check below is reading a
+  // finished page. Armed before the click, because it can answer before the wait.
   const loaded = page.waitForResponse(r => r.url().includes("/api/plan/inspect") && r.ok(), { timeout: 30000 });
   await row.locator('.map-layer:has-text("Plan")').click();
   await page.waitForURL(`**/maps/${slug}/plan`, { timeout: 15000 });
@@ -127,7 +128,7 @@ try {
   const planLoaded = page.waitForResponse(r => r.url().includes("/api/plan/inspect") && r.ok(), { timeout: 30000 });
   await page.goto(`${BASE}/maps/${seed.planSlug}/plan`, { waitUntil: "networkidle" });
   await page.waitForSelector(".map-canvas-svg", { timeout: 15000 });
-  await planLoaded;   // the same signal: compiling before it posts the blank default, which is a 422
+  await planLoaded;   // the same signal: the derived feed has answered, so the page is finished settling
   await page.click('button:has-text("Compile")');
   await page.waitForSelector(".plan-compile-json", { timeout: 20000 });
   const first = (await page.locator(".plan-compile-draft button").first().textContent()).trim();

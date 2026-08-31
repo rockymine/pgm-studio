@@ -11,6 +11,7 @@
               PhaseIcon="import" PhaseTitle="Import"
               Steps="@Steps" CurrentStep="@step" MaxStep="@MaxStep"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+              NextBusy="@importing" NextBusyLabel="Scanning…"
               OnStep="JumpStep" OnBack="Back" OnNext="Next">
 
   @* ── Step 1 · Source — pick an xml-less world folder (panel only) ─────────── *@
@@ -70,9 +71,9 @@
               <input class="field-input" type="text" @bind="urlInput" @bind:event="oninput"
                      placeholder="https://…/maps/your-world/download" disabled="@importingUrl"
                      @onkeydown="@(e => { if (e.Key == "Enter") _ = ImportFromUrl(); })" />
-              <Button Variant="primary" OnClick="ImportFromUrl"
-                      Disabled="@(importingUrl || string.IsNullOrWhiteSpace(urlInput))">
-                <i data-lucide="download"></i><span>@(importingUrl ? "Fetching…" : "Fetch & scan")</span>
+              <Button Variant="primary" OnClick="ImportFromUrl" Busy="@importingUrl" BusyLabel="Fetching…"
+                      Disabled="@(string.IsNullOrWhiteSpace(urlInput))">
+                <i data-lucide="download"></i><span>Fetch &amp; scan</span>
               </Button>
             </div>
           </Field>

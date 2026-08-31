@@ -62,6 +62,11 @@ public partial class ConfigureTool
     private bool exportReady;
     private Func<Task>? exportAction;
 
+    /// <summary>Whether the export download is in flight. The build behind it answers in about half a second
+    /// on a 100×140 board — long enough for the control to sit inert with no sign the click landed, and short
+    /// enough that a job and a poll would be the wrong machinery.</summary>
+    private bool exporting;
+
     /// <summary>The XML step reports its export gate state + download action so the flow-bar Export
     /// (Next at the final step) can enable/run it.</summary>
     public void RegisterExport(bool ready, Func<Task>? download)
@@ -269,7 +274,11 @@ public partial class ConfigureTool
         }
         // AtEnd — the Review · XML step: Next is Export. NextEnabled already gated it on the open
         // export gate, so reaching here means the XML phase registered a download action; run it.
-        if (exportAction is not null) await exportAction();
+        if (exportAction is null) return;
+        exporting = true;
+        StateHasChanged();   // the busy label has to reach the DOM before the await, not after it
+        try { await exportAction(); }
+        finally { exporting = false; }
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)

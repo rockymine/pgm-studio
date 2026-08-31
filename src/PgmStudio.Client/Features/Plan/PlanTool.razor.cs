@@ -60,6 +60,13 @@ public partial class PlanTool
     // Compile & test drawer: the compiled pair (pretty-printed for preview, raw for the draft chain),
     // structural errors when the compile is blocked, and the walk-test loop's per-step draft state.
     private bool showCompile;
+    /// <summary>Whether the first render's load chain has finished. The canvas and the toolbar are in the DOM
+    /// before the plan document is — nine interop round-trips and up to four reads separate them — so until
+    /// this is set the editor is holding the bridge's blank default, and compiling it would post a plan with
+    /// no pieces and be told so. True on the bare route the moment the chain ends, since a plan drawn from
+    /// scratch has nothing to wait for.</summary>
+    private bool documentLoaded;
+
     private bool compiling;
     private string compileTab = PlanTabId;
     private bool copied;
@@ -85,6 +92,18 @@ public partial class PlanTool
 
     private bool Rebuilds => state is { Artifacts: { } held } && (held.Sketch || held.World);
     private string BuildLabel => Rebuilds ? "Rebuild this map" : MapBacked ? "Build the map" : "Create draft";
+
+    /// <summary>What the drawer's footer button says. <see cref="BuildLabel"/> answers only whether the map is
+    /// built, which is the right word for the one state where the button can act; every other state is about
+    /// the compile, and naming it is what keeps a disabled control from promising the build it cannot do. A
+    /// refusal count points at the findings the drawer already lists above the footer.</summary>
+    private string DraftLabel
+        => compiling ? "Compiling…"
+         : compileErrors.Count > 0
+             ? $"Fix {compileErrors.Count} blocking problem{(compileErrors.Count == 1 ? "" : "s")} first"
+         : compileError is not null ? "The compile failed"
+         : compiledLayout is null ? "Compile first"
+         : BuildLabel;
 
     private async Task LoadStateAsync()
     {
@@ -282,27 +301,34 @@ public partial class PlanTool
         await JS.InvokeVoidAsync("studio.icons");
         if (!firstRender) return;
         selfRef = DotNetObjectReference.Create(this);
-        handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, readout!.Cursor, selfRef);
-        await handle.InvokeVoidAsync("setRole", role);
-        try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
-        try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
-        // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
-        try { await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation"); } catch { }
-        await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
-            System.Text.Json.JsonSerializer.Serialize(Shortcuts));
-        try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
-        try { surfaceStep = await handle.InvokeAsync<double>("getSurfaceStep"); } catch { /* keep default 2 */ }
+        // Everything the editor needs before it can be compiled, in one block, so the loading state ends
+        // whatever the block does: a mount that threw leaves the tool broken, and a Compile stuck on
+        // "Loading…" would hide that behind a state that never resolves.
         try
         {
-            var all = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps");
-            traceMaps = all?.Where(m => m.HasSurface).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            handle = await JS.InvokeAsync<IJSObjectReference>("studio.mountPlan", svgRef, wrapRef, readout!.Cursor, selfRef);
+            await handle.InvokeVoidAsync("setRole", role);
+            try { SyncMeta(await handle.InvokeAsync<string>("getMeta")); } catch { /* start with defaults */ }
+            try { SyncOverlays(await handle.InvokeAsync<string>("getOverlays")); } catch { /* keep defaults */ }
+            // The Rules layer follows an open validation panel, not the persisted overlay flag — sync it to the initial state.
+            try { await handle.InvokeVoidAsync("setOverlay", "violations", leftOpen && leftPanel == "validation"); } catch { }
+            await JS.InvokeVoidAsync("studio.registerKeys", KeyOwner, selfRef,
+                System.Text.Json.JsonSerializer.Serialize(Shortcuts));
+            try { heightMap = await handle.InvokeAsync<bool>("getHeightMap"); } catch { /* keep default off */ }
+            try { surfaceStep = await handle.InvokeAsync<double>("getSurfaceStep"); } catch { /* keep default 2 */ }
+            try
+            {
+                var all = await Http.GetFromJsonAsync<List<MapSummary>>("api/maps");
+                traceMaps = all?.Where(m => m.HasSurface).OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).ToList() ?? [];
+            }
+            catch { /* picker just stays empty */ }
+            await LoadObjectiveVocabularyAsync();
+            // A map-backed plan (/maps/{slug}/plan) loads its artifact; the bare route honours the generator
+            // hand-off (?plan=<id> loads that candidate).
+            if (MapBacked) await LoadFromMap(Slug!);
+            else if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
         }
-        catch { /* picker just stays empty */ }
-        await LoadObjectiveVocabularyAsync();
-        // A map-backed plan (/maps/{slug}/plan) loads its artifact; the bare route honours the generator
-        // hand-off (?plan=<id> loads that candidate).
-        if (MapBacked) await LoadFromMap(Slug!);
-        else if (PlanIdFromQuery() is { } planId) await LoadFromDb(planId);
+        finally { documentLoaded = true; }
         StateHasChanged();
     }
 

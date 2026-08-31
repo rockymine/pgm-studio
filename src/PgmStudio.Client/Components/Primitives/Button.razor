@@ -3,7 +3,12 @@
 @* Canonical action button — emits .action-btn plus the chosen variant/layout modifiers. Renders an
    <a> when Href is set (navigation), otherwise a <button>. Variant maps straight to the CSS modifier
    (primary · danger · warn · icon); Fill/Full add the layout modifiers; Class carries any extra
-   (e.g. action-btn--push-end). Pass a Lucide glyph via Icon. Unmatched attributes pass through. *@
+   (e.g. action-btn--push-end). Pass a Lucide glyph via Icon. Unmatched attributes pass through.
+
+   Busy is the one state the button owns rather than reports: a control running its own action is
+   disabled AND says what it is doing, and pairing the two here is what stops a call site doing one
+   without the other. Busy replaces the icon and the child content with BusyLabel, because the verb a
+   button offers and the verb it is performing are different words. *@
 
 @if (Href is not null)
 {
@@ -14,9 +19,16 @@
 }
 else
 {
-    <button class="@Cls" type="@Type" title="@Title" disabled="@Disabled" @onclick="OnClick" @attributes="Extra">
-        @if (Icon is not null) { <i data-lucide="@Icon"></i> }
-        @ChildContent
+    <button class="@Cls" type="@Type" title="@Title" disabled="@(Disabled || Busy)" @onclick="OnClick" @attributes="Extra">
+        @if (Busy && BusyLabel is not null)
+        {
+            @BusyLabel
+        }
+        else
+        {
+            @if (Icon is not null) { <i data-lucide="@Icon"></i> }
+            @ChildContent
+        }
     </button>
 }
 
@@ -27,6 +39,8 @@ else
     [Parameter] public string? Title { get; set; }
     [Parameter] public string Type { get; set; } = "button";
     [Parameter] public bool Disabled { get; set; }
+    [Parameter] public bool Busy { get; set; }              // running its own action: disabled, and says so
+    [Parameter] public string? BusyLabel { get; set; }      // what it shows while Busy, in place of Icon + content
     [Parameter] public bool Fill { get; set; }              // action-btn--fill
     [Parameter] public bool Full { get; set; }              // action-btn--full
     [Parameter] public string? Class { get; set; }          // extra modifiers

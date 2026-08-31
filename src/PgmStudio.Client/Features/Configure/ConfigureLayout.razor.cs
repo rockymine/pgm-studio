@@ -25,6 +25,8 @@ public partial class ConfigureLayout
     [Parameter] public bool BackEnabled { get; set; }
     [Parameter] public bool NextEnabled { get; set; } = true;
     [Parameter] public string NextLabel { get; set; } = "Next";
+    [Parameter] public bool NextBusy { get; set; }
+    [Parameter] public string? NextBusyLabel { get; set; }
     /// <summary>Topbar save indicator text (Saved · Saving… · Unsaved); null/empty hides it (e.g. the
     /// landing, which has no save model).</summary>
     [Parameter] public string? SaveStatus { get; set; }

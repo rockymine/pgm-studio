@@ -157,6 +157,26 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A button that is working says so, and one that cannot act says why (`B79`, `TN6`, `C46`).** Three controls
+  failed the same way from three directions, so the fix is one: `Button` gains `Busy`/`BusyLabel`, which
+  disables the control **and** swaps the label, because each half alone is its own bug — undisabled, a second
+  click starts a second build; unlabelled, the control sits inert with no sign the first landed. `FlowBar`
+  forwards it as `NextBusy`/`NextBusyLabel`, and the six call sites that had hand-rolled the pair now spell it
+  once.
+  **The plan tool's Compile waits for the plan.** Its canvas and toolbar are in the DOM nine interop
+  round-trips and up to four reads before the document is, so a fast click on a map reached by an in-app hop
+  posted the editor's blank default and was answered `422` `PL1` — *this plan has no pieces* — about a board
+  with pieces. Both entries read *Loading…* and stay disabled until the load settles (`B79`).
+  **And the drawer's footer reads the compile, not the map.** `BuildLabel` answers only whether the map is
+  built, so a refused compile left *Rebuild this map* on screen, greyed, saying nothing; it now reads *Compile
+  first*, *Fix N blocking problems first* (the count of the findings listed directly above it) or *The compile
+  failed*, and drops the hammer with the word (`TN6`). The two are one defect: `B79`'s race is how `TN6`'s
+  state was reachable without authoring a plan that genuinely will not compile.
+  **Configure's Export says it is exporting** — the download builds the same world `GET /xml` does, about half
+  a second on a 100×140 board, which is too short for a job and too long to look like nothing happened
+  (`C46`; the `/xml` half already had its affordance).
+  `docs/client/ui-conventions.md` states both rules under *The API rules*. (B79 · TN6 · C46)
+
 - **Every column says what makes it editable, following PGM's own resolution (CV21).** The world canvas
   carried two layers for one idea: a `build` group nothing ever painted into, and a `buildability` overlay
   that answered a narrower question than its name. The empty one is gone and the live one is now

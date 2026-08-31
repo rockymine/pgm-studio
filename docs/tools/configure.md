@@ -353,7 +353,10 @@ shaping steps deliberately do not show a tree — structure is a generated artif
 so this is where it can be looked at.
 
 **XML** shows the generated `map.xml`, segmented into containers picked on the left, and the flow bar's Next
-becomes **Export**. It is enabled only when the pre-flight gate is open.
+becomes **Export**. It is enabled only when the pre-flight gate is open. Both reads behind the step build the
+same world and cost the same half-second, so both say they are working: the document fetch fills the panes
+with *Generating XML…*, and the download reads *Exporting…* with the control disabled, which is also what
+stops a second click starting a second build.
 
 ## What it refuses
 

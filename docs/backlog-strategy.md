@@ -93,9 +93,10 @@ plan that already described it. Fusing is deliberate — a compiled layout is a 
 `WE28` · `TS64` · `B107`.
 
 **A gate's verdict exists only at the compile boundary.** `PlanValidator` runs at compile and not in the live
-inspect feed, so an author sets a number, sees nothing, and meets the refusal a phase later — and the surfaces
-around that boundary each mislead in their own way. `TN2` · `TN6` · `B79` · `G163` · `WE34` ·
-`B249`.
+inspect feed, so an author sets a number, sees nothing, and meets the refusal a phase later. `TN2` · `G163` ·
+`WE34` · `B249`. `TN6` and `B79` were the surfaces around that boundary misleading in their own way and have
+landed: the plan's compile controls now read the operation rather than the map, which is one cause and not
+two — `B79`'s race is how `TN6`'s state was reachable at all.
 
 **A term measures the artifact it can reach rather than the one the claim is about.** `G8` measures the plan
 where the ground is in the sketch; the top-down frames on every column where the height profile frames on

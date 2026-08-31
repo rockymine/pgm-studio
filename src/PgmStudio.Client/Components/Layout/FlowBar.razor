@@ -25,7 +25,8 @@
   }
   <div class="flow-bar-actions">
     <Button Disabled="@(!BackEnabled)" OnClick="OnBack">Back</Button>
-    <Button Variant="primary" Disabled="@(!NextEnabled)" OnClick="OnNext">@NextLabel</Button>
+    <Button Variant="primary" Disabled="@(!NextEnabled)" Busy="@NextBusy" BusyLabel="@NextBusyLabel"
+            OnClick="OnNext">@NextLabel</Button>
   </div>
 </div>
 
@@ -42,6 +43,10 @@
     [Parameter] public bool BackEnabled { get; set; }
     [Parameter] public bool NextEnabled { get; set; } = true;
     [Parameter] public string NextLabel { get; set; } = "Next";
+    /// <summary>Next is running its own action — the last step's Next is a verb rather than a move, and a
+    /// step that fetches something wants the control disabled and saying so while it does.</summary>
+    [Parameter] public bool NextBusy { get; set; }
+    [Parameter] public string? NextBusyLabel { get; set; }
 
     [Parameter] public EventCallback<int> OnStep { get; set; }
     [Parameter] public EventCallback OnBack { get; set; }

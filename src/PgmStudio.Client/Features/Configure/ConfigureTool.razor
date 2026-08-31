@@ -20,6 +20,7 @@ else
               PhaseIcon="@Phase.Icon" PhaseTitle="@Phase.Title"
               Steps="@Phase.Steps" CurrentStep="@step" SaveStatus="@SaveStatus"
               BackEnabled="@BackEnabled" NextEnabled="@NextEnabled" NextLabel="@NextLabel"
+              NextBusy="@exporting" NextBusyLabel="Exporting…"
               OnJumpPhase="JumpPhase" OnStep="JumpStep" OnBack="Back" OnNext="Next">
 
   @* Phase bodies render inside this cascade: they patch their slice on Intent and call MarkDirty(), and

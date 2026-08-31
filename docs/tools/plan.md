@@ -407,6 +407,18 @@ clickable to pulse its subjects on the canvas. Below them, the build button runs
 already holds a sketch or a world it asks first, because the same click means either originating the map or
 replacing a board someone has since been working on.
 
+**The button under the panes reads the compile, not the map.** *Rebuild this map* / *Build the map* / *Create
+draft* is what it says in the one state where it can act; a compile that has not run yet reads *Compile
+first*, one that was refused reads *Fix N blocking problems first* — the count of the findings listed
+directly above it — and one that failed to answer reads *The compile failed*. The hammer goes with the word:
+an icon for the act is wrong on a label that refuses it.
+
+**Compile does not open until the plan document has arrived.** The canvas and the toolbar are in the DOM
+before the document is, so both entries — the topbar button and the Draw phase's Next — read *Loading…* and
+stay disabled until the load settles. Without that gate a fast click on a map reached by an in-app hop posts
+the editor's blank default and is answered `422` `PL1`, *this plan has no pieces*, about a board that has
+them.
+
 ## Refusals and complaints
 
 Four separate questions are asked of a plan, and they are kept apart on purpose. Only the first two stop

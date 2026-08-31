@@ -84,6 +84,20 @@ needs something bespoke:
 `Variant` is the header context — `ruled` for a right-panel inspector section, `list` for a left-panel list
 header, `plain` for neither — and both of the first two are canonical rather than one being a special case.
 
+**A control running its own action is disabled and says so, and `Button` owns both halves.** `Busy` is the
+one state the button holds rather than reports: it disables the control and swaps `BusyLabel` in for the icon
+and the child content, because the verb a button offers and the verb it is performing are different words —
+*Save* becomes *Saving…*, *Export* becomes *Exporting…*. Pairing them in the primitive is what stops a call
+site doing one without the other, and each half alone is its own fault: undisabled, a second click fires the
+action twice; unlabelled, the control sits inert with no sign the first click landed. `FlowBar` forwards the
+pair as `NextBusy`/`NextBusyLabel`, since the last step's Next is a verb rather than a move.
+
+**A label states what the control can do now, not what its subject is.** Where a button's word is read off one
+fact and its enabled-ness off another, the two contradict each other the moment they disagree — a label naming
+the map's next build over a control disabled by a compile that was refused. So the label follows whatever
+disables it: the plan drawer's footer reads *Compile first* or *Fix 2 blocking problems first*, and the map's
+own word only in the state where the button can act.
+
 **A named slot forces the others to be named too.** Blazor stops treating loose markup as `ChildContent` the
 moment a component call uses one named `RenderFragment`, so a `Section` that carries `Actions` must wrap its
 body in an explicit `<ChildContent>`.

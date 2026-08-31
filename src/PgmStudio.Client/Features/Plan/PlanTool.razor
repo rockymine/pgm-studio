@@ -25,7 +25,7 @@
       <Right>
         @if (importError is not null) { <span class="topbar-crumb topbar-crumb--dim">@importError</span> }
         @if (saveState is not null) { <span class="topbar-crumb topbar-crumb--dim">@saveState</span> }
-        <Button OnClick="SavePlan" Disabled="@saving" Title="Save this plan">@(saving ? "Saving…" : "Save")</Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save this plan">Save</Button>
       </Right>
     </Topbar>
     }
@@ -43,9 +43,10 @@
           <InputFile OnChange="OnImport" accept=".json" style="display:none" />
         </label>
         <Button OnClick="ExportPlan" Title="Download this plan as *.plan.json">Export</Button>
-        <Button OnClick="SavePlan" Disabled="@saving" Title="Save this plan to the studio database">@(saving ? "Saving…" : "Save")</Button>
+        <Button OnClick="SavePlan" Busy="@saving" BusyLabel="Saving…" Title="Save this plan to the studio database">Save</Button>
         <Button OnClick="OpenDbBrowser" Title="Open a saved plan from the database">Open</Button>
-        <Button Variant="primary" OnClick="OpenCompile" Title="Compile the plan into a layout + intent, then create a draft">
+        <Button Variant="primary" OnClick="OpenCompile" Busy="@(!documentLoaded)" BusyLabel="Loading…"
+                Title="Compile the plan into a layout + intent, then create a draft">
           <i data-lucide="play"></i> Compile
         </Button>
       </Right>
@@ -83,7 +84,8 @@
       @if (MapBacked)
       {
         <FlowBar Class="flow-bar--flush" PhaseIcon="pencil-ruler" PhaseTitle="Draw"
-                 BackEnabled="true" NextLabel="Compile" OnBack="GoInfo" OnNext="OpenCompile" />
+                 BackEnabled="true" NextLabel="Compile" NextBusy="@(!documentLoaded)" NextBusyLabel="Loading…"
+                 OnBack="GoInfo" OnNext="OpenCompile" />
       }
       <Workspace>
         @if (SidebarOpen)
@@ -689,8 +691,13 @@
           }
           else
           {
-            <Button Variant="primary" Full Disabled="@(compiledLayout is null || draftBusy)" OnClick="BuildRequested">
-              @if (draftBusy) { <span>@draftStep…</span> } else { <span><i data-lucide="hammer"></i> @BuildLabel</span> }
+            @* The label names the state the drawer is in, not the map's: a compile that was refused leaves
+               nothing to build, and a button still offering the build is a dead control that says why only by
+               being grey. The hammer goes with it — an icon for the act is wrong on a label that refuses it. *@
+            <Button Variant="primary" Full Disabled="@(compiledLayout is null)" Busy="@draftBusy"
+                    BusyLabel="@($"{draftStep}…")" OnClick="BuildRequested">
+              @if (compiledLayout is not null) { <i data-lucide="hammer"></i> }
+              @DraftLabel
             </Button>
           }
         }

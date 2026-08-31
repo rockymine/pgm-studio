@@ -106,7 +106,7 @@
     }
   }
 
-  <Button Full Variant="ghost" Disabled="@busy" OnClick="Measure">
-    <i data-lucide="ruler"></i> @(busy ? "Measuring…" : "Measure")
+  <Button Full Variant="ghost" Busy="@busy" BusyLabel="Measuring…" OnClick="Measure">
+    <i data-lucide="ruler"></i> Measure
   </Button>
 </Section>

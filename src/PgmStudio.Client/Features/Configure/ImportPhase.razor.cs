@@ -78,10 +78,10 @@ public partial class ImportPhase : IAsyncDisposable
     private int MaxStep => Scanned ? 2 : 0;
 
     private bool BackEnabled => step > 0;
-    private bool NextEnabled => OnSource ? selected is not null && !importing
+    private bool NextEnabled => OnSource ? selected is not null
                              : OnPlan ? importedSlug is not null
                              : true;
-    private string NextLabel => OnSource ? importing ? "Scanning…" : "Scan & continue"
+    private string NextLabel => OnSource ? "Scan & continue"
                              : OnPlan ? "Start authoring"
                              : "Next: Plan";
 
