@@ -69,11 +69,11 @@ rounding it away.
 
 - **WX1** *The footprint is stated, and its default keeps ground in front of the door.* A wool-room or spawn
   piece carries a shell whose footprint is the **room the plan states**. Where it states none the piece is
-  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **five** on
-  the side the door opens through, which is the largest iron cube plus the air it holds to the wall. A 20×20
-  spawn piece facing −z therefore opens as an **18×14** room with somewhere for its iron to stand, rather
-  than as an 18×18 room the cube has to make the shell shrink for. A wool room takes the plain inset: its
-  entries come from whichever sides abut it, so it has no one side to keep clear, and no iron.
+  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **seven** on
+  the side the door opens through, which is the largest iron cube plus the standing room it holds to the wall.
+  A 20×20 spawn piece facing −z therefore opens as an **18×12** room with somewhere for its iron to stand,
+  rather than as an 18×18 room the cube has to make the shell shrink for. A wool room takes the plain
+  inset: its entries come from whichever sides abut it, so it has no one side to keep clear, and no iron.
 
   **The door's gap yields to the marker.** A marker is where a player arrives and the pad is derived from it,
   so a default that pushed the room off its own marker would move the exported spawn point on a board nobody
@@ -150,12 +150,13 @@ Iron is spawn family — a renewable resource the spawn room exists beside — b
 structure, and structures never fuse.
 
 - **WX8** *The room yields, the iron degrades, the room wins.* An iron marker on a spawn piece
-  stamps its cube **outside the room shell**, inside the piece, with **one block of clear air** to
-  the wall — never flush, never merged into a corner. Fitting is a two-sided negotiation with a
-  fixed priority: the shell pulls **one edge** back from its WX1 footprint by the minimum that
-  clears the cube — legal while the shell holds the WX2 minimum and the spawn marker stays inside
-  the interior (the pad may still clamp with a WX4 shift); among legal shrinks the largest retained
-  area wins, ties breaking toward the edge farthest from the spawn marker, so orbit images shrink
+  stamps its cube **outside the room shell**, inside the piece, with **three blocks of clear air** to
+  the wall — the standing room a player has to get round it, never flush, never merged into a
+  corner. Fitting is a two-sided negotiation with a fixed priority: the shell pulls **one edge**
+  back from its WX1 footprint by the minimum that clears the cube — legal while the shell holds the
+  WX2 minimum and the spawn marker stays inside the interior (the pad may still clamp with a WX4
+  shift); among legal shrinks the largest retained area wins, ties breaking toward the edge
+  farthest from the spawn marker, so orbit images shrink
   mirror-consistently. The cube itself degrades by marker parity — a **grid-line** marker centres
   **4×4**, falling back to **2×2**; a **block-centre** marker centres **3×3**. A marker whose two axes
   disagree centres no square at all, so it takes the whole ladder (**4×4 · 3×3 · 2×2**) and settles half

@@ -681,7 +681,7 @@ public static class PlanValidator
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
                 yield return Lint(RoomFrameRules.IronFit,
                     $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: no room size "
-                    + $"leaves {RoomFrames.IronGap} block clear of the shell for even the smallest cube — "
+                    + $"leaves {RoomFrames.IronGap} blocks clear of the shell for even the smallest cube — "
                     + "the room has priority and stamps alone", s.Piece);
         }
     }

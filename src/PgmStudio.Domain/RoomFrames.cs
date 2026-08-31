@@ -209,14 +209,15 @@ public static class RoomFrames
     public const int DefaultGap = 1;
 
     /// <summary>The clean floor kept in front of the door (WX1): enough for the largest iron cube plus the
-    /// air it holds to the wall, so a spawn opens with somewhere for its iron to stand rather than with a
-    /// shell that has to shrink to make room.</summary>
+    /// standing room it holds to the wall, so a spawn opens with somewhere for its iron to stand rather than
+    /// with a shell that has to shrink to make room.</summary>
     public const int DefaultDoorGap = MaxIronSpan + IronGap;
 
     /// <summary>The footprint a piece carries where none is stated (WX1): the piece inset by
     /// <see cref="DefaultGap"/> on every side, and by up to <see cref="DefaultDoorGap"/> on the side the door
-    /// opens through. A 20×20 spawn piece facing −z opens as an 18×14 room with five blocks of ground in
-    /// front of its door — somewhere for the iron to stand without the room giving up an edge for it.
+    /// opens through. A 20×20 spawn piece facing −z opens as an 18×12 room with seven blocks of ground in
+    /// front of its door — a 4×4 cube and the standing room it keeps, without the room giving up an edge
+    /// for it.
     ///
     /// <para><b>The door's gap yields to the marker.</b> A marker is where a player arrives and the pad is
     /// derived from it, so a default that pushed the room off its own marker would move the spawn point
@@ -393,9 +394,9 @@ public static class RoomFrames
         return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors, wall), iron);
     }
 
-    /// <summary>Air blocks kept between an iron cube and the room shell (WX8) — the same one-block
-    /// clearance the pad keeps to the walls.</summary>
-    public const int IronGap = 1;
+    /// <summary>Air blocks kept between an iron cube and the room shell (WX8): the standing room a player
+    /// has to get round the cube, so it reads as a thing in the yard rather than as part of the wall.</summary>
+    public const int IronGap = 3;
 
     /// <summary>The widest cube the parity ladder offers (WX8): what a grid-line marker centres before it
     /// degrades.</summary>

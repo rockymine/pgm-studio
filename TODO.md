@@ -67,7 +67,7 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   sketch as one locked annotation and should project **both** — the region as the ground annotation it is now,
   and the footprint as a second tagged rectangle, which is also what `B145` hangs a theme scope on.
 
-  *The gap is the author's: **5 blocks in front of the door, 1 on the other three sides**, which is
+  *The gap is the author's: **7 blocks in front of the door, 1 on the other three sides**, which is
   `RoomFrames.DefaultFootprint` — so the seeded rectangle and the resolver's fallback are one number.*
 
 - [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
