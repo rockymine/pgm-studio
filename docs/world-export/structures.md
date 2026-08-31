@@ -151,23 +151,33 @@ structure, and structures never fuse.
   orbit. The renewables wiring covers exactly the resolved footprints. `RoomFrames.ResolveRoom` owns the
   negotiation; `Composer`-emitted plans and authored plans go through the same resolver.
 
-- **WX9** *Placeability is an attribute, not an exception.* Every structure marker resolves to
-  **placeable or not** (`IronResolution.Placeable`). An unplaceable marker stamps **nothing** — the
-  room takes its full WX1 footprint — but the marker itself stays on the board: validation flags it
-  with the clearance requirement (the WX8 lint), and the structure preview draws **only placeable**
-  structures, so the iso view never shows a cube the export refuses to place. This is the general
-  contract for structure-vs-structure conflicts; the objective-separation rules (a core or
-  destroyable against monuments, or inside a spawn piece — where spawn protection would make an
-  enemy goal unbreakable) take the same attribute when they land (B37).
+- **WX9** *Placeability is an attribute, not an exception.* Every iron marker resolves to
+  **placeable or not** (`IronResolution.Placeable`) rather than to a refusal. An unplaceable marker stamps
+  **nothing** — the room takes its full WX1 footprint — but the marker itself stays on the board:
+  validation flags it with the clearance requirement (the WX8 lint), and the preview draws **only placeable**
+  structures, so the iso view never shows a cube the export refuses to place.
+
+  Placeability is iron's attribute and not a general one, because iron is the only family whose
+  placement is a **negotiation**: the cube walks a size ladder and the room's shell yields an edge to
+  clear it, so whether anything can stand there is the resolver's answer rather than the author's. The
+  objective-separation rules answer the same question a different way and were never going to carry this
+  attribute — a goal against a spawn or a wool room is `OB17`, refused at the gate over the goal's
+  footprint, and how far two goals stand apart is `GO2`/`GO3`/`WL7`, reported by `GoalDistances` and
+  judged by the evaluator terms.
 
   The stampers themselves stay heterogeneous on purpose — their inputs are irreducibly different (a
   wall owns a *seam between two pieces*, a room a *piece + marker + entry interfaces*, an entrance
   line a *piece and its neighbours*, an objective a *marker + style over terrain*), so no shared
-  base type sits over them. What every family shares is the **output**: an axis-aligned block volume
-  on a surface-derived floor, placeable or not. The B37 generalization is therefore a common
-  **resolved-stamp record** (kind · footprint · placeable · source marker) that each family's own
-  resolver produces — the currency pairwise separation rules and the preview read —
-  never a common stamper interface. `IronResolution` is that record's first instance.
+  base type sits over them. What every family shares is the **output**: an axis-aligned block volume on
+  a surface-derived floor.
+
+  Three records state that volume, and they are three questions rather than one concept spelled three
+  ways. `IronResolution` is a negotiation's answer — which size won, where the cube landed, whether the
+  shell could yield at all. `PlacedGoal` is the gate's — the footprint a rule is quantified over, before
+  anything is built. `PlacementClaim` is the world's — the columns a stamp actually wrote, taken from the
+  placement rather than rebuilt beside it, which is what lets a claim know what a placement refused. What
+  remains of B37 is neither a fourth record nor a merge of these, but that the iron cube is gated on its
+  marker block (`ST2`) where a goal of the same size is gated on its footprint (`OB17`).
 
 - **WX10** *A bound shell stands under the build ceiling.* A room style is authored geometry subject to no
   cap of its own, while the goal marker over it hangs `BuildCeiling.MarkerOver` blocks above a ceiling

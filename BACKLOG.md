@@ -519,7 +519,6 @@ model — everything else from that pool has moved to the heading its subject ow
 
 ### The house: what it stamps, where it stands, and what an author can say
 
-
 - [ ] **WE12 — A spawn may stand without a house and a wool may not.** The two are the same shape — a source
   (a spawn point, a wool spawner), a protection region, and a structure over them — and the structure is
   decoupled on one and welded to the other: an author can already say a spawn has no housing, and a wool
@@ -528,33 +527,6 @@ model — everything else from that pool has moved to the heading its subject ow
   `region-categorization.md`'s wool `room` is the protection region rather than the building. Give the wool
   the same optional structure the spawn has, so a wool can sit in the open, in a tower, or in a house because
   the author said so.
-
-- [ ] **B37 — Every family's resolver should answer one resolved-stamp record, and only iron does.**
-  `IronResolution(MarkerX, MarkerZ, MinX, MinZ, Size, Placeable)` is the shape and the only instance, with
-  four consumers, all iron; the wall, the rooms and the objectives each resolve their placement inline. The
-  record wanted is **kind, footprint box, `Placeable`, source marker**, produced by each family's resolver.
-  The stampers stay heterogeneous — a wall owns a seam, a room a piece + marker + entries, an objective a
-  marker + style — which is why the *resolution* is the thing to share and not the stamping.
-
-  Two things need it. `PlanStructurePreview.StructureBox` assembles its own boxes for iron, destroyables and
-  cores; consuming the record instead reaches placeability into the iso view for free. And the
-  objective↔objective and objective↔monument **minimum distances** — a core merging with a wool monument they
-  must read apart from — have nowhere to live until every placement answers in one shape.
-
-  **It is the same rule one layer up.** `PlanStructurePreview.StructureBox` re-derives iron, destroyable and
-  core boxes the builder already computes, which is a second derivation of one geometry — the failure
-  `PlacementClaim` names for a claim and that has now cost two fixes, the goal anchor and the spawn room's
-  claim rect. A resolver answering one record is what lets the preview *read* the placement instead. Every
-  entry already carries a `StampId`, so the record has an identity to travel under.
-
-  *Not this: `OB17` already refuses a goal in void, in a spawn room or in a wool room over a shared
-  `ObjectiveFootprint`, the unwinnable `block="never"` case included; `PlacementClaim` answers which
-  columns a stamp owns; `B142` answers what the dressing pass declined. The editor half shipped (`B59`,
-  `C44`) and what remains of it is timing — structural findings do not run in the live feed, so a
-  refusal appears at Compile rather than as the marker is dragged. `G65` is adjacent and separate: whether two
-  pieces touch, not how far apart two placements stand.*
-
-  *moved here by the human because it sounds related and no other category fits*
 
 One object with three unfinished sides. The **stamper** decides what blocks come out, and how a wing's roof
 meets a neighbour's is still argued rather than drawn; **placement** decides where a building may stand and
@@ -752,6 +724,20 @@ each side's frontline share, the straits between bridged islands — and the lin
 seams support and nothing asks for, the word the model uses for a seam — and the rules that are about a
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
+
+- [ ] **B37 — An iron cube is gated on its marker where every other structure is gated on its footprint.**
+  `ObjectivePlacement.Check` refuses a destroyable or a core whose **footprint** overhangs the void
+  (`OB17`), because "a square grown from the marker is not the structure's ground". Iron is checked by
+  `ST2` (`PlanValidator.cs:632`), which tests the **marker block** — and only when a spawn-role piece
+  exists, so a plan whose spawns ride plain pieces gates its iron with nothing. Give the 4×4 cube the
+  footprint test the 4×4 goal already gets. Nothing new is needed: `PlacedGoal(Kind, Id, Footprint, On)`
+  is the record and `ObjectivePlacement.Grounded` the predicate, both already fed by the compile and the
+  export gates; only the message is goal-worded, so this wants its own id in the `ST` family rather than
+  `OB17`.
+
+  *Reproduced 2026-08-31 · one `lane` piece `x[-24,-8) z[-24,-8)`, a `cube-4` destroyable and an iron
+  marker both at `at:[0.5,0.5]`. The destroyable is refused `OB17 — is 4×4 and overhangs the void`; the
+  iron cube draws and stamps at `x[-26,-22) z[-26,-22)`, two columns further out, with no finding.*
 
 - [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
   `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
