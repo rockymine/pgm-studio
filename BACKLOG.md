@@ -501,20 +501,20 @@ model — everything else from that pool has moved to the heading its subject ow
   of the run and print what came back.
 
 
-- [ ] **B150 — `G8` fill-ratio measures the plan's rectangles, not the board that gets built.**
-  `FillRatio.Value` reads `ctx.Board` — `BoardStructure`, derived from the `PlanModel` — and answers
-  `Filled.Count / bbox`, in **plan cells**. The sketch is where a board's ground actually is: its organic
-  `add` shapes push the coast well past the plan pieces and its `subtract` cuts the holes, and none of that
-  reaches the term. So the one number describing how much board there is describes a different board, and it
-  is not only the holes that are missing — the additions are too. Settle it before any evaluator score is
-  trusted on a sketch-authored map, which is every map an agent authors through the documented loop.
+- [ ] **B150 — Nothing evaluates a map's own sketch, so `G8` can only ever score the plan.** The term now
+  measures ground over the ground's own frame (`FEATURES.md`), which is the whole of the author's rule that a
+  plan can answer — but a plan is not where a board's ground is. The sketch's organic `add` shapes push the
+  coast past the plan pieces and its `subtract` cuts the holes, and the evaluator never sees either: all three
+  callers are plan-tier by construction — `POST /plan/evaluate` takes a bare plan body, `ComposeEndpoints`
+  scores a freshly generated one, and the hunt loop's `Gate` runs hard terms only. **The missing thing is a
+  route that evaluates a stored map**, reading its `sketch_layout_json` and rasterizing it, so every soft term
+  scores the board that exists rather than the sketch of it. `SketchRasterizer.Rasterize` already answers the
+  footprint; what has no home is the context that would carry it.
 
-  *measured on `basalt-reach`, 2026-08-16: the plan is **five pieces tiling edge to edge with no hole at all**
-  — 522 filled cells over a 30×21 cell bbox, **G8 = 0.829** — while its sketch carries **eleven shapes, ten
-  `add` and one `subtract`**. The plan's bbox is **150 × 105 blocks**; the built world is **150 × 204**, with
-  23,417 ground columns (0.77 of its own frame) and a void hole through the lower middle. The term is
-  describing half the board.*
-
+  *measured on `basalt-reach`: the plan is five pieces tiling edge to edge with no hole at all — 522 filled
+  cells over a 30×21 bbox, **G8 = 0.829** — while its sketch carries eleven shapes, ten `add` and one
+  `subtract`. The plan's bbox is 150 × 105 blocks; the built world is 150 × 204, with 23,417 ground columns
+  (0.77 of its own frame) and a void hole through the lower middle.*
 
 - [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
   to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is

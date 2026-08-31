@@ -29,6 +29,35 @@ public sealed class SoftTermsTests
                        "wools":[{"piece":"lane","at":[1,4.5]},{"piece":"lane","at":[1,9.5]}]}}
         """;
 
+    /// <summary><b>The fill ratio is ground over the ground's own frame.</b> A build zone is buildable void
+    /// rather than land: it fills no cell, so counting it in the frame divided the same ground by a bigger
+    /// box and reported a sparser board than the one that exists. What the ratio measures is the land against
+    /// the margin and the voids around it, and nothing stamped on the terrain is either (<c>B150</c>).</summary>
+    [Test]
+    public async Task Fill_ratio_frames_on_the_ground_and_not_on_a_build_zone_reaching_past_it()
+    {
+        // A 4x4 cell block of land with a wool on it, and a build zone stretching four cells clear of it.
+        const string board = """
+        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+         "pieces":[{"id":"land","role":"piece","rect":[0,0,4,4]}],
+         "zones":[{"id":"bridge","rect":[4,0,4,4]}],
+         "placements":{"wools":[{"piece":"land","at":[2,2]}]}}
+        """;
+        const string alone = """
+        {"plan":1,"globals":{"cell":5,"symmetry":"none"},
+         "pieces":[{"id":"land","role":"piece","rect":[0,0,4,4]}],
+         "placements":{"wools":[{"piece":"land","at":[2,2]}]}}
+        """;
+
+        var withZone = new FillRatio().Value(Ctx(board, SeedEnvelopes.Default));
+        var without  = new FillRatio().Value(Ctx(alone, SeedEnvelopes.Default));
+
+        await Assert.That(withZone).IsNotNull();
+        await Assert.That(withZone!.Value).IsEqualTo(1.0).Within(1e-9)
+            .Because("the land fills its own frame completely, whatever the zone beside it covers");
+        await Assert.That(withZone.Value).IsEqualTo(without!.Value).Within(1e-9);
+    }
+
     [Test]
     public async Task Spawn_wool_spread_measures_the_per_wool_distance_spread()
     {

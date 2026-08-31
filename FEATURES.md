@@ -3480,6 +3480,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   wizard. (`9f645dc` → `45209a1`)
 
 ## Layout generation (G) — auto map generation (lane sketch generators)
+- **`G8`'s fill ratio frames on the ground and not on a build zone reaching past it (`B150`).** The frame was
+  the bounding box of the filled cells **union the build zones**, so buildable void — which fills nothing —
+  divided the same ground by a bigger box and reported a sparser board than the one that exists. Both halves
+  are the terrain now and only the terrain: what the board does not fill is its own margin and every void a
+  buffer or a cut declares, which is what the ratio is for, and nothing stamped on the terrain counts either.
+  Moves 5 of 41 corpus boards (`thunderstorm` 0.266 → 0.305, `opus5-aerie` 0.342 → 0.363); none of the 31
+  teaching seeds has a zone past its ground, so the authored band is unchanged and `seed-envelopes.json` is
+  byte-identical. Regenerating `seed-envelopes.md` alongside it brought that table current — it had gone
+  stale against its own generator, missing the three goal-distance rows.
 - **`EL1` names the seam a player cannot walk up, and `WL8`'s term is retired (`G231`, `B151`).** Two rules
   that were measuring the wrong thing, in opposite directions.
 

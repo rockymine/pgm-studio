@@ -17,15 +17,18 @@ public sealed class FillRatio : SoftTerm
     public override string Id => "fill-ratio";
     public override string RuleId => "G8";
 
+    /// <summary>Ground over the frame the ground itself occupies. Both halves are the terrain and only the
+    /// terrain: a build zone is buildable void rather than land, so it neither fills a cell nor widens the
+    /// frame, and what the board does not fill — its own margin, and every void a buffer or a cut declares —
+    /// is what the ratio is measuring. Nothing stamped on the terrain counts either; a house is not board.</summary>
     public override double? Value(EvalContext ctx)
     {
         if (ctx.Plan.Placements.Wools.Count == 0) return null;
-        var board = ctx.Board;
-        var cells = board.Filled.Keys.Concat(board.Build).ToList();
-        if (cells.Count == 0) return null;
-        double w = cells.Max(c => c.Item1) - cells.Min(c => c.Item1) + 1;
-        double h = cells.Max(c => c.Item2) - cells.Min(c => c.Item2) + 1;
-        return board.Filled.Count / (w * h);
+        var ground = ctx.Board.Filled.Keys.ToList();
+        if (ground.Count == 0) return null;
+        double w = ground.Max(cell => cell.Item1) - ground.Min(cell => cell.Item1) + 1;
+        double h = ground.Max(cell => cell.Item2) - ground.Min(cell => cell.Item2) + 1;
+        return ground.Count / (w * h);
     }
 }
 
