@@ -210,6 +210,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
         StoreyClear = Math.Clamp(req.StoreyClear, 0, 16),
         Door = DoorMaterials.IsKnown(req.Door) ? req.Door : DoorMaterials.Slug(DoorMaterial.StainedGlassPane),
         DoorHeight = Math.Max(1, req.DoorHeight),
+        DoorWidth = Math.Max(1, req.DoorWidth),
         BorderWidth = Math.Clamp(req.BorderWidth, 1, 4),
         InlayInset = Math.Clamp(req.InlayInset, 1, 8),
         WindowForm = WindowForms.Canonical(req.Windows?.Form),
@@ -323,6 +324,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
             Doorway = new Doorway
             {
                 Door = DoorMaterials.TryParse(row.Door, out var door) ? door : DoorMaterial.StainedGlassPane,
+                Width = Math.Max(1, row.DoorWidth),
                 Height = Math.Max(1, row.DoorHeight),
                 // A head the row carries columns for. It is off by default and off is what every stored style
                 // was, so a row saved before them builds exactly what it always did.
@@ -362,15 +364,7 @@ public sealed class RoomStyleLibrary(RoomStyleStore rooms, HousePartStore parts,
     };
 
     /// <summary>The stored word for a window form as the stamper's own.</summary>
-    internal static WindowForm WindowFormOf(string? form) => WindowForms.Canonical(form) switch
-    {
-        WindowForms.StairLattice => WindowForm.StairLattice,
-        WindowForms.SlabBanded => WindowForm.SlabBanded,
-        WindowForms.Pane => WindowForm.Pane,
-        WindowForms.Open => WindowForm.Open,
-        WindowForms.Arched => WindowForm.Arched,
-        _ => WindowForm.None,
-    };
+    internal static WindowForm WindowFormOf(string? form) => WindowFormWords.From(form);
 
     /// <summary>The stored word for a roof as the stamper's own form. Unknown words are the flat lid, the same
     /// fold <see cref="RoofForms.Canonical"/> makes, so a hand-edited row still stamps.</summary>

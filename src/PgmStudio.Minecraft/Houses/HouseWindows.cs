@@ -1,3 +1,4 @@
+using PgmStudio.Vocabulary;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -40,6 +41,36 @@ public enum WindowForm
     /// than two it spans the middle between the corners the way a door head does; taller than two the courses
     /// below the head are the light.</para></summary>
     Arched,
+}
+
+/// <summary>The stored word for a <see cref="WindowForm"/> and back. Both directions in one place, because a
+/// form added to the enum and to only one of them is a window that saves as itself and reads back as
+/// <see cref="WindowForm.None"/> — the store keeping every other field of the style and quietly dropping the
+/// one that says what it is.</summary>
+public static class WindowFormWords
+{
+    /// <summary>The word a form is stored as.</summary>
+    public static string Of(WindowForm form) => form switch
+    {
+        WindowForm.StairLattice => WindowForms.StairLattice,
+        WindowForm.SlabBanded => WindowForms.SlabBanded,
+        WindowForm.Pane => WindowForms.Pane,
+        WindowForm.Open => WindowForms.Open,
+        WindowForm.Arched => WindowForms.Arched,
+        _ => WindowForms.None,
+    };
+
+    /// <summary>The form a stored word names. An unknown word is no window, the same fold
+    /// <see cref="WindowForms.Canonical"/> makes, so a hand-edited row still stamps.</summary>
+    public static WindowForm From(string? word) => WindowForms.Canonical(word) switch
+    {
+        WindowForms.StairLattice => WindowForm.StairLattice,
+        WindowForms.SlabBanded => WindowForm.SlabBanded,
+        WindowForms.Pane => WindowForm.Pane,
+        WindowForms.Open => WindowForm.Open,
+        WindowForms.Arched => WindowForm.Arched,
+        _ => WindowForm.None,
+    };
 }
 
 /// <summary>

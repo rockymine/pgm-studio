@@ -520,6 +520,7 @@ public sealed class RoomStyleRow
     [Column("storeys")] public int Storeys { get; set; } = 1;
     [Column("storey_clear")] public int StoreyClear { get; set; }
     [Column("door"), NotNull] public string Door { get; set; } = "stained-glass-pane";
+    [Column("door_width")] public int DoorWidth { get; set; } = 2;
     [Column("door_height")] public int DoorHeight { get; set; } = 3;
 
     // The floor's top course in plan (M0016): how wide the ring hugging the walls is and how far in the

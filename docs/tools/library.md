@@ -334,7 +334,8 @@ never the house around it.
 ### A room is a building made of parts and styles
 
 A `room_style` carries the extents and knobs of a whole shell — floor depth, wall height, roof form, pitch,
-overhang, border and inlay, door and door head, beams, windows and gable windows, an optional porch — plus three ways of composing: per-part **course stacks**, optional bound **roof and porch style ids**,
+overhang, border and inlay, the doorway's fill, width, height and head, beams, windows and gable windows, an
+optional porch — plus three ways of composing: per-part **course stacks**, optional bound **roof and porch style ids**,
 and a **storey stack** whose position in the list is the position in the building, ground first, so there is no
 ordinal on the wire. Reordering the list reorders the house.
 

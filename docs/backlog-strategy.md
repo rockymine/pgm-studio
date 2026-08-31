@@ -31,7 +31,7 @@ Twenty-two verified defects were live behind that when this was read. A core tha
 200; a stacked board's paint ran down a column it should have stopped at; a degenerate polygon cleared every
 sketch gate and drew no ground. The suite said none of it.
 
-Eleven of the twenty-two have since landed with a test each, and what stands below is the eleven that have
+Twelve of the twenty-two have since landed with a test each, and what stands below is the ten that have
 not — `FEATURES.md` carries the rest under the ids that delivered them.
 
 That is the fact the whole strategy turns on: **a defect nobody can fail on is a defect that comes back.**
@@ -52,7 +52,6 @@ than a record that is wrong.
 | id | the defect | site |
 |---|---|---|
 | `TS32` | `PlanCompiler` groups pieces by `Surface`, unions their rects and names the result `s{n}`. Every piece name is gone before the layout exists. | `PlanCompiler.cs:115` |
-| `TL12` | Five shipped house presets lose window and door knobs through the library, so a preset stamped from code and one composed from its rows are different buildings. | `LibrarySeedTests.cs:42` |
 
 ### A gate's verdict is wrong
 
@@ -60,7 +59,7 @@ than a record that is wrong.
 |---|---|---|
 | `G231` | `LintEl1` takes `p.Surface − plan.Globals.Surface` where `EL1`'s own text states the land-interface delta. On a four-tread flight over a global of 9 it complains at treads 1 and 3 and says nothing about 2 and 4. | `PlanValidator.cs:557` |
 | `B150` | `FillRatio` reads `ctx.Board`, derived from the `PlanModel`, and answers in plan cells. The sketch is where the ground is: its `add` shapes push the coast past the plan pieces and its `subtract` cuts the holes, and neither reaches the term. | `GlobalsTerms.cs:23` |
-| `WS17` | `Walk.Standing` qualifies any surface with `Headroom` clear, roofs included, so `traversability` and `coverage` route over a house. The author has already ruled that a house is not walked over, so this one needs no further question. | `Walk.cs:255` |
+| `WS17` | `Walk.Standing` qualifies any surface with `Headroom` clear, roofs included, so `traversability` and `coverage` route over a house. The ruling exists — a house is not walked over — but the mechanism is still open: `WorldBuilder` claims every spawn and wool room *floor* as `ProvenancePass.Structure`, so excluding structure columns takes the ground a match is played over out of the walk. Bounding the rise is what is left, and it wants a number. | `Walk.cs:255` |
 | `TS31` | `SketchRasterizer.DetachedMasses` drops any component sharing no column with a second one, so it reports a storey whose stair was never drawn and never an island standing *beside* the board — the case an author actually draws by accident. | `SketchRasterizer.cs:978` |
 
 ### The studio breaks, or tells the author something untrue

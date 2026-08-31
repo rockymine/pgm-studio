@@ -419,6 +419,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
             StoreyClear: style.Storeys.Count > 0 ? style.Storeys[0].Clear : 0,
             Door: DoorMaterials.Slug(style.Doorway.Door),
             DoorHeight: style.Doorway.Height,
+            DoorWidth: style.Doorway.Width,
             BorderWidth: style.Foundation.Surface.BorderWidth,
             InlayInset: style.Foundation.Surface.InlayInset,
             Windows: WindowDto(windows),
@@ -551,14 +552,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         windows.Sill, windows.Width, windows.Height, windows.Spacing,
         windows.HostBlock, windows.HostData);
 
-    private static string NameOf(WindowForm form) => form switch
-    {
-        WindowForm.StairLattice => WindowForms.StairLattice,
-        WindowForm.SlabBanded => WindowForms.SlabBanded,
-        WindowForm.Pane => WindowForms.Pane,
-        WindowForm.Open => WindowForms.Open,
-        _ => WindowForms.None,
-    };
+    private static string NameOf(WindowForm form) => WindowFormWords.Of(form);
 
     private static string NameOf(DoorHeadForm form)
         => form == DoorHeadForm.Arched ? DoorHeadForms.Arched : DoorHeadForms.None;

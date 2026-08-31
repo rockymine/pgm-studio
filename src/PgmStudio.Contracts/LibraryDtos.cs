@@ -310,11 +310,11 @@ public sealed record RoomStyleDetail(
     long? RoofStyleId, long? PorchStyleId, IReadOnlyList<RoomStoreyDto> StoreyStack,
     IReadOnlyList<RoomCourseDto> Courses,
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null)
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2)
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
-        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead);
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth);
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
 /// building: the parts it is finished in, the numbers that decide its proportions, and the library rows it
@@ -363,6 +363,9 @@ public sealed record RoomStyleDetail(
 /// absent for a gable left blank.</param>
 /// <param name="DoorHead">The beam over the doorway, or absent to leave the opening a plain
 /// rectangle.</param>
+/// <param name="DoorWidth">How wide the opening is asked for. Never cut under two however it is set: a
+/// single-width gap is not a door, and a room an objective is carried out of has to read as somewhere to walk
+/// through.</param>
 public record RoomStyleSaveRequest(
     string Name,
     int FloorDepth, int WallHeight,
@@ -376,7 +379,7 @@ public record RoomStyleSaveRequest(
     // Trailing and defaulted so every existing construction site keeps compiling and keeps meaning "this
     // building has none" — which is what every stored style already was.
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
-    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null);
+    RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2);
 
 /// <summary>The four pictures of a room style: from above, projected onto its front, in isometric, and one
 /// plane drawn at the scale of the pieces in it. A library <em>card</em> carries the section alone — the

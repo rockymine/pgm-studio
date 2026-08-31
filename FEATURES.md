@@ -680,6 +680,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **Every house preset composes back to the building it went in as (`TL12`).** Five shipped presets came
+  back quieter than they left: `windows` and `storey N windows` on four of them, `doorWidth` on two. Two
+  causes, both of them a word written down twice. The window form's enum-to-word map knew four of the five
+  forms and its word-to-enum twin knew all five, so an `arched` window saved as itself and read back as
+  `none` — every other field of the style intact and the one that says what it is dropped; both directions
+  now live in one place (`WindowFormWords`) beside the enum, so a form added to one is added to both. And a
+  doorway's width had no column at all, so a house saved through the library came back at the record's own
+  default of 2 whatever its author asked for (`M0027`, `door_width`, defaulting to the width every stored
+  row was already built at). `LibrarySeedTests` no longer pins a list of what is lost; it asserts nothing is.
 - **The library seeder no longer throws on two rows named alike but for case (`RP61`).** Eight sites built
   their idempotency map by grouping ordinally and collecting case-insensitively, so `meadow` and `Meadow`
   grouped as two keys and collided as one — an `ArgumentException` out of `ToDictionary` at every app start,

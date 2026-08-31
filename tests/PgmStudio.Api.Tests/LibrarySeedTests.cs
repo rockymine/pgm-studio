@@ -25,13 +25,13 @@ public sealed class LibrarySeedTests
         scope.ServiceProvider.GetRequiredService<HousePartStore>());
 
     /// <summary>
-    /// What the store loses, house by house — pinned rather than asserted empty, because four of the shipped
-    /// presets lose window and door knobs today and this is the check that finally says which
-    /// (<c>TL12</c>). Pinning it is what stops the gap spreading: a preset that starts losing something new,
-    /// or a house that joins the list, fails here.
+    /// <b>Every preset composes back to the building it went in as</b> — asserted empty, not pinned to a
+    /// list of what is lost, so a house that starts losing a knob fails here whichever knob it is. That is
+    /// the whole value of the check: a preset that grows a beam or a laid-log roof tomorrow starts arriving
+    /// back as a quieter building than it left, and nothing else says so (<c>TL12</c>).
     /// </summary>
     [Test]
-    public async Task No_preset_loses_more_through_the_store_than_it_does_today()
+    public async Task No_preset_loses_anything_through_the_store()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var _ = ApiTestFactory.Shared.CreateClient();
@@ -39,19 +39,9 @@ public sealed class LibrarySeedTests
         var seed = Seed(scope);
         await seed.SeedAsync();
 
-        // The row model lags the stamper by exactly these: a window seated per storey and a doorway's width.
-        var known = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["cottage"] = ["windows", "storey 1 windows"],
-            ["longhouse"] = ["windows", "doorWidth", "storey 1 windows"],
-            ["terrace"] = ["storey 1 windows"],
-            ["counting house"] = ["storey 1 windows", "storey 3 windows"],
-            ["workshop"] = ["doorWidth"],
-        };
-
         foreach (var (house, lost) in await seed.VerifyAsync())
-            await Assert.That(lost).IsEquivalentTo(known.GetValueOrDefault(house, []))
-                .Because($"{house} lost {(lost.Count == 0 ? "nothing" : string.Join(", ", lost))} through the store");
+            await Assert.That(lost).IsEmpty()
+                .Because($"{house} lost {string.Join(", ", lost)} through the store");
     }
 
     /// <summary>The hand-authored houses compose back to exactly the buildings they went in as. Stated apart

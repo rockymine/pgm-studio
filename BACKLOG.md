@@ -465,11 +465,16 @@ as an isolated marker into `B99`.
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
 
-- [ ] **WS17 — A walk reads a building as a hill.** *(the author's ruling: a house is not walked over.)* `Walk.Standing` calls any surface with two blocks of air
-  over it a place to stand, roofs included, and `Walk` prices a climb rather than refusing it — so
-  `traversability` and `coverage`, which walk the finished world, route straight over a house and report a
-  board whole that a player cannot cross. Bound the rise the way `Walk.Components` already can, or exclude the
-  columns provenance calls a structure. `docs/world-scan/read-backs.md`.
+- [ ] **WS17 — A walk reads a building as a hill, and only one of its two fixes is safe.** *(the author's
+  ruling: a house is not walked over.)* `Walk.Standing` calls any surface with two blocks of air over it a
+  place to stand, roofs included, and `Walk` prices a climb rather than refusing it — so `traversability` and
+  `coverage`, which walk the finished world, route straight over a house and report a board whole that a
+  player cannot cross. **Excluding the columns provenance calls a structure is not available**:
+  `WorldBuilder` claims every spawn and wool room *floor* as `ProvenancePass.Structure`, so that rule takes
+  the ground a match is played over out of the walk and reports every generated board disconnected at its
+  objectives. What is left is bounding the rise the way `Walk.Components` already can, which wants a number.
+  **The blocking question: how many blocks of rise stops being a slope and starts being a wall.**
+  `docs/world-scan/read-backs.md`.
 
   *`opus5-whinnymoor` and `opus5-rimegarth` both exported with traversability whole and buildings standing
   across their roads.*
@@ -572,15 +577,6 @@ Four places the paint and the document disagree — an overlap resolved by oppos
 interior is never themed, a palette stacked down a column it should top, and a band stack the editor cannot
 author. Beside them, one where the *reader* disagrees with a document that is right.
 
-- [ ] **TL12 — Four shipped house presets lose a knob through the library.** `LibrarySeed.VerifyAsync`
-  composes each seeded row back and names what came back different; nothing was calling it, and now that
-  something does it reports: `cottage` loses *windows* and *storey 1 windows*, `longhouse` those plus
-  *doorWidth*, `terrace` *storey 1 windows*, `counting house` *storey 1* and *storey 3 windows*, `workshop`
-  *doorWidth*. Every other preset, including the three authored ones, is clean. The row model lags the stamper
-  on exactly two fields — a window seated per storey, and a doorway's width — so a preset stamped from code
-  and one composed from its rows are different buildings. `LibrarySeedTests` pins the list, so the fix is to
-  shrink it. Evidence: `dotnet run --project tests/PgmStudio.Api.Tests -- --treenode-filter
-  "/*/*/LibrarySeedTests/*"`.
 
 - [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
   to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is
@@ -1660,7 +1656,7 @@ feature section.
   changing for this task's sake.
 
   **The head exposes the document model only.** Where the library keeps a second model of the same thing —
-  `RoomStyleSaveRequest` has 28 fields against `HouseStyle`'s 46 and shares 11 names — the composed form
+  `RoomStyleSaveRequest` has 26 fields against `HouseStyle`'s 46 and shares 11 names — the composed form
   stays behind the head. That is safe rather than merely tidy: a map binds its room styles as a **snapshot**
   rather than a library id, so an author agent never needs the library at all. The tool list above already
   reflects this by carrying no library tools; this is the reason it is right.
