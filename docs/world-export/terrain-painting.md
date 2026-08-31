@@ -241,7 +241,16 @@ beneath it, and it is why `TerrainThemeScope.ThemeAt` answers `(layer, x, z)` an
 `SketchRasterizer.ShapeThemeOwners` keys `(layer, cell)`. Within one layer nothing changes: the smallest-area
 shape still wins a contested cell. Across layers there is no contest at all — each surface shows its own.
 The passes cannot tread on each other because of the stone-only invariant: a course a lower layer has already
-finished is no longer stone. Where two layers genuinely meet flush, the one drawn first is what stands.
+finished is no longer stone.
+
+**That invariant is what makes the pass order load-bearing, so the order is the stack's and not the
+document's.** Each pass paints its column from the bedrock course upward, so whichever layer runs first takes
+every course under it — and a storey painted before the one it stands over leaves that lower ground already
+finished, with no bands of its own. The painter therefore walks the layers from the bottom of the stack up,
+ordered by the lowest surface each carries, and layers standing at the same height keep the order the
+document draws them in, so where two genuinely meet flush the earlier one still wins. A compiled plan emits
+its ground as `layers[0]`, and that ground is not the bottom of every board: an undercroft appended after it
+is drawn later and stands lower, which is an authoring accident rather than a statement about the stack.
 
 **The invariant is over the whole block and not over its id.** Stone's id is shared by granite, diorite,
 andesite and their polished forms, so a lower layer finishing a course in one of those leaves a block whose

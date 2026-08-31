@@ -329,12 +329,29 @@ public static class SketchLayoutCheck
                 yield return (group, $"layers[{index}].layout.groups[{at}]");
     }
 
+    // Twice the signed area a ring encloses, absolute — the shoelace sum. Zero says the vertices are
+    // collinear however many of them there are, which is the same "no ground" a rectangle of no width has.
+    private static double Area(double[][] vertices)
+    {
+        var sum = 0.0;
+        for (var i = 0; i < vertices.Length; i++)
+        {
+            var a = vertices[i];
+            var b = vertices[(i + 1) % vertices.Length];
+            if (a.Length < 2 || b.Length < 2) return 0;
+            sum += (a[0] * b[1]) - (b[0] * a[1]);
+        }
+        return Math.Abs(sum);
+    }
+
     // Why a shape of a known kind still draws nothing, or null where it draws something.
     private static string? Empty(SketchShape shape) => shape.Type switch
     {
-        "polygon" or "lasso" => shape.Vertices is { Length: >= 3 }
-            ? null
-            : $"is a {shape.Type} with {shape.Vertices?.Length ?? 0} vertices, under the three that enclose ground",
+        "polygon" or "lasso" => shape.Vertices is not { Length: >= 3 }
+            ? $"is a {shape.Type} with {shape.Vertices?.Length ?? 0} vertices, under the three that enclose ground"
+            : Area(shape.Vertices) > 0
+                ? null
+                : $"is a {shape.Type} of {shape.Vertices.Length} vertices enclosing no area — every point is on one line",
         "circle" => shape.Radius > 0 ? null : $"is a circle of radius {shape.Radius ?? 0:0.##}",
         "path" => shape.Radius > 0
             ? shape.Vertices is { Length: >= 2 } ? null : $"is a path of {shape.Vertices?.Length ?? 0} points"

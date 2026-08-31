@@ -48,6 +48,47 @@ public sealed class TopDownRenderTests
         await Assert.That(result.HighestY).IsEqualTo(9);
     }
 
+    /// <summary>A marker sheet at the world floor is a map's own bookkeeping, not a piece of board, so the
+    /// frame is taken from the ground and the surface span reads from the ground up. A column whose only
+    /// block lies flat at <c>y1</c> would otherwise widen the frame past the terrain and paint the margin
+    /// beside a narrow board as void — and drag the reported span down to the marker's own Y
+    /// (<c>B103</c>).</summary>
+    [Test]
+    public async Task A_floor_marker_beside_the_board_is_not_extent()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 4; x++)
+            for (var z = 0; z < 3; z++)
+                world.SetBlock(x, 9, z, Blocks.Stone);
+
+        // Redstone wire lying at y1, two columns out each side — the line a build region's marker leaves.
+        for (var z = 0; z < 3; z++)
+        {
+            world.SetBlock(-2, 1, z, Blocks.RedstoneWire);
+            world.SetBlock(5, 1, z, Blocks.RedstoneWire);
+        }
+
+        var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null)!;
+
+        await Assert.That(result.BlocksWide).IsEqualTo(4).Because("the frame is the terrain's, not the marker's");
+        await Assert.That(result.ColumnCount).IsEqualTo(12);
+        await Assert.That(result.LowestY).IsEqualTo(9).Because("the span reads from the ground, not from y1");
+    }
+
+    /// <summary>A world that is nothing but markers still draws: a frame taken from them is better than no
+    /// picture, and the read is honest about what it found.</summary>
+    [Test]
+    public async Task A_world_of_markers_alone_still_renders()
+    {
+        var world = new VoxelWorld();
+        for (var x = 0; x < 3; x++) world.SetBlock(x, 1, 0, Blocks.RedstoneWire);
+
+        var result = TopDownRender.Render(AnvilRegion.FromWorld(world), map: null, yMax: null);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result!.ColumnCount).IsEqualTo(3);
+    }
+
     private static int PixelAt(byte[] pixels, int width, int col, int row)
     {
         var offset = (row * width + col) * 3;

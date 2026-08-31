@@ -28,18 +28,28 @@ public static class TerrainPainter
     /// gallery floor and a meadow on the deck roofing it. The stone-only invariant keeps the passes from
     /// treading on each other: a course a lower layer has already finished is no longer stone.
     ///
-    /// <para>Layers paint in the order the document draws them, so where two genuinely meet flush the lower
-    /// one's finish is what stands.</para></summary>
+    /// <para><b>Layers paint from the bottom of the stack up</b>, ordered by the lowest surface each one
+    /// carries, and layers standing at the same height keep the order the document draws them in. Each pass
+    /// paints its column from the bedrock course upward, so a storey painted before the one it stands over
+    /// finds that ground already finished and leaves it alone — and the storey under it never gets its own
+    /// bands. Where a compile emits the ground first, that ground is not the bottom of every board: an
+    /// undercroft appended after it is drawn later and stands lower, which is an authoring accident rather
+    /// than a statement about the stack.</para></summary>
     public static void Paint(VoxelWorld world,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>> surfaceByLayer,
         Func<string, int, int, TerrainTheme> themeAt, Func<int, int, int>? teamDamageAt = null,
         Func<int, int, (int X, int Z)>? foldAt = null,
         IReadOnlyDictionary<string, IReadOnlyDictionary<(int X, int Z), int>>? floorByLayer = null)
     {
-        foreach (var (layer, tops) in surfaceByLayer)
+        foreach (var (layer, tops) in surfaceByLayer.OrderBy(entry => Lowest(entry.Value)))
             Paint(world, tops, (x, z) => themeAt(layer, x, z), teamDamageAt, foldAt,
                   floorByLayer?.GetValueOrDefault(layer));
     }
+
+    /// <summary>Where a layer's stack position is read from: the lowest surface it carries. A layer with no
+    /// cells sorts first and paints nothing, which is the same answer either way.</summary>
+    private static int Lowest(IReadOnlyDictionary<(int X, int Z), int> tops) =>
+        tops.Count == 0 ? int.MinValue : tops.Values.Min();
 
     /// <summary>Paint the footprint with a <b>per-cell</b> theme (TP10): <paramref name="themeAt"/> resolves the
     /// theme governing each cell — a piece override, its collection, or the map default. Each column resolves

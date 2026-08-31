@@ -680,6 +680,25 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **The library seeder no longer throws on two rows named alike but for case (`RP61`).** Eight sites built
+  their idempotency map by grouping ordinally and collecting case-insensitively, so `meadow` and `Meadow`
+  grouped as two keys and collided as one — an `ArgumentException` out of `ToDictionary` at every app start,
+  since the seed runs at startup. The grouping now reads a name the way the lookup does. Pinned by a test
+  that seeds over a deliberately-cased pair.
+- **The map list has one sort rule, and the Edit stage is ordered by slug (`B34`).** An edit row's
+  `updated_at` records when the ingest pipeline last wrote it rather than when its author last worked on it —
+  a re-processing pass stamps whole batches within a second of each other — so recency ordered that list by
+  something carrying no authoring signal and rendered it as runs of alphabetical batches. Recency keeps the
+  other three stages, where the timestamps are real edits.
+- **The export zip holds the world at its top (`RP58`).** Every entry was prefixed `{slug}/`, so what a
+  server is handed had to be unwrapped first, and both mapgen branches independently wrote the same
+  un-nester. `map.xml`, `level.dat` and `region/` now sit at the archive's top — a world directory's own
+  contents. `docs/world-export/sketch-world-export.md` and `docs/architecture.md` follow.
+- **A read-back's CLI flag names a word its route takes (`B266`).** `WorldReadCatalog`'s top-down entry
+  printed `--topdown --layer …` and described `layer` as what to draw, colliding with the route's real
+  `layer` word — which picks a storey — while the subject word is `subject` on both the route and the CLI.
+  The catalogue now names both. A schema test walks every flag the catalogue prints and asserts each word
+  is a query parameter the published document declares, so the next one fails the build.
 - **The comments stopped describing systems nobody can see (`RP10`).** `CLAUDE.md` § *Code comments* says a
   comment is about the code as it stands and history lives in git; **24 comments across 21 files** had a state
   that no longer exists as their subject — `RulesEndpoint` ("until now nothing answered…"), `MetaGenerator`
@@ -2985,6 +3004,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`IslandSketchArtifact`). Used to land the stair-aware re-detect across the corpus (348 maps updated).
 
 ## New-map authoring — intent model (backend) ★ headline direction
+- **A plan can say which storey a goal stands on (`TN7`).** `layer` was a field on all six `MapIntent`
+  placements and on neither plan placement, so the word existed everywhere the export reads it and nowhere
+  the plan writes it: a plan-built goal on a stacked board always resolved against the top surface, and a
+  monument stated for a hall landed on the deck roofing it. `DestroyablePlacement` and `CorePlacement` now
+  take a nullable `layer`, carried straight through the compiler. `docs/tools/plan.md` documents it beside
+  the structure knobs.
+- **`SP1` says a plan declares no build zone rather than that its wools are unreachable (`B143`).** The rule
+  walks from the frontline and the frontline is derived from the declared build zones, so a zone-less plan
+  started the walk from nowhere and **refused** every wool — a geometry verdict, at compile, about a board
+  whose geometry was fine, which sent agents redesigning it. The missing zone is now one complaint naming
+  what to add, and the per-wool walk is asked only where there is a frontline to walk from.
 - **A stored intent outlives the shape it was written in (PG1).** `meta.authors` was a list of usernames
   before an author could carry a contribution note, and today's `AuthorIntent` is an object — so every intent
   written before that change failed to deserialize **whole**, and one map's authors made everything about
@@ -4886,6 +4916,28 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A rebuild leaves no region the new world did not write (`B102`).** `AnvilRegionWriter.Write` created the
+  directory and nothing else, so a `.mca` a previous build left behind was still a region a server loaded and
+  the map read back was two builds fused — which is exactly what iterating on a spec does. The writer now
+  clears the region files it is about to replace, and only those: the sidecars beside them are replaced by
+  their own writers.
+- **The painter walks a stack from its bottom up (`WE30`).** Each pass paints its column from the bedrock
+  course upward, so a storey painted before the one it stands over left that ground already finished and the
+  storey under it got no bands of its own — a 2×4 door panel painting twenty-six courses of one column. The
+  layers are now ordered by the lowest surface each carries, with document order as the tiebreak, because a
+  compiled plan emits its ground as `layers[0]` and that ground is not the bottom of every board.
+  `docs/world-export/terrain-painting.md` states the ordering and why it is load-bearing.
+- **A hand-built core and destroyable carry the defaults their schemas document (`WE15`).**
+  `CoreIntent.Size`, `Height` and `Shell` were plain `int`s defaulting to 0, so a core assembled anywhere but
+  `PlanCompiler` cast no blocks: the export answered 200 and the `map.xml` carried a `<core>` over a region
+  holding nothing — a goal at zero health. The same hole ran through both records' `Float`/`Leak` and the
+  destroyable's `Style`/`Materials`. All of them now initialize from `ObjectiveDefaults`, the one place the
+  numbers were already written down.
+- **The top-down is bounded on ground, not on every column carrying a block (`B103`).** A column whose only
+  block was a floor marker lying at `y1` counted as extent, so the frame reached past the terrain, the margin
+  beside a narrow board painted as void, and the reported surface span ran down to the marker's own Y. A
+  marker sheet at the world floor is dropped before the frame is taken; a world that is nothing but markers
+  still renders.
 - **A wall's chest face is derived, and opens away from the wool (B185, ST4 amended).** The face was a plan
   mark — `PlanWall.Side`, `"a"` or `"b"`, defaulting to the wall's own `a` — checked against nothing, so it
   came out backwards without a complaint. The vocabulary was not even what authors write:
@@ -6282,6 +6334,10 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **`SK4` measures a polygon's area, not just its vertex count (`TS67`).** A polygon or lasso of three
+  vertices or more with every point on one line cleared the count, drew no ground, and passed every gate —
+  the fault the same rule already named for a rectangle. The gate now takes the shoelace area beside the
+  count and says which of the two failed. `showcase/19-mountain-range` carried two such shapes.
 - **A relief starts at the level its island already stands at (TS55).** A relief replaces the top of every
   column of its island, so `base` is what the whole landmass becomes wherever the marks say nothing — and a
   fresh one took the constant 8, unrelated to the ground the author had drawn. An island drawn at 20 fell

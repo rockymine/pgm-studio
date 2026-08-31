@@ -1220,7 +1220,8 @@ halves stands on one), a group listing a shape id the layout does not carry, a r
 that does not exist, and a **theme** the registry does not carry, on a shape or as the map default (which
 paints those cells unthemed stone and is otherwise the quietest fault a finish has — one reported per name
 rather than one per shape) — `SK4` for a shape that
-draws no ground (a polygon under three vertices, a circle or path of no width, a rectangle of no area), and
+draws no ground (a polygon under three vertices *or of no area, every point on one line*, a circle or path of
+no width, a rectangle of no area), and
 `SK5` for a column the world cannot hold. Each carries the document path that named nothing in its `field`
 and the shape's id as its subject.
 

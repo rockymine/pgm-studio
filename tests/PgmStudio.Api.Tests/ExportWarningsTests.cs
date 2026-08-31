@@ -1,3 +1,4 @@
+using System.IO.Compression;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -118,6 +119,30 @@ public sealed class ExportWarningsTests
         var export = await client.GetAsync($"/api/map/{slug}/export");
         await Assert.That(export.IsSuccessStatusCode).IsTrue().Because(await export.Content.ReadAsStringAsync());
         await Assert.That(Warnings(export)).IsNull();
+    }
+
+    /// <summary>The archive holds a world directory's own contents at its top. What a server is handed is the
+    /// directory, so an entry under a folder named for the slug is one every caller unwraps before it can be
+    /// used (<c>RP58</c>).</summary>
+    [Test]
+    public async Task The_export_zip_holds_the_world_at_its_top()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await DressedMapAsync(client, "Flat Export");
+
+        var export = await client.GetAsync($"/api/map/{slug}/export");
+        await Assert.That(export.IsSuccessStatusCode).IsTrue().Because(await export.Content.ReadAsStringAsync());
+
+        using var archive = new ZipArchive(new MemoryStream(await export.Content.ReadAsByteArrayAsync()));
+        var names = archive.Entries.Select(entry => entry.FullName).ToList();
+
+        await Assert.That(names).Contains("map.xml");
+        await Assert.That(names).Contains("level.dat");
+        await Assert.That(names.Any(name => name.StartsWith("region/", StringComparison.Ordinal))).IsTrue()
+            .Because($"the region files are at the top: {string.Join(", ", names)}");
+        await Assert.That(names.Any(name => name.StartsWith($"{slug}/", StringComparison.Ordinal))).IsFalse()
+            .Because($"nothing is nested under the slug: {string.Join(", ", names)}");
     }
 
     private static string ReadSeed(string file)

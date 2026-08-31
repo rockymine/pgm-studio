@@ -413,6 +413,17 @@ public static class PlanValidator
         var graph = FannedGraph.Build(d);
         var spawnNodes = graph.Nodes.Where(n => spawnPieces.Contains(n.PieceId)).Select(n => n.Key).ToHashSet();
 
+        // SP1 measures a walk from the frontline, and the frontline is derived from the declared build zones.
+        // Where none is declared the rule has nothing to answer about, so it says so once rather than
+        // reporting every wool unreachable — which reads as a geometry fault and sends an author redrawing a
+        // board whose shape was never the problem.
+        var hasBuildZone = plan.BuildZones.Any();
+        if (!hasBuildZone)
+            findings.Add(new Finding("SP1",
+                "this plan declares no build zone, so there is no frontline to walk from and no wool's "
+                + "approach can be judged — add a `zones` entry marking where players may build",
+                Severity.Complaint));
+
         foreach (var wp in woolPieces)
             for (var owner = 0; owner < d.Order; owner++)
             {
@@ -430,7 +441,11 @@ public static class PlanValidator
                             Subjects: [wp]));
                 }
 
-                // SP1: the wool must be reachable from a frontline piece without crossing a spawn piece
+                // SP1: the wool must be reachable from a frontline piece without crossing a spawn piece.
+                // Asked only where the plan declares a build zone: the frontline is the set of pieces one
+                // touches, so a zone-less plan has no piece to start the walk from and every wool would
+                // answer unreachable on a board whose geometry is fine.
+                if (!hasBuildZone) continue;
                 var frontStarts = graph.Nodes.Where(n => graph.Frontline.Contains(n.Key) && !spawnNodes.Contains(n.Key)).Select(n => n.Key);
                 if (!graph.ReachableAvoiding(frontStarts, woolNode, spawnNodes))
                     findings.Add(new Finding("SP1",

@@ -373,7 +373,7 @@ about the map's. The compare is one statement with the revision in its `where`, 
 of two writers wins rather than a read-then-write that both can pass.
 
 **The most expensive operation in the studio is a `GET`.** `GET /map/{slug}/export` composes the map,
-synthesises the entire voxel world, writes it to a temp directory and zips it in memory before answering.
+synthesises the entire voxel world, writes it to a temp directory and zips it flat in memory before answering.
 There is no job id and nothing to ask afterwards, so a caller whose connection drops cannot learn whether the
 build succeeded and repeats it to find out.
 

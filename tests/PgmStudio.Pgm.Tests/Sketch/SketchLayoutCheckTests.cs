@@ -31,6 +31,10 @@ public sealed class SketchLayoutCheckTests
     [Arguments("""{"id":"s1","type":"polygon","vertices":[[0,0],[10,0]]}""", "2 vertices")]
     [Arguments("""{"id":"s1","type":"circle","center_x":0,"center_z":0,"radius":0}""", "circle of radius 0")]
     [Arguments("""{"id":"s1","type":"rectangle","min_x":5,"max_x":5,"min_z":-5,"max_z":5}""", "no area")]
+    // A polygon of three vertices or more with every point on one line: enough vertices to clear the count
+    // and no area to draw, which is the fault the same rule already names for a rectangle (TS67).
+    [Arguments("""{"id":"s1","type":"polygon","vertices":[[7,-10],[7,0],[7,10]]}""", "enclosing no area")]
+    [Arguments("""{"id":"s1","type":"lasso","vertices":[[-7,-10],[-7,-3],[-7,4],[-7,10]]}""", "enclosing no area")]
     public async Task A_shape_that_draws_no_ground_is_named_with_the_reason_it_draws_none(string shape, string says)
     {
         var findings = SketchLayoutCheck.Check(Layout(shape));

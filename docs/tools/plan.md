@@ -73,7 +73,7 @@ compile ever answers anything else.
     "iron":         [ { "id": "iron-1", "piece": "spawn", "at": [0.5, 0.5] } ],
     "destroyables": [ { "id": "destroyable-1", "piece": "plateau", "at": [2, 1],
                         "style": "cube-3", "materials": "obsidian", "float": 4 } ],
-    "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5],
+    "cores":        [ { "id": "core-1", "piece": "approach", "at": [1, 5], "layer": "undercroft",
                         "size": 5, "height": 5, "shell": 1, "float": 6, "leak": 5 } ]
   },
   "walls":  [ { "a": "approach", "b": "bridgehead" } ],
@@ -215,8 +215,14 @@ default removes the key rather than freezing the number.
 
 | Marker | Optional fields | Defaults (`GET /api/objectives/vocabulary`) |
 |---|---|---|
-| `destroyables` | `style`, `materials`, `float`, `name` | `pillar-3`, `obsidian`, 4, `<Team> Monument` |
-| `cores` | `size`, `height`, `shell`, `openTop`, `float`, `leak`, `name` | 5, 5, 1, false, 6, 5, PGM names it |
+| `destroyables` | `style`, `materials`, `float`, `layer`, `name` | `pillar-3`, `obsidian`, 4, the top surface, `<Team> Monument` |
+| `cores` | `size`, `height`, `shell`, `openTop`, `float`, `leak`, `layer`, `name` | 5, 5, 1, false, 6, 5, the top surface, PGM names it |
+
+**`layer` is which storey the goal stands on**, and it is the one field here that is not a knob on the
+structure but a statement about where the structure is. A stacked board carries a surface per layer, so a
+goal that names none resolves against the topmost one — which puts a monument stated for a hall on the deck
+roofing it. The word is the sketch layer's own id, and the compiler carries it straight through to the
+intent, where the export already reads it.
 
 Destroyable styles are `pillar-1`, `pillar-2`, `pillar-3`, `cube-3`, `cube-4` and `column-plus`; an unknown
 slug is an error rather than a silent fallback. A core's `float` and `leak` are one knob — escaping lava

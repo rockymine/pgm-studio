@@ -610,6 +610,52 @@ public sealed class TerrainPainterTests
     }
 
     /// <summary>
+    /// <b>The stack paints from its bottom up, whatever order the document lists it in.</b> Each pass paints
+    /// its column from the bedrock course upward, so a storey painted before the one it stands over finds
+    /// that ground already finished and leaves it alone — and the storey under it never gets its own bands.
+    /// A compile emits its ground first and that ground is not the bottom of every board, so an undercroft
+    /// appended after it is listed later and stands lower (<c>WE30</c>).
+    /// </summary>
+    [Test]
+    public async Task An_undercroft_listed_after_the_ground_it_stands_under_is_still_painted_first()
+    {
+        // Listed ground-then-undercroft, which is the order a compiled plan emits and the order the document
+        // then carries: `deck` stands on `undercroft`, and the document names the upper one first.
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 5; x++)
+        for (var z = 0; z < 5; z++)
+        {
+            columns.Add(new ColumnSegment(x, z, 6, 10, "deck"));
+            columns.Add(new ColumnSegment(x, z, 1, 6, "undercroft"));
+        }
+        var terrain = TerrainBuilder.Build(columns);
+
+        var below = TerrainTheme.Default with
+        {
+            Rim = new TopBand(new SolidMaterial(Blocks.Wool, 4)),
+            Surface = new TopBand(new SolidMaterial(Blocks.Wool, 4)),
+            Wall = new SolidMaterial(Blocks.Wool, 4),
+            Fill = new SolidMaterial(Blocks.Wool, 4),
+        };
+        var above = TerrainTheme.Default with
+        {
+            Rim = new TopBand(new SolidMaterial(Blocks.Wool, 14)),
+            Surface = new TopBand(new SolidMaterial(Blocks.Wool, 14)),
+            Wall = new SolidMaterial(Blocks.Wool, 14),
+            Fill = new SolidMaterial(Blocks.Wool, 14),
+        };
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceByLayer,
+                             (layer, _, _) => layer == "undercroft" ? below : above);
+
+        // The undercroft's own courses are its own — not the deck's paint run down through them.
+        await Assert.That(terrain.World.GetBlock(2, 3, 2)).IsEqualTo((Blocks.Wool, 4));
+        await Assert.That(terrain.World.GetBlock(2, 5, 2)).IsEqualTo((Blocks.Wool, 4));
+        // And the deck above still carries its own.
+        await Assert.That(terrain.World.GetBlock(2, 7, 2)).IsEqualTo((Blocks.Wool, 14));
+        await Assert.That(terrain.World.GetBlock(2, 9, 2)).IsEqualTo((Blocks.Wool, 14));
+    }
+
+    /// <summary>
     /// <b>A made thing is painted over its own span.</b> A column that starts at a prop layer's own floor is
     /// the thing and nothing beneath it, so its bands run from that floor: no bedrock course, and no fill
     /// reaching down through whatever it stands over.

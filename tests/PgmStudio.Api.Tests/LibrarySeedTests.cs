@@ -1,6 +1,7 @@
 using System.Net.Http.Json;
 using Microsoft.Extensions.DependencyInjection;
 using PgmStudio.Api.Services;
+using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
@@ -107,5 +108,28 @@ public sealed class LibrarySeedTests
         await Assert.That(again.StylesAdded).IsEqualTo(0);
         await Assert.That(again.RoomsAdded).IsEqualTo(0);
         await Assert.That(again.ThemesAdded).IsEqualTo(0);
+    }
+
+    /// <summary>Two library rows whose names differ only by case seed without throwing. The seeder matches a
+    /// name case-insensitively, so the grouping that decides which row is already there has to read a name the
+    /// same way the lookup does — a pair that groups as two keys and collides as one takes the whole startup
+    /// down with it, since the seed runs at app start (<c>RP61</c>).</summary>
+    [Test]
+    public async Task Two_rows_named_alike_but_for_case_do_not_collide()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var _ = ApiTestFactory.Shared.CreateClient();
+        using var scope = ApiTestFactory.Shared.Services.CreateScope();
+        var themes = scope.ServiceProvider.GetRequiredService<ThemeStore>();
+
+        var (name, material) = StylePresets.All.First();
+        await themes.CreateStyleAsync(new StyleRow { Name = name.ToLowerInvariant(), Kind = "solid", Params = "{}" });
+        await themes.CreateStyleAsync(new StyleRow { Name = name.ToUpperInvariant(), Kind = "solid", Params = "{}" });
+
+        await Seed(scope).SeedAsync();
+
+        var stored = await themes.ListStylesAsync(ct: default);
+        await Assert.That(stored.Count(style => string.Equals(style.Name, name, StringComparison.OrdinalIgnoreCase)))
+            .IsEqualTo(2).Because("the seeder binds one of the two and adds no third");
     }
 }

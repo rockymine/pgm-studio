@@ -321,6 +321,7 @@ public static class PlanCompiler
                     Style = !string.IsNullOrEmpty(b.Style) ? b.Style : DestroyableStyles.Slug(ObjectiveDefaults.Style),
                     Materials = !string.IsNullOrEmpty(b.Materials) ? b.Materials : ObjectiveDefaults.Materials,
                     Anchor = new Pt(px, anchor.Surface, pz),
+                    Layer = b.Layer,
                     Float = b.Float ?? ObjectiveDefaults.DestroyableFloat,
                 });
             }
@@ -339,6 +340,7 @@ public static class PlanCompiler
                     Stamp = Stamp("core", c.Id, i, k),
                     Name = c.Name ?? "",                 // empty is correct: PGM names a core itself
                     Anchor = new Pt(px, anchor.Surface, pz),
+                    Layer = c.Layer,
                     Size = c.Size ?? ObjectiveDefaults.CoreSize,
                     Height = c.Height ?? ObjectiveDefaults.CoreHeight,
                     Shell = c.Shell ?? ObjectiveDefaults.CoreShell,

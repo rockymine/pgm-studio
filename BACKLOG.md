@@ -296,18 +296,6 @@ so they wait for the frame rather than being built into the one it replaces.
   they build the world and hold `Built.Provenance`. Wants `--provenance <path>` on the reads that take a
   region directory, so a sidecar kept beside the documents can be pointed at.
 
-- [ ] **B266 — The read-back help documents a flag the CLI does not parse.** `--help` prints
-  `--topdown --layer …` for every subject, because the text is generated from `WorldReadCatalog`, which is
-  written for the HTTP route — where the query parameter really is `layer`. The CLI parses `--subject`, so
-  the documented form fails as `no region dir: --layer`, naming the wrong argument. One of the two words has
-  to give; the route's is the published one, so the CLI should take `--layer` (keeping `--subject` is a second
-  accepted spelling, which is what rots).
-
-## The canvas: what every tool draws through
-
-The shared browser half, serving **both** the Configure wizard (`/maps/{id}/configure`) and the frozen Edit
-editor (`/maps/{id}/edit`). `C12`/`C14` are cross-cutting; `C9`/`C11` are Edit's own. Full canvas spec:
-`docs/client/canvas-interaction.md`.
 
 - [ ] **C57 — The plan canvas enters a box without showing it has.** Both authoring canvases hold the same
   two-level model, and the sketch draws the island it has entered as a dashed outline under the selection —
@@ -438,32 +426,6 @@ as an isolated marker into `B99`.
   *`opus5-thornfell` was corrected three times and left `thornfell`, `thornfell-2` and `thornfell-3` in the
   database; every render, provenance sidecar and column read had to be traced to the right one by hand.*
 
-- [ ] **B103 — Bound the top-down on ground, not on every column carrying a block.**
-  `TopDownRender.ReadColumns` takes `SurfaceExtractors.Surface` with no exclusions and derives the frame from
-  `columns.Keys.Min/Max`, so a column whose only block is a **floor marker** at y≤2 counts as extent. The
-  frame then reaches past the ground and the margin is painted as void — which is what makes the important
-  corner of a narrow board read as empty. `HeightProfileRender` already gets this right on the same world.
-  `SurfaceExtractors` has the rule to reuse: `FloorMarkerMaxY` already distinguishes a marker sheet at the world
-  floor from the same block used as terrain.
-
-  *measured on a board built from `marlstone-steps`' plan: the top-down frames **144 × 190** blocks
-  (x −72..71) against the height profile's **140 × 190** (x −70..69), and the four extra columns are **108
-  cells of redstone wire (id 55) at y1**, running z −12..11 at each end. The top-down reports its surface span
-  as y 1..53 where the height profile reports y 9..53.*
-
-  *and again on `opus5-undercroft`, whose only structures are two spawn rooms: the frame reaches to the
-  redstone lines at y1 under the markers, so the board's own margin paints as void on a board 80 wide.*
-
-### What a gate says, and what it fails to say
-
-- [ ] **TS67 — `SK4` counts a polygon's vertices and never its area.** A polygon of three vertices or more
-  with no area — every point on one line — passes the gate and draws no ground, which is the fault `SK4`
-  already names for a rectangle ("a rectangle with no area"). Extend `SketchLayoutCheck.Empty`'s
-  `polygon`/`lasso` case to the shoelace area beside the vertex count, and say which of the two it is.
-  `docs/tools/sketch.md`.
-
-  *`showcase/19-mountain-range` carries two: `br-crag-5` is seven vertices all at x=7, `br-flank-2` seven
-  all at x=−7. Both pass every gate and contribute nothing.*
 
 - [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
   from across the map, which means its walls are not in the tone family under its feet. Complain where a
@@ -582,13 +544,6 @@ model — everything else from that pool has moved to the heading its subject ow
   A band the author moves leaves the driver telling every future run the old one. Read them once at the top
   of the run and print what came back.
 
-- [ ] **B143 — `SP1` must say that a plan declares no build zone, not that its wools are unreachable.** The
-  rule needs a declared zone before it has frontline pieces to start from, so a zone-less plan has **all** its
-  wools reported unreachable regardless of actual reachability — and an agent reads that as a geometry fault
-  and redesigns the board. Correct about itself, wrong about what it tells the author.
-
-  *`sonnet-run2` #5 · `sable-marsh`'s first plan: adding one `zones` entry cleared all eight findings on a
-  board whose geometry never changed.*
 
 - [ ] **B150 — `G8` fill-ratio measures the plan's rectangles, not the board that gets built.**
   `FillRatio.Value` reads `ctx.Board` — `BoardStructure`, derived from the `PlanModel` — and answers
@@ -696,20 +651,6 @@ author. Beside them, one where the *reader* disagrees with a document that is ri
 
 ### The house: what it stamps, where it stands, and what an author can say
 
-- [ ] **WE15 — A hand-built core stamps nothing, because its size defaults to zero.**
-  `CoreIntent.Size`, `Height` and `Shell` are plain `int`s defaulting to **0**, so a core assembled anywhere
-  other than `PlanCompiler` — which fills 5/5/1 — casts no blocks and resolves an empty `Box`. Nothing says
-  so: the export answers 200 and the `map.xml` carries a `<core>` over a region holding nothing, which is a
-  goal at zero health. `CorePlacement`'s own schema documents the defaults a caller may omit (`size` null = 5,
-  `shell` null = 1, "65% of corpus cores"), so the intent record is the one layer where absent means nothing
-  rather than the default. Give the three fields their initializers, or refuse a core of no size at the same
-  gate `OB24` is asked at.
-
-  It bites the workflow the authoring brief describes: an agent patches a compiled intent by hand, and a
-  round-trip through a tool that drops zero-valued keys leaves a core that builds nothing.
-
-  *Found writing `OB24`'s test: a hand-built `CoreIntent` at the same anchor as a destroyable produced no
-  overlap, because it produced no box at all.*
 
 - [ ] **WE12 — A spawn may stand without a house and a wool may not.** The two are the same shape — a source
   (a spawn point, a wool spawner), a protection region, and a structure over them — and the structure is
@@ -1285,28 +1226,6 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
   names — `on_land`, `in_rects`, `land_halfwidth`, `cells_open`, `on_ground` — because the layout cannot
   answer it.*
 
-- [ ] **TN7 — A plan cannot say which storey a goal stands on.** `layer` is a field on all six `MapIntent`
-  placements and on `PlacedProp`, and on neither `DestroyablePlacement` nor `CorePlacement`. So the word
-  exists everywhere the export reads it and nowhere the plan writes it, and a plan-built goal on a stacked
-  board always resolves against `SurfaceTop` — a monument stated for a basement lands on the deck roofing
-  it. A nullable string on the two placement records, carried through the compiler. Small.
-
-  *`opus5-interchange` needs the word on four of its five goals a team, and gets it by having
-  `tools/drive.py` write `layer` onto the compiled intent by `stamp.unit` before it is stored. Confirmed
-  against `GET /api/openapi/v1.json`: the property is on the intent schemas and absent from both plan
-  placement schemas.*
-
-- [ ] **WE30 — `TerrainPainter.Paint` trusts document order for a stack that knows its own floors.** The
-  painter walks `SurfaceByLayer` in document order and each pass paints its whole column from the bedrock
-  course up, so a storey listed *after* one that stands over it finds no stone left to paint. A compiled
-  plan emits `layers[0] = ground`, and the compiled ground is not the bottom of every board. Sort ascending
-  by each layer's own floor instead: document order is an authoring accident on any board whose ground came
-  from a compile. `docs/world-export/terrain-painting.md` states the per-layer scope and does not state that
-  the painting is ordered.
-
-  *`opus5-interchange` at `(20, 70)`: yellow stained glass from `y0` to `y25` in one column — a 2×4 door
-  panel painting twenty-six courses — because the undercroft slab was appended rather than inserted. After
-  moving it to index 0: white clay `y5..3`, hardened clay `y2..1`, corridor brown from `y12`.*
 
 - [ ] **TS30 — An organic coast is either stated twice or computed outside the studio.** The compiler emits a
   staircase of the plan's rectangles, which is the board's *shape* and not its *coast*. `opus5-ravensmere`
@@ -1321,14 +1240,6 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
   *`opus5-thornfell`: 36 compiled vertices → 99 drawn, strait measured at **26–28 blocks** over 23 transects
   against a plan stating a flat 30. A vertex moved outward would have closed it.*
 
-- [ ] **RP58 — The export zip nests the world inside a folder named for the slug.** `--out` is what a server
-  is handed and holds `region/`, `level.dat` and `map.xml` at its top, so every caller unwraps it. Emit it
-  flat — and say what the browser download becomes, since the same bytes are served as `{slug}.zip` and a flat
-  archive unpacks loose into whatever folder it lands in. `MapExportEndpoint.BuildWorldZip` prefixes every
-  entry with `{slug}/`, in one place.
-
-  *Both mapgen branches independently wrote the same un-nester into `tools/drive.py`; the merge kept both
-  and they ran in sequence until one was deleted.*
 
 - [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
   falloff` over its skirt and at `crown / half` from the ring's edge to its medial axis, and where those two
@@ -1406,12 +1317,6 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **RP61 — The library seeder throws on two rows whose names differ only by case.** Eight sites in
-  `src/PgmStudio.Api/Services/LibrarySeed.cs` (lines 51, 54, 117, 120, 180, 283, 347, 457) build
-  their idempotency map as `.GroupBy(row => row.Name)` — ordinal — feeding
-  `.ToDictionary(…, StringComparer.OrdinalIgnoreCase)`, so two rows named `meadow` and `Meadow` group as two
-  keys and collide as one: `ArgumentException` out of `ToDictionary`, on every app start, since the seed runs
-  at startup. Dormant only because nothing shipped collides. The fix is the comparer on the `GroupBy`.
 
 - [ ] **RP63 — The e2e sweep cannot pass where the container has no egress, and the decision is the
   author's.** `./tools/e2e.sh all` ends `e2e: FAIL` on one check — smoke's *edit tool is clean*, from
@@ -1477,19 +1382,6 @@ same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gi
 `smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
 time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
 
-- [ ] **B34 — The two map-list endpoints disagree on sort order, and the dashboard gets the noisy one.**
-  `MapsListEndpoint` branches on the `stage` query param onto two differently-ordered repository methods:
-  `MapRepository.ListAsync` sorts `OrderBy(Slug)`, `ListByStageAsync` sorts
-  `OrderByDescending(UpdatedAt).ThenBy(Slug)`. The dashboard always requests `?stage=…`, so it always gets
-  recency order — and on the imported Edit corpus `updated_at` records when the *pipeline* last wrote the
-  row, not when the author last worked on the map, so it carries no authoring signal. The 349 Edit rows hold
-  only 29 distinct timestamps (a re-processing pass stamped them in ~22-map batches a second apart), so the
-  list renders as 29 alphabetical runs concatenated — it reads as scrambled, with the three maps outside the
-  supported range (`3084`, `allure`, `lost_haven`, never re-processed) parked at the bottom. Recency earns
-  its keep on Sketches/Plans/Configuring, where the timestamps are real edits and the lists are short.
-  Preferred fix: slug order for the Edit stage, recency for the other three (one line); alternatives are
-  slug everywhere, or leave it and let recency come good once maps are edited in the studio. Cosmetic — no
-  data is wrong, and both orders are deterministic.
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
@@ -1550,14 +1442,6 @@ behaviour-preserving refactor. Check first whether a Build phase was *meant* to 
 the Build-Regions work) — if so the task is to wire it, not delete it, and that is a different task in the
 feature section.
 
-- [ ] **B102 — Clear the region directory before a rebuild writes it.** `AnvilRegionWriter.Write` calls
-  `Directory.CreateDirectory` and nothing else, so every `.mca` a previous build left is still there and a
-  chunk the new build does not touch — because its geometry moved — is read back as part of the new map. That
-  makes rebuilding into an existing `out_dir` untrustworthy, which is exactly what iterating on a spec does,
-  and contradicts the README's promise that "the same spec rebuilds the same map, so two runs can be
-  compared". It cost a design session real time, presenting as building counts that could not be reconciled
-  until the directory was deleted by hand. Distinct from the concurrent-build race `CLAUDE.md` warns about:
-  that one is two builds at once, this one is one build after another.
 
 - [ ] **B220 — Fix the doc-comment defects, then take the four ids out of `NoWarn` so the next one fails the
   build.** Each is a sentence pointing at something that is not there, and each is silenced in all nine

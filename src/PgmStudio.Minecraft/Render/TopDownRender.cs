@@ -240,6 +240,7 @@ public static class TopDownRender
         WorldProvenance? provenance = null, IReadOnlyList<(int X, int Z, double Radius)>? treePoints = null)
     {
         var (columns, claimed) = ReadColumns(chunks.ToList(), yMax, provenance);
+        DropFloorMarkers(columns);
         if (columns.Count == 0) return null;
 
         int minX = columns.Keys.Min(cell => cell.X), maxX = columns.Keys.Max(cell => cell.X);
@@ -258,6 +259,23 @@ public static class TopDownRender
 
         return new Result(pixels, blocksWide, blocksHigh, columns.Count, lowest, highest, overlays.Count,
             pointMode ? treePoints!.Count : 0, claimed);
+    }
+
+    /// <summary>Drop the columns whose whole content is a marker sheet lying on the world floor: a block that
+    /// only ever stands on ground (<see cref="BlockRoles.StandsOnGround"/>) at or below
+    /// <see cref="SurfaceExtractors.FloorMarkerMaxY"/>, with nothing under it. Such a column is a map's own
+    /// bookkeeping rather than a piece of board, and the frame is derived from what is left — so the margin
+    /// beside a narrow board stops being painted as void, and the surface span stops reaching down to the
+    /// marker's own Y. A world that is nothing but markers keeps them, since a frame is better than no
+    /// picture.</summary>
+    private static void DropFloorMarkers(Dictionary<(int X, int Z), Column> columns)
+    {
+        var markers = columns
+            .Where(entry => entry.Value.SurfaceY <= SurfaceExtractors.FloorMarkerMaxY
+                            && BlockRoles.StandsOnGround(entry.Value.BlockId))
+            .Select(entry => entry.Key).ToList();
+        if (markers.Count == 0 || markers.Count == columns.Count) return;
+        foreach (var cell in markers) columns.Remove(cell);
     }
 
     /// <summary>Plots every tree as its own circle — filled to its measured crown radius, softly enough that

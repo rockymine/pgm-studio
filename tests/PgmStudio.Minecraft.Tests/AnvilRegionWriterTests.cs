@@ -147,4 +147,33 @@ public sealed class AnvilRegionWriterTests
         try { AnvilRegionWriter.Write(world, dir); }
         finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
     }
+    /// <summary>A second build into the same directory leaves that world alone in it. A region the new
+    /// geometry does not reach is still a region a server loads, so a stale file left beside the fresh ones
+    /// is read back as part of the new map — and the same spec no longer rebuilds the same map
+    /// (<c>B102</c>).</summary>
+    [Test]
+    public async Task A_rebuild_leaves_no_region_the_new_world_did_not_write()
+    {
+        var wide = new VoxelWorld();
+        wide.SetBlock(0, 64, 0, Blocks.Stone);
+        wide.SetBlock(2000, 64, 2000, Blocks.Stone);   // a second region, far enough to have its own file
+
+        var narrow = new VoxelWorld();
+        narrow.SetBlock(0, 64, 0, Blocks.Stone);
+
+        var dir = Path.Combine(Path.GetTempPath(), "anvilrebuild_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AnvilRegionWriter.Write(wide, dir);
+            await Assert.That(Directory.GetFiles(dir, "*.mca").Length).IsEqualTo(2);
+
+            AnvilRegionWriter.Write(narrow, dir);
+
+            var left = Directory.GetFiles(dir, "*.mca").Select(Path.GetFileName).ToList();
+            await Assert.That(left.Count).IsEqualTo(1)
+                .Because($"the far region is gone with the geometry that made it: {string.Join(", ", left)}");
+            await Assert.That(left[0]).IsEqualTo("r.0.0.mca");
+        }
+        finally { if (Directory.Exists(dir)) Directory.Delete(dir, recursive: true); }
+    }
 }

@@ -471,9 +471,9 @@ public sealed record DestroyableIntent
     /// and index rather than pushing the burden to the author.</summary>
     public string Name { get; init; } = "";
     /// <summary>pillar-1|2|3 · cube-3 · cube-4 · column-plus.</summary>
-    public string Style { get; init; } = "";
+    public string Style { get; init; } = DestroyableStyles.Slug(ObjectiveDefaults.Style);
     /// <summary>A PGM material match — the goal is these blocks, not the region that holds them.</summary>
-    public string Materials { get; init; } = "";
+    public string Materials { get; init; } = ObjectiveDefaults.Materials;
 
     /// <summary>The marker column. The structure is centred on it and floats above the terrain, so no Y is
     /// authored.</summary>
@@ -481,7 +481,7 @@ public sealed record DestroyableIntent
     /// <summary>Blocks of air between the ground the world build solves under <see cref="Anchor"/>'s column and
     /// the structure's underside — an offset over the ground as built, not the plan's flat nominal
     /// surface.</summary>
-    public int Float { get; init; }
+    public int Float { get; init; } = ObjectiveDefaults.DestroyableFloat;
 
     /// <summary>
     /// The structure's resolved block volume — filled by the world-export path, which is the only place that
@@ -525,23 +525,23 @@ public sealed record CoreIntent
     /// <summary>The marker column. The casing is centred on it and floats above the terrain, so no Y is authored.</summary>
     public Pt Anchor { get; init; }
     /// <summary>The casing's width and depth, in blocks.</summary>
-    public int Size { get; init; }
+    public int Size { get; init; } = ObjectiveDefaults.CoreSize;
 
     /// <summary>Its height.</summary>
-    public int Height { get; init; }
+    public int Height { get; init; } = ObjectiveDefaults.CoreHeight;
 
     /// <summary>How thick its wall is.</summary>
-    public int Shell { get; init; }
+    public int Shell { get; init; } = ObjectiveDefaults.CoreShell;
     /// <summary>Omit the cap layer so the lava reaches the casing rim.</summary>
     public bool OpenTop { get; init; }
     /// <summary>Blocks of air between the ground the world build solves under <see cref="Anchor"/>'s column and
     /// the casing's underside — an offset over the ground as built, not the plan's flat nominal surface.
     /// Pairs with <see cref="Leak"/> (DC2).</summary>
-    public int Float { get; init; }
+    public int Float { get; init; } = ObjectiveDefaults.CoreFloat;
 
     /// <summary>How far the lava must fall below the casing to count as leaked. Together with
     /// <see cref="Float"/> it says how far players must dig — <c>max(0, leak − float)</c>.</summary>
-    public int Leak { get; init; }
+    public int Leak { get; init; } = ObjectiveDefaults.CoreLeak;
 
     /// <summary>The casing's resolved block volume — filled by the world-export path, the only place that
     /// knows the terrain it floats over. The generator emits it verbatim as the core's <c>&lt;region&gt;</c>,

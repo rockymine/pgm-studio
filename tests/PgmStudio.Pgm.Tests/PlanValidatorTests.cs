@@ -175,6 +175,30 @@ public sealed class PlanValidatorTests
         await Assert.That(Refused(p, "SP1")).IsTrue();
     }
 
+    /// <summary>A plan declaring no build zone is told that, once, and not that every wool is unreachable.
+    /// <c>SP1</c> walks from the frontline and the frontline is the set of pieces a build zone touches, so a
+    /// zone-less plan starts the walk from nowhere and refuses every wool on it — a geometry verdict about a
+    /// board whose geometry is fine, which is what sends an author redrawing it (<c>B143</c>).</summary>
+    [Test]
+    public async Task A_plan_with_no_build_zone_is_told_that_rather_than_that_its_wools_are_unreachable()
+    {
+        // the SP1 plan above with its one `zones` entry taken out: same pieces, same placements, same shape.
+        var p = Plan("""
+        { "plan":1, "globals":{"cell":5,"symmetry":"rot_180"},
+          "pieces":[ {"id":"hub","role":"hub","rect":[-1,2,2,2]},
+                     {"id":"s","role":"lane","rect":[-1,4,2,2]},
+                     {"id":"w","role":"wool-room","rect":[-1,6,2,2]} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[1,1],"facing":"front"} ], "wools":[ {"piece":"w","at":[1,1]} ] } }
+        """);
+
+        await Assert.That(Refused(p, "SP1")).IsFalse().Because("no wool is refused for a zone nobody declared");
+
+        var said = PlanValidator.Check(p).Where(f => f.Rule == "SP1").ToList();
+        await Assert.That(said.Count).IsEqualTo(1).Because("the missing zone is stated once, not per wool");
+        await Assert.That(said[0].Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(said[0].Message).Contains("no build zone");
+    }
+
     [Test]
     public async Task A_wall_on_a_non_interface_pair_is_an_error()
     {

@@ -48,10 +48,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     private async Task<(int Added, int Updated)> SeedPartsAsync(StyleIds bound, CancellationToken ct)
     {
         var roofs = (await parts.ListRoofsAsync(ct))
-            .GroupBy(row => row.Name)
+            .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
         var porches = (await parts.ListPorchesAsync(ct))
-            .GroupBy(row => row.Name)
+            .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         int added = 0, updated = 0;
@@ -114,10 +114,10 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     private async Task<(int Added, int Updated)> SeedThemesAsync(CancellationToken ct)
     {
         var existingStyles = (await styles.ListStylesAsync(ct: ct))
-            .GroupBy(style => style.Name)
+            .GroupBy(style => style.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
         var existingThemes = (await styles.ListThemesAsync(ct))
-            .GroupBy(theme => theme.Name)
+            .GroupBy(theme => theme.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         int added = 0, updated = 0;
@@ -177,7 +177,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     private async Task<StyleIds> SeedStylesAsync(CancellationToken ct)
     {
         var existing = (await styles.ListStylesAsync(ct: ct))
-            .GroupBy(style => style.Name)
+            .GroupBy(style => style.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         var ids = new StyleIds();
@@ -280,7 +280,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     private async Task<Dictionary<string, long>> SeedStoreysAsync(StyleIds bound, CancellationToken ct)
     {
         var existing = (await parts.ListStoreysAsync(ct))
-            .GroupBy(row => row.Name)
+            .GroupBy(row => row.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         var ids = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
@@ -344,7 +344,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     {
         var storeyIds = await SeedStoreysAsync(bound, ct);
         var existing = (await rooms.ListAsync(ct))
-            .GroupBy(room => room.Name)
+            .GroupBy(room => room.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
 
         int added = 0, updated = 0;
@@ -454,7 +454,7 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
     {
         var library = new RoomStyleLibrary(rooms, parts, styles);
         var stored = (await rooms.ListAsync(ct))
-            .GroupBy(room => room.Name)
+            .GroupBy(room => room.Name, StringComparer.OrdinalIgnoreCase)
             .ToDictionary(group => group.Key, group => group.First().Id, StringComparer.OrdinalIgnoreCase);
 
         var report = new List<(string, List<string>)>();

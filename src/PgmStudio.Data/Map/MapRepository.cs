@@ -1,6 +1,7 @@
 using LinqToDB;
 using LinqToDB.Async;
 using PgmStudio.Data.Schema;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Data.Map;
 
@@ -33,9 +34,17 @@ public sealed class MapRepository(PgmDb db)
     public Task<List<MapRow>> ListAsync(CancellationToken ct = default)
         => db.Maps.OrderBy(m => m.Slug).ToListAsync(ct);
 
-    /// <summary>Maps in one lifecycle stage (sketch | configure | edit), most recently touched first.</summary>
+    /// <summary>Maps in one lifecycle stage, most recently touched first — except <see cref="MapStage.Edit"/>,
+    /// which is ordered by slug. An edit row's <c>updated_at</c> records when the ingest pipeline last wrote
+    /// it rather than when its author last worked on it, so recency there carries no authoring signal and
+    /// renders the list as runs of alphabetical batches. The other three stages hold real edits.</summary>
     public Task<List<MapRow>> ListByStageAsync(string stage, CancellationToken ct = default)
-        => db.Maps.Where(m => m.Stage == stage).OrderByDescending(m => m.UpdatedAt).ThenBy(m => m.Slug).ToListAsync(ct);
+    {
+        var inStage = db.Maps.Where(m => m.Stage == stage);
+        return stage == MapStage.Edit
+            ? inStage.OrderBy(m => m.Slug).ToListAsync(ct)
+            : inStage.OrderByDescending(m => m.UpdatedAt).ThenBy(m => m.Slug).ToListAsync(ct);
+    }
 
     /// <summary>
     /// Every map's gamemodes, keyed by map id — derived from the objective rows it owns, never from the

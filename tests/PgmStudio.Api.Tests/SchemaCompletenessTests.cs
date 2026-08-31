@@ -337,6 +337,50 @@ public sealed class SchemaCompletenessTests
     /// could come back over an empty <c>parameters</c>, which leaves the one instruction an authoring brief
     /// cannot drop — read the schema, not a document — false at the routes that draw a picture.</para>
     ///
+    /// <summary>
+    /// <b>Every word a read-back's CLI flag names is a query word its route declares.</b>
+    /// <c>WorldReadCatalog</c> is one text serving two surfaces — the CLI prints it as <c>--help</c> and each
+    /// route publishes it as its own summary — so a flag naming a word the route does not take documents a
+    /// form that fails, and names the wrong argument while doing it (<c>B266</c>).
+    ///
+    /// <para>Read out of the published schema rather than out of the endpoints, because the schema is what an
+    /// agent acts on: a word that reaches the document is a word a caller may send.</para>
+    /// </summary>
+    [Test]
+    public async Task Every_read_back_flag_names_a_word_its_route_takes()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        using var document = JsonDocument.Parse(await client.GetStringAsync("/api/openapi/v1.json"));
+
+        var checked_ = 0;
+        foreach (var read in PgmStudio.Minecraft.Render.WorldReadCatalog.All)
+        {
+            if (read.Flag is not { Length: > 0 } flag) continue;
+
+            // A flag reads "--topdown --subject …": the leading flag names the read, each `--word` after it
+            // names a query word, and the route answers under /api/map/{slug}/<route>.
+            var words = flag.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+                .Skip(1).Where(part => part.StartsWith("--", StringComparison.Ordinal))
+                .Select(part => part[2..]).ToList();
+            if (words.Count == 0) continue;
+
+            var path = $"/api/map/{{slug}}/{read.Route}";
+            if (!document.RootElement.GetProperty("paths").TryGetProperty(path, out var route)) continue;
+
+            var declared = route.GetProperty("get").TryGetProperty("parameters", out var parameters)
+                ? parameters.EnumerateArray().Select(p => p.GetProperty("name").GetString()).ToHashSet()
+                : [];
+            checked_++;
+
+            foreach (var word in words)
+                await Assert.That(declared.Contains(word)).IsTrue()
+                    .Because($"{read.Route}'s flag names --{word}, and the route takes "
+                             + $"{string.Join(", ", declared.Order())}");
+        }
+
+        await Assert.That(checked_).IsGreaterThan(0).Because("no read-back flag named a query word");
+    }
+
     /// <para>Asserted over the whole surface rather than route by route, for the same reason as everything
     /// else here: a preview added tomorrow inherits the fault by default.</para>
     /// </summary>

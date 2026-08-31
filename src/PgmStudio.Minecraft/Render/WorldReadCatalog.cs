@@ -24,11 +24,12 @@ public static class WorldReadCatalog
 {
     public static readonly IReadOnlyList<WorldRead> All =
     [
-        new("render/topdown", "--topdown --layer …",
-            "The board from above, one question per image: `layer` draws the terrain alone (`ground`), what "
+        new("render/topdown", "--topdown --subject …",
+            "The board from above, one question per image: `subject` draws the terrain alone (`ground`), what "
             + "the build recorded itself placing (`structure`), the planting (`foliage`), the goals and "
-            + "spawns (`objectives`), or all of it (`combined`); `material` colours by the real palette "
-            + "instead of by category. The read for what was built and where.",
+            + "spawns (`objectives`), or all of it (`combined`); `layer` draws one storey of a stacked board; "
+            + "`material` colours by the real palette instead of by category. The read for what was built and "
+            + "where.",
             "It keeps no Y at all, so a riser, a ramp's step heights, a stamped room's floor and a goal's "
             + "clearance are none of them in it — `section` and `column` are the two reads that keep Y."),
 

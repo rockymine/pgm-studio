@@ -27,9 +27,12 @@ The tree is green, and it is green on every gate at once. `dotnet build` is clea
 Export 126, Import 1, Data 35, Api 337 — with nothing failed and nothing skipped. The JS suite passes 405.
 `./tools/census.sh --check` answers *census is current*. `./tools/build-scripts.sh` builds 7 of 7.
 
-Twenty-two verified defects are live behind that. A core that stamps nothing exports 200. A stacked board's
-paint runs down a column it should have stopped at. A degenerate polygon clears every sketch gate and draws
-no ground. The suite says none of it.
+Twenty-two verified defects were live behind that when this was read. A core that stamps nothing exported
+200; a stacked board's paint ran down a column it should have stopped at; a degenerate polygon cleared every
+sketch gate and drew no ground. The suite said none of it.
+
+Eleven of the twenty-two have since landed with a test each, and what stands below is the eleven that have
+not — `FEATURES.md` carries the rest under the ids that delivered them.
 
 That is the fact the whole strategy turns on: **a defect nobody can fail on is a defect that comes back.**
 The board is currently the only place these are written down, and a board entry is not a gate. So the fix
@@ -48,34 +51,23 @@ than a record that is wrong.
 
 | id | the defect | site |
 |---|---|---|
-| `WE15` | `CoreIntent.Size`, `Height` and `Shell` are plain `int` with no initializer, so a core assembled anywhere but `PlanCompiler` casts no blocks. The export answers 200 and the `map.xml` carries a `<core>` over an empty region — a goal at zero health. | `MapIntent.cs:508` |
-| `WE30` | `TerrainPainter.Paint` walks `surfaceByLayer` in document order and each pass paints its column from the bedrock course up, so a storey listed after one standing over it finds no stone left. The docstring states the ordering as intended, which is the disagreement inside one file. | `TerrainPainter.cs` |
-| `TN7` | `CoreIntent` and `DestroyableIntent` carry `Layer`; `CorePlacement` and `DestroyablePlacement` do not. A plan-built goal on a stacked board always resolves against the top surface. | `PlanModel.cs:508,547` |
 | `TS32` | `PlanCompiler` groups pieces by `Surface`, unions their rects and names the result `s{n}`. Every piece name is gone before the layout exists. | `PlanCompiler.cs:115` |
-| `B102` | `AnvilRegionWriter.Write` calls `Directory.CreateDirectory` and nothing else, so a `.mca` a previous build left is read back as part of the new map. | `AnvilRegionWriter.cs:19` |
 | `TL12` | Five shipped house presets lose window and door knobs through the library, so a preset stamped from code and one composed from its rows are different buildings. | `LibrarySeedTests.cs:42` |
 
 ### A gate's verdict is wrong
 
 | id | the defect | site |
 |---|---|---|
-| `TS67` | `SK4`'s `polygon`/`lasso` case tests `Vertices.Length >= 3` and never the area, so a polygon whose points are all on one line passes every gate and draws nothing — the fault the same rule names for a rectangle. | `SketchLayoutCheck.cs:335` |
 | `G231` | `LintEl1` takes `p.Surface − plan.Globals.Surface` where `EL1`'s own text states the land-interface delta. On a four-tread flight over a global of 9 it complains at treads 1 and 3 and says nothing about 2 and 4. | `PlanValidator.cs:557` |
 | `B150` | `FillRatio` reads `ctx.Board`, derived from the `PlanModel`, and answers in plan cells. The sketch is where the ground is: its `add` shapes push the coast past the plan pieces and its `subtract` cuts the holes, and neither reaches the term. | `GlobalsTerms.cs:23` |
-| `B103` | `TopDownRender.ReadColumns` takes `SurfaceExtractors.Surface` with no exclusion and derives the frame from `columns.Keys.Min/Max`, so a column whose only block is a floor marker counts as extent. `SurfaceExtractors.FloorMarkerMaxY` exists and is not consulted here. | `TopDownRender.cs:306` |
 | `WS17` | `Walk.Standing` qualifies any surface with `Headroom` clear, roofs included, so `traversability` and `coverage` route over a house. The author has already ruled that a house is not walked over, so this one needs no further question. | `Walk.cs:255` |
 | `TS31` | `SketchRasterizer.DetachedMasses` drops any component sharing no column with a second one, so it reports a storey whose stair was never drawn and never an island standing *beside* the board — the case an author actually draws by accident. | `SketchRasterizer.cs:978` |
-| `B143` | `SP1` starts its walk from frontline nodes. A plan declaring no build zone has none, so every wool is reported unreachable regardless of geometry. | `PlanValidator.cs:433` |
 
 ### The studio breaks, or tells the author something untrue
 
 | id | the defect | site |
 |---|---|---|
-| `RP61` | Eight sites build an idempotency map as `.GroupBy(row => row.Name)` — ordinal — feeding `.ToDictionary(…, StringComparer.OrdinalIgnoreCase)`. Two rows differing only by case group as two keys and collide as one: `ArgumentException` at every app start. Dormant only because nothing shipped collides. | `LibrarySeed.cs:51,54,117,120,180,283,347,457` |
-| `B34` | `MapRepository.ListAsync` sorts by slug and `ListByStageAsync` by `UpdatedAt` descending; the dashboard always passes a stage, so it always gets the order that carries no authoring signal. | `MapRepository.cs:34,38` |
 | `CV21` | `world-canvas.js` declares `painter.layer("build", () => {})` and no painter ever appends to it; `setBuildVisible` has no caller outside the class. An empty group with a visibility switch nobody throws. | `world-canvas.js:663,305` |
-| `B266` | `WorldReadCatalog` prints `--topdown --layer …` because it is written for the HTTP route; the CLI parses `--subject`, so the documented form fails naming the wrong argument. | `WorldReadCatalog.cs:27` · `RoundTrip/Program.cs:157` |
-| `RP58` | Every zip entry is prefixed `{slug}/`, so what a server is handed has to be unwrapped first. Both mapgen branches independently wrote the same un-nester. | `MapExportEndpoint.cs` |
 | `C45` | `AuthorsEditor.razor:39` renders `https://mc-heads.net/avatar/{uuid}/16` as an `<img src>` — the runtime-CDN shape `CLAUDE.md` § *JS dependencies* rules out, in image form, and already dead in a container with no egress. | `AuthorsEditor.razor:39` |
 
 ### The record is wrong
@@ -93,12 +85,13 @@ build-region marker as solid ground).
 
 ## The board's numbers rot faster than its prose
 
-Six figures were re-measured today. Every one had moved, and four of the six had moved the wrong way:
+Six figures were re-measured against the tree. Every one had moved, and four of the six had moved the wrong
+way. Two of the entries have since been fixed and carry their corrected figures out with them; the four that
+remain are here:
 
 | entry | the board says | measured today |
 |---|---|---|
 | `B220` | 148 sites over 55 files; 5 double-`<summary>`; four ids silenced in five `.csproj` | **299 over 85**; **21**; silenced in **nine** |
-| `RP61` | five sites | **eight** |
 | `RP49` | 33 of 50 rows missing; 15 of 17 counts wrong | **38 of 58**; **17 of 20** |
 | `RP47` | 31 comments over 27 files | **27 over 23** |
 | `C51` | 29 hand-rolled selects | **28** |
@@ -208,12 +201,13 @@ board's weight off a column whose job is to say what is next.
 into work small enough to state in a paragraph or withdraws it. Nothing else on this list is worth starting
 first, because five of the causes in the section above have a question sitting in them.
 
-**Phase 1 — the verified defect run.** The twenty-two confirmed defects, in the order they are tabled above:
-the silently-wrong map first, then the wrong verdicts, then the studio's own faults, then the record. Each
-lands with a test that fails on the old behaviour — that is the deliverable, not the fix. Several are a
-single line: `RP61` is a comparer on eight `GroupBy` calls, `B34` is a branch, `RP58` is a prefix, `B102` is
-a directory clear, `TS67` is a shoelace area beside a vertex count. `WS17` is unblocked because the ruling
-already exists.
+**Phase 1 — the verified defect run.** The confirmed defects, in the order they are tabled above: the
+silently-wrong map first, then the wrong verdicts, then the studio's own faults, then the record. Each lands
+with a test that fails on the old behaviour — that is the deliverable, not the fix, and the twelve tests the
+first eleven fixes carry were each run red against the unfixed source before being trusted. What is left of
+the run is the six that need a ruling first (`TS32`, `B150`, `CV21`, `C45`, `RP49`, and `TS31`, whose filed
+fix is contradicted by a measurement in the code it would change), `G231` and `WS17`, and the three
+measurement entries that belong to Phase 4.
 
 **Phase 2 — fix the causes, not the entries.** The five foundations, each in the order that maximises what it
 closes: the compiler's lost identity (4 entries), the layer word (7), the live findings feed (7), the term's

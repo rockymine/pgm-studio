@@ -518,6 +518,10 @@ public sealed class DestroyablePlacement : IPlanMarker
     /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-cells: from the piece's minimum corner
     /// where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]        public double[] At { get; set; } = [0, 0];
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per layer, and a goal stated for a hall lands on the deck roofing it unless it says which layer it
+    /// meant. Carried straight through to the intent the compiler writes.</summary>
+    [JsonPropertyName("layer")]    public string? Layer { get; set; }
 
     /// <summary>pillar-1|2|3 · cube-3 · cube-4 · column-plus; empty = pillar-3.</summary>
     [JsonPropertyName("style")]     public string? Style { get; set; }
@@ -557,6 +561,10 @@ public sealed class CorePlacement : IPlanMarker
     /// <summary>Where it stands, as an <c>[x, z]</c> offset in half-cells: from the piece's minimum corner
     /// where one is named, and from the symmetry centre where none is.</summary>
     [JsonPropertyName("at")]       public double[] At { get; set; } = [0, 0];
+    /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
+    /// per layer, and a goal stated for a hall lands on the deck roofing it unless it says which layer it
+    /// meant. Carried straight through to the intent the compiler writes.</summary>
+    [JsonPropertyName("layer")]    public string? Layer { get; set; }
 
     /// <summary>Casing width/depth in blocks; null = 5, the dominant corpus casing.</summary>
     [JsonPropertyName("size")]     public int? Size { get; set; }

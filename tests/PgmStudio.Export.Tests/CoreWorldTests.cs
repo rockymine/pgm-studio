@@ -1,5 +1,6 @@
 using System.Text.Json;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Export;
 using PgmStudio.Minecraft;
 using PgmStudio.Pgm;
@@ -163,5 +164,34 @@ public sealed class CoreWorldTests
         await Assert.That(reparsed.Cores.Select(c => c.Owner)).IsEquivalentTo(new[] { "red-team", "blue-team" });
         // Nothing declares a <gamemode>; the map reads as DTC off its modules alone.
         await Assert.That(reparsed.Gamemodes).IsEquivalentTo(new[] { Gamemodes.Dtc });
+    }
+    /// <summary>A core assembled by hand — not through <see cref="PlanCompiler"/>, which fills every knob —
+    /// casts the same casing. The record's own defaults are the ones its plan-placement schema documents, so
+    /// a caller that omits a key gets the modal core rather than a casing of no size: a <c>&lt;core&gt;</c>
+    /// over a region holding nothing is a goal at zero health, and the export answers 200 for it
+    /// (<c>WE15</c>).</summary>
+    [Test]
+    public async Task A_core_built_by_hand_casts_the_casing_its_schema_documents()
+    {
+        var core = new CoreIntent { Owner = "red-team", Anchor = new Pt(0, 12, 0) };
+
+        await Assert.That(core.Size).IsEqualTo(ObjectiveDefaults.CoreSize);
+        await Assert.That(core.Height).IsEqualTo(ObjectiveDefaults.CoreHeight);
+        await Assert.That(core.Shell).IsEqualTo(ObjectiveDefaults.CoreShell);
+        await Assert.That(core.Float).IsEqualTo(ObjectiveDefaults.CoreFloat);
+        await Assert.That(core.Leak).IsEqualTo(ObjectiveDefaults.CoreLeak);
+    }
+
+    /// <summary>The same for a hand-built destroyable: a style and a material it is made of, and the air
+    /// under it that keeps it off the ground. An empty style is a structure the stamper cannot resolve, and
+    /// a float of zero puts the goal on the terrain, where covering it is trivial.</summary>
+    [Test]
+    public async Task A_destroyable_built_by_hand_carries_a_style_a_material_and_its_float()
+    {
+        var destroyable = new DestroyableIntent { Owner = "red-team", Anchor = new Pt(0, 12, 0) };
+
+        await Assert.That(destroyable.Style).IsEqualTo(DestroyableStyles.Slug(ObjectiveDefaults.Style));
+        await Assert.That(destroyable.Materials).IsEqualTo(ObjectiveDefaults.Materials);
+        await Assert.That(destroyable.Float).IsEqualTo(ObjectiveDefaults.DestroyableFloat);
     }
 }

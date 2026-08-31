@@ -13,10 +13,15 @@ namespace PgmStudio.Minecraft.Anvil;
 /// </summary>
 public static class AnvilRegionWriter
 {
-    /// <summary>Encode <paramref name="world"/> into <c>r.X.Z.mca</c> files under <paramref name="regionDir"/>.</summary>
+    /// <summary>Encode <paramref name="world"/> into <c>r.X.Z.mca</c> files under <paramref name="regionDir"/>.
+    /// The directory's existing region files are removed first, so what stands afterwards is this world and
+    /// nothing else: a region the new geometry does not reach would otherwise still be loaded, and the map a
+    /// server reads would be two builds fused. Only <c>*.mca</c> is removed — the sidecars written beside
+    /// them say what this build did and are replaced by their own writers.</summary>
     public static void Write(VoxelWorld world, string regionDir)
     {
         Directory.CreateDirectory(regionDir);
+        foreach (var stale in Directory.GetFiles(regionDir, "*.mca")) File.Delete(stale);
         foreach (var region in world.Chunks.GroupBy(kv => (Rx: kv.Key.Cx >> 5, Rz: kv.Key.Cz >> 5)))
         {
             var path = Path.Combine(regionDir, $"r.{region.Key.Rx}.{region.Key.Rz}.mca");

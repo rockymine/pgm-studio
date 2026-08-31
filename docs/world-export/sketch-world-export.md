@@ -5,14 +5,14 @@ playable PGM map, the studio synthesises a real Anvil world from the sketch colu
 (`SketchRasterizer.RasterizeColumns`) + the authored `MapIntent`, and bundles it with `map.xml`.
 
 **Delivery.** At the Configure export point (today `GET /api/map/{slug}/xml`, `MapXmlEndpoint`), a
-**sketch-origin** map returns a **ZIP** of a single `{slug}/` folder:
+**sketch-origin** map returns a **ZIP** whose entries sit at its top — a world directory's own contents,
+which is what a server is handed, so the archive unpacks into whatever folder the caller chose:
 
 ```
-{slug}/
-  map.xml
-  level.dat
-  region/
-    r.<x>.<z>.mca
+map.xml
+level.dat
+region/
+  r.<x>.<z>.mca
 ```
 
 **Normal Configure-imported maps export XML only** (they already ship a real world). Sketch origin is detected
