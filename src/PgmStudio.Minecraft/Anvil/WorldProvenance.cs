@@ -32,7 +32,7 @@ public enum ProvenancePass { Ground, Structure, Made, Prop }
 /// provenance byte of its own (<c>docs/world-export/decoration.md</c>).
 ///
 /// <para><b>Composited in placement order.</b> The rasterizer claims every column it lays as <see
-/// cref="ProvenancePass.Ground"/> first; every stamp that follows — a room floor, a wool cage, a spawn cube,
+/// cref="ProvenancePass.Ground"/> first; every stamp that follows — a wool cage, a spawn cube,
 /// a wall, an iron cube, a redstone line, a destroyable, a core, a dressing-placed building — claims its own
 /// footprint as <see cref="ProvenancePass.Structure"/> over it. A later claim always overwrites an earlier
 /// one, so the final answer at a column is whichever pass claimed it last, exactly the reading

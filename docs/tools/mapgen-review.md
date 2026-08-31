@@ -160,7 +160,7 @@ the tools for watching a match rather than playing one — and the intent has no
 
 ## The structures
 
-`StructureIntent` is the stamped furniture a map is played through — room floors, entrance redstone, iron
+`StructureIntent` is the stamped furniture a map is played through — entrance redstone, iron
 cubes and approach walls. Two of its four lists are complete end to end and reachable only by hand: the
 **layout generator never authors them**, so they exist on maps someone drew and on no map it composed.
 

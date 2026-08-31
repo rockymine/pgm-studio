@@ -321,8 +321,8 @@ build's to measure; water lanes fan
 into their own list and stay out of the build intent. The observer sits at `(0, observerY, 0)`.
 
 The intent also carries the **structure directives** the world export stamps verbatim, computed on the
-authored unit and fanned in absolute block coordinates: bedrock room floors under every wool-room piece, the
-entrance redstone row inside each room along every entry seam, iron cubes, and the approach walls. On the way
+authored unit and fanned in absolute block coordinates: the entrance redstone row inside each room along
+every entry seam, iron cubes, and the approach walls. On the way
 out of `POST /api/plan/compile` the endpoint additionally pre-fills island team ownership — a spawn's team owns
 its island, else a wool's owner, else neutral — so Configure opens pre-assigned.
 
@@ -647,7 +647,7 @@ that was carried the whole way to a finished world, and it sits beside the two f
 spawn-role piece with a spawn marker facing `left`, one wool-room piece with a wool marker, one approach wall
 between `wool-a-t1` and `wool-a-t3`, `rot_180` at 30 players. It compiles to 25 shapes on one group framed
 `−70..70 × −130..130`, two teams, two spawns, two wools, 14 build areas, the observer at y 24, and four
-structure directives — two room floors, two entrance redstone rows, two walls. It states no build ceiling,
+structure directives — two entrance redstone rows, two walls. It states no build ceiling,
 because none of them do: that is measured off the terrain the world build produces.
 
 Its `ruediger.layout.json` is worth reading for the **theme** as much as the geometry, and it is the reason

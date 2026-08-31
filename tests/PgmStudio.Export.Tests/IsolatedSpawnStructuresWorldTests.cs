@@ -49,17 +49,11 @@ public sealed class IsolatedSpawnStructuresWorldTests
     }
 
     [Test]
-    public async Task All_four_structure_kinds_land_in_the_built_world()
+    public async Task All_three_structure_kinds_land_in_the_built_world()
     {
         var (w, resolved, surface) = Build();
         var s = resolved.Structures!;
         int Surf(int x, int z) => surface.GetValueOrDefault((x, z), 1);
-
-        // ST1 — a wool-room footprint is solid bedrock from the floor up through the surface block.
-        var floor = s.RoomFloors[0];
-        int fx = (int)floor.Area.MinX, fz = (int)floor.Area.MinZ;
-        await Assert.That(w.GetBlock(fx, 0, fz).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(fx, Surf(fx, fz) - 1, fz).Id).IsEqualTo(Blocks.Bedrock);
 
         // ST1 — the entrance redstone: torch at each end, wire between, on the surface.
         var line = s.RedstoneLines[0];

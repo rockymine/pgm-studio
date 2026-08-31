@@ -74,11 +74,11 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
-    public async Task Room_floor_bedrock_goes_under_the_room_not_over_its_pad()
+    public async Task A_wool_rooms_ground_is_the_terrain_it_stands_on()
     {
-        // The plan's ST1 room floor fills the whole wool-room piece solid to the surface. Its top block is the
-        // course the room's own floor and wool pad occupy, so stamping order decides which survives: laid last
-        // it buries both, and the room reads as a shell of bedrock with nothing to break out of it.
+        // A room is entered through its region rather than through its floor, so nothing under it is sealed:
+        // the ground keeps the material the plateau gave it, inside the shell and out in the piece's ring
+        // alike, and the pad is the one course that is not terrain.
         // A raised plateau, so the sunk floor is a real course of ground rather than clamped off the world
         // bottom: solid to y=4, first air at y=5, so the room's floor is the platform's own top block.
         const string plateau =
@@ -99,23 +99,21 @@ public sealed class WorldBuilderTests
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
             ],
-            Structures = new StructureIntent { RoomFloors = [new RoomFloor(piece, new StampId("roomfloor", "r0", 0))] },
         };
 
         var built = WorldBuilder.Build(plateau, intent);
         var pad = built.ResolvedIntent.Wools![0].Spawn;
         await Assert.That(pad.Y).IsEqualTo(4);
 
-        // The pad is wool at the floor course, and bedrock stops one below it rather than one above.
+        // The pad is wool at the floor course, and what carries it is the plateau rather than a plinth.
         await Assert.That(built.World.GetBlock((int)pad.X, (int)pad.Y, (int)pad.Z))
             .IsEqualTo((Blocks.Wool, 14));
         await Assert.That(built.World.GetBlock((int)pad.X, (int)pad.Y - 1, (int)pad.Z).Id)
-            .IsEqualTo(Blocks.Bedrock);
+            .IsNotEqualTo(Blocks.Bedrock);
 
-        // …and it still tops out at the floor course outside the shell, where the entrance line runs: the fill
-        // is the ground under the whole piece, not just under the building inset into it.
+        // …and the piece's own ring, outside the shell, is untouched ground where the entrance line runs.
         await Assert.That(built.World.GetBlock((int)piece.MinX, (int)pad.Y, (int)piece.MinZ).Id)
-            .IsEqualTo(Blocks.Bedrock);
+            .IsNotEqualTo(Blocks.Bedrock);
     }
 
     [Test]
@@ -424,25 +422,31 @@ public sealed class WorldBuilderTests
     }
 
     // ── a claim covers what the stamp wrote and no more ───────────────────────────────────────
-    /// <summary>A plateau and a single room floor, with no spawn or wool over it, so the only Structure claim
-    /// on the board is the foundation's own. <b>Probed at y=2</b>, not y=0: the world carries a bedrock floor
-    /// at y=0 everywhere, so the bottom course cannot tell a foundation from open ground. At y=2 a filled
-    /// column is bedrock and a natural one is the plateau's dirt.</summary>
-    private static BuiltWorld RoomFloorOnly()
+    /// <summary>A plateau carrying one wool room on a known 12×12 piece, so the only Structure claim on the
+    /// board is that room's own and its bounds are arithmetic rather than a guess: the shell is the piece
+    /// inset one block per side (WX1), so <c>[-15,-5) × [5,15)</c>.</summary>
+    private static BuiltWorld WoolRoomOnly()
     {
         const string plateau =
             """
             {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},"layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[{"id":"a","type":"rectangle","operation":"add","min_x":-40,"min_z":-40,"max_x":40,"max_z":40,"base_height":5}],"groups":[]} }]}
             """;
+        var piece = new Rect(-16, 4, -4, 16);
         return WorldBuilder.Build(plateau, new MapIntent
         {
-            Teams = [new TeamDef { Id = "red", Color = "red" }],
+            Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
             Observer = new ObserverIntent { Point = new Pt(0, 20, 0), Yaw = 0 },
             Meta = new MetaIntent { Name = "Test", Authors = [new AuthorIntent { Name = "alice" }] },
-            Structures = new StructureIntent
-            {
-                RoomFloors = [new RoomFloor(new Rect(-16, 4, -4, 16), new StampId("roomfloor", "r0", 0))],
-            },
+            Wools =
+            [
+                new WoolIntent
+                {
+                    Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Piece = piece,
+                    Stamp = new StampId("wool", "w0", 0),
+                    Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
+                    Monuments = [new MonumentIntent { Team = "blue" }],
+                },
+            ],
         });
     }
 
@@ -508,43 +512,23 @@ public sealed class WorldBuilderTests
     }
 
     [Test]
-    public async Task A_room_floors_claim_stops_where_its_bedrock_does()
+    public async Task A_room_claims_exactly_the_columns_its_frame_covers()
     {
-        // The stamp's footprint is max-EXCLUSIVE — StampFoundation fills [minX, maxX) — and ClaimRect's is
-        // max-inclusive, so a rect carried across by hand claimed one column past the bedrock on each axis.
-        // Live on every wool room, and the same fault already fixed for a house: a Structure claim over ground
-        // the pass never wrote.
-        var built = RoomFloorOnly();
-
-        // The last column inside the footprint carries the foundation and the claim that names it.
-        await Assert.That(built.World.GetBlock(-5, 2, 15).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(built.Provenance.OwnerAt(-5, 15)?.Kind).IsEqualTo("roomfloor");
-
-        // One column further on either axis is past the max-exclusive bound: no foundation, and no claim.
-        foreach (var (x, z) in new[] { (-4, 15), (-5, 16), (-4, 16) })
-        {
-            await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsNotEqualTo((x, z, Blocks.Bedrock));
-            await Assert.That((x, z, built.Provenance.OwnerAt(x, z)?.Kind)).IsNotEqualTo((x, z, "roomfloor"));
-        }
-    }
-
-    [Test]
-    public async Task A_room_floors_claim_names_only_columns_its_foundation_filled()
-    {
-        // The invariant behind the entry, over the whole footprint rather than at a corner: every column the
-        // claim names carries the foundation, and there are exactly as many as the stamp filled. A rect one
-        // wider on either axis fails this along the whole edge — 169 claimed against 144 filled.
-        var built = RoomFloorOnly();
+        // The stamp's footprint is max-EXCLUSIVE — FoundationCells walks [minX, maxX) — and ClaimRect's is
+        // max-inclusive, so a rect carried across by hand claims a column past the room on each axis. Asserted
+        // over the whole footprint rather than at a corner: a rect one wider on either axis claims 121 where
+        // the room covers 100.
+        var built = WoolRoomOnly();
 
         var claimed = 0;
         for (var x = -25; x <= 5; x++)
         for (var z = -5; z <= 25; z++)
-        {
-            if (built.Provenance.OwnerAt(x, z) is not { Kind: "roomfloor" }) continue;
-            claimed++;
-            await Assert.That((x, z, built.World.GetBlock(x, 2, z).Id)).IsEqualTo((x, z, Blocks.Bedrock));
-        }
+            if (built.Provenance.OwnerAt(x, z) is { Kind: "wool" }) claimed++;
 
-        await Assert.That(claimed).IsEqualTo(12 * 12);   // [-16,-4) x [4,16), max-exclusive on both axes
+        await Assert.That(claimed).IsEqualTo(10 * 10);   // [-15,-5) x [5,15), the piece inset one per side
+
+        // One column past the max-exclusive bound on either axis belongs to nothing the room stamped.
+        foreach (var (x, z) in new[] { (-5, 14), (-6, 15), (-5, 15) })
+            await Assert.That((x, z, built.Provenance.OwnerAt(x, z)?.Kind)).IsNotEqualTo((x, z, "wool"));
     }
 }

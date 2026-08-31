@@ -34,10 +34,6 @@ public readonly record struct StructureBox(
 /// per-column surface map the stampers rest structures on — including its fallback for a marker whose column
 /// carries no terrain, which drops that structure to the bottom of the world. Reading the floor from the
 /// marker's plan surface instead would look equivalent and silently disagree in exactly that case.</para>
-///
-/// <para>Wool-room floors are deliberately absent: <c>StructureIntent.RoomFloors</c> is exactly the wool-room
-/// piece's fanned rect, which the editor already draws as that piece's prism — it tints that prism bedrock
-/// rather than stacking a coincident second box.</para>
 /// </summary>
 public static class PlanStructurePreview
 {

@@ -40,19 +40,6 @@ public sealed class PlanStructuresTests
     }
 
     [Test]
-    public async Task Wool_room_gets_a_bedrock_floor_footprint()
-    {
-        var s = Structures();
-        // team-0 room footprint = the wool piece rect in blocks, plus its rot_180 image.
-        await Assert.That(s.RoomFloors.Select(floor => floor.Area)).Contains(new Rect(0, 20, 10, 30));
-        await Assert.That(s.RoomFloors.Select(floor => floor.Area)).Contains(new Rect(-10, -30, 0, -20));
-
-        // And the pair is one room seen twice rather than two rooms: same unit, one image each.
-        await Assert.That(s.RoomFloors.Select(floor => floor.Stamp.Identity).Distinct().Count()).IsEqualTo(1);
-        await Assert.That(s.RoomFloors.Select(floor => floor.Stamp.Image).Order()).IsEquivalentTo(new[] { 0, 1 });
-    }
-
-    [Test]
     public async Task Entrance_redstone_lies_one_row_inside_the_room_along_the_seam()
     {
         var s = Structures();

@@ -5108,6 +5108,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A wool room lays no bedrock, and the ground under it is painted (WE68).** `ST1` filled every wool-room
+  piece solid from `y=0` so the room could not be tunnelled into from below — which the room region's own
+  `enter` filter already denies at every depth, so the fill bought nothing and stood where the author drew
+  ground. `StructureIntent.RoomFloors`, the `RoomFloor` record and the pass that stamped them are gone. What a
+  room still gets is its own **levelling fill**: `StructureStamper.StampFoundation` fills each column of the
+  footprint **upward** to the floor course the room reads off its highest column, so a room over dipping
+  ground has no holes in its floor, and it fills in **stone** — the one material the painter rewrites (`TP6`)
+  — so a hollow under a building comes out in the board's own theme rather than as a made thing. Nothing is
+  filled downward. The dressing keep-out is unchanged: a wool room's region was already
+  `KeepOut.WoolRoom` over the same rectangle, so the floor's own keep-out was a second statement of it.
+  (`rules.md` amendment 29)
 - **A building is not walked over (`WS17`).** A roof carries two clear blocks of headroom like any other
   surface, so the traversability read climbed the wall and ran its route across the building: a road blocked
   by a house came back as one whole component, which is the direction that reads as an improvement.

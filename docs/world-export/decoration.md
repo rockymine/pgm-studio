@@ -297,7 +297,7 @@ protection, a house across the lane. A stroke stands on nothing. It replaces one
 front of a door it **is** the lane the approach is being kept clear for, so a road held to the whole mask
 stops twenty blocks short of every spawn and tapers away as the approach rect cuts across it — `opus5-slipway`'s
 spawn road paved 228 cells, narrowing from seven wide to one and ending twelve blocks from a room it is
-authored to reach. What a stroke must still respect is `KeepOut.Structure`: a room floor, a wall, an iron
+authored to reach. What a stroke must still respect is `KeepOut.Structure`: a wall, an iron
 cube, and a shape that marked itself `keepClear` — repainting the top course of a town wall or a flight of
 stairs is exactly what that word exists to prevent. A stamped column needs no entry in the mask, because the
 pass tests the block under its own feet per cell and with no margin (§4), which is the sharper reading of the
@@ -833,7 +833,7 @@ therefore never handed a tree, however that tree's blocks happen to read. It cha
 prop still draws by its own material, so leaves stay foliage and a road's gravel stays ground.
 
 **And a claim is walked, not carried across as a rectangle.** Every stamper that fills a footprint publishes
-the columns it filled — `StructureStamper.FoundationCells` for a room floor, `WallCells` for an approach wall,
+the columns it filled — `StructureStamper.FoundationCells` for a room's own plinth, `WallCells` for an approach wall,
 `RedstoneLineCells` for an entrance row — and the claim is made over that walk. The two conventions are
 genuinely different and neither is wrong: a stamp's footprint is **max-exclusive**, because that is what an
 intent rect means over whole world blocks, and `WorldProvenance.ClaimRect` is **max-inclusive**. So a rect

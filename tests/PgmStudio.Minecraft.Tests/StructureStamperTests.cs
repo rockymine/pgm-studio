@@ -6,9 +6,9 @@ using PgmStudio.Minecraft.Stamping;
 namespace PgmStudio.Minecraft.Tests;
 
 /// <summary>
-/// Layout-structure stamps (docs/generator/rules.md ST1–ST4): a wool-room bedrock floor column, an
-/// entrance redstone row with end torches, a 4×4×4 iron cube on the surface, and a bedrock approach wall to a
-/// fixed top height. Each stamp reads a per-column surface top so it sits on the real terrain.
+/// Layout-structure stamps (docs/generator/rules.md ST1–ST4): a room's levelling fill, an entrance redstone
+/// row with end torches, a 4×4×4 iron cube on the surface, and a bedrock approach wall to a fixed top height.
+/// Each stamp reads a per-column surface top so it sits on the real terrain.
 /// </summary>
 public sealed class StructureStamperTests
 {
@@ -23,8 +23,7 @@ public sealed class StructureStamperTests
     }
 
     /// <summary>The world a surface map describes: stone from <paramref name="floor"/> up to each column's
-    /// own first-air. The foundation seals the column a cell has, so a fixture that states a surface and
-    /// leaves the world empty is describing ground that is not there.</summary>
+    /// own first-air.</summary>
     private static VoxelWorld Ground(IReadOnlyDictionary<(int X, int Z), int> surface, int floor = 0)
     {
         var world = new VoxelWorld();
@@ -35,26 +34,25 @@ public sealed class StructureStamperTests
     }
 
     [Test]
-    public async Task Room_floor_fills_bedrock_from_zero_to_the_surface()
+    public async Task Ground_already_at_the_floor_is_left_exactly_as_it_was()
     {
         var surf = FlatSurface(0, 0, 10, 10, top: 13);
         var w = Ground(surf);
         StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
-        // Solid bedrock through the whole column [0, 13); air at and above the surface top.
-        await Assert.That(w.GetBlock(2, 0, 2).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(3, 7, 3).Id).IsEqualTo(Blocks.Bedrock);
-        await Assert.That(w.GetBlock(5, 12, 5).Id).IsEqualTo(Blocks.Bedrock);   // top solid block
-        await Assert.That(w.GetBlock(5, 13, 5).Id).IsEqualTo(Blocks.Air);       // surface cell left open
-        // The max bound is exclusive — column x=6 is outside the footprint and keeps the ground it had.
-        await Assert.That(w.GetBlock(6, 0, 3).Id).IsEqualTo(Blocks.Stone);
+        // Flat ground already reaches the floor course, so the fill writes nothing: the column keeps the
+        // terrain it had, top to bottom, and nothing under a room is sealed against being dug into.
+        await Assert.That(w.GetBlock(2, 0, 2).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(w.GetBlock(3, 7, 3).Id).IsEqualTo(Blocks.Stone);
+        await Assert.That(w.GetBlock(5, 12, 5).Id).IsEqualTo(Blocks.Stone);   // top solid block
+        await Assert.That(w.GetBlock(5, 13, 5).Id).IsEqualTo(Blocks.Air);     // surface cell left open
     }
 
     [Test]
-    public async Task The_plinth_is_level_under_a_room_standing_on_sloping_ground()
+    public async Task The_fill_is_level_under_a_room_standing_on_sloping_ground()
     {
-        // What stands on the plinth takes one floor course over its whole frame, read from the frame's
-        // highest column, so a plinth that followed the ground would stop short of the floor wherever the
+        // What stands on the fill takes one floor course over its whole frame, read from the frame's
+        // highest column, so a fill that followed the ground would stop short of the floor wherever the
         // ground falls away and leave it spanning air.
         var surf = new Dictionary<(int X, int Z), int>();
         for (var x = 0; x <= 10; x++)
@@ -65,45 +63,52 @@ public sealed class StructureStamperTests
         StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
         // The highest column of the footprint is z=5, whose first air cell is 15 — so every column of it is
-        // solid to 14, the low rows included.
-        await Assert.That(w.GetBlock(3, 14, 2).Id).IsEqualTo(Blocks.Bedrock);   // lowest row, filled to the top
-        await Assert.That(w.GetBlock(3, 14, 5).Id).IsEqualTo(Blocks.Bedrock);   // highest row
-        await Assert.That(w.GetBlock(3, 15, 5).Id).IsEqualTo(Blocks.Air);       // its surface cell left open
-        await Assert.That(w.GetBlock(6, 14, 2).Id).IsEqualTo(Blocks.Air);       // max bound still exclusive
+        // solid to 14, the low rows included, and what fills the gap is stone the painter will finish.
+        await Assert.That(w.GetBlock(3, 14, 2).Id).IsEqualTo(Blocks.Stone);   // lowest row, filled to the top
+        await Assert.That(w.GetBlock(3, 14, 5).Id).IsEqualTo(Blocks.Stone);   // highest row
+        await Assert.That(w.GetBlock(3, 15, 5).Id).IsEqualTo(Blocks.Air);     // its surface cell left open
+        await Assert.That(w.GetBlock(6, 14, 2).Id).IsEqualTo(Blocks.Air);     // max bound still exclusive
+
+        // And nothing below the ground a cell already had is rewritten — a room is kept from being entered
+        // by its region, so there is no plinth sunk under it.
+        await Assert.That(w.GetBlock(3, 0, 2).Id).IsEqualTo(Blocks.Stone);
     }
 
-    /// <summary>Ground that floats over void is sealed to the underside of what it stands on and no further.
-    /// A foundation that filled from <c>y 0</c> hung a bedrock pillar under every stamped room on a board of
-    /// crags — measured on `opus5-aerie` at `(20, 28)`: bedrock from y0 to y24 under a wool room whose crag
-    /// begins at y16, in open sky the whole way.</summary>
+    /// <summary>Ground that floats over void keeps the void under it. A foundation that filled from
+    /// <c>y 0</c> hung a pillar under every stamped room on a board of crags — measured on `opus5-aerie` at
+    /// `(20, 28)`: solid from y0 to y24 under a wool room whose crag begins at y16, in open sky the whole
+    /// way.</summary>
     [Test]
-    public async Task Ground_that_floats_is_sealed_to_its_own_underside_and_no_further()
+    public async Task Ground_that_floats_keeps_the_void_under_it()
     {
         var surf = FlatSurface(0, 0, 10, 10, top: 30);
         var w = Ground(surf, floor: 20);                 // a slab ten courses thick, hanging over nothing
 
         StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
-        await Assert.That(w.GetBlock(3, 29, 3).Id).IsEqualTo(Blocks.Bedrock);   // the slab's top course
-        await Assert.That(w.GetBlock(3, 20, 3).Id).IsEqualTo(Blocks.Bedrock);   // its lowest
-        await Assert.That(w.GetBlock(3, 19, 3).Id).IsEqualTo(Blocks.Air);       // and the void under it
+        await Assert.That(w.GetBlock(3, 29, 3).Id).IsEqualTo(Blocks.Stone);   // the slab's top course
+        await Assert.That(w.GetBlock(3, 20, 3).Id).IsEqualTo(Blocks.Stone);   // its lowest
+        await Assert.That(w.GetBlock(3, 19, 3).Id).IsEqualTo(Blocks.Air);     // and the void under it
         await Assert.That(w.GetBlock(3, 0, 3).Id).IsEqualTo(Blocks.Air);
     }
 
     /// <summary>A cell of the footprint with no ground at all is left alone: there is nothing under it to
-    /// seal, and a column raised there stands in open sky.</summary>
+    /// level against, and a column raised there stands in open sky.</summary>
     [Test]
     public async Task A_footprint_cell_over_nothing_gets_no_column()
     {
-        var surf = FlatSurface(0, 0, 10, 10, top: 13);
+        var surf = new Dictionary<(int X, int Z), int>();
+        for (var x = 0; x <= 10; x++)
+        for (var z = 0; z <= 10; z++)
+            surf[(x, z)] = 10 + z;                       // sloped, so its neighbours do fill
         surf.Remove((3, 3));                             // one cell of the footprint is void
         var w = Ground(surf);
 
         StructureStamper.StampFoundation(w, surf, minX: 2, minZ: 2, maxX: 6, maxZ: 6);
 
-        await Assert.That(w.GetBlock(3, 12, 3).Id).IsEqualTo(Blocks.Air);
+        await Assert.That(w.GetBlock(3, 14, 3).Id).IsEqualTo(Blocks.Air);
         await Assert.That(w.GetBlock(3, 0, 3).Id).IsEqualTo(Blocks.Air);
-        await Assert.That(w.GetBlock(4, 12, 4).Id).IsEqualTo(Blocks.Bedrock);   // its neighbour is sealed
+        await Assert.That(w.GetBlock(4, 14, 4).Id).IsEqualTo(Blocks.Stone);   // its neighbour is levelled
     }
 
     [Test]

@@ -40,12 +40,16 @@ ids here are `TP*` (terrain paint), local to this file the way `structures.md` o
 ## 1. The painter's domain
 
 The painter touches **only stone**. Terrain arrives from `TerrainBuilder` as a bedrock floor at y=0 under
-every column whose ground reaches it, with a stone column filling `[1, surfaceTop)` above it; every structure the stampers add — the wool-cage
-and spawn-cube **bedrock plateaus**, their shells, the objectives — is bedrock, wool, obsidian, anything
-but stone. So the pass runs **last**, after every stamp, and rewrites stone blocks only. Bedrock at y=0 and
-the full room pieces (a wool room sits on a solid bedrock plateau, not on paintable stone) are excluded
-**by construction**, not by a special case — nothing the painter is allowed to touch survives underneath a
-room. This is the one invariant that makes the rest safe to state simply.
+every column whose ground reaches it, with a stone column filling `[1, surfaceTop)` above it; every structure
+the stampers add — the shells, the approach walls, the objectives — is bedrock, wool, obsidian, anything but
+stone. So the pass runs **last**, after every stamp, and rewrites stone blocks only. Bedrock at y=0 is
+excluded **by construction**, not by a special case, and so is every course a stamp wrote: what a shell laid
+is not stone and nothing the painter is allowed to touch survives under it. This is the one invariant that
+makes the rest safe to state simply.
+
+The **ground a room stands on is not a stamp** and is painted like any other. A room levels its own footprint
+by filling upward in stone (`structures.md` §7.6), so a hollow under a building comes out in whatever the
+board's theme paints there rather than reading as a made thing.
 
 The only input beyond the world is the per-column **surface top** (`BuiltTerrain.SurfaceTop`, the first
 air Y over the column) — the elevation the whole model reads from. A column's top solid block sits at
@@ -53,20 +57,21 @@ air Y over the column) — the elevation the whole model reads from. A column's 
 
 ### The stamps it consults
 
-"Untouched" is not only the room pieces. Every stamped structure is bedrock, wool or obsidian, so the
-stone-only rule already keeps the painter off all of them; but the rim and wall rules must additionally
-**read** them, because a structure that rises above the terrain is a height the outline turns on and a face
-the riser must not paint behind. The set the painter consults splits by how a stamp is anchored:
+Every stamped structure is bedrock, wool or obsidian, so the stone-only rule already keeps the painter off
+all of them; but the rim and wall rules must additionally **read** them, because a structure that rises above
+the terrain is a height the outline turns on and a face the riser must not paint behind. The set the painter
+consults splits by how a stamp is anchored:
 
-- **Piece-relative** — the wool/spawn **room pieces** (`WoolIntent.Piece`/`SpawnIntent.Piece`) and the
-  iron cubes: a whole footprint, a bedrock plateau (`structures.md` WX1).
+- **Piece-relative** — the **shells** stamped over the wool/spawn room pieces
+  (`WoolIntent.Piece`/`SpawnIntent.Piece`) and the iron cubes: a whole footprint standing over the terrain
+  (`structures.md` WX1). What is read is the building, not the ground under it — the ground is painted.
 - **Interface-relative** — the **bedrock approach wall** (`StructureStamper.StampWall`, from
   `StructureIntent.Walls`; rule ST4). Not a piece but a **seam barrier**: two blocks thick across the shared
   edge between two pieces, the interface width along it, filled with bedrock from y=0 up to
   `approach.Surface + 2` and capped by one course of cobweb — so it stands **above** the terrain on both sides.
 
 - **TP6** *A stamped structure is height-bearing, and the painter reads it as a wall, never as a drop.* For
-  every rule below, a neighbour that is a structure — a room plateau or an approach-wall barrier — is
+  every rule below, a neighbour that is a structure — a room's shell or an approach-wall barrier — is
   treated as **taller-or-equal terrain that seals the face**: it is never a drop (so it never opens an
   open-rim lip and never paints a clay riser toward the structure — the barrier already covers that seam),
   and it always counts as a boundary for the **`boundary`** rim (the plateau's outline turns at it, TP3). This

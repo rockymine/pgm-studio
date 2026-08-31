@@ -373,8 +373,6 @@ var intent = new MapIntent
     {
         // The unit is the room the floor belongs to; the builder fills an image for anything that arrives
         // without one, and a catalogue map has no orbit to be an image of.
-        RoomFloors = [new RoomFloor(blueRoom, new StampId("roomfloor", "blue-room", 0)),
-                      new RoomFloor(redRoom, new StampId("roomfloor", "red-room", 0))],
         RedstoneLines = [RowOnMinZ(blueRoom), RowOnMaxZ(redRoom)],
     },
 };

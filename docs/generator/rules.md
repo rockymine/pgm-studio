@@ -595,8 +595,8 @@ disagree with the one that runs.
 
 - **ST1 [expert]** *Wool room piece* (optional): defines the full room **region** and **sizes the
   stamped cage** — the shell footprint is the piece inset one block, per the WX rules
-  (`docs/world-export/structures.md`). Its footprint is stamped **solid bedrock from y=0 to its
-  floor** (no tunnelling in from below); a **redstone line with a torch at either end** lies on the
+  (`docs/world-export/structures.md`). Nothing under it is sealed — the room region's own `enter`
+  filter is what keeps an enemy out, at any depth; a **redstone line with a torch at either end** lies on the
   last block row at each of the room's **entry interfaces** — every terrain↔room land seam and
   every abutting build-zone edge (WX6) — the conventional marker for where entrance protection
   begins. The editor renders terrain↔wool-room interfaces **red**. Each of the four corner chests
@@ -932,3 +932,12 @@ term and a producibility finding are the three things that name a layout rule to
 the question it exists for is *what is this finding* and a rule nothing raises has no finding to explain. The
 rest are law all the same, and this file is where the law is. A rule that starts being raised joins the
 catalogue by being added to that set, which `RulesEndpointTests` holds to the source in both directions.
+
+29. **`ST1`: a wool room lays no bedrock (2026-08-31).** Author's call. The footprint fill from `y=0` existed
+    to stop a room being tunnelled into from below, which the room region's `enter` filter already denies at
+    every depth — so the fill bought nothing and stood where the author drew ground, the general case being
+    `WX11`'s complaint about a structure meeting the world with a face of bedrock. The whole directive goes:
+    `StructureIntent.RoomFloors` and its stamping pass with it. What a room still levels on is its own
+    footprint, filled **up** to the floor course in **stone** so the painter finishes it like the ground
+    around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
+    piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.

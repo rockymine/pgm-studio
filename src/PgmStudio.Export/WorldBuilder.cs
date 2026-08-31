@@ -95,7 +95,6 @@ public static class WorldBuilder
             Cores = intent.Cores?.Select((c, i) => c with { Stamp = Seed(c.Stamp, "core", i) }).ToList(),
             Structures = intent.Structures is not { } structures ? null : new StructureIntent
             {
-                RoomFloors = [.. structures.RoomFloors.Select((f, i) => f with { Stamp = Seed(f.Stamp, "roomfloor", i) })],
                 RedstoneLines = [.. structures.RedstoneLines.Select((l, i) => l with { Stamp = Seed(l.Stamp, "redstoneline", i) })],
                 IronCubes = [.. structures.IronCubes.Select((c, i) => c with { Stamp = Seed(c.Stamp, "ironcube", i) })],
                 Walls = [.. structures.Walls.Select((w, i) => w with { Stamp = Seed(w.Stamp, "wall", i) })],
@@ -137,14 +136,6 @@ public static class WorldBuilder
         // Every marker on a board hangs at one altitude, so collecting them costs nothing but the order.
         var pendingMarkers = new List<(int X, int Z, int Data, GoalMarkerShape Shape)>();
         var pendingCeiling = new List<(string Kind, string Name, StampId Owner, BlockBox Box)>();
-
-        // ── Wool-room bedrock floors (ST1) ──────────────────────────────────────────────────────────
-        // Ground, not dressing — the plan fills each wool-room piece solid from y=0 to the surface so the room
-        // cannot be tunnelled into from below, and the building is then stamped on top of that. Which is why
-        // it goes first: the fill's top block IS the floor course now that a room's floor sinks one course into
-        // its platform (WX17), so laid afterwards it buries the floor and the wool pad standing on it.
-        foreach (var claim in StampRoomFloors(world, terrain.Ground, intent.Structures))
-            provenance.Claim(claim.Cells, claim.Pass, claim.Owner);
 
         // ── Wool cages (framed by their plan piece + entries, or the marker-anchored default) ────────
         var resolvedWools = new List<WoolIntent>(wools.Count);
@@ -483,28 +474,6 @@ public static class WorldBuilder
             }
         }
         return highest;
-    }
-
-    // The bedrock under every wool room, laid before the rooms themselves (see the call site).
-    private static List<PlacementClaim> StampRoomFloors(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surface, StructureIntent? s)
-    {
-        // The claim is the cells the foundation filled, walked from the same four integers the stamp took.
-        // It was a rect carried across by hand, and the two conventions did not match: the stamp's footprint
-        // is max-EXCLUSIVE and ClaimRect's is max-inclusive, so every room floor claimed a column past its own
-        // bedrock on each axis — 121 columns for a 10x10 floor that fills 100. The min end disagreed too,
-        // truncation against Math.Floor, which parts company on a negative fractional bound.
-        var claims = new List<PlacementClaim>();
-        var floors = s?.RoomFloors ?? [];
-        for (var i = 0; i < floors.Count; i++)
-        {
-            var f = floors[i];
-            int minX = (int)f.Area.MinX, minZ = (int)f.Area.MinZ, maxX = (int)f.Area.MaxX, maxZ = (int)f.Area.MaxZ;
-            StructureStamper.StampFoundation(world, surface, minX, minZ, maxX, maxZ);
-            claims.Add(new PlacementClaim(f.Stamp, ProvenancePass.Structure,
-                [.. StructureStamper.FoundationCells(minX, minZ, maxX, maxZ)]));
-        }
-        return claims;
     }
 
     // Stamp the plan-compiled layout structures (already resolved + fanned to block coords) onto the world.

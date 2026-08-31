@@ -712,17 +712,17 @@ own wall, windows, floor zoning and deck, and falls back to the building's where
 identical storeys is a count rather than a repeated description, and every one of those fallbacks is resolved
 in `HouseStyle.Levels` rather than at the point each is used.
 
-**The foundation seals the ground a cell has and never invents one.** Downward it turns the solid column to
-bedrock and stops at the first air, so on ordinary ground it reaches the world's own bedrock floor and on
-ground that floats it reaches the underside of the slab: a board whose land hangs over void would otherwise
-carry a bedrock pillar from `y 0` under every stamped room, twenty-five courses of it in open sky
-(`opus5-aerie`, probed at `(20, 28)`). A footprint cell with no ground at all is left alone — there is nothing
-under it to seal.
+**The foundation levels the ground a cell has and never invents one.** It fills **upward only**, from each
+column's own surface to the floor course the room reads off the footprint's highest column, so a room over
+dipping ground has no holes in its floor and flat ground costs nothing. It fills in **stone**, which is what
+the painter rewrites (TP6), so the ground under a room is finished like the ground around it. A footprint cell
+with no ground at all is left alone — there is nothing under it to level against, and a column built there
+would stand in open sky.
 
 **And where the cell beside a building has no ground to meet it on, `WX11` says so** — a complaint at the
 columns tier, since a building on a ledge is a real thing to draw and the world builds either way. The
-foundation levels its plinth at the footprint's own highest column, so a neighbour that is void, or more than
-a step below the floor, is met by a sheer face of that plinth: a wall a player cannot climb, at a height
+foundation levels its fill at the footprint's own highest column, so a neighbour that is void, or more than
+a step below the floor, is met by a sheer face of that fill: a wall a player cannot climb, at a height
 nobody chose. It is read off the **provenance** rather than off the intent, so it covers everything a pass
 stamped — a wool cage, a spawn cube, a placed building — by the identity each already recorded.
 
@@ -812,11 +812,13 @@ inside the walls plus the roof's overhang, which is what makes a shell safe to s
 these are asked for rather than assumed, and a style naming none leaves the ring around the building exactly as
 it found it.
 
-What a style never touches: the **platform** under a room (`StampFoundation`'s bedrock column, ST1) and the
-**entrance redstone line** (ST1) belong to the plan-derived structures, not to a shell. The platform is level,
-at the highest column of the footprint it fills, because the room standing on it takes one floor course read
-from that same column — a platform following the ground would stop under the floor wherever the ground falls
-away and leave it spanning air.
+What a style never touches: the **platform** under a room (`StampFoundation`) and the **entrance redstone
+line** (ST1) belong to the plan-derived structures, not to a shell. The platform is level, at the highest
+column of the footprint it fills, because the room standing on it takes one floor course read from that same
+column — a platform following the ground would stop under the floor wherever the ground falls away and leave
+it spanning air. It fills **upward only, in stone**: what keeps a room from being entered from below is its
+region rather than its floor, so there is no plinth under it, and stone is what the painter finishes (TP6), so
+the ground a room stands on is painted like the ground around it.
 
 Check this section against the studio: the house-part library previews stamp a draft through the real
 `HouseStamper` and read it back out of the world, so where the prose here and the preview disagree, suspect

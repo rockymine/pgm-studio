@@ -75,7 +75,7 @@ public sealed record MapIntent
     public Dictionary<string, string> IslandTeams { get; init; } = new();
 
     /// <summary>Block-coordinate structure directives the world-export path stamps into the synthesised world
-    /// (docs/generator/rules.md ST1–ST4): wool-room floors, entrance redstone lines, iron cubes, and
+    /// (docs/generator/rules.md ST1–ST4): entrance redstone lines, iron cubes, and
     /// pre-built approach walls. Filled only by the plan compiler (all coordinates already resolved and fanned
     /// across the symmetry orbit); null on hand-authored / imported intents, which behave exactly as before.</summary>
     public StructureIntent? Structures { get; init; }
@@ -94,9 +94,6 @@ public sealed record StructureIntent
     /// meant.</summary>
     public string? Layer { get; init; }
 
-    /// <summary>Wool-room footprints stamped as solid bedrock from y=0 to the surface (ST1).</summary>
-    public List<RoomFloor> RoomFloors { get; init; } = new();
-
     /// <summary>Wool-room entrance redstone lines: a wire row with an end torch each side (ST1).</summary>
     public List<RedstoneLine> RedstoneLines { get; init; } = new();
 
@@ -107,8 +104,7 @@ public sealed record StructureIntent
     public List<WallStructure> Walls { get; init; } = new();
 
     /// <summary>True when every directive list is empty (no structures to stamp).</summary>
-    public bool IsEmpty => RoomFloors.Count == 0 && RedstoneLines.Count == 0
-        && IronCubes.Count == 0 && Walls.Count == 0;
+    public bool IsEmpty => RedstoneLines.Count == 0 && IronCubes.Count == 0 && Walls.Count == 0;
 }
 
 /// <summary>An entrance redstone line: a straight wire row between the two block ends (inclusive), a torch at
@@ -120,12 +116,6 @@ public sealed record StructureIntent
 /// <param name="Stamp">Which stamping of the structure this is, so the same line lays identically on every
 /// export.</param>
 public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, StampId Stamp = default);
-
-/// <summary>A wool room's bedrock foundation: the footprint filled from y=0 to the surface, and which room it
-/// belongs to.</summary>
-/// <param name="Area">The footprint filled from y=0 to the surface.</param>
-/// <param name="Stamp">Which stamping of the structure this is.</param>
-public readonly record struct RoomFloor(Rect Area, StampId Stamp = default);
 
 /// <summary>An iron cube anchored on a (whole-block) marker; a 4×4×4 iron structure resting on the surface.
 /// <see cref="Renew"/> flags a marker inside a spawn-role piece — its cube regrows via the map.xml renewables

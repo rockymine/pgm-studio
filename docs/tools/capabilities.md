@@ -58,8 +58,8 @@ override-subtracts remove theirs last, so an override-add is how ground is put b
 override-subtract is how a hole is cut through ground that was itself an override.
 
 The **intent** is what the map is *for*: teams, spawns with yaw and protection, wools with rooms and
-monuments, destroyables, cores, the build region and its holes, water lanes, and `structures` — room floors,
-entrance redstone, iron cubes and approach walls. It is the only layer that knows the objective.
+monuments, destroyables, cores, the build region and its holes, water lanes, and `structures` — entrance
+redstone, iron cubes and approach walls. It is the only layer that knows the objective.
 
 ## A worked example
 
@@ -113,7 +113,7 @@ the whole 140×260 board.
 its orbit image — the bedrock approach walls MG21 says nothing generated has ever asked for. They are a plan
 mark rather than hand-written intent: `ruediger.plan.json` carries one entry in `walls`, naming the piece pair
 `wool-a-t1`/`wool-a-t3`, and the compiler stamps it onto the seam those two share and fans it. The intent also
-carries the two room floors and the two entrance redstone lines, from the same compile.
+carries the two entrance redstone lines, from the same compile.
 
 What it has none of is houses, dressing or iron, which is exactly the gap the review's dressing entries
 describe. One clarification worth keeping, because the map is easy to misread: it holds a **single** sketch

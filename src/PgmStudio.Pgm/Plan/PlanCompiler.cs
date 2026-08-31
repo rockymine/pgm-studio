@@ -385,7 +385,7 @@ public static class PlanCompiler
         };
     }
 
-    // ── structures: bedrock room floors, entrance redstone, iron cubes, approach walls (ST1–ST4) ─────────
+    // ── structures: entrance redstone, iron cubes, approach walls (ST1–ST4) ─────────────────────────────
     //
     // Directives are computed once on the authored team-0 unit, then fanned to every orbit image in absolute
     // block coordinates (the world-export path stamps them verbatim). Fanning is deduplicated so a
@@ -393,17 +393,6 @@ public static class PlanCompiler
     private static StructureIntent BuildStructures(PlanModel plan, ContactGraph d)
     {
         var s = new StructureIntent();
-
-        // ST1 room floors — one bedrock column footprint per wool-room piece.
-        var floorSeen = new HashSet<(int, int, int, int)>();
-        foreach (var piece in d.Pieces.Where(p => p.Role == PlanRoles.WoolRoom))
-            for (var k = 0; k < d.Order; k++)
-            {
-                var r = d.FanRect(piece.Rect, k);
-                if (floorSeen.Add((r.MinX, r.MinZ, r.MaxX, r.MaxZ)))
-                    s.RoomFloors.Add(new RoomFloor(new Rect(r.MinX, r.MinZ, r.MaxX, r.MaxZ),
-                                                   new StampId("roomfloor", piece.Id, k)));
-            }
 
         // ST1 entrance redstone — the last block row inside the room along each entry interface: every
         // terrain↔wool-room land seam, and every build-zone frontline edge on a room piece (WX6 — bridging

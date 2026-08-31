@@ -91,7 +91,6 @@ public static class DressingScope
 
         if (intent.Structures is { } structures)
         {
-            foreach (var floor in structures.RoomFloors) KeepArea(floor.Area, KeepOut.Structure);
             foreach (var cube in structures.IronCubes) KeepRect(cube.X - 2, cube.Z - 2, cube.X + 2, cube.Z + 2, KeepOut.Structure);
             foreach (var wall in structures.Walls) KeepRect(wall.MinX, wall.MinZ, wall.MaxX, wall.MaxZ, KeepOut.Structure);
             foreach (var line in structures.RedstoneLines) KeepRect(Math.Min(line.X1, line.X2), Math.Min(line.Z1, line.Z2), Math.Max(line.X1, line.X2), Math.Max(line.Z1, line.Z2), KeepOut.Structure);

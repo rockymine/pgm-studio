@@ -19,15 +19,6 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
 
 ## The piece that does four jobs: the region, the marker, and the building on it
 
-- [ ] **WE68 — A wool room is a bedrock plinth nobody drew.** `ST1` fills every wool-room piece solid with
-  bedrock from `y=0` so the room cannot be tunnelled into from below, which the region's own `enter` filter
-  already denies — so the fill buys nothing and stands where the author drew ground (the general case is
-  `WX11`'s complaint). Delete `StructureIntent.RoomFloors`, the `RoomFloor` record,
-  `WorldBuilder.StampRoomFloors` and its call, and the room-floor block at the head of
-  `PlanCompiler.BuildStructures`. `StructureStamper.StampFoundation` keeps the **up**-fill that levels a room's
-  floor over dipping ground and drops the **down**-fill, levelling in the terrain's own surface material until
-  `B145` gives it a stated one. `ST1`'s bedrock clause and `structures.md` change with it.
-
 - [ ] **TN10 — A marker moves in 2.5-block steps, so a spawn cannot stand at block 3.** `at` is an offset in
   **cells** on a half-cell lattice while everything downstream is blocks: in a 20-block piece that is nine
   legal positions per axis out of the 41 the half-block lattice the export snaps to
