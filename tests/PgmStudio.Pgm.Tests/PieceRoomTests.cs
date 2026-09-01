@@ -20,10 +20,10 @@ public sealed class PieceRoomTests
     public async Task A_spawn_piece_is_seeded_with_the_room_the_default_would_have_given_it()
     {
         // The seeded rectangle and the resolver's fallback are one number: a 20×20 spawn facing −z opens as
-        // an 18×13 room, six blocks of ground in front of its door and one on the other three sides.
+        // an 18×14 room, five blocks of ground in front of its door and one on the other three sides.
         var piece = new BlockRect(0, 0, 20, 20);
         var seed = PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front")!.Value;
-        await Assert.That(seed.Footprint).IsEquivalentTo(new double[] { 1, RoomFrames.DefaultDoorGap, 18, 13 });
+        await Assert.That(seed.Footprint).IsEquivalentTo(new double[] { 1, RoomFrames.DefaultDoorGap, 18, 14 });
 
         var stated = PlanMarkers.Footprint(piece, seed.Footprint)!.Value;
         var fallback = RoomFrames.DefaultFootprint(
@@ -137,13 +137,13 @@ public sealed class PieceRoomTests
         var piece = new BlockRect(0, 0, 20, 20);
         var gap = (double)RoomFrames.DefaultDoorGap;
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front")!.Value.Footprint)
-            .IsEquivalentTo(new[] { 1d, gap, 18d, 13d });
+            .IsEquivalentTo(new[] { 1d, gap, 18d, 14d });
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "back")!.Value.Footprint)
-            .IsEquivalentTo(new[] { 1d, 1d, 18d, 13d });
+            .IsEquivalentTo(new[] { 1d, 1d, 18d, 14d });
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "left")!.Value.Footprint)
-            .IsEquivalentTo(new[] { gap, 1d, 13d, 18d });
+            .IsEquivalentTo(new[] { gap, 1d, 14d, 18d });
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "right")!.Value.Footprint)
-            .IsEquivalentTo(new[] { 1d, 1d, 13d, 18d });
+            .IsEquivalentTo(new[] { 1d, 1d, 14d, 18d });
     }
 
     public static IEnumerable<Func<string>> Roles() => [() => PlanRoles.Spawn, () => PlanRoles.WoolRoom];

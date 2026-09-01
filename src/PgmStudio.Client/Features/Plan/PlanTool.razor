@@ -406,6 +406,34 @@
                   <i data-lucide="trash-2"></i> Delete piece
                 </Button>
               }
+              else if (sel.Kind == "footprint")
+              {
+                <DetailHeader Icon="home" Label="Building">
+                  <span class="detail-header-badges"><Badge Kind="neutral">@sel.MarkerKind</Badge></span>
+                </DetailHeader>
+                <Field Label="On piece">
+                  <div class="plan-readout">@sel.Piece</div>
+                </Field>
+                <Field Label="Size">
+                  <div class="plan-readout">
+                    @(sel.Footprint is { Length: >= 4 } f ? $"{(int)f[2]} × {(int)f[3]}" : "—")
+                  </div>
+                </Field>
+                <Field Label="From the piece corner">
+                  <div class="plan-readout">
+                    @(sel.Footprint is { Length: >= 4 } o ? $"x {(int)o[0]}, z {(int)o[1]}" : "—")
+                  </div>
+                </Field>
+                <p class="section-desc">
+                  The room the shell is stamped on. The piece around it is the protection region and the
+                  bounds every marker on it is held to, so a wide region can carry a small hall. Drag the
+                  dashed rectangle to move it, its handles to resize.
+                </p>
+                <Button Full Variant="danger" OnClick="DeleteSelected">
+                  <i data-lucide="trash-2"></i> Clear building
+                </Button>
+                <p class="section-desc">Clearing states no building, and the default one comes back.</p>
+              }
               else if (sel.Kind == "zone")
               {
                 var lane = sel.ZoneKind == "water-lane";

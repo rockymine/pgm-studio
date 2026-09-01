@@ -14,6 +14,7 @@ import {
   markerAtWorld, pickAtWorld, sameSelection, MARKER_HIT_CELLS,
   pieceSurface, surfaceRange, surfaceFraction, markerList, markerAt, MARKER_KINDS,
   boxMembers, boxAtCell, boxOfPiece, boxMirrorImages, rectContainsRect,
+  footprintCell, footprintAtCell, clampFootprint, pieceBlocks, FOOTPRINT_KINDS,
 } from "../../src/PgmStudio.Client/wwwroot/js/studio/plan/plan-doc.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -581,4 +582,69 @@ test("ids are unique across kinds, not merely within one", () => {
     placements: { wools: [{ id: "core-1", piece: "vault", at: [0, 0] }], cores: [{ piece: "mid", at: [0, 0] }] },
   });
   assert.equal(doc.placements.cores[0].id, "core-2");
+});
+
+
+// ── footprints: the building on a role piece ────────────────────────────────
+
+/** A one-piece doc: a 20x20 spawn piece at the origin carrying a marker and a stated building. */
+function withFootprint(footprint = [1, 5, 18, 14], at = [10, 12]) {
+  const doc = emptyDoc();
+  doc.globals.cell = 5;
+  doc.pieces.push({ id: "spawn", role: "spawn", rect: [0, 0, 4, 4] });
+  doc.placements.spawns.push({ id: "spawn-1", piece: "spawn", at, facing: "front", footprint });
+  return doc;
+}
+
+test("footprintCell puts a block footprint on the cell grid its piece is drawn on", () => {
+  const doc = withFootprint();
+  assert.deepEqual(footprintCell(doc, doc.placements.spawns[0]), [0.2, 1, 3.6, 2.8]);
+});
+
+test("footprintCell answers null where the placement states no building", () => {
+  const doc = withFootprint();
+  delete doc.placements.spawns[0].footprint;
+  assert.equal(footprintCell(doc, doc.placements.spawns[0]), null);
+});
+
+test("a footprint is picked between the marker that sits in it and the piece that holds it", () => {
+  const doc = withFootprint();
+  // Inside the building, away from the marker: the building answers, not the piece under it.
+  assert.deepEqual(footprintAtCell(doc, 1, 2), { kind: "footprint", markerKind: "spawn", index: 0 });
+  // In the yard the door gap keeps, still on the piece but outside the building.
+  assert.equal(footprintAtCell(doc, 1, 0.2), null);
+});
+
+test("a footprint drag is held on its piece", () => {
+  const doc = withFootprint();
+  const m = doc.placements.spawns[0];
+  assert.deepEqual(clampFootprint(doc, m, [-6, -6, 18, 14], 4), [0, 0, 18, 14]);
+  assert.deepEqual(clampFootprint(doc, m, [40, 40, 18, 14], 4), [2, 6, 18, 14]);
+});
+
+test("a footprint drag keeps its marker inside, sliding back over it rather than refusing", () => {
+  const doc = withFootprint([1, 5, 6, 6], [10, 12]);
+  const m = doc.placements.spawns[0];
+  // Dragged hard to the corner, the rect stops where it still covers the marker at (10, 12).
+  const [x, z, w, h] = clampFootprint(doc, m, [0, 0, 6, 6], 4);
+  assert.ok(x <= 10 && 10 <= x + w, `marker x outside ${x}..${x + w}`);
+  assert.ok(z <= 12 && 12 <= z + h, `marker z outside ${z}..${z + h}`);
+});
+
+test("a footprint resize cannot state a room smaller than the least there is", () => {
+  const doc = withFootprint();
+  const m = doc.placements.spawns[0];
+  const [, , w, h] = clampFootprint(doc, m, [1, 5, 1, 1], 4);
+  assert.deepEqual([w, h], [4, 4]);
+});
+
+test("a footprint cannot be stated larger than the piece that holds it", () => {
+  const doc = withFootprint();
+  const m = doc.placements.spawns[0];
+  const [, , w, h] = clampFootprint(doc, m, [0, 0, 99, 99], 4);
+  assert.deepEqual([w, h], pieceBlocks(doc, doc.pieces[0]));
+});
+
+test("both room kinds carry a footprint", () => {
+  assert.deepEqual([...FOOTPRINT_KINDS].sort(), ["spawn", "wool"]);
 });

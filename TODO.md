@@ -45,22 +45,12 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   *Reproduced 2026-08-31 · one `lane` piece `x[-24,-8) z[-24,-8)`, an iron marker at `at:[0.5,0.5]`. The cube
   stamps at `x[-26,-22) z[-26,-22)`, two columns into the void, with no finding.*
 
-- [ ] **G262 — Every authored iron marker in the corpus is unplaceable.** Measured across `tools/seeds`: 12 of
-  14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled room need `6 + 3 + 3`
-  = 12 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. The rule is right and the data
-  is stale: re-author each seed's spawn piece so it either has the depth for a yard or states a footprint
-  small enough to open one, and re-record whatever `docs/generator/seed-stats.md` measures off them.
-
-- [ ] **TN11 — The seeded footprint has no handle on the canvas.** A drawn `spawn` or `wool-room` piece now
-  states its marker and its footprint, but the only way to resize the building is to type the numbers. Draw
-  the footprint as a second selectable rectangle inside the piece, wearing the transform box every authoring
-  surface uses, its drag constrained to the piece and to containing the marker, with the size pill the piece
-  already gets. `PlanCompiler.AppendStructuralShape` projects the piece rect into the sketch as one locked
-  annotation and should project **both** — the region as the ground annotation it is now, and the footprint as
-  a second tagged rectangle, which is also what `B145` hangs a theme scope on.
-
-  *Seeding a spawn's **iron** waits on `B177`: it is the field that task deletes, so a marker written now is
-  written into a shape about to change.*
+- [ ] **TN11 — The footprint is drawn on the canvas but never reaches the sketch.**
+  `PlanCompiler.AppendStructuralShape` projects a role piece into the sketch as one locked annotation, and it
+  is the piece rect that goes — so the building the author now states and drags is invisible downstream.
+  Project **both**: the region as the ground annotation it is today, and the footprint as a second tagged
+  rectangle. That second shape is what `B145` hangs a theme scope on, and what would let the levelling fill
+  under a room read a material rather than defaulting to stone.
 
 - [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
   (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it

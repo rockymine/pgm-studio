@@ -18,6 +18,7 @@ import { blockDataToDataUrl } from "../render/block-render.js";
 import {
   ROLE_COLORS, BOX_COLORS, ZONE_COLORS, isWaterLane, canonicalZoneKind, FACING_DIR, nextFacing, rectCellsToBlocks, cellOfWorld, rectFromCells,
   markerCell, attachMarker, markerAt, markerList, MARKER_KINDS, allMarkers, viewBounds, pickAtWorld, sameSelection,
+  footprintCell, clampFootprint, pieceBlocks, FOOTPRINT_KINDS,
   pieceSurface, surfaceRange, surfaceFraction, isAnnotationRole, boxById, boxMembers, boxOfPiece,
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
@@ -51,6 +52,11 @@ const GRID_SNAP_CELLS = 4;
 // fit() frames the working area with this much of it again added on each side, so the tinted region sits
 // inside a visible margin of grid rather than filling the surface edge to edge.
 const FIT_PAD_FRACTION = 0.2;
+// The smallest span a footprint drag may state (WX2's open-ground minimum, RoomFrames.MinSpan(false)): a
+// 2x2 pad and the block of clear floor it keeps on every side. A shell needs two more on each axis, which
+// only the export knows, so the drag holds the floor every room shares and leaves that refusal where the
+// style binding is read.
+const MIN_ROOM_BLOCKS = 4;
 
 
 // Lerp a #rrggbb colour toward white by t∈[0,1] — a higher surface tints the fill lighter.
@@ -338,6 +344,7 @@ export class PlanCanvas extends CanvasBase {
     painter.layer("ghost",     () => this.#paintGhost());
     painter.layer("zone",      () => this.#paintZones());
     painter.layer("piece",     () => this.#paintPieces());
+    painter.layer("footprint", () => this.#paintFootprints());
     painter.layer("box",       () => this.#paintBoxes());
     painter.layer("inspect",   () => this.#paintInspect());
     painter.layer("violation", () => this.#paintViolations());
@@ -539,6 +546,19 @@ export class PlanCanvas extends CanvasBase {
       }
       this.#painter.rect(b, { fill, stroke, width: 1.2 });
     }
+  }
+
+  // The building on a role piece: the rect the shell is stamped on, drawn inside the region that holds it.
+  // Unfilled and dashed, so the ground the piece carries still reads through — the piece is the region and
+  // this is the house, and seeing both at once is the whole reason the footprint is stated.
+  #paintFootprints() {
+    const cell = this.#doc.globals.cell;
+    for (const kind of FOOTPRINT_KINDS)
+      for (const marker of markerList(this.#doc, kind) || []) {
+        const rect = footprintCell(this.#doc, marker);
+        if (rect) this.#painter.rect(rectCellsToBlocks(rect, cell),
+          { stroke: "var(--accent-light)", width: 1.4, dash: [4, 3] });
+      }
   }
 
   // Box annotations: an unfilled dashed envelope per box, kind-coloured, drawn above the pieces it groups
@@ -828,6 +848,12 @@ export class PlanCanvas extends CanvasBase {
     if (sel.kind === "piece") return this.#doc.pieces.find(p => p.id === sel.id) || null;
     if (sel.kind === "zone") return this.#doc.zones.find(z => z.id === sel.id) || null;
     if (sel.kind === "box") return boxById(this.#doc, sel.id);
+    // A footprint has no record of its own — it is four numbers on a placement — so it answers a synthetic
+    // rect for drawing. Moving and resizing write through to the placement rather than to this.
+    if (sel.kind === "footprint") {
+      const rect = footprintCell(this.#doc, markerAt(this.#doc, sel.markerKind, sel.index));
+      return rect ? { rect } : null;
+    }
     return null;
   }
 
@@ -847,6 +873,14 @@ export class PlanCanvas extends CanvasBase {
         lava: m?.lava, lavaHeight: m?.lavaHeight,
         float: m?.float, leak: m?.leak, openTop: m?.openTop,
       });
+      return;
+    }
+    if (this.#sel.kind === "footprint") {
+      const m = markerAt(this.#doc, this.#sel.markerKind, this.#sel.index);
+      cb(m?.footprint
+        ? { kind: "footprint", markerKind: this.#sel.markerKind, index: this.#sel.index,
+            piece: m.piece, footprint: m.footprint }
+        : null);
       return;
     }
     const item = this.#selItem();
@@ -909,8 +943,9 @@ export class PlanCanvas extends CanvasBase {
   _onResizeMove(e) {
     if (!this.#resize) return false;
     const p = this._clientToSvg(e.clientX, e.clientY);
-    const [cx, cz] = cellOfWorld(p.x, p.y, this.#doc.globals.cell);
-    this.#resizeTo(cx, cz);
+    const cell = this.#doc.globals.cell;
+    const [cx, cz] = cellOfWorld(p.x, p.y, cell);
+    this.#resizeTo(cx, cz, p.x / cell, p.y / cell);
     return true;
   }
   _onResizeUp(e) {
@@ -962,7 +997,11 @@ export class PlanCanvas extends CanvasBase {
     this.#fireSelect();
     // A box drag carries its members — resolve them now, before the envelope starts moving.
     const carried = hit?.kind === "box" ? boxMembers(this.#doc, boxById(this.#doc, hit.id) || { rect: [0, 0, 0, 0] }) : null;
-    this.#drag = { mode: "move", sel: hit, grab: [cx, cz], moved: false, reselect: sameSelection(prev, hit), carried };
+    // A footprint moves a block at a time, so its grab is the fractional cell the cursor is actually at
+    // rather than the whole cell a piece drag steps by.
+    const cell = this.#doc.globals.cell;
+    const grab = hit?.kind === "footprint" ? [svgPt.x / cell, svgPt.y / cell] : [cx, cz];
+    this.#drag = { mode: "move", sel: hit, grab, moved: false, reselect: sameSelection(prev, hit), carried };
   }
 
   #moveTo(cx, cz, fcx, fcz) {
@@ -974,6 +1013,21 @@ export class PlanCanvas extends CanvasBase {
       const at = attachMarker(this.#doc, fcx, fcz);
       if (at && (at.piece !== m.piece || at.at[0] !== m.at[0] || at.at[1] !== m.at[1])) {
         m.piece = at.piece; m.at = at.at; d.moved = true; this.render();
+      }
+      return;
+    }
+    // A footprint is stated in blocks, so it tracks the cursor a block at a time rather than a cell at a
+    // time — a cell-grained drag could only ever offer every fifth position of the rect it is moving.
+    if (d.sel.kind === "footprint") {
+      const marker = markerAt(this.#doc, d.sel.markerKind, d.sel.index);
+      if (!marker?.footprint) return;
+      const cell = this.#doc.globals.cell;
+      const bdx = Math.round((fcx - d.grab[0]) * cell), bdz = Math.round((fcz - d.grab[1]) * cell);
+      if (!bdx && !bdz) return;
+      const f = marker.footprint;
+      const next = clampFootprint(this.#doc, marker, [f[0] + bdx, f[1] + bdz, f[2], f[3]], MIN_ROOM_BLOCKS);
+      if (next && (next[0] !== f[0] || next[1] !== f[1])) {
+        marker.footprint = next; d.moved = true; d.grab = [fcx, fcz]; this.render();
       }
       return;
     }
@@ -1056,12 +1110,13 @@ export class PlanCanvas extends CanvasBase {
   // Resize the selected piece/zone by dragging a handle: move the picked cell edge(s) to the cursor cell,
   // keeping each extent ≥ 1 cell.
   #startResize(e, handle) {
-    if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker") return;
+    if (e.button !== 0 || !this.#sel || this.#sel.kind === "marker") return;   // a marker is a point, not a box
     e.stopPropagation(); e.preventDefault();
     this.#resize = { handle, sel: this.#sel };
   }
 
-  #resizeTo(cx, cz) {
+  #resizeTo(cx, cz, fcx = cx, fcz = cz) {
+    if (this.#resize.sel?.kind === "footprint") { this.#resizeFootprintTo(fcx, fcz); return; }
     const item = this.#selItem(); if (!item) return;
     const h = this.#resize.handle;
     let [x, z, w, hh] = item.rect;
@@ -1074,6 +1129,28 @@ export class PlanCanvas extends CanvasBase {
     else if (ez === 1) maxZ = Math.max(cz, minZ);
     item.rect = [minX, minZ, maxX - minX + 1, maxZ - minZ + 1];
     this.render();
+  }
+
+  // The footprint's own resize: the grip drags a block edge, and the result is clamped to the piece and to
+  // still holding the marker, so a drag can never state a room the export would refuse.
+  #resizeFootprintTo(fcx, fcz) {
+    const sel = this.#resize.sel;
+    const marker = markerAt(this.#doc, sel.markerKind, sel.index);
+    const piece = this.#doc.pieces.find(p => p.id === marker?.piece);
+    if (!marker?.footprint || !piece) return;
+    const cell = this.#doc.globals.cell;
+    const [pw, ph] = pieceBlocks(this.#doc, piece);
+    const bx = Math.round((fcx - piece.rect[0]) * cell), bz = Math.round((fcz - piece.rect[1]) * cell);
+    const f = marker.footprint;
+    let minX = f[0], maxX = f[0] + f[2], minZ = f[1], maxZ = f[1] + f[3];
+    const ex = gripSideX(this.#resize.handle), ez = gripSideZ(this.#resize.handle);
+    if (ex === -1) minX = Math.max(0, Math.min(bx, maxX - MIN_ROOM_BLOCKS));
+    else if (ex === 1) maxX = Math.min(pw, Math.max(bx, minX + MIN_ROOM_BLOCKS));
+    if (ez === -1) minZ = Math.max(0, Math.min(bz, maxZ - MIN_ROOM_BLOCKS));
+    else if (ez === 1) maxZ = Math.min(ph, Math.max(bz, minZ + MIN_ROOM_BLOCKS));
+    const next = clampFootprint(this.#doc, marker,
+      [minX, minZ, maxX - minX, maxZ - minZ], MIN_ROOM_BLOCKS);
+    if (next) { marker.footprint = next; this.render(); }
   }
 
   // ── build ─────────────────────────────────────────────────────────────────────

@@ -1289,6 +1289,9 @@ public partial class PlanTool
         [JsonPropertyName("float")] public int? Float { get; set; }
         [JsonPropertyName("leak")] public int? Leak { get; set; }
         [JsonPropertyName("openTop")] public bool? OpenTop { get; set; }
+        /// <summary>The building on a role piece, <c>[x, z, w, h]</c> in blocks from the piece's minimum
+        /// corner, on a <c>footprint</c> selection.</summary>
+        [JsonPropertyName("footprint")] public double[]? Footprint { get; set; }
         [JsonPropertyName("color")] public string? Color { get; set; }
         [JsonPropertyName("boxKind")] public string BoxKind { get; set; } = "";
         [JsonPropertyName("zoneKind")] public string ZoneKind { get; set; } = "";

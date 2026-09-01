@@ -192,13 +192,13 @@ public sealed class RoomFramesTests
     public async Task A_spawn_piece_opens_with_ground_in_front_of_its_door_and_the_iron_stands_in_it()
     {
         // The default footprint keeps one block of clean floor on three sides and DefaultDoorGap in front of
-        // the door, so a 20×20 piece facing −z opens as an 18×13 room with six blocks of ground ahead of it.
+        // the door, so a 20×20 piece facing −z opens as an 18×14 room with five blocks of ground ahead of it.
         // The cube stands in that ground, and the room gives up nothing to make space.
         var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 20), footprint: null, walled: true,
             10, 16, [], RoomEdge.NegZ, [(10, 1.5)], out var refusal)!;
         await Assert.That(refusal).IsNull();
         await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
-            .IsEqualTo((1, 6, 19, 19));
+            .IsEqualTo((1, 5, 19, 19));
 
         var iron = room.Iron[0];
         await Assert.That(iron.Placeable).IsTrue();
@@ -255,7 +255,7 @@ public sealed class RoomFramesTests
         await Assert.That(refusal).IsNull();
         await Assert.That(room.Iron[0].Placeable).IsFalse();
         await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
-            .IsEqualTo((1, 6, 19, 19));
+            .IsEqualTo((1, 5, 19, 19));
     }
 
     [Test]

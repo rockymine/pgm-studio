@@ -20,6 +20,13 @@ reuse. The prefix names the document the task must leave correct, catalogued in 
 about which section the entry sits in — the retired prefixes still on entries here (`B`, `S`, `N`, `C`, `CV`,
 `P`, `A`) keep theirs untouched.
 
+- [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
+  `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
+  room need `6 + 2 + 3` = 11 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. Nothing is
+  broken by it — an unplaceable marker stamps nothing and is flagged `WX9` — so this is a data refresh, not a
+  defect: re-author each spawn piece so it either has the depth for a yard or states a footprint small enough
+  to open one, then re-record whatever `docs/generator/seed-stats.md` measures off them.
+
 ## The configure wizard: a map built from what an author states it is
 
 The guided wizard at `/maps/{id}/configure` (UI label **Configure**) that builds a map from declarative

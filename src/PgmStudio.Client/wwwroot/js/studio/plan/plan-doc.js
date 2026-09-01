@@ -316,6 +316,8 @@ export function pickAtWorld(doc, wx, wz, { drill = false } = {}) {
     const b = boxAtCell(doc, cx, cz);
     if (b) return { kind: "box", id: b.id };
   }
+  const f = footprintAtCell(doc, cx, cz);
+  if (f) return f;
   const p = pieceAtCell(doc, cx, cz);
   if (p) return { kind: "piece", id: p.id };
   const z = zoneAtCell(doc, cx, cz);
@@ -326,7 +328,8 @@ export function pickAtWorld(doc, wx, wz, { drill = false } = {}) {
 /** True if two selection refs point at the same item (piece/zone/box id, or marker kind+index). */
 export function sameSelection(a, b) {
   if (!a || !b || a.kind !== b.kind) return false;
-  if (a.kind === "marker") return a.markerKind === b.markerKind && a.index === b.index;
+  if (a.kind === "marker" || a.kind === "footprint")
+    return a.markerKind === b.markerKind && a.index === b.index;
   return a.id === b.id;
 }
 
@@ -361,6 +364,63 @@ export function markerCell(doc, marker) {
   const p = pieceById(doc, marker.piece);
   const cell = doc.globals.cell;
   return p ? [p.rect[0] + marker.at[0] / cell, p.rect[1] + marker.at[1] / cell] : null;
+}
+
+// ── footprints (the building on a role piece) ───────────────────────────────
+
+/** The kinds whose placements carry a footprint — the two that stamp a room. */
+export const FOOTPRINT_KINDS = ["spawn", "wool"];
+
+/**
+ * The footprint's absolute **cell** rect `[x, z, w, h]` (fractional), or null where the placement states
+ * none. Stored in blocks from the piece's minimum corner, drawn on the cell grid the canvas works in.
+ */
+export function footprintCell(doc, marker) {
+  const p = pieceById(doc, marker?.piece);
+  const f = marker?.footprint;
+  if (!p || !Array.isArray(f) || f.length < 4) return null;
+  const cell = doc.globals.cell;
+  return [p.rect[0] + f[0] / cell, p.rect[1] + f[1] / cell, f[2] / cell, f[3] / cell];
+}
+
+/** The piece's own block span `[w, h]` — the box a footprint and a marker are both held inside. */
+export function pieceBlocks(doc, piece) {
+  const cell = doc.globals.cell;
+  return [piece.rect[2] * cell, piece.rect[3] * cell];
+}
+
+/**
+ * A footprint moved/resized to `[x, z, w, h]` blocks, clamped so it stays on its piece and keeps its marker
+ * inside — the two things `WX12` and `WX4` would otherwise refuse. Spans are held at `min`, the smallest
+ * room there is, so a drag cannot shrink one past what the export would accept.
+ */
+export function clampFootprint(doc, marker, next, min) {
+  const p = pieceById(doc, marker.piece);
+  if (!p) return null;
+  const [pw, ph] = pieceBlocks(doc, p);
+  const w = Math.max(min, Math.min(Math.round(next[2]), pw));
+  const h = Math.max(min, Math.min(Math.round(next[3]), ph));
+  let x = Math.max(0, Math.min(Math.round(next[0]), pw - w));
+  let z = Math.max(0, Math.min(Math.round(next[1]), ph - h));
+  // The marker is where a player arrives and the pad is derived from it, so the building follows the marker
+  // rather than leaving it outside: slide the rect back over it rather than refusing the drag.
+  const [mx, mz] = marker.at;
+  x = Math.max(Math.min(x, Math.floor(mx)), Math.ceil(mx) - w);
+  z = Math.max(Math.min(z, Math.floor(mz)), Math.ceil(mz) - h);
+  return [Math.max(0, Math.min(x, pw - w)), Math.max(0, Math.min(z, ph - h)), w, h];
+}
+
+/** The `{ kind, index, marker }` of the footprint whose rect covers absolute cell `(cx, cz)`, or null. */
+export function footprintAtCell(doc, cx, cz) {
+  for (const kind of FOOTPRINT_KINDS) {
+    const list = markerList(doc, kind) || [];
+    for (let index = list.length - 1; index >= 0; index--) {
+      const rect = footprintCell(doc, list[index]);
+      if (rect && cx >= rect[0] && cx < rect[0] + rect[2] && cz >= rect[1] && cz < rect[1] + rect[3])
+        return { kind: "footprint", markerKind: kind, index };
+    }
+  }
+  return null;
 }
 
 /**

@@ -5108,6 +5108,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **The building is drawn and dragged on the canvas (TN11, canvas half).** A stated footprint appears inside its piece as a
+  dashed rectangle — the region and the building visible at once — and wears the transform box every authoring
+  surface uses: move it, resize it by its grips, a block at a time rather than a cell at a time. Every drag is
+  clamped rather than refused (held on the piece, held around the marker, never under `4×4`), so the canvas
+  cannot state a room the export would decline, and clearing it falls back to the resolver's own default.
+- **Iron is one size and the room never yields to it (B177).** A cube is `IronSpan` blocks square whatever its
+  marker's parity, keeps at least `IronGap` blocks of standing room to the shell, and seats where the marker
+  puts it or resolves unplaceable — the parity ladder and the shell's yield are both gone. A drawn spawn is
+  seeded with one, hard against the piece's outer edge and clear of the door corridor; adding more and sliding
+  them is the author's.
 - **A drawn role piece states its own room (B178 · TN11).** A `spawn` or `wool-room` placement carries a
   **`footprint`** — `[x, z, w, h]` in blocks from the piece's minimum corner, fanned per orbit image — and the
   room resolver takes it instead of insetting the piece, so a wide protection region can hold a small hall.

@@ -404,9 +404,11 @@ public static class RoomFrames
         return new ResolvedRoom(new RoomFrame(minX, minZ, maxX, maxZ, pad.Value, doors, wall), iron);
     }
 
-    /// <summary>Air blocks kept between an iron cube and the room shell (WX8): the standing room a player
-    /// has to get round the cube, so it reads as a thing in the yard rather than as part of the wall.</summary>
-    public const int IronGap = 3;
+    /// <summary>The least air a cube keeps between itself and the room shell (WX8): the standing room a
+    /// player has to get round it, so it reads as a thing in the yard rather than as part of the wall. A
+    /// minimum, not a spacing — a long piece carrying a small house leaves the cube further out, and the
+    /// author moves it there.</summary>
+    public const int IronGap = 2;
 
     /// <summary>The side of an iron cube (WX8). One size, whatever the marker's parity: a cube that changed
     /// size under the marker was a second thing to reason about at every seat, and the author moves the

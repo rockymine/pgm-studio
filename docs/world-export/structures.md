@@ -71,9 +71,9 @@ rounding it away.
   piece carries a shell whose footprint is the **room the plan states** — the placement's `footprint`, in
   blocks from the piece's minimum corner, which the editor writes when the piece is drawn
   (docs/tools/plan.md). Where it states none the piece is
-  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **six** on
+  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **five** on
   the side the door opens through, which is an iron cube plus the standing room it holds to the wall.
-  A 20×20 spawn piece facing −z therefore opens as an **18×13** room with somewhere for its iron to stand,
+  A 20×20 spawn piece facing −z therefore opens as an **18×14** room with somewhere for its iron to stand,
   rather than as an 18×18 room the cube has to make the shell shrink for. A wool room takes the plain
   inset: its entries come from whichever sides abut it, so it has no one side to keep clear, and no iron.
 
@@ -153,17 +153,18 @@ structure, and structures never fuse.
 
 - **WX8** *The cube is one size, and the room never gives an edge up for it.* An iron marker on a spawn
   piece stamps a **3×3** cube **outside the room shell**, inside the piece, with **three blocks of clear
-  air** to the wall — the standing room a player has to get round it, never flush, never merged into a
-  corner. There is no negotiation and no ladder: the cube centres on its marker, put back on the block
+  air** to the wall — the least standing room a player needs to get round it, never flush, never merged into
+  a corner. It is a floor rather than a spacing: a long piece carrying a small house leaves the cube further
+  out, and the author moves it there. There is no negotiation and no ladder: the cube centres on its marker, put back on the block
   lattice by rounding away from zero (which is what keeps a half-block landing symmetric across an orbit),
   and it fits there or it does not. The shell keeps the footprint `WX1` gave it whatever the iron asks for,
   because that footprint is the author's statement and a resolver quietly shrinking a building to make room
   for a cube the author dropped is the opacity the stated footprint exists against.
 
-  **What this costs, stated plainly.** A cube and a walled room on the same axis need `6 + 3 + 3` = **12
-  blocks**, and the default reaches its full door gap only on a piece **16 deep**. Below that a spawn piece
-  carries a room and no iron unless the author shrinks the footprint themselves to open a yard — which is
-  exactly what a stated footprint is for.
+  **What this costs, stated plainly.** A cube and a walled room on the same axis need `6 + 2 + 3` = **11
+  blocks**, and a piece drawn at the default carries iron from **13 deep**. Below that a spawn piece takes a
+  room and no iron unless the author shrinks the footprint to open a yard — which is exactly what a stated
+  footprint is for, and what turns the cube's one legal row into a band it can slide along.
 
 - **WX9** *Placeability is an attribute, not an exception.* Every iron marker resolves to
   **placeable or not** (`IronResolution.Placeable`) rather than to a refusal. An unplaceable marker stamps

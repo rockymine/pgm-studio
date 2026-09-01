@@ -214,13 +214,23 @@ from the piece's minimum corner — the same corner the marker's `at` is measure
 holding the room and the bounds every marker on it is held to; the footprint is the room itself, so a wide
 protection region can carry a small hall. It is fanned like the piece is, so an orbit image raises the same
 building on its own ground. Absent leaves it to the resolver's default (`WX1`): the piece inset by one block
-on every side, and by up to six in front of a spawn's door, which is an iron cube plus the standing
+on every side, and by up to five in front of a spawn's door, which is an iron cube plus the standing
 room it holds to the wall. A footprint smaller than a room can be (`WX2`) or reaching past its piece (`WX12`)
 is refused rather than clamped.
 
-Drawing a `spawn` or `wool-room` piece **states all three at once**. The editor asks `POST /api/plan/room` for
-the room that piece carries and writes the marker and the footprint onto a new placement, so what the document
-says is what the export builds — a default nobody can see is the opacity the stated footprint is against. The
+**The footprint is drawn and dragged.** It appears on the canvas as a dashed rectangle inside its piece — the
+region and the building, both visible at once, which is the whole reason the footprint is stated. Clicking it
+selects it (between the marker that sits in it and the piece that holds it, in the pick order), and it wears
+the same transform box every authoring surface uses: drag the rectangle to move it, its grips to resize it,
+both a block at a time rather than a cell at a time. A drag is clamped rather than refused — held on the
+piece, held around the marker, and never shrunk past `4×4` — so the canvas cannot state a room the export
+would decline. Deleting it states no footprint, which is not a hole: the resolver's default answers, and it
+is the same rectangle the piece was drawn with.
+
+Drawing a `spawn` or `wool-room` piece **states its contents at once**. The editor asks
+`POST /api/plan/room` for the room that piece carries and writes the marker, the footprint and — on a spawn
+whose yard has room for one — the iron marker onto a new placement, so what the document says is what the
+export builds — a default nobody can see is the opacity the stated footprint is against. The
 numbers are the resolver's own, so the seeded rectangle and the fallback are one number rather than two free
 to disagree. A piece too small to raise a shell on is left bare, which is the honest signal that nothing fits.
 

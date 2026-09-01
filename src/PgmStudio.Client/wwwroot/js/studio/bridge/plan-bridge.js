@@ -180,6 +180,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       doc.boxes = (doc.boxes || []).filter(x => x.id !== sel.id);
     } else if (sel.kind === "marker") {
       markerList(doc, sel.markerKind)?.splice(sel.index, 1);
+    } else if (sel.kind === "footprint") {
+      // Deleting a footprint states no footprint, which is not a hole: the room resolver's own default
+      // answers, and it is the same rectangle the piece was drawn with. The marker and the piece stay.
+      const m = markerList(doc, sel.markerKind)?.[sel.index];
+      if (m) delete m.footprint;
     }
     canvas.clearSelection();
     canvas.setDoc(doc);
