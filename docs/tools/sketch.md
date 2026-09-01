@@ -1373,8 +1373,8 @@ A building's **isometric and cutaway stay SVG**, and the reason is the picture r
 draw a block as its own shape rather than as a filled cell — a stair lattice's whole trick is the quarter each
 of its four stairs is missing, and a renderer that fills the cell shows that window as a solid patch. There is
 no raster to encode, so those two views are refused by name. The plan and the section are cell rasters and
-answer either way, which is what matters: `AD-S6` and the reviewer's `C14` both ask for a building to be
-looked at **in section** before it stands on a map, and an agent that can only open a raster could not.
+answer either way, which is what matters: a building is looked at **in section** before it stands on a map,
+and an agent that can only open a raster could not.
 
 **After Finish**, the map holds rasterized world geometry and three more reads open up:
 `GET /map/{slug}/top-surface` for the per-column surface colours, `GET /map/{slug}/segments` and

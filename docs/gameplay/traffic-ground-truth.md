@@ -104,4 +104,3 @@ Validated against the ingwaz reference, whose numbers are quoted per step below:
 
 Only log zips, graph JSONs, and derived priors enter this repo — no player identities beyond
 the anonymous ids already in the logs, no per-match analytics, no match-analysis features.
-Tracked as `G33`.

@@ -28,8 +28,8 @@ log posts that stand the full height, the bottom two cobble and andesite mixed" 
 docstrings are the briefs they came from. So the method is not a proposal; the gap is that it was applied to
 a building and never to a board. The surfaces exist — `capabilities.md` beside this file is the map of them — and
 nothing above needs a capability that has not been built. What it needs is an author that knows the surfaces
-it is touching. An MCP head (`B21`) would make it a first-class loop with the validator and evaluator
-answering in rule ids, and some work remains there, but the shortfall today is not the machinery.
+it is touching. An MCP head would make it a first-class loop with the validator and evaluator answering in
+rule ids, and nothing is building one, but the shortfall today is not the machinery.
 
 **It is a reviewed loop, not a single shot.** Iterations are expected: a pass is produced, a human reads it
 and says what is wrong with it — this relief is too harsh here, that plan puts the wool behind the spawn —
@@ -271,9 +271,9 @@ distinguish a leafy tree from a wooden one, which is the question. Measured over
 one build on `tallow-mirefast`: five `grown` + `whorled` trees give **228 logs to 287 leaves — 1.26 leaves
 per log, 46 logs a tree**, against three template spruces beside them at 42 logs to 222 leaves, 5.29 leaves
 per log, 14 logs a tree. The whorled form builds four times the wood for the same canopy, so
-"mainly logs and no leaves" is the right description and is now a number. This is `B96`'s fault exactly — a
-count standing in for a ratio — recurring on a different subject and closing a real defect. `B174` carries
-the evidence, and neither this entry nor `G173` closes again on a leaf count.
+"mainly logs and no leaves" is the right description and is now a number. The fault is a count standing in
+for a ratio, recurring on a different subject and closing a real defect. The ratio above is the evidence, and
+this entry does not close again on a leaf count.
 
 **MG10 — A tree's parts must agree with each other.** An oak-profiled tree is being built with spruce logs.
 The `template` form takes a `Species` — which names the wood, the canopy profile and the proportions

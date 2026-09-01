@@ -156,12 +156,12 @@ landed, the rest is the idea.
   parallel band edges — glued at the joints), and a mismatch is itself the finding (square-on-square: the
   story says hub + frontline, the mask says one many-mouthed blob). Per wool a **route signature** — the
   fork-degree sequence band→wool (`2⇒1⇒2⇒1`) — one legible token for the evaluator, the G118 verdict tags
-  (which co-evolve with these terms: plaza · no-funnel · uncatchable-runner), and the B21 agent. First
-  terms, one per observed failure: **plaza** (junction area vs mouth widths / corridor coverage — G69
+  (which co-evolve with these terms: plaza · no-funnel · uncatchable-runner), and any agent driving the plan
+  layer. First terms, one per observed failure: **plaza** (junction area vs mouth widths / corridor coverage — G69
   kin), **spread** (wander area along the route), **interception slack** (runner wool→home vs defender
   spawn→cut-off on the fanned graph — uncatchable when every return route is negative at every node),
   **redundancy** (disjoint wool↔band ways, generalizing the middle hole's parallel-ways). pgmlogger
-  traffic (G33) is the eventual ground truth the model is validated against.
+  traffic (`traffic-ground-truth.md`) is the eventual ground truth the model is validated against.
 - **G75** — score a marker whose stamped structure cannot paste.
 
 ## Realize & world
@@ -195,8 +195,8 @@ landed, the rest is the idea.
   serves the per-family knob surface and minimum box in the dock frame. What is new is the *stamp*: writing
   the emission into an existing plan's box rather than returning a standalone `symmetry:none` plan, which
   means placing pieces at the box's origin, giving them ids under the box, and replacing whatever was there.
-  This is the editor half of **B21's `emit_family`** — build it here and the MCP tool wraps it rather than
-  reimplementing it. It also pairs with G149: placing known-producible shapes and watching the G148 land
+  This is the editor half of an **`emit_family`** operation — build it here, so an agent head wraps it rather
+  than reimplementing it. It also pairs with G149: placing known-producible shapes and watching the G148 land
   readout move is the most direct way to find out what the budget is actually worth.
 
 - [ ] **G151 — a box's rect should be the bounding box of its members.** The members inspector offers

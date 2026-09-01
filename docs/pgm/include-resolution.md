@@ -68,7 +68,7 @@ Two negative results are worth as much as the positive ones, and both correct a 
 
 - **No map gains a gamemode.** 82 maps take their objective from a fragment, but `<score>` and
   `<flags>` have no parser here, so splicing them in changes nothing that is read. Resolution is not
-  what closes that gap; a parser for those modules is (`B56`).
+  what closes that gap; a parser for those modules is.
 - **No water-lane verdict changes.** The corpus reports the same 19 lanes across the same 15 maps
   either way (`--water-lanes --includes-dir <dir>`), because the include form's signal is the reference
   and the region, not the behaviour behind them.

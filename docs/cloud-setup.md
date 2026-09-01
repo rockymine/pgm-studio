@@ -96,7 +96,7 @@ account to answer with. It is not tolerated — `ALLOWED_FAULTS` in `tests/e2e/l
 entry, for a fetch the sweep itself cancelled, and a 404 from the studio's own API is exactly what that list
 refuses to wave through. Check `curl -m 10 https://api.mojang.com/users/profiles/minecraft/Notch` before
 reading it as a defect: no answer at all means the run is on a network without egress, and every other spec
-passing is the real result. `RP63` is the open decision about which way that check should go.
+passing is the real result.
 
 Nothing else on those pages wants the network. The author rows draw their own marks, and a name no lookup can
 answer is stored as a pseudonym, so a container with no egress renders and saves the Identity form intact.

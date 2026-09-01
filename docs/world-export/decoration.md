@@ -1,12 +1,12 @@
-# Decoration — flora, paths, scatter, canopy (G34, slice G161)
+# Decoration — flora, paths, scatter, canopy (G161)
 
 A third pass over the **realized world**, sibling to the structure stamping of `structures.md` and the
 terrain painting of `terrain-painting.md`. Where the painter dresses the terrain's *material* — stone
 unless a theme states otherwise, grass over stone and quartz on the rim in the seeded Meadow finish — this
 pass adds the terrain's *life*: tall grass and flowers scattered on the soil, a worn stroke dragged across
-it, boulders and trees seated on top. It is the second half of the
-theming work parked as G34: G157 carved out the terrain slice ("no new geometry, only materials"); this is
-the **prop-stamps** slice, and it is the opposite by construction — it exists to add geometry.
+it, boulders and trees seated on top. It is the second half of the theming work: G157 carved out the terrain
+slice ("no new geometry, only materials"); this is the **prop-stamps** slice, and it is the opposite by
+construction — it exists to add geometry.
 
 **All five tools ship: paths, ground cover, boulders and trees (G161), and water channels (G169, §7).** Water
 is the one that changes the ground rather than standing on it — its carved bed is an elevation change the rest
@@ -40,8 +40,6 @@ Read alongside:
   not flat, which is the one part of this stage the flat-plane assumption gets wrong (`S46`).
 - `docs/world-export/structures.md` §6.4 — the preset seam (style-as-data). A dressing style attaches here.
 - `docs/tools/sketch.md` — the sketch document this stage stores its props beside.
-- `docs/generator/ideas.md` — G34 (the umbrella), G32-C (structures & elevation, the sibling pass), G142
-  (the roughen pass, whose noise operators the stroke edge borrows).
 - `docs/world-export/ideas.md` — the dressing-stage gap pool: what turns these tools into one coherent
   stage. The fairness rule (G162) is answered here in §2; what remains is the guardrail budget,
   vertical-surface dressing, the arbitration contract, a biome theme, context-aware placement, and

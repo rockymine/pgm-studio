@@ -46,8 +46,8 @@ the focus-integration polish remains.
   seats every spawn it places — team spawns + orbit copies, the observer, and wool spawns — on the target
   column's floor via the shared `ColumnFloor` helper. Still open: monuments aren't seated at all; and moving
   a spawn (team or wool) via the **coord inputs** rewrites X/Z without re-snapping Y to the new column, so
-  only the point tool re-seats. Pairs with `N08` (monument Y editing) and `CV11` (the side-view clamp side
-  of the same problem).
+  only the point tool re-seats. Pairs with `N08` (monument Y editing); the side-view's own clamp has
+  landed (`FEATURES.md`).
 
 - [~] **N12 — Configure has no destroyable phase.** Wools and Cores each have one and the objective phases
   are a group sharing one gate (`FEATURES.md`), so this is now the third phase slotting into machinery that
@@ -295,8 +295,9 @@ placement takes it — so what is left is each surface reading and writing the l
   *`opus5-run2` §5 #2 · re-probed on `marlstone-steps` against the committed region files: `(0, 58)` is
   sandstone at y21 where `(0, 70)` — the same shelf at the same height — is quartz.*
 
-  **The stacked half of this is `TS23`**, whose `Q4` is this entry's question asked over two layers rather
-  than two nested tiers. Whatever settles one settles the other, and neither may answer it alone.
+  **The stacked case is already settled** (`TS23`, `FEATURES.md`): across layers there is no contest, because
+  each surface shows its own paint. What is open is the nested-tier case within one layer, and that ruling —
+  smallest area wins a contested cell — is the precedent it has to be answered against.
 
 ### A made thing is a third kind, and it is drawn out of layers
 

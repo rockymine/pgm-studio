@@ -302,4 +302,4 @@ height, the next ring 5.2 courses up, each ring shorter than the one below, none
 rather than a fork at the apex — and it separates from the staggered form on the measure that separates the
 corpus's families: **63% of its foliage in the lower half against 49%**, where hand-built conifers run 60–77%
 and broadleaves 43–61%. It still misses on the second: its widest tenth sits at **#4.4** where a hand-built
-conifer's is #1–#3, so the bulk is at mid-height rather than in the bottom third (`G173`).
+conifer's is #1–#3, so the bulk is at mid-height rather than in the bottom third.

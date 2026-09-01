@@ -173,7 +173,7 @@ allowed to fill.
 **[author]** Density is a design decision. A leaf count alone does not say whether a board is wooded or
 buried, and what settles it is how many trees the leaves are divided among — a few hundred leaves per tree is
 a canopy with gaps under it, and a few dozen is a blanket laid over the board. The measure that would actually
-answer it is neither number but what share of the ground stands under a leaf (`B96`).
+answer it is neither number but what share of the ground stands under a leaf.
 
 ## A second storey is played on
 

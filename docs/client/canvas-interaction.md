@@ -260,7 +260,7 @@ label elements per mousemove — and only decisions cross to C# (`OnSelect`, `On
 it persists nothing — saving is the host's, on the author's word), `sketch-bridge` `SketchCanvas`, `sideview-bridge` `SideviewCanvas`, and
 `scan-bridge` the non-interactive `ConfigureRenderer`. `fetch-json.js` is the shared no-store fetch. The
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
-only the invoke wrapper, which is inconsistent today (**CV15**).
+only the invoke wrapper, and only two of them use it.
 
 **A layer switch seeds group identity from the layer it is switching to.** `sketch-bridge` keeps one live
 group list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and —
@@ -313,7 +313,7 @@ render layer sits on the tested side of it because a stateless painter takes a s
 records what was drawn, so `shape-render`, `symmetry-render` and the style vocabulary are asserted on
 without a canvas. For the canvases and controllers the way in is still to keep extracting decidable logic —
 hit-testing, snapping, viewport maths, selection resolution — down into the pure layers the existing harness
-already reaches (**CV12**).
+already reaches.
 
 **The bridges are the exception, and the split has hidden it.** A bridge is not DOM-bound in the way a canvas
 is: `mount()` is handed its canvas and its elements, and the only other thing it touches is `fetch`. Both are
@@ -334,12 +334,12 @@ tool's nav rail, since that route opens on a phase with no canvas mounted.
 
 The layer is about 6,600 lines of first-party code (the raw ~11,000 figure includes a 2,130-line vendored
 `polygon-clipping`, plus comments and blanks). It is not bloated, and the remaining duplication is small in
-line terms — a few hundred at most. It is filed because it costs *consistency*, not size:
+line terms — a few hundred at most. What it costs is *consistency* rather than size.
 
-- **CV15** — the bridge invoke wrapper: `plan-bridge` and `sketch-bridge` guard `invokeMethodAsync` in a
-  `fire()` helper, `world-bridge` calls it unguarded.
-- **CV9** — a point draws as a 1×1 block on Edit and as a fixed-radius dot on Configure. Tracked with the
-  shared helper is `render/primitive-style.js`.
+The **bridge invoke wrapper** is the live case. `bridge/fire.js` is the shared guard — two catches, because a
+`[JSInvokable]` the host never declared rejects asynchronously as well as throwing — and `plan-bridge` and
+`sketch-bridge` import it. `world-bridge` and `sideview-bridge` call `invokeMethodAsync` directly, so an
+unwired feed on either surfaces as an unhandled rejection and, in the e2e sweep, as a faulted page.
 
 One stale reference remains in a module header: `static-renderer.js` cites an `OverviewRenderer` that no
 longer exists.

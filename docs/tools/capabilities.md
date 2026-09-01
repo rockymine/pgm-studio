@@ -147,7 +147,7 @@ without steps, mid rotations — and it carries its own shopping list of what is
 to look for what a named structure is supposed to look like before authoring one.
 
 The folder's own `README.md` documents only the three `base-*` sketch layouts and frames the directory as
-test fixtures for the export, so none of the above is discoverable from it (`B108`).
+test fixtures for the export, so none of the above is discoverable from it.
 
 ## The capability surface
 
@@ -542,7 +542,7 @@ shows a tree, boulder or path before it is placed; `/room-styles/preview` and it
 `/roof-styles/preview`, `/porch-styles/preview` and `/storey-styles/preview` show a building from four sides;
 `/themes/preview` shows a library row. `GET /plans/{id}/svg` draws the plan itself as a vector card;
 `GET /plans/{id}/png` draws the same board — off the same geometry, so the two can never disagree — as the
-raster an image reader can actually open (`B90`, `B21`'s `plan_render`). `GET /shapes/probe` emits a canonical
+raster an image reader can actually open (`B90`). `GET /shapes/probe` emits a canonical
 family through the real emitters and answers with the shape or a directed rejection.
 
 **The corpus and world harnesses** in `tools/PgmStudio.RoundTrip` read a built world back: `--topdown` for

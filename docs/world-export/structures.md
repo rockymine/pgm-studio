@@ -2,8 +2,8 @@
 
 This folder holds the contracts for the **realized world** — what the export writes into the Anvil
 world beyond raw terrain — the sibling of `docs/generator/` (which owns the layout) and
-`docs/pgm/` (which owns the map contract). Later passes over the same surface (map
-theming and material palettes, G34) belong here too.
+`docs/pgm/` (which owns the map contract). Later passes over the same surface — map theming and material
+palettes — belong here too.
 
 **Status: implemented (G31).** Rule ids here are `WX*` (world export); the resolver is
 `PgmStudio.Domain.RoomFrames`, and one `RoomFrame` per room feeds the stampers

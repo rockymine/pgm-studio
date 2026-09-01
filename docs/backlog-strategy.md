@@ -76,9 +76,8 @@ because the work is not wanted.
 Withdrawal is what has emptied this board. **Twenty entries are gone and are in no other file**: `B21`,
 `B249`, `RP63`, `B55`, `B56`, `B24e`, `G9`, `G12`, `B96`, `B154`, `B174`, `G173`, `G176`, `C12`, `C14`,
 `CV15`, `B35`, `B36`, `C28` and `CV12`. Not one is an entry in `BACKLOG.md`, `TODO.md` or any `ideas.md`, and
-`B21` survives only as a *reference* inside two `docs/generator/ideas.md` entries that describe it as work
-that will happen. That is a fifth of the board, and it went in two commits — more than the whole of the last
-programme shipped.
+no document names any of them. That is a fifth of the board, and it went in two commits — more than the whole
+of the last programme shipped.
 
 Withdrawal is the cheapest close there is and the board is better for it, but it is the one disposition with
 **no record outside the commit message**, and that costs twice.
@@ -88,59 +87,59 @@ with `grep <id> TODO.md BACKLOG.md docs/generator/ideas.md` plus `GET /api/rules
 answer empty for `B249` — which is exactly what a never-issued number answers. A withdrawn id is retired,
 never re-issued, and the commit that removed it is the only place that says so.
 
-**The same-commit document rule did not run on the withdrawals.** Adding is noticed and shipping is noticed;
+**A withdrawal owes the same document sweep a ship owes.** Adding is noticed and shipping is noticed;
 deleting an entry leaves prose behind that reads perfectly and points at nothing, which is the failure
-*Documents rot silently* describes, arriving through the one door that section does not watch. It has already
-happened, and the next section is the list.
+*Documents rot silently* describes, arriving through the one door that section does not watch. The sweep that
+answers it is the next section.
 
-**The board is not in that grep either.** `CLAUDE.md` rule 2 asks for the id to be swept across `docs/`, and
-`BACKLOG.md` is where an entry most often names another entry. Two entries name a **shipped** id as though it
-were still open: `B144` says its stacked half is `TS23`'s `Q4` and that neither may be answered alone, when
-`TS23` shipped and answered its half; and `N11` pairs itself with `CV11`, which shipped as the side-view
-clamp. Both read as a dependency on work that is finished, which is the direction that stalls an entry rather
-than the one that loses it. The sweep is over `docs/`, `BACKLOG.md` and `TODO.md`.
+**And the sweep runs over the board, not only over `docs/`.** `CLAUDE.md` rule 2 asks for the id to be swept
+across `docs/`, and `BACKLOG.md` is where an entry most often names another entry — a dependency, a twin, the
+half that has to be settled first. An entry naming a shipped id as an open dependency stalls on work that is
+finished, which is the direction that costs an entry rather than losing it, and no document sweep would ever
+see it.
 
-## The withdrawn ids the documents still name
+## The sweep that keeps a retired id out of the documents
 
-Fifteen citations across nine documents name an id that no longer exists, plus one inside `FEATURES.md`.
-Most cite the id as a **gap** — a promise to come back — which is the misleading direction: the document
-keeps claiming a limitation is tracked when nothing tracks it.
-
-| id | site | what it says |
-|---|---|---|
-| `B21` | `docs/tools/mapgen-review.md:31` | an MCP head "would make it a first-class loop" |
-| `B21` | `docs/tools/capabilities.md:545` | names `B21`'s `plan_render` |
-| `B21` | `docs/generator/ideas.md:159`, `:198` | "the B21 agent"; "the editor half of **B21's `emit_family`**" |
-| `B96` | `docs/gameplay/approaches.md:176` | canopy share is "what `B96` answers" |
-| `B96` | `docs/tools/mapgen-review.md:274` | "This is `B96`'s fault exactly" |
-| `B174` | `docs/tools/mapgen-review.md:275` | "`B174` carries the evidence" |
-| `G173` | `docs/tools/mapgen-review.md:276` | "neither this entry nor `G173` closes again on a leaf count" |
-| `G173` | `docs/world-export/tree-corpus.md:305` | the conifer's bulk "is at mid-height (`G173`)" |
-| `RP63` | `docs/cloud-setup.md:99` | "`RP63` is the open decision about which way that check should go" |
-| `C14` | `docs/tools/sketch.md:1376` | "the reviewer's `C14`" |
-| `CV15` | `docs/client/canvas-interaction.md:263`, `:339` | "inconsistent today (**CV15**)", and a definition line |
-| `CV12` | `docs/client/canvas-interaction.md:316` | "already reaches (**CV12**)" |
-| `B56` | `docs/pgm/include-resolution.md:71` | "a parser for those modules is (`B56`)" |
-| `B56` | `FEATURES.md:2390` | a shipped line's caveat: "`<score>`/`<flags>` have no parser: `B56`" |
-
-Each hit is one of two edits. Where the *claim* survives the withdrawal — the conifer's bulk really is at
-mid-height, `<score>` and `<flags>` really have no parser — the sentence stays and the id comes out, because
-the fact is the document's and the id was only a pointer. Where the sentence exists **only** to promise the
-id, it goes: `canvas-interaction.md:339` defines `CV15` and nothing else, and `cloud-setup.md:99` says an open
-decision is tracked when it is not. `docs/generator/ideas.md` is the one place a withdrawn id may keep being
-named, because an idea file is where a withdrawn capability is allowed to live — but the two entries there
-describe `B21` as work that will happen, and what is true is that nothing is tracking it.
-
-**A `FEATURES.md` citation is provenance and stays.** Several of the withdrawn ids delivered something before
-the rest of their entry was dropped — `C12` is named on nine shipped lines, `G9` on three — and "this shipped
-as `C12`" is a stable, correct sentence about a commit that exists. Only `FEATURES.md:2390` is not that: it
-states a caveat, and a caveat pointing at a dead id is the same debt as one in `docs/`. So the scan runs over
-`docs/` and the exception is read by hand:
+`docs/` names no id that resolves to nothing. Holding that is one command, and it is the command the
+withdrawal rule below is written around:
 
 ```sh
-grep -rn -E '\b(B21|B249|RP63|B55|B56|B24e|G9|G12|B96|B154|B174|G173|G176|C12|C14|CV15|B35|B36|C28|CV12)\b' \
-  docs/ | grep -v backlog-strategy
+python3 - <<'PY'
+import re, pathlib
+board = pathlib.Path('BACKLOG.md').read_text() + pathlib.Path('TODO.md').read_text()
+known  = set(re.findall(r'(?m)^\s*- \[[ ~]\] \*\*([A-Z]+\d+[a-z]?)', board))
+known |= set(re.findall(r'\b([A-Z]{1,2}\d{1,3}[a-z]?)\b', pathlib.Path('FEATURES.md').read_text()))
+for f in pathlib.Path('docs').rglob('ideas.md'):
+    known |= set(re.findall(r'\b([A-Z]{1,2}\d{1,3}[a-z]?)\b', f.read_text()))
+for f in sorted(pathlib.Path('docs').rglob('*.md')):
+    if f.name == 'backlog-strategy.md': continue
+    for i, line in enumerate(f.read_text().split('\n'), 1):
+        for m in re.finditer(r'`([A-Z]{1,2}\d{1,3}[a-z]?)`', line):
+            if m.group(1) not in known: print(f'{f}:{i}  {m.group(1)}')
+PY
 ```
+
+Its residue is not all debt, and reading it wants three distinctions.
+
+**A rule id is not a task id**, and the two have the same shape. `SK11`, `TP4`, `WX1` and the `G1`–`G8` family
+answer `GET /api/rules` and never appear on a board, so every one of them lands in the residue and none of
+them is a fault. What separates them is the family, not the number.
+
+**A citation for provenance is stable and stays.** `FEATURES.md` says what a commit delivered — "(from
+`C12`)", "`B59` · `B21` · `B37`" — and those sentences remain true after the rest of an entry is withdrawn,
+so the sweep runs over `docs/` and leaves the Done column alone. The exception is a `FEATURES.md` line that
+states a **caveat** rather than a delivery: a limitation tracked by a dead id is tracked by nothing.
+
+**The blind spot is a range.** `FEATURES.md` records shipped work as `G179–G183` and `docs/tools/sketch.md`
+cites `G179`–`G181`, so `G180` and `G181` are literal tokens nowhere and read as dangling when they are not.
+A range is legible to a person and invisible to a grep; where an id has to survive a sweep, it is written out.
+
+Two directions of failure survive all three, and both have been found here. A **withdrawn** id cited as a gap
+makes a document claim a limitation is tracked when nothing tracks it. A **shipped** id cited as filed makes
+it claim a defect is open when it is fixed — `docs/client/canvas-interaction.md` listed the point-primitive
+inconsistency as filed work under an id that had shipped, beside a bridge-wrapper entry whose id had been
+withdrawn: two bullets, two opposite errors, one list. Neither is visible to a reader, and both read as
+current.
 
 ## The verified defects
 
@@ -342,27 +341,21 @@ sitting in them — `WE28` in the layer word, `WE48` in the ungated convention �
 `TODO.md` is running, waits on the ceiling question that board's preamble names. It is the one phase nobody
 can do alone.
 
-**Phase 1 — repair the dangling citations.** The cheapest phase on the list and the one whose deadline has
-already passed: fifteen hits across nine documents describe work that no longer exists, one caveat in
-`FEATURES.md` points at a withdrawn id, and two board entries name a shipped one as an open dependency. Each
-is a one-line edit. It is also the phase that stops the next retirement pass costing the same, because doing
-it once makes the grep obvious.
-
-**Phase 2 — the verified defect run.** `TS31`, `B145`, `B57`. Each lands with a test that fails on the old
+**Phase 1 — the verified defect run.** `TS31`, `B145`, `B57`. Each lands with a test that fails on the old
 behaviour — that is the deliverable, not the fix.
 
-**Phase 3 — fix the causes, not the entries.** The building's one model (3 entries) is `TODO.md`'s programme
+**Phase 2 — fix the causes, not the entries.** The building's one model (3 entries) is `TODO.md`'s programme
 and is worked to its end first. Then, in the order that maximises what each closes: the measured convention
 with no complaint (5), the read that reports a symptom (6), the layer word (5), the client reading its own
 schema (5), the compiler's lost identity (3), the live findings feed (2). This is `CLAUDE.md`'s own doctrine
 — *"the board is emptied concept by concept"* — applied to groups the board has already named.
 
-**The rule over Phases 2 and 3.** A programme pulled up from `BACKLOG.md` is worked to its end before
-anything above interrupts it, except a Phase 2 defect in the surface it is building. The board runs one
+**The rule over Phases 1 and 2.** A programme pulled up from `BACKLOG.md` is worked to its end before
+anything above interrupts it, except a Phase 1 defect in the surface it is building. The board runs one
 programme at a time and says at the top which one, so the phase order above is what to pull up next rather
 than a queue that runs beside the one already open.
 
-**Phase 4 — put the surviving measurements under a script.** `C51`, `B261`, `A8`, `WE70`, `C62` and `TE2` each
+**Phase 3 — put the surviving measurements under a script.** `C51`, `B261`, `A8`, `WE70`, `C62` and `TE2` each
 carry a count or a line number that has drifted, and `C62` carries a retake command that no longer measures
 its own claim. Where the number is load-bearing it earns a `census.sh`-shaped generator; where it is not, it
 comes out of the entry and the prose stands alone. `RP59` is not part of this phase and is rewritten instead,

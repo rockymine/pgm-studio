@@ -2387,7 +2387,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   map's own, which is the bug `--resolve-includes` was written to catch and did.
   Measured: **367 of 563 maps change** when resolved, filters most (345), then regions and fills (68 each),
   apply rules (55) and kits (28); every corpus id resolves. Two negative results are load-bearing — no map
-  gains a gamemode (`<score>`/`<flags>` have no parser: `B56`), and no water-lane verdict changes, because
+  gains a gamemode (`<score>`/`<flags>` have no parser), and no water-lane verdict changes, because
   that signal is the reference and the region rather than the behaviour behind them. (B29,
   `docs/pgm/include-resolution.md`)
 - **The wire is dot-separated on every machine, in every country (B48).** Query, route and form values bind

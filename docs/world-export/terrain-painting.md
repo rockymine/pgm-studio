@@ -1,8 +1,8 @@
 # Terrain painting — walls, rims, plateaus (G157)
 
 A second pass over the **realized world**, sibling to the structure stamping of `structures.md` and the
-first concrete slice of the theming work parked as G34. Where the stampers write rooms, cubes and
-objectives onto the terrain, this pass dresses the terrain **itself**, bucket by bucket — rim, wall,
+first concrete slice of the theming work. Where the stampers write rooms, cubes and objectives onto the
+terrain, this pass dresses the terrain **itself**, bucket by bucket — rim, wall,
 surface, fill — through whichever theme applies; unthemed, every bucket stays the raw stone it already is.
 It reads the terrain the world builder already placed and rewrites its surface — no new geometry, only
 materials.
