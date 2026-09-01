@@ -102,17 +102,17 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 24 | 4,136 | `Playability/` 14 · `Region/` 3 · `Footprint/` 2 · `Scan/` 2 · `Suggest/` 2 · 1 at root |
-| `Api` | 93 | 12,184 | `Endpoints/` 52 · `Services/` 37 · `Http/` 3 · 1 at root |
-| `Client` | 201 | 24,026 | `Features/` 115 (nested) · `Components/` 67 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
-| `Contracts` | 31 | 3,032 | flat |
+| `Api` | 93 | 12,234 | `Endpoints/` 52 · `Services/` 37 · `Http/` 3 · 1 at root |
+| `Client` | 201 | 24,099 | `Features/` 115 (nested) · `Components/` 67 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
+| `Contracts` | 31 | 3,039 | flat |
 | `Data` | 15 | 2,530 | `Map/` 5 · `Features/` 4 · `Theme/` 3 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 26 | 2,620 | flat |
-| `Export` | 10 | 2,186 | flat |
-| `Geom` | 48 | 5,869 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 5 · 17 at root |
+| `Domain` | 26 | 2,707 | flat |
+| `Export` | 10 | 2,165 | flat |
+| `Geom` | 49 | 5,887 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 5 · 18 at root |
 | `Import` | 4 | 471 | flat |
-| `Migrations` | 29 | 1,808 | `Migrations/` 28 · 1 at root |
-| `Minecraft` | 88 | 17,537 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 150 | 24,756 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 7 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Migrations` | 30 | 1,906 | `Migrations/` 29 · 1 at root |
+| `Minecraft` | 88 | 17,540 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Pgm` | 151 | 24,900 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 8 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 10 | 925 | flat |
 <!-- /census -->
 

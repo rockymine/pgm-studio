@@ -33,8 +33,9 @@ public sealed record SpawnStructure
     /// back wall filling inward and the door wall — so capacity scales with the interior perimeter.</summary>
     public IReadOnlyList<string> CapturedWools { get; init; } = [];
 
-    /// <summary>The building around the spawn, or null for a spawn on open ground. A house style rather than
-    /// a room style, for the reason a wool structure's is: this is the stamping shape.</summary>
+    /// <summary>The building around the spawn, or null for a spawn on open ground — and one is raised only
+    /// where the <see cref="Frame"/> has walls to raise it on. A house style rather than a room style, for the
+    /// reason a wool structure's is: this is the stamping shape.</summary>
     public HouseStyle? Shell { get; init; } = HouseStyle.Spawn;
 }
 
@@ -50,7 +51,10 @@ public static class SpawnStructureStamper
         if (room.Ground is { } ground)
             StructureStamper.StampFoundation(world, ground, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ);
 
-        if (room.Shell is { } shell)
+        // The frame says whether a building stands here, not the binding: a footprint that cannot carry walls
+        // resolves with none (WX2), and stamping a style onto it would raise a house the room has no floor
+        // for. The spawn point and the monuments are what a room is and go down either way.
+        if (room.Shell is { } shell && frame.Wall > 0)
             HouseStamper.Stamp(world, frame, room.FloorY,
                 shell with { Doorway = shell.Doorway with { Door = DoorMaterial.Air } }, room.TeamColor);
 

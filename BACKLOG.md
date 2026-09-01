@@ -1104,6 +1104,20 @@ are the mechanisms under `WE38`'s definition, so they are the first back when it
 ## The remainder: work no concept above has claimed
 
 
+- [ ] **WE70 — Six callers guess whether a shell is bound, and the export is the only one that knows.**
+  `WoolFrame`/`SpawnRoom` take `shellBound`, which sizes the default footprint (`WX1`) and the wall inset;
+  `WorldBuilder:148,179` pass the map's real binding (`RoomStyleScope.StylesOf`) and six others hardcode
+  `true` — `PlanStructurePreview:60,74`, `MapExportComposer:455,460`, `DressingScope:216,218` — while
+  `PlanValidator:404` passes `false`. Where a placement states no `footprint`, the guess changes the
+  rectangle, so the previewed box, the `map.xml` region, the frontage and the stamped world can each name a
+  different room on one map. Thread the layout's bound pair to the three `Export`/`Api` callers, which all
+  reach the layout already; the validator's `false` is correct and stays.
+
+  *Swept over spawn pieces 6×6–24×24 facing −z with no stated footprint, 94 sizes resolve a different
+  default: a 20×14 piece frames `(1,4)..(19,13)` bound and `(1,5)..(19,13)` open, and a 6×12 piece frames
+  `(1,1)..(5,11)` against `(1,5)..(5,11)`.*
+
+
 - [ ] **C62 — Three CSS rules describe a component nothing renders.** `components.css:989–1004` carries an
   `AUTHOR CHIP (avatar + resolved player name — used in map detail view)` block — `.map-author-chip`,
   `.map-author-avatar`, `.map-author-name` — and no markup in the repo uses any of the three: `grep -r

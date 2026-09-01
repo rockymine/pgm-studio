@@ -106,7 +106,7 @@ landed: each moved a term onto the artifact its claim is about rather than the o
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
 server-side reaches no editor, why three room-style fields have no control, and why a band stack is
-authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `S40` · `C51`.
+authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `C51`.
 
 ## The questions no reading of this repository can answer
 
@@ -143,11 +143,11 @@ itself says needs labelled bad maps rather than more measurement).
 
 - **Defects and blocked decisions** — the two sections above, about 45 entries once the two that appear in
   both are counted once. These genuinely belong on a board, because each has a definite end.
-- **Reach gaps** — the backend exists and the browser cannot say it. `B261`, `B260`, `B263`, `B264`, `S40`,
+- **Reach gaps** — the backend exists and the browser cannot say it. `B261`, `B260`, `B263`, `B264`,
   `B200`, `WE54`, `N08`, `S25b`, `TS64`. These are the current `TODO.md` programme and are already
   correctly grouped.
 - **A roadmap** — `B21` (an MCP head, 1,073 words), `B262`, `B258`, `B221`, `S46`, `S56`, `S60`, `S47`,
-  `S34`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `G156`, `B92`, `B54`, `B9`, `B37`, `B265`, `WE34`. Twenty-one
+  `S34`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `B92`, `B54`, `B9`, `B37`, `B265`, `WE34`. Twenty
   entries — describing capabilities the studio does not have and nobody is blocked on. They have no end
   condition, and they are why the board reads as unemptiable.
 

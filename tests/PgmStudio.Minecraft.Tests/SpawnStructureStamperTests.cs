@@ -2,6 +2,7 @@ using fNbt;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Anvil;
+using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Geom;
@@ -16,7 +17,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class SpawnStructureStamperTests
 {
-    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), walled: true, 0, 0, [], RoomEdge.NegZ, out _)!;
+    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), shellBound: true, 0, 0, [], RoomEdge.NegZ, out _)!;
 
     [Test]
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
@@ -95,7 +96,7 @@ public sealed class SpawnStructureStamperTests
     public async Task Minimum_room_seats_six_and_truncates_beyond_capacity()
     {
         // The 8×8-piece minimum: 4×4 interior, 2-wide door → 4 corners + 2 back-wall mids = 6 seats.
-        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, walled: true, 4, 4, [], RoomEdge.NegZ, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, shellBound: true, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
         var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
         { Frame = frame, FloorY = 64, TeamColor = 11, CapturedWools = ["red", "green", "yellow", "orange", "cyan", "purple", "lime"] }).Monuments;
@@ -104,5 +105,29 @@ public sealed class SpawnStructureStamperTests
         // Every seat hugs a wall row of the interior [2,6): z ∈ {2,5}.
         await Assert.That(placed.All(p => p.Z is 2 or 5)).IsTrue();
         await Assert.That(placed.Select(p => (p.X, p.Z)).Distinct().Count()).IsEqualTo(6);
+    }
+
+    [Test]
+    public async Task A_room_with_no_walls_keeps_its_spawn_and_monuments_and_gets_no_building()
+    {
+        // A 5×5 footprint holds a pad and its seats but not walls, so the frame resolves with none and the
+        // bound style raises nothing. What a room is for is still stamped, on the footprint's own corners.
+        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 5, 5), new BlockRect(0, 0, 5, 5), shellBound: true,
+            2, 2, [], RoomEdge.NegZ, out _)!;
+        await Assert.That(frame.Wall).IsEqualTo(0);
+
+        var world = new VoxelWorld();
+        var placed = SpawnStructureStamper.Stamp(world, new SpawnStructure
+        { Frame = frame, FloorY = 64, TeamColor = 11, CapturedWools = ["red"], Shell = HouseStyle.Spawn });
+
+        await Assert.That(placed.Monuments.Count).IsEqualTo(1);
+        await Assert.That(world.GetBlock(placed.Monuments[0].X, 67, placed.Monuments[0].Z))
+            .IsEqualTo((Blocks.StainedGlass, 14));
+        // The pad the team arrives on, at the footprint's centre.
+        await Assert.That(world.GetBlock(2, 64, 2)).IsEqualTo((Blocks.Wool, 11));
+        // Nothing stands over any of it: the course a wall would occupy is air on every footprint column.
+        for (var x = 0; x < 5; x++)
+            for (var z = 0; z < 5; z++)
+                await Assert.That(world.GetBlock(x, 68, z)).IsEqualTo((Blocks.Air, 0));
     }
 }

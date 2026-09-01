@@ -18,6 +18,10 @@ public partial class SketchThemeInspector
     /// <summary>The value <see cref="SelectionTheme"/> answers when a group's shapes disagree.</summary>
     private const string Mixed = "~mixed~";
 
+    /// <summary>The room select's value for the third answer. A style is picked by row id and the built-in by
+    /// <c>0</c>, so no building needs a word rather than a number.</summary>
+    private const string NoBuilding = "none";
+
     [Parameter] public IJSObjectReference? Handle { get; set; }
     /// <summary>The board's theme ids, in registry order.</summary>
     [Parameter] public IReadOnlyList<string> Themes { get; set; } = [];
@@ -61,6 +65,10 @@ public partial class SketchThemeInspector
     /// <summary>Which library row each snapshot was taken from. Presentation only: it re-selects the dropdown
     /// after a reload and is never what the map exports from.</summary>
     private readonly Dictionary<string, long> pickedRooms = [];
+    /// <summary>The kinds bound to <b>no building</b> — a pad on open ground with nothing over it. Held apart
+    /// from <see cref="boundRooms"/> because it is a binding, not a style: the document states an explicit
+    /// null for it, which is a different answer from never having asked.</summary>
+    private readonly HashSet<string> openRooms = [];
     private readonly Dictionary<string, RoomStylePreviewDto> roomPreviews = [];
 
     private string? InHand => string.IsNullOrEmpty(Brush) ? null : Brush;
@@ -175,6 +183,14 @@ public partial class SketchThemeInspector
 
     private string? BoundRoom(string kind) => boundRooms.GetValueOrDefault(kind);
     private long PickedRoom(string kind) => pickedRooms.GetValueOrDefault(kind);
+
+    /// <summary>What the select shows: a row id, <c>0</c> for the built-in shell, or
+    /// <see cref="NoBuilding"/>.</summary>
+    private string RoomChoice(string kind) =>
+        openRooms.Contains(kind) ? NoBuilding : PickedRoom(kind).ToString();
+
+    /// <summary>Whether this kind is bound to no building.</summary>
+    private bool IsOpenRoom(string kind) => openRooms.Contains(kind);
     private RoomStylePreviewDto? RoomPreview(string kind) => roomPreviews.GetValueOrDefault(kind);
 
     private async Task ReadRoomBindings()
@@ -186,8 +202,16 @@ public partial class SketchThemeInspector
 
         foreach (var kind in RoomKindInfo.All)
         {
-            var snapshot = (state as JsonObject)?[kind.Id];
-            if (snapshot is null) { boundRooms.Remove(kind.Id); roomPreviews.Remove(kind.Id); continue; }
+            // TryGetPropertyValue is what separates the three answers: the indexer returns null both for a key
+            // that is absent and for one holding a JSON null, and those are different bindings — never asked
+            // (the built-in shell) against asked for no building at all.
+            JsonNode? snapshot = null;
+            var present = (state as JsonObject)?.TryGetPropertyValue(kind.Id, out snapshot) is true;
+            boundRooms.Remove(kind.Id);
+            roomPreviews.Remove(kind.Id);
+            openRooms.Remove(kind.Id);
+            if (!present) continue;
+            if (snapshot is null) { openRooms.Add(kind.Id); continue; }
             boundRooms[kind.Id] = snapshot.ToJsonString();
             await RedrawRoom(kind.Id);
         }
@@ -196,6 +220,7 @@ public partial class SketchThemeInspector
 
     private async Task BindRoom(string kind, ChangeEventArgs e)
     {
+        if ((string?)e.Value == NoBuilding) { await OpenRoom(kind); return; }
         if (!long.TryParse((string?)e.Value, out var id) || id == 0) { await ClearRoom(kind); return; }
 
         // The snapshot is taken here: from now on the board holds the style, not a pointer at the row.
@@ -214,8 +239,22 @@ public partial class SketchThemeInspector
         boundRooms.Remove(kind);
         pickedRooms.Remove(kind);
         roomPreviews.Remove(kind);
+        openRooms.Remove(kind);
         note = null;
         if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, null);
+        StateHasChanged();
+    }
+
+    /// <summary>Bind <b>no building</b>: the pad stands on open ground with nothing over it. The document
+    /// states an explicit null, which the export reads as a third answer rather than as a missing one.</summary>
+    private async Task OpenRoom(string kind)
+    {
+        boundRooms.Remove(kind);
+        pickedRooms.Remove(kind);
+        roomPreviews.Remove(kind);
+        openRooms.Add(kind);
+        note = null;
+        if (Handle is not null) await Handle.InvokeVoidAsync("setRoomStyle", kind, "null");
         StateHasChanged();
     }
 

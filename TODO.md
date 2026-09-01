@@ -27,13 +27,6 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   answers. Then `ST9`'s 20×20 cap moves onto the stated footprint and the region takes `ST10`, its own
   **20×30**; neither is enforced today, so a 30×30 piece seeds a 28×22 building and nothing says no.
 
-- [ ] **G156 — the stamped-room minimum is one number where it is two.** `WX2` states a single 6×6 floor,
-  which is what a **shell** needs — walls plus a 4×4 interior — and applies it to rooms with no shell over
-  them, so a small-cell board emits a room its own export refuses. Split it: a **room** floor of 4×4, which is
-  what a pad, four chest corners and the monument seats need, and a **shell** floor of 6×6 that binds only
-  where a style is bound. The emitters then need no cell-size arithmetic at all — a small piece carries a
-  small room rather than a refusal.
-
 - [ ] **B177 — An iron cube stamps outside its piece with nothing watching.** `StructureStamper.StampIronCube`
   centres a cube on its anchor and writes it wherever that lands, with no bounds test of any kind — the
   standalone path a marker takes when its piece carries no spawn marker, which is one deletion away from any
@@ -51,12 +44,3 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   Project **both**: the region as the ground annotation it is today, and the footprint as a second tagged
   rectangle. That second shape is what `B145` hangs a theme scope on, and what would let the levelling fill
   under a room read a material rather than defaulting to stone.
-
-- [ ] **S40 — Offer "no building" in the Rooms step.** A bound room style has three answers — a style, absent
-  (the built-in shell), and an explicit null meaning the pad stands on open ground with nothing over it
-  (`docs/world-export/structures.md` §9). `RoomStyleScope` reads all three for both kinds and the stampers
-  accept the third, but the step can only *bind* or *clear*, and clearing means the built-in rather than none.
-  The step needs a third control per kind — the bridge already stores it, `setRoomStyle(kind, "null")` parsing
-  to a stored `null` distinct from `undefined` — and `ReadRoomBindings` needs `TryGetPropertyValue`, since
-  `JsonObject["cage"]` answers `null` for an absent key and for a JSON null alike, so an open room displays as
-  unpicked.

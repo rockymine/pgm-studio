@@ -17,11 +17,12 @@ public readonly record struct DrawnRoom(double[] At, double[] Footprint, double[
 public static class PieceRoom
 {
     /// <summary>The marker and footprint for a piece of this role, or null where the role carries no room or
-    /// the piece is too small to raise a shell on (<c>WX2</c>) — a piece that cannot be built on is left bare
-    /// rather than seeded with a rectangle its own export would refuse.</summary>
-    /// <remarks>Sized for a <b>walled</b> room throughout. A plan states no room style
-    /// (docs/world-export/structures.md §9), so the seed cannot know whether a shell will stand here, and a
-    /// footprint that holds walls holds an open pad too — the safe direction to be wrong in.</remarks>
+    /// the piece is too small to hold one at all (<c>WX2</c>).</summary>
+    /// <remarks>The footprint is <b>sized for a shell</b>: a plan states no room style
+    /// (docs/world-export/structures.md §9), and a room that can carry a building is the one worth handing an
+    /// author who has not said yet. Where the piece is too small for that, the room it can have is seeded
+    /// anyway — a building that does not fit simply is not there, and the pad, chests and monuments a room is
+    /// for need the same floor either way.</remarks>
     public static DrawnRoom? ForPiece(BlockRect piece, string role, string facing)
     {
         if (role != PlanRoles.Spawn && role != PlanRoles.WoolRoom) return null;
@@ -40,7 +41,7 @@ public static class PieceRoom
         // rather than against the probe it came from.
         var footprint = RoomFrames.DefaultFootprint(
             piece, doorEdge, piece.MinX + markerX, piece.MinZ + markerZ, walled: true);
-        if (RoomFrames.FootprintTooSmall(footprint.Width, footprint.Depth, walled: true)) return null;
+        if (RoomFrames.FootprintTooSmall(footprint.Width, footprint.Depth, walled: false)) return null;
 
         return new DrawnRoom(
             [markerX, markerZ],
@@ -56,7 +57,7 @@ public static class PieceRoom
     private static double[]? Iron(
         BlockRect piece, BlockRect footprint, RoomEdge door, double markerX, double markerZ)
     {
-        var frame = RoomFrames.Resolve(piece, footprint, walled: true,
+        var frame = RoomFrames.Resolve(piece, footprint, shellBound: true,
             piece.MinX + markerX, piece.MinZ + markerZ, [], door, out _);
         if (frame?.Doors is not [{ } opening, ..]) return null;
 
@@ -68,7 +69,7 @@ public static class PieceRoom
         var (cubeMinX, cubeMinZ) = alongX ? (aside, outward) : (outward, aside);
 
         double ironX = cubeMinX + RoomFrames.IronSpan / 2.0, ironZ = cubeMinZ + RoomFrames.IronSpan / 2.0;
-        var seated = RoomFrames.ResolveRoom(piece, footprint, walled: true,
+        var seated = RoomFrames.ResolveRoom(piece, footprint, shellBound: true,
             piece.MinX + markerX, piece.MinZ + markerZ, [], door, [(ironX, ironZ)], out _);
         return seated?.Iron is [{ Placeable: true }, ..]
             ? [ironX - piece.MinX, ironZ - piece.MinZ]

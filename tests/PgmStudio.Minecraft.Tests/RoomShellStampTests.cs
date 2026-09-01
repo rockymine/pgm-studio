@@ -28,7 +28,7 @@ public sealed class RoomShellStampTests
     private static readonly (double MinX, double MinZ, double MaxX, double MaxZ) TopEntry = (-5, -5, 5, -5);
 
     private static RoomFrame Baseline(RoomEdge? spawnDoor = null) =>
-        RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), walled: true, 0, 0, spawnDoor is null ? [TopEntry] : [], spawnDoor, out _)!;
+        RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), shellBound: true, 0, 0, spawnDoor is null ? [TopEntry] : [], spawnDoor, out _)!;
 
     [Test]
     public async Task Wool_cage_shell_places_floor_roof_slit_strip_and_a_seam_door()
@@ -82,7 +82,7 @@ public sealed class RoomShellStampTests
     public async Task Odd_shell_centres_a_3_wide_door_a_3x3_pad_and_a_3x3_roof_hole()
     {
         // A 9×9 piece with a cell-centre marker: shell [1,8) (span 7), interior 5 across.
-        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 9, 9), footprint: null, walled: true, 4.5, 4.5, [(0, 0, 9, 0)], null, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 9, 9), footprint: null, shellBound: true, 4.5, 4.5, [(0, 0, 9, 0)], null, out _)!;
         var w = new VoxelWorld();
         Shell(w, frame, 64, HouseStyle.Wool);
 
@@ -105,7 +105,7 @@ public sealed class RoomShellStampTests
     public async Task Minimum_shell_narrows_the_spawn_door_so_corners_stay_covered()
     {
         // The WX2 floor: an 8×8 piece → 6×6 shell, 4×4 interior → a 2-wide door.
-        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, walled: true, 4, 4, [], RoomEdge.NegZ, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, shellBound: true, 4, 4, [], RoomEdge.NegZ, out _)!;
         var w = new VoxelWorld();
         Shell(w, frame, 64, HouseStyle.Spawn);
 

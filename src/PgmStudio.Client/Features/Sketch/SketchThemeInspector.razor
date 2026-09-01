@@ -114,17 +114,19 @@
       </Actions>
       <ChildContent>
         <p class="section-desc">The finish every wool cage and every spawn cube is stamped with — never their
-          size. One shell each, because both are mirrored. Picking one takes a snapshot.</p>
+          size. One shell each, because both are mirrored. Picking one takes a snapshot. <b>No building</b>
+          leaves the pad, the chests and the monuments on open ground with nothing over them.</p>
         @foreach (var kind in RoomKindInfo.All)
         {
           <Field Label="@kind.Title" @key="kind.Id">
             <div class="lib-bind">
-              <select class="field-input field-input--slim" value="@PickedRoom(kind.Id)"
+              <select class="field-input field-input--slim" value="@RoomChoice(kind.Id)"
                       @onchange="e => BindRoom(kind.Id, e)">
                 <option value="0">(the built-in shell)</option>
+                <option value="none">(no building)</option>
                 @foreach (var room in rooms) { <option value="@room.Id" @key="room.Id">@room.Name</option> }
               </select>
-              @if (BoundRoom(kind.Id) is not null)
+              @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
               {
                 <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"
                         OnClick="() => ClearRoom(kind.Id)" />

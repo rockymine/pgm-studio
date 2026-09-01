@@ -84,13 +84,15 @@ rounding it away.
 
   The shell's orientation is the rect's own; the fanned rect orients the orbit images.
 
-- **WX2** *Minimums are measured in blocks, never cells, and a wall is what the second one buys.* The
-  smallest room there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side,
-  which is the same ring its four chest corners seat in. A **shell** adds the one course of wall it stands in
-  on each side, so a footprint carrying one is at least **6×6** (a 4×4 interior — four monument corners, the
-  chests, and a pad). The two are one derivation rather than two numbers: `MinRoomSpan` plus `WallCost` where
-  a wall stands. Which of them binds is therefore a question about the **binding** (§9) and not about the
-  plan, so the plan gate refuses only what no binding could save and the smaller floor is the one it asks.
+- **WX2** *Minimums are measured in blocks, never cells, and only one of them refuses.* The smallest room
+  there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side, which is the
+  same ring its four chest corners seat in. That is the span WX2 refuses under, everywhere and whatever is
+  bound, because a pad, four chest corners and the monument seats are what a room *is* and they need that
+  floor either way. A **shell** adds the one course of wall it stands in on each side, so a footprint
+  carrying one is at least **6×6** — `MinRoomSpan` plus `WallCost`, one derivation rather than two numbers.
+  A footprint between the two is not refused by anybody: the room is there and the building simply is not,
+  and the resolved frame says so by carrying a `Wall` of 0. Every stamper reads that rather than asking
+  again whether a style was bound (§9), so a bound style on a footprint too small for it raises nothing.
 
 - **WX12** *A footprint stays inside the piece it stands on.* A piece is one rectangle at one surface, so a
   footprint inside it is on ground by construction and crosses no interface; one reaching past it is over
@@ -197,10 +199,10 @@ structure, and structures never fuse.
 - **WX10** *A bound shell stands under the build ceiling.* A room style is authored geometry subject to no
   cap of its own, while the goal marker over it hangs `BuildCeiling.MarkerOver` blocks above a ceiling
   `BuildCeiling.OverGround` over the ground — so a tall storey stack swallows the very sign that says where
-  the goal is. The shell's height is measured on the **smallest** room there is (WX2's 6×6), since every
-  sloped form only climbs further on a bigger footprint: a style refused here has no footprint it could have
-  been stamped on. It refuses where the style is **bound** — `PUT /api/map/{slug}/sketch`, 400 — rather than
-  correcting at stamp time, because silently shortening a building the author drew is the worse answer.
+  the goal is. The shell's height is measured on the **smallest footprint a shell can stand on** (WX2's 6×6),
+  since every sloped form only climbs further on a bigger one: a style refused here has no footprint it could
+  have been stamped on. It refuses where the style is **bound** — `PUT /api/map/{slug}/sketch`, 400 — rather
+  than correcting at stamp time, because silently shortening a building the author drew is the worse answer.
 
 ## 6. The code shape — frame, shell, furnishers, style
 
@@ -952,17 +954,26 @@ whole thing. A theme resolves **per cell**, because a theme is scoped to a footp
 **per map**, so `StylesOf` takes a layout and returns the pair. There is no `StyleAt`, and there is nothing for
 one to take.
 
-An **absent or unreadable** snapshot falls back to the built-in shell for its kind. A map that never opened the
-step exports byte-identical to how it did before the step existed, and a hand-edited layout that broke its
-snapshot loses its chosen shell rather than its export.
+An **absent or unreadable** snapshot falls back to the built-in shell for its kind, so a map that never opened
+the step exports the shipped rooms and a hand-edited layout that broke its snapshot loses its chosen shell
+rather than its export.
 
 A snapshot that is present and **null** is the third answer: no building. The pad and its monuments are stamped
 on whatever ground the plan already shaped, and nothing is raised over them — which is what a spawn wants
-wherever the terrain is the room, and what the stampers have always accepted through their nullable `Shell`.
-Absence and null are therefore different questions, and the wire keeps them apart: the two snapshots are bare
-`JsonElement`s rather than nullable ones, so *undefined* means never picked and *null* means picked as nothing.
-Collapsing them would not merely blur a distinction — loading a map that bound nothing and saving it again
-would write the null back and turn every room it has into open ground.
+wherever the terrain is the room. Absence and null are therefore different questions, and the wire keeps them
+apart: the two snapshots are bare `JsonElement`s rather than nullable ones, so *undefined* means never picked
+and *null* means picked as nothing. Collapsing them would not merely blur a distinction — loading a map that
+bound nothing and saving it again would write the null back and turn every room it has into open ground.
+
+**A binding is a wish, and the frame is the answer.** The pair `StylesOf` returns says which building the map
+asked for; whether one stands is WX2's, resolved per room against the footprint it would stand on. So there
+are two ways a room ends up open — bound to nothing, or bound to something its footprint cannot carry — and
+the stampers do not distinguish them, because there is nothing to distinguish: both stamp the pad, the chests
+and the monuments on bare ground. A room too small for walls is not refused and not reported; the building is
+simply not there and the rest is.
 
 The step is **Theme's third**, after Create and Apply, because a room shell is finishing: it is what the map is
-*made of*, decided once for the whole map, next to the terrain finish that is decided the same way.
+*made of*, decided once for the whole map, next to the terrain finish that is decided the same way. It offers
+each kind all three answers in one select — the built-in shell, one of the library's room styles, or **no
+building** — and the row's ✕ returns it to the built-in, which is the one of the three that has no snapshot to
+clear.

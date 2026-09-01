@@ -5641,6 +5641,23 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   before the step existed. Serializing a style also forced structural equality onto every material holding a
   collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
   member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
+- **A room and the building over it are two minimums, and only one refuses (G156).** `WX2` had stated a
+  single 6×6 floor — what a *shell* needs — and applied it to rooms with nothing over them, so a small piece
+  emitted a room its own export refused and a stated 5×5 footprint was accepted by the plan validator and
+  refused by the preview and the export alike, which silently substituted an 8×8 `DefaultFrame` at a
+  different origin. The room's own floor is now the only span that refuses: **4×4**, the pad and the clear
+  ring its chest corners seat in. A shell adds `WallCost` on top and stands only where the footprint carries
+  it, which the resolved `RoomFrame.Wall` records — 0 where no building stands, whether none was bound or
+  none fits. Both stampers read that rather than the binding, so a style bound over a footprint too small for
+  it raises nothing and the pad, the chests and the monuments go down as they always do. A plan piece too
+  small for a building is seeded with the room it *can* have; only one too small for a room at all is left
+  bare. (`docs/world-export/structures.md` WX2 · §9)
+- **"No building" is a choice the Rooms step can make (S40).** A room binding has three answers — a style,
+  absent (the built-in shell) and an explicit null (a pad on open ground) — and the step could only bind or
+  clear, with clearing meaning the built-in. All three are now one select per kind, and the row's ✕ returns
+  it to the built-in, the one state with no snapshot to store. `ReadRoomBindings` distinguishes absent from
+  null with `TryGetPropertyValue`, since `JsonObject["cage"]` answers `null` for both alike and an open room
+  had displayed as unpicked. (`docs/tools/sketch.md`)
 - **A shell became a house — six roofs, a floor in zones, windows and a porch (G34d).** The room style now
   decides four things beyond its materials (`docs/world-export/structures.md` §7.1–§7.4), and the picture of
   all of them is `tools/compose/house-showcase.cs`, stamped by the real `HouseStamper` and read back out of

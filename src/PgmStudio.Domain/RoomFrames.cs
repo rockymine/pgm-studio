@@ -97,8 +97,8 @@ public static class RoomFrameRules
     [Rule(RuleConcern.Structure)]
     public const string DoorWidth = "WX7";
 
-    /// <summary>An iron cube is <see cref="IronSpan"/> blocks square and stands outside the room shell,
-    /// inside the piece, holding <see cref="IronGap"/> blocks of clear air to the wall — the standing room a
+    /// <summary>An iron cube is <see cref="RoomFrames.IronSpan"/> blocks square and stands outside the room
+    /// shell, inside the piece, holding <see cref="RoomFrames.IronGap"/> blocks of clear air to the wall — the standing room a
     /// player has to get round it. It fits where its marker puts it or it does not: the room keeps the
     /// footprint <c>WX1</c> gave it and never yields an edge, and the cube is one size whatever the marker's
     /// parity. A marker with no room for its cube resolves unplaceable (<c>WX9</c>).</summary>
@@ -148,8 +148,8 @@ public static class RoomFrameRules
 /// validation flags it.</summary>
 public readonly record struct IronResolution(double MarkerX, double MarkerZ, int MinX, int MinZ, int Size, bool Placeable);
 
-/// <summary>A room resolution: the <see cref="Frame"/> (whose shell may have yielded to iron) plus the
-/// piece's <see cref="Iron"/> placements, one per marker in input order.</summary>
+/// <summary>A room resolution: the <see cref="Frame"/> plus the piece's <see cref="Iron"/> placements, one
+/// per marker in input order.</summary>
 public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution> Iron);
 
 /// <summary>
@@ -158,6 +158,11 @@ public sealed record ResolvedRoom(RoomFrame Frame, IReadOnlyList<IronResolution>
 /// the spawn/wool <see cref="Pad"/>, and the <see cref="Doors"/>. Derived once per room by
 /// <see cref="RoomFrames.Resolve"/> and consumed by the stampers, the structure preview, and the exported
 /// XML alike, so none of them can disagree about where the room is.
+///
+/// <para><see cref="Wall"/> is how thick the shell's walls are, and 0 where no building stands — either
+/// because none is bound or because the footprint is too small to carry one. The pad, the chests and the
+/// monuments are what a room is and sit on the footprint whichever it is, so every stamper reads this rather
+/// than asking again whether a style was bound.</para>
 /// </summary>
 public sealed record RoomFrame(
     int MinX, int MinZ, int MaxX, int MaxZ,
@@ -183,9 +188,15 @@ public sealed record RoomFrame(
 /// </summary>
 public static class RoomFrames
 {
-    /// <summary>The smallest room there is (WX2): a 2×2 pad and the block of clear floor it keeps on every
-    /// side, which is also the ring its four chest corners seat in. Spans are in blocks, never cells.</summary>
-    public const int MinRoomSpan = 2 + 2 * PadWallClearance;
+    /// <summary>The pad a room is built around — where a player arrives, and what every other span is
+    /// measured out from.</summary>
+    public const int PadSpan = 2;
+
+    /// <summary>The smallest room there is (WX2): a <see cref="PadSpan"/>-square pad and the block of clear
+    /// floor it keeps on every side, which is also the ring its four chest corners seat in. It is what a room
+    /// needs whether or not a building stands over it — the contents are the same either way and the walls
+    /// are the whole difference. Spans are in blocks, never cells.</summary>
+    public const int MinRoomSpan = PadSpan + 2 * PadWallClearance;
 
     /// <summary>Clear floor kept between the pad and every wall (WX4).</summary>
     public const int PadWallClearance = 1;
@@ -208,16 +219,16 @@ public static class RoomFrames
     /// the one the door opens through (WX1).</summary>
     public const int DefaultGap = 1;
 
-    /// <summary>The clean floor kept in front of the door (WX1): enough for the largest iron cube plus the
-    /// standing room it holds to the wall, so a spawn opens with somewhere for its iron to stand rather than
-    /// with a shell that has to shrink to make room.</summary>
+    /// <summary>The clean floor kept in front of the door (WX1): the iron cube plus the standing room it
+    /// holds to the wall, so a spawn opens with somewhere for its iron to stand rather than with a shell that
+    /// has to shrink to make room.</summary>
     public const int DefaultDoorGap = IronSpan + IronGap;
 
     /// <summary>The footprint a piece carries where none is stated (WX1): the piece inset by
     /// <see cref="DefaultGap"/> on every side, and by up to <see cref="DefaultDoorGap"/> on the side the door
-    /// opens through. A 20×20 spawn piece facing −z opens as an 18×12 room with seven blocks of ground in
-    /// front of its door — a 4×4 cube and the standing room it keeps, without the room giving up an edge
-    /// for it.
+    /// opens through. A 20×20 spawn piece facing −z opens as an 18×14 room with five blocks of ground in
+    /// front of its door — a cube and the standing room it keeps, without the room giving up an edge for
+    /// it.
     ///
     /// <para><b>The door's gap yields to the marker.</b> A marker is where a player arrives and the pad is
     /// derived from it, so a default that pushed the room off its own marker would move the spawn point
@@ -281,12 +292,12 @@ public static class RoomFrames
     /// <inheritdoc cref="ResolveRoom"/>
     /// <remarks>The frame-only convenience: no iron markers, returns just the frame.</remarks>
     public static RoomFrame? Resolve(
-        BlockRect piece, BlockRect? footprint, bool walled,
+        BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
         out Finding? refusal)
-        => ResolveRoom(piece, footprint, walled, markerX, markerZ,
+        => ResolveRoom(piece, footprint, shellBound, markerX, markerZ,
             entries, spawnDoorEdge, [], out refusal)?.Frame;
 
     /// <summary>
@@ -294,8 +305,8 @@ public static class RoomFrames
     /// (WX1–WX9). <paramref name="entries"/> are degenerate rects on the piece boundary (a seam or
     /// build-zone interface segment; zero-thickness on the seam axis); pass a
     /// <paramref name="spawnDoorEdge"/> instead for a spawn room's single yaw-derived door.
-    /// <paramref name="ironMarkers"/> resolve to cubes outside the shell (the shell yields, the cube
-    /// degrades — WX8) or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> naming the
+    /// <paramref name="ironMarkers"/> resolve to cubes standing clear of the shell in the ring around it
+    /// (WX8), or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> naming the
     /// <see cref="RoomFrameRules"/> id that refused — the same finding the validator reports.
     ///
     /// <para>This answers a room <em>or</em> a refusal rather than a <see cref="Findings"/> list, and that is
@@ -307,11 +318,18 @@ public static class RoomFrames
     /// must lie inside.</param>
     /// <param name="footprint">The room itself, or null for <see cref="DefaultFootprint"/> — the piece inset
     /// a block, and further in front of the door so the iron has ground to stand on (WX1).</param>
-    /// <param name="walled">Whether a shell will stand on the footprint's perimeter. A wall is what the
-    /// interior is inset by and what the pad keeps its clearance to, so a room on open ground has neither and
-    /// its least span is <see cref="MinRoomSpan"/> rather than that plus <see cref="WallCost"/>.</param>
+    /// <param name="shellBound">Whether a room style is bound, so a shell stands on the footprint's perimeter
+    /// where one fits. A wall is what the interior is inset by, so a room on open ground has none and takes
+    /// the whole footprint; a bound shell that will not fit leaves the same open room, and the resolved
+    /// frame's <see cref="RoomFrame.Wall"/> is what says which happened.</param>
+    /// <param name="markerX">The spawn or wool point's x, in absolute blocks — where the pad centres (WX3–WX5).</param>
+    /// <param name="markerZ">The same point's z.</param>
+    /// <param name="entries">Degenerate rects on the piece boundary, one door cut per distinct edge (WX6).</param>
+    /// <param name="spawnDoorEdge">A spawn room's single yaw-derived door, in place of <paramref name="entries"/>.</param>
+    /// <param name="ironMarkers">The piece's iron markers, resolved in input order (WX8/WX9).</param>
+    /// <param name="refusal">The <see cref="RoomFrameRules"/> finding that refused, where the result is null.</param>
     public static ResolvedRoom? ResolveRoom(
-        BlockRect piece, BlockRect? footprint, bool walled,
+        BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
         RoomEdge? spawnDoorEdge,
@@ -320,16 +338,21 @@ public static class RoomFrames
     {
         refusal = null;
         int pieceMinX = piece.MinX, pieceMinZ = piece.MinZ, pieceMaxX = piece.MaxX, pieceMaxZ = piece.MaxZ;
-        var room = footprint ?? DefaultFootprint(piece, spawnDoorEdge, markerX, markerZ, walled);
+        var room = footprint ?? DefaultFootprint(piece, spawnDoorEdge, markerX, markerZ, shellBound);
         int minX = room.MinX, minZ = room.MinZ, maxX = room.MaxX, maxZ = room.MaxZ;
-        var wall = walled ? 1 : 0;
+        // A shell stands where one is bound and the footprint can carry it. A room too small for walls is not
+        // a refusal: its pad, chests and monuments are what a room is, and they need the same floor either
+        // way — so the building is simply not there and the rest is. WX2 therefore refuses one span only, the
+        // room's own, and a bound shell that could not stand is the caller's to report (it reads Wall).
+        var wall = shellBound && !FootprintTooSmall(maxX - minX, maxZ - minZ, walled: true) ? 1 : 0;
 
-        if (FootprintTooSmall(maxX - minX, maxZ - minZ, walled))
+        if (FootprintTooSmall(maxX - minX, maxZ - minZ, walled: false))
         {
             refusal = new Finding(RoomFrameRules.FootprintTooSmall,
                 $"footprint {maxX - minX}×{maxZ - minZ} is too small to hold a room: the least span is "
-                + $"{MinSpan(walled)}×{MinSpan(walled)} blocks"
-                + (walled ? $" with a shell over it, {MinRoomSpan}×{MinRoomSpan} on open ground" : ""));
+                + $"{MinRoomSpan}×{MinRoomSpan} blocks — a {PadSpan}×{PadSpan} pad and the block of clear "
+                + $"floor it keeps on every side. A shell over it needs {MinSpan(walled: true)}×"
+                + $"{MinSpan(walled: true)}, and simply does not stand on a footprint smaller than that");
             return null;
         }
         if (minX < pieceMinX || minZ < pieceMinZ || maxX > pieceMaxX || maxZ > pieceMaxZ)

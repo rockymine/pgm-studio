@@ -397,10 +397,11 @@ public static class PlanValidator
             ? []
             : [.. plan.Placements.Iron.Where(ir => ir.Piece == pieceId)
                 .Select(ir => PlanMarkers.Block(rect, ir.At))];
-        // Unwalled, deliberately: a plan carries no room-style binding (structures.md §9), so this gate
-        // refuses only what no binding could save. A footprint that holds a room but not a shell is the
-        // binding's to refuse, where the two are known together.
-        var room = RoomFrames.ResolveRoom(rect, PlanMarkers.Footprint(rect, footprint), walled: false,
+        // No shell, deliberately: a plan carries no room-style binding (structures.md §9), so the frame this
+        // checks doors and entries against is the widest one any binding could leave — an interior with no
+        // walls inset into it. A footprint that holds a room but not a shell is not refused anywhere; the
+        // building simply does not stand on it.
+        var room = RoomFrames.ResolveRoom(rect, PlanMarkers.Footprint(rect, footprint), shellBound: false,
             markerX, markerZ, entries, spawnDoorEdge, ironMarkers, out var refusal);
         if (refusal is not null)
             findings.Add(refusal with

@@ -657,7 +657,7 @@ public static class WorldBuilder
     {
         var footprints = new List<(int MinX, int MinZ, int MaxX, int MaxZ)>();
         foreach (var s in intent.Spawns)
-            foreach (var iron in SpawnRoom(s, walled: true).Iron)
+            foreach (var iron in SpawnRoom(s, shellBound: true).Iron)
                 if (iron.Placeable)
                     footprints.Add((iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1));
         if (intent.Structures is { } structures)
@@ -701,24 +701,25 @@ public static class WorldBuilder
     /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
     /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure
     /// preview so the drawn box and the stamped shell cannot disagree.</summary>
-    public static RoomFrame WoolFrame(WoolIntent w, bool walled)
+    public static RoomFrame WoolFrame(WoolIntent w, bool shellBound)
     {
         if (w.Piece is { } piece && w.Entries.Count > 0)
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
             var frame = RoomFrames.Resolve(
                 new BlockRect((int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ),
-                StatedFootprint(w.Footprint), walled, markerX, markerZ,
+                StatedFootprint(w.Footprint), shellBound, markerX, markerZ,
                 [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], null, out _);
             if (frame is not null) return frame;
         }
-        return DefaultFrame(w.Spawn.X, w.Spawn.Z, null, walled);
+        return DefaultFrame(w.Spawn.X, w.Spawn.Z, null, shellBound);
     }
 
     /// <inheritdoc cref="WoolFrame"/>
-    /// <remarks>A spawn resolves its room together with the piece's iron markers: the shell may yield to a
-    /// cube, and an unfittable marker comes back unplaceable (WX8/WX9) — nothing stamps for it.</remarks>
-    public static ResolvedRoom SpawnRoom(SpawnIntent s, bool walled)
+    /// <remarks>A spawn resolves its room together with the piece's iron markers: each cube stands clear of
+    /// the shell in the ring around it, and an unfittable marker comes back unplaceable (WX8/WX9) — nothing
+    /// stamps for it.</remarks>
+    public static ResolvedRoom SpawnRoom(SpawnIntent s, bool shellBound)
     {
         var doorEdge = PositionSnap.FacingFromYaw(s.Yaw);
         if (s.Piece is { } piece)
@@ -726,11 +727,11 @@ public static class WorldBuilder
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
             var room = RoomFrames.ResolveRoom(
                 new BlockRect((int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ),
-                StatedFootprint(s.Footprint), walled, markerX, markerZ, [], doorEdge,
+                StatedFootprint(s.Footprint), shellBound, markerX, markerZ, [], doorEdge,
                 [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
             if (room is not null) return room;
         }
-        return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdge, walled), []);
+        return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdge, shellBound), []);
     }
 
     /// <summary>An intent rect as the block rect the resolver takes, or null where none was stated.</summary>
@@ -742,7 +743,7 @@ public static class WorldBuilder
     // original 8×8 shell, with a door per wall for a wool cage or the single yaw door for a spawn. Also the
     // fallback when an authored piece refuses to frame (the validator gates plan exports, so reaching that
     // fallback means a hand-edited intent — stamping the default beats failing the export).
-    private static RoomFrame DefaultFrame(double x, double z, RoomEdge? spawnDoorEdge, bool walled)
+    private static RoomFrame DefaultFrame(double x, double z, RoomEdge? spawnDoorEdge, bool shellBound)
     {
         var (anchorX, anchorZ) = PositionSnap.SnapXZ(x, z);
         int minX = anchorX - 5, minZ = anchorZ - 5, maxX = anchorX + 5, maxZ = anchorZ + 5;
@@ -756,7 +757,7 @@ public static class WorldBuilder
         // The footprint is stated rather than defaulted: this synthetic rect is the room a piece-less marker
         // has always resolved to, so the shell is its own one-block inset and no door gap is taken out of it.
         return RoomFrames.Resolve(new BlockRect(minX, minZ, maxX, maxZ),
-            new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), walled,
+            new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), shellBound,
             anchorX, anchorZ, entries, spawnDoorEdge, out _)!;
     }
 

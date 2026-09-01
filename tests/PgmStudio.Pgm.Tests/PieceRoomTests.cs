@@ -69,9 +69,9 @@ public sealed class PieceRoomTests
             List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = door is null
                 ? [(0, 0, w, 0), (0, d, w, d), (0, 0, 0, d), (w, 0, w, d)]
                 : [];
-            foreach (var walled in new[] { false, true })
+            foreach (var bound in new[] { false, true })
             {
-                var room = RoomFrames.Resolve(piece, PlanMarkers.Footprint(piece, seed.Footprint), walled,
+                var room = RoomFrames.Resolve(piece, PlanMarkers.Footprint(piece, seed.Footprint), bound,
                     piece.MinX + seed.At[0], piece.MinZ + seed.At[1], entries, door, out var refusal);
                 await Assert.That(refusal).IsNull();
                 await Assert.That(room!.Pad.Shifted).IsFalse();
@@ -90,7 +90,7 @@ public sealed class PieceRoomTests
         await Assert.That(spawn.Iron).IsNotNull();
         await Assert.That(spawn.Iron![1]).IsEqualTo(RoomFrames.IronSpan / 2.0);
 
-        var room = RoomFrames.ResolveRoom(piece, PlanMarkers.Footprint(piece, spawn.Footprint), walled: true,
+        var room = RoomFrames.ResolveRoom(piece, PlanMarkers.Footprint(piece, spawn.Footprint), shellBound: true,
             piece.MinX + spawn.At[0], piece.MinZ + spawn.At[1], [], RoomEdge.NegZ,
             [(piece.MinX + spawn.Iron[0], piece.MinZ + spawn.Iron[1])], out _)!;
         var cube = room.Iron[0];
@@ -115,12 +115,17 @@ public sealed class PieceRoomTests
     }
 
     [Test]
-    public async Task A_piece_too_small_to_raise_a_shell_on_is_left_bare()
+    public async Task A_piece_too_small_for_a_building_is_still_seeded_with_the_room_it_can_have()
     {
-        // 7×7 insets to 5×5, under WX2's 6×6 — seeding it would hand the author a rectangle its own export
-        // refuses, so nothing is seeded and the piece says so by being empty.
-        await Assert.That(PieceRoom.ForPiece(new BlockRect(0, 0, 7, 7), PlanRoles.Spawn, "front")).IsNull();
-        await Assert.That(PieceRoom.ForPiece(new BlockRect(0, 0, 7, 7), PlanRoles.WoolRoom, "front")).IsNull();
+        // 7×7 insets to 5×5, which holds a pad and its chest corners but not walls. The room is seeded; the
+        // building simply is not there.
+        var seed = PieceRoom.ForPiece(new BlockRect(0, 0, 7, 7), PlanRoles.WoolRoom, "front");
+        await Assert.That(seed).IsNotNull();
+        await Assert.That(seed!.Value.Footprint).IsEquivalentTo(new double[] { 1, 1, 5, 5 });
+
+        // A piece that cannot hold a room at all is left bare: 5×5 insets to 3×3, under WX2's own minimum.
+        await Assert.That(PieceRoom.ForPiece(new BlockRect(0, 0, 5, 5), PlanRoles.Spawn, "front")).IsNull();
+        await Assert.That(PieceRoom.ForPiece(new BlockRect(0, 0, 5, 5), PlanRoles.WoolRoom, "front")).IsNull();
     }
 
     [Test]

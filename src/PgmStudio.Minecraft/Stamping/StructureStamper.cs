@@ -116,8 +116,8 @@ public static class StructureStamper
     }
 
     /// <summary>Place a <paramref name="size"/>³ iron-block cube over the given footprint min corner,
-    /// resting on the surface its footprint spans — the spawn-side renewable, sized by its marker's parity
-    /// (WX8; the legacy marker-anchored 4×4 is <see cref="StampIronCube"/>).</summary>
+    /// resting on the surface its footprint spans — the spawn-side renewable, placed where its marker's
+    /// resolution seated it (WX8; the marker-anchored 4×4 is <see cref="StampIronCube"/>).</summary>
     public static void StampIronCubeAt(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int size)
     {

@@ -38,10 +38,10 @@ public sealed record WoolStructure
     /// <summary>The entrance row, as a pair of block ends sharing an axis.</summary>
     public (int X1, int Z1, int X2, int Z2)? Entrance { get; init; }
 
-    /// <summary>The building around the wool, or null for wool on open ground. A house style rather than a
-    /// room style, because this is the stamping shape: a stored room style reaches it through
-    /// <c>HouseStyle.AsHouse</c>, and a caller that wants a gabled roof over its wool can simply say
-    /// so.</summary>
+    /// <summary>The building around the wool, or null for wool on open ground — and one is raised only where
+    /// the <see cref="Frame"/> has walls to raise it on. A house style rather than a room style, because this
+    /// is the stamping shape: a stored room style reaches it through <c>HouseStyle.AsHouse</c>, and a caller
+    /// that wants a gabled roof over its wool can simply say so.</summary>
     public HouseStyle? Shell { get; init; } = HouseStyle.Wool;
 
     public bool Chests { get; init; } = true;
@@ -55,7 +55,10 @@ public static class WoolStructureStamper
         var frame = room.Frame;
         StructureStamper.StampFoundation(world, room.Ground, frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ);
 
-        if (room.Shell is { } shell)
+        // The frame says whether a building stands here, not the binding: a footprint that cannot carry walls
+        // resolves with none (WX2), and stamping a style onto it would raise a house the room has no floor
+        // for. The wool, the chests and the foundation are what a room is and go down either way.
+        if (room.Shell is { } shell && frame.Wall > 0)
             HouseStamper.Stamp(world, frame, room.FloorY, shell, BlockColors.BlockDamage(room.WoolSlug));
 
         // After the shell, so the pad is the floor the room's point sits on rather than whatever a style laid.

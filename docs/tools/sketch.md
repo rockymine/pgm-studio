@@ -709,6 +709,12 @@ and an explicit null means no building at all — a pad on open ground.
 That map stamps its wool cages with the bound style and gives its spawns no building at all. Leaving `spawn`
 out entirely — rather than writing `null` — is the third state, and stamps the built-in spawn shell.
 
+**All three are one select per kind**: `(the built-in shell)`, `(no building)`, then every room style the
+library holds. The row's ✕ appears once a kind is off the built-in and returns it there, which is the state
+with no snapshot to store. A binding is a wish rather than a guarantee — a footprint too small to carry walls
+raises nothing whatever is bound (`WX2`, `docs/world-export/structures.md`), and the room's pad, chests and
+monuments are stamped either way.
+
 **The Blocks overlay is on when the phase opens**, so the phase shows the real paint: the live layout is
 posted to the server, the actual painter runs over it, and one colour per footprint cell comes back as a
 bitmap, so a Voronoi reads as its cells and a noise field as its patches rather than as one representative
@@ -1012,9 +1018,9 @@ always did: only a well-formed style or theme that is wrong is refused.
 **And a bound shell taller than the build ceiling is refused there too** (`WX10`,
 `docs/world-export/structures.md`). A room's shell is authored geometry subject to no cap of its own, while
 the goal marker over it hangs five blocks above a ceiling twenty over the ground — so a tall layer stack
-swallows the very sign that says where the goal is. The height is measured on the smallest room there is, 6×6,
-since every sloped roof only climbs further on a bigger footprint: a style refused here has no footprint it
-could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.cage` or
+swallows the very sign that says where the goal is. The height is measured on the smallest footprint a shell
+can stand on, 6×6, since every sloped roof only climbs further on a bigger one: a style refused here has no
+footprint it could have been stamped on. It rides in the same **400** envelope, `field` naming `roomStyles.cage` or
 `roomStyles.spawn`.
 
 **Finish refuses an empty board.** `POST .../sketch/finish` answers 422 `SK6` when there is no stored layout

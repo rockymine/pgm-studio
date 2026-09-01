@@ -24,8 +24,12 @@ public static class RoomStyleScope
     ///
     /// <para>Three answers, because absent and none are different questions. A snapshot that is absent — or
     /// unreadable, since it is a hand-editable leaf — falls back to that kind's built-in shell, so a sketch
-    /// that never opened the step exports exactly as it did before the step existed. A snapshot that is
-    /// explicitly null asked for no building, and gets none.</para></summary>
+    /// that never opened the step exports the shipped rooms. A snapshot that is explicitly null asked for no
+    /// building, and gets none.</para>
+    ///
+    /// <para>A binding is a wish: whether a shell actually stands is the room's, resolved per footprint
+    /// (<see cref="RoomFrameRules.FootprintTooSmall"/>), and the stampers read the frame's wall rather than
+    /// this pair.</para></summary>
     public static (HouseStyle? Wool, HouseStyle? Spawn) StylesOf(string layoutJson)
         => StylesOf(SketchLayout.Parse(layoutJson));
 
@@ -44,9 +48,10 @@ public static class RoomStyleScope
     /// 255 and never against this — and a correction at stamp time would silently shorten a building the
     /// author drew, so this refuses at the point the style is bound.</para>
     ///
-    /// <para><b>Asked on the smallest shell a room may be</b> (<see cref="RoomFrames.MinSpan"/> with a wall). Every
-    /// sloped form climbs with the span it crosses, so a style's height is at its lowest there and a bigger
-    /// footprint only ever raises it: a style refused here is one no footprint could have saved.</para></summary>
+    /// <para><b>Asked on the smallest footprint a shell can stand on</b> (<see cref="RoomFrames.MinSpan"/>
+    /// with a wall). Every sloped form climbs with the span it crosses, so a style's height is at its lowest
+    /// there and a bigger footprint only ever raises it: a style refused here is one none could have
+    /// saved.</para></summary>
     public static Findings Check(HouseStyle? style, string field)
     {
         if (style is null) return Findings.None;       // open ground carries no shell to be too tall
@@ -56,9 +61,9 @@ public static class RoomStyleScope
         return new List<Finding>
         {
             new(RoomFrameRules.ShellOverCeiling,
-                $"the shell stands {reach} courses over its floor even on the smallest room there is "
-                + $"({span}×{span}), past the {BuildCeiling.OverGround}-course build ceiling — and the goal "
-                + $"marker hangs {BuildCeiling.MarkerOver} courses above that, inside the building",
+                $"the shell stands {reach} courses over its floor even on the smallest footprint one can "
+                + $"stand on ({span}×{span}), past the {BuildCeiling.OverGround}-course build ceiling — and "
+                + $"the goal marker hangs {BuildCeiling.MarkerOver} courses above that, inside the building",
                 Field: field),
         };
     }
