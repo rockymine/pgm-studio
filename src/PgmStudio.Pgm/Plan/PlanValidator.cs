@@ -503,7 +503,7 @@ public static class PlanValidator
     public static readonly IReadOnlyList<Func<PlanModel, ContactGraph, IEnumerable<Finding>>> LintRules =
     [
         LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintWl1,
-        LintSp8, LintSp9, LintWl11, LintSt8, LintSt9, LintBz11, LintBoardEdges,
+        LintSp8, LintSp9, LintWl11, LintSt8, LintSt9, LintSt10, LintBz11, LintBoardEdges,
     ];
 
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
@@ -823,18 +823,60 @@ public static class PlanValidator
         }
     }
 
-    // ST9 — a role piece is at most 20×20 blocks: the stamped building is sized by its piece, so piece size
-    // IS building size, and a 90-block piece is a 90-block hall.
+    /// <summary>The largest building a role piece may raise, in blocks square (the author's number). It is a
+    /// hall a player crosses; past it the room is a field with a roof.</summary>
+    public const int FootprintCap = 20;
+
+    /// <summary>The largest protection region a role piece may be, in blocks (the author's numbers), across
+    /// its short axis and along its long one. A region is the ground and the immunity together, so the long
+    /// axis affords a room its approach without handing a team a field it cannot be fought in.</summary>
+    public const int RegionCapAcross = 20, RegionCapAlong = 30;
+
+    // ST9 — the building a role piece raises is at most 20×20 blocks. The footprint is what a player walks
+    // into, so the cap is on the rectangle the shell actually stands on: the one the placement states, or the
+    // one WX1 defaults from the piece where it states none.
     private static IEnumerable<Finding> LintSt9(PlanModel plan, ContactGraph d)
     {
-        const int cap = 20;
-        foreach (var piece in d.Pieces)
-            if (piece.Role is PlanRoles.WoolRoom or PlanRoles.Spawn
-                && (piece.Rect.Width > cap || piece.Rect.Depth > cap))
-                yield return Lint("ST9",
-                    $"{piece.Role} piece '{piece.Id}' is {piece.Rect.Width}×{piece.Rect.Depth} blocks — a role "
-                    + $"piece is at most {cap}×{cap}, because the stamped building is the piece", piece.Id);
+        foreach (var (kind, pieceId, at, footprint, door) in RoleRooms(plan))
+        {
+            if (ResolveFrame(plan, d, kind, pieceId, RoleOf(kind), at, footprint, door, out _)
+                is not { Frame: var frame }) continue;
+            if (frame.Width <= FootprintCap && frame.Depth <= FootprintCap) continue;
+            yield return Lint("ST9",
+                $"the {kind} building on '{pieceId}' is {frame.Width}×{frame.Depth} blocks — a footprint is at "
+                + $"most {FootprintCap}×{FootprintCap}, which is a hall a player crosses "
+                + "rather than a field. State a smaller footprint on the placement", pieceId);
+        }
     }
+
+    // ST10 — a role piece is at most 20×30 blocks. The piece is the protection region and the ground the
+    // building stands on, so an oversized one hands a team a field of immunity rather than a room; the
+    // building it carries is capped separately (ST9).
+    private static IEnumerable<Finding> LintSt10(PlanModel plan, ContactGraph d)
+    {
+        foreach (var piece in d.Pieces)
+        {
+            if (piece.Role is not (PlanRoles.WoolRoom or PlanRoles.Spawn)) continue;
+            var (across, along) = (Math.Min(piece.Rect.Width, piece.Rect.Depth),
+                                   Math.Max(piece.Rect.Width, piece.Rect.Depth));
+            if (across <= RegionCapAcross && along <= RegionCapAlong) continue;
+            yield return Lint("ST10",
+                $"{piece.Role} piece '{piece.Id}' is {piece.Rect.Width}×{piece.Rect.Depth} blocks — a "
+                + $"protection region is at most {RegionCapAcross}×{RegionCapAlong}, in "
+                + "either orientation", piece.Id);
+        }
+    }
+
+    // The role-piece rooms a plan states, as the arguments ResolveFrame takes.
+    private static IEnumerable<(string Kind, string PieceId, double[] At, double[]? Footprint, RoomEdge? Door)>
+        RoleRooms(PlanModel plan)
+    {
+        foreach (var w in plan.Placements.Wools) yield return ("wool", w.Piece, w.At, w.Footprint, null);
+        foreach (var s in plan.Placements.Spawns)
+            yield return ("spawn", s.Piece, s.At, s.Footprint, RoomEdges.OfFacing(s.Facing));
+    }
+
+    private static string RoleOf(string kind) => kind == "spawn" ? PlanRoles.Spawn : PlanRoles.WoolRoom;
 
     // BZ11 — one zone for a compact middle: several zones merging into one region whose union is itself a
     // plain rectangle is a stitched funnel one zone would have drawn — the author reads one crossing, the

@@ -314,9 +314,9 @@ public sealed record TeamDef
     public string Color { get; init; } = "";
 }
 
-/// <summary>One team's spawn: where players materialise (<see cref="Point"/>) and, optionally, the
-/// anti-grief zone around it (<see cref="Protection"/>). The kit is the fixed Standard preset
-/// (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
+/// <summary>One team's spawn: where players materialise (<see cref="Point"/>), the region that ground is
+/// (<see cref="Protection"/>) and the building raised on it (<see cref="Footprint"/>). The kit is the fixed
+/// Standard preset (not author-selectable yet — see <c>TeamsGenerator</c>), so it isn't part of the intent.</summary>
 public sealed record SpawnIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
@@ -335,30 +335,27 @@ public sealed record SpawnIntent
     /// <summary>Where players materialise.</summary>
     public Pt Point { get; init; }
 
-    /// <summary>The anti-grief zone around the spawn, as a union of rectangles (empty = unprotected). A
-    /// simple spawn is one rect; a complex footprint needs several. The generator unions them into the
-    /// team's spawn-protection region. Tolerates a legacy single-object blob on read (see the converter).</summary>
+    /// <summary>The region the spawn owns, as a union of rectangles (empty = unprotected). It is both the
+    /// anti-grief zone the generator emits and <b>the ground the room stands on</b> — the bounds every marker
+    /// on it is held to, and what a footprint must lie inside (docs/world-export/structures.md WX1/WX12). A
+    /// plan-compiled spawn states the one rectangle of its piece; an author drawing a complex zone states
+    /// several, and the room is framed on what they enclose. Tolerates a legacy single-object blob on read
+    /// (see the converter).</summary>
     [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Protection { get; init; } = new();
 
     /// <summary>Which way players face on arriving, in degrees.</summary>
     public double Yaw { get; init; }
 
-    /// <summary>The spawn-role plan piece the marker sits on — the region the room stands in and the bounds
-    /// every marker on it is held to (docs/world-export/structures.md WX1). Null on hand-authored intents and
-    /// on markers placed on a plain piece: those keep the legacy marker-anchored default room.</summary>
-    public Rect? Piece { get; init; }
-
-    /// <summary>The building raised on that piece — the footprint the shell is stamped on, which the plan
-    /// states and the author resizes. Null leaves it to the default: the piece inset by a block on every side
-    /// and by up to the door gap in front of the door (WX1).</summary>
+    /// <summary>The building raised on the region — the footprint the shell is stamped on, which the plan
+    /// states and the author resizes. Null leaves it to the default: the region inset by a block on every
+    /// side and by up to the door gap in front of the door (WX1).</summary>
     public Rect? Footprint { get; init; }
 
-    /// <summary>Iron markers on the spawn piece (fanned world points). Each resolves to a renewable iron
-    /// cube beside the spawn room — outside the shell with one block of clear air, sized by the marker's
-    /// parity, the room yielding what WX2 allows (WX8) — or to an unplaceable marker that stamps nothing
-    /// and is flagged at validation (WX9). Empty on hand-authored intents and plain-piece spawns, whose
-    /// iron rides <see cref="StructureIntent.IronCubes"/> as before.</summary>
+    /// <summary>Iron markers on the spawn's ground (fanned world points). Each resolves to a renewable iron
+    /// cube standing clear of the room shell in the ring around it (WX8), or to an unplaceable marker that
+    /// stamps nothing and is flagged at validation (WX9). Empty on hand-authored intents and on spawns whose
+    /// iron rides <see cref="StructureIntent.IronCubes"/> instead.</summary>
     public List<Pt> Iron { get; init; } = new();
 }
 
@@ -372,9 +369,9 @@ public sealed record ObserverIntent
     public double Yaw { get; init; }
 }
 
-/// <summary>One objective wool: defended by <see cref="Owner"/> in its <see cref="Room"/>, dispensed at
-/// <see cref="Spawn"/> (a point — the wool's <c>location</c> is the int-floored version), and captured by
-/// the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
+/// <summary>One objective wool: defended by <see cref="Owner"/> in its <see cref="Protection"/> region,
+/// dispensed at <see cref="Spawn"/> (a point — the wool's <c>location</c> is the int-floored version), and
+/// captured by the teams in <see cref="Monuments"/> (one each, the non-owners).</summary>
 public sealed record WoolIntent
 {
     /// <summary>Which layer's surface this stands on, or null for the top one. A stacked board has a surface
@@ -391,13 +388,14 @@ public sealed record WoolIntent
     public string Owner { get; init; } = "";
     /// <summary>Dye colour (slug, e.g. <c>light_blue</c>). Empty → defaults to the owner team's colour.</summary>
     public string Color { get; init; } = "";
-    /// <summary>The wool-room footprint, as a union of rectangles. Empty until the author draws it (partial
-    /// intent is tolerated, new-map-authoring.md §7): a roomless wool still generates its objective +
-    /// monuments, just not the room region / spawner / room wiring. A simple room is one rect; a complex
-    /// footprint needs several, which the generator unions into the room region. Tolerates a legacy
-    /// single-object blob on read (see the converter).</summary>
+    /// <summary>The region the wool room owns, as a union of rectangles — the same field a spawn carries
+    /// under the same name, because it is the same thing. It is both the room region the generator emits and
+    /// <b>the ground the cage stands on</b> (WX1/WX12). Empty until the author draws it (partial intent is
+    /// tolerated, new-map-authoring.md §7): a roomless wool still generates its objective + monuments, just
+    /// not the room region / spawner / room wiring. Tolerates a legacy single-object blob on read (see the
+    /// converter).</summary>
     [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
-    public List<Rect> Room { get; init; } = new();
+    public List<Rect> Protection { get; init; } = new();
     /// <summary>Where the wool is dispensed. The objective's <c>location</c> is this floored to whole
     /// blocks.</summary>
     public Pt Spawn { get; init; }
@@ -406,20 +404,15 @@ public sealed record WoolIntent
     /// owner.</summary>
     public List<MonumentIntent> Monuments { get; init; } = new();
 
-    /// <summary>The wool-room-role plan piece the marker sits on — the region the cage stands in and the
-    /// bounds every marker on it is held to (docs/world-export/structures.md WX1). Null on hand-authored
-    /// intents and on markers placed on a plain piece: those keep the legacy marker-anchored default cage.</summary>
-    public Rect? Piece { get; init; }
-
-    /// <summary>The cage raised on that piece — the footprint the shell is stamped on, which the plan states
-    /// and the author resizes. Null leaves it to the default: the piece inset by a block on every side
+    /// <summary>The cage raised on the region — the footprint the shell is stamped on, which the plan states
+    /// and the author resizes. Null leaves it to the default: the region inset by a block on every side
     /// (WX1). A wool room names no door, so no side of it is opened wider than the rest.</summary>
     public Rect? Footprint { get; init; }
 
-    /// <summary>The room's entry interfaces (WX6), as degenerate rects on the room piece's boundary (zero
+    /// <summary>The room's entry interfaces (WX6), as degenerate rects on the region's boundary (zero
     /// thickness across the seam), already fanned: every terrain↔room land seam plus every abutting
     /// build-zone edge. The exporter cuts the cage doors and lays the entrance redstone on exactly these.
-    /// Empty when <see cref="Piece"/> is null (the legacy default cage keeps a door per wall).</summary>
+    /// Empty where the plan derived none, and a cage with no entry keeps a door per wall.</summary>
     public List<Rect> Entries { get; init; } = new();
 }
 

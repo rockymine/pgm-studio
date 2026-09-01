@@ -88,7 +88,7 @@ public sealed class BaseSeedWorldTests
         foreach (var wl in built.ResolvedIntent.Wools!)
         {
             int wx = Snap(wl.Spawn.X), wz = Snap(wl.Spawn.Z);
-            var r = wl.Room.Single();
+            var r = wl.Protection.Single();
             await Assert.That(r.MinX <= wx - 4 && r.MaxX >= wx + 4 && r.MinZ <= wz - 4 && r.MaxZ >= wz + 4).IsTrue();
         }
     }

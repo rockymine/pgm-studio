@@ -352,9 +352,11 @@ visible in the Sketch tool instead of dissolving into the fused group. The autho
 group's relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
 
 **The intent** (`MapIntent`) is the gameplay. Teams come from the red/blue/yellow/green palette in orbit order.
-Each spawn fans to one per team, protected by its whole piece rather than the stamped cube, with its yaw fanned
-from the facing. Each wool fans team-outer, its room region the whole wool-room piece, its entries the room's
-land seams and build-zone frontages. Destroyables and cores fan the same way but **only at orbit order 2**:
+Each spawn fans to one per team, with its yaw fanned from the facing; each wool fans team-outer, its entries
+the room's land seams and build-zone frontages. Both carry the same two rectangles, and they say different
+things: **`Protection`** is the whole piece — the anti-grief region *and* the ground the room is framed on,
+rather than the stamped cube — and **`Footprint`** is the building raised on it, the rectangle the placement
+states or the one `WX1` defaults. That is the split `ST9` and `ST10` cap separately. Destroyables and cores fan the same way but **only at orbit order 2**:
 PGM marks a goal shared whenever the team count is not two, and what a shared DTM goal should play like is
 undecided, so outside order 2 the validator refuses the plan and the preview declines to draw it. The build
 intent carries the fanned build-zone areas and holes, and **no** `MaxHeight` — the ceiling is the world
@@ -519,7 +521,9 @@ room that cannot be placed at all). The piece-interface set quantifies over one 
 `SP8` (a spawn egress stepping Δ≥2 ahead of the door), `WL11` (the same step at a wool room's entry, measured
 at every one of them since a room has no facing, and met by the **attacker** — a team is kept out of its own
 wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before the void), `ST8` (an approach wall over an interface outside 10–20 blocks, or seated
-outside ~15 in front of the wool room's entrance), `ST9` (a wool-room or spawn piece over 20×20 blocks),
+outside ~15 in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
+placement states, or the one `WX1` defaults from its region), `ST10` (a wool-room or spawn piece over 20×30
+blocks in either orientation),
 `BZ11` (several zones stitching one rectangular region a single zone would have drawn), `FR9` (a crossing
 under fifteen blocks of frontline), `FR8` (a crossing turned into frontline over less than a third of the
 face it docks against) and `CT12` (a two-team wool

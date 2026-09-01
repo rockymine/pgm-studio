@@ -34,9 +34,9 @@ public sealed class PreflightTests
         Build = new BuildIntent { MaxHeight = 30, Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)] },
         Wools =
         [
-            new WoolIntent { Owner = "red-team", Room = [new(95, 45, 105, 55)], Spawn = new(100.5, 13, 50.5),
+            new WoolIntent { Owner = "red-team", Protection = [new(95, 45, 105, 55)], Spawn = new(100.5, 13, 50.5),
                 Monuments = [new MonumentIntent { Team = "blue-team", Location = new(-100, 13, -50) }] },
-            new WoolIntent { Owner = "blue-team", Room = [new(-105, -55, -95, -45)], Spawn = new(-100.5, 13, -50.5),
+            new WoolIntent { Owner = "blue-team", Protection = [new(-105, -55, -95, -45)], Spawn = new(-100.5, 13, -50.5),
                 Monuments = [new MonumentIntent { Team = "red-team", Location = new(100, 13, 50) }] },
         ],
     };

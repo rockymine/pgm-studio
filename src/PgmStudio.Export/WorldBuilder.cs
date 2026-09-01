@@ -218,7 +218,7 @@ public static class WorldBuilder
                 Protection = s.Protection.Count > 0 ? s.Protection
                     : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
                 Yaw = s.Yaw,
-                Piece = s.Piece,
+                Footprint = s.Footprint,
                 Iron = s.Iron,
             });
         }
@@ -232,11 +232,12 @@ public static class WorldBuilder
             {
                 Owner = w.Owner,
                 Color = w.Color,
-                // Encase the auto-placed wool cage (unless the author drew their own room).
-                Room = w.Room.Count > 0 ? w.Room : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
+                // Encase the auto-placed wool cage (unless the author drew their own region).
+                Protection = w.Protection.Count > 0
+                    ? w.Protection : [new Rect(frame.MinX, frame.MinZ, frame.MaxX, frame.MaxZ)],
                 // The wool dispenses from the pad — the exported point follows it (WX5).
                 Spawn = new Pt(frame.Pad.CenterX, woolFloor[i], frame.Pad.CenterZ),
-                Piece = w.Piece,
+                Footprint = w.Footprint,
                 Entries = w.Entries,
                 // Only teams that actually got a spawn cube have a placement cell; a capturer without a
                 // spawn has no world location, so skip it rather than emit a phantom monument at (0,0,0).
@@ -698,17 +699,17 @@ public static class WorldBuilder
             // room fronting the short one.
             frame.Doors.Count > 0 ? frame.Doors[0].Edge : null);
 
-    /// <summary>The frame the export stamps for a wool: resolved from its plan piece + entry interfaces when
-    /// it compiled from a plan (WX1/WX6), else the legacy marker-anchored default. Shared with the structure
-    /// preview so the drawn box and the stamped shell cannot disagree.</summary>
+    /// <summary>The frame the export stamps for a wool: resolved on the region it owns, with its entry
+    /// interfaces cutting the doors (WX1/WX6). Shared with the structure preview so the drawn box and the
+    /// stamped shell cannot disagree. A wool with no region at all — a partial intent — falls back to the
+    /// marker-anchored default.</summary>
     public static RoomFrame WoolFrame(WoolIntent w, bool shellBound)
     {
-        if (w.Piece is { } piece && w.Entries.Count > 0)
+        if (Ground(w.Protection) is { } ground)
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
             var frame = RoomFrames.Resolve(
-                new BlockRect((int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ),
-                StatedFootprint(w.Footprint), shellBound, markerX, markerZ,
+                ground, StatedFootprint(w.Footprint), shellBound, markerX, markerZ,
                 [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], null, out _);
             if (frame is not null) return frame;
         }
@@ -716,23 +717,30 @@ public static class WorldBuilder
     }
 
     /// <inheritdoc cref="WoolFrame"/>
-    /// <remarks>A spawn resolves its room together with the piece's iron markers: each cube stands clear of
+    /// <remarks>A spawn resolves its room together with the region's iron markers: each cube stands clear of
     /// the shell in the ring around it, and an unfittable marker comes back unplaceable (WX8/WX9) — nothing
     /// stamps for it.</remarks>
     public static ResolvedRoom SpawnRoom(SpawnIntent s, bool shellBound)
     {
         var doorEdge = PositionSnap.FacingFromYaw(s.Yaw);
-        if (s.Piece is { } piece)
+        if (Ground(s.Protection) is { } ground)
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
             var room = RoomFrames.ResolveRoom(
-                new BlockRect((int)piece.MinX, (int)piece.MinZ, (int)piece.MaxX, (int)piece.MaxZ),
-                StatedFootprint(s.Footprint), shellBound, markerX, markerZ, [], doorEdge,
+                ground, StatedFootprint(s.Footprint), shellBound, markerX, markerZ, [], doorEdge,
                 [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
             if (room is not null) return room;
         }
         return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdge, shellBound), []);
     }
+
+    /// <summary>The ground a room stands on: what the region encloses, as one block rect, or null where the
+    /// intent states no region. A plan-compiled room owns exactly its piece and this is that rectangle; an
+    /// author who drew a complex zone gets the rectangle around it, since a room is framed on one.</summary>
+    private static BlockRect? Ground(IReadOnlyList<Rect> region) => region.Count == 0 ? null
+        : new BlockRect(
+            (int)region.Min(r => r.MinX), (int)region.Min(r => r.MinZ),
+            (int)region.Max(r => r.MaxX), (int)region.Max(r => r.MaxZ));
 
     /// <summary>An intent rect as the block rect the resolver takes, or null where none was stated.</summary>
     private static BlockRect? StatedFootprint(Rect? rect) => rect is { } r

@@ -40,7 +40,7 @@ public sealed class PlanCompilerTests
         var prot = intent.Spawns.Single(s => s.Team == "red").Protection.Single();
         await Assert.That((prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)).IsEqualTo((5d, 25d, 15d, 55d));
         // Wool room = the whole 'wr' piece (rect [-3,5,2,2] → blocks x -15..-5, z 25..35).
-        var room = intent.Wools!.First(w => w.Owner == "red").Room.Single();
+        var room = intent.Wools!.First(w => w.Owner == "red").Protection.Single();
         await Assert.That((room.MinX, room.MinZ, room.MaxX, room.MaxZ)).IsEqualTo((-15d, 25d, -5d, 35d));
     }
 

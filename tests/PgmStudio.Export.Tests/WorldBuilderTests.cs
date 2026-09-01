@@ -94,7 +94,7 @@ public sealed class WorldBuilderTests
             [
                 new WoolIntent
                 {
-                    Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Piece = piece,
+                    Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Protection = [piece],
                     Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
                     Monuments = [new MonumentIntent { Team = "blue" }],
                 },
@@ -441,7 +441,7 @@ public sealed class WorldBuilderTests
             [
                 new WoolIntent
                 {
-                    Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Piece = piece,
+                    Owner = "red", Color = "red", Spawn = new Pt(-10, 1, 10), Protection = [piece],
                     Stamp = new StampId("wool", "w0", 0),
                     Entries = [new Rect(piece.MinX, piece.MaxZ, piece.MaxX, piece.MaxZ)],
                     Monuments = [new MonumentIntent { Team = "blue" }],

@@ -62,9 +62,10 @@ all of them; but the rim and wall rules must additionally **read** them, because
 the terrain is a height the outline turns on and a face the riser must not paint behind. The set the painter
 consults splits by how a stamp is anchored:
 
-- **Piece-relative** — the **shells** stamped over the wool/spawn room pieces
-  (`WoolIntent.Piece`/`SpawnIntent.Piece`) and the iron cubes: a whole footprint standing over the terrain
-  (`structures.md` WX1). What is read is the building, not the ground under it — the ground is painted.
+- **Piece-relative** — the **shells** stamped over the wool/spawn regions
+  (`WoolIntent.Protection`/`SpawnIntent.Protection`) and the iron cubes: a whole footprint standing over the
+  terrain (`structures.md` WX1). What is read is the building, not the ground under it — the ground is
+  painted.
 - **Interface-relative** — the **bedrock approach wall** (`StructureStamper.StampWall`, from
   `StructureIntent.Walls`; rule ST4). Not a piece but a **seam barrier**: two blocks thick across the shared
   edge between two pieces, the interface width along it, filled with bedrock from y=0 up to

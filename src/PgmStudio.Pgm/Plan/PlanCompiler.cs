@@ -231,15 +231,11 @@ public static class PlanCompiler
                     // pad it puts the player on (WX5). Reading this number as the answer is what B222 was
                     // filed over; it is not read, and SpawnAndWoolAnchorTests holds that.
                     Point = new Pt(px, piece.Value.Surface, pz),
-                    // Protect the whole spawn piece the marker sits on, not just the stamped spawn cube.
+                    // The whole spawn piece: the anti-grief zone, and the ground the room is framed on.
                     Protection = [new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ)],
-                    // A spawn-role piece bounds the stamped room (WX1); a plain piece keeps the default.
-                    Piece = piece.Value.Role == PlanRoles.Spawn
-                        ? new Rect(prot.MinX, prot.MinZ, prot.MaxX, prot.MaxZ) : null,
-                    // The building on it, where the plan states one. It is fanned like the piece is, so an
+                    // The building on it, where the plan states one. It is fanned like the region is, so an
                     // orbit image raises the same house on its own ground.
-                    Footprint = piece.Value.Role == PlanRoles.Spawn
-                        ? FanFootprint(d, piece.Value.Rect, s.Footprint, k) : null,
+                    Footprint = FanFootprint(d, piece.Value.Rect, s.Footprint, k),
                     // Iron on a spawn-role piece rides the spawn — it resolves beside the room (WX8/WX9);
                     // iron elsewhere keeps the legacy StructureIntent path below.
                     Iron = piece.Value.Role == PlanRoles.Spawn
@@ -272,18 +268,17 @@ public static class PlanCompiler
                     : i == 0 ? teams[k].Color
                     : Dyes[dyeCursor++ % Dyes.Length];
                 var room = d.FanRect(piece.Value.Rect, k);
-                // A wool-room ROLE piece sizes the stamped cage and carries its entry interfaces (WX1/WX6);
-                // a wool on a plain piece keeps the legacy marker-anchored default cage.
+                // A wool-room ROLE piece carries the entry interfaces the cage's doors are cut on (WX6); a
+                // wool on a plain piece has none, and a cage with no entry keeps a door per wall.
                 var isRoomPiece = piece.Value.Role == PlanRoles.WoolRoom;
                 wools.Add(new WoolIntent
                 {
                     Owner = teams[k].Id,
                     Stamp = Stamp("wool", w.Id, i, k),
                     Color = color,
-                    // The room region is the whole wool-room piece the marker sits on, not just the stamped cage.
-                    Room = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
-                    Piece = isRoomPiece ? new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ) : null,
-                    Footprint = isRoomPiece ? FanFootprint(d, piece.Value.Rect, w.Footprint, k) : null,
+                    // The whole wool-room piece: the room region, and the ground the cage is framed on.
+                    Protection = [new Rect(room.MinX, room.MinZ, room.MaxX, room.MaxZ)],
+                    Footprint = FanFootprint(d, piece.Value.Rect, w.Footprint, k),
                     Entries = isRoomPiece
                         ? [.. WoolEntrySegments(d, w.Piece).Select(seg =>
                             {

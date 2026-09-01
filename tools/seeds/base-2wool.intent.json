@@ -18,10 +18,10 @@
     "holes": []
   },
   "wools": [
-    { "owner": "red",  "color": "red",        "spawn": { "x": -10, "y": 9, "z": 60 }, "room": [], "monuments": [] },
-    { "owner": "red",  "color": "orange",     "spawn": { "x": 40,  "y": 9, "z": 30 }, "room": [], "monuments": [] },
-    { "owner": "blue", "color": "blue",       "spawn": { "x": 10,  "y": 9, "z": -60 }, "room": [], "monuments": [] },
-    { "owner": "blue", "color": "light_blue", "spawn": { "x": -40, "y": 9, "z": -30 }, "room": [], "monuments": [] }
+    { "owner": "red",  "color": "red",        "spawn": { "x": -10, "y": 9, "z": 60 }, "protection": [], "monuments": [] },
+    { "owner": "red",  "color": "orange",     "spawn": { "x": 40,  "y": 9, "z": 30 }, "protection": [], "monuments": [] },
+    { "owner": "blue", "color": "blue",       "spawn": { "x": 10,  "y": 9, "z": -60 }, "protection": [], "monuments": [] },
+    { "owner": "blue", "color": "light_blue", "spawn": { "x": -40, "y": 9, "z": -30 }, "protection": [], "monuments": [] }
   ],
   "meta": { "name": "Base 2-Wool", "authors": [] }
 }

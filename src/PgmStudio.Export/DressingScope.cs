@@ -82,7 +82,7 @@ public static class DressingScope
         foreach (var wool in intent.Wools ?? [])
         {
             Keep((int)wool.Spawn.X, (int)wool.Spawn.Z, KeepOut.WoolRoom);
-            foreach (var area in wool.Room) KeepArea(area, KeepOut.WoolRoom);
+            foreach (var area in wool.Protection) KeepArea(area, KeepOut.WoolRoom);
             foreach (var monument in wool.Monuments) Keep((int)monument.Location.X, (int)monument.Location.Z, KeepOut.WoolRoom);
         }
         // A destroyable and a core are deliberately absent from this mask. They are not ground the pass must

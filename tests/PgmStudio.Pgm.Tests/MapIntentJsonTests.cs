@@ -15,7 +15,7 @@ public sealed class MapIntentJsonTests
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
 
     [Test]
-    public async Task Deserializes_multi_rect_protection_and_room_arrays()
+    public async Task Deserializes_multi_rect_protection_arrays()
     {
         const string json = """
         {
@@ -25,7 +25,7 @@ public sealed class MapIntentJsonTests
           ],
           "wools": [
             { "owner": "red-team", "color": "red", "spawn": { "x": 5, "y": 10, "z": 5 },
-              "room": [ { "minX": 0, "minZ": 0, "maxX": 10, "maxZ": 10 }, { "minX": 10, "minZ": 0, "maxX": 16, "maxZ": 6 } ] }
+              "protection": [ { "minX": 0, "minZ": 0, "maxX": 10, "maxZ": 10 }, { "minX": 10, "minZ": 0, "maxX": 16, "maxZ": 6 } ] }
           ]
         }
         """;
@@ -36,7 +36,7 @@ public sealed class MapIntentJsonTests
         await Assert.That(prot[0]).IsEqualTo(new Rect(0, 0, 10, 10));
         await Assert.That(prot[1]).IsEqualTo(new Rect(10, 0, 20, 5));
 
-        var room = intent.Wools!.Single().Room;
+        var room = intent.Wools!.Single().Protection;
         await Assert.That(room.Count).IsEqualTo(2);
         await Assert.That(room[1]).IsEqualTo(new Rect(10, 0, 16, 6));
     }
@@ -53,14 +53,14 @@ public sealed class MapIntentJsonTests
         var intent = JsonSerializer.Deserialize<MapIntent>(json, Web)!;
 
         await Assert.That(intent.Spawns.Single().Protection.Count).IsEqualTo(0);
-        await Assert.That(intent.Wools!.Single().Room.Count).IsEqualTo(0);
+        await Assert.That(intent.Wools!.Single().Protection.Count).IsEqualTo(0);
     }
 
     [Test]
-    public async Task Tolerates_legacy_single_object_protection_and_room()
+    public async Task Tolerates_a_single_object_protection_blob()
     {
-        // Intents authored before rooms/protection became unions stored a single {minX,…} object (or null).
-        // These must still deserialize (a one-element list / empty list), not throw.
+        // A protection region is a union, and a hand-written intent may state the single rect it usually is
+        // as one {minX,…} object, or null for none. Both deserialize (a one-element / empty list).
         const string json = """
         {
           "spawns": [
@@ -69,7 +69,7 @@ public sealed class MapIntentJsonTests
           ],
           "wools": [
             { "owner": "red-team", "color": "red", "spawn": { "x": 5, "y": 10, "z": 5 },
-              "room": { "minX": -112, "minZ": -36, "maxX": -100, "maxZ": -24 } }
+              "protection": { "minX": -112, "minZ": -36, "maxX": -100, "maxZ": -24 } }
           ]
         }
         """;
@@ -78,8 +78,8 @@ public sealed class MapIntentJsonTests
         await Assert.That(intent.Spawns[0].Protection.Count).IsEqualTo(1);
         await Assert.That(intent.Spawns[0].Protection[0]).IsEqualTo(new Rect(-89, -8, -61, 8));
         await Assert.That(intent.Spawns[1].Protection.Count).IsEqualTo(0);   // legacy null → empty list
-        await Assert.That(intent.Wools!.Single().Room.Count).IsEqualTo(1);
-        await Assert.That(intent.Wools!.Single().Room[0]).IsEqualTo(new Rect(-112, -36, -100, -24));
+        await Assert.That(intent.Wools!.Single().Protection.Count).IsEqualTo(1);
+        await Assert.That(intent.Wools!.Single().Protection[0]).IsEqualTo(new Rect(-112, -36, -100, -24));
     }
 
     [Test]

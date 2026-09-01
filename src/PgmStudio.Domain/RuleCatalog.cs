@@ -75,7 +75,7 @@ public static class RuleCatalog
         "GO1", "GO2", "GO3", "GO4",
         "LN1", "LN2",
         "SP1", "SP2", "SP8", "SP9",
-        "ST1", "ST2", "ST8", "ST9",
+        "ST1", "ST2", "ST8", "ST9", "ST10",
         "WL1", "WL2", "WL7", "WL8", "WL9", "WL10", "WL11",
     };
 

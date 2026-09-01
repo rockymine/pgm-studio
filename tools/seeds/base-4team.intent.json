@@ -23,10 +23,10 @@
     "holes": []
   },
   "wools": [
-    { "owner": "red",    "color": "red",    "spawn": { "x": -10, "y": 9, "z": 60 },  "room": [], "monuments": [] },
-    { "owner": "blue",   "color": "blue",   "spawn": { "x": -60, "y": 9, "z": -10 }, "room": [], "monuments": [] },
-    { "owner": "yellow", "color": "yellow", "spawn": { "x": 10,  "y": 9, "z": -60 }, "room": [], "monuments": [] },
-    { "owner": "green",  "color": "green",  "spawn": { "x": 60,  "y": 9, "z": 10 },  "room": [], "monuments": [] }
+    { "owner": "red",    "color": "red",    "spawn": { "x": -10, "y": 9, "z": 60 },  "protection": [], "monuments": [] },
+    { "owner": "blue",   "color": "blue",   "spawn": { "x": -60, "y": 9, "z": -10 }, "protection": [], "monuments": [] },
+    { "owner": "yellow", "color": "yellow", "spawn": { "x": 10,  "y": 9, "z": -60 }, "protection": [], "monuments": [] },
+    { "owner": "green",  "color": "green",  "spawn": { "x": 60,  "y": 9, "z": 10 },  "protection": [], "monuments": [] }
   ],
   "meta": { "name": "Base 4-Team", "authors": [] }
 }

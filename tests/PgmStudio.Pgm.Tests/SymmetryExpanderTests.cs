@@ -131,16 +131,16 @@ public sealed class SymmetryExpanderTests
             Symmetry = new SymmetryIntent { Mode = "mirror_x", CenterX = 0, CenterZ = 0 },
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = [new(0, 0, 10, 10), new(10, 0, 16, 6)], Spawn = new(5, 5, 5),
+                new WoolIntent { Owner = "red-team", Color = "red", Protection = [new(0, 0, 10, 10), new(10, 0, 16, 6)], Spawn = new(5, 5, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new(5, 1, 5) }] },
             ],
         };
         var outp = SymmetryExpander.Expand(intent);
 
         var blueWool = outp.Wools!.First(w => w.Owner == "blue-team");
-        await Assert.That(blueWool.Room.Count).IsEqualTo(2);
-        await Assert.That(blueWool.Room[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room[0].MaxX).IsEqualTo(0.0);
-        await Assert.That(blueWool.Room[1].MinX).IsEqualTo(-16.0); await Assert.That(blueWool.Room[1].MaxX).IsEqualTo(-10.0);
+        await Assert.That(blueWool.Protection.Count).IsEqualTo(2);
+        await Assert.That(blueWool.Protection[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Protection[0].MaxX).IsEqualTo(0.0);
+        await Assert.That(blueWool.Protection[1].MinX).IsEqualTo(-16.0); await Assert.That(blueWool.Protection[1].MaxX).IsEqualTo(-10.0);
     }
 
     [Test]
@@ -175,7 +175,7 @@ public sealed class SymmetryExpanderTests
                 new WoolIntent
                 {
                     Owner = "red-team", Color = "red",
-                    Room = [new(0, 0, 10, 10)], Spawn = new(5, 5, 5),
+                    Protection = [new(0, 0, 10, 10)], Spawn = new(5, 5, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new(5, 1, 5) }],
                 },
             ],
@@ -185,7 +185,7 @@ public sealed class SymmetryExpanderTests
         await Assert.That(outp.Wools!.Count).IsEqualTo(2);
         var blueWool = outp.Wools!.First(w => w.Owner == "blue-team");
         // room reflected across the X-normal: x→-x
-        await Assert.That(blueWool.Room[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Room[0].MaxX).IsEqualTo(0.0);
+        await Assert.That(blueWool.Protection[0].MinX).IsEqualTo(-10.0); await Assert.That(blueWool.Protection[0].MaxX).IsEqualTo(0.0);
         await Assert.That(blueWool.Spawn.X).IsEqualTo(-5.0);
         // the capturer shifts by the same orbit step: blue captured red's wool, so red captures blue's
         await Assert.That(blueWool.Monuments.Count).IsEqualTo(1);

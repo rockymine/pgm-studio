@@ -5641,6 +5641,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   before the step existed. Serializing a style also forced structural equality onto every material holding a
   collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
   member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
+- **The region and the building are two rectangles with two names (B178).** `SpawnIntent.Piece` and
+  `Protection[0]` had been the same rect, and `WoolIntent.Piece` and `Room[0]` likewise, so the intent said
+  twice what a placement says once and a null `Piece` smuggled in a second meaning — *keep the legacy
+  marker-anchored room* — that is a role question the compiler already answers. A wool now carries the same
+  `Protection` a spawn does, because it is the same thing: the anti-grief region **and** the ground the room
+  is framed on. `Piece` is gone, the room is framed on what the region encloses, and the marker-anchored
+  default is left only for an intent that states no region at all. The building is the intent's other
+  rectangle. That split is what let the two caps separate: `ST9` moves onto the **footprint** at 20×20 —
+  measured on the rectangle the export actually stamps, stated or `WX1`-defaulted — and the new `ST10` caps
+  the **region** at 20×30 in either orientation, both the author's numbers, both lint. (`rules.md` amendment
+  30)
 - **A room and the building over it are two minimums, and only one refuses (G156).** `WX2` had stated a
   single 6×6 floor — what a *shell* needs — and applied it to rooms with nothing over them, so a small piece
   emitted a room its own export refused and a stated 5×5 footprint was accepted by the plan validator and

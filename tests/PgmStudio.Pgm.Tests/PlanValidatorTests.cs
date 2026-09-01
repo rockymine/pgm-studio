@@ -706,19 +706,46 @@ public sealed class PlanValidatorTests
     }
 
     [Test]
-    public async Task A_role_piece_over_the_cap_fires_ST9()
+    public async Task A_building_over_the_cap_fires_ST9_and_the_region_it_stands_on_does_not()
     {
-        var oversized = Plan("""
+        // ST9 measures the footprint, so a region wide enough to hold an over-cap default building fires it,
+        // and stating a smaller building on the same region clears it.
+        var sprawling = Plan("""
         { "plan":2, "globals":{"cell":1},
-          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,30,30]} ] }
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,0,30,24]} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[15,12],"facing":"front"} ] } }
         """);
-        await Assert.That(Lint(oversized, "ST9")).IsTrue();
+        await Assert.That(Lint(sprawling, "ST9")).IsTrue();
 
-        var atCap = Plan("""
+        var stated = Plan("""
         { "plan":2, "globals":{"cell":1},
-          "pieces":[ {"id":"w","role":"wool-room","rect":[0,0,20,20]} ] }
+          "pieces":[ {"id":"s","role":"spawn","rect":[0,0,30,24]} ],
+          "placements":{ "spawns":[ {"piece":"s","at":[15,12],"facing":"front","footprint":[5,2,20,20]} ] } }
         """);
-        await Assert.That(Lint(atCap, "ST9")).IsFalse();
+        await Assert.That(Lint(stated, "ST9")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_region_over_the_cap_fires_ST10_in_either_orientation()
+    {
+        foreach (var rect in new[] { "[0,0,20,40]", "[0,0,40,20]", "[0,0,26,26]" })
+        {
+            var oversized = Plan($$"""
+            { "plan":2, "globals":{"cell":1},
+              "pieces":[ {"id":"w","role":"wool-room","rect":{{rect}}} ] }
+            """);
+            await Assert.That(Lint(oversized, "ST10")).IsTrue();
+        }
+
+        // 20 across and 30 along is the cap itself, either way round.
+        foreach (var rect in new[] { "[0,0,20,30]", "[0,0,30,20]" })
+        {
+            var atCap = Plan($$"""
+            { "plan":2, "globals":{"cell":1},
+              "pieces":[ {"id":"w","role":"wool-room","rect":{{rect}}} ] }
+            """);
+            await Assert.That(Lint(atCap, "ST10")).IsFalse();
+        }
     }
 
     [Test]

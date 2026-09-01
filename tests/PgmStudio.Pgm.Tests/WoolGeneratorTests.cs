@@ -33,7 +33,7 @@ public sealed class WoolGeneratorTests
             new WoolIntent
             {
                 Owner = "red-team",
-                Room = [new Rect(0, 0, 10, 10)],
+                Protection = [new Rect(0, 0, 10, 10)],
                 Spawn = new Pt(5.5, 10.2, 5.5),
                 Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }],
             },
@@ -192,9 +192,9 @@ public sealed class WoolGeneratorTests
         {
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = [new Rect(0, 0, 10, 10)], Spawn = new Pt(5, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "red", Protection = [new Rect(0, 0, 10, 10)], Spawn = new Pt(5, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
-                new WoolIntent { Owner = "red-team", Color = "orange", Room = [new Rect(20, 0, 30, 10)], Spawn = new Pt(25, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "orange", Protection = [new Rect(20, 0, 30, 10)], Spawn = new Pt(25, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-70, 8, -50) }] },
             ],
         });
@@ -220,7 +220,7 @@ public sealed class WoolGeneratorTests
         {
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = [new Rect(0, 0, 10, 10), new Rect(10, 0, 16, 6)], Spawn = new Pt(5, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "red", Protection = [new Rect(0, 0, 10, 10), new Rect(10, 0, 16, 6)], Spawn = new Pt(5, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
             ],
         });
@@ -254,7 +254,7 @@ public sealed class WoolGeneratorTests
         {
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = [], Spawn = new Pt(5, 10, 5),
+                new WoolIntent { Owner = "red-team", Color = "red", Protection = [], Spawn = new Pt(5, 10, 5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new Pt(-50, 8, -50) }] },
             ],
         });

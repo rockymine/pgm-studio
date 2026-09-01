@@ -73,7 +73,7 @@ public static class WoolGenerator
                 ["team"] = IntentNaming.TeamId(w.Owner),
                 ["location"] = new Dict { ["x"] = Floor(w.Spawn.X), ["y"] = Floor(w.Spawn.Y), ["z"] = Floor(w.Spawn.Z) },
             };
-            if (w.Room.Count > 0) update["wool_room_region"] = roomId;
+            if (w.Protection.Count > 0) update["wool_room_region"] = roomId;
             WoolEditor.UpdateWool(doc, colorSlug, update);
             foreach (var m in w.Monuments)
             {
@@ -94,10 +94,10 @@ public static class WoolGenerator
                 });
             }
 
-            if (w.Room.Count == 0) continue;   // no room yet → skip the source side (region/spawner/wiring)
+            if (w.Protection.Count == 0) continue;   // no room yet → skip the source side (region/spawner/wiring)
 
             // One room rect is the region itself; several union into it (the buildable-area pattern).
-            EmitRectUnion(doc, roomId, "wool", w.Room);
+            EmitRectUnion(doc, roomId, "wool", w.Protection);
             RegionEditor.CreateRegion(doc, new Dict
             {
                 ["type"] = "point", ["id"] = spawnId, ["category"] = "wool",

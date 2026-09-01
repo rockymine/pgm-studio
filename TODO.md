@@ -19,14 +19,6 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
 
 ## The piece that does four jobs: the region, the marker, and the building on it
 
-- [ ] **B178 — The region and the building are two rects with one name on the intents.** `SpawnIntent.Piece`
-  and `Protection[0]` are the same rect, and `WoolIntent.Piece` and `Room[0]` likewise, so the type says twice
-  what the placement says once. Rename to the split the document already carries: `WoolIntent.Room` becomes
-  `Protection`, the word the spawn uses for the same thing, and the duplicate `Piece` goes — a null `Piece`
-  currently means "keep the legacy marker-anchored room", which is a *role* question the compiler already
-  answers. Then `ST9`'s 20×20 cap moves onto the stated footprint and the region takes `ST10`, its own
-  **20×30**; neither is enforced today, so a 30×30 piece seeds a 28×22 building and nothing says no.
-
 - [ ] **B177 — An iron cube stamps outside its piece with nothing watching.** `StructureStamper.StampIronCube`
   centres a cube on its anchor and writes it wherever that lands, with no bounds test of any kind — the
   standalone path a marker takes when its piece carries no spawn marker, which is one deletion away from any

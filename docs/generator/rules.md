@@ -671,10 +671,17 @@ disagree with the one that runs.
   since a wall on a side interface defends a flank and its entry distance means nothing. The
   full-span clause needs no check: the compiler builds every wall across its whole interface. A wall
   pair that includes the wool room itself is `PL13`'s refusal, not this lint's.
-- **ST9 [author]** *Role-piece cap*: a wool-room or spawn piece is at most **20×20 blocks** — the
-  stamped building is sized by its piece, so piece size *is* building size, and a 90-block piece is
-  a 90-block hall. The cap is the workaround for the piece/building coupling (`B178`) until that is
-  broken. The floor at the other end is the dressing pass's `DR-SIZE` (a placed building ≥ 5×5).
+- **ST9 [author]** *Building cap*: the building a role piece raises is at most **20×20 blocks** —
+  the footprint the shell stands on, which is what a player walks into, so past it the room is a
+  field with a roof. The cap is on the rectangle the export actually stamps: the one the placement
+  states, or the one `WX1` defaults from the region where it states none. The floor at the other end
+  is the dressing pass's `DR-SIZE` (a placed building ≥ 5×5).
+- **ST10 [author]** *Region cap*: a wool-room or spawn piece is at most **20×30 blocks**, in either
+  orientation. The piece is the protection region *and* the ground the building stands on, so its
+  long axis is the approach a room is entered along; past 30 it stops being a room's ground and
+  becomes a field of immunity a team cannot be fought out of. The two caps are different numbers
+  because they measure different things, which is what `ST9` could not say while one rectangle was
+  both.
 
 ## Facing semantics [expert]
 
@@ -941,3 +948,12 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     footprint, filled **up** to the floor course in **stone** so the painter finishes it like the ground
     around it (`TP6` rewrites only stone); nothing is filled downward. No other rule changes — `ST2`'s spawn
     piece never laid a floor, and `ST4`'s wall keeps its bedrock, which is a barrier rather than a plinth.
+
+30. **`ST9` split, `ST10` added (2026-09-01).** Author's call, closing `B178`. `ST9` had capped the *piece*
+    at 20×20 as a workaround: the stamped building was sized by its piece, so one rectangle carried the
+    protection region and the building alike and one number had to serve both. The intent now states them
+    apart — `Protection` is the region and `Footprint` is the building — so each takes the author's own
+    number: `ST9` caps the footprint at **20×20**, and the new `ST10` caps the region at **20×30**, in
+    either orientation. Both stay lint, as amendment 17 made the piece-interface set. The traced board's
+    30-long spawn ground, which amendment 17 lists as a standing `ST9`/`SP9` complaint, is a region rather
+    than a building and is quiet under `ST10`.

@@ -176,7 +176,7 @@ public static class SymmetryExpander
                     Owner = owner.Id,
                     Stamp = src.Stamp.At(k),
                     Color = "",   // orbit copies default to the new owner team's colour (WoolGenerator.ColorSlug)
-                    Room = src.Room.Select(r => TransformRect(r, sym, k)).ToList(),
+                    Protection = src.Protection.Select(r => TransformRect(r, sym, k)).ToList(),
                     Spawn = TransformPt(src.Spawn, sym, k),
                     Monuments = [.. src.Monuments.Select(m => m with
                     {

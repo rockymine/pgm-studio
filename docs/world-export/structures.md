@@ -45,17 +45,20 @@ reach. What stays here is the part a docstring has no room for: the negotiation 
 
 Every wool cage and spawn room is stamped from one resolved **`RoomFrame`**: the shell footprint,
 the interior, the pad, and the doors, derived by `RoomFrames.Resolve` from three authored inputs —
-the **piece rect**, the **marker**, and the **entry interfaces** (a spawn substitutes its
-yaw-derived door edge). The world builder and the plan editor's structure preview consume the same
-frame (`WorldBuilder.WoolFrame`/`SpawnFrame`), so the drawn box and the stamped shell cannot
-disagree — the OB8 discipline the destroyable/core boxes established.
+the **region**, the **marker**, and the **entry interfaces** (a spawn substitutes its yaw-derived
+door edge). The world builder and the plan editor's structure preview consume the same frame
+(`WorldBuilder.WoolFrame`/`SpawnRoom`), so the drawn box and the stamped shell cannot disagree —
+the OB8 discipline the destroyable/core boxes established.
 
-The frame's inputs ride the intent per orbit image: the compiler attaches the role piece's fanned
-rect (`WoolIntent.Piece`/`SpawnIntent.Piece`) and the wool room's fanned entry interfaces
-(`WoolIntent.Entries` — terrain↔room land seams plus build-zone frontline edges, as degenerate
-rects on the piece boundary). A wool or spawn marker on a **plain** piece carries no `Piece` and
-keeps the legacy marker-anchored default room — the frame a 10×10 piece would resolve to, with a
-door per wall on the cage — so hand-authored and sketch-origin intents behave as they always did.
+**The region is the ground, and it is the same field PGM's protection comes out of.** A wool and a
+spawn each carry one `Protection` — a union of rectangles, one for a plan-compiled room (its piece,
+fanned per orbit image) and as many as an author drew for a hand-authored one — and the room is
+framed on what that union encloses. There is no second rectangle naming the same ground: the
+building is the intent's other rect (`Footprint`, capped by `ST9`), the region is this one (capped
+by `ST10`), and an intent that states no region at all falls back to the marker-anchored default
+frame, the one a 10×10 piece would resolve to. The wool room's fanned entry interfaces ride beside
+it (`WoolIntent.Entries` — terrain↔room land seams plus build-zone frontline edges, as degenerate
+rects on the region's boundary); a cage with none keeps a door per wall.
 
 Two authoring facts frame the rules. The plan format is generic over scale: `PlanGlobals.Cell` is
 any blocks-per-cell value (default 5), so a room piece has no fixed block size and every minimum

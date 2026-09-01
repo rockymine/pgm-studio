@@ -35,9 +35,9 @@ public sealed class IntentXmlExportTests
         Build = new BuildIntent { MaxHeight = 30, Areas = [new Rect(0, 0, 50, 50), new Rect(-50, -50, 0, 0)] },
         Wools =
         [
-            new WoolIntent { Owner = "red-team", Room = [new(95, 45, 105, 55)], Spawn = new(100.5, 13, 50.5),
+            new WoolIntent { Owner = "red-team", Protection = [new(95, 45, 105, 55)], Spawn = new(100.5, 13, 50.5),
                 Monuments = [new MonumentIntent { Team = "blue-team", Location = new(-100, 13, -50) }] },
-            new WoolIntent { Owner = "blue-team", Room = [new(-105, -55, -95, -45)], Spawn = new(-100.5, 13, -50.5),
+            new WoolIntent { Owner = "blue-team", Protection = [new(-105, -55, -95, -45)], Spawn = new(-100.5, 13, -50.5),
                 Monuments = [new MonumentIntent { Team = "red-team", Location = new(100, 13, 50) }] },
         ],
     };
@@ -102,7 +102,7 @@ public sealed class IntentXmlExportTests
             ],
             Wools =
             [
-                new WoolIntent { Owner = "red-team", Color = "red", Room = [new(95, 45, 105, 55), new(105, 47, 112, 53)], Spawn = new(100.5, 13, 50.5),
+                new WoolIntent { Owner = "red-team", Color = "red", Protection = [new(95, 45, 105, 55), new(105, 47, 112, 53)], Spawn = new(100.5, 13, 50.5),
                     Monuments = [new MonumentIntent { Team = "blue-team", Location = new(-100, 13, -50) }] },
             ],
         };
@@ -194,7 +194,7 @@ public sealed class IntentXmlExportTests
             Meta = new MetaIntent { Name = "Bare" },
             Teams = [new TeamDef { Id = "red", Name = "Red", Color = "red" }, new TeamDef { Id = "blue", Name = "Blue", Color = "blue" }],
             Spawns = [new SpawnIntent { Team = "red", Point = new(10, 12, 10), Protection = [new(0, 0, 20, 20)] }],
-            Wools = [new WoolIntent { Owner = "red", Room = [new(5, 5, 15, 15)], Spawn = new(10.5, 13, 10.5),
+            Wools = [new WoolIntent { Owner = "red", Protection = [new(5, 5, 15, 15)], Spawn = new(10.5, 13, 10.5),
                 Monuments = [new MonumentIntent { Team = "blue", Location = new(-10, 13, -10) }] }],
         });
 

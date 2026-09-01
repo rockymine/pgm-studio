@@ -14,8 +14,8 @@
     "holes": []
   },
   "wools": [
-    { "owner": "red",  "color": "red",  "spawn": { "x": -10, "y": 9, "z": 60 },  "room": [], "monuments": [] },
-    { "owner": "blue", "color": "blue", "spawn": { "x": 10,  "y": 9, "z": -60 }, "room": [], "monuments": [] }
+    { "owner": "red",  "color": "red",  "spawn": { "x": -10, "y": 9, "z": 60 },  "protection": [], "monuments": [] },
+    { "owner": "blue", "color": "blue", "spawn": { "x": 10,  "y": 9, "z": -60 }, "protection": [], "monuments": [] }
   ],
   "meta": { "name": "Base 2-Island", "authors": [] }
 }
