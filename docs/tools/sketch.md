@@ -166,10 +166,21 @@ it is simply part of the group's ground. And a path carries `path_edge`
 (`solid`, `rough`, `tapered`) with a `path_seed`, since a path is stored as the open centreline it was drawn
 as and its band is derived.
 
-A shape tagged with a `role` is not terrain at all. It is a spawn or wool-room piece the plan placed,
-projected in so the room stays visible instead of dissolving into the fused group, carrying an `intentRef`
-back to the entity it belongs to and a `color`. Role-tagged shapes are loaded as a locked render-only overlay:
-never hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
+A shape tagged with a `role` is not terrain at all. It is something the plan placed, projected in so it stays
+visible instead of dissolving into the fused group, and loaded as a locked render-only overlay: never
+hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
+
+**A room projects as two shapes, because it is two rectangles.** `spawn` and `woolRoom` are the *region* — the
+ground the room stands on and the protection around it — and carry the `intentRef` back to the entity they
+belong to, the `color` their labelled box is filled with, and the height the group's relief is held against.
+`building` is the *footprint* raised inside one of them, the rectangle the shell is stamped on
+(`docs/world-export/structures.md` WX1), drawn as a dashed outline over the box rather than a second filled
+one. It carries no `intentRef` and no height of its own: the region shape is what a group's relief is held
+against and what an author corrects a height on, so a second shape claiming that identity would be a second
+answer to one question. Its id is the region's plus `-building`, so a recompile writes the same shape over the
+same one. **Only a stated footprint projects** — a placement that leaves it to `WX1`'s default shows its
+region alone, since drawing a rectangle nobody stated as though they had is the opacity a stated footprint
+exists against.
 
 **Its footprint stays inside the fused polygon, and has to.** A room places no terrain of its own, so the
 ground it stands on is the group's; that overlap is what binds the room to its group's relief, since an
@@ -1400,9 +1411,10 @@ Sketch draws the ground and everything on it, and it does not know what any of i
 no spawns, no objectives, no build regions and no protection: a map begun here reaches Configure with geometry
 and nothing else, and a map that came from a plan carries the plan's intent unchanged through this tool.
 
-The structural pieces a plan projects in are **read-only here**. A spawn or wool room is rendered so it stays
-visible while the ground around it is refined, but it cannot be selected, moved or reshaped, and a destroy
-objective has no sketch presence at all. The backend half of correcting a structural piece's height across a
+The structural pieces a plan projects in are **read-only here**. A spawn or wool room and the building inside
+it are rendered so they stay visible while the ground around them is refined, but neither can be selected,
+moved or reshaped, and a destroy objective has no sketch presence at all. The building is drawn where the plan
+tool draws it, so the two tools show one rectangle rather than each showing its own. The backend half of correcting a structural piece's height across a
 recompile is in place; the canvas half is not (`B107`).
 
 The layout model carries two shape types the **Draw** dock cannot draw. A `circle` rasterizes as a 64-gon, and

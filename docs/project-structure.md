@@ -112,8 +112,8 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 30 | 1,906 | `Migrations/` 29 · 1 at root |
 | `Minecraft` | 88 | 17,514 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 151 | 24,958 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 8 · `Render/` 5 · `Detect/` 1 · 13 at root |
-| `Vocabulary` | 10 | 925 | flat |
+| `Pgm` | 151 | 24,991 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 8 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Vocabulary` | 11 | 952 | flat |
 <!-- /census -->
 
 **`Pgm` is two projects wearing one name**, and the table above is where that is visible: it is the largest

@@ -351,6 +351,12 @@ rectangles tagged with their role and an `intentRef` back to the entity they bel
 visible in the Sketch tool instead of dissolving into the fused group. The authored image also pins its
 group's relief solve at the piece's own surface, so the ground is solved knowing the floor must arrive there.
 
+**A stated footprint rides across as a second shape**, tagged `building` and named for the region shape it
+stands in. The region is the ground, the building is the house on it, and a sketch that showed only the first
+would hide the rectangle the export actually stamps — the very thing stating a footprint is for. It carries no
+height and no `intentRef`: the region shape is the one a group's relief is held against. A placement that
+states no footprint projects its region alone rather than a picture of `WX1`'s default.
+
 **The intent** (`MapIntent`) is the gameplay. Teams come from the red/blue/yellow/green palette in orbit order.
 Each spawn fans to one per team, with its yaw fanned from the facing; each wool fans team-outer, its entries
 the room's land seams and build-zone frontages. Both carry the same two rectangles, and they say different

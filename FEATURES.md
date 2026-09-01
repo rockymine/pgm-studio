@@ -5641,6 +5641,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   before the step existed. Serializing a style also forced structural equality onto every material holding a
   collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
   member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
+- **The building reaches the sketch, not just the region (TN11).** `PlanCompiler` projected a role piece into
+  the sketch as one locked annotation and the rect that went was the *piece*, so the building an author states
+  and drags on the plan canvas was invisible downstream — the sketch showed the ground and nothing standing on
+  it. A room now projects **two** shapes: the region as before, and a `building` annotation carrying the
+  fanned footprint, named for the region shape it stands in and drawn as a dashed outline over the box rather
+  than a second filled one. It carries no `intentRef` and no height — the region is what a group's relief is
+  held against — and only a **stated** footprint projects, since drawing `WX1`'s default as though someone had
+  stated it is the opacity a stated footprint exists against. The three role words are one closed set in
+  `Vocabulary` (`StructuralRoles`), which the compiler writes, the rasterizer reads to know what not to carve,
+  and the canvas reads to know what to draw.
 - **One iron cube, bounded by the piece it rides (B177).** Two paths stamped a cube from one marker and
   disagreed about both its size and its bounds: the spawn-room path resolved a `WX8` span-3 cube against the
   piece, while a marker on any other piece went through `StampIronCube`, which centred a 4×4×4 cube on its

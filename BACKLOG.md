@@ -568,8 +568,9 @@ model — everything else from that pool has moved to the heading its subject ow
   role-tagged annotation and `SketchRasterizer` skips it outright (`line 1027`), so it is never a shape a
   theme can be scoped to: the ground under a room is whatever its fused component paints, and there is no way
   to state a room floor. It is also what `StructureStamper.StampFoundation` levels in, so the material that
-  fills a dip under a footprint is the same question. Wants a theme scope on the structural shape `TN11`
-  projects, and the levelling fill reading it.
+  fills a dip under a footprint is the same question. The shape to hang it on is there: a room projects a `building`
+  annotation carrying its footprint. Wants a theme scope on that shape, and the levelling fill reading
+  it.
 
   *re-probed on `marlstone-steps`: the column under the red wool at `(0, 85)` is raw `1:0` Stone from y24 down
   to y1, on a board whose `crest` theme is quartz. Reported independently by four runs.*

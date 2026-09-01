@@ -2,6 +2,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Plan;
 
@@ -78,6 +79,30 @@ public static class PlanCompiler
                 shape.Doors = [.. doors.Distinct().Select(RoomEdges.Word)];
         }
         shapes.Add(shape);
+    }
+
+    /// <summary>The building a role piece raises, projected beside the region shape it stands inside — the
+    /// second half of what a room is (docs/world-export/structures.md WX1), so a sketch shows the ground and
+    /// the house on it rather than one rectangle standing for both.</summary>
+    /// <remarks>It carries no <c>IntentRef</c>, no relief scope and no height. The region shape is what a
+    /// group's relief is held against and what an author corrects a height on; a second shape claiming the
+    /// same identity would be a second answer to that one question. This one is a picture of the footprint
+    /// and its id is derived from the region's, so a recompile writes the same shape over the same one.</remarks>
+    private static void AppendBuildingShape(
+        SketchLayout layout, string regionId, string color, Rect? footprint)
+    {
+        if (footprint is not { } rect) return;
+        var shapes = SketchLayout.Stack(layout).FirstOrDefault()?.Layout?.Shapes;
+        if (shapes is null) return;
+        shapes.Add(new SketchShape
+        {
+            Id = $"{regionId}-building",
+            Type = "rectangle",
+            Operation = "add",
+            Role = StructuralRoles.Building,
+            Color = color,
+            MinX = (int)rect.MinX, MinZ = (int)rect.MinZ, MaxX = (int)rect.MaxX, MaxZ = (int)rect.MaxZ,
+        });
     }
 
     /// <summary>Which sides of a wool room its entries stand on. A room's entries are the land seams and
@@ -249,8 +274,12 @@ public static class PlanCompiler
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
                 });
                 if (piece.Value.Role == PlanRoles.Spawn)
-                    AppendStructuralShape(layout, $"spawn-{teams[k].Id}", "spawn", teams[k].Id, teams[k].Color,
-                        prot, piece.Value.Surface, k, [RoomEdges.OfFacing(s.Facing)]);
+                {
+                    AppendStructuralShape(layout, $"spawn-{teams[k].Id}", StructuralRoles.Spawn, teams[k].Id,
+                        teams[k].Color, prot, piece.Value.Surface, k, [RoomEdges.OfFacing(s.Facing)]);
+                    AppendBuildingShape(layout, $"spawn-{teams[k].Id}", teams[k].Color,
+                        FanFootprint(d, piece.Value.Rect, s.Footprint, k));
+                }
             }
 
         // wools: team-outer, placement-inner (matches the intent's grouping); auto colour with a global dye cursor
@@ -291,9 +320,13 @@ public static class PlanCompiler
                     Spawn = new Pt(px, piece.Value.Surface, pz),
                 });
                 if (isRoomPiece)
-                    AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", "woolRoom",
+                {
+                    AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", StructuralRoles.WoolRoom,
                         $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k,
                         WoolDoorEdges(d, w.Piece, piece.Value.Rect));
+                    AppendBuildingShape(layout, $"wool-{teams[k].Id}-{color}", color,
+                        FanFootprint(d, piece.Value.Rect, w.Footprint, k));
+                }
             }
 
         // destroyables: team-outer like wools — a destroyable is a goal one team defends, so an orbit image

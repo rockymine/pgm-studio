@@ -46,17 +46,28 @@ const STRUCT_KIND = { spawn: "spawn", woolRoom: "wool" };
 const ROLE_FILL = { spawn: "#8f7bd6", woolRoom: "#3fae74" };
 
 /**
- * The plan's structural pieces (S25) — the spawn buildings and wool rooms the plan already placed, projected
+ * The plan's structural pieces (S25) — the spawn and wool-room regions the plan already placed, projected
  * from the map intent as **locked, labelled** rectangles so they stay visible while a plan is refined. They
  * are not terrain (the rasterizer skips them; the ground under them is the fused group): a filled box in the
  * plan's role colour (purple spawn / green wool), a solid border, and a centred label sized to fit. The colour
  * carries the role, so the label carries the identity — a spawn's team, a wool's dye colour + owning team.
  * Read-only — never hit-tested or edited, so no selection chrome.
+ *
+ * A `building` shape is the footprint raised inside one of those regions, and is drawn as a dashed outline
+ * over it rather than a second filled box: it stands inside a rectangle that is already labelled, so a second
+ * label and a second fill would say the same thing twice over the same ground.
  */
 export function paintStructural(painter, shapes) {
   for (const s of shapes ?? []) {
     if (s.type !== "rectangle") continue;
     const hex = ROLE_FILL[s.role] ?? "#8892a0";
+    // Drawn in the canvas ink rather than a role colour: it stands on a box already filled with one, and a
+    // second hue over the first reads as a second thing rather than as the house on that ground.
+    if (s.role === "building") {
+      painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
+        { stroke: "var(--canvas-ink)", strokeAlpha: 0.8, width: 1.5, dash: [5, 3] });
+      continue;
+    }
     painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
       { fill: hex, fillAlpha: 0.32, stroke: hex, strokeAlpha: 0.95, width: 2 });
 

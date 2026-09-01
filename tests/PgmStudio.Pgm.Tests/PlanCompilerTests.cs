@@ -214,6 +214,57 @@ public sealed class PlanCompilerTests
         await Assert.That(terrain.Count).IsLessThan(spawns.Count + wools.Count);
     }
 
+    // The same unit with both rooms stating a building, which is what the editor's own seeder writes onto a
+    // drawn role piece.
+    private const string StatedBuildings = """
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":5,"surface":9},
+          "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,2,2]}, {"id":"wr","role":"wool-room","rect":[2,0,2,2]} ],
+          "placements":{ "spawns":[ {"piece":"sp","at":[5,5],"facing":"front","footprint":[1,1,8,6]} ],
+                         "wools":[ {"piece":"wr","at":[5,5],"footprint":[1,1,8,8]} ] } }
+        """;
+
+    [Test]
+    public async Task Each_region_carries_the_building_raised_inside_it()
+    {
+        var (layout, intent) = PlanCompiler.Compile(Plan(StatedBuildings));
+        var shapes = SketchLayout.Stack(layout)[0].Shapes;
+        var buildings = shapes.Where(s => s.Role == StructuralRoles.Building).ToList();
+
+        // One per room, named off the region shape it stands in, and carrying no height of its own — the
+        // region is what a group's relief is held against.
+        await Assert.That(buildings.Count).IsEqualTo(4);
+        await Assert.That(buildings.Select(b => b.Id))
+            .IsEquivalentTo(new[] { "spawn-red-building", "spawn-blue-building",
+                                    "wool-red-red-building", "wool-blue-blue-building" });
+        await Assert.That(buildings.All(b => b.IntentRef is null && b.BaseHeight is null
+                                             && b.ReliefScope is null && b.Doors is null)).IsTrue();
+
+        // Each stands inside the region it belongs to, and is the same rectangle the intent hands the export.
+        foreach (var region in shapes.Where(s => s.Role is StructuralRoles.Spawn or StructuralRoles.WoolRoom))
+        {
+            var building = buildings.Single(b => b.Id == $"{region.Id}-building");
+            await Assert.That(building.MinX >= region.MinX && building.MinZ >= region.MinZ
+                              && building.MaxX <= region.MaxX && building.MaxZ <= region.MaxZ).IsTrue();
+        }
+        var spawnBuilding = buildings.Single(b => b.Id == "spawn-red-building");
+        var spawnFootprint = intent.Spawns.Single(sp => sp.Team == "red").Footprint!.Value;
+        await Assert.That((spawnBuilding.MinX, spawnBuilding.MinZ, spawnBuilding.MaxX, spawnBuilding.MaxZ))
+            .IsEqualTo(((int)spawnFootprint.MinX, (int)spawnFootprint.MinZ,
+                        (int)spawnFootprint.MaxX, (int)spawnFootprint.MaxZ));
+    }
+
+    [Test]
+    public async Task A_room_that_states_no_building_projects_only_its_region()
+    {
+        // The shape is a picture of what the plan states, not of what WX1 would default: a rectangle nobody
+        // drew, shown as though they had, is the opacity a stated footprint exists against.
+        var (layout, _) = PlanCompiler.Compile(Plan(StructuralUnit));
+        var shapes = SketchLayout.Stack(layout)[0].Shapes;
+        await Assert.That(shapes.Where(s => s.Role == StructuralRoles.Building)).IsEmpty();
+        await Assert.That(shapes.Count(s => s.Role is StructuralRoles.Spawn or StructuralRoles.WoolRoom))
+            .IsEqualTo(4);
+    }
+
     [Test]
     public async Task Structural_role_shapes_contribute_no_terrain_cells()
     {
