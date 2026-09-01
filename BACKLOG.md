@@ -167,11 +167,12 @@ below are what that would cost. Each names the question that has to be answered 
 - [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
   the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
   by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
-  draggable: a move writes the new rect back to the intent's `Piece`, from which `Protection`/`Room`/marker
-  re-derive, so the sketch and the intent don't diverge. **Resize stays deferred** even here — a spawn/wool's
-  `at` is a fractional offset into the piece rect, so resizing shifts the marker and needs its own handling.
-  Needs a write path (sketch → intent); the read projection already exists. Then extend beyond spawn/wool to
-  the other intent entities (protection / build / monuments / iron) as they each earn a sketch surface.
+  draggable: a move writes the new rect back to the intent's `Protection`, which is the region itself, so the
+  sketch and the intent don't diverge. The `building` shape inside it moves the same way and writes
+  `Footprint`. **Resize stays deferred** even here — a spawn/wool's `at` is a fractional offset into the
+  region, so resizing shifts the marker and needs its own handling. Needs a write path (sketch → intent); the
+  read projection already exists for both shapes. Then extend beyond spawn/wool to the other intent entities
+  (build / monuments / iron) as they each earn a sketch surface.
 
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
@@ -392,10 +393,9 @@ finding those reports carry (a house past `HouseProp.MaxFootprint` dropped in si
 by `HousePropRules.PastCap` and is not filed. The section is grouped by **the concept an entry spends**
 rather than by which pass found it, so a heading is one object and a pass over it is one job.
 
-**What the fifth run added is on `TODO.md` rather than here**, because it was the current focus: seven ids
-were opened by it — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10`.
-Four entries in this file gained a measured case from the same runs and moved nowhere: `B103`, `B144`,
-`B96` and `S56`.
+**What the fifth run added has shipped** — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10` each carry a
+`FEATURES.md` line. Four entries in this file gained a measured case from the same runs and moved nowhere:
+`B103`, `B144`, `B96` and `S56`.
 
 **The `B141`–`B188` audit pool no longer has a heading of its own**, because every entry in it turned out to
 be about a house, a distance, a tree, a destroy stamp, the plan model, a gate or the paint — and it now sits
@@ -1008,9 +1008,9 @@ whose answer is inside a refusal, a solver or a palette and which no read return
 in a field no driver printed. Not one of these faults was caught by a gate; the export gate was open, the
 mirror clean and the traversability whole on every board named below.
 
-**These were the focus until the map review opened the one on `TODO.md`.** `WE31` went up with it, because the
-review measured the fault it describes. The rest wait here, and the two relief entries — `WE32` and `WE33` —
-are the mechanisms under `WE38`'s definition, so they are the first back when it lands.
+**`WE31` has shipped**, taken up when the map review measured the fault it describes. The rest wait here, and
+the two relief entries — `WE32` and `WE33` — are the mechanisms under `WE38`'s definition, so they are the
+first back when it lands.
 
 
 - [ ] **TS30 — Teach an author to deform a compiled shape, rather than to restate its coast.** The compiler

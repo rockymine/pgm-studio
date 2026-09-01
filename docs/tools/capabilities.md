@@ -326,8 +326,9 @@ that `PlanCompiler` fans through the board's full symmetry order, and the chest 
 coordinate, still opens the same wall from the same side of the map on every orbit image. The compiled
 `WallStructure` lands in `MapIntent.StructureIntent.Walls`, and `StructureStamper` builds it. An **iron
 cube** is `IronPlacement`, a `{ piece, at }` half-cell marker inside `PlanPlacements.Iron`; `PlanCompiler`
-resolves it to a world column, fans it through the same orbit, and emits an `IronCube` that
-`StructureStamper.StampIronCube` raises as a 4×4×4 block. Both are authored the same way a wool or a spawn
+fans it through the same orbit and resolves each image through `RoomFrames.PlaceIron`, emitting an `IronCube`
+at the corner it seated on — or nothing, where the cube would not fit the piece it rides (`WX9`) — which
+`StructureStamper.StampIronCubeAt` raises as a cube of `WX8`'s span. Both are authored the same way a wool or a spawn
 is — write `walls`/`placements.iron` into the plan document (`PUT /map/{slug}/plan`) and compile it
 (`POST /plan/compile`) — and both round-trip through the editor's own tools (the plan editor's brick tool for
 a wall, the marker palette for iron). `Composer.cs` writes neither list, so a `compose`-asked board carries

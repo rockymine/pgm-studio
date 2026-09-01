@@ -478,7 +478,8 @@ because neither means anything alone.
 
 A generated structure and its emitted `<region>` must agree, or PGM silently produces a zero-health goal
 (OB3). **The bounding box is computed once and shared** by the stamper and the region generator — the shape
-`StructureStamper.IronCubeFootprint` established. Never let the two derive it independently. For *generated*
+`RoomFrames.PlaceIron` establishes for the iron cube, resolved once and carried on the directive rather than
+re-derived at each consumer. Never let the two derive it independently. For *generated*
 maps the region is emitted as the exact structure bounding box; the slack seen in hand-authored maps (OB12) is
 an artifact the generator does not reproduce, per the standing rule that it may emit a simpler canonical
 structure than a human wrote.

@@ -1,7 +1,8 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 102 open entries, `TODO.md` seven. This document is the reading that says which of them
-are defects, which are questions, which share a cause, and what order drains them. Its subject is the board
+`BACKLOG.md` holds 102 open entries and `TODO.md` none — the focus board is empty between programmes. This
+document is the reading that says which of them are defects, which are questions, which share a cause, and
+what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
 `CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
 growing a new one, and the board had no such document.
@@ -12,10 +13,14 @@ corrected to match.
 
 ## Where the board stands
 
-The two boards carry **109 open entries over 18,564 words**: a median entry of 147 words, 38 between 150 and
-250, and **13 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
-investigating until it is". `B21` alone is 1,068 words, `B249` 504 and `B37` 425. The prefix spread is
-`B` 39, `WE` 15, `G` 12, `S` 9, `TS` 8, `C` 8, and six others in single figures.
+The board carries **102 open entries over 18,821 words**: a median entry of 155 words, 35 between 150 and
+250, and **18 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
+investigating until it is". `B21` alone is 1,070 words, `B107` 541, `B249` 501, `TS74` 414 and `G164` 389.
+The prefix spread is `B` 35, `WE` 15, `G` 12, `TS` 8, `S` 8, `C` 7, and seven others in single figures.
+
+**The long tail is growing while the board shrinks.** Seven entries have left since this was first measured
+and the over-250 count has gone from 13 to 18, because what leaves is the short actionable entry and what
+stays is the one nobody can start. That is the reading the median hides.
 
 The board's own id discipline holds exactly. No id appears in two of the three files, none is duplicated
 inside one, and none collides with a rule id served by `GET /api/rules` — the two checks `CLAUDE.md` rule 4
@@ -24,8 +29,8 @@ asks for both pass. What has decayed is not the identity of the entries but thei
 ## Every defect on this board passes every gate the repository has
 
 The tree is green, and it is green on every gate at once. `dotnet build` is clean over the solution.
-**3,064 C# tests pass** — Vocabulary 11, Geom 260, Domain 111, Analysis 111, Minecraft 911, Pgm 1,161,
-Export 126, Import 1, Data 35, Api 337 — with nothing failed and nothing skipped. The JS suite passes 405.
+**3,153 C# tests pass** — Vocabulary 42, Geom 260, Domain 113, Analysis 115, Minecraft 919, Pgm 1,184,
+Export 127, Import 1, Data 40, Api 352 — with nothing failed and nothing skipped. The JS suite passes 413.
 `./tools/census.sh --check` answers *census is current*. `./tools/build-scripts.sh` builds 7 of 7.
 
 Twenty-two verified defects were live behind that when this was read. A core that stamps nothing exported
@@ -64,10 +69,14 @@ Six figures were re-measured against the tree. Every one had moved, and four of 
 way. Four of the entries have since been fixed and carried their corrected figures out with them; the two
 that remain are here:
 
-| entry | the board says | measured today |
-|---|---|---|
-| `C51` | 29 hand-rolled selects | **28** |
-| `CV12` | 55 studio modules, 12,694 lines | **59 modules, 16,013 lines** |
+| entry | the board says | measured today | the command that retakes it |
+|---|---|---|---|
+| `C51` | 29 hand-rolled selects | **31** | `grep -rn "<select" src/PgmStudio.Client --include=*.razor \| wc -l` |
+| `CV12` | 55 studio modules, 12,694 lines | **59 modules, 16,198 lines** | `find src/PgmStudio.Client/wwwroot/js/studio -name '*.js' \| wc -l` |
+
+Both have moved **again** since they were last corrected here — `C51` from 28 to 31 and `CV12` from 16,013
+lines to 16,198 — in the time it took to run one programme. The commands are given so the next reader retakes
+them rather than trusting these, which is the whole of the point below.
 
 The prose in each of those entries is still true; only the quantities lie. That is the same failure
 `project-structure.md`'s size table had before `RP8` gave it `tools/census.sh`, and it has the same fix:
@@ -75,7 +84,7 @@ The prose in each of those entries is still true; only the quantities lie. That 
 were the worked examples and shipped that way: the first ends with the four warning ids out of `NoWarn`, so
 the compiler holds the line, and neither entry's count had to be re-measured because neither entry survives.
 
-## Five causes under thirty-one entries
+## Six causes under twenty entries
 
 The board is already grouped by concept, which is what made these visible. Each cause below is one change;
 the entries listed after it are what stop being separate work once it lands.
@@ -87,10 +96,10 @@ plan that already described it. Fusing is deliberate — a compiled layout is a 
 — so what rides on it is the seam a wall needs and the addressing four of `drive.py`'s fourteen keys
 (`themeByHeight`, `themeById`, both `shapeProps`) exist to work around. `B213` · `TS30` · `B107`.
 
-**A layer is first-class in the export and an afterthought everywhere else.** `CoreIntent` carries `Layer`;
-`CorePlacement` does not. `DressingDoc.add` stamps the storey; `SketchDressingInspector` has no field for it.
-`TerrainPainter` is handed a surface per layer and sorts by nothing. `TN7` · `WE30` · `B263` · `B264` ·
-`WE28` · `TS64` · `B107`.
+**A layer is first-class in the export and an afterthought everywhere else.** `DressingDoc.add` stamps the
+storey; `SketchDressingInspector` has no field for it. `TerrainPainter` is handed a surface per layer and
+sorts by nothing. `B263` · `B264` · `WE28` · `TS64` · `B107`. `TN7` and `WE30` were this cause and have
+landed.
 
 **A gate's verdict exists only at the compile boundary.** `PlanValidator` runs at compile and not in the live
 inspect feed, so an author sets a number, sees nothing, and meets the refusal a phase later. `TN2` · `G163` ·
@@ -100,8 +109,19 @@ two — `B79`'s race is how `TN6`'s state was reachable at all.
 
 **A term measures the artifact it can reach rather than the one the claim is about.** `G8` measures the plan
 where the ground is in the sketch; the top-down frames on every column where the height profile frames on
-ground. `B96` is what is left of it. `B150`, `G231`, `B103`, `B143` and `WS17` were this cause and have
-landed: each moved a term onto the artifact its claim is about rather than the one nearest to hand.
+ground. `B96` and `B150` are what is left of it — the second because every evaluator caller is plan-tier by
+construction, so the sketch's own ground is never the thing scored. `G231`, `B103`, `B143` and `WS17` were
+this cause and have landed: each moved a term onto the artifact its claim is about rather than the one
+nearest to hand.
+
+**A room reaches the sketch as a picture and nothing may write back through it.** The plan projects a
+spawn or wool room into the sketch as locked annotations — since `TN11`, two per room: the `Protection`
+region and the `building` footprint inside it. Every one of them is render-only. Nothing can be selected, so
+nothing can set the `height_authored` flag the backend already reads; nothing can be dragged, so a corrected
+rectangle has no way back to the intent; and the rasterizer skips them outright, so the ground under a room
+is whatever its fused component paints and a room floor cannot be stated at all. `B107` · `S25b` · `B145`.
+The read half of all three is built and the write half of none of it is, which is why they are one change
+rather than three.
 
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
@@ -144,10 +164,10 @@ itself says needs labelled bad maps rather than more measurement).
 - **Defects and blocked decisions** — the two sections above, about 45 entries once the two that appear in
   both are counted once. These genuinely belong on a board, because each has a definite end.
 - **Reach gaps** — the backend exists and the browser cannot say it. `B261`, `B260`, `B263`, `B264`,
-  `B200`, `WE54`, `N08`, `S25b`, `TS64`. These are the current `TODO.md` programme and are already
-  correctly grouped.
-- **A roadmap** — `B21` (an MCP head, 1,073 words), `B262`, `B258`, `B221`, `S46`, `S56`, `S60`, `S47`,
-  `S34`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `B92`, `B54`, `B9`, `B37`, `B265`, `WE34`. Twenty
+  `B200`, `WE54`, `N08`, `S25b`, `B107`, `B145`, `TS64`. These have never been the whole of a `TODO.md`
+  programme, and the three that name the sketch's structural annotations are the group that comes up next.
+- **A roadmap** — `B21` (an MCP head, 1,070 words), `B262`, `B258`, `B221`, `S46`, `S56`, `S60`, `S47`,
+  `S34`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `B92`, `B54`, `B9`, `B265`, `WE34`. Nineteen
   entries — describing capabilities the studio does not have and nobody is blocked on. They have no end
   condition, and they are why the board reads as unemptiable.
 
@@ -158,9 +178,10 @@ board's weight off a column whose job is to say what is next.
 
 ## The order the board empties in
 
-**Phase 0 — ask, then cut.** The twenty-two questions, in one sitting. Each answer either turns its entry
-into work small enough to state in a paragraph or withdraws it. Nothing else on this list is worth starting
-first, because five of the causes in the section above have a question sitting in them.
+**Phase 0 — ask, then cut.** The thirteen unanswered questions, in one sitting. Each answer either turns its
+entry into work small enough to state in a paragraph or withdraws it. Nothing else on this list is worth
+starting first, because five of the causes in the section above have a question sitting in them. It is the
+one phase nobody can do alone, and it has not been done.
 
 **Phase 1 — the verified defect run.** The confirmed defects, in the order they are tabled above: the wrong
 verdicts first, then the studio's own faults, then the record. Each lands with a test that fails on the old
@@ -171,14 +192,20 @@ no account could carry reaches no request — is one the code could not previous
 run is `TS31` (whose filed fix is contradicted by a measurement in the code it would change) and the three
 measurement entries that belong to Phase 4.
 
-**Phase 2 — fix the causes, not the entries.** The five foundations, each in the order that maximises what it
-closes: the compiler's lost identity (4 entries), the layer word (7), the live findings feed (7), the term's
-subject (6), and the client reading its own schema (7). This is `CLAUDE.md`'s own doctrine — *"the board is
-emptied concept by concept"* — applied to groups it has already named.
+**Phase 2 — fix the causes, not the entries.** The six foundations, each in the order that maximises what it
+closes: the room's write path (3 entries), the compiler's lost identity (3), the layer word (5), the live
+findings feed (4), the term's subject (2), and the client reading its own schema (5). This is `CLAUDE.md`'s
+own doctrine — *"the board is emptied concept by concept"* — applied to groups it has already named.
 
-**Phase 3 — the reach programme.** What `TODO.md` already holds. It is correctly ordered and correctly
-capped, and it should not be interrupted by anything above except a Phase 1 defect in the surface it is
-building.
+**The room's write path is first among them**, because the split just finished is what makes it small. A
+room's region and its building are now separate rectangles on the intent, on the plan canvas and in the
+sketch alike, so *what* a drag would write back is settled and only the writing is missing. It is also the
+one cause whose three entries share a single missing mechanism rather than a shared subject: the annotation
+is render-only, and selection, the drag and the theme scope are three things that one hit-test unlocks.
+
+**Phase 3 — whatever `TODO.md` holds.** A programme pulled up from `BACKLOG.md` is worked to its end before
+anything above interrupts it, except a Phase 1 defect in the surface it is building. The board runs one
+programme at a time and says at the top which one.
 
 **Phase 4 — gate the hygiene so it stops returning.** `B220` and `RP47` are done and were done this way:
 the four warning ids are out of `NoWarn`, so the compiler refuses the next doc comment pointing at something
@@ -194,14 +221,22 @@ condition is allowed to sit.
 Four rules, each of which the repository already believes and none of which it enforces:
 
 **Nothing is filed without a reproduction.** An entry that cannot say what fails, at which coordinates, is
-the five-paragraph entry `CLAUDE.md` rule 10 warns about. Thirteen entries are over 250 words today.
+the five-paragraph entry `CLAUDE.md` rule 10 warns about. Eighteen entries are over 250 words today, up from
+thirteen: the board sheds short entries and keeps long ones, so the count rises as the board shrinks.
 
-**Nothing is closed without a test.** The verified defects above are all invisible to a suite of 3,064 tests.
+**Nothing is closed without a test.** The verified defects above are all invisible to a suite of 3,153 tests.
 `LibrarySeedTests` is the shape: pin what is wrong, so it fails when it changes in either direction.
 
 **No measurement is written by hand.** Six of six re-measured figures had drifted. `census.sh` is the
 precedent and there should be three more scripts like it.
 
-**A question is asked before the entry is filed, not after.** The oracle rule already says this. Twenty-two
-entries are on the board because it was not followed, and each of them has been costing the board's
-readability ever since.
+**A question is asked before the entry is filed, not after.** The oracle rule already says this. Thirteen
+entries are on the board carrying a question nobody has answered, and each of them has been costing the
+board's readability ever since.
+
+**This document is re-measured when a programme drains, not when someone notices.** Every figure in it is a
+hand-taken reading of a board that moves under it, so it decays exactly the way the entries in *The board's
+numbers rot faster than its prose* do — and for the same reason, since it is the same kind of writing. A
+programme finishing is what changes the counts, the causes and which phase is next all at once, so that is
+the moment: the `spawn`/`wool-room` split closed six entries and left this document naming two of them as
+open work and a `TODO.md` programme that had already been replaced twice.
