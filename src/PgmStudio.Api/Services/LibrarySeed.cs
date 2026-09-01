@@ -6,6 +6,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Houses;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Vocabulary;
+using PgmStudio.Minecraft.Dressing;
 
 namespace PgmStudio.Api.Services;
 
@@ -24,7 +25,8 @@ namespace PgmStudio.Api.Services;
 /// carries has to land in both or the seed stops round-tripping. <see cref="VerifyAsync"/> is what makes that
 /// checkable — it composes each seeded row back and reports what the store could not hold.</para>
 /// </summary>
-public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePartStore parts)
+public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePartStore parts,
+                               PropStyleStore props)
 {
     /// <summary>What one run did, so a caller can say so rather than guessing from silence.</summary>
     public readonly record struct Tally(
@@ -37,9 +39,47 @@ public sealed class LibrarySeed(ThemeStore styles, RoomStyleStore rooms, HousePa
         var (added, updated) = await SeedHousesAsync(bound, ct);
         var built = await SeedPartsAsync(bound, ct);
         var themes = await SeedThemesAsync(ct);
+        await SeedRecipesAsync(ct);
         return new Tally(
             bound.Added, bound.Updated, added + built.Added, updated + built.Updated,
             themes.Added, themes.Updated);
+    }
+
+    // ── the prop recipes ──────────────────────────────────────────────────────────────────────────────
+    /// <summary>The recipes a click puts down: the six vanilla species at their own natural heights, and the
+    /// four erratics. Without them a studio opens two of its eight libraries on nothing, and a picker with no
+    /// rows in it is a picker an author cannot use at all.
+    ///
+    /// <para>Idempotent by name, like every other seed here: a recipe an author has since retuned keeps their
+    /// numbers, because the row is theirs once it exists.</para></summary>
+    private async Task SeedRecipesAsync(CancellationToken ct)
+    {
+        var trees = (await props.ListTreesAsync(ct))
+            .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var species in DressingPalette.Species)
+        {
+            if (trees.Contains(species.Name)) continue;
+            await props.CreateTreeAsync(PropStyleLibrary.RowOf(new TreeStyleSaveRequest(
+                species.Name, TreeForms.Template, species.Name, species.Name, species.Height)), ct);
+        }
+        // One grown tree beside them, because the form is the thing an author cannot discover from six vanilla
+        // cards: a conifer is whorled and a broadleaf is not, and that is the choice the grower exists for.
+        if (!trees.Contains("grown conifer"))
+            await props.CreateTreeAsync(PropStyleLibrary.RowOf(new TreeStyleSaveRequest(
+                "grown conifer", TreeForms.Grown, "spruce", "spruce", Height: 18, Whorled: true)), ct);
+
+        var rocks = (await props.ListBouldersAsync(ct))
+            .Select(row => row.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, form, size) in new[]
+                 {
+                     ("erratic", BoulderForms.Round, 4d), ("shattered", BoulderForms.Angular, 4d),
+                     ("outcrop", BoulderForms.Outcrop, 5d), ("cairn", BoulderForms.Cairn, 3d),
+                 })
+        {
+            if (rocks.Contains(name)) continue;
+            await props.CreateBoulderAsync(PropStyleLibrary.RowOf(new BoulderStyleSaveRequest(
+                name, form, size, Mossy: true, """{"kind":"solid","id":1,"data":0}""")), ct);
+        }
     }
 
     // ── the roofs and the porches ─────────────────────────────────────────────────────────────────────

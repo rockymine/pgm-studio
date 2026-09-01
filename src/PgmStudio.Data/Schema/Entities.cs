@@ -631,6 +631,42 @@ public sealed class PorchStyleRow
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 
+/// <summary>A tree recipe (M0030): which of the two trees it is, and the fields that form reads. A placement
+/// names it once it has been pulled into a map's dressing registry — the row is the library's copy, the
+/// registry entry the map's, so editing the row cannot rebuild a shipped map's groves.</summary>
+[Table("tree_style")]
+public sealed class TreeStyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("form"), NotNull] public string Form { get; set; } = "template";
+    [Column("species"), NotNull] public string Species { get; set; } = "oak";
+    [Column("wood"), NotNull] public string Wood { get; set; } = "oak";
+    [Column("height")] public double Height { get; set; } = 12;
+    [Column("stems")] public int Stems { get; set; } = 1;
+    [Column("leader")] public double Leader { get; set; } = 0.55;
+    [Column("flow")] public double Flow { get; set; } = 0.45;
+    [Column("branch_angle")] public double BranchAngle { get; set; } = 1.1;
+    [Column("levels")] public int Levels { get; set; } = 2;
+    [Column("whorled")] public bool Whorled { get; set; }
+    [Column("leaf_size")] public double LeafSize { get; set; } = 0.6;
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
+/// <summary>A boulder recipe (M0030). <c>rock</c> is a terrain material's own JSON, the way every other
+/// material in the library is stored, so an erratic may be cut from any of the fourteen kinds.</summary>
+[Table("boulder_style")]
+public sealed class BoulderStyleRow
+{
+    [PrimaryKey, Identity, Column("id")] public long Id { get; set; }
+    [Column("name"), NotNull] public string Name { get; set; } = "";
+    [Column("form"), NotNull] public string Form { get; set; } = "round";
+    [Column("size")] public double Size { get; set; } = 4;
+    [Column("mossy")] public bool Mossy { get; set; } = true;
+    [Column("rock"), NotNull] public string Rock { get; set; } = "{\"kind\":\"solid\",\"id\":1,\"data\":0}";
+    [Column("created_at")] public DateTime CreatedAt { get; set; }
+}
+
 /// <summary>One course of a <see cref="RoofStyleRow"/>'s part (M0018) — <c>roof</c>, <c>verge</c> or
 /// <c>gable</c>. <see cref="RoomStyleCourseRow"/>'s shape exactly; its own table so it keeps a real foreign
 /// key to the roof it belongs to and dies with it.</summary>

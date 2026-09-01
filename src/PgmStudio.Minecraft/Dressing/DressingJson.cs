@@ -195,6 +195,9 @@ public static class DressingJson
 
     public static string SerializeProp(PlacedProp prop) => JsonSerializer.Serialize(prop, Options);
 
+    /// <summary>One recipe as a document states it — what a library row is pulled into a map's registry as.</summary>
+    public static string SerializeStyle(PropStyle style) => JsonSerializer.Serialize(style, Options);
+
     /// <summary>One prop, parsed and upgraded. Throws <see cref="DressingParseException"/> naming the field
     /// that did not parse, rather than returning null for every kind of failure alike.</summary>
     public static PlacedProp DeserializeProp(string json)

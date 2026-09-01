@@ -5,8 +5,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, propAnchor, rectFootprint, translateProp }
-  from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
+import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint,
+         translateProp } from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
 import { MIN_FOOTPRINT_SPAN } from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/building.js";
@@ -38,14 +38,13 @@ test("a fresh prop of each kind starts at the same numbers the server does", () 
   // Its bank (bed floor + beach) is a full terrain material, not one block — a cellular voronoi by default.
   assert.equal(defaultProp("water").bank.kind, "voronoi");
   assert.equal(defaultProp("water").bank.bands.length, 3);
-  // So are a path's paving and a boulder's rock, which is what lets either take a pattern.
+  // So is a path's paving, which is what lets it take a pattern.
   assert.equal(defaultProp("stroke").pave.kind, "solid");
-  assert.equal(defaultProp("boulder").rock.kind, "solid");
-  // A tree starts vanilla — the two forms are two trees, and the vanilla one is what a map is mostly made of.
-  assert.equal(defaultProp("tree").form, "template");
-  assert.equal(defaultProp("tree").species, "oak");
-  assert.equal(defaultProp("tree").wood, "oak");
-  assert.equal(defaultProp("boulder").form, "round");
+  // A tree and a boulder are put down with a click, so what is placed is a position and what stands there is
+  // a recipe named from the library — empty until one is picked.
+  assert.equal(defaultProp("tree").style, "");
+  assert.equal(defaultProp("boulder").style, "");
+  assert.equal(defaultProp("tree").x, 0);
   assert.equal(defaultProp("flora").spec.coverage, 0.45);
   assert.throws(() => defaultProp("unicorn"));
 });
@@ -506,4 +505,67 @@ test("a corner touch is not an edge to join on", () => {
   tools.select(first);
   tools.select(second, true);
   assert.ok(tools.joinSelection().refused);
+});
+
+// ── the recipe registry ───────────────────────────────────────────────────────
+// A tree and a boulder are a click, so what is placed is a position and what stands there is a recipe the
+// document names once. The registry rides with the placements, because a key naming no recipe is a refusal
+// and the document is the only thing that can carry both halves.
+
+test("a pulled recipe is stated once however many placements name it", () => {
+  const doc = new DressingDoc();
+  doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 10 });
+  doc.add({ ...defaultProp("tree", 1), style: "oak-10", x: 0, z: 0 });
+  doc.add({ ...defaultProp("tree", 2), style: "oak-10", x: 9, z: 0 });
+
+  const stored = doc.toJSON();
+  assert.equal(stored.props.length, 2);
+  assert.equal(Object.keys(stored.styles).length, 1);
+  assert.equal(stored.styles["oak-10"].height, 10);
+  assert.deepEqual(stored.props.map(p => p.style), ["oak-10", "oak-10"]);
+});
+
+test("pulling the same key again retunes every placement wearing it", () => {
+  const doc = new DressingDoc();
+  doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 10 });
+  doc.add({ ...defaultProp("tree", 1), style: "oak-10" });
+  doc.pull("oak-10", { kind: "tree", form: "template", species: "oak", height: 22 });
+
+  assert.equal(doc.styles["oak-10"].height, 22);
+  assert.equal(Object.keys(doc.toJSON().styles).length, 1);
+});
+
+test("a document with no recipes writes no registry", () => {
+  const { doc, tools } = controller();
+  drag(tools, "dress:stroke", [[0, 0], [5, 0]]);
+  assert.equal(doc.toJSON().styles, undefined);
+});
+
+test("a stored registry round-trips", () => {
+  const doc = new DressingDoc();
+  doc.pull("cairn-3", { kind: "boulder", form: "cairn", size: 3 });
+  doc.add({ ...defaultProp("boulder", 1), style: "cairn-3" });
+  const back = DressingDoc.from(doc.toJSON());
+  assert.equal(back.styles["cairn-3"].form, "cairn");
+  assert.equal(back.props[0].style, "cairn-3");
+});
+
+test("pruning drops the recipes nothing names", () => {
+  const doc = new DressingDoc();
+  doc.pull("kept", { kind: "tree", height: 10 });
+  doc.pull("tried-and-moved-off", { kind: "tree", height: 30 });
+  doc.add({ ...defaultProp("tree", 1), style: "kept" });
+
+  doc.prune();
+  assert.deepEqual(Object.keys(doc.styles), ["kept"]);
+});
+
+test("a marker's reach is its recipe's, so the hit test follows what stands there", () => {
+  const doc = new DressingDoc();
+  doc.pull("tall", { kind: "tree", form: "template", species: "oak", height: 40 });
+  const small = { ...defaultProp("tree", 1), style: "" };
+  const tall = { ...defaultProp("tree", 2), style: "tall" };
+
+  assert.equal(propReach(small, doc.styles), Math.max(3, 12 * 0.35));
+  assert.equal(propReach(tall, doc.styles), 40 * 0.35);
 });

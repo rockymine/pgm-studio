@@ -6,20 +6,22 @@ The library is where a material is authored once and reused. It is the only tool
 nothing about maps: no slug, no stage, no map row anywhere in it. What it holds is recipes, and the tools that
 build worlds reach into it to pick one.
 
-Six kinds, in the order the things compose: **Styles** — a style is one material; **Themes** — a terrain
-finish made of styles; **Roofs**, **Storeys** and **Porches** — the parts a building binds, each made of
-styles; **Houses** — a whole building made of parts and styles. A style is browsed by what it looks like;
-everything above it by what it composes to. A house's row is a `room_style` and composes to a `HouseStyle`;
-the surface calls it what the thing is.
+Eight kinds, in two families. Six **compose upward**: **Styles** — a style is one material; **Themes** — a
+terrain finish made of styles; **Roofs**, **Storeys** and **Porches** — the parts a building binds, each made
+of styles; **Houses** — a whole building made of parts and styles. Two are **recipes a click puts down**:
+**Trees** and **Boulders**, which compose nothing and are what a placement names. A style is browsed by what it
+looks like, everything above it by what it composes to, and a recipe by what it builds. A house's row is a
+`room_style` and composes to a `HouseStyle`; the surface calls it what the thing is.
 
-Three routes, and the rail carries the six kinds. `/library` is the chooser — one card per kind over its own
+Three routes, and the rail carries the eight kinds. `/library` is the chooser — one card per kind over its own
 count and a picture of what it holds. `/library/{kind}` browses that kind: a strip carrying a name search,
 whatever else the kind filters by, and **New**, over a grid of cards. `/library/{kind}/{id}`, or
 `/library/{kind}/new`, opens one entry on a page of its own.
 
-Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, and its
-Theme phase binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase's
-building prop takes a room style as its own. Nothing else reads it.
+Two tools consume the library. The Sketch tool's Theme phase pulls a theme in and pushes one back out, and
+binds a room style as the shell every wool cage and spawn cube is stamped with; the Dressing phase names a
+room style, a tree recipe or a boulder recipe on each placement, pulling the row it picked into the map's own
+registry. Nothing else reads it.
 
 ## What it writes
 
@@ -331,6 +333,35 @@ what is left to it is its shape.
 Every part's picture stands it on a plain sample building, so what differs between two cards is the part and
 never the house around it.
 
+### A tree and a boulder are recipes a click puts down
+
+A **placement is a position; what stands there is a recipe.** A path and a water channel are *traced* on the
+canvas, so pre-authoring one is authoring a shape without its place and their knobs stay in the Dressing
+phase. A tree and a boulder are a *click* — there is no geometry to draw — so what is placed is a point plus a
+name, and the name is a row here (author).
+
+A `tree_style` is one of **two trees**, which its form picks. A `template` tree names a **species**, whose row
+carries the wood, the canopy profile and the proportions, and scales it by height. A `grown` tree names a
+**wood** and is shaped by the skeleton knobs beside it — stems, leader, trunk flow, branch angle, levels,
+whorled, leaf size. Each form reads only its own fields, so the ones it does not read are inert rather than
+wrong, and switching form keeps both names: an author who tries the skeleton and goes back finds the species
+they had chosen still chosen. A `boulder_style` is four statements — form, size, whether moss takes its
+sky-lit faces, and the material it is cut from, which is a full terrain material and so may be any of the
+fourteen kinds.
+
+**The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
+*shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
+number. So both kinds browse as one card each, drawn through the pass that builds them, and the editor's own
+stage draws the draft larger for the same reason: a recipe is tuned by watching one knob move the picture.
+
+**A pull copies the row into a map's own registry.** `GET /tree-styles/{id}/json` answers the recipe as a
+dressing document states it, and picking a card in the Dressing phase files it under the row's name in the
+sketch's `dressing.styles` and names that key on the placement. The registry is the **document's**: the export
+reads a stored layout and has no database to resolve a row against, and a shipped map must build the same way
+next year as today — so retuning the library row changes the next pull, not a map already written. Retuning
+the *registry entry* changes every placement in that map wearing it, which is what naming a recipe is for.
+Nothing asks before a recipe is deleted, because nothing binds it.
+
 ### A room is a building made of parts and styles
 
 A `room_style` carries the extents and knobs of a whole shell — floor depth, wall height, roof form, pitch,
@@ -587,6 +618,8 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
 | `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
+| `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
+| `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key |
 | `GET /terrain/blocks` · `GET /terrain/patterns` | the block palette, and every material kind with its fields, defaults and the cell facts it varies with |
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 | `POST /terrain/theme-preview` · `POST /terrain/theme-map-preview` | a whole theme as it will paint — the first over a sample plateau cut open plus one swatch per themeable bucket, the second over a compiled plan, so a theme is judged against the board it will dress rather than against a sample. Body is a **bare theme**, unwrapped |

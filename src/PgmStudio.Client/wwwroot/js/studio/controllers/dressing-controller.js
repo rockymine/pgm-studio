@@ -388,7 +388,8 @@ export class DressingController {
     }
     if (this.#cursor) {
       const settings = this.#settings[this.#cursor.kind];
-      paintMarkerGhost(painter, this.#cursor.kind, this.#cursor.x, this.#cursor.z, propReach(settings), this.#cursor.valid !== false);
+      paintMarkerGhost(painter, this.#cursor.kind, this.#cursor.x, this.#cursor.z,
+                       propReach(settings, this.#doc.styles), this.#cursor.valid !== false);
     }
   }
 
@@ -455,7 +456,7 @@ export class DressingController {
     let best = null, bestReach = Infinity;
     for (const prop of this.#doc.props) {
       const [ax, az] = propAnchor(prop);
-      const reach = isMarker(prop) ? propReach(prop) + PICK_SLACK : areaReach(prop);
+      const reach = isMarker(prop) ? propReach(prop, this.#doc.styles) + PICK_SLACK : areaReach(prop);
       const distance = Math.hypot(bx - ax, bz - az);
       if (distance <= reach && reach < bestReach) { best = prop; bestReach = reach; }
     }

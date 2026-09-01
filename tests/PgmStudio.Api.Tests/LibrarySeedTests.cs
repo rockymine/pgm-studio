@@ -22,7 +22,8 @@ public sealed class LibrarySeedTests
     private static LibrarySeed Seed(IServiceScope scope) => new(
         scope.ServiceProvider.GetRequiredService<ThemeStore>(),
         scope.ServiceProvider.GetRequiredService<RoomStyleStore>(),
-        scope.ServiceProvider.GetRequiredService<HousePartStore>());
+        scope.ServiceProvider.GetRequiredService<HousePartStore>(),
+        scope.ServiceProvider.GetRequiredService<PropStyleStore>());
 
     /// <summary>
     /// <b>Every preset composes back to the building it went in as</b> — asserted empty, not pinned to a

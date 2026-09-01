@@ -144,6 +144,8 @@ builder.Services.AddScoped<PgmStudio.Data.Theme.RoomStyleStore>();
 builder.Services.AddScoped<PgmStudio.Data.Theme.HousePartStore>();
 builder.Services.AddScoped<PgmStudio.Api.Services.RoomStyleLibrary>();
 builder.Services.AddScoped<PgmStudio.Api.Services.HousePartLibrary>();
+builder.Services.AddScoped<PgmStudio.Data.Theme.PropStyleStore>();
+builder.Services.AddScoped<PgmStudio.Api.Services.PropStyleLibrary>();
 builder.Services.AddScoped<MapReader>();
 builder.Services.AddScoped<MapWriter>();
 builder.Services.AddScoped<WorldFeatureWriter>();
@@ -319,7 +321,8 @@ await using (var seeding = app.Services.CreateAsyncScope())
     var seed = new PgmStudio.Api.Services.LibrarySeed(
         seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.ThemeStore>(),
         seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.RoomStyleStore>(),
-        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>());
+        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.HousePartStore>(),
+        seeding.ServiceProvider.GetRequiredService<PgmStudio.Data.Theme.PropStyleStore>());
     try
     {
         var tally = await seed.SeedAsync();

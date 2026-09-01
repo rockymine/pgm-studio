@@ -36,14 +36,10 @@ export function defaultProp(kind, seed) {
     case "flora":
       return { ...base, points: [], spec: { coverage: 0.45, scale: 12, octaves: 3, fernShare: 0.25, flowerShare: 0.18, flowerScale: 18, tallShare: 0 } };
     case "tree":
-      // Vanilla, because that is the tree a map is mostly made of; the grown one is what an author reaches
-      // for when a spot wants a shape no vanilla generator makes.
-      return { ...base, x: 0, z: 0, form: "template", species: "oak", wood: "oak", height: 12,
-               stems: 1, leader: 0.55, flow: 0.45, branchAngle: 0.55, levels: 2, leafSize: 0.6 };
     case "boulder":
-      // An erratic: the rock a glacier left, big enough to take cover behind rather than step over.
-      return { ...base, x: 0, z: 0, form: "round", size: 4, mossy: true,
-               rock: { kind: "solid", id: 1, data: 0 } };
+      // A click puts down a position; what stands there is a recipe the document names once. `style` is the
+      // key into that registry, empty until the author picks one from the library.
+      return { ...base, x: 0, z: 0, style: "" };
     case "house":
       // No style of its own until one is picked from the library: an empty object deserializes to the C#
       // HouseStyle defaults, which is the built-in shell — so a building drawn and never dressed is still a
@@ -184,10 +180,14 @@ export function propAnchor(prop) {
   return [(Math.min(...xs) + Math.max(...xs)) / 2, (Math.min(...zs) + Math.max(...zs)) / 2];
 }
 
-/** How far from its anchor a prop reaches, in blocks — the radius a hit test and a mirror ghost use. */
-export function propReach(prop) {
-  if (prop?.kind === "tree") return Math.max(3, prop.height * 0.35);
-  if (prop?.kind === "boulder") return Math.max(2, prop.size);
+/** How far from its anchor a prop reaches, in blocks — the radius a hit test and a mirror ghost use.
+ *
+ *  A marker's reach is its recipe's, so the registry the placement names is read alongside it; a placement
+ *  naming nothing yet still has a reach, because it is on the canvas and has to be clickable. */
+export function propReach(prop, styles = {}) {
+  const recipe = (prop?.style && styles?.[prop.style]) || null;
+  if (prop?.kind === "tree") return Math.max(3, (recipe?.height ?? 12) * 0.35);
+  if (prop?.kind === "boulder") return Math.max(2, recipe?.size ?? 4);
   return 0;
 }
 
@@ -215,6 +215,11 @@ export class DressingDoc {
   #props = [];
   #nextId = 1;
 
+  // The recipes the placements name, by key — what a tree, a boulder or a building is made of, stated once
+  // however many placements wear it. A library row is pulled in here and the key is what a placement carries;
+  // the registry is the document's, so retuning the library row afterwards leaves this map alone.
+  #styles = {};
+
   // The layer a placement lands on — the layer the board is being drawn on, not a property of the prop
   // being placed. Empty means the board is flat and the export resolves the top surface, which is what an
   // unstacked board has always meant.
@@ -228,12 +233,42 @@ export class DressingDoc {
       if (!PROP_KINDS.includes(prop?.kind)) continue;
       doc.#props.push({ ...prop, id: prop.id || doc.#mintId() });
     }
+    if (stored?.styles && typeof stored.styles === "object") doc.#styles = { ...stored.styles };
     doc.#nextId = Math.max(doc.#nextId, ...doc.#props.map(p => (parseInt(String(p.id).replace(/\D/g, ""), 10) || 0) + 1));
     return doc;
   }
 
-  /** The stored form — exactly what the pass deserializes. */
-  toJSON() { return { props: this.#props }; }
+  /** The stored form — exactly what the pass deserializes. The registry rides with the placements, because a
+   *  key naming no recipe is a refusal and a document is the only thing that can carry both. */
+  toJSON() {
+    return Object.keys(this.#styles).length ? { props: this.#props, styles: this.#styles }
+                                            : { props: this.#props };
+  }
+
+  /** The recipes this document names. */
+  get styles() { return this.#styles; }
+
+  /** Put a library row in the registry under its name, replacing whatever that key held. Pulling the same row
+   *  twice is one entry, and pulling a retuned row updates every placement wearing it — which is what naming
+   *  a recipe is for. */
+  pull(key, recipe) {
+    if (!key || !recipe) return this;
+    this.#styles[key] = recipe;
+    return this;
+  }
+
+  /** Every key no placement names — what a save drops, so a registry does not grow a row per recipe an author
+   *  tried and moved off. */
+  #unused() {
+    const named = new Set(this.#props.map(prop => prop.style).filter(Boolean));
+    return Object.keys(this.#styles).filter(key => !named.has(key));
+  }
+
+  /** Drop the recipes nothing names. */
+  prune() {
+    for (const key of this.#unused()) delete this.#styles[key];
+    return this;
+  }
 
   get props() { return this.#props; }
   get isEmpty() { return this.#props.length === 0; }

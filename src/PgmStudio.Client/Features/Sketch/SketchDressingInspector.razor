@@ -163,117 +163,39 @@
                  value="@((int)(Spec(SpecFields.TallShare, 0) * 100))"
                  @oninput="e => SetSpec(SpecFields.TallShare, JsonValue.Create(Share(e)))" /></ChildContent></Field>
       }
-      else if (kind == PropKinds.Tree)
+      else if (kind == PropKinds.Tree || kind == PropKinds.Boulder)
       {
-        @* Two trees, not one tree with a species knob. A vanilla template is a trunk under a canopy of a known
-           profile — the only thing that reads as a spruce or an acacia. The grown tree is the recursive
-           skeleton, which makes shapes no vanilla generator does but only ever that one family, so it takes a
-           wood rather than a species. *@
-        <div class="choice-row">
-          <button class="choice-tile @(IsGrown ? null : "choice-tile--active")"
-                  title="A vanilla tree of a named species" @onclick="() => SetForm(PropFields.TemplateForm)">
-            <i data-lucide="trees"></i><span class="choice-name">Vanilla</span>
-          </button>
-          <button class="choice-tile @(IsGrown ? "choice-tile--active" : null)"
-                  title="Grown from a branch skeleton you shape" @onclick="() => SetForm(PropFields.GrownForm)">
-            <i data-lucide="split"></i><span class="choice-name">Grown</span>
-          </button>
+        @* A tree and a boulder are put down with a click, so what is placed is a position and what stands
+           there is a recipe from the library. The knobs live where the recipe is authored; here an author
+           picks one, and the link is how they go and make another. *@
+        <div class="section-header section-header--ruled">
+          <h2 class="section-title">@(kind == PropKinds.Tree ? "Which tree" : "Which rock")</h2>
         </div>
-
-        @if (!IsGrown)
-        {
-          <div class="section-header section-header--ruled"><h2 class="section-title">Species</h2></div>
-          <div class="prop-cards prop-cards--tall">
-            @foreach (var option in species)
-            {
-              <button class="prop-card @(Text(PropFields.Species, PropFields.OakSpecies) == option.Key ? "prop-card--active" : null)"
-                      title="@option.Label" @onclick="() => Pick(PropFields.Species, option)">
-                <span class="prop-card-art">@((MarkupString)option.Svg)</span>
-                <span class="prop-card-label">@option.Label</span>
-              </button>
-            }
-          </div>
-          <Field Label="Height (blocks)"><LabelHint>scales the whole tree</LabelHint>
-            <LabelEnd><strong>@($"{Num(PropFields.Height, 12):0}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="5" max="30" step="1"
-                   value="@((int)Num(PropFields.Height, 12))" @oninput="e => Set(PropFields.Height, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-        }
-        else
-        {
-          <div class="section-header section-header--ruled"><h2 class="section-title">Wood</h2></div>
-          <div class="prop-cards prop-cards--tall">
-            @foreach (var option in woods)
-            {
-              <button class="prop-card @(Text(PropFields.Wood, PropFields.OakWood) == option.Key ? "prop-card--active" : null)"
-                      title="@option.Label" @onclick="() => Pick(PropFields.Wood, option)">
-                <span class="prop-card-art">@((MarkupString)option.Svg)</span>
-                <span class="prop-card-label">@option.Label</span>
-              </button>
-            }
-          </div>
-          <Field Label="Height (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Height, 12):0}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="5" max="40" step="1"
-                   value="@((int)Num(PropFields.Height, 12))" @oninput="e => Set(PropFields.Height, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-          <Field Label="Stems"><LabelEnd><strong>@($"{Num(PropFields.Stems, 1):0}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="1" max="3" step="1"
-                   value="@((int)Num(PropFields.Stems, 1))" @oninput="e => Set(PropFields.Stems, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-          <Field Label="Leader"><LabelHint>low spreads, high spires</LabelHint>
-            <LabelEnd><strong>@($"{Num(PropFields.Leader, 0.55):0.00}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
-                   value="@((int)(Num(PropFields.Leader, 0.55) * 100))" @oninput="e => Set(PropFields.Leader, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-          <Field Label="Trunk flow"><LabelEnd><strong>@($"{Num(PropFields.Flow, 0.45):0.00}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
-                   value="@((int)(Num(PropFields.Flow, 0.45) * 100))" @oninput="e => Set(PropFields.Flow, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-          <Field Label="Branching"><LabelHint>whorled rings are a conifer; staggered is everything else</LabelHint>
-            <ChildContent>
-              <Chip Active="Flag(PropFields.Whorled)" OnClick="() => Set(PropFields.Whorled, JsonValue.Create(!Flag(PropFields.Whorled)))">
-                @(Flag(PropFields.Whorled) ? "Whorled — a ring of branches every few courses, shorter as it climbs" : "Staggered — one branch at a time up the trunk")
-              </Chip>
-            </ChildContent>
-          </Field>
-          <Field Label="Branch angle"><LabelEnd><strong>@($"{Num(PropFields.BranchAngle, 1.1) * 57:0}°")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="20" max="150" step="1"
-                   value="@((int)(Num(PropFields.BranchAngle, 1.1) * 100))" @oninput="e => Set(PropFields.BranchAngle, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-          <Field Label="Levels"><LabelEnd><strong>@($"{Num(PropFields.Levels, 2):0}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="2" max="3" step="1"
-                   value="@((int)Num(PropFields.Levels, 2))" @oninput="e => Set(PropFields.Levels, JsonValue.Create(Whole(e)))" /></ChildContent></Field>
-          <Field Label="Leaf size"><LabelEnd><strong>@($"{Num(PropFields.LeafSize, 0.6):0.00}")</strong></LabelEnd>
-            <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
-                   value="@((int)(Num(PropFields.LeafSize, 0.6) * 100))" @oninput="e => Set(PropFields.LeafSize, JsonValue.Create(Share(e)))" /></ChildContent></Field>
-        }
-      }
-      else if (kind == PropKinds.Boulder)
-      {
-        <div class="section-header section-header--ruled"><h2 class="section-title">Shape</h2></div>
-        <div class="prop-cards">
-          @foreach (var option in boulderForms)
+        <p class="section-desc">
+          Picked from the library and named on the placement, so retuning the recipe retunes every
+          @(kind == PropKinds.Tree ? "tree" : "boulder") wearing it.
+        </p>
+        <div class="prop-cards prop-cards--tall">
+          @foreach (var recipe in recipes)
           {
-            <button class="prop-card @(Text(PropFields.Form, PropFields.RoundForm) == option.Key ? "prop-card--active" : null)"
-                    title="@option.Label" @onclick="() => Pick(PropFields.Form, option)">
-              <span class="prop-card-art">@((MarkupString)option.Svg)</span>
-              <span class="prop-card-label">@option.Label</span>
+            <button class="prop-card @(recipeName == recipe.Name ? "prop-card--active" : null)"
+                    title="@recipe.Name" @key="recipe.Id" @onclick="() => PickRecipe(recipe)">
+              <span class="prop-card-art">@((MarkupString)recipe.Preview)</span>
+              <span class="prop-card-label">@recipe.Name</span>
             </button>
           }
         </div>
-        <Field Label="Size (blocks)"><LabelEnd><strong>@($"{Num(PropFields.Size, 4):0.0}")</strong></LabelEnd>
-          <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
-                 value="@((int)(Num(PropFields.Size, 4) * 10))"
-                 @oninput="e => Set(PropFields.Size, JsonValue.Create(Whole(e) / 10.0))" /></ChildContent></Field>
-        <div class="section-header section-header--ruled"><h2 class="section-title">Rock</h2></div>
-        <p class="section-desc">What the boulder is cut from. It is resolved in the rock's own frame rather
-          than the map's, so a pattern's patch size is read against a few blocks — and every mirrored image of
-          the rock comes out identical.</p>
-        @if (Material(PropFields.Rock) is { } rock)
+        @if (recipes.Count == 0)
         {
-          <MaterialEditor Node="rock" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Rock)" />
+          <p class="section-desc">No @(kind == PropKinds.Tree ? "trees" : "boulders") saved yet — author one
+            on the <strong>Library</strong> tool.</p>
         }
-        <Field Label="Moss">
-          <Chip Active="Flag(PropFields.Mossy)" OnClick="() => Set(PropFields.Mossy, JsonValue.Create(!Flag(PropFields.Mossy)))">
-            @(Flag(PropFields.Mossy) ? "On the sky-lit faces" : "None")
-          </Chip>
-        </Field>
+        <div class="panel-actions">
+          <Button OnClick="OpenLibrary">
+            <i data-lucide="external-link"></i> @(recipes.Count == 0 ? "Author one" : "Author another")
+          </Button>
+        </div>
       }
-
       else if (kind == PropKinds.House)
       {
         <div class="section-header section-header--ruled"><h2 class="section-title">Shell</h2></div>

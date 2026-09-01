@@ -856,6 +856,7 @@ export class SketchCanvas extends CanvasBase {
     const axes = orbitAxes(this.#mode);
     paintDressing(painter, this.#dressingDoc.props, {
       selectedId: this.#dressing?.selectedId ?? null,
+      styles: this.#dressingDoc.styles,
       order: axes.length + 1,
       mirrorPoint: (x, z, k) => applySymmetry(x, z, axes[k - 1], this.#center.cx, this.#center.cz),
     });

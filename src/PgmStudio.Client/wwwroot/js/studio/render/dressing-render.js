@@ -39,13 +39,10 @@ const CIRCLE_POINTS = 24;      // a marker's footprint is a disc; this many poin
  * `order` how many images there are — the canvas already owns the map's symmetry, so this asks rather than
  * re-deriving it.
  */
-export function paintDressing(painter, props, { selectedId = null, mirrorPoint = null, order = 1 } = {}) {
+export function paintDressing(painter, props, { selectedId = null, mirrorPoint = null, order = 1, styles = {} } = {}) {
   for (const prop of props ?? []) {
     for (let k = order - 1; k >= 0; k--) {          // images first, so the real prop draws over them
-      // A building of several wings draws one ring per wing rather than one outline of the whole plan — an L
-      // or a T reads as two touching rectangles instead of the traced silhouette a build actually stamps, which
-      // is the honest picture of what this layer can draw without walking the plan's own outline (G177).
-      for (const ring of footprints(prop, k, mirrorPoint)) {
+      for (const ring of footprints(prop, k, mirrorPoint, styles)) {
         if (ring.length < 3) continue;
         const kind = KIND_STYLE[prop.kind] ?? KIND_STYLE.boulder;
         const selected = k === 0 && prop.id === selectedId;
@@ -103,12 +100,12 @@ export function paintMarkerGhost(painter, kind, x, z, reach, valid = true) {
 }
 
 /** Every ring one image of a prop draws — more than one only for a building of several wings. */
-function footprints(prop, image, mirrorPoint) {
+function footprints(prop, image, mirrorPoint, styles) {
   const mirror = (x, z) => (image === 0 || !mirrorPoint ? [x, z] : mirrorPoint(x, z, image));
 
   if (isMarker(prop)) {
     const [ax, az] = mirror(...propAnchor(prop));
-    return [disc(ax, az, propReach(prop))];
+    return [disc(ax, az, propReach(prop, styles))];
   }
   if (prop.kind === "stroke" || prop.kind === "water") {
     const ring = pathRing(prop);

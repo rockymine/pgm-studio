@@ -48,6 +48,8 @@ public sealed class PgmDb : DataConnection
     public ITable<StoreyStyleRow> StoreyStyles => this.GetTable<StoreyStyleRow>();
     public ITable<StoreyStyleCourseRow> StoreyStyleCourses => this.GetTable<StoreyStyleCourseRow>();
     public ITable<PorchStyleRow> PorchStyles => this.GetTable<PorchStyleRow>();
+    public ITable<TreeStyleRow> TreeStyles => this.GetTable<TreeStyleRow>();
+    public ITable<BoulderStyleRow> BoulderStyles => this.GetTable<BoulderStyleRow>();
     public ITable<RoomStyleStoreyRow> RoomStyleStoreys => this.GetTable<RoomStyleStoreyRow>();
 
     /// <summary>

@@ -6029,6 +6029,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   also stops the eave eating a stripe of wall that grew with the pitch: it reaches exactly one course under
   the wall top at every pitch. One clamp in `RoofField.Rise`; the six form formulas are untouched.
   (`RoofFieldTests`, `HouseStamperTests`, `docs/world-export/structures.md`)
+- **Trees and boulders are library kinds, and the Dressing inspector is a picker for what is clicked (TS49,
+  TS50, author).** The line is what an author *draws*: a path and a channel are traced, so pre-authoring one is
+  authoring a shape without its place and their controls stay in the tool; a tree and a boulder are a click, so
+  what is placed is a position and what stands there is a row. Two new kinds — `tree_style`, `boulder_style`
+  (M0030) — through one `PropRecipeEditor`, the way `HousePartEditor` serves three; both browse as one card
+  each drawn through the pass that builds them, because six woods differ in colour and six species in *shape*
+  and neither reads off a number. The inspector's tree and boulder sections are a card grid over the library
+  plus a link through to author another, and the building's shell picker takes the same road, so one doctrine
+  covers all three. `LibrarySeed` seeds the six species, a grown conifer and the four erratics, since a picker
+  with no rows is one an author cannot use. The grown-tree knobs left the placement with the rest: the branch
+  angle is now chosen in degrees and stored as the radian the grower reads, which is also the slider whose top
+  third used to write nothing. (`docs/tools/library.md`, `docs/tools/sketch.md`)
 - **A prop names its recipe; the document states each recipe once (TS49's model half, author).** A tree carried
   eleven knobs on every placement, a boulder four and a building a whole shell — so a board carrying 618 trees
   over 75 distinct recipes stored the same answer hundreds of times, and an author could not retune a stand of

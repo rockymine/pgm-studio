@@ -594,6 +594,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       // selection travels whole rather than the host inferring a second pick it cannot see.
       selection: tools?.selection ?? (selectedId ? [selectedId] : []),
       selected: selectedId ? canvas.dressing.byId(selectedId) : null,
+      // The recipes travel with the state, because a placement names one and a preview of a placement has no
+      // document behind it: what the inspector posts has to carry both halves or the key resolves to nothing.
+      styles: canvas.dressing.styles,
       note: note ?? null,
     });
   }
@@ -964,6 +967,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     /** Join the selected buildings, or take a joined one apart — the inspector button's half of `mod+g`, so
      *  the two run the same operation rather than each having their own. */
     joinDressing() { canvas.joinDressing(); },
+    /** Put a library recipe in the document's registry under its name. What the inspector's picker calls
+     *  before it names the key on a placement, so the document always states what its placements name. */
+    pullRecipe(key, recipeJson) {
+      let recipe; try { recipe = JSON.parse(recipeJson); } catch (e) { return e?.message || "Invalid JSON"; }
+      canvas.dressing?.pull(key, recipe);
+      markDirty();
+      return null;
+    },
     /** Patch the selected prop. `patchJson` is a partial prop; returns an error string on bad JSON, else null. */
     updateProp(patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }

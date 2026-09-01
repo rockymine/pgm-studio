@@ -6,6 +6,8 @@ using Microsoft.JSInterop;
 using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 
+using PgmStudio.Client.Features.Library;
+
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
@@ -34,6 +36,7 @@ public partial class SketchDressingInspector
 
     [Inject] public TerrainLibraryClient Library { get; set; } = default!;
     [Inject] public IJSRuntime JS { get; set; } = default!;
+    [Inject] public NavigationManager Nav { get; set; } = default!;
 
     private JsonObject? prop;                 // what is being edited: the selection, else the tool's settings
     private bool editingSelection;
@@ -44,6 +47,9 @@ public partial class SketchDressingInspector
     private DressingPreviewDto? preview;
     private string? refusal;                  // why the gate would not take this prop, in its own sentence
     private string? note;                     // what the last canvas operation did, or would not do
+    /// <summary>The document's recipe registry, so a preview of one placement can resolve the key it names —
+    /// a prop on its own has no document behind it.</summary>
+    private JsonObject? styleRegistry;
     private string previewedFor = "";
     private IReadOnlyList<PropOptionDto> pathStyles = [];
     private IReadOnlyList<PropOptionDto> waterForms = [];
@@ -78,6 +84,7 @@ public partial class SketchDressingInspector
         propCount = 0;
         picked = 0;
         note = null;
+        styleRegistry = null;
 
         if (string.IsNullOrWhiteSpace(StateJson)) return;
         JsonNode? root;
@@ -85,6 +92,7 @@ public partial class SketchDressingInspector
         if (root is not JsonObject state) return;
 
         propCount = (state["props"] as JsonArray)?.Count ?? 0;
+        styleRegistry = state["styles"] as JsonObject;
         picked = (state["selection"] as JsonArray)?.Count ?? 0;
         note = state["note"]?.GetValue<string>();
         if (state["selected"] is JsonObject selected)
@@ -129,26 +137,66 @@ public partial class SketchDressingInspector
         if (styles.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
         if (kind == PropKinds.Stroke && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(Spec(PropFields.Pave));
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
-        if (kind == PropKinds.Boulder && boulderForms.Count == 0) boulderForms = await Library.BoulderFormsAsync(Spec(PropFields.Rock));
-        if (kind == PropKinds.Tree && species.Count == 0) species = await Library.SpeciesAsync();
         if (kind == PropKinds.House && shells.Count == 0) shells = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
+        if (RecipeKind is { } recipeKind && recipesFor != recipeKind.Slug)
+        {
+            recipesFor = recipeKind.Slug;
+            recipes = await Library.ListAsync<LibraryRow>(recipeKind);
+        }
         if (!editingSelection && prop is null) await LoadToolSettings();
-        if (kind == PropKinds.Tree && IsGrown) await LoadWoods();
     }
 
-    /// <summary>The shell a building would be raised in, offered as the library's own cards. Picking one
-    /// copies its JSON onto the prop rather than storing its id — a snapshot, the rule a map's bound room
-    /// styles follow, so editing that library row later cannot rebuild a map's scenery.</summary>
+    /// <summary>The shell a building would be raised in, offered as the library's own cards. Picking one pulls
+    /// it into the document's registry under its name and names that key on the placement — the same road a
+    /// tree and a boulder take, so one doctrine covers all three. The registry is the document's, so editing
+    /// that library row later cannot rebuild a map's scenery.</summary>
     private async Task PickShell(RoomStyleSummary shell)
     {
-        var json = await Library.DocumentAsync(LibraryKinds.Houses, shell.Id);
-        if (json is null) return;
-        await Set(PropFields.Style, JsonNode.Parse(json));
-        shellName = shell.Name;
+        if (Handle is null) return;
+        if (await Library.DocumentAsync(LibraryKinds.Houses, shell.Id) is not { } json) return;
+        // A room style composes to the stamper's own `HouseStyle`; the registry holds recipes, so it rides
+        // under the `house` kind the way a tree's rides under `tree`.
+        var recipe = new JsonObject { ["kind"] = "house", ["shell"] = JsonNode.Parse(json) };
+        await Handle.InvokeVoidAsync("pullRecipe", shell.Name, recipe.ToJsonString());
+        await Set(PropFields.Style, JsonValue.Create(shell.Name));
     }
 
-    private string? shellName;
+    /// <summary>Which shell the building names. Read off the prop, so a reopened map shows the card in use.</summary>
+    private string? shellName => Text(PropFields.Style, string.Empty) is { Length: > 0 } key ? key : null;
     private IReadOnlyList<RoomStyleSummary> shells = [];
+
+    // ── the recipe a click puts down ───────────────────────────────────────────
+    /// <summary>Which library a placement of this kind names a recipe from, or null for the drawn kinds — a
+    /// channel and a track are traced, so what they are is stated where they are drawn.</summary>
+    private LibraryKind? RecipeKind => kind switch
+    {
+        PropKinds.Tree => LibraryKinds.Trees,
+        PropKinds.Boulder => LibraryKinds.Boulders,
+        _ => null,
+    };
+
+    private IReadOnlyList<LibraryRow> recipes = [];
+    private string recipesFor = "";
+
+    /// <summary>The recipe the placement names. Read off the prop rather than remembered, so a reopened map
+    /// shows the card that is actually in use.</summary>
+    private string? recipeName => Text(PropFields.Style, string.Empty) is { Length: > 0 } key ? key : null;
+
+    /// <summary>Name this recipe on the placement, and put it in the document's registry if it is not there
+    /// yet. The key is the row's name, which is what an author reads it by.</summary>
+    private async Task PickRecipe(LibraryRow recipe)
+    {
+        if (RecipeKind is not { } recipeKind || Handle is null) return;
+        if (await Library.DocumentAsync(recipeKind, recipe.Id) is not { } json) return;
+        await Handle.InvokeVoidAsync("pullRecipe", recipe.Name, json);
+        await Set(PropFields.Style, JsonValue.Create(recipe.Name));
+    }
+
+    /// <summary>Open the library at this kind, so authoring another is one click from wanting one.</summary>
+    private void OpenLibrary()
+    {
+        if (RecipeKind is { } recipeKind) Nav.NavigateTo($"/library/{recipeKind.Slug}");
+    }
 
     /// <summary>The four walls a door may be cut through, in the wire words <c>RoomEdge</c> serializes as.
     /// Named here rather than in the markup because a Razor markup lambda cannot hold a string literal.</summary>
@@ -213,7 +261,11 @@ public partial class SketchDressingInspector
     private async Task RefreshPreview()
     {
         if (prop is null) { preview = null; previewedFor = ""; return; }
-        var json = prop.ToJsonString();
+        // The prop plus the recipes it names: the preview reads a registry of one off the prop itself, which
+        // is how a placement is drawn without the document it belongs to.
+        var asked = (JsonObject)prop.DeepClone();
+        if (styleRegistry is not null) asked["styles"] = styleRegistry.DeepClone();
+        var json = asked.ToJsonString();
         if (json == previewedFor) return;
         previewedFor = json;
         var answered = await Library.PropPreviewAsync(json, themeJson);

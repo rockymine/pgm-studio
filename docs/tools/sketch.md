@@ -781,8 +781,8 @@ Six things can be placed, in three placement geometries.
 | Water | `water` | tracing a line | a `canal` radius 3, cut 2 deep, a 2-block shore over a Voronoi bank; `shape: pool` fills a drawn ring instead, and `level` states a world Y where a basin has to hold water |
 | Ground cover | `flora` | tracing a ring | coverage 0.45 at scale 12, with fern and flower shares |
 | Building | `house` | dragging a rectangle | no style of its own until one is picked from the room-style library |
-| Tree | `tree` | a click | a `template` oak, height 12 |
-| Boulder | `boulder` | a click | a `round` mossy erratic, size 4 |
+| Tree | `tree` | a click | no recipe of its own until one is picked from the tree library |
+| Boulder | `boulder` | a click | no recipe of its own until one is picked from the boulder library |
 
 **Every one of them takes a style, and for the two that lay ground the style and the material are separate
 questions.** A **stroke** replaces the surface it crosses rather than adding to it — it is a finish, not
@@ -820,6 +820,12 @@ beach opens and closes along the run, and `bank` — again a full terrain materi
 gravel edges, coarse dirt inside them and sand in the middle, which shows through the shallows and continues
 as the beach.
 
+**A tree and a boulder are recipes rather than knobs, because a click has no geometry to draw.** What is
+placed is a point plus a `style` key; what stands there is a row from the library, pulled into the document's
+own registry under its name (`docs/tools/library.md`). A path and a channel are *traced*, so their knobs stay
+here — pre-authoring a river form is authoring a shape without its place — and the split is exactly that line
+(author).
+
 **A tree is two different things rather than one thing with a switch.** A `template` tree is vanilla: its
 `species` — oak, birch, spruce, jungle, acacia or dark oak — names its wood, its canopy profile and its
 proportions together, since a notched cone is a spruce and a flat umbrella on a leaning trunk is an acacia,
@@ -827,13 +833,14 @@ and neither is a knob setting of the other; `height` scales the lot. A `grown` t
 where the shape is the author's and `wood` (the same six) is all that is left to name: `stems` one to three,
 `leader` for how far the central axis climbs, `flow` for how much the trunk wanders, `branchAngle`, `levels`
 two or three, `whorled` for the ring-every-few-courses conifer against the broadleaf, and `leafSize`. Each
-form reads only its own fields, so the others are inert rather than wrong.
+form reads only its own fields, so the others are inert rather than wrong. Both live on the **recipe**, so a
+grove of forty oaks is forty positions and one row, and retuning that row retunes the grove.
 
 **A boulder** is a glacial erratic: a mass standing on the ground, bedded a third of its height into it. It
 takes a `form` — `round` (a weathered erratic), `angular` (the same rock, its surface broken), `outcrop` (wide
 flat lobes with their middle at the surface, a low shelf rather than a rock) or `cairn` (three shrinking lobes
 stacked) — a `size` from 2 to 10 blocks of reach, default 4, a `mossy` flag for whether moss creeps onto the
-sky-lit faces, and `rock`, a full terrain material like a stroke's paving. A rock's material resolves in the
+sky-lit faces, and `rock`, a full terrain material like a stroke's paving. All four are the recipe's. A rock's material resolves in the
 **boulder's own frame** rather than the map's, so a mottled stone carries the same mottling to every image of
 its orbit instead of sampling whatever the world pattern says where each image happened to land.
 
@@ -842,14 +849,14 @@ its orbit instead of sampling whatever the world pattern says where each image h
 
 The pickers show **your** prop rather than a stock one. `GET /terrain/path-styles?pave=…` draws the five band
 styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
-stone, `/terrain/water-forms` the three channels as actual dug beds, `/terrain/species` every vanilla tree
-built, and `/terrain/woods` the six woods on the tree currently being edited — so the question answered is
-"what would mine look like", not "what does the catalogue contain". `POST /terrain/prop-preview` renders one
+stone, and `/terrain/water-forms` the three channels as actual dug beds — so the question answered is
+"what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
+own libraries instead, each row drawn through the pass that builds it. `POST /terrain/prop-preview` renders one
 before it is placed — and a building whose wings make no building is refused there with the same `HJ*`/`HP*`
 findings the build acts on, rather than drawn as though it would stand.
 
 Two knobs are bounded rather than free, and it is load-bearing: a tree's height is held to 5–40 and its leaf
-cluster to 0.2–1, and a boulder's size to 1–7. Cost is superlinear in reach — a grown crown is filled by
+cluster to 0.2–1, and a boulder's size to 2–10. Cost is superlinear in reach — a grown crown is filled by
 testing every cell of its bounding box — so a `leader` of 55 rather than 0.55 would not draw a strange tree,
 it would ask for a volume hundreds of blocks across and never return.
 

@@ -283,6 +283,76 @@ public record PorchStyleSaveRequest(
     [property: WordSet(typeof(PorchEdges))] string Edge,
     [property: WordSet(typeof(RoofForms))] string Roof, int RailBlock);
 
+/// <summary>A tree recipe as the library lists it.</summary>
+/// <param name="Id">The row a placement names once the recipe is pulled into a map's registry.</param>
+/// <param name="Name">What the library lists it under, and the key a pull files it under.</param>
+/// <param name="Preview">The card picture, drawn through the grower the export runs, so a tree is picked by
+/// what it looks like rather than by its numbers.</param>
+public sealed record TreeStyleSummary(long Id, string Name, string Preview);
+
+/// <summary>A tree recipe (GET /api/tree-styles/{id}): the save request plus the row's id, which a placement
+/// names it by once it is pulled into a map's dressing registry.</summary>
+public sealed record TreeStyleDetail(
+    long Id, string Name, string Form, string Species, string Wood, double Height,
+    int Stems, double Leader, double Flow, double BranchAngle, int Levels, bool Whorled, double LeafSize)
+    : TreeStyleSaveRequest(Name, Form, Species, Wood, Height, Stems, Leader, Flow, BranchAngle, Levels,
+                           Whorled, LeafSize);
+
+/// <summary>Create or replace a tree recipe — one of <b>two</b> trees, which <paramref name="Form"/> picks. A
+/// <c>template</c> tree is vanilla and reads its species; a <c>grown</c> tree is the recursive skeleton and
+/// reads its wood and the knobs under it. Each form reads only its own fields, so the ones it does not read are
+/// inert rather than wrong.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Form">Which tree this is, from <see cref="TreeForms"/>.</param>
+/// <param name="Species">Template only — the vanilla species, whose row carries the wood, the canopy profile
+/// and the proportions.</param>
+/// <param name="Wood">Grown only — what the tree is cut from. A grown tree's shape is the author's, so its
+/// wood is all that is left to name.</param>
+/// <param name="Height">Overall height in blocks, held to 5–40. Template: it scales the species' proportions.
+/// Grown: not a uniform scale — a smaller tree carries a thinner stem and fewer branches.</param>
+/// <param name="Stems">Grown only — 1–3 stems at the base.</param>
+/// <param name="Leader">Grown only — how far the central axis climbs, 0–1: low spreads, high spires.</param>
+/// <param name="Flow">Grown only — how much the trunk wanders on its way up, 0–1.</param>
+/// <param name="BranchAngle">Grown only — how far a branch leaves its parent, in radians, held to 0.2–1.5. A
+/// hand-built corpus leaves the trunk at 59° off vertical and forks its children at 67°.</param>
+/// <param name="Levels">Grown only — branching depth: 2 is a tree, 3 a denser one.</param>
+/// <param name="Whorled">Grown only — whether the branches gather into rings, each shorter than the one below.
+/// It is the conifer against the broadleaf, and the one shape choice a picker of six woods cannot make.</param>
+/// <param name="LeafSize">Grown only — how big each tip's leaf cluster is, 0.2–1.</param>
+public record TreeStyleSaveRequest(
+    string Name,
+    [property: WordSet(typeof(TreeForms))] string Form,
+    [property: WordSet(typeof(TreeSpeciesNames))] string Species,
+    [property: WordSet(typeof(TreeWoodNames))] string Wood,
+    double Height, int Stems = 1, double Leader = 0.55, double Flow = 0.45,
+    double BranchAngle = 1.1, int Levels = 2, bool Whorled = false, double LeafSize = 0.6);
+
+/// <summary>A boulder recipe as the library lists it.</summary>
+/// <param name="Id">The row a placement names once the recipe is pulled into a map's registry.</param>
+/// <param name="Name">What the library lists it under, and the key a pull files it under.</param>
+/// <param name="Preview">The card picture, drawn through the pass that builds it.</param>
+public sealed record BoulderStyleSummary(long Id, string Name, string Preview);
+
+/// <summary>A boulder recipe (GET /api/boulder-styles/{id}): the save request plus the row's id.</summary>
+public sealed record BoulderStyleDetail(
+    long Id, string Name, string Form, double Size, bool Mossy, string Rock)
+    : BoulderStyleSaveRequest(Name, Form, Size, Mossy, Rock);
+
+/// <summary>Create or replace a boulder recipe — a glacial erratic's form, its reach, what it is cut from and
+/// whether moss takes its sky-lit faces.</summary>
+/// <param name="Name">What the library lists it under.</param>
+/// <param name="Form">The erratic's shape, from <see cref="BoulderForms"/>.</param>
+/// <param name="Size">How far the rock reaches from its centre, held to 2–10 blocks — a rock a player takes
+/// cover behind rather than one they step over.</param>
+/// <param name="Mossy">Whether moss creeps onto the sky-lit faces.</param>
+/// <param name="Rock">What the rock is cut from, as a terrain material's own JSON — any of the fourteen kinds
+/// a style may be. Resolved in the boulder's own frame, so a mottled rock carries the same mottling to every
+/// image of its orbit.</param>
+public record BoulderStyleSaveRequest(
+    string Name,
+    [property: WordSet(typeof(BoulderForms))] string Form,
+    double Size, bool Mossy, string Rock);
+
 /// <summary>One storey of a house: which storey style fills it, and the clear it takes <em>here</em> —
 /// 0 for the storey style's own. The position in the list is the position in the building, ground first, so
 /// there is no ordinal on the wire: reordering the list is reordering the house.</summary>
@@ -432,6 +502,11 @@ public sealed record MaterialKindDto(
 /// snapshots when it binds one.</summary>
 /// <param name="StyleJson">The stamper's own JSON for the style, as text.</param>
 public sealed record StyleJsonDto(string StyleJson);
+
+/// <summary>One picture of a draft, for a kind whose card is the whole preview — a prop recipe has no building
+/// to cut four ways, so what it answers is the section a browse row carries.</summary>
+/// <param name="Card">The SVG a browse row and the editor's stage both draw.</param>
+public sealed record StyleCardDto(string Card);
 
 /// <summary>A terrain theme as the painter's own JSON.</summary>
 /// <param name="ThemeJson">The painter's own JSON for the theme, as text — the form a sketch snapshots and

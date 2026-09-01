@@ -36,8 +36,9 @@ await using var db = new PgmDb(PgmDataOptions.ForConnectionString(connection));
 var styles = new ThemeStore(db);
 var rooms = new RoomStyleStore(db);
 var parts = new HousePartStore(db);
+var props = new PropStyleStore(db);
 
-var seed = new LibrarySeed(styles, rooms, parts);
+var seed = new LibrarySeed(styles, rooms, parts, props);
 var tally = await seed.SeedAsync();
 
 Console.WriteLine($"\nmaterials  {tally.StylesAdded} added, {tally.StylesUpdated} updated");

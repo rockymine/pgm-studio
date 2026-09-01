@@ -1,0 +1,117 @@
+@namespace PgmStudio.Client.Features.Library
+@using PgmStudio.Client.Components
+@using PgmStudio.Contracts
+@using PgmStudio.Vocabulary
+
+@* One editor for the two clicked kinds. A tree and a boulder are placed by a click, so what is placed is a
+   position and what stands there is a recipe — and a recipe is browsed and authored here rather than carried
+   on every placement. The two share a frame and differ only in their fields, the way the three house parts do. *@
+
+<LibraryEditor Kind="Kind" Name="@draftName" NameChanged="SetName" Nests="false"
+               Outline="Outline" Selected="@selected" OnSelect="Choose" Note="@note" Footnote="@Footnote">
+  <Preview>
+    @if (card is not null)
+    {
+      <figure class="theme-section-figure">@((MarkupString)card)</figure>
+    }
+  </Preview>
+  <Fields>
+    @if (tree is not null)
+    {
+      <p class="section-desc">Two trees, not one with a switch. A <strong>vanilla</strong> tree is a named
+        species with a drawn canopy — a notched cone is a spruce, a flat umbrella on a leaning trunk an acacia,
+        and neither is a knob setting of the other. A <strong>grown</strong> tree is a skeleton you shape, in
+        whichever wood you cut it from.</p>
+      <Field Label="Which tree">
+        <Select Options="@Select.Words(TreeForms.All, TreeForms.Describe)" Value="@tree.Form"
+                ValueChanged="SetTreeForm" />
+      </Field>
+
+      @if (TreeForms.Canonical(tree.Form) == TreeForms.Template)
+      {
+        <Field Label="Species">
+          <Select Options="@Select.Words(TreeSpeciesNames.All, name => name)" Value="@tree.Species"
+                  ValueChanged="v => Tree(t => t with { Species = v })" />
+        </Field>
+      }
+      else
+      {
+        <Field Label="Wood">
+          <Select Options="@Select.Words(TreeWoodNames.All, name => name)" Value="@tree.Wood"
+                  ValueChanged="v => Tree(t => t with { Wood = v })" />
+        </Field>
+      }
+
+      <Field Label="Height"><LabelEnd><strong>@($"{tree.Height:0} blocks")</strong></LabelEnd>
+        <ChildContent><input type="range" class="field-range" min="5" max="40" step="1" value="@((int)tree.Height)"
+               @oninput="e => Tree(t => t with { Height = Number(e, t.Height) })" /></ChildContent></Field>
+
+      @if (TreeForms.Canonical(tree.Form) == TreeForms.Grown)
+      {
+        <div class="section-header section-header--ruled"><h2 class="section-title">The skeleton</h2></div>
+        <Field Label="Stems"><LabelEnd><strong>@tree.Stems</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="1" max="3" step="1" value="@tree.Stems"
+                 @oninput="e => Tree(t => t with { Stems = (int)Number(e, t.Stems) })" /></ChildContent></Field>
+        <Field Label="Leader"><LabelEnd><strong>@($"{tree.Leader * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 title="How far the central axis climbs: low spreads, high spires."
+                 value="@((int)(tree.Leader * 100))"
+                 @oninput="e => Tree(t => t with { Leader = Share(e, t.Leader) })" /></ChildContent></Field>
+        <Field Label="Trunk flow"><LabelEnd><strong>@($"{tree.Flow * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="0" max="100" step="1"
+                 title="How much the trunk wanders on its way up."
+                 value="@((int)(tree.Flow * 100))"
+                 @oninput="e => Tree(t => t with { Flow = Share(e, t.Flow) })" /></ChildContent></Field>
+        <Field Label="Branching">
+          <Chip Active="tree.Whorled" OnClick="() => Tree(t => t with { Whorled = !t.Whorled })">
+            @(tree.Whorled ? "Whorled — rings up the stem" : "Staggered")
+          </Chip>
+        </Field>
+        @* The slider is in degrees because that is the thing being chosen; the recipe stores the radian. *@
+        <Field Label="Branch angle"><LabelEnd><strong>@($"{tree.BranchAngle * 180 / Math.PI:0}°")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="12" max="86" step="1"
+                 title="How far a branch leaves its parent. A hand-built corpus leaves the trunk at 59°."
+                 value="@((int)Math.Round(tree.BranchAngle * 180 / Math.PI))"
+                 @oninput="e => Tree(t => t with { BranchAngle = Radians(e, t.BranchAngle) })" /></ChildContent></Field>
+        <Field Label="Levels"><LabelEnd><strong>@tree.Levels</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="2" max="3" step="1" value="@tree.Levels"
+                 title="Branching depth: 2 is a tree, 3 a denser one."
+                 @oninput="e => Tree(t => t with { Levels = (int)Number(e, t.Levels) })" /></ChildContent></Field>
+        <Field Label="Leaf size"><LabelEnd><strong>@($"{tree.LeafSize * 100:0}%")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
+                 value="@((int)(tree.LeafSize * 100))"
+                 @oninput="e => Tree(t => t with { LeafSize = Share(e, t.LeafSize) })" /></ChildContent></Field>
+      }
+    }
+    else if (boulder is not null)
+    {
+      <p class="section-desc">An erratic: a mass a glacier carried and left. Its size is the reach a player
+        takes cover behind rather than steps over.</p>
+      <Field Label="Shape">
+        <Select Options="@Select.Words(BoulderForms.All, BoulderForms.Describe)" Value="@boulder.Form"
+                ValueChanged="v => Boulder(b => b with { Form = v })" />
+      </Field>
+      <Field Label="Size"><LabelEnd><strong>@($"{boulder.Size:0.0} blocks")</strong></LabelEnd>
+        <ChildContent><input type="range" class="field-range" min="20" max="100" step="1"
+               value="@((int)(boulder.Size * 10))"
+               @oninput="e => Boulder(b => b with { Size = Number(e, b.Size * 10) / 10 })" /></ChildContent></Field>
+      <Field Label="Moss">
+        <Chip Active="boulder.Mossy" OnClick="() => Boulder(b => b with { Mossy = !b.Mossy })">
+          @(boulder.Mossy ? "Creeps onto the sky-lit faces" : "Bare rock")
+        </Chip>
+      </Field>
+      <div class="section-header section-header--ruled"><h2 class="section-title">Cut from</h2></div>
+      <MaterialEditor Blocks="blocks" Styles="styles" Node="rock" OnChanged="RockChanged" />
+    }
+  </Fields>
+  <Actions>
+    <Button Variant="primary" Icon="save" Disabled="@(string.IsNullOrWhiteSpace(draftName))" OnClick="Save">
+      @(editingId is null ? "Add to library" : "Save changes")
+    </Button>
+    @if (editingId is not null)
+    {
+      <Button Icon="copy" OnClick="SaveAsCopy">Save as copy</Button>
+      <Button Variant="danger" Icon="trash-2" OnClick="Delete">Delete</Button>
+    }
+  </Actions>
+</LibraryEditor>

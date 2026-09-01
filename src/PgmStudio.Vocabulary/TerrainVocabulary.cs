@@ -182,6 +182,74 @@ public static class HouseFootprints
 /// Which distance a band stack is read along — the wire words for <c>BandAxis</c>. The stack states its bands
 /// and where they run out and never the axis, so the material doing the reading is where the choice belongs.
 /// </summary>
+/// <summary>Which of the two trees a recipe is — the wire words for <c>TreeForm</c>. The two are genuinely two
+/// trees rather than one with a switch: a template is a vanilla species with a drawn canopy profile, a grown
+/// one is a recursive skeleton, and neither is a knob setting of the other.</summary>
+public static class TreeForms
+{
+    /// <summary>The vanilla tree of a named species.</summary>
+    public const string Template = "template";
+
+    /// <summary>The grown skeleton, in a chosen wood.</summary>
+    public const string Grown = "grown";
+
+    public static readonly string[] All = [Template, Grown];
+
+    public static string Describe(string? form) => Canonical(form) == Grown
+        ? "Grown from a branch skeleton you shape"
+        : "A vanilla tree of a named species";
+
+    public static string Canonical(string? form) => All.Contains(form) ? form! : Template;
+}
+
+/// <summary>The six vanilla species a template tree may be — the wire words for <c>DressingPalette.Species</c>.
+/// The profiles are what separate them: a notched cone is a spruce and a flat umbrella on a leaning trunk is an
+/// acacia.</summary>
+public static class TreeSpeciesNames
+{
+    public static readonly string[] All = ["oak", "birch", "spruce", "jungle", "acacia", "dark oak"];
+
+    public static string Canonical(string? name) => All.Contains(name) ? name! : All[0];
+}
+
+/// <summary>The six woods a tree of either form is cut from — the wire words for
+/// <c>DressingPalette.Woods</c>. Separate from the species because both trees need a wood and only one has a
+/// species.</summary>
+public static class TreeWoodNames
+{
+    public static readonly string[] All = ["oak", "birch", "spruce", "jungle", "acacia", "dark oak"];
+
+    public static string Canonical(string? name) => All.Contains(name) ? name! : All[0];
+}
+
+/// <summary>An erratic's shape — the wire words for <c>BoulderForm</c>.</summary>
+public static class BoulderForms
+{
+    /// <summary>One rounded mass standing on the ground, weathered into broad facets.</summary>
+    public const string Round = "round";
+
+    /// <summary>The same mass broken up — angular and heavily weathered.</summary>
+    public const string Angular = "angular";
+
+    /// <summary>Wide, flat lobes with their middle at the surface: a low outcrop rather than a rock.</summary>
+    public const string Outcrop = "outcrop";
+
+    /// <summary>Three shrinking lobes stacked up.</summary>
+    public const string Cairn = "cairn";
+
+    public static readonly string[] All = [Round, Angular, Outcrop, Cairn];
+
+    public static string Describe(string? form) => Canonical(form) switch
+    {
+        Angular => "Broken up and heavily weathered",
+        Outcrop => "Wide flat lobes, half in the ground",
+        Cairn => "Three shrinking lobes stacked",
+        _ => "One rounded mass, broadly facetted",
+    };
+
+    public static string Canonical(string? form) => All.Contains(form) ? form! : Round;
+}
+
 public static class BandAxes
 {
     /// <summary>Down from the top of the bucket: grass over two dirt.</summary>

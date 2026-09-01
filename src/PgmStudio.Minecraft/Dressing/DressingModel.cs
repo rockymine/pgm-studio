@@ -253,22 +253,22 @@ public sealed record TreeStyle : PropStyle
     /// <see cref="Leader"/> of 55 rather than 0.55 therefore does not draw a strange tree, it asks for a volume
     /// hundreds of blocks on a side and never returns. Holding the values here covers every caller instead of
     /// each guarding its own input, and means a stored recipe that is out of range still builds something.</para></summary>
-    public double Reach => Math.Clamp(Height, 5, 40);
+    [JsonIgnore] public double Reach => Math.Clamp(Height, 5, 40);
 
     /// <summary>This tree's growth parameters, as the grower wants them, each bounded like
     /// <see cref="Reach"/>. Read only when it is grown.</summary>
-    public TreeShape Shape => new(
+    [JsonIgnore] public TreeShape Shape => new(
         Height: Reach, Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
         BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.5), Flow: Math.Clamp(Flow, 0, 1),
         Leader: Math.Clamp(Leader, 0, 1), Whorled: Whorled);
 
     /// <summary>How big each tip's leaf cluster is, bounded like <see cref="Reach"/>: it scales the crown, and
     /// the crown is filled cell by cell.</summary>
-    public double LeafCluster => Math.Clamp(LeafSize, 0.2, 1);
+    [JsonIgnore] public double LeafCluster => Math.Clamp(LeafSize, 0.2, 1);
 
     /// <summary>The blocks this tree is made of, whichever form it is: a template takes its species' wood, a
     /// grown tree the one it was given.</summary>
-    public TreeWood Timber => Form == TreeForm.Template
+    [JsonIgnore] public TreeWood Timber => Form == TreeForm.Template
         ? DressingPalette.SpeciesNamed(Species).Wood
         : DressingPalette.WoodNamed(Wood);
 }
@@ -286,7 +286,7 @@ public sealed record BoulderStyle : PropStyle
 
     /// <summary>That reach held to the range the editor offers, for the reason <see cref="TreeStyle.Reach"/>
     /// holds a tree's: it sizes both the lobes built and the sample patch a preview cuts.</summary>
-    public double Reach => Math.Clamp(Size, 2, 10);
+    [JsonIgnore] public double Reach => Math.Clamp(Size, 2, 10);
 
     /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
     /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit

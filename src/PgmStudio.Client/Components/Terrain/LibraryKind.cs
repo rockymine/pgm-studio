@@ -31,6 +31,8 @@ public static class LibraryKinds
     public const string StoreysSlug = "storeys";
     public const string PorchesSlug = "porches";
     public const string HousesSlug = "houses";
+    public const string TreesSlug = "trees";
+    public const string BouldersSlug = "boulders";
 
     public static readonly LibraryKind Styles = new(
         StylesSlug, "styles", "Styles", "style", "paintbrush",
@@ -67,7 +69,22 @@ public static class LibraryKinds
         + "stands on. It finishes a wool cage or a spawn cube without touching its size.",
         Composed: true);
 
-    public static readonly IReadOnlyList<LibraryKind> All = [Styles, Themes, Roofs, Storeys, Porches, Houses];
+    /// <summary>A tree is a recipe rather than a placement: what is put on the canvas is a position, and what
+    /// stands there is one of these. The two forms are two trees, not one with a switch.</summary>
+    public static readonly LibraryKind Trees = new(
+        TreesSlug, "tree-styles", "Trees", "tree", "trees",
+        "One of two trees: a vanilla species with a drawn canopy, or a skeleton grown from knobs you shape. "
+        + "Placed by a click, so what is placed is a position and what stands there is this.",
+        Composed: true);
+
+    public static readonly LibraryKind Boulders = new(
+        BouldersSlug, "boulder-styles", "Boulders", "boulder", "mountain",
+        "A glacial erratic: its form, how far it reaches, what it is cut from and whether moss takes its "
+        + "sky-lit faces. Cut from any material a style may be.",
+        Composed: true);
+
+    public static readonly IReadOnlyList<LibraryKind> All =
+        [Styles, Themes, Roofs, Storeys, Porches, Houses, Trees, Boulders];
 
     /// <summary>The kind a route segment names, or null where it names none.</summary>
     public static LibraryKind? Of(string? slug) =>

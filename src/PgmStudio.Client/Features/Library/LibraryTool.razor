@@ -68,6 +68,10 @@
     {
       <HouseEditor Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />
     }
+    else if (Open.Slug is LibraryKinds.TreesSlug or LibraryKinds.BouldersSlug)
+    {
+      <PropRecipeEditor Kind="Open" Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />
+    }
     else
     {
       <HousePartEditor Part="PartKindInfo.Of(Open.Slug)" Entry="@Entry" OnSaved="OnSaved" OnName="OnEntryName" />

@@ -53,12 +53,14 @@ public sealed class SchemaCompletenessTests
     /// back that the caller did not already name in the path.</summary>
     private static readonly string[] NoBody =
     [
+        "DELETE /api/boulder-styles/{id}",
         "DELETE /api/plans/{id}",
         "DELETE /api/porch-styles/{id}",
         "DELETE /api/roof-styles/{id}",
         "DELETE /api/room-styles/{id}",
         "DELETE /api/storey-styles/{id}",
         "DELETE /api/styles/{id}",
+        "DELETE /api/tree-styles/{id}",
         "DELETE /api/themes/{id}",
     ];
 

@@ -385,37 +385,15 @@ is library material — picked in the inspector, with a way through to the libra
 building already works this way. The inspector then holds a full editor for the two drawn kinds, a picker and a
 forward for the two clicked ones, and the per-placement handful — seed, position, door edge — for all of them.
 
-- [ ] **TS49 — Trees and boulders become library kinds.** A tree carries thirteen knobs on every placement and
-  a boulder four, where a building carries a snapshot of a room style plus its footprint, door edge and seed.
-  Over the 83 `pgm-studio-mapgen` boards: 618 tree placements resolve to **75 distinct recipes**, the top eight
-  covering 45% and `oak · template · 10` used fifty times; 247 boulder placements the same way. The grown
-  form's eight knobs — `wood`, `stems`, `leader`, `flow`, `branchAngle`, `levels`, `whorled`, `leafSize` — are
-  set by **7 of 618** trees, so they are the clearest thing on the board to move off a placement.
+- [ ] **TS76 — A dressing key naming no recipe is stored without a word, and only a read says so.** Every read
+  refuses it — `DR-DOC`, naming the placement and the key — but `PUT …/sketch` and `POST …/sketch/finish` both
+  store the document without parsing its dressing, so a hand-authored or agent-authored layout keeps a
+  placement pointing at nothing until a preview or an export is asked for. The picker cannot produce one (it
+  pulls before it names), so this is the driver's path. The check is `DressingJson.Deserialize` over the
+  stored blob, which the finish already holds; the question is only whether finish refuses or complains.
 
-  **The row shapes already exist.** `Geom.TreeSkeleton.TreeShape` is the grown recipe as one record and
-  `TreeProp.Shape` is already the adapter into it, so a grown row is `TreeShape` + `LeafSize` + `Wood` and a
-  template row is `Species` + `Height`; a boulder row is `form` + `size` + `rock` + `mossy`, which maps as
-  directly as `PorchStyleRow` does. `DressingPreview.SpeciesCards`/`WoodCards` already draw one card per
-  recipe. Two kinds through one editor, the way `HousePartEditor` serves roofs, storeys and porches.
-
-  **The reference model has landed** (`FEATURES.md`): a placement carries a `style` key into the dressing
-  document's own registry, which states each recipe once, and a stored inline placement is read forward into
-  it. What is left here is the *library* half — the two kinds, their rows, and the pull that copies a row into
-  a document's registry under a key.
-
-- [ ] **TS50 — The dressing inspector becomes a picker for what is clicked and an editor for what is drawn.**
-  Follows `TS49`. The sidebar is 22 words and no controls; the inspector is 291 words and 54, and embeds the
-  grown-tree block **7 of 618** trees set. The shape (author): **water and path keep their controls**, because
-  a channel and a track are traced and a knob on a traced thing is a knob on something already in front of the
-  author. **Tree and boulder lose theirs** for a card grid over the library kind plus a link through to author
-  a new row — the `PickShell` pattern, which is 7 lines. Nothing gains a full editor it did not have.
-
-  *Traps the replacement must not inherit, all live today:* the JS default states `branchAngle: 0.55` where
-  the model wants `1.1` and omits `whorled` entirely, under a comment claiming the two mirror
-  (`dressing-doc.js:41-42`); the branch-angle slider runs 20–150 but its handler clamps `value / 100` to
-  `[0, 1]`, so its top third writes nothing the model does not already have (`SketchDressingInspector.razor:235`,
-  `Share` at `.razor.cs:274`); and the picked shell's name lives in a local field, so a reopened map shows no
-  active card (`.razor.cs:150`).
+  *measured on `base-2wool`: a layout whose one tree names `maple` against an empty registry stores 200 and
+  finishes 200; `POST /terrain/prop-preview` on the same prop answers 400 `DR-DOC`.*
 
 ### What the author can say
 
