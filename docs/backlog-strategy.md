@@ -272,24 +272,22 @@ previous reading left the board unanswered: `B55` (which API paths read a map as
 Deleting the entry answers the question by declining to have it, and four of those five were questions about
 work nobody was blocked on.
 
-Nine stand, stated so they can be answered in a line each:
+Seven stand, stated so they can be answered in a line each:
 
 1. `C11` — is the Edit tool being kept? Three unwired inspectors are work on a surface that may be retired
    whole, and the author has never driven it.
-2. `TS49` — should a prop recipe be library material, and for which kinds (trees, boulders, paths, water)?
-3. `TS50` — what may a placement say on its own, once recipes are rows? (follows `TS49`)
-4. `WE28` — should a relief be keyed by layer *plus* island, or ride on the layer that carries it?
-5. `WE48` — what is the floor on a pattern's brush size, under which it is smaller than what it dresses?
-6. `B144` — how do height and paint resolve an overlap, where one takes the taller shape and the other the
+2. `WE28` — should a relief be keyed by layer *plus* island, or ride on the layer that carries it?
+3. `WE48` — what is the floor on a pattern's brush size, under which it is smaller than what it dresses?
+4. `B144` — how do height and paint resolve an overlap, where one takes the taller shape and the other the
    smaller? The entry says its stacked half is `TS23`'s `Q4` and that neither may be answered alone; `TS23`
    has shipped and answered its half — *within a layer, smallest area still wins a contested cell; across
    layers there is no contest, because each surface shows its own* — so what is open is the nested-tier case
    alone, and that ruling is the precedent for it.
-7. `B70` — which view should a library card carry?
-8. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-9. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
+5. `B70` — which view should a library card carry?
+6. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
+7. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
 
-`TODO.md` carries a tenth in its preamble: a dressed prop is capped at 192 covered cells by `HP3` and a
+`TODO.md` carries an eighth in its preamble: a dressed prop is capped at 192 covered cells by `HP3` and a
 room's building at 20×20 by `ST9`, and whether those should be one number is the author's. It blocks nothing
 below it.
 
@@ -336,7 +334,7 @@ for.
 
 ## The order the board empties in
 
-**Phase 0 — ask, then cut.** The nine unanswered questions, in one sitting. Each answer either turns its
+**Phase 0 — ask, then cut.** The seven unanswered questions, in one sitting. Each answer either turns its
 entry into work small enough to state in a paragraph or withdraws it, and withdrawal is now the demonstrated
 majority outcome. Nothing else on this list is worth starting first: two of the causes above have a question
 sitting in them — `WE28` in the layer word, `WE48` in the ungated convention — and a third, the programme
@@ -379,7 +377,7 @@ author.
 **No measurement is written by hand.** Seven of nine re-measured figures had drifted, one entry's retake
 *command* had drifted with them, and one entry's whole premise had. `census.sh` is the precedent.
 
-**A question is asked before the entry is filed, not after.** The oracle rule already says this. Nine entries
+**A question is asked before the entry is filed, not after.** The oracle rule already says this. Seven entries
 carry a question nobody has answered, and each has been costing the board's readability ever since. The house
 group is what one sitting of answers looks like: five entries, of which one became a clamp, three were
 withdrawn outright, and one turned into the surface the other four had been standing in the way of.

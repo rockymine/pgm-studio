@@ -378,25 +378,44 @@ The shape has landed: the rail carries the six kinds, `/library` chooses between
 page laid out as an outline, its fields and a preview companion. What is left is what an author can *say* on
 it, what they can *see* while saying it, and what is on the shelf to say it about.
 
-**Three decisions are parked here, not tasks.** The Theme phase's shape — a strip of what can be placed, a
-list of what exists, an inspector for the selection — reads as the shape Dressing wants too, and the entries
-below are what that would cost. Each names the question that has to be answered before it is work.
+**The dressing surface is being cleaned up, and the line is what an author *draws*.** A water channel and a
+path are traced on the canvas, so pre-authoring one is authoring a shape without its place and they keep their
+controls in the tool (author). A tree and a boulder are a click, so what is placed is a *recipe* and the recipe
+is library material — picked in the inspector, with a way through to the library to author a new one. A
+building already works this way. The inspector then holds a full editor for the two drawn kinds, a picker and a
+forward for the two clicked ones, and the per-placement handful — seed, position, door edge — for all of them.
 
-- [ ] **TS49 — Should a prop recipe be library material? (blocking question: which kinds, if any.)** A tree
-  placement carries `species` (6 distinct), `form` (3) and `height` (12) over 618 placements in the 83
-  `pgm-studio-mapgen` boards — 75 distinct recipes corpus-wide, the top eight covering 45% of every tree, and
-  `oak · template · 10` used fifty times. Boulders (`form`/`size`/`rock`, 247 placements), paths
-  (`style`/`radius`/`coverage`/`pave`, 184) and water (`form`/`depth`/`shore`/`bank`, 28) split the same way,
-  and the house prop already does it: 192 placements reference 14 library styles and carry only footprint,
-  door edge and seed. Making the rest match means new library kinds beside styles, themes, roofs, storeys,
-  porches and houses, and a placement that is a recipe reference plus a position.
+- [ ] **TS49 — Trees and boulders become library kinds.** A tree carries thirteen knobs on every placement and
+  a boulder four, where a building carries a snapshot of a room style plus its footprint, door edge and seed.
+  Over the 83 `pgm-studio-mapgen` boards: 618 tree placements resolve to **75 distinct recipes**, the top eight
+  covering 45% and `oak · template · 10` used fifty times; 247 boulder placements the same way. The grown
+  form's eight knobs — `wood`, `stems`, `leader`, `flow`, `branchAngle`, `levels`, `whorled`, `leafSize` — are
+  set by **7 of 618** trees, so they are the clearest thing on the board to move off a placement.
 
-- [ ] **TS50 — Should the dressing inspector hold an editor at all? (blocking question: what a placement may
-  say on its own.)** The sidebar is 22 words and no controls; the inspector is 291 words and 54, and embeds
-  three full `MaterialEditor`s (paving, bank, rock) plus the grown-tree parameter block —
-  `wood`, `stems`, `leader`, `flow`, `branchAngle`, `levels`, `whorled`, `leafSize` — which **7 of 618** trees
-  set. Under `TS49` the columns invert: the recipes become a strip, the placements the left list, and the
-  inspector holds the handful of fields that are genuinely per-instance. Depends on `TS49`.
+  **The row shapes already exist.** `Geom.TreeSkeleton.TreeShape` is the grown recipe as one record and
+  `TreeProp.Shape` is already the adapter into it, so a grown row is `TreeShape` + `LeafSize` + `Wood` and a
+  template row is `Species` + `Height`; a boulder row is `form` + `size` + `rock` + `mossy`, which maps as
+  directly as `PorchStyleRow` does. `DressingPreview.SpeciesCards`/`WoodCards` already draw one card per
+  recipe. Two kinds through one editor, the way `HousePartEditor` serves roofs, storeys and porches.
+
+  **One question rides on it**: a building's `style` is a *snapshot* and deliberately not an id, so editing a
+  library row leaves placed buildings alone (`structures.md` §9). A board carries 192 buildings and 618 trees,
+  so the same doctrine costs three times as much JSON — and `B47` is the provenance that a snapshot already
+  loses. Whether a tree references or snapshots is the one thing this entry does not settle.
+
+- [ ] **TS50 — The dressing inspector becomes a picker for what is clicked and an editor for what is drawn.**
+  Follows `TS49`. The sidebar is 22 words and no controls; the inspector is 291 words and 54, and embeds the
+  grown-tree block **7 of 618** trees set. The shape (author): **water and path keep their controls**, because
+  a channel and a track are traced and a knob on a traced thing is a knob on something already in front of the
+  author. **Tree and boulder lose theirs** for a card grid over the library kind plus a link through to author
+  a new row — the `PickShell` pattern, which is 7 lines. Nothing gains a full editor it did not have.
+
+  *Traps the replacement must not inherit, all live today:* the JS default states `branchAngle: 0.55` where
+  the model wants `1.1` and omits `whorled` entirely, under a comment claiming the two mirror
+  (`dressing-doc.js:41-42`); the branch-angle slider runs 20–150 but its handler clamps `value / 100` to
+  `[0, 1]`, so its top third writes nothing the model does not already have (`SketchDressingInspector.razor:235`,
+  `Share` at `.razor.cs:274`); and the picked shell's name lives in a local field, so a reopened map shows no
+  active card (`.razor.cs:150`).
 
 ### What the author can say
 
