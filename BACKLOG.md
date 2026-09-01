@@ -357,9 +357,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
 
-`TS73` moved every sketch-stage refusal to `finish`, which uncovered a policy the gate had been hiding: the
-rasterizer has always been able to floor and roof a subtract's void, and only `SK13` said no.
-
 - [ ] **TS74 — `SK13` cannot tell a fill from a floor, so a subtract cannot mark a room.** A subtract is
   what an author reaches for to say *this column is void*, and flooring and roofing that void is the use it
   is reached for — but `SK13` refuses every add over a subtracted cell alike, at any height, on any layer.
@@ -415,7 +412,7 @@ below are what that would cost. Each names the question that has to be answered 
   `RoofSlab`/`RoofSlabData` are carried through a save but editable only on a bound `RoofStyle` row, never on
   the room. Five of the twenty-five fields, and the five that make a building look built.
 
-  - [ ] **B200 — Let the Theme phase author an inward band stack.** The JSON accepts one and the painter draws
+- [ ] **B200 — Let the Theme phase author an inward band stack.** The JSON accepts one and the painter draws
   it, so the only way to author a ring stack today is to edit the document by hand — the same reach fault
   the sketch's height controls have. `Components/Terrain/MaterialEditor.razor`'s `Layered` case
   offers a list of layers and one number per layer captioned *Courses*: no axis control, no `beyond` slot, no
@@ -438,7 +435,7 @@ so they wait for the frame rather than being built into the one it replaces.
   kilobytes per row. The sample is now a parameter, so a card could also be judged at a proportion where more
   reads. Wants the author's eye on which picture picks a house out of a grid.
 
-  - [ ] **B221 — The style libraries preview a stamped world, and the cut follows the selected row.**
+- [ ] **B221 — The style libraries preview a stamped world, and the cut follows the selected row.**
   Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
   the library builds a small world with the house in it and draws that: the path `B165` was found down, and
   now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
@@ -489,37 +486,6 @@ mirror clean and the traversability whole on every board named below.
 
   *`opus5-thornfell` was corrected three times and left `thornfell`, `thornfell-2` and `thornfell-3` in the
   database; every render, provenance sidecar and column read had to be traced to the right one by hand.*
-
-- [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
-  are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
-  — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
-  them. `sunspit` in `pgm-studio-mapgen` cannot be rebuilt against today's tree for exactly that reason —
-  `PL13`, a wall on the wool room's interface (`B186`) — and `firnline` now rebuilds without the house it was
-  authored with, which the keep-out mask declines as `DR-KEEP` (a house in a spawn door's approach). Both
-  worlds load and play; only the pipeline that made them disagrees.
-
-  **So the override reaches the keep-out mask as well as the refusals.** A decline is not a refusal, but it
-  is the same question one layer down: the author placed the thing deliberately, and there is no way to say
-  so.
-
-  **The shape: a per-call override that names what it is waiving, not a global off switch.** It reaches the
-  two places a refusal is raised — `PlanCompiler` (a `PL*` refusal) and `MapExportComposer` (`OB17`, `OB19`,
-  the playability judgement) — and every waived finding is still **reported**, as a warning carrying
-  its rule id, so a forced build says what it forced rather than going quiet. A refusal about the `map.xml`
-  contract itself is not waivable: PGM has to be able to read the result.
-
-  **It stays out of the agent's vocabulary.** Not in `docs/tools/capabilities.md`, not in the endpoint tables
-  the briefs hand an agent, not in `PgmStudio.RoundTrip`'s `--help` (`WS6`). The authoring briefs already tell an agent
-  that a refusal is a fault to fix; an override an agent knows about is an override an agent will reach for.
-
-  **Five agent-authored boards asked for it exactly zero times, which narrows it rather than weakening it.**
-  Across `opus5-elderwold` … `opus5-undercroft` no gate refused something that was right to build. The one
-  case that looked like a waiver — a texture brush declining every tree it touched — was a gate asking
-  `DR-ROAD` of the wrong prop, and a stroke now says whether it is a route (`WE21`). So the entry belongs to
-  **human authoring**, where its two
-  named worlds live, and it is not a dependency of anything on the agent track. Filed here as a schedule
-  note rather than a change of scope: a waiver reached for in place of a fix hides the fix, and the whole
-  value of this entry is that it does not.
 
 - [ ] **TN2 — `structural-integrity` carries one sentence where several refusals fired.** The term folds
   every `PlanValidator` refusal into one hard violation, and where there is more than one its message is
@@ -613,6 +579,15 @@ mirror clean and the traversability whole on every board named below.
   tracks, **308 cells**, checked for a step greater than one. Written fresh each time and thrown away each
   time.*
 
+  - [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
+  placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
+  that; it does not run the generator (author). Reach rather than capability, and upstream of `PL13`: a dock
+  seated against the hub has a face to wall that is not its own door, so getting the attachment right removes
+  the wall fault as a side effect.
+
+  *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
+  dock's south edge sits flush on the build region's northern line at `z −20`.*
+
 ## The house: what it stamps, where it stands, and what an author can say
 
 **The stamper.**
@@ -674,13 +649,6 @@ mirror clean and the traversability whole on every board named below.
 
 ## World import: reading a map the studio did not build
 
-The scan is the one path where the studio is a **reader** rather than an author, and it is judged against maps
-whose authors never met it. So the failures are all of one kind: a block that means something to a person and
-nothing to the extractor, a derivation that was tuned before stair-awareness landed, and a ranker left half
-finished. Diagnostics rather than gates — telling an author their imported map is broken is the value;
-refusing to re-export it is the studio overreaching. Include resolution sits here for the same reason: an
-`<include>` is something the reader must follow to see the map a server actually plays.
-
 - [ ] **B57 — `scan_segment` counts a build-region marker as solid ground.** Island detection now separates
   terrain from markers and from what a map erases before play (`FEATURES.md`,
   `docs/world-scan/terrain-ground-truth.md`), but that runs on `CleanColumns` → `islands_json` only. The other
@@ -692,28 +660,6 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   to route the floor-marker rule through both. **Blocked in practice by re-import**: `scan_segment` is
   written once at ingest from a world that is then discarded, so changing it reaches existing maps only when
   a map can be re-imported.
-
-- [ ] **G9 — Re-scan the corpus with stair-aware detection (remaining slice).** The over-split
-  **detection fix landed** (`FEATURES.md`: `CleanColumns` + `DetectStairAware`), and the stored decompositions
-  predate it. What remains: (a) **re-scan the corpus** so the stored `islands.json` / `island_sketch_json`
-  reflect stair-aware (the live DB + `pgm-studio-output` were generated with the legacy detection — needs the
-  source worlds, `OvercastCommunity/CommunityMaps`+`PublicMaps` `ctw/`), and decide whether to refresh the
-  `--islands` Python-parity oracle to match; (b) the residual `a_new_day` **isolated raised-decor specks**
-  (≈37-block grid bits with no walkable connection, which a per-island prune could drop).
-
-  *What a detected island **is** stays the subject; what it is **for** is not. The size and gameplay-role
-  classifiers were deleted with the routes that surfaced them (`RP18`), and the under-split read went with
-  them — the author's call, and the reason is that a better decomposition is worth having and a label over a
-  bad one is not.*
-
-- [ ] **G12 — Re-prune flying blobs above terrain (stair-aware regression).** Stair-aware connectivity fixed
-  the over-split (disconnected islands) but **re-introduced** the stark-y-jump / flying-island problem:
-  decorative masses floating above the map (dragons/birds) now merge back into the islands when a near-vertical
-  surface chain bridges them (e.g. **Duality**, **mame_i_shrunk_the_pvpers**). Re-add a guard: stop joining
-  across a **really big y-increase**, and/or identify & **prune blobs whose base sits well above the terrain
-  band** (the old float-prune did this on `DetectHeightAware`; the stair surfaces now leak past it).
-  **`max_build_height`** is a natural cut/prune ceiling — anything whose mass is above it is non-playable
-  decor. Re-validate the over-split fixes (a_new_day/thunder) still hold after re-adding the ceiling.
 
 - [~] **B58 — Finish the destroyable ranker.** The core half has shipped — gathered at ingest, stored in
   `core_candidate`, and confirmed in the Cores phase (`FEATURES.md`). What remains is the other objective,
@@ -733,45 +679,6 @@ refusing to re-export it is the studio overreaching. Include resolution sits her
   stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
   clusters to 439,440, because a CTW map is made of wool.
 
-- [ ] **B24e — Flag an *imported* map whose objective region holds none of its material** A warning, not a
-  gate. Scoped down: the authored half of this is **already covered by tests** — `DestroyableWorldTests`
-  and `CoreWorldTests` walk each emitted region with PGM's `[min, max)` and count the blocks, which is
-  exactly the assertion this task was filed to add. For a generated map the region *is* the stamper's box
-  (OB8), so a runtime gate would re-check something true by construction. **What has no cover is the import
-  side**: the corpus sweep found **10 destroyables whose region contains none of its declared material**.
-  Those are the author's own maps, already broken before we touched them — so this is a **diagnostic on
-  import**, not a block on re-export. Blocking someone's export over a pre-existing dud is the studio
-  overreaching; telling them is the value.
-  Never "the region is full": by OB12 a region is legitimately mostly air (a 3×3×3 region holding a 1×3×1
-  pillar is correct and common), so anything stricter flags most of the corpus.
-  **Note the category difference** before extending `MapValidity`: its one existing rule (a wool needs a
-  monument) is *"PGM refuses to load this map"* — an `InvalidXMLException`, so the map is unloadable. This
-  one is *"PGM loads it fine and the goal has zero health"*, which PGM itself only logs a warning for. Two
-  different severities of truth; do not blur them into one list without saying which is which. World access
-  is **not** the blocker it was originally filed as — 14 test files already read blocks out of a built
-  world. (OB3, OB11, OB12)
-
-- [ ] **B55 — Decide which API paths read a map *as played*, then wire `Includes:Root`.** `IncludeLibrary`
-  and the resolved parse are in and gated by tests (`FEATURES.md`), and the harness uses them
-  (`--resolve-includes`, `--water-lanes --includes-dir`). The API does not, because which reading each
-  endpoint wants is a real question and the wrong answer corrupts data: **a resolved document must never be
-  written back** (the include references are still emitted, so the fragments' content would be applied
-  twice). Safe by construction today — nothing in the API passes a library — and the work is to choose per
-  path rather than flip a global. Rule-level analysis (region categorisation, filter wiring, apply-rule
-  order) wants resolved; anything that saves, exports or re-emits a document wants written; geometry
-  (islands, layout, the seed corpus) does not care, since maps declare their own regions. Add
-  `Includes:Root` beside `MapsRoots` in `Program.cs`, thread it only to the chosen paths, and make the
-  distinction unmissable at the call site. (`docs/pgm/include-resolution.md` §2)
-
-- [ ] **B56 — Parse `<score>` and `<flags>` so an include-supplied objective is actually read.** Include
-  resolution landed (`FEATURES.md`) and measured its own limit: **82 corpus maps take their objective from a
-  fragment** (`bridge`, `touchdown`, `ffb`, `flag-battles`, `5cp`), and resolving them changes nothing about
-  what the studio reports, because `<score>` (TDM) and `<flags>` (CTF) have no parser here. Splicing is not
-  what closes that; a parser is. Until one exists those maps read as objective-less — which the
-  supported-range gate deliberately tolerates, since a module arriving from a fragment round-trips through the
-  include reference and cannot be silently lost. Add each tag to `ParsedObjectiveModules` as its parser lands.
-  (`docs/pgm/include-resolution.md` §4)
-
 ## The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,
@@ -780,21 +687,6 @@ each side's frontline share, the straits between bridged islands — and the lin
 seams support and nothing asks for, the word the model uses for a seam — and the rules that are about a
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
-
-- [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
-  `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
-  stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —
-  `FrontEdges`, `IntraEdges`, `SelfEdges` and `RedstoneEdges` are all `List<(X1,Z1,X2,Z2)>` of
-  **cell-boundary segments**, not edges, and the deriver's own comments already call the grouped result
-  a *run* (`GroupFrontlineRuns` → `FrontlineRuns`). So the code contradicts itself in one file: the raw
-  list is named for a full extent, the grouped one for what it actually is. Rename the four to
-  `FrontSegments` / `IntraSegments` / `SelfSegments` / `RedstoneSegments` (or `…BoundarySegments`), and
-  sweep the comments that call a segment an edge. Mechanical — the type is a tuple list with a handful
-  of consumers (`BoardDeriver`, the deriver gallery, the evaluator terms reading front edges) — but it
-  has to land in one commit with the doc, or `model.md` will assert a rule the code visibly breaks.
-  Check `BoxEdgeInterface`/`EdgeSpan`/`EdgeInterval` in the same pass: those name a genuine full edge
-  and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
-  is worth removing rather than tolerating.
 
 - [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
   rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that
@@ -811,77 +703,6 @@ and what a `subtract` takes away.
   *`opus5-coldharbour-v2-authoring.md` §6: an organic pass bowed a wool lane's coasts past both ends of its
   wall, players could walk round it, every call answered 200, and the only symptom was traversability moving
   from 2 isolated markers to **0** — the direction that reads as an improvement.*
-
-- [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
-  placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
-  that; it does not run the generator (author). Reach rather than capability, and upstream of `PL13`: a dock
-  seated against the hub has a face to wall that is not its own door, so getting the attachment right removes
-  the wall fault as a side effect.
-
-  *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
-  dock's south edge sits flush on the build region's northern line at `z −20`.*
-
-## Trees: what a species means, and what a grown one is made of
-
-The template trees select a material and a profile together; a grown tree is a recursive skeleton whose shape
-is the author's. Three of these are the same defect measured on different subjects — **wood against leaf**,
-counted rather than eyeballed — and two are the material a species is supposed to pick.
-
-- [ ] **B96 — Density wants measuring as canopy share, not as a leaf count.** The leaf count is the only
-  honest measure of *whether a forest was planted* — nothing but a tree lays a leaf, and a building's corner
-  posts are logs — but it is a poor measure of **how wooded a board reads**, and two measurements on one board
-  size prove it: a spruce forest at 17,600 leaves over many sites rendered as one solid mass with the routes
-  buried, while `thornwake` at 17,897 leaves over 72 trees renders as a wood a player walks through. Nearly
-  the same count, opposite maps, because the leaves are divided among a tenth as many trees. The number that
-  would decide it is the share of ground columns standing under a leaf, which is a cheap read over the same
-  voxels the census already walks, and it is scale-free in a way a raw count is not — a 120×240 board and a
-  240×240 board do not want the same leaf count to read the same. Report it beside the leaf count and give the
-  README a band in those terms; the two numbers disagreeing is itself informative, since a high count at a low
-  share is a few enormous trees and a low count at a high share is scrub.
-
-  *the author's side of the same gap: `opus5-elderwold` was briefed "as dense as you can make it without
-  throwing any warnings", and with no measure of how wooded a board reads the density was tuned by looking
-  at renders and counting declines.*
-
-- [ ] **B154 — `species: "dark_oak"` must build a dark oak tree.** The species selects the right template and
-  the wrong material. Filed as measured rather than diagnosed — `docs/world-export/tree-corpus.md` was not read
-  and it may be intended. Cheap to settle.
-
-  *`opus5-run2` §5 #9 · `basalt-reach` at `(−60, 12)` reads `17:12` log and `18:4` leaves under a nine-block
-  trunk and a broad crown.*
-
-- [ ] **B174 — Reopen `G173`/`MG28`: the whorled tree is four parts wood to one part leaf.** Over one board,
-  one species, one build:
-
-  | form | trees | logs | leaves | leaves per log |
-  |---|---|---|---|---|
-  | `grown` + `whorled` | 5 | 228 | 287 | **1.26** |
-  | template spruce | 3 | 42 | 222 | 5.29 |
-
-  Forty-six logs per whorled tree against fourteen per template one. `MG28` closed the trunks-with-no-crown
-  report as "does not reproduce" because "whorled lands 1136 leaves" — but an absolute leaf count cannot
-  distinguish a leafy tree from a wooden one, which is `B96`'s fault recurring on a different subject. **Neither
-  closes again on a leaf count.**
-
-  *author, 2026-08-14 · block census over both groves in `maps/tallow-mirefast/region`.*
-
-- [ ] **G173 — the conifer's bulk sits at mid-height, not in the bottom third.** The whorled tree now rings
-  its whole trunk (three to five branches per ring, 5.2 courses apart, each ring shorter than the last, none
-  forking, a spire at the apex) and clears the first of the two measures the corpus separates families on:
-  **63% of its foliage in the lower half against the staggered form's 49%**, inside the hand-built conifers'
-  60–77%. The second is still out: its **widest tenth is #4.4** where a hand-built conifer's is #1–#3. The
-  ring-length taper and the apex are already spent; what is left to try is the ring *spacing* (a hand-built
-  conifer's tiers are evenly spaced but its lowest tiers are much the longest, which a linear taper across a
-  short axis cannot express) and the leaf cluster's own size per ring. `tools/tree-corpus/crown-profile.cs`
-  measures the corpus side.
-
-- [ ] **G176 — a grown tree still carries twice an author's wood at mid heights.** The corpus is nearly flat
-  in height — 23 blocks of wood at 5–9 courses, 36 at 10–13, then 51, 53, 53 to 40 — and the grower now runs
-  13, 19, 47, 82, 113, 173, 221, 322 over heights 6 to 40. The trunk radius and the lateral count no longer
-  scale steeply, so what remains is limb *count*: an author's median tree carries three limbs off its stem
-  where a 20-course generated one carries thirteen. Cutting them further trades against crown coverage, since
-  each tip is a cluster, so the honest next step is to let a cluster cover more than one tip rather than to
-  starve the crown. `tools/tree-corpus/grower-gate.cs --by-height` against `census.cs` is the reading.
 
 ## Distance, and the walk every measure is taken with
 
@@ -1122,8 +943,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   re-invented wherever one is wanted. Adopt the control at those sites; `docs/client/ui-conventions.md`'s
   *Forms* tier already names it.
 
-## Tests
-
 - [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
   Compile on a freshly-opened plan and reads the drawer; when the plan document has not reached the client
   yet it compiles an empty plan, which is a 422 by design, so the drawer never opens and the following
@@ -1150,99 +969,20 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   `smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
   time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
 
-- [ ] **RP63 — The e2e sweep cannot pass where the container has no egress, and the decision is the
-  author's.** `./tools/e2e.sh all` ends `e2e: FAIL` on one check — smoke's *edit tool is clean*, from
-  `HTTP 404: /api/minecraft/player?name=Notch`. The endpoint resolves a username through Mojang, and
-  `curl -m 10 https://api.mojang.com/...` answers nothing at all in the cloud container, so the 404 is the
-  studio being honest about a host it cannot reach. `ALLOWED_FAULTS` in `tests/e2e/lib/harness.mjs` holds one
-  entry, for a fetch the sweep itself cancelled, and deliberately refuses to wave through a 4xx — which is
-  what makes this a decision rather than a bug: either the allowlist gains a **route-scoped** entry (a 404
-  from `/api/minecraft/player` only, so every other endpoint's 404 still fails), or the smoke check stops
-  naming a player the gate cannot assume a route to. Nothing else on the page wants the network: the author
-  rows draw their own marks and an unanswered name is stored as a pseudonym (`C45`, `TC2`). Evidence: 269
-  checks pass and this one fails, on a branch touching nothing in `Api/Endpoints/MinecraftEndpoints.cs` or
-  `Components/Forms/AuthorsEditor.razor`. `docs/cloud-setup.md` states the symptom.
-
-## Future
-
-- [ ] **B21 — MCP server: agent-drivable map authoring over the plan layer.** A thin MCP head (official
-  C# SDK, `ModelContextProtocol` NuGet; new `PgmStudio.Mcp` project or a proxy over the running `:7894`
-  API) so an AI agent can build a map end-to-end. The plan layer is the agent surface — `plan.json` is
-  small, semantic, and the validator/evaluator return rule-id findings, giving the agent a compiler-style
-  submit→lint→fix loop. **The gate this waited on is open: G119, G117 and G125 have all landed** (with
-  G126's typed boxes), so the MCP head now wraps endpoints that exist rather than duplicating their
-  plumbing. Of the three genuinely-new pieces, **`emit_family` is half-built**: G144's
-  `GET /api/shapes/probe` already emits a canonical family through `BoxFiller` — profile check and
-  docking gate included — and answers with the shape or a directed `FillRejection`, and
-  `/api/shapes/probe/schema` serves the per-family knob surface and minimum box in the dock frame, which
-  is the payload a tool-description needs to constrain its parameter enum. What is left of it is the
-  *stamp*: placing the emission into an existing plan's typed box instead of returning a standalone
-  `symmetry:none` plan. So the remaining new work is the PNG path for `plan_render`, that stamp, and the
-  resource curation. Tools: `compose` (the G117 endpoint —
-  request in; plan + canonical descriptor + derived facts + score out; starting material to mutate) ·
-  `plan_validate` (errors + rule lint + full evaluator readout — the response must flag empty
-  `placements`, which leave the feel terms vacuously green) · **`plan_feasibility`** (the G125
-  read-back: mask → derived params → emit-compare, directed verdicts citing rule/task ids — the oracle
-  that makes the loop converge; the validator alone passes plans the composer cannot produce, proven by
-  the funnel exemplars scoring 0) · **`emit_family`** (stamp a canonical shape through the real emitters
-  into a typed G126 box — agents never hand-cut rectangles) · `plan_render` (image content — agents
-  self-correct far better seeing the board) · `plan_save`/`plan_get`/`plan_list` (the G119 store, with
-  an agent-authored origin marking so agent output never contaminates the human-labeled corpus) ·
-  `create_draft`/`export` (existing chain; return the export **link**, never the world zip inline). MCP
-  resources: `generator/rules.md` + `generator/model.md` as the design brief, **`GET /api/shapes/catalog`
-  as the machine-readable half of that brief** (G144 — the same vocabulary computed from the emitters, so
-  unlike the prose it cannot drift, and each entry carries the tier that says whether the composer really
-  produces it), `tools/seeds/*.plan.json` (incl. the funnel exemplars) as few-shot examples, and the G118
-  verdict JSONL once it exists. **G146 blocks this, as correctness rather than tidiness**: the design
-  brief describes Z as a production family and no sampler draws one, so an agent that reads the prose and
-  asks for a Z authors a plan `plan_feasibility` then rejects — a loop that cannot converge, caused by a
-  doc/code disagreement the catalog's tiering made visible. Either land G146 first or restrict
-  `emit_family` to the catalog's in-mix tier. The same reasoning applies to the verdict JSONL: few-shot
-  examples inherit whatever the sampler over-produces (measured at G144: the donut is 73 of 89 wool
-  cards, U/H/L one apiece), so an unstratified corpus teaches an agent to write donuts. Scope
-  is the **author agent** only; the **analyst agent** (mine verdicts/reject logs for rule + envelope
-  refinements — read-only `verdicts_export`/`rejects_query`) is a small follow-on once the corpus has
-  data, not before.
-
-  **What the API audit settled about the head's shape (`B214`).** Four rulings, all of them about the
-  boundary rather than about the tools:
-
-  **The loop's stop condition is a rule id, and it now exists.** A submit→lint→fix loop only converges if
-  every failure is a finding — until `B214` nine endpoints answered a raw .NET stack trace and one returned
-  MariaDB's own error, which an agent can neither cite nor act on. The split the head reads is `RQ1` versus
-  `RQ2`: `RQ1` means the document is wrong, so fix and resubmit; `RQ2` means the studio broke, so **stop**,
-  because no amount of editing the plan will clear it. An agent that cannot tell those apart spends its whole
-  budget re-authoring against a server defect.
-
-  **No MCP parameter is ever a stringified document.** The HTTP surface has three body conventions —
-  twenty-five endpoints take a document unwrapped, and the rest take a record, some of which carry the
-  document as a *string* in a field (`{name, kind, params}`, `{name, themeJson}`). That last shape is the one
-  MCP makes strictly worse: a `string` parameter carries no schema, so the client validates nothing and the
-  agent double-encodes for no gain. **The head is where that encoding is absorbed** — a tool takes a typed
-  `plan` object and stringifies it on the way to `:7894` — which is also why the wire itself does not need
-  changing for this task's sake.
-
-  **The head exposes the document model only.** Where the library keeps a second model of the same thing —
-  `RoomStyleSaveRequest` has 26 fields against `HouseStyle`'s 46 and shares 11 names — the composed form
-  stays behind the head. That is safe rather than merely tidy: a map binds its room styles as a **snapshot**
-  rather than a library id, so an author agent never needs the library at all. The tool list above already
-  reflects this by carrying no library tools; this is the reason it is right.
-
-  **Tool schemas are generated from the request records**, never hand-written, for the reason
-  `GET /api/shapes/catalog` is preferred over the prose brief beside it: a hand-written schema is prose in
-  another notation and drifts from the endpoint the same way.
-
-  **And the plan layer is the agent surface for a measurable reason.** A `plan.json` is 1 500–6 000 bytes and
-  an `intent.json` about 4 000; a `layout.json` is **20 000–30 000**, five to twenty times the plan and almost
-  all of it geometry — polygons, Bézier controls, per-vertex heights — that an agent has no business hand
-  editing. So the sketch is exposed as **operations** (`from-plan`, `finish`) and never as a document
-  parameter.
-
-  **One caveat above was not this task's, and is now closed.** `plan_validate` having to flag empty
-  `placements` "which leave the feel terms vacuously green" was `B140` — a document passing every check by
-  being asked nothing — and it is fixed where it lived rather than worked around in the head: `/plan/evaluate`
-  and `/plan/feasibility` both answer `PL1` to a plan with no pieces, in the same sentence `compile` gives.
-  The head needs no empty-placements check of its own.
+- [ ] **G143 — the board deriver calls segments "edges", which is the one word the model reserves.**
+  `model.md` fixes the vocabulary: an **edge** is one full side end to end, a **run** is a contiguous
+  stretch along a boundary, an **interval** is where two things touch. `BoardStructure` breaks it —
+  `FrontEdges`, `IntraEdges`, `SelfEdges` and `RedstoneEdges` are all `List<(X1,Z1,X2,Z2)>` of
+  **cell-boundary segments**, not edges, and the deriver's own comments already call the grouped result
+  a *run* (`GroupFrontlineRuns` → `FrontlineRuns`). So the code contradicts itself in one file: the raw
+  list is named for a full extent, the grouped one for what it actually is. Rename the four to
+  `FrontSegments` / `IntraSegments` / `SelfSegments` / `RedstoneSegments` (or `…BoundarySegments`), and
+  sweep the comments that call a segment an edge. Mechanical — the type is a tuple list with a handful
+  of consumers (`BoardDeriver`, the deriver gallery, the evaluator terms reading front edges) — but it
+  has to land in one commit with the doc, or `model.md` will assert a rule the code visibly breaks.
+  Check `BoxEdgeInterface`/`EdgeSpan`/`EdgeInterval` in the same pass: those name a genuine full edge
+  and its sub-intervals, so they are correct and should stay, which is exactly why the deriver's misuse
+  is worth removing rather than tolerating.
 
 ## The remainder: work no concept above has claimed
 
