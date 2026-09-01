@@ -208,7 +208,15 @@ surface — stored:
 
 **What the schema carries on `layered` beyond the stack itself is three optional fields** — `axis`, `beyond`
 and, for the height axis, `from` on the stack. A theme naming no axis reads `depth` with no `beyond`, which is
-what a layered material always meant. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
+what a layered material always meant.
+
+**The editor writes this shape and no other.** A layered material's form offers the axis, the stack's ending,
+the `beyond` slot and — on the height axis — `from`; the band list is reached at `stack/bands`, which is why
+`MaterialTree` names a list by a path rather than by a field, `bands` alone naming two lists that measure
+different things. The offered words are `BandAxes` and `BandEndings` in `PgmStudio.Vocabulary`, because the
+client cannot see the enums, and a test pins each set against the enum it spells. A **stored** theme carrying
+the older flat `layers` list is still read forward, and reading it forward is why it could not author a ring:
+every such list owned its whole space, so it ends `repeat`. `ending` is now written as `"repeat"`/`"handOver"` rather than 0/1, the way `rimEdges` and `axis` are:
 it had never been read by a person before, because nothing authored a stack that ends.
 
 `tools/library-map.cs` puts two plots on the catalogue map from this — a disc and a cross — so the reading can
@@ -342,9 +350,7 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
 
    **What reads the inset is `LayeredMaterial` under `BandAxis.Inward`**, described in full under *A band
    stack and its axis* above: a theme that names no axis resolves exactly as it did before the axis existed,
-   and one that names `inward` reads its bands as rings. What is still missing is the *editor* — a rim stated
-   as a sequence of bands rather than one material of width N is expressible in the theme JSON and not yet in
-   the Theme phase (`B200`).
+   and one that names `inward` reads its bands as rings.
 
 2. **Theme resolution — the scope layer.** A `Theme` is a data row: the bedrock mode, the `rimEdges` and
    wall-face knobs, plus a `TopBand` per top bucket (its material, depth and toggle) and a material for the wall and

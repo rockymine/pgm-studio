@@ -54,6 +54,51 @@ public partial class MaterialEditor
 
     private JsonObject Neutral => JsonEdit.Child(Node, ThemeFields.Neutral, () => ThemeFields.Solid(159, 8));
 
+    // ── the band stack ─────────────────────────────────────────────────────────────────────────────
+    /// <summary>The stack's own node — its bands and what it does where they run out. The bands are reached
+    /// through <see cref="ThemeFields.StackBands"/> rather than from here, so one list helper serves both a
+    /// stack's bands and a voronoi's.</summary>
+    private JsonObject Stack => JsonEdit.Child(Node, ThemeFields.Stack, () => ThemeFields.NewStack());
+
+    /// <summary>Which distance the bands are read along. The material's, because the stack states its bands
+    /// and where they end and deliberately not the distance they are measured over.</summary>
+    private string Axis => BandAxes.Canonical(JsonEdit.Text(Node, ThemeFields.Axis, BandAxes.Depth));
+
+    private string Ending => BandEndings.Canonical(JsonEdit.Text(Stack, ThemeFields.Ending, BandEndings.Repeat));
+
+    private JsonObject Beyond => JsonEdit.Child(Node, ThemeFields.Beyond, () => ThemeFields.Solid(2, 0));
+
+    /// <summary>Whether anything the author states could ever show. Under <c>handOver</c> the stack leaves
+    /// everything past its last band; on the inward axis it also answers off the footprint, where there is no
+    /// ring to be in. A depth stack that repeats claims every block it is asked about, so the slot would be a
+    /// control for something nothing can see.</summary>
+    private bool ShowsBeyond => Ending == BandEndings.HandOver || Axis == BandAxes.Inward;
+
+    private Task SetAxis(string axis)
+    {
+        JsonEdit.Set(Node, ThemeFields.Axis, BandAxes.Canonical(axis));
+        return Changed();
+    }
+
+    private Task SetFrom(ChangeEventArgs e)
+    {
+        JsonEdit.Set(Node, ThemeFields.From, Parse(e, 0));
+        return Changed();
+    }
+
+    private Task ToggleEnding()
+    {
+        JsonEdit.Set(Stack, ThemeFields.Ending,
+            Ending == BandEndings.HandOver ? BandEndings.Repeat : BandEndings.HandOver);
+        return Changed();
+    }
+
+    private Task ToggleBeyond()
+    {
+        JsonEdit.Toggle(Node, ThemeFields.Beyond, () => ThemeFields.Solid(2, 0));
+        return Changed();
+    }
+
     /// <summary>A checkerboard's two squares. They default apart rather than both to stone, since a board of
     /// one material is not a board and an author would have to change one before seeing anything.</summary>
     private JsonObject Even => JsonEdit.Child(Node, ThemeFields.Even, () => ThemeFields.Solid(1, 0));
@@ -86,7 +131,7 @@ public partial class MaterialEditor
 
     /// <summary>What one entry of a list is called, by where it sits.</summary>
     private string EntryLabel(string field, int index)
-        => MaterialTree.EntryLabel(field, index, JsonEdit.Array(Node, field).Count);
+        => MaterialTree.EntryLabel(field, index, JsonEdit.ArrayAt(Node, field).Count);
 
     /// <summary>One entry of a material's child list, with everything the markup binds to. A pattern's entry
     /// is a bare material; a layer or a stripe wraps one with the extent it claims, which is what
@@ -97,7 +142,7 @@ public partial class MaterialEditor
 
     private IEnumerable<Entry> List(string field)
     {
-        var array = JsonEdit.Array(Node, field);
+        var array = JsonEdit.ArrayAt(Node, field);
         var extentField = MaterialTree.ExtentOf(field);
         for (var i = 0; i < array.Count; i++)
         {
@@ -209,7 +254,7 @@ public partial class MaterialEditor
 
     private Task Add(string field)
     {
-        JsonEdit.Array(Node, field).Add(ThemeFields.NewEntry(field));
+        JsonEdit.ArrayAt(Node, field).Add(ThemeFields.NewEntry(field));
         return Changed();
     }
 
@@ -251,7 +296,7 @@ public partial class MaterialEditor
     {
         var family = Families.FirstOrDefault(group => group.Key == name);
         if (family is null) return Task.CompletedTask;
-        var array = JsonEdit.Array(Node, field);
+        var array = JsonEdit.ArrayAt(Node, field);
         array.Clear();
         foreach (var block in family)
             array.Add(ThemeFields.Entry(field, ThemeFields.Solid(block.Id, block.Data)));
@@ -260,7 +305,7 @@ public partial class MaterialEditor
 
     private Task Remove(string field, int index)
     {
-        var array = JsonEdit.Array(Node, field);
+        var array = JsonEdit.ArrayAt(Node, field);
         // A pattern with nothing left resolves to bare stone, so the last entry stays put.
         if (index >= 0 && index < array.Count && array.Count > 1) array.RemoveAt(index);
         return Changed();

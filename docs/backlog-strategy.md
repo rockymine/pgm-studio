@@ -219,9 +219,12 @@ preamble of its own, which is the shape a cause should reach before it is worked
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
 server-side reaches no editor, why three room-style fields have no control, and why a band stack is
-authorable only over HTTP. `B261` · `B200` · `WE54` · `C51`. `B260` was this cause and has landed: the six
-room-style fields the editor could not reach are controls now, and the load that wrote them away goes through
-the one mapping that states them all.
+authorable only over HTTP. `B261` · `WE54` · `C51`. Two of it have landed. `B260`: the six room-style fields
+the editor could not reach are controls now, and the load that wrote them away goes through the one mapping
+that states them all. `B200`: the Theme phase's layered form wrote a shape the reader had to carry forward,
+and carrying it forward is what pinned every stack to `repeat` — it writes the wire shape now, so a ring stack
+is authorable. Both were the same fault in different clothes: the client holding its own account of a shape the
+server publishes.
 
 **`PlanCompiler` fuses by surface height and drops every identity in the plan.** One `GroupBy(p => p.Surface)`
 followed by a rectilinear union produces `s0`, `s1`, `s2` — so a piece name cannot address anything
@@ -310,7 +313,7 @@ ambiguity at their edges.
 **Blocked decisions** are the twelve questions above, plus `S47` and `WS1`, which wait on material rather than
 on a ruling. Each has a definite end and none of it is work until the answer arrives.
 
-**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B200`, `B263`, `B264`,
+**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B263`, `B264`,
 `WE54`, `N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Three more — `B107`, `S25b`, `B145` — were
 this population until the building's one model turned them from three reaches into one, and they are on
 `TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a

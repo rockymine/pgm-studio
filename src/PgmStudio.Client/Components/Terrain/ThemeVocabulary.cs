@@ -19,7 +19,23 @@ public static class ThemeFields
     public const string Data = "data";
     public const string BlockId = "blockId";
     public const string Neutral = "neutral";
-    public const string Layers = "layers";
+    /// <summary>A layered material's own <c>BandStack</c>: the bands under a name of their own, plus what the
+    /// stack does where they run out. The bands do not sit on the material, because where they end is the
+    /// stack's statement and along which distance they are read is the material's.</summary>
+    public const string Stack = "stack";
+    /// <summary>Which distance a stack is read along — <c>depth</c>, <c>inward</c> or <c>height</c>.</summary>
+    public const string Axis = "axis";
+    /// <summary>What shows where a stack claims nothing: past its last band under <c>handOver</c>, and off the
+    /// footprint entirely on the inward axis. Absent is stone.</summary>
+    public const string Beyond = "beyond";
+    /// <summary>What a stack answers past its last band — <c>repeat</c> or <c>handOver</c>.</summary>
+    public const string Ending = "ending";
+    /// <summary>The world Y a height stack's first band sits at. Read on no other axis.</summary>
+    public const string From = "from";
+    /// <summary>The path from a layered material to its bands. A path rather than a field because the list is
+    /// one level down, and <c>bands</c> alone names two lists — a voronoi's, measured in depth, and a stack's,
+    /// measured in thickness.</summary>
+    public const string StackBands = "stack/bands";
     public const string Material = "material";
     public const string Thickness = "thickness";
     public const string Palette = "palette";
@@ -80,7 +96,10 @@ public static class ThemeFields
         MaterialKind.Layered => new JsonObject
         {
             [Kind] = MaterialKind.Layered,
-            [Layers] = new JsonArray(Layer(Solid(2), 1), Layer(Solid(3), 2)),
+            // Grass over two dirt, read down the column and repeating past the bottom — what a layered
+            // material always meant, and the reading a bucket's whole space wants.
+            [Axis] = BandAxes.Depth,
+            [Stack] = NewStack(Layer(Solid(2), 1), Layer(Solid(3), 2)),
         },
         MaterialKind.TeamTint => new JsonObject
         {
@@ -159,7 +178,7 @@ public static class ThemeFields
     /// each one reaches.</summary>
     public static JsonNode Entry(string field, JsonObject material) => field switch
     {
-        Layers => Layer(material, 1),
+        StackBands => Layer(material, 1),
         Runs => Stripe(material, 2),
         Bands => Band(material, 1),
         _ => material,
@@ -181,6 +200,10 @@ public static class ThemeFields
     /// <summary>A solid-block material node — the leaf every other kind bottoms out in.</summary>
     public static JsonObject Solid(int id, int data = 0)
         => new() { [Kind] = MaterialKind.Solid, [Id] = id, [Data] = data };
+
+    /// <summary>A stack of the given bands, claiming everything past the last of them.</summary>
+    public static JsonObject NewStack(params JsonNode[] bands) =>
+        new() { [Ending] = BandEndings.Repeat, [ThemeFields.Bands] = new JsonArray(bands) };
 
     private static JsonObject Layer(JsonNode material, int thickness) => new() { [Material] = material, [Thickness] = thickness };
     private static JsonObject Stripe(JsonNode material, int width) => new() { [Material] = material, [Width] = width };
@@ -321,6 +344,18 @@ public static class JsonEdit
 
     /// <summary>An array element as an object — the shape every entry in these lists has.</summary>
     public static JsonObject AsObject(JsonNode? entry) => entry as JsonObject ?? [];
+
+    /// <summary>The array a slash-separated path names, creating each step that is missing — so
+    /// <c>stack/bands</c> reaches a layered material's bands the same way <c>bands</c> reaches a voronoi's,
+    /// and a caller never has to know which of the two it is holding.</summary>
+    public static JsonArray ArrayAt(JsonObject? node, string path)
+    {
+        if (node is null) return [];
+        var steps = path.Split('/');
+        var owner = node;
+        for (var i = 0; i < steps.Length - 1; i++) owner = Child(owner, steps[i], () => []);
+        return Array(owner, steps[^1]);
+    }
 }
 
 /// <summary>
@@ -439,7 +474,7 @@ public static class MaterialTree
     /// the entries are bare materials.</summary>
     public static (string Field, string? Extent)? ListOf(string kind) => kind switch
     {
-        MaterialKind.Layered => (ThemeFields.Layers, ThemeFields.Thickness),
+        MaterialKind.Layered => (ThemeFields.StackBands, ThemeFields.Thickness),
         MaterialKind.Voronoi => (ThemeFields.Bands, ThemeFields.Depth),
         MaterialKind.WallRun or MaterialKind.WallDiagonal => (ThemeFields.Runs, ThemeFields.Width),
         MaterialKind.Cell => (ThemeFields.Palette, null),
@@ -450,7 +485,7 @@ public static class MaterialTree
     /// <summary>The extent a list's entries claim, by the field they sit in; null for a bare list.</summary>
     public static string? ExtentOf(string field) => field switch
     {
-        ThemeFields.Layers => ThemeFields.Thickness,
+        ThemeFields.StackBands => ThemeFields.Thickness,
         ThemeFields.Runs => ThemeFields.Width,
         ThemeFields.Bands => ThemeFields.Depth,
         _ => null,
@@ -472,7 +507,7 @@ public static class MaterialTree
         ThemeFields.Bands when index == 0 => "Grid line",
         ThemeFields.Bands when index == count - 1 => "Middle",
         ThemeFields.Bands => $"Band {index}",
-        ThemeFields.Layers => $"Layer {index + 1}",
+        ThemeFields.StackBands => $"Band {index + 1}",
         ThemeFields.Runs => $"Stripe {index + 1}",
         ThemeFields.Stops => $"Stop {index + 1}",
         _ => $"Patch {index + 1}",
@@ -500,7 +535,7 @@ public static class MaterialTree
         }
 
         if (ListOf(kind) is not { } list) yield break;
-        var array = JsonEdit.Array(node, list.Field);
+        var array = JsonEdit.ArrayAt(node, list.Field);
         for (var i = 0; i < array.Count; i++)
         {
             if (array[i] is not JsonNode entry) continue;

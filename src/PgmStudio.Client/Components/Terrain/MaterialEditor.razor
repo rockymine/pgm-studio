@@ -60,8 +60,18 @@
           break;
 
         case MaterialKind.Layered:
-          <p>A stack claimed downward from the top of the band — grass over two dirt. The last layer repeats
-            past the bottom of the stack, so a deeper band never falls through.</p>
+          <p>Bands along a distance, each claiming a stated thickness. <strong>Read along</strong> is which
+            distance: <em>down the column</em> from the top of the bucket — grass over two dirt; <em>in from
+            the edge</em>, so the bands run as rings round the shape — a cobble rim, two rings of stone brick,
+            then a field; or <em>up from a world height</em>, which pins them to the world rather than to the
+            column.</p>
+          <p><strong>Past the last band</strong> is independent of the axis. A stack that owns its whole space
+            repeats its last band, so a deeper bucket never falls through. A stack that is a band <em>inside</em>
+            a larger space hands over instead, and what shows there is stone unless stated — which is what a
+            rim two rings in and then the ground needs.</p>
+          <p>The axes compose: a <em>down the column</em> stack whose first band is one course thick and is
+            itself an <em>in from the edge</em> stack rings the top course and leaves the courses under it
+            alone.</p>
           break;
 
         case MaterialKind.Voronoi:
@@ -149,17 +159,46 @@
         break;
 
       case MaterialKind.Layered:
-        @foreach (var layer in List(ThemeFields.Layers))
+        <div class="material-editor-scalars">
+          <Field Label="Read along">
+            <Select Options="@Select.Words(BandAxes.All, BandAxes.Describe)" Value="@Axis" ValueChanged="SetAxis" />
+          </Field>
+          @if (Axis == BandAxes.Height)
+          {
+            <Field Label="From y">
+              <input class="field-input field-input--slim" type="number" step="1"
+                     title="The world height the first band sits at."
+                     value="@Int(ThemeFields.From, 0)" @onchange="SetFrom" />
+            </Field>
+          }
+        </div>
+        @foreach (var layer in List(ThemeFields.StackBands))
         {
-          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.Layers, layer.Index)" Blocks="Blocks" Styles="Styles" @key="layer.Node"
+          <MaterialEditor Nested Flat="Flat" Label="@EntryLabel(ThemeFields.StackBands, layer.Index)" Blocks="Blocks" Styles="Styles" @key="layer.Node"
                           Node="@layer.Material" OnChanged="Changed" OnRemove="@layer.Remove">
             <HeadExtra>
-              <CoordField Prefix="Courses" Type="number" Value="@layer.Extent" OnChange="@layer.SetExtent"
-                          min="1" step="1" title="How many courses this layer claims" />
+              <CoordField Prefix="@BandAxes.Extent(Axis)" Type="number" Value="@layer.Extent" OnChange="@layer.SetExtent"
+                          min="1" step="1" title="@($"How many {BandAxes.Extent(Axis).ToLowerInvariant()} this band claims")" />
             </HeadExtra>
           </MaterialEditor>
         }
-        @ListFoot(ThemeFields.Layers, "Add layer")
+        @ListFoot(ThemeFields.StackBands, "Add band")
+        <Field Label="Past the last band">
+          <Chip Active="@(Ending == BandEndings.HandOver)" OnClick="ToggleEnding">@BandEndings.Describe(Ending)</Chip>
+        </Field>
+        @if (ShowsBeyond)
+        {
+          <Field Label="What shows there">
+            <Chip Active="@JsonEdit.Has(Node, ThemeFields.Beyond)" OnClick="ToggleBeyond">
+              @(JsonEdit.Has(Node, ThemeFields.Beyond) ? "A stated material" : "Stone")
+            </Chip>
+          </Field>
+          @if (JsonEdit.Has(Node, ThemeFields.Beyond))
+          {
+            <MaterialEditor Nested Flat="Flat" Label="Beyond the stack" Blocks="Blocks" Styles="Styles"
+                            Node="Beyond" OnChanged="Changed" OnRemove="ToggleBeyond" />
+          }
+        }
         break;
 
       case MaterialKind.Voronoi:

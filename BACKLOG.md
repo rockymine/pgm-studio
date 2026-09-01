@@ -404,19 +404,9 @@ below are what that would cost. Each names the question that has to be answered 
   answers every material kind and field, typed, as the painter's deserializer takes them — and the client
   never calls it, keeping 422 hand-maintained lines in `Components/Terrain/ThemeVocabulary.cs` instead. A
   kind or field added server-side reaches no editor until someone edits that file. Drive the editor from the
-  route; `B200`'s band stack is the first thing that stops being a special case. It also settles the picker
+  route; the band stack's axis, ending and `beyond` are the shape it would have to publish first. It also settles the picker
   that offers `laidLog` and silently replaces the material with a stone `solid` when it is chosen — a kind
   the client cannot build stops being offerable.
-
-- [ ] **B200 — Let the Theme phase author an inward band stack.** The JSON accepts one and the painter draws
-  it, so the only way to author a ring stack today is to edit the document by hand — the same reach fault
-  the sketch's height controls have. `Components/Terrain/MaterialEditor.razor`'s `Layered` case
-  offers a list of layers and one number per layer captioned *Courses*: no axis control, no `beyond` slot, no
-  ending control, and its help text still states the depth reading as the only one. `ThemeVocabulary.NewMaterial`
-  seeds a layered node with `kind` and `layers` and nothing else.
-
-  *reported by the author while theming a board — "a cobble rim, then two rings of stone brick, then a grass
-  field". The worked JSON is in `docs/world-export/terrain-painting.md`.*
 
 ### What the author sees while authoring
 

@@ -6072,6 +6072,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the stack is a band **inside** one (a rim two blocks in and then the surface, not two blocks of cobble
   and then cobble forever). `BandEnding` is stated on the stack; the axis stays the caller's, since the
   distance is measured by whoever has it.
+- **The Theme phase authors an inward band stack (B200, author).** A cobble rim, two rings of stone brick, then
+  the ground showing through was expressible in the theme JSON and unauthorable in the editor, because the
+  editor still wrote the pre-`BandStack` shape: a flat `layers` list, which the reader carries forward with its
+  ending forced to `repeat` — right for every list written before an ending existed, and the one thing a ring
+  stack cannot be. The form now writes the wire shape and no other, with the axis, the stack's ending, the
+  `beyond` slot and the height axis's `from`; the band caption follows the axis, so a ring is counted in rings.
+  `MaterialTree` names a list by a **path** (`stack/bands`) rather than by a field, because `bands` alone names
+  two lists measuring different things — a voronoi's depth and a stack's thickness. The offered words are
+  `BandAxes`/`BandEndings` in `PgmStudio.Vocabulary`, the leaf the client and the painter both reach, and a test
+  pins each set against the enum it spells so a reading the painter gains cannot go unofferable.
+  (`BandStackTests`, `docs/world-export/terrain-painting.md`)
 - **A terrain band stack reads inward as readily as downward (`B200`'s model half).** `BandAxis` states the
   axis on the reader rather than growing a second type: `LayeredMaterial(Stack, Axis, Beyond)` takes
   `BucketContext.Inset` under `inward` and `DepthFromTop` under `depth`, so "a cobble rim, then two rings of

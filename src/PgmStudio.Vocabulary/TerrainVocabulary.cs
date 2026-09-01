@@ -178,6 +178,65 @@ public static class HouseFootprints
 
 /// <summary>Which roof a stored style asks for — the wire words for <c>RoofForm</c>. Every one of them is a
 /// height field over the same plan, so the list grows without the stamper branching.</summary>
+/// <summary>
+/// Which distance a band stack is read along — the wire words for <c>BandAxis</c>. The stack states its bands
+/// and where they run out and never the axis, so the material doing the reading is where the choice belongs.
+/// </summary>
+public static class BandAxes
+{
+    /// <summary>Down from the top of the bucket: grass over two dirt.</summary>
+    public const string Depth = "depth";
+
+    /// <summary>In from the landmass's void-facing edge: a cobble rim, two rings of stone brick, then a
+    /// field. The bands run as concentric rings round a shape rather than as courses down a column.</summary>
+    public const string Inward = "inward";
+
+    /// <summary>Up from a stated world Y, so the bands are pinned to the world rather than to the column and
+    /// one span carries a stack of colours landing at the same height in every column it covers.</summary>
+    public const string Height = "height";
+
+    /// <summary>The axes in the order the editor offers them: the reading every stack had before there was a
+    /// second one, then the two that were added to it.</summary>
+    public static readonly string[] All = [Depth, Inward, Height];
+
+    /// <summary>What each reads along, in the words the picker offers it in.</summary>
+    public static string Describe(string? axis) => Canonical(axis) switch
+    {
+        Inward => "In from the edge — rings round the shape",
+        Height => "Up from a world height",
+        _ => "Down the column from the top",
+    };
+
+    /// <summary>What one band claims, along that axis — the caption its number wants.</summary>
+    public static string Extent(string? axis) => Canonical(axis) switch
+    {
+        Inward => "Rings",
+        _ => "Courses",
+    };
+
+    public static string Canonical(string? axis) => All.Contains(axis) ? axis! : Depth;
+}
+
+/// <summary>What a band stack answers past its last band — the wire words for <c>BandEnding</c>. Not implied by
+/// the axis, which is why it is stated: the two are independent choices.</summary>
+public static class BandEndings
+{
+    /// <summary>The last band claims everything beyond it — right where the stack owns its whole space.</summary>
+    public const string Repeat = "repeat";
+
+    /// <summary>Nothing is claimed past the last band, and whatever is under the stack shows — right where the
+    /// stack is a band inside a larger space.</summary>
+    public const string HandOver = "handOver";
+
+    public static readonly string[] All = [Repeat, HandOver];
+
+    public static string Describe(string? ending) => Canonical(ending) == HandOver
+        ? "Nothing more is claimed"
+        : "The last band repeats";
+
+    public static string Canonical(string? ending) => All.Contains(ending) ? ending! : Repeat;
+}
+
 public static class RoofForms
 {
     public const string Gable = "gable";
