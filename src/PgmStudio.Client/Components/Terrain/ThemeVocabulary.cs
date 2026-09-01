@@ -88,86 +88,72 @@ public static class ThemeFields
     public const string Depth = "depth";
     public const string Enabled = "enabled";
 
-    /// <summary>A fresh material node of the given kind, with defaults that show what the kind does: a pattern
-    /// starts with two entries whose blocks are far apart in the palette, since one entry — or two blocks that
-    /// happen to share a colour, as stone and cobblestone do — renders flat and reads as broken.</summary>
-    public static JsonObject NewMaterial(string kind) => kind switch
+    /// <summary>
+    /// What a fresh field starts at, where the schema cannot say.
+    ///
+    /// <para>The published schema names every field and its type, and states a default for the optional ones —
+    /// but a <b>required</b> field has no default to state, and a list's default is empty, which is the one
+    /// starting point that teaches an author nothing. A pattern arrives with entries whose blocks are far apart
+    /// in the palette, because one entry, or two that happen to share a colour as stone and cobblestone do,
+    /// renders flat and reads as broken.</para>
+    ///
+    /// <para><b>Keyed by field name rather than by kind</b>, so a kind added server-side that reuses
+    /// <c>seed</c>, <c>scale</c> or <c>stops</c> starts sensibly without being named here at all. The per-kind
+    /// table below it is for the handful where the field name is not enough: an <c>id</c> is a stone block on a
+    /// solid and a log on the two kinds that lay one.</para>
+    /// </summary>
+    private static readonly Dictionary<string, Func<JsonNode>> Starters = new(StringComparer.Ordinal)
     {
-        MaterialKind.Layered => new JsonObject
-        {
-            [Kind] = MaterialKind.Layered,
-            // Grass over two dirt, read down the column and repeating past the bottom — what a layered
-            // material always meant, and the reading a bucket's whole space wants.
-            [Axis] = BandAxes.Depth,
-            [Stack] = NewStack(Layer(Solid(2), 1), Layer(Solid(3), 2)),
-        },
-        MaterialKind.TeamTint => new JsonObject
-        {
-            [Kind] = MaterialKind.TeamTint,
-            [BlockId] = 159,
-            [Neutral] = Solid(159, 8),
-        },
-        MaterialKind.Voronoi => new JsonObject
-        {
-            [Kind] = MaterialKind.Voronoi,
-            [Seed] = 1,
-            [CellSize] = 10,
-            // A grid line, a thin course just inside it, then the body — the shape a voronoi has to arrive in to
-            // read as cells at all. One band would be a flat wash and would tell an author nothing about what
-            // the list is for; three show that it runs inward and that the last one takes the rest.
-            [Bands] = new JsonArray(Band(Solid(155), 1), Band(Solid(3), 2), Band(Solid(1), 1)),
-            [Rise] = 0,
-        },
-        MaterialKind.Cell => new JsonObject
-        {
-            [Kind] = MaterialKind.Cell,
-            [Seed] = 1,
-            [CellSize] = 10,
-            [Jitter] = 50,
-            [Warp] = 4,
-            [Palette] = new JsonArray(Solid(1), Solid(24), Solid(3, 1)),
-            [Rise] = 0,
-        },
-        MaterialKind.Noise => Field(MaterialKind.Noise),
-        MaterialKind.Turbulence => Field(MaterialKind.Turbulence),
-        MaterialKind.Electric => Field(MaterialKind.Electric),
-        MaterialKind.WallRun => new JsonObject
-        {
-            [Kind] = MaterialKind.WallRun,
-            [Runs] = new JsonArray(Stripe(Solid(155), 3), Stripe(Solid(159, 8), 2)),
-        },
-        MaterialKind.WallDiagonal => new JsonObject
-        {
-            [Kind] = MaterialKind.WallDiagonal,
-            [Slope] = 1,
-            [Runs] = new JsonArray(Stripe(Solid(155), 2), Stripe(Solid(159, 8), 2)),
-        },
-        MaterialKind.Checker => new JsonObject
-        {
-            [Kind] = MaterialKind.Checker,
-            [Size] = 1,
-            [Even] = Solid(155),
-            [Odd] = Solid(159, 15),
-        },
-        // One log and a square size. Acacia laid upright against acacia on its side is the timbering the
-        // corpus houses use, so it is what a fresh one offers.
-        MaterialKind.LogChecker => new JsonObject
-        {
-            [Kind] = MaterialKind.LogChecker,
-            [Size] = 1,
-            [Id] = 162,
-            [Data] = 0,
-        },
-        MaterialKind.WallFrame => new JsonObject
-        {
-            [Kind] = MaterialKind.WallFrame,
-            [Angle] = 45,
-            [Thickness] = 1,
-            [Edge] = Solid(159, 15),
-            [Fill] = Solid(155),
-        },
-        _ => Solid(1),
+        [Id] = () => JsonValue.Create(1),
+        [Data] = () => JsonValue.Create(0),
+        [BlockId] = () => JsonValue.Create(159),
+        [Seed] = () => JsonValue.Create(1),
+        [CellSize] = () => JsonValue.Create(10),
+        [Scale] = () => JsonValue.Create(16),
+        [Octaves] = () => JsonValue.Create(3),
+        [Jitter] = () => JsonValue.Create(50),
+        [Warp] = () => JsonValue.Create(4),
+        [Size] = () => JsonValue.Create(1),
+        [Angle] = () => JsonValue.Create(45),
+        [Thickness] = () => JsonValue.Create(1),
+        [Slope] = () => JsonValue.Create(1),
+        [Rise] = () => JsonValue.Create(0),
+
+        // The nested materials, each started at what shows the part it plays.
+        [Neutral] = () => Solid(159, 8),
+        [Even] = () => Solid(155),
+        [Odd] = () => Solid(159, 15),
+        [Edge] = () => Solid(159, 15),
+        [Fill] = () => Solid(155),
+
+        // The lists. A grid line, a thin course just inside it, then the body — the shape a voronoi has to
+        // arrive in to read as cells at all; four stops because the point of a ramp is that the ends are
+        // accents, which one boundary cannot show; grass over two dirt for a stack, read down the column.
+        [Stack] = () => NewStack(Layer(Solid(2), 1), Layer(Solid(3), 2)),
+        [Bands] = () => new JsonArray(Band(Solid(155), 1), Band(Solid(3), 2), Band(Solid(1), 1)),
+        [Palette] = () => new JsonArray(Solid(1), Solid(24), Solid(3, 1)),
+        [Stops] = () => new JsonArray(Solid(1), Solid(2), Solid(3), Solid(24)),
+        [Runs] = () => new JsonArray(Stripe(Solid(155), 3), Stripe(Solid(159, 8), 2)),
     };
+
+    /// <summary>Where a field name alone is not enough. Acacia laid upright against acacia on its side is the
+    /// timbering the corpus houses use, so it is what a fresh log pattern offers — and a laid log is a log
+    /// however the field is named the same as a solid's.</summary>
+    private static readonly Dictionary<(string Kind, string Field), Func<JsonNode>> PerKind = new()
+    {
+        [(MaterialKind.LogChecker, Id)] = () => JsonValue.Create(162),
+        [(MaterialKind.LaidLog, Id)] = () => JsonValue.Create(17),
+    };
+
+    /// <summary>What this field starts at on this kind, or null to take whatever the schema states.</summary>
+    public static JsonNode? Starter(string kind, string field, string type)
+    {
+        if (PerKind.TryGetValue((kind, field), out var perKind)) return perKind();
+        if (Starters.TryGetValue(field, out var starter)) return starter();
+        // A list the editor has no starter for is still a list: empty beats absent, since the control can add
+        // to one and cannot conjure the field.
+        return type.EndsWith("[]", StringComparison.Ordinal) ? new JsonArray() : null;
+    }
 
     /// <summary>A fresh entry for one of a material's child lists — a bare material for a pattern's palette or
     /// stops, a material plus its extent for a layer stack, a wall run or a voronoi band.</summary>
@@ -472,32 +458,19 @@ public static class MaterialTree
 {
     /// <summary>The field a kind carries its entry list in, with the extent each entry claims — null where
     /// the entries are bare materials.</summary>
-    public static (string Field, string? Extent)? ListOf(string kind) => kind switch
+    /// <summary>The word a nested material is offered under. The schema says <em>which</em> fields are nested
+    /// materials — a field typed <c>material</c> is one — and cannot say what to call them, because "Light
+    /// square" against "Dark square" is the editor telling an author which half of the checker they are
+    /// editing. A field with no word here is offered under its own name.</summary>
+    public static string ChildLabel(string field) => field switch
     {
-        MaterialKind.Layered => (ThemeFields.StackBands, ThemeFields.Thickness),
-        MaterialKind.Voronoi => (ThemeFields.Bands, ThemeFields.Depth),
-        MaterialKind.WallRun or MaterialKind.WallDiagonal => (ThemeFields.Runs, ThemeFields.Width),
-        MaterialKind.Cell => (ThemeFields.Palette, null),
-        MaterialKind.Noise or MaterialKind.Turbulence or MaterialKind.Electric => (ThemeFields.Stops, null),
-        _ => null,
-    };
-
-    /// <summary>The extent a list's entries claim, by the field they sit in; null for a bare list.</summary>
-    public static string? ExtentOf(string field) => field switch
-    {
-        ThemeFields.StackBands => ThemeFields.Thickness,
-        ThemeFields.Runs => ThemeFields.Width,
-        ThemeFields.Bands => ThemeFields.Depth,
-        _ => null,
-    };
-
-    /// <summary>The single children a kind names, each with the word the editor offers it under.</summary>
-    public static IReadOnlyList<(string Field, string Label)> ChildrenOf(string kind) => kind switch
-    {
-        MaterialKind.TeamTint => [(ThemeFields.Neutral, "Neutral land")],
-        MaterialKind.Checker => [(ThemeFields.Even, "Light square"), (ThemeFields.Odd, "Dark square")],
-        MaterialKind.WallFrame => [(ThemeFields.Edge, "Frame"), (ThemeFields.Fill, "Panel")],
-        _ => [],
+        ThemeFields.Neutral => "Neutral land",
+        ThemeFields.Even => "Light square",
+        ThemeFields.Odd => "Dark square",
+        ThemeFields.Edge => "Frame",
+        ThemeFields.Fill => "Panel",
+        ThemeFields.Beyond => "Beyond the stack",
+        _ => field,
     };
 
     /// <summary>What one entry of a list is called, by where it sits. A voronoi band is named for what it
@@ -514,35 +487,39 @@ public static class MaterialTree
     };
 
     /// <summary>Every material in a tree, outermost first, each with the path that reaches it and how deep it
-    /// sits. The root's path is the empty string.</summary>
+    /// sits. The root's path is the empty string.
+    ///
+    /// <para>The shape it walks is the schema's — which fields are nested materials and which is the list —
+    /// so a kind added server-side is walked without this being taught about it.</para></summary>
     public static IEnumerable<(string Path, string Label, JsonObject Node, int Depth)> Walk(
-        JsonObject root, string label = "Material")
+        JsonObject root, MaterialSchema schema, string label = "Material")
     {
         yield return ("", label, root, 0);
-        foreach (var found in Below(root, "", 1)) yield return found;
+        foreach (var found in Below(root, schema, "", 1)) yield return found;
     }
 
-    private static IEnumerable<(string, string, JsonObject, int)> Below(JsonObject node, string path, int depth)
+    private static IEnumerable<(string, string, JsonObject, int)> Below(
+        JsonObject node, MaterialSchema schema, string path, int depth)
     {
         var kind = JsonEdit.KindOf(node);
 
-        foreach (var (field, label) in ChildrenOf(kind))
+        foreach (var field in schema.ChildrenOf(kind))
         {
             if (node[field] is not JsonObject child) continue;
             var childPath = Join(path, field);
-            yield return (childPath, label, child, depth);
-            foreach (var found in Below(child, childPath, depth + 1)) yield return found;
+            yield return (childPath, ChildLabel(field), child, depth);
+            foreach (var found in Below(child, schema, childPath, depth + 1)) yield return found;
         }
 
-        if (ListOf(kind) is not { } list) yield break;
-        var array = JsonEdit.ArrayAt(node, list.Field);
+        if (schema.ListOf(kind) is not { } list) yield break;
+        var array = JsonEdit.ArrayAt(node, list.Path);
         for (var i = 0; i < array.Count; i++)
         {
             if (array[i] is not JsonNode entry) continue;
-            if (Material(list.Field, JsonEdit.AsObject(entry)) is not { } material) continue;
-            var entryPath = Join(path, $"{list.Field}/{i}");
-            yield return (entryPath, EntryLabel(list.Field, i, array.Count), material, depth);
-            foreach (var found in Below(material, entryPath, depth + 1)) yield return found;
+            if (Material(JsonEdit.AsObject(entry)) is not { } material) continue;
+            var entryPath = Join(path, $"{list.Path}/{i}");
+            yield return (entryPath, EntryLabel(list.Path, i, array.Count), material, depth);
+            foreach (var found in Below(material, schema, entryPath, depth + 1)) yield return found;
         }
     }
 
@@ -559,7 +536,7 @@ public static class MaterialTree
             if (i + 1 < steps.Length && int.TryParse(steps[i + 1], out var index))
             {
                 var array = JsonEdit.Array(node, field);
-                node = index >= 0 && index < array.Count ? Material(field, JsonEdit.AsObject(array[index])) : null;
+                node = index >= 0 && index < array.Count ? Material(JsonEdit.AsObject(array[index])) : null;
                 i++;
                 continue;
             }
@@ -568,10 +545,12 @@ public static class MaterialTree
         return node;
     }
 
-    /// <summary>The material an entry carries: the entry itself where the list is bare, the wrapped child
-    /// where it claims an extent.</summary>
-    private static JsonObject? Material(string field, JsonObject entry)
-        => ExtentOf(field) is null ? entry : entry[ThemeFields.Material] as JsonObject;
+    /// <summary>The material an entry carries: the wrapped child where the entry claims an extent, the entry
+    /// itself where the list is bare. Read off the entry's own shape rather than off which list it came from —
+    /// a wrapper states a <c>material</c> and a bare one states its <c>kind</c>, so this holds for a list the
+    /// schema gains without anything here being told about it.</summary>
+    private static JsonObject? Material(JsonObject entry)
+        => entry[ThemeFields.Material] as JsonObject ?? (entry[ThemeFields.Kind] is not null ? entry : null);
 
     private static string Join(string path, string step) => path.Length == 0 ? step : $"{path}/{step}";
 }

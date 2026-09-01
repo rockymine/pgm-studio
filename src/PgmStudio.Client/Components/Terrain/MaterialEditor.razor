@@ -16,7 +16,9 @@
      CoordField, which carries its unit inside the box and so keeps the row one control tall. A labelled
      Field here stacked a label above its input, which left the number sitting lower than the select. *@
   <div class="material-editor-head">
-    <Select Options="@Select.Words(MaterialKind.All.Select(kind => kind.Id), MaterialKind.NameOf)"
+    @* The kinds the *painter* accepts, in the order the schema publishes them — so a kind added server-side is
+       offered here with a seed that works, rather than reaching no editor until someone adds it twice. *@
+    <Select Options="@Select.Words(Schema.Kinds.Select(kind => kind.Kind), Schema.NameOf)"
             Value="@Kind" ValueChanged="ChangeKind" />
     @* Beside the kind, because it answers the same question: what is this material. A kind gives an empty
        recipe of that shape, a style gives one already written. It is an action rather than a state, so it
@@ -34,7 +36,7 @@
        three-layer voronoi stack unreadable. *@
     @if (!Nested)
     {
-      <HelpMark Open="helpOpen" Title="@($"What a {MaterialKind.NameOf(Kind).ToLowerInvariant()} is")"
+      <HelpMark Open="helpOpen" Title="@($"What a {Schema.NameOf(Kind).ToLowerInvariant()} is")"
                 OnClick="() => helpOpen = !helpOpen" />
     }
     @HeadExtra
@@ -47,11 +49,23 @@
   @if (!Nested && helpOpen)
   {
     <div class="help-note-body">
+      @* What the kind is, in the schema's own words — the same sentence the route answers an agent with, so a
+         kind added server-side explains itself here without being written up twice. What follows it is this
+         editor's own note about the controls, which the schema has no business carrying. *@
+      @if (Schema.SummaryOf(Kind) is { Length: > 0 } summary)
+      {
+        <p>@summary</p>
+      }
+      @* Which facts about a cell it varies with, and therefore where it is legible at all: one reading the
+         arc says nothing away from a perimeter, one reading inset draws rings and falls back off a footprint. *@
+      @if (Schema.ReadsOf(Kind) is { Count: > 0 } reads)
+      {
+        <p class="section-desc">Varies with <strong>@string.Join(", ", reads)</strong>.</p>
+      }
       @switch (Kind)
       {
         case MaterialKind.Solid:
-          <p>One block, everywhere this material paints. The picker is the export's own palette, so the
-            swatch is the colour that will land.</p>
+          <p>The picker is the export's own palette, so the swatch is the colour that will land.</p>
           break;
 
         case MaterialKind.TeamTint:

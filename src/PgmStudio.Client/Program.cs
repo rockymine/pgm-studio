@@ -20,5 +20,7 @@ builder.RootComponents.Add<HeadOutlet>("head::after");
 
 builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
 builder.Services.AddScoped<PgmStudio.Client.Components.TerrainLibraryClient>();
+// Loaded once and shared: the material schema is a build constant, so every editor asks the same answer.
+builder.Services.AddScoped<PgmStudio.Client.Components.MaterialSchema>();
 
 await builder.Build().RunAsync();

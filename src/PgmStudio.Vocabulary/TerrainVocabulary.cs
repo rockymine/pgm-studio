@@ -23,27 +23,18 @@ public static class MaterialKind
     public const string LaidLog = "laidLog";
     public const string WallFrame = "wallFrame";
 
-    /// <summary>The kinds in offer order — plain blocks first, then the composites, then the patterns.</summary>
-    public static readonly (string Id, string Name)[] All =
+    /// <summary>The closed set of words a stored style's <c>kind</c> may be — the wire's own vocabulary, and
+    /// what the published schema names instead of calling the field a string.
+    ///
+    /// <para><b>The words and nothing else.</b> What each kind is <em>called</em>, what it draws and what it
+    /// takes are answered by <c>GET /api/terrain/patterns</c>, which reads them off the records themselves; a
+    /// label beside each word here was a second copy of that, read by nothing once the editor started asking
+    /// the route.</para></summary>
+    public static readonly string[] All =
     [
-        (Solid, "Solid block"),
-        (Layered, "Layer stack"),
-        (TeamTint, "Team tint"),
-        (Voronoi, "Voronoi cells"),
-        (Cell, "Cell patches"),
-        (Noise, "Fractal field"),
-        (Turbulence, "Turbulence"),
-        (Electric, "Electric"),
-        (WallRun, "Wall stripes"),
-        (WallDiagonal, "Diagonal stripes"),
-        (Checker, "Checkerboard"),
-        (LogChecker, "Log checkerboard"),
-        (LaidLog, "Laid log beam"),
-        (WallFrame, "Wall frame"),
+        Solid, Layered, TeamTint, Voronoi, Cell, Noise, Turbulence, Electric,
+        WallRun, WallDiagonal, Checker, LogChecker, LaidLog, WallFrame,
     ];
-
-    /// <summary>The label a kind is offered under, or the raw discriminator for one this build does not know.</summary>
-    public static string NameOf(string kind) => All.FirstOrDefault(k => k.Id == kind).Name ?? kind;
 }
 
 /// <summary>The four themeable buckets a theme binds a style to (bedrock is fixed and never themed). Same

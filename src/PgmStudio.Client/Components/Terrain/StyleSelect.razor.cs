@@ -11,6 +11,8 @@ namespace PgmStudio.Client.Components;
 /// </summary>
 public partial class StyleSelect
 {
+    [Inject] public MaterialSchema Schema { get; set; } = default!;
+
     [Parameter] public IReadOnlyList<StyleDto> Styles { get; set; } = [];
 
     /// <summary>The bound style's row id; 0 is unbound.</summary>
@@ -31,7 +33,7 @@ public partial class StyleSelect
     private IReadOnlyList<SelectOption> Rows =>
     [
         .. Styles.Select(style => new SelectOption(
-            style.Id.ToString(), style.Name, Group: MaterialKind.NameOf(style.Kind))),
+            style.Id.ToString(), style.Name, Group: Schema.NameOf(style.Kind))),
     ];
 
     private StyleDto? Bound => Styles.FirstOrDefault(style => style.Id == Value);

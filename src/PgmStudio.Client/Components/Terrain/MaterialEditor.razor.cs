@@ -17,6 +17,11 @@ public partial class MaterialEditor
     [Parameter, EditorRequired] public JsonObject Node { get; set; } = [];
     [Parameter] public IReadOnlyList<PaintBlockDto> Blocks { get; set; } = [];
 
+    /// <summary>What a kind is and what it takes, read from the schema the API publishes. Injected rather than
+    /// passed, because every nested editor needs the same one answer and threading it down would be a
+    /// parameter on a recursion.</summary>
+    [Inject] public MaterialSchema Schema { get; set; } = default!;
+
     /// <summary>The saved styles a slot may be filled from. Empty offers nothing, which is what a surface with
     /// no library behind it wants.</summary>
     [Parameter] public IReadOnlyList<StyleDto> Styles { get; set; } = [];
@@ -44,6 +49,10 @@ public partial class MaterialEditor
     /// sees as unchanged, so nothing would push the browser's own selection back off the name it landed on,
     /// and the row would go on claiming a provenance it does not store.</summary>
     private int filled;
+
+    /// <summary>The schema, before the first render that needs it. Idempotent, so a nest of these loads it
+    /// once and every instance below the first returns straight away.</summary>
+    protected override Task OnInitializedAsync() => Schema.LoadAsync();
 
     /// <summary>Whether this instance is one of a flattened form's rows rather than a form of its own.</summary>
     private bool Stub => Nested && Flat;
@@ -126,8 +135,7 @@ public partial class MaterialEditor
         + "and the pattern carries through the depth of the terrain instead.";
 
     /// <summary>What one of a kind's single children is called.</summary>
-    private string ChildLabel(string field)
-        => MaterialTree.ChildrenOf(Kind).FirstOrDefault(child => child.Field == field).Label ?? field;
+    private static string ChildLabel(string field) => MaterialTree.ChildLabel(field);
 
     /// <summary>What one entry of a list is called, by where it sits.</summary>
     private string EntryLabel(string field, int index)
@@ -143,7 +151,7 @@ public partial class MaterialEditor
     private IEnumerable<Entry> List(string field)
     {
         var array = JsonEdit.ArrayAt(Node, field);
-        var extentField = MaterialTree.ExtentOf(field);
+        var extentField = Schema.ListOf(Kind)?.Extent;
         for (var i = 0; i < array.Count; i++)
         {
             var node = array[i];
@@ -167,7 +175,7 @@ public partial class MaterialEditor
     private async Task ChangeKind(string kind)
     {
         if (kind.Length == 0 || kind == Kind) return;
-        JsonEdit.Replace(Node, ThemeFields.NewMaterial(kind));
+        JsonEdit.Replace(Node, Schema.Seed(kind));
         await Changed();
     }
 
@@ -176,7 +184,7 @@ public partial class MaterialEditor
     private IReadOnlyList<SelectOption> StyleRows =>
     [
         .. Styles.Select(style => new SelectOption(
-            style.Id.ToString(), style.Name, Group: MaterialKind.NameOf(style.Kind))),
+            style.Id.ToString(), style.Name, Group: Schema.NameOf(style.Kind))),
     ];
 
     /// <summary>

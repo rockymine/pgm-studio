@@ -9,6 +9,9 @@ namespace PgmStudio.Client.Features.Library;
 /// </summary>
 public partial class LibraryBrowseHost
 {
+    /// <summary>The kinds a style may be, for the filter row — the schema's list rather than a second one.</summary>
+    [Inject] public MaterialSchema Schema { get; set; } = default!;
+
     [Parameter, EditorRequired] public LibraryKind Kind { get; set; } = default!;
 
     private IReadOnlyList<LibraryRow> rows = [];

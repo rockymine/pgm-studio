@@ -6,12 +6,14 @@
    voronoi"); nothing else in the library varies by anything but its name. *@
 
 <LibraryBrowser Kind="Kind" Rows="Shown" Loading="loading" Wide="@(Kind.Slug != LibraryKinds.StylesSlug)"
-                Badge="@(Kind.Slug == LibraryKinds.StylesSlug ? row => MaterialKind.NameOf(row.Kind ?? "") : null)">
+                Badge="@(Kind.Slug == LibraryKinds.StylesSlug ? row => Schema.NameOf(row.Kind ?? "") : null)">
   <Filters>
     @if (Kind.Slug == LibraryKinds.StylesSlug)
     {
-      @foreach (var (id, name) in MaterialKind.All)
+      @foreach (var offered in Schema.Kinds)
       {
+        var id = offered.Kind;
+        var name = offered.Name;
         var count = rows.Count(row => row.Kind == id);
         @if (count > 0)
         {

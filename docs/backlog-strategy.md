@@ -219,12 +219,15 @@ preamble of its own, which is the shape a cause should reach before it is worked
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
 server-side reaches no editor, why three room-style fields have no control, and why a band stack is
-authorable only over HTTP. `B261` · `WE54` · `C51`. Two of it have landed. `B260`: the six room-style fields
+authorable only over HTTP. `WE54` · `C51`. Three of it have landed. `B260`: the six room-style fields
 the editor could not reach are controls now, and the load that wrote them away goes through the one mapping
 that states them all. `B200`: the Theme phase's layered form wrote a shape the reader had to carry forward,
 and carrying it forward is what pinned every stack to `repeat` — it writes the wire shape now, so a ring stack
-is authorable. Both were the same fault in different clothes: the client holding its own account of a shape the
-server publishes.
+is authorable. And `B261`: the material editor reads `GET /api/terrain/patterns` for the kinds, their names,
+their help, their fields and their defaults, so a kind added server-side is offered with a seed that works and
+`laidLog` stopped silently becoming a stone block. All three were the same fault in different clothes — the
+client holding its own account of a shape the server publishes — and the third is the one that removes the
+class rather than an instance of it.
 
 **`PlanCompiler` fuses by surface height and drops every identity in the plan.** One `GroupBy(p => p.Surface)`
 followed by a rectilinear union produces `s0`, `s1`, `s2` — so a piece name cannot address anything

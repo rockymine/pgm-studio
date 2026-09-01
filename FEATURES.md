@@ -6111,6 +6111,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the stack is a band **inside** one (a rim two blocks in and then the surface, not two blocks of cobble
   and then cobble forever). `BandEnding` is stated on the stack; the axis stays the caller's, since the
   distance is measured by whoever has it.
+- **The material editor is driven by the schema the API publishes, not by a copy of it (B261).** `GET
+  /api/terrain/patterns` answers every kind, its label, a sentence on what it draws, the cell facts it varies
+  with and its fields with their types and defaults — all of it read off the records' own `JsonDerivedType`
+  attributes and primary constructors — and the client kept its own list beside it. So a kind added
+  server-side reached no editor until someone remembered to add it twice, and one the client could not seed
+  was offered anyway: picking **`laidLog`** silently replaced the material with a stone `solid`. It now saves
+  as `{"kind":"laidLog","id":17,"data":0}`. The picker, the kind names, the help sentence, the nested-material
+  slots, the list and its extent key and the outline walker all read the route; `MaterialKind` is reduced to
+  the closed set of words the wire declares, its label column having become a second copy nothing read. What
+  stays client-side is what the schema is not: the label a slot is offered under, what a list's entries count
+  under, and what a fresh field **starts** at — keyed by field name, so a new kind reusing `seed` or `stops`
+  starts sensibly without being named. (`docs/tools/library.md`)
 - **The Theme phase authors an inward band stack (B200, author).** A cobble rim, two rings of stone brick, then
   the ground showing through was expressible in the theme JSON and unauthorable in the editor, because the
   editor still wrote the pre-`BandStack` shape: a flat `layers` list, which the reader carries forward with its

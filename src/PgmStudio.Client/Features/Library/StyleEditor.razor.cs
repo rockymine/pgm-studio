@@ -23,6 +23,10 @@ public partial class StyleEditor
     /// <summary>Reports the name as it is typed, for the crumb trail.</summary>
     [Parameter] public EventCallback<string> OnName { get; set; }
 
+    /// <summary>What a kind is and what it takes — the outline is the material tree, and the tree's shape is
+    /// the schema's.</summary>
+    [Inject] public MaterialSchema Schema { get; set; } = default!;
+
     private const string Plan = "plan", Section = "section", Both = "both";
 
     private IReadOnlyList<PaintBlockDto> blocks = [];
@@ -43,17 +47,17 @@ public partial class StyleEditor
 
     private IReadOnlyList<EditorPart> Outline =>
     [
-        .. MaterialTree.Walk(draft, MaterialKind.NameOf(DraftKind))
+        .. MaterialTree.Walk(draft, Schema, Schema.NameOf(DraftKind))
             .Select(found => new EditorPart(
                 found.Path, found.Label,
-                Badge: MaterialKind.NameOf(JsonEdit.KindOf(found.Node)),
+                Badge: Schema.NameOf(JsonEdit.KindOf(found.Node)),
                 Swatch: null, Depth: found.Depth)),
     ];
 
     /// <summary>The node the outline has picked, or null once a list has been shortened past it.</summary>
     private JsonObject? Picked => MaterialTree.At(draft, selected);
 
-    private string Footnote => $"{Outline.Count} material{(Outline.Count == 1 ? "" : "s")} · {MaterialKind.NameOf(DraftKind)}";
+    private string Footnote => $"{Outline.Count} material{(Outline.Count == 1 ? "" : "s")} · {Schema.NameOf(DraftKind)}";
 
     protected override async Task OnInitializedAsync()
     {

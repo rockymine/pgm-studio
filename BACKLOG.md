@@ -401,14 +401,6 @@ forward for the two clicked ones, and the per-placement handful — seed, positi
 
 ### What the author can say
 
-- [ ] **B261 — The theme editor mirrors a schema the API already publishes.** `GET /api/terrain/patterns`
-  answers every material kind and field, typed, as the painter's deserializer takes them — and the client
-  never calls it, keeping 422 hand-maintained lines in `Components/Terrain/ThemeVocabulary.cs` instead. A
-  kind or field added server-side reaches no editor until someone edits that file. Drive the editor from the
-  route; the band stack's axis, ending and `beyond` are the shape it would have to publish first. It also settles the picker
-  that offers `laidLog` and silently replaces the material with a stone `solid` when it is chosen — a kind
-  the client cannot build stops being offerable.
-
 ### What the author sees while authoring
 
 **The card carries the section, and that is settled** (author): an author knows a house by its name, and the

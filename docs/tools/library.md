@@ -644,6 +644,18 @@ isometric and the cutaway are SVG only, since they draw a block as its own shape
 and so have no raster to encode; **`theme-preview`** draws `section` plus one swatch per bucket
 (`rim`, `surface`, `wall`, `fill`); and **`GET /map/{slug}/coverage`** draws its one grid.
 
+**The editor is driven by that schema, not by a copy of it.** `GET /terrain/patterns` is what the Styles and
+Theme editors read to know which kinds exist, what each is called, what it draws, which cell facts it varies
+with, and what fields it takes — and the server reads all of that off the records' own attributes and primary
+constructors, so it cannot offer a kind the deserializer would reject. A kind added server-side is therefore
+offered here, seeded correctly and walked in the outline without the client being taught about it twice.
+
+What stays this side is what the schema is not: the **label** a nested material is offered under ("Light
+square" against "Dark square"), the name a list's entries count under ("Grid line", "Middle"), and what a
+fresh field **starts at** — a required field has no default to publish and an empty list teaches an author
+nothing, so a voronoi arrives as a grid line, a thin course and a body. Those starters are keyed by field name
+rather than by kind, so a new kind reusing `seed` or `stops` starts sensibly without being named at all.
+
 **Worked bodies.** Each block below is posted verbatim by `DocumentedBodyTests`, so an example that stops
 being accepted fails a test rather than misleading a reader.
 
