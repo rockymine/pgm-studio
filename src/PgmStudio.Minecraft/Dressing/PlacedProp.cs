@@ -319,7 +319,7 @@ public static class HousePropRules
     public const string NoWings = "HP1";
 
     /// <summary>A wing is not two opposite corners, or is too thin to hold two walls and an inside.</summary>
-    /// <remarks>State each wing as two opposite corners, and at least as wide as a room. Anything thinner has no inside once its two walls are written.</remarks>
+    /// <remarks>State each wing as two opposite corners, and at least <c>RoomFrames.MinFootprintSpan</c> blocks each way — the same least span a room's footprint takes, since a room's is the single-wing case of a building's. Anything thinner has no inside once its two walls are written.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Structure)]
     public const string WingShape = "HP2";
 
@@ -333,12 +333,13 @@ public static class HousePropRules
 /// A building standing on the terrain: one or more touching rectangles an author dragged, and the shell to
 /// raise on them.
 ///
-/// <para>It is the same <see cref="HouseStyle"/> a wool cage and a spawn cube are stamped with, and the same
-/// <see cref="HouseStamper"/> raises it — but nothing else is shared, and the difference is worth stating.
-/// A <b>room</b>'s footprint comes from its plan piece (WX1), it is stamped before the painter, and it carries
-/// a pad, monuments, chests and an entry contract because the map is played through it. A <b>prop</b>'s
-/// footprint is rectangles someone drew, it is stamped after the painter with the rest of the dressing, and it
-/// carries none of those: it is scenery a player can walk into, not a room the objectives live in.</para>
+/// <para><b>A room's building is the single-wing case of this one.</b> Both are a footprint and a shell; both
+/// reach <see cref="HouseStamper"/> through one <see cref="Houses.BuildingPlan"/>, whose single-rectangle
+/// constructor is what a room uses; and both are held to one least span
+/// (<see cref="RoomFrames.MinFootprintSpan"/>). What a room adds is what being played through asks for — a
+/// pad, monuments, chests and an entry contract — and when it is stamped: before the painter rather than
+/// after it with the rest of the dressing. A prop is that same building with none of those, standing where
+/// someone drew it.</para>
 ///
 /// <para><b>A wing is stored as its two opposite corners</b> rather than as an origin and a size, so the fan
 /// mirrors it as the <em>shape</em> it is — the rule an area prop's outline already follows. A rectangle turned
@@ -381,17 +382,19 @@ public sealed record HouseProp : PlacedProp
     /// separately and by the roof</b>: every form's rise is measured over each wing's own shorter side
     /// (<see cref="RoofField"/>), which is what stops a hall carrying a lean-to as tall as it is long.</para>
     ///
-    /// <para>The cap is the <b>prop's</b>, not the stamper's. A wool cage and a spawn cube go through the same
-    /// <see cref="HouseStamper"/> and their footprints come from the plan piece they sit on (WX1) — a map's own
-    /// geometry, and nothing a dressing limit has any business refusing.</para></summary>
+    /// <para>The cap is the <b>prop's</b>, and is the one thing about a building that still differs by where
+    /// its footprint came from: a room's is bounded by the region it stands on (<c>WX12</c>) and capped at
+    /// 20×20 by <c>ST9</c>, which is a map's own geometry rather than a dressing limit. The least span is one
+    /// number for both (<see cref="RoomFrames.MinFootprintSpan"/>); the ceiling is two, and whether it should
+    /// be is the author's.</para></summary>
     public const int MaxFootprint = 192;
 
     /// <summary>The plan this prop stamps, or null when it is no building at all — the same answer
     /// <see cref="Check"/> gives the reasons for.
     ///
-    /// <para>Every wing is required to hold two walls and an inside on its own, the same three-block floor a
-    /// single rectangle always has: a wing composes with its neighbours below the eave, but nothing composes a
-    /// room out of a sliver with no width of its own.</para></summary>
+    /// <para>Every wing is required to hold two walls and an inside on its own, the same least span any
+    /// footprint takes (<see cref="RoomFrames.MinFootprintSpan"/>): a wing composes with its neighbours below
+    /// the eave, but nothing composes a room out of a sliver with no width of its own.</para></summary>
     public BuildingPlan? Plan() => Check().Refuses ? null : Read();
 
     /// <summary>Why this prop is no building — every reason, not the first. Empty where it is one. Separate
@@ -419,10 +422,12 @@ public sealed record HouseProp : PlacedProp
                     "every wing is drawn as two opposite corners, each an x and a z",
                     Field: "wings", Subjects: [wing]));
             var (minX, minZ, maxX, maxZ) = Corners(corners);
-            if (maxX - minX + 1 < 3 || maxZ - minZ + 1 < 3)
+            if (maxX - minX + 1 < RoomFrames.MinFootprintSpan || maxZ - minZ + 1 < RoomFrames.MinFootprintSpan)
                 return Findings.Of(new Finding(HousePropRules.WingShape,
-                    $"a wing holds two walls and an inside, so it is at least three blocks each way; this one "
-                    + $"is {maxX - minX + 1} × {maxZ - minZ + 1}", Field: "wings", Subjects: [wing]));
+                    $"a wing holds two walls and an inside, so it is at least "
+                    + $"{RoomFrames.MinFootprintSpan} blocks each way — the least span any building footprint "
+                    + $"may be; this one is {maxX - minX + 1} × {maxZ - minZ + 1}",
+                    Field: "wings", Subjects: [wing]));
         }
 
         var plan = Read()!;

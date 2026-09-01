@@ -12,16 +12,18 @@
  * the shape mirror preview already gives.
  */
 
+import { BUILDING_COLORS } from "./primitive-style.js";
 import { pathRing, pathCenterline } from "../geometry/path.js";
 import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
 
-// One colour family per kind, so a glance separates a route from a stand of trees without reading a label.
+// One colour family per kind, so a glance separates a route from a stand of trees without reading a label. A
+// house takes the shared building ink, since a room's shell is drawn in it too.
 const KIND_STYLE = {
   path:    { fill: "#8d8378", stroke: "#6f6459" },
   water:   { fill: "#4a86c4", stroke: "#2f5f92" },
   flora:   { fill: "#5aa64a", stroke: "#3f7f33" },
-  house:   { fill: "#b08050", stroke: "#7d5732" },
+  house:   BUILDING_COLORS,
   tree:    { fill: "#2f7d46", stroke: "#1f5a31" },
   boulder: { fill: "#8a8f96", stroke: "#5f656d" },
 };

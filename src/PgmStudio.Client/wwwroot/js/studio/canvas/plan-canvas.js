@@ -23,9 +23,12 @@ import {
   pieceMirrorImages, zoneMirrorImages, boxMirrorImages, markerMirrorImages, nearestInterface,
 } from "../plan/plan-doc.js";
 import { viewportWorldRect, snapOut, unionRect, gridStep, renderScaleBar, renderDimensionPill, renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
-import { OBJECTIVE_COLORS } from "../render/primitive-style.js";
+import { OBJECTIVE_COLORS, BUILDING_COLORS } from "../render/primitive-style.js";
 import * as Keys from "../shared/keys.js";
 import { resolvePick } from "../shared/pick.js";
+// The drag holds the floor every building footprint shares. A shell needs two more on each axis,
+// which only the export knows, so that refusal stays where the style binding is read.
+import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
 
 const FIT_MARGIN = 0.82;
 
@@ -52,11 +55,6 @@ const GRID_SNAP_CELLS = 4;
 // fit() frames the working area with this much of it again added on each side, so the tinted region sits
 // inside a visible margin of grid rather than filling the surface edge to edge.
 const FIT_PAD_FRACTION = 0.2;
-// The smallest span a footprint drag may state (WX2's open-ground minimum, RoomFrames.MinSpan(false)): a
-// 2x2 pad and the block of clear floor it keeps on every side. A shell needs two more on each axis, which
-// only the export knows, so the drag holds the floor every room shares and leaves that refusal where the
-// style binding is read.
-const MIN_ROOM_BLOCKS = 4;
 
 
 // Lerp a #rrggbb colour toward white by t∈[0,1] — a higher surface tints the fill lighter.
@@ -548,16 +546,17 @@ export class PlanCanvas extends CanvasBase {
     }
   }
 
-  // The building on a role piece: the rect the shell is stamped on, drawn inside the region that holds it.
-  // Unfilled and dashed, so the ground the piece carries still reads through — the piece is the region and
-  // this is the house, and seeing both at once is the whole reason the footprint is stated.
+  // The building on a role piece: the rect the shell is stamped on, drawn inside the region that holds it, in
+  // the building ink every surface draws one in. Unfilled, so the ground the piece carries still reads
+  // through — the piece is the region and this is the house, and seeing both at once is the whole reason the
+  // footprint is stated.
   #paintFootprints() {
     const cell = this.#doc.globals.cell;
     for (const kind of FOOTPRINT_KINDS)
       for (const marker of markerList(this.#doc, kind) || []) {
         const rect = footprintCell(this.#doc, marker);
         if (rect) this.#painter.rect(rectCellsToBlocks(rect, cell),
-          { stroke: "var(--accent-light)", width: 1.4, dash: [4, 3] });
+          { stroke: BUILDING_COLORS.stroke, width: 2 });
       }
   }
 
@@ -1025,7 +1024,7 @@ export class PlanCanvas extends CanvasBase {
       const bdx = Math.round((fcx - d.grab[0]) * cell), bdz = Math.round((fcz - d.grab[1]) * cell);
       if (!bdx && !bdz) return;
       const f = marker.footprint;
-      const next = clampFootprint(this.#doc, marker, [f[0] + bdx, f[1] + bdz, f[2], f[3]], MIN_ROOM_BLOCKS);
+      const next = clampFootprint(this.#doc, marker, [f[0] + bdx, f[1] + bdz, f[2], f[3]], MIN_FOOTPRINT_SPAN);
       if (next && (next[0] !== f[0] || next[1] !== f[1])) {
         marker.footprint = next; d.moved = true; d.grab = [fcx, fcz]; this.render();
       }
@@ -1144,12 +1143,12 @@ export class PlanCanvas extends CanvasBase {
     const f = marker.footprint;
     let minX = f[0], maxX = f[0] + f[2], minZ = f[1], maxZ = f[1] + f[3];
     const ex = gripSideX(this.#resize.handle), ez = gripSideZ(this.#resize.handle);
-    if (ex === -1) minX = Math.max(0, Math.min(bx, maxX - MIN_ROOM_BLOCKS));
-    else if (ex === 1) maxX = Math.min(pw, Math.max(bx, minX + MIN_ROOM_BLOCKS));
-    if (ez === -1) minZ = Math.max(0, Math.min(bz, maxZ - MIN_ROOM_BLOCKS));
-    else if (ez === 1) maxZ = Math.min(ph, Math.max(bz, minZ + MIN_ROOM_BLOCKS));
+    if (ex === -1) minX = Math.max(0, Math.min(bx, maxX - MIN_FOOTPRINT_SPAN));
+    else if (ex === 1) maxX = Math.min(pw, Math.max(bx, minX + MIN_FOOTPRINT_SPAN));
+    if (ez === -1) minZ = Math.max(0, Math.min(bz, maxZ - MIN_FOOTPRINT_SPAN));
+    else if (ez === 1) maxZ = Math.min(ph, Math.max(bz, minZ + MIN_FOOTPRINT_SPAN));
     const next = clampFootprint(this.#doc, marker,
-      [minX, minZ, maxX - minX, maxZ - minZ], MIN_ROOM_BLOCKS);
+      [minX, minZ, maxX - minX, maxZ - minZ], MIN_FOOTPRINT_SPAN);
     if (next) { marker.footprint = next; this.render(); }
   }
 

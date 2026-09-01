@@ -5641,6 +5641,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   before the step existed. Serializing a style also forced structural equality onto every material holding a
   collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
   member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
+- **A room's building is the single-wing case of a dressed one (WE71).** The author's ruling: a footprint on
+  a wool or a spawn is a special case of the building drawn in the Dressing phase. The stamper had believed it
+  all along — both reach it through one `BuildingPlan`, whose single-rectangle constructor is what a room uses
+  — while everything above it kept two models. **One least span**: `RoomFrames.MinFootprintSpan` (4, the
+  author's number) replaces a room's 4 and a wing's hardcoded 3, so `HP2`'s own remark — *"at least as wide as
+  a room"* — is true for the first time; `shared/building.js` is the canvas twin, and the plan canvas's
+  `MIN_ROOM_BLOCKS` folds into it. **One ink**: `BUILDING_COLORS` in `primitive-style.js`, so the plan canvas,
+  the sketch's structural layer and the dressing layer draw a building the same way and a house dressed onto
+  the ground reads as the same kind of thing as a shell raised on a spawn. **And the prose that denied it**:
+  three docstrings asserted the two shared "nothing else" — `HouseProp`'s, `MaxFootprint`'s and
+  `decoration.md` §8's, the last of which opened by conceding the stamper knows nothing about where a
+  footprint came from. The ceiling stays two numbers, stated apart rather than averaged, until the author
+  rules on it.
 - **The building reaches the sketch, not just the region (TN11).** `PlanCompiler` projected a role piece into
   the sketch as one locked annotation and the rect that went was the *piece*, so the building an author states
   and drags on the plan canvas was invisible downstream — the sketch showed the ground and nothing standing on

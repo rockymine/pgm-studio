@@ -32,6 +32,11 @@ export const OBJECTIVE_COLORS = {
   spawn: "#e0b13c", wool: "#e6e6e6", iron: "#9aa7b4", destroyable: "#6b4f9e", core: "#d4622a",
 };
 
+/** What a building is drawn in, wherever it came from. A room's footprint is the single-wing case of the
+ *  building an author draws in the Dressing phase, so a house dressed onto the ground and the shell raised on
+ *  a spawn or wool room read as one kind of thing and not as two. */
+export const BUILDING_COLORS = { fill: "#b08050", stroke: "#7d5732" };
+
 /**
  * @param {string} treatment  — one of the treatments above.
  * @param {object} opts

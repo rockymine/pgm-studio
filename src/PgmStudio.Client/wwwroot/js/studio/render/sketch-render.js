@@ -8,7 +8,7 @@
 
 import { paintShape } from "./shape-render.js";
 import { toRing } from "../geometry/shape.js";
-import { primitiveStyle, opColors, OBJECTIVE_COLORS } from "./primitive-style.js";
+import { primitiveStyle, opColors, OBJECTIVE_COLORS, BUILDING_COLORS } from "./primitive-style.js";
 import { dyeColorLabel } from "./palette.js";
 
 function shapeStyle(shape, selected) {
@@ -61,11 +61,13 @@ export function paintStructural(painter, shapes) {
   for (const s of shapes ?? []) {
     if (s.type !== "rectangle") continue;
     const hex = ROLE_FILL[s.role] ?? "#8892a0";
-    // Drawn in the canvas ink rather than a role colour: it stands on a box already filled with one, and a
-    // second hue over the first reads as a second thing rather than as the house on that ground.
+    // A building is drawn as a building, in the same ink a dressed house takes, because that is what it is:
+    // a room's footprint is the single-wing case of the one an author draws in the Dressing phase. It is
+    // unfilled where a prop is filled, and only because it stands on a box already filled with its region's
+    // colour — the ink is what says the two are one kind of thing.
     if (s.role === "building") {
       painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },
-        { stroke: "var(--canvas-ink)", strokeAlpha: 0.8, width: 1.5, dash: [5, 3] });
+        { stroke: BUILDING_COLORS.stroke, strokeAlpha: 1, width: 2 });
       continue;
     }
     painter.rect({ min_x: s.min_x, min_z: s.min_z, max_x: s.max_x, max_z: s.max_z },

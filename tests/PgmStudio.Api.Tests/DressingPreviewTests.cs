@@ -130,10 +130,11 @@ public sealed class DressingPreviewTests
     public async Task A_house_the_build_would_refuse_is_refused_by_the_preview_with_the_same_finding()
     {
         // Two wings sharing a row are HJ1 — the dressing pass drops that prop silently, so the preview
-        // certifying it as a drawing would be worse than no preview at all.
+        // certifying it as a drawing would be worse than no preview at all. Both wings clear the least span
+        // any footprint takes, so the joint is the only thing left to refuse them for.
         using var client = ApiTestFactory.Shared.CreateClient();
         var prop = """
-        {"propJson": "{\"kind\":\"house\",\"id\":\"h\",\"seed\":1,\"wings\":[{\"corners\":[[0,0],[7,7]]},{\"corners\":[[0,7],[3,9]]}],\"style\":{}}"}
+        {"propJson": "{\"kind\":\"house\",\"id\":\"h\",\"seed\":1,\"wings\":[{\"corners\":[[0,0],[7,7]]},{\"corners\":[[0,7],[3,10]]}],\"style\":{}}"}
         """;
         var resp = await client.PostAsync("/api/terrain/prop-preview",
             new StringContent(prop, System.Text.Encoding.UTF8, "application/json"));

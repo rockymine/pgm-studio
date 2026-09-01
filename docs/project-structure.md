@@ -106,12 +106,12 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Client` | 201 | 24,098 | `Features/` 115 (nested) · `Components/` 67 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
 | `Contracts` | 31 | 3,039 | flat |
 | `Data` | 15 | 2,530 | `Map/` 5 · `Features/` 4 · `Theme/` 3 · `Schema/` 2 · `Plan/` 1 |
-| `Domain` | 26 | 2,717 | flat |
+| `Domain` | 26 | 2,721 | flat |
 | `Export` | 10 | 2,181 | flat |
 | `Geom` | 49 | 5,887 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 5 · 18 at root |
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 30 | 1,906 | `Migrations/` 29 · 1 at root |
-| `Minecraft` | 88 | 17,514 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Minecraft` | 88 | 17,519 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
 | `Pgm` | 151 | 24,991 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 8 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 11 | 952 | flat |
 <!-- /census -->

@@ -218,8 +218,9 @@ on every side, and by up to five in front of a spawn's door, which is an iron cu
 room it holds to the wall. A footprint smaller than a room can be (`WX2`) or reaching past its piece (`WX12`)
 is refused rather than clamped.
 
-**The footprint is drawn and dragged.** It appears on the canvas as a dashed rectangle inside its piece — the
-region and the building, both visible at once, which is the whole reason the footprint is stated. Clicking it
+**The footprint is drawn and dragged.** It appears on the canvas as a rectangle inside its piece, in the
+building ink every surface draws one in — the region and the building, both visible at once, which is the
+whole reason the footprint is stated. Clicking it
 selects it (between the marker that sits in it and the piece that holds it, in the pick order), and it wears
 the same transform box every authoring surface uses: drag the rectangle to move it, its grips to resize it,
 both a block at a time rather than a cell at a time. A drag is clamped rather than refused — held on the

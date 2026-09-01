@@ -9,6 +9,7 @@ import { DressingDoc, defaultProp, isMarker, isRect, MAX_FOOTPRINT, propAnchor, 
   from "../../src/PgmStudio.Client/wwwroot/js/studio/dressing/dressing-doc.js";
 import { DressingController, DRESSING_TOOLS }
   from "../../src/PgmStudio.Client/wwwroot/js/studio/controllers/dressing-controller.js";
+import { MIN_FOOTPRINT_SPAN } from "../../src/PgmStudio.Client/wwwroot/js/studio/shared/building.js";
 import { paintDressing } from "../../src/PgmStudio.Client/wwwroot/js/studio/render/dressing-render.js";
 import { recordingPainter } from "./_painter-stub.js";
 
@@ -270,9 +271,12 @@ test("a building is a rectangle, and reads the same whichever corner it was drag
   assert.deepEqual(rectFootprint({ points: [[12, 6], [4, 14]] }), forward);
 });
 
-test("a rectangle too small to hold two walls and an inside is no footprint at all", () => {
+test("a rectangle under the least span any footprint takes is no footprint at all", () => {
+  // MIN_FOOTPRINT_SPAN is the one law: a room's footprint is the single-wing case of a building's, so the
+  // floor a wing is held to is the floor a room is held to.
   assert.equal(rectFootprint({ points: [[0, 0], [1, 8]] }), null);
-  assert.notEqual(rectFootprint({ points: [[0, 0], [2, 2]] }), null);
+  assert.equal(rectFootprint({ points: [[0, 0], [MIN_FOOTPRINT_SPAN - 2, 8]] }), null);   // one short
+  assert.notEqual(rectFootprint({ points: [[0, 0], [MIN_FOOTPRINT_SPAN - 1, MIN_FOOTPRINT_SPAN - 1]] }), null);
   assert.equal(rectFootprint({ points: [[0, 0]] }), null);
 });
 

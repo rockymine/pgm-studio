@@ -192,24 +192,28 @@ public static class RoomFrames
     /// measured out from.</summary>
     public const int PadSpan = 2;
 
-    /// <summary>The smallest room there is (WX2): a <see cref="PadSpan"/>-square pad and the block of clear
-    /// floor it keeps on every side, which is also the ring its four chest corners seat in. It is what a room
-    /// needs whether or not a building stands over it — the contents are the same either way and the walls
-    /// are the whole difference. Spans are in blocks, never cells.</summary>
-    public const int MinRoomSpan = PadSpan + 2 * PadWallClearance;
+    /// <summary>The least span <b>any</b> building footprint may be, in blocks (the author's number, WX2/HP2):
+    /// two blocks of something with a block on each side of it. For a room that is a <see cref="PadSpan"/>
+    /// pad and the clear floor it keeps, which is also the ring its four chest corners seat in; for a dressed
+    /// wing it is two walls and an inside. One number rather than two, because a room's footprint is the
+    /// single-wing case of a building's and being played through does not make it want more floor.
+    ///
+    /// <para>It is what a room needs whether or not a building stands over it — the contents are the same
+    /// either way and the walls are the whole difference. Spans are in blocks, never cells.</para></summary>
+    public const int MinFootprintSpan = 4;
 
     /// <summary>Clear floor kept between the pad and every wall (WX4).</summary>
     public const int PadWallClearance = 1;
 
     /// <summary>What a wall costs a footprint on each axis: the one course it stands in, on both sides.
-    /// <see cref="MinRoomSpan"/> already carries the pad and the clearance it keeps, so a shell adds only the
-    /// courses — which is the whole difference between the two minimums (WX2).</summary>
+    /// <see cref="MinFootprintSpan"/> already carries the pad and the clearance it keeps, so a shell adds only
+    /// the courses — which is the whole difference between the two minimums (WX2).</summary>
     public const int WallCost = 2;
 
-    /// <summary>The smallest footprint a room may take (WX2): <see cref="MinRoomSpan"/> on open ground, and
-    /// that plus what a wall costs where a shell stands over it — <b>6×6</b>, a 4×4 interior that still seats
-    /// four corner monuments, the chest stacks and a pad.</summary>
-    public static int MinSpan(bool walled) => MinRoomSpan + (walled ? WallCost : 0);
+    /// <summary>The smallest footprint a room may take (WX2): <see cref="MinFootprintSpan"/> on open ground,
+    /// and that plus what a wall costs where a shell stands over it — <b>6×6</b>, a 4×4 interior that still
+    /// seats four corner monuments, the chest stacks and a pad.</summary>
+    public static int MinSpan(bool walled) => MinFootprintSpan + (walled ? WallCost : 0);
 
     /// <summary>Whether a footprint is too small to hold a room (WX2).</summary>
     public static bool FootprintTooSmall(int width, int depth, bool walled) =>
@@ -350,7 +354,7 @@ public static class RoomFrames
         {
             refusal = new Finding(RoomFrameRules.FootprintTooSmall,
                 $"footprint {maxX - minX}×{maxZ - minZ} is too small to hold a room: the least span is "
-                + $"{MinRoomSpan}×{MinRoomSpan} blocks — a {PadSpan}×{PadSpan} pad and the block of clear "
+                + $"{MinFootprintSpan}×{MinFootprintSpan} blocks — a {PadSpan}×{PadSpan} pad and the block of clear "
                 + $"floor it keeps on every side. A shell over it needs {MinSpan(walled: true)}×"
                 + $"{MinSpan(walled: true)}, and simply does not stand on a footprint smaller than that");
             return null;

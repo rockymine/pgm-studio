@@ -174,8 +174,9 @@ hit-tested, never edited, skipped by the rasterizer, and merged back into the sa
 ground the room stands on and the protection around it — and carry the `intentRef` back to the entity they
 belong to, the `color` their labelled box is filled with, and the height the group's relief is held against.
 `building` is the *footprint* raised inside one of them, the rectangle the shell is stamped on
-(`docs/world-export/structures.md` WX1), drawn as a dashed outline over the box rather than a second filled
-one. It carries no `intentRef` and no height of its own: the region shape is what a group's relief is held
+(`docs/world-export/structures.md` WX1), drawn in the **building ink** — the same one a house dressed onto the
+ground takes, because a room's footprint is the single-wing case of that building — as an outline over the box
+rather than a second filled one. It carries no `intentRef` and no height of its own: the region shape is what a group's relief is held
 against and what an author corrects a height on, so a second shape claiming that identity would be a second
 answer to one question. Its id is the region's plus `-building`, so a recompile writes the same shape over the
 same one. **Only a stated footprint projects** — a placement that leaves it to `WX1`'s default shows its

@@ -91,8 +91,12 @@ rounding it away.
   there is measures **4×4** — a 2×2 pad and the block of clear floor it keeps on every side, which is the
   same ring its four chest corners seat in. That is the span WX2 refuses under, everywhere and whatever is
   bound, because a pad, four chest corners and the monument seats are what a room *is* and they need that
-  floor either way. A **shell** adds the one course of wall it stands in on each side, so a footprint
-  carrying one is at least **6×6** — `MinRoomSpan` plus `WallCost`, one derivation rather than two numbers.
+  floor either way. **It is the least span any building footprint takes**, not a room's alone: a room's
+  footprint is the single-wing case of the building an author draws in the Dressing phase, and a dressed wing
+  is held to the same 4 by `HP2` — two walls and an inside where a room has a pad and its ring. One number,
+  `MinFootprintSpan`, and the author's. A **shell** adds the one course of wall it stands in on each side, so
+  a footprint carrying one is at least **6×6** — that span plus `WallCost`, one derivation rather than two
+  numbers.
   A footprint between the two is not refused by anybody: the room is there and the building simply is not,
   and the resolved frame says so by carrying a `Wall` of 0. Every stamper reads that rather than asking
   again whether a style was bound (§9), so a bound style on a footprint too small for it raises nothing.

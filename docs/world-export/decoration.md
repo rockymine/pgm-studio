@@ -630,12 +630,20 @@ A building is dressing that already had a stamper. The shell a wool cage and a s
 footprint came from — so a **drawn rectangle** is as good an origin as a plan piece, and a house becomes the
 sixth prop.
 
-What differs from a room is worth stating plainly, because the two share a stamper and nothing else. A room's
-footprint is its plan piece inset one block (WX1), it is stamped **before** the painter, and it carries a pad,
-monuments, chests and an entry contract because the map is played through it. A prop's footprint is a rectangle
-someone dragged, it is stamped **after** the painter with the rest of the dressing, and it carries none of
-those. Spawns and wools are untouched by any of this: they still resolve their frames from pieces and markers,
-at the stage they always did.
+**A room's building is the single-wing case of this one**, and the studio says so rather than leaving it to be
+noticed. Both are a footprint and a shell; both reach the stamper through one `BuildingPlan`, whose
+single-rectangle constructor is what a room uses; both are held to one least span (`RoomFrames.MinFootprintSpan`,
+`WX2`/`HP2`); and both are drawn in one ink wherever they appear, so a house dressed onto the ground and a
+shell raised on a spawn read as one kind of thing. What a room adds is what being played through asks for — a
+pad, monuments, chests and an entry contract — and when it is stamped: **before** the painter rather than
+after it with the rest of the dressing. Spawns and wools still resolve their frames from pieces and markers,
+at the stage they always did; what changed is that the rectangle underneath is no longer a second model of a
+building.
+
+One thing still differs by where a footprint came from, and it is the **ceiling**. A prop is capped at
+`MaxFootprint` covered cells; a room's building is bounded by the region it stands on (`WX12`) and capped at
+20×20 by `ST9`. Whether those should be one number is the author's, and until it is answered the two are
+stated apart rather than quietly averaged.
 
 **The geometry is a third interaction.** A point is a click and an outline is a trace; a building is a
 press-drag-release rectangle, because a footprint is what the stamper takes and a stamper takes a box. It is

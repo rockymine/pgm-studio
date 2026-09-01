@@ -84,12 +84,27 @@ public sealed class HousePropTests
         => footprint is null ? null : (footprint.MinX, footprint.MinZ, footprint.Width, footprint.Depth);
 
     [Test]
-    public async Task A_rectangle_too_small_to_hold_two_walls_and_an_inside_is_no_footprint_at_all()
+    public async Task A_rectangle_under_the_least_span_any_footprint_takes_is_no_footprint_at_all()
     {
-        await Assert.That(House(0, 0, 1, 8).Plan()).IsNull();     // two blocks across
-        await Assert.That(House(0, 0, 2, 2).Plan()).IsNotNull();  // the smallest house there is
+        // One law for a wing and for a room, since a room's footprint is the single-wing case of a
+        // building's: whatever RoomFrames.MinFootprintSpan is, a wing is held to it.
+        var least = RoomFrames.MinFootprintSpan;
+        await Assert.That(least).IsEqualTo(4);                                   // the author's number
+        await Assert.That(House(0, 0, 1, 8).Plan()).IsNull();                    // two blocks across
+        await Assert.That(House(0, 0, 2, 8).Plan()).IsNull();                    // three, one short
+        await Assert.That(House(0, 0, least - 2, 8).Plan()).IsNull();            // one short, whatever it is
+        await Assert.That(House(0, 0, least - 1, least - 1).Plan()).IsNotNull(); // the smallest house there is
         await Assert.That(new HouseProp { Wings = [new AuthoredWing([[0, 0]])] }.Plan()).IsNull();
         await Assert.That(new HouseProp { Wings = [] }.Plan()).IsNull();
+    }
+
+    [Test]
+    public async Task The_least_span_covers_the_pad_a_room_is_built_around()
+    {
+        // The one number serves two readings — two walls and an inside for a wing, a pad and the clear floor
+        // it keeps for a room — and it is only one number while it is enough for both.
+        await Assert.That(RoomFrames.MinFootprintSpan)
+            .IsGreaterThanOrEqualTo(RoomFrames.PadSpan + 2 * RoomFrames.PadWallClearance);
     }
 
     [Test]

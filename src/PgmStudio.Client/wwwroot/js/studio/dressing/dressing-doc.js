@@ -8,6 +8,8 @@
  * deserializes, with the same `kind` discriminator, so there is no second model of a prop.
  */
 
+import { MIN_FOOTPRINT_SPAN } from "../shared/building.js";
+
 /** The things that can be placed, in the order their tools sit on the toolbar. */
 export const PROP_KINDS = ["stroke", "water", "flora", "house", "tree", "boulder"];
 
@@ -85,7 +87,7 @@ export const withCorners = (wing, corners) => ({ ...(wing ?? {}), corners });
 /** The largest footprint a placed building may cover, in blocks — three times the 8x8 shell a wool cage is
  *  stamped in, so a 12x16 house is buildable and a 20x30 one is not. Restated here rather than served because
  *  it is a rule the *canvas* has to apply while a drag is still in the pointer, before anything could be asked
- *  of the server; it is the same number `HouseProp.MaxFootprint` holds, and the same reason the 3-block minimum
+ *  of the server; it is the same number `HouseProp.MaxFootprint` holds, and the same reason the minimum span
  *  is restated below it. */
 export const MAX_FOOTPRINT = 192;
 
@@ -97,7 +99,8 @@ export const MAX_FOOTPRINT = 192;
 export function rectFootprint(prop) {
   const plan = rectPlan(prop);
   if (!plan) return null;
-  return plan.width < 3 || plan.depth < 3 || plan.width * plan.depth > MAX_FOOTPRINT ? null : plan;
+  return plan.width < MIN_FOOTPRINT_SPAN || plan.depth < MIN_FOOTPRINT_SPAN
+      || plan.width * plan.depth > MAX_FOOTPRINT ? null : plan;
 }
 
 /** The rectangle two corners bound, whatever its size — what a drag in progress is, before it is judged. Takes
