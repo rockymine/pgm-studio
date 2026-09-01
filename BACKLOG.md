@@ -164,16 +164,6 @@ below are what that would cost. Each names the question that has to be answered 
   pass could be merged out of the first. Whether the rest is worth an incremental cache depends on a number
   nobody has: a typical board is ~93 ms end to end now, so this is the 200×200 case, not the common one.
 
-- [ ] **S25b — Make the surfaced spawn/wool pieces movable, writing the move back to the intent.** S25 landed
-  the pieces as **locked** read-only rectangles (`FEATURES.md`; `role`/`intentRef` on `SketchShape`, projected
-  by `PlanCompiler`, skipped by the rasterizer, rendered as labelled boxes). The next slice makes them
-  draggable: a move writes the new rect back to the intent's `Protection`, which is the region itself, so the
-  sketch and the intent don't diverge. The `building` shape inside it moves the same way and writes
-  `Footprint`. **Resize stays deferred** even here — a spawn/wool's `at` is a fractional offset into the
-  region, so resizing shifts the marker and needs its own handling. Needs a write path (sketch → intent); the
-  read projection already exists for both shapes. Then extend beyond spawn/wool to the other intent entities
-  (build / monuments / iron) as they each earn a sketch surface.
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -364,25 +354,15 @@ it, what they can *see* while saying it, and what is on the shelf to say it abou
   *Held pending the Edit tool's own question: the author has never driven it, and the intent model is what
   authors a map now. Wiring three inspectors is work on a surface that may be retired whole.*
 
-- [~] **B107 — Make a structural piece selectable on the sketch canvas, and draw an absolutely-placed goal.**
-  The backend half is landed (`FEATURES.md`): a structural shape's stated height survives a recompile, marked
-  per field and carried by `intentRef`. Three reaches are missing, all in the canvas and render layers.
+- [ ] **TS75 — A destroy goal has no sketch presence, and no plan raster draws it.** A destroyable and a core
+  carry **no rect in the plan** — `Anchor` is a bare point, and that is correct: neither has a footprint. So
+  their sketch presence is a **movable point with a stated height**, not a rect, and the height is the
+  interesting half — the one thing the plan cannot know before the relief runs. `GET /plans/{id}/png` has the
+  same gap: `B128`'s empty-`piece` marker is how a landform carries an objective without a tier manufactured
+  to hold it, and the one picture the plan layer offers cannot show it.
 
-  **Selection.** `sketch-canvas.js` documents structural pieces as render-only — never hit-tested, never
-  selected, never edited — so nothing can write the flag a correction would set. It wants selection, a drag,
-  and an inspector row for the stated height.
-
-  **The destroy goals.** A destroyable and a core carry **no rect in the plan** — `Anchor` is a bare point,
-  and that is correct: neither has a footprint. So their sketch presence is a **movable point with a stated
-  height**, not a rect. The height is the interesting half, being the one thing the plan cannot know before
-  the relief runs.
-
-  **The raster.** `GET /plans/{id}/png` draws `tallow-mirefast`'s five pieces, both spawns and the legend, and
-  nothing at `(0, −50)` where the wardstone stands. `B128`'s empty-`piece` marker is how a landform carries an
-  objective without a tier manufactured to hold it, and the one picture the plan layer offers cannot show it.
-
-  *Moving a piece rather than raising it is `S25b`: rect and position keep tracking the plan, so a recompile
-  stays authoritative about where while the author stays authoritative about how high.*
+  *`tallow-mirefast`: the raster draws five pieces, both spawns and the legend, and nothing at `(0, −50)`
+  where the wardstone stands.*
 
 
 ## Mapgen authoring tasks
@@ -563,17 +543,6 @@ model — everything else from that pool has moved to the heading its subject ow
 
   **The stacked half of this is `TS23`**, whose `Q4` is this entry's question asked over two layers rather
   than two nested tiers. Whatever settles one settles the other, and neither may answer it alone.
-
-- [ ] **B145 — A spawn or wool room's ground carries no theme.** A role piece reaches the sketch as a
-  role-tagged annotation and `SketchRasterizer` skips it outright (`line 1027`), so it is never a shape a
-  theme can be scoped to: the ground under a room is whatever its fused component paints, and there is no way
-  to state a room floor. It is also what `StructureStamper.StampFoundation` levels in, so the material that
-  fills a dip under a footprint is the same question. The shape to hang it on is there: a room projects a `building`
-  annotation carrying its footprint. Wants a theme scope on that shape, and the levelling fill reading
-  it.
-
-  *re-probed on `marlstone-steps`: the column under the red wool at `(0, 85)` is raw `1:0` Stone from y24 down
-  to y1, on a board whose `crest` theme is quartz. Reported independently by four runs.*
 
 - [ ] **B200 — Let the Theme phase author an inward band stack.** The JSON accepts one and the painter draws
   it, so the only way to author a ring stack today is to edit the document by hand — the same reach fault

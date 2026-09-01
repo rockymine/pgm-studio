@@ -1,8 +1,8 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 102 open entries and `TODO.md` none — the focus board is empty between programmes. This
-document is the reading that says which of them are defects, which are questions, which share a cause, and
-what order drains them. Its subject is the board
+`BACKLOG.md` holds 99 open entries and `TODO.md` four — the programme that pulls a room's building and a
+dressed one into one model. This document is the reading that says which of them are defects, which are
+questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
 `CLAUDE.md`'s standing rule is that a change updates the document that already covers its subject rather than
 growing a new one, and the board had no such document.
@@ -13,14 +13,32 @@ corrected to match.
 
 ## Where the board stands
 
-The board carries **102 open entries over 18,821 words**: a median entry of 155 words, 35 between 150 and
-250, and **18 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
-investigating until it is". `B21` alone is 1,070 words, `B107` 541, `B249` 501, `TS74` 414 and `G164` 389.
-The prefix spread is `B` 35, `WE` 15, `G` 12, `TS` 8, `S` 8, `C` 7, and seven others in single figures.
+The two boards carry **103 open entries over 17,597 words**: a median entry of 149 words, 37 between 150 and
+250, and **12 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
+investigating until it is". `B21` alone is 1,068 words, `B249` 504, `WS3` 356 and `G154` 354. The prefix
+spread is `B` 35, `WE` 16, `G` 12, `TS` 9, `S` 8, `C` 7, and seven others in single figures.
 
-**The long tail is growing while the board shrinks.** Seven entries have left since this was first measured
-and the over-250 count has gone from 13 to 18, because what leaves is the short actionable entry and what
-stays is the one nobody can start. That is the reading the median hides.
+**An entry is measured from its bullet to the next bullet *or the next heading*.** Counting to the next
+bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail: the
+same board reads as 18 entries over 250 words rather than 12, and puts three entries on the longest list that
+do not belong there. Every figure in this paragraph is retaken by:
+
+```sh
+python3 - <<'PY'
+import re, pathlib, collections
+rows = []
+for f in ('BACKLOG.md', 'TODO.md'):
+    text = pathlib.Path(f).read_text()
+    for m in re.finditer(r'(?m)^- \[[ ~]\] \*\*([A-Z]+\d+[a-z]?)', text):
+        nxt = re.search(r'(?m)^(?:- \[[ ~]\] \*\*|#{2,} )', text[m.end():])
+        rows.append((m.group(1), len(text[m.start(): m.end() + nxt.start() if nxt else len(text)].split())))
+lens = sorted(n for _, n in rows)
+print(len(rows), 'entries,', sum(lens), 'words, median', lens[len(lens) // 2],
+      '| 150-250:', sum(1 for n in lens if 150 <= n <= 250), '| over 250:', sum(1 for n in lens if n > 250))
+print('prefixes:', collections.Counter(re.match(r'([A-Z]+)', i).group(1) for i, _ in rows).most_common())
+print('longest:', sorted(((n, i) for i, n in rows), reverse=True)[:5])
+PY
+```
 
 The board's own id discipline holds exactly. No id appears in two of the three files, none is duplicated
 inside one, and none collides with a rule id served by `GET /api/rules` — the two checks `CLAUDE.md` rule 4
@@ -114,14 +132,19 @@ construction, so the sketch's own ground is never the thing scored. `G231`, `B10
 this cause and have landed: each moved a term onto the artifact its claim is about rather than the one
 nearest to hand.
 
-**A room reaches the sketch as a picture and nothing may write back through it.** The plan projects a
-spawn or wool room into the sketch as locked annotations — since `TN11`, two per room: the `Protection`
-region and the `building` footprint inside it. Every one of them is render-only. Nothing can be selected, so
-nothing can set the `height_authored` flag the backend already reads; nothing can be dragged, so a corrected
-rectangle has no way back to the intent; and the rasterizer skips them outright, so the ground under a room
-is whatever its fused component paints and a room floor cannot be stated at all. `B107` · `S25b` · `B145`.
-The read half of all three is built and the write half of none of it is, which is why they are one change
-rather than three.
+**A building is a footprint and a shell, and the studio has two models of it.** A room states one `Rect`, a
+dressed `HouseProp` states `AuthoredWing[]` — so a room is the single-wing case, and the author's ruling is
+that it *is* one: a footprint on a wool or a spawn is a special case of the building an author draws in the
+Dressing phase. Nothing in the code says so. A wing is refused under 3 blocks across, a room under 4, a
+shelled room under 6; the covered area is capped at 192 cells against `ST9`'s 400; and two renderers draw
+them, one filled, ghosted and selectable, the other dashed and locked. `WE71` is that change, and `B107`,
+`S25b` and `B145` are what stop being separate work once a room's building is drawn and hit-tested by the
+code that already does both for a prop.
+
+Three docstrings assert the opposite in prose, which is the tell `CLAUDE.md` names: `HouseProp`'s *"nothing
+else is shared, and the difference is worth stating"*, `MaxFootprint`'s *"nothing a dressing limit has any
+business refusing"*, and `decoration.md` §8's *"the two share a stamper and nothing else"* — the last of
+which opens by conceding that the stamper knows nothing about where a footprint came from.
 
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
@@ -164,8 +187,8 @@ itself says needs labelled bad maps rather than more measurement).
 - **Defects and blocked decisions** — the two sections above, about 45 entries once the two that appear in
   both are counted once. These genuinely belong on a board, because each has a definite end.
 - **Reach gaps** — the backend exists and the browser cannot say it. `B261`, `B260`, `B263`, `B264`,
-  `B200`, `WE54`, `N08`, `S25b`, `B107`, `B145`, `TS64`. These have never been the whole of a `TODO.md`
-  programme, and the three that name the sketch's structural annotations are the group that comes up next.
+  `B200`, `WE54`, `N08`, `TS64`. Three more — `B107`, `S25b`, `B145` — were of this population until the
+  building's one model turned them from three reaches into one; they are on `TODO.md` with `WE71`.
 - **A roadmap** — `B21` (an MCP head, 1,070 words), `B262`, `B258`, `B221`, `S46`, `S56`, `S60`, `S47`,
   `S34`, `TS51`, `TS63`, `G187`, `G164`, `G178`, `B92`, `B54`, `B9`, `B265`, `WE34`. Nineteen
   entries — describing capabilities the studio does not have and nobody is blocked on. They have no end
@@ -193,17 +216,18 @@ run is `TS31` (whose filed fix is contradicted by a measurement in the code it w
 measurement entries that belong to Phase 4.
 
 **Phase 2 — fix the causes, not the entries.** The six foundations, each in the order that maximises what it
-closes: the room's write path (3 entries), the compiler's lost identity (3), the layer word (5), the live
+closes: the building's one model (4 entries), the compiler's lost identity (3), the layer word (5), the live
 findings feed (4), the term's subject (2), and the client reading its own schema (5). This is `CLAUDE.md`'s
 own doctrine — *"the board is emptied concept by concept"* — applied to groups it has already named.
 
-**The room's write path is first among them**, because the split just finished is what makes it small. A
-room's region and its building are now separate rectangles on the intent, on the plan canvas and in the
-sketch alike, so *what* a drag would write back is settled and only the writing is missing. It is also the
-one cause whose three entries share a single missing mechanism rather than a shared subject: the annotation
-is render-only, and selection, the drag and the theme scope are three things that one hit-test unlocks.
+**The building's one model is first among them, and is `TODO.md`'s current programme.** The split just
+finished is what makes it small: a room's region and its building are separate rectangles on the intent, on
+the plan canvas and in the sketch alike, so *what* a drag would write back is already settled. Once a room's
+building is the prop it is a special case of, selection, the drag and the theme scope are three things one
+hit-test unlocks rather than three features to build.
 
-**Phase 3 — whatever `TODO.md` holds.** A programme pulled up from `BACKLOG.md` is worked to its end before
+**Phase 3 — whatever `TODO.md` holds.** It currently holds Phase 2's first foundation, pulled up early
+because the split that preceded it is what made the entries small. A programme pulled up from `BACKLOG.md` is worked to its end before
 anything above interrupts it, except a Phase 1 defect in the surface it is building. The board runs one
 programme at a time and says at the top which one.
 
@@ -221,8 +245,8 @@ condition is allowed to sit.
 Four rules, each of which the repository already believes and none of which it enforces:
 
 **Nothing is filed without a reproduction.** An entry that cannot say what fails, at which coordinates, is
-the five-paragraph entry `CLAUDE.md` rule 10 warns about. Eighteen entries are over 250 words today, up from
-thirteen: the board sheds short entries and keeps long ones, so the count rises as the board shrinks.
+the five-paragraph entry `CLAUDE.md` rule 10 warns about. Twelve entries are over 250 words today, one fewer
+than when this was written, and `B21` is a third of the excess by itself.
 
 **Nothing is closed without a test.** The verified defects above are all invisible to a suite of 3,153 tests.
 `LibrarySeedTests` is the shape: pin what is wrong, so it fails when it changes in either direction.
