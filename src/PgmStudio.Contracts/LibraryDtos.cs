@@ -309,7 +309,17 @@ public sealed record RoomStyleDetail(
     : RoomStyleSaveRequest(
         Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
         Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
+        Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth)
+{
+    /// <summary>The style as the request that would store it unchanged — every field, including the ones an
+    /// editor draws no control for. An editor loading a row into a draft takes this rather than restating the
+    /// field list, because a restated list is one a later field is added outside of, and what is left out of
+    /// the draft is written away on the next save.</summary>
+    public RoomStyleSaveRequest AsSaveRequest() => new(
+        Name, FloorDepth, WallHeight, RoofForm, Pitch, Overhang, RoofHole, RidgeCap, BorderWidth, InlayInset,
+        Storeys, StoreyClear, Windows, Porch, Door, DoorHeight, RoofStyleId, PorchStyleId, StoreyStack,
         Courses, Beams, RoofSlab, RoofSlabData, GableWindows, DoorHead, DoorWidth);
+}
 
 /// <summary>Create or replace a room style (POST /api/room-styles, PUT /api/room-styles/{id}) — a whole
 /// building: the parts it is finished in, the numbers that decide its proportions, and the library rows it

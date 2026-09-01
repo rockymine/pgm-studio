@@ -194,13 +194,10 @@ public partial class HouseEditor
         }
         editingId = detail.Id;
         draftName = detail.Name;
-        draft = new RoomStyleSaveRequest(
-            detail.Name, detail.FloorDepth, detail.WallHeight,
-            detail.RoofForm, detail.Pitch, detail.Overhang, detail.RoofHole, detail.RidgeCap,
-            detail.BorderWidth, detail.InlayInset, detail.Storeys, detail.StoreyClear,
-            detail.Windows, detail.Porch,
-            detail.Door, detail.DoorHeight,
-            detail.RoofStyleId, detail.PorchStyleId, detail.StoreyStack, detail.Courses);
+        // Every field the row states, not the ones the editor happens to draw a control for: a house loaded
+        // through a shorter list and saved back writes the rest away, so a beam, a door head or a slab roof
+        // would be lost by opening the row and pressing Save.
+        draft = detail.AsSaveRequest();
     }
 
     // ── the course stacks ──────────────────────────────────────────────────────────────────────────
@@ -409,6 +406,94 @@ public partial class HouseEditor
 
     private Task Window(Func<RoomWindowDto, RoomWindowDto> edit)
         => Knob(d => d with { Windows = edit(d.Windows ?? NoWindows) });
+
+    private Task SetWindows(RoomWindowDto window) => Knob(d => d with { Windows = window });
+
+    // ── the gable ──────────────────────────────────────────────────────────────────────────────────
+    /// <summary>Whether the gable carries an opening of its own. Absent is a blank gable, not an opening of
+    /// form "none" — the form it would come back at is the one the author last chose.</summary>
+    private bool Gabled => draft?.GableWindows is not null;
+
+    private Task ToggleGableWindows() => Knob(d => d with
+    {
+        // A gable starts from the wall's own window, because a building whose gable is glazed differently
+        // from its wall is a decision rather than a default.
+        GableWindows = d.GableWindows is null ? (d.Windows ?? NoWindows) with { Sill = 1 } : null,
+    });
+
+    private Task SetGableWindows(RoomWindowDto window) => Knob(d => d with { GableWindows = window });
+
+    // ── the timber frame ───────────────────────────────────────────────────────────────────────────
+    /// <summary>Whether the wall is framed. A beam is a log and only a log (<c>HS1</c>), so the frame an
+    /// author switches on starts as one rather than as a block the gate would refuse.</summary>
+    private bool Beamed => draft?.Beams is not null;
+
+    private Task ToggleBeams() => Knob(d => d with
+    {
+        Beams = d.Beams is null ? new RoomBeamDto(Block: 17, Data: 0, Reach: 3) : null,
+    });
+
+    private Task PickBeamBlock(PaintBlockDto block)
+        => Beams(beams => beams with { Block = block.Id, Data = block.Data });
+
+    private Task SetBeamReach(ChangeEventArgs e)
+        => Beams(beams => beams with { Reach = Math.Clamp(Parse(e, beams.Reach), 0, 16) });
+
+    private Task Beams(Func<RoomBeamDto, RoomBeamDto> edit)
+        => Knob(d => d.Beams is null ? d : d with { Beams = edit(d.Beams) });
+
+    // ── the slab a roof steps in ───────────────────────────────────────────────────────────────────
+    /// <summary>Whether the roof climbs half a block at a time. -1 is a roof laid in whole blocks, which is
+    /// what every style is until a slab is named.</summary>
+    private bool Slabbed => (draft?.RoofSlab ?? -1) >= 0;
+
+    private Task ToggleRoofSlab() => Knob(d => d with
+    {
+        RoofSlab = d.RoofSlab >= 0 ? -1 : 126,     // wooden slab
+        RoofSlabData = 0,
+    });
+
+    private Task PickRoofSlab(PaintBlockDto block)
+        => Knob(d => d with { RoofSlab = block.Id, RoofSlabData = block.Data });
+
+    // ── the doorway ────────────────────────────────────────────────────────────────────────────────
+    private Task SetDoorWidth(ChangeEventArgs e)
+        => Knob(d => d with { DoorWidth = Math.Clamp(Parse(e, d.DoorWidth), 2, 8) });
+
+    /// <summary>Whether a lintel is stated. Without one the wall simply carries over the opening.</summary>
+    private bool Headed => draft?.DoorHead is not null;
+
+    /// <summary>Whether the head's middle is spanned at all — a square head is its two corners and nothing
+    /// between, so it has no fill to choose.</summary>
+    private bool DoorHeadFilled => DoorHeadForms.Canonical(draft?.DoorHead?.Form) == DoorHeadForms.Arched;
+
+    private static readonly IReadOnlyList<SelectOption> DoorHeadFormOptions =
+        [.. DoorHeadForms.All.Select(form => new SelectOption(form.Id, form.Name))];
+
+    private static readonly IReadOnlyList<SelectOption> DoorHeadFillOptions =
+        [.. DoorHeadFills.All.Select(fill => new SelectOption(fill.Id, fill.Name))];
+
+    private Task ToggleDoorHead() => Knob(d => d with
+    {
+        // Oak stairs over an upside-down oak slab: one material, which is what HS4 asks of the pair.
+        DoorHead = d.DoorHead is null
+            ? new RoomDoorHeadDto(DoorHeadForms.Arched, Block: 53, DoorHeadFills.UpperSlab, FillBlock: 126, FillData: 0)
+            : null,
+    });
+
+    private Task SetDoorHeadForm(string picked)
+        => Head(head => head with { Form = DoorHeadForms.Canonical(picked) });
+
+    private Task SetDoorHeadFill(string picked)
+        => Head(head => head with { Fill = DoorHeadFills.Canonical(picked) });
+
+    private Task PickDoorHeadBlock(PaintBlockDto block) => Head(head => head with { Block = block.Id });
+
+    private Task PickDoorHeadFill(PaintBlockDto block)
+        => Head(head => head with { FillBlock = block.Id, FillData = block.Data });
+
+    private Task Head(Func<RoomDoorHeadDto, RoomDoorHeadDto> edit)
+        => Knob(d => d.DoorHead is null ? d : d with { DoorHead = edit(d.DoorHead) });
 
     // ── the porch ──────────────────────────────────────────────────────────────────────────────────
     private RoomPorchDto? Porch => draft?.Porch;

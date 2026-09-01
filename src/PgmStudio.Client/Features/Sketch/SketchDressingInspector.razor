@@ -30,6 +30,18 @@
       </DetailHeader>
       <p class="section-desc">@Info.Blurb</p>
 
+      @* ── what the last canvas operation did, or would not do ─────────────────────────────────── *@
+      @if (note is not null)
+      {
+        <p class="section-desc dressing-note">@note</p>
+      }
+
+      @* ── why this prop is not one the pass would take ─────────────────────────────────────────── *@
+      @if (refusal is not null)
+      {
+        <p class="section-desc dressing-refusal">@refusal</p>
+      }
+
       @* ── what it makes ───────────────────────────────────────────────────────────────────────── *@
       @if (preview is not null)
       {
@@ -282,6 +294,18 @@
           <p class="section-desc">No room styles saved yet — the building keeps the built-in shell until the
             library has one. Author one on the <strong>Library</strong> tool's Rooms tab.</p>
         }
+
+        <div class="section-header section-header--ruled"><h2 class="section-title">Wings</h2></div>
+        <p class="section-desc">A building is one rectangle or several touching ones — an L, a T or a U —
+          stamped as a single shell under one roof. Shift-click a second building to pick both, then
+          <kbd>@JoinChord</kbd> to join them; the same chord on a joined building takes it apart again.</p>
+        <div class="panel-actions">
+          <Button OnClick="Join" Disabled="@(!CanJoin)">
+            <i data-lucide="@(Wings > 1 ? "ungroup" : "group")"></i> @JoinLabel
+          </Button>
+          <Badge Kind="dim">@Wings @(Wings == 1 ? "wing" : "wings")</Badge>
+          @if (picked > 1) { <Badge Kind="neutral">@picked selected</Badge> }
+        </div>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Door</h2></div>
         <p class="section-desc">Which wall the way in is cut through. It turns with the building at every

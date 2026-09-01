@@ -411,83 +411,71 @@ public partial class SketchTool
     private async Task SetTool(string t)
     {
         tool = t;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setTool", t);
     }
 
     private async Task SetOperation(string o)
     {
         op = o;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setOperation", o);
     }
 
     private async Task OnModeChange(ChangeEventArgs e)
     {
         mode = e.Value?.ToString() ?? "rot_180";
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setMode", mode);
     }
 
     private async Task OnCenterX(double v)
     {
         centerX = v;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
 
     private async Task OnCenterZ(double v)
     {
         centerZ = v;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setCenter", centerX, centerZ);
     }
 
     private async Task ToggleMirror()
     {
         mirrorOn = !mirrorOn;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setMirrorVisible", mirrorOn);
     }
 
     private async Task ToggleShapes()
     {
         shapesOn = !shapesOn;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setShapesVisible", shapesOn);
     }
 
     private async Task ToggleChunks()
     {
         chunksOn = !chunksOn;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setChunkVisible", chunksOn);
     }
 
     private async Task ToggleBlocks()
     {
         blocksOn = !blocksOn;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setBlocksVisible", blocksOn);
     }
 
     private async Task ToggleRelief()
     {
         reliefOn = !reliefOn;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setReliefVisible", reliefOn);
     }
 
     private async Task ToggleSnap()
     {
         snapOn = !snapOn;
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("setSnap", snapOn);
     }
 
     private async Task OnFit()
     {
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null) await handle.InvokeVoidAsync("fitToBbox");
     }
 
@@ -512,7 +500,6 @@ public partial class SketchTool
     private async Task ToggleIsoLayer(string id)
     {
         if (!isoHidden.Remove(id)) isoHidden.Add(id);
-        try { await JS.InvokeVoidAsync("studio.unregisterKeys", KeyOwner); } catch { }
         if (handle is not null)
             await handle.InvokeVoidAsync("setIsoLayerShown", id, !isoHidden.Contains(id));
         StateHasChanged();

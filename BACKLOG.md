@@ -408,11 +408,6 @@ below are what that would cost. Each names the question that has to be answered 
   that offers `laidLog` and silently replaces the material with a stone `solid` when it is chosen — a kind
   the client cannot build stops being offerable.
 
-- [ ] **B260 — Three room-style fields have no control at all.** `Beams`, `GableWindows` and `DoorHead`
-  appear nowhere in the client, so a beam, a gable window and a door lintel are authorable only over HTTP.
-  `RoofSlab`/`RoofSlabData` are carried through a save but editable only on a bound `RoofStyle` row, never on
-  the room. Five of the twenty-five fields, and the five that make a building look built.
-
 - [ ] **B200 — Let the Theme phase author an inward band stack.** The JSON accepts one and the painter draws
   it, so the only way to author a ring stack today is to edit the document by hand — the same reach fault
   the sketch's height controls have. `Components/Terrain/MaterialEditor.razor`'s `Layered` case
@@ -588,65 +583,6 @@ mirror clean and the traversability whole on every board named below.
 
   *author, 2026-08-14 · Weirgate's `dock-w` touches only `front` and `lane-w`; `hub` is a lane away, and the
   dock's south edge sits flush on the build region's northern line at `z −20`.*
-
-## The house: what it stamps, where it stands, and what an author can say
-
-**The stamper.**
-
-- [ ] **WE2 — Settle whether the eave should descend by `pitch` at all** (author). Distances are measured from
-  the wall line and go negative, so the overhang tip drops one course per unit of pitch while the wall top
-  stays put: a steeper roof reaches further down the wall rather than sitting on it. The eave courses are the
-  roof's material now, so nothing shows through — the open question is the geometry, and it is a question
-  about what a roof looks like rather than one the code can answer. If the answer is that it should not, the
-  change is in `RoofField.Rise`, holding the distance at zero outside the wall line instead of letting it go
-  negative; the overhang then runs flat at the wall's own course.
-
-  *measured on a 12×9 wing, `overhang: 1`, wall 5 courses on a floor at y8 (wall top y13): pitch 2 puts the
-  overhang tip at y12, pitch 3 at y11, pitch 4 at y10 — probed at `(7, y, −1)`.*
-
-- [ ] **B225 — A march tests another wing's walls where the primary pass tests its whole roof.**
-  `Overtopped` asks `otherField.Covers` — the wing's walls **plus its overhang** — while `OtherRoofCrownOver`,
-  which decides where a march stops, asks `otherRoofed.Holds`, the walls alone. Reading `RoofField` settles
-  what the difference is and not whether it is right: `Covers` is `Holds` grown by the overhang on all four
-  sides, so the two disagree only on the overhang ring, and the march never reaches that ring on its own
-  account because `Marched` breaks on `body.Holds` — the union of the *wall* rectangles. The one case that
-  survives is a ring lying over a third wing's walls, where that wing answers for itself with its own crown
-  and the overhanging wing's is never asked. Whether a course marching under a neighbour's verge should stop
-  there is a question about what a roof looks like, so it wants a built figure rather than an argument:
-  stamp a wing whose march runs beneath another's gable overhang and read the valley.
-
-- [ ] **B92 — Give `HouseStyle` a fill material, so a building can be a mass rather than a place.**
-  `HouseStamper` leaves the volume its walls enclose as air, which is right for a village and wrong for a
-  scenery building that is not enterable and for a run of buildings sealing the edge of the board — the only
-  way scenery does the work of a boundary in a mode where nothing may be placed. **The facade is kept**: the
-  windows and door stay where they are and the fill sits *behind* them, so a window reads as an unlit interior
-  rather than a hole into rock. A dark fill (black wool) is the idiom, which is why it is a knob and not a
-  constant. A style field rather than a stamper flag, so a style carries whether it is a place or a mass.
-
-  Two things to settle: whether the fill respects the storey stack (a building filled to its top course and one
-  filled to its first floor are different buildings), and how deep behind an opening the fill starts (flush and
-  one course back read differently through the gap). `DressingScope` already protects the ground under a
-  stamped building, so nothing downstream needs teaching.
-
-**Placement — where a building may stand, and what it reserves.**
-
-- [ ] **G178 — A wing has no doorway into its neighbour.** Where two wings meet the plan is simply open between
-  them, which is right; where one projects into another its gable end is a wall from the ground up, which is
-  also right and leaves the projecting wing reachable only from outside. A doorway cut between two wings —
-  through the shared wall a projecting wing's gable end stands in, or through the wall a taller wing's storey
-  carries above a stopped neighbour (`structures.md` §7.6) — wants a run to sit in and a rule for which wall it
-  is cut through, and belongs with the openings work rather than with the roof (`G172`).
-
-**Authoring — what a style can say, and what a library shows back.**
-
-- [ ] **S60 — A building prop can state more than one wing; the canvas can still only drag one.** `HouseProp`
-  carries `wings`, a list of touching rectangles, and `Decorator` composes them into one `Footprint` and stamps
-  once (`G177`) — an L, a T or a U is authorable today by anyone writing the document directly. The dressing
-  tool itself still only ever drags a single rectangle: there is no way on the canvas to add a second wing to a
-  placed building, drag one of several independently, or see a proper L/T/U outline rather than one rectangle
-  per wing (`wingRings` in `dressing-render.js` draws each wing's own box rather than the traced silhouette a
-  build actually stamps). Wants a second interaction — add-a-wing, probably a drag that starts touching an
-  existing wing's edge — and a handle set that knows which wing a grip belongs to.
 
 ## World import: reading a map the studio did not build
 

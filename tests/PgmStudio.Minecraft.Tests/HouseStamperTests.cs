@@ -1622,15 +1622,16 @@ public sealed class HouseStamperTests
     [Test]
     [Arguments(1, 0)]
     [Arguments(2, 1)]
-    [Arguments(3, 2)]
-    [Arguments(4, 3)]
+    [Arguments(3, 1)]
+    [Arguments(4, 1)]
     public async Task The_eave_takes_the_roofs_own_material_the_courses_it_reaches_into_the_wall(
         int pitch, int overlap)
     {
         // A column's underside is its crown less the drop to the deepest neighbour the roof covers, and at the
-        // eave that neighbour is the overhang a pitch lower — so the eave reaches pitch − 1 courses under the
-        // wall top. The invariant is that those courses are roof and not wall, however steep the roof gets:
-        // walls outranking roofs there showed a stripe of wall under the overhang that grew with the pitch.
+        // eave that neighbour is the overhang, which falls one course at a pitch of 1 and two at any steeper
+        // one — so the eave reaches one course under the wall top and stays there however steep the roof gets.
+        // The invariant is that those courses are roof and not wall: walls outranking roofs there showed a
+        // stripe of wall under the overhang.
         var wall = new SolidMaterial(Blocks.Planks);
         var roof = new SolidMaterial(Blocks.Cobblestone);
         var style = new HouseStyle

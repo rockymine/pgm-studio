@@ -256,6 +256,16 @@ public partial class HousePartEditor
 
     private Task ToggleRidgeCap() => Roof(r => r with { RidgeCap = !r.RidgeCap });
 
+    /// <summary>Whether the roof climbs half a block at a time. -1 is a roof laid in whole blocks, which is
+    /// what a row is until a slab is named.</summary>
+    private bool Slabbed => (roof?.RoofSlab ?? -1) >= 0;
+
+    private Task ToggleRoofSlab()
+        => Roof(r => r with { RoofSlab = r.RoofSlab >= 0 ? -1 : 126, RoofSlabData = 0 });   // wooden slab
+
+    private Task PickRoofSlab(PaintBlockDto block)
+        => Roof(r => r with { RoofSlab = block.Id, RoofSlabData = block.Data });
+
     // ── the storey's knobs ─────────────────────────────────────────────────────────────────────────
     private bool Glazing => WindowForms.Canonical(storey?.Windows.Form) != WindowForms.None;
 
@@ -268,39 +278,7 @@ public partial class HousePartEditor
     private Task SetInlayInset(ChangeEventArgs e)
         => Storey(s => s with { InlayInset = Math.Clamp(Parse(e, s.InlayInset), 1, 8) });
 
-    /// <summary>Switching form brings that form's own default block rather than carrying the last one: a
-    /// lattice needs stairs and a band needs slabs, and a pane block turned into a stair facing is a solid
-    /// patch of wall.</summary>
-    private Task SetWindowForm(string picked) => Window(window =>
-    {
-        var form = WindowForms.Canonical(picked);
-        return window with { Form = form, Block = DefaultWindowBlock(form), Data = 0 };
-    });
-
-    private static int DefaultWindowBlock(string form) => form switch
-    {
-        WindowForms.StairLattice => OakStairs,
-        WindowForms.SlabBanded => WoodenSlab,
-        _ => GlassPane,
-    };
-
-    private Task PickWindowBlock(PaintBlockDto block)
-        => Window(window => window with { Block = block.Id, Data = block.Data });
-
-    private Task SetWindowSill(ChangeEventArgs e)
-        => Window(window => window with { Sill = Math.Clamp(Parse(e, window.Sill), 1, 16) });
-
-    private Task SetWindowWidth(ChangeEventArgs e)
-        => Window(window => window with { Width = Math.Clamp(Parse(e, window.Width), 1, 8) });
-
-    private Task SetWindowHeight(ChangeEventArgs e)
-        => Window(window => window with { Height = Math.Clamp(Parse(e, window.Height), 1, 8) });
-
-    private Task SetWindowSpacing(ChangeEventArgs e)
-        => Window(window => window with { Spacing = Math.Clamp(Parse(e, window.Spacing), 0, 16) });
-
-    private Task Window(Func<RoomWindowDto, RoomWindowDto> edit)
-        => Storey(s => s with { Windows = edit(s.Windows) });
+    private Task SetWindows(RoomWindowDto window) => Storey(s => s with { Windows = window });
 
     // ── the porch's knobs ──────────────────────────────────────────────────────────────────────────
     private Task SetPorchDepth(ChangeEventArgs e)

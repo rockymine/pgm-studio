@@ -431,8 +431,8 @@ builds this, and a placed prop can now ask for it: `HouseProp.Wings`
 (`Minecraft/Dressing/PlacedProp.cs`) is a list of rectangles rather than one, and `Decorator` composes them
 into a single `Footprint` and stamps once, the overlap rule refusing a second *prop* that collides while never
 testing one prop's own wings against each other (`G177`). A `house` prop is a `HouseProp` verbatim, so an
-agent authoring `dressing.props` in the layout can state an L or a T today. What is still missing is the canvas half — the dressing tool only ever drags one rectangle, so drawing
-a second wing onto a placed building has no tool of its own yet (`S60`). Library previews exist for the pieces
+agent authoring `dressing.props` in the layout can state an L or a T today, and on the canvas each wing is
+drawn as its own rectangle and the rectangles joined with `mod+g`. Library previews exist for the pieces
 once a style is composed — `/room-styles/preview` and its `-snapshot`, `/roof-styles/preview`,
 `/porch-styles/preview`, `/storey-styles/preview` — so a building is checkable from four sides before it
 stands on a map.
@@ -486,13 +486,9 @@ block rather than as somewhere to walk into. Stood tall enough to clear the buil
 divides the map, and a run of them along an edge seals a board with scenery instead of with a wall — which is
 the only way an edge gets sealed at all in a mode where nothing may be placed.
 
-**What is missing is the inside, and the reason it matters is the facade.** `HouseStamper` builds a shell and
-leaves the volume it encloses as air, so such a building is enterable and hollow rather than a mass. Filling
-it is `B92`. The part worth stating now, because it is what makes the technique work rather than an
-implementation detail: a filled building **keeps its windows and its door**, and the fill sits behind them. A
-dark fill — black wool is the idiom — reads through a window as an unlit interior, so the building is a house
-with its lights off rather than a lump wearing a house's outline. The facade is the whole point of using a
-building for this instead of a shape.
+**A building is a shell either way.** `HouseStamper` builds walls, a floor and a roof and leaves the volume
+they enclose as air, so a building used as scenery is enterable and hollow rather than a solid mass. What
+seals an edge is the run of them and the courses they are laid in, not what stands inside.
 
 ## Where the generation lives
 

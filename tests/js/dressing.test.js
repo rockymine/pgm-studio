@@ -352,19 +352,33 @@ test("a building of several wings anchors in the middle of the whole plan, not j
 // The layer is painted in one pass, so one prop that throws takes every other prop down with it — which is
 // how a wing shape the canvas did not recognise made the trees and boulders disappear along with the houses.
 
-test("a stored building paints its wings, one ring each", () => {
+test("a joined building paints one silhouette, not a box per wing", () => {
   const painter = recordingPainter();
   const ell = { id: "h1", kind: "house", front: "posZ",
                 wings: [{ corners: [[0, 0], [10, 6]] }, { corners: [[0, 7], [6, 12]], spec: { ridge: "AlongZ" } }] };
 
   paintDressing(painter, [ell]);
 
-  // Two wings, so two outlines — a plan drawn as one merged blob would be the wrong picture of an L.
+  // One building, one outline: the wings are stamped as a single shell under one roof, and drawn as a box
+  // each they read as two buildings with a seam down the middle.
   const rings = painter.of("ring");
-  assert.equal(rings.length, 2);
-  // Each ring is the four corners of its own wing, spanning the whole blocks it covers.
-  assert.deepEqual(rings[0][0], [[0, 0], [11, 0], [11, 7], [0, 7]]);
-  assert.deepEqual(rings[1][0], [[0, 7], [7, 7], [7, 13], [0, 13]]);
+  assert.equal(rings.length, 1);
+  const ring = rings[0][0];
+  assert.equal(ring.length, 6, "an L has six corners");
+  // The silhouette spans both wings and holds no point inside the notch the L cuts.
+  const xs = ring.map(([x]) => x), zs = ring.map(([, z]) => z);
+  assert.deepEqual([Math.min(...xs), Math.max(...xs)], [0, 11]);
+  assert.deepEqual([Math.min(...zs), Math.max(...zs)], [0, 13]);
+  assert.ok(!ring.some(([x, z]) => x === 11 && z === 13), "the notch is not filled in");
+});
+
+test("wings that do not touch still paint an outline each", () => {
+  const painter = recordingPainter();
+  const apart = { id: "h2", kind: "house",
+                  wings: [{ corners: [[0, 0], [9, 7]] }, { corners: [[40, 0], [49, 7]] }] };
+
+  paintDressing(painter, [apart]);
+  assert.equal(painter.of("ring").length, 2);
 });
 
 test("a prop the canvas cannot read is skipped, and the props beside it still paint", () => {
@@ -400,4 +414,96 @@ test("a prop that already names a layer keeps it", () => {
 test("a stored layer survives a read", () => {
   const doc = DressingDoc.from({ props: [{ kind: "tree", id: "d1", layer: "upper", x: 0, z: 0 }] });
   assert.equal(doc.props[0].layer, "upper");
+});
+
+// ── joining buildings into one ────────────────────────────────────────────────
+// A building is one rectangle or several touching ones. Two rectangles an author drew separately become one
+// building by being picked together and joined; the same chord takes a joined one apart. What is asserted is
+// that the pair round-trips and that the wings survive it, since a wing carries its own roof and ridge.
+
+/** Place a building at a rectangle, returning its id. */
+function building(tools, doc, [x0, z0], [x1, z1]) {
+  drag(tools, "dress:house", [[x0, z0], [x1, z1]]);
+  return doc.props[doc.props.length - 1].id;
+}
+
+test("two picked buildings join into one of two wings, and take apart again", () => {
+  const { doc, tools } = controller();
+  const west = building(tools, doc, [0, 0], [9, 7]);
+  const east = building(tools, doc, [10, 0], [19, 7]);   // abutting along x = 10
+  assert.equal(doc.props.length, 2);
+
+  tools.select(west);
+  tools.select(east, true);
+  assert.deepEqual(tools.selection, [west, east]);
+
+  assert.deepEqual(tools.joinSelection(), { done: "joined", wings: 2 });
+  assert.equal(doc.props.length, 1);
+  assert.equal(doc.byId(west).wings.length, 2);
+
+  assert.deepEqual(tools.joinSelection(), { done: "apart", wings: 2 });
+  assert.equal(doc.props.length, 2);
+  assert.equal(doc.byId(west).wings.length, 1);
+});
+
+test("a join is refused where the two buildings stand on the same ground", () => {
+  const { doc, tools } = controller();
+  const first = building(tools, doc, [0, 0], [9, 7]);
+  const second = building(tools, doc, [5, 0], [14, 7]);   // overlapping x = 5..9
+  tools.select(first);
+  tools.select(second, true);
+
+  const answer = tools.joinSelection();
+  assert.ok(answer.refused, "two buildings sharing ground are not one building");
+  assert.equal(doc.props.length, 2, "a refused join changes nothing");
+});
+
+test("a building is not dragged onto another building's ground", () => {
+  const { doc, tools } = controller();
+  const still = building(tools, doc, [0, 0], [9, 7]);
+  const moving = building(tools, doc, [20, 0], [29, 7]);
+  const before = JSON.stringify(doc.byId(moving).wings);
+
+  // Grab the moving building and push it straight through the standing one.
+  tools.onMouseDown(25, 4, "select");
+  for (let step = 1; step <= 20; step++) tools.onMouseMove(25 - step, 4, "select");
+  tools.onMouseUp();
+
+  const after = doc.byId(moving).wings;
+  assert.notEqual(JSON.stringify(after), before, "the drag still moves it as far as it legally goes");
+  const west = Math.min(after[0].corners[0][0], after[0].corners[1][0]);
+  assert.ok(west > 9, `stopped against the standing building, not through it (reached x=${west})`);
+  assert.equal(doc.props.length, 2);
+  assert.equal(doc.byId(still).wings.length, 1);
+});
+
+test("shift-clicking a picked building takes it back out of the selection", () => {
+  const { doc, tools } = controller();
+  const west = building(tools, doc, [0, 0], [9, 7]);
+  const east = building(tools, doc, [10, 0], [19, 7]);
+  tools.select(west);
+  tools.select(east, true);
+  tools.select(east, true);
+  assert.deepEqual(tools.selection, [west]);
+});
+
+test("a join is refused where the two buildings do not touch", () => {
+  const { doc, tools } = controller();
+  const here = building(tools, doc, [0, 0], [9, 7]);
+  const yonder = building(tools, doc, [40, 40], [49, 47]);
+  tools.select(here);
+  tools.select(yonder, true);
+
+  const answer = tools.joinSelection();
+  assert.ok(answer.refused, "wings that never meet are not one shell under one roof");
+  assert.equal(doc.props.length, 2);
+});
+
+test("a corner touch is not an edge to join on", () => {
+  const { doc, tools } = controller();
+  const first = building(tools, doc, [0, 0], [9, 7]);
+  const second = building(tools, doc, [10, 8], [19, 15]);   // meets the first at one corner only
+  tools.select(first);
+  tools.select(second, true);
+  assert.ok(tools.joinSelection().refused);
 });

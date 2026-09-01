@@ -335,7 +335,16 @@ how far the roof runs, and nothing about how high it stands.
 **Distances are measured from the wall line and are allowed to go negative**, which is what makes the eave
 part of the slope: the course over the wall rests on the wall, and every course outward from there keeps
 falling at the same rate. Holding the overhang level with the wall line instead — the obvious way to stop the
-roof floating a course above it — runs the last blocks flat exactly where the roof is most visible.
+roof floating a course above it — runs the last blocks flat exactly where the roof is most visible, and a
+pitch of 1 then reads as a lid rather than a roof.
+
+**The fall stops two courses down.** One course is what a pitch of 1 needs to read at all, and past two the
+eave hangs in front of the wall it shelters rather than over it — at an overhang of 2 and a pitch of 4 an
+unfloored eave lands two courses *below* the floor the building stands on. So the surface may fall at most two
+courses under the course it stands at over the wall line, and a deeper overhang runs flat at that depth
+instead of diving another course per block. A pitch of 1 falls one and every steeper pitch falls two, which is
+also what stops the eave eating a stripe of wall that grows with the pitch: it reaches exactly one course
+under the wall top at every pitch.
 
 Two things follow from the field rather than from any one form. A column writes as many courses as its deepest
 step down to a neighbour, so a pitch of two does not leave the slope open between its treads. And **the walls
@@ -420,12 +429,12 @@ roofs**: every volume is laid before any wall is, so a wing standing against ano
 slope written over it.
 
 **Over its own wall, though, the eave wins.** A column writes down to its underside, which is its crown less
-the drop to the deepest neighbour the roof covers — and at the eave line that neighbour is the overhang, a
-pitch lower, so the eave reaches `pitch − 1` courses under its own wall top by construction. Those courses are
-the roof coming down to meet the wall. Clamped away and then written over by the wall pass, they came out wall
-material instead, and the stripe of wall showing under the overhang grew a course with every unit of pitch:
-nothing was missing, so no gate caught it. So the clamp exempts the wing the roof belongs to, and the wall pass
-stops under whatever course the roof has already claimed there. Wings never share a cell, so nothing else
+the drop to the deepest neighbour the roof covers — and at the eave line that neighbour is the overhang, one
+course lower at a pitch of 1 and two at any steeper one, so the eave reaches **one** course under its own wall
+top at every pitch but the shallowest. Those courses are the roof coming down to meet the wall: written over
+by the wall pass they come out wall material, showing as a stripe of wall under the overhang. So the clamp
+exempts the wing the roof belongs to, and the wall pass stops under whatever course the roof has already
+claimed there. Wings never share a cell, so nothing else
 moves — a marched or projected column stands inside *another* wing and is clamped exactly as before.
 
 **Only the highest roof over a cell is written there**, and that one comparison is what makes the union a

@@ -329,6 +329,13 @@ export class SketchCanvas extends CanvasBase {
   setGhostGroups(polys)     { this.#ghostPolys = polys ?? []; this.#paintWorld(); }
   setMirrorPolygons(polys)   { this.#mirrorPolys = polys ?? []; this.#renderSetup(); }
   /** Show and edit placed dressing — on for the Dressing phase, off everywhere else. */
+  /** Join the selected buildings into one, or take a joined one apart. What both the chord and the inspector's
+   *  button call, so neither can drift from the other. */
+  joinDressing() {
+    if (!this.#dressing) return;
+    this.#callbacks.onDressingJoin?.(this.#dressing.joinSelection());
+  }
+
   setDressingMode(on) {
     this.#dressingOn = !!on;
     if (!on) { this.#dressing?.cancel(); this.#dressing?.select(null); }
@@ -446,7 +453,7 @@ export class SketchCanvas extends CanvasBase {
     if (this._activeTool === "measure") { this.#measure = { ax: bx, az: bz, bx, bz, live: true }; this.#renderMeasure(); this.#updateDim(); return; }
     if (this._activeTool === "split") { this.#onSplitClick(bx, bz); return; }
     if (this.#reliefOn && this.#reliefTools?.onMouseDown(bx, bz, this._activeTool)) return;
-    if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool)) return;
+    if (this.#dressingOn && this.#dressing?.onMouseDown(bx, bz, this._activeTool, e.shiftKey)) return;
     this.#draw?.onMouseDown(bx, bz, this._activeTool);
   }
 
@@ -1107,6 +1114,12 @@ export class SketchCanvas extends CanvasBase {
       { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own group",
         group: "Sketch", when: () => live() && !!this.#selectedId,
         run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },
+      // The label says *building* rather than group: a group on this canvas is a shape's orbit, and one chord
+      // listed twice under one word in the help sheet is two operations nobody can tell apart.
+      { id: "dressing.join", keys: "mod+g",
+        label: "Join the selected buildings into one · take a joined one apart",
+        group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
+        run: () => this.joinDressing() },
     ]);
 
     // A click-by-click draw ends on Enter or on a click back at its first vertex. Neither is a click count,

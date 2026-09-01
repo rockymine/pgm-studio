@@ -6,6 +6,12 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Components;
 
+/// <summary>What a prop preview answered: the pictures, or the sentence the gate refused the prop with. A
+/// building whose wings are no building is a refusal an author has to read — <c>HP1</c>–<c>HP3</c> for the
+/// prop's own shape, <c>HJ1</c>–<c>HJ5</c> for how its wings meet — and rendering it as a missing picture
+/// makes a refused building look like a slow one.</summary>
+public sealed record PropPreview(DressingPreviewDto? Pictures, string? Refusal);
+
 /// <summary>
 /// The one place the client knows the terrain-paint HTTP surface: the block palette, the two preview endpoints,
 /// and the style/theme library's CRUD. Three surfaces author terrain paint — the library page, the sketch's
@@ -62,8 +68,18 @@ public sealed class TerrainLibraryClient(HttpClient http)
     /// <summary>A sample patch the pass actually dressed with one prop, from above and cut open. The theme is
     /// passed because what the paint leaves on top is what decides whether flora grows and what a path may
     /// repaint — previewing against unthemed stone would promise ground the map's own finish would refuse.</summary>
-    public Task<DressingPreviewDto?> PropPreviewAsync(string propJson, string? themeJson)
-        => PostOrNull<DressingPreviewDto>("api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson));
+    public async Task<PropPreview> PropPreviewAsync(string propJson, string? themeJson)
+    {
+        try
+        {
+            var response = await http.PostAsJsonAsync(
+                "api/terrain/prop-preview", new PropPreviewRequest(propJson, themeJson));
+            if (response.IsSuccessStatusCode)
+                return new PropPreview(await response.Content.ReadFromJsonAsync<DressingPreviewDto>(), null);
+            return new PropPreview(null, await ServerRefusal.SentenceAsync(response));
+        }
+        catch { return new PropPreview(null, null); }
+    }
 
     // ── the six libraries ───────────────────────────────────────────────────────
     // One verb per concept over LibraryKinds, because the six differ only in a route stem and the shapes the

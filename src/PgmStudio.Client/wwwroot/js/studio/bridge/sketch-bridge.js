@@ -127,6 +127,14 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     onPropSelected:    () => fire("OnDressing", dressingState()),
     // A placed prop ends its tool, the same as a completed draw: the toolbar follows the canvas back to select.
     onDressingPlaced:  () => { canvas.setActiveTool("select"); fire("OnToolChanged", "select"); },
+    // A join is one edit and one undo step, and it answers a sentence either way — what it did, or why it
+    // would not. The refusals it cannot answer are the joint model's, and those arrive with the preview.
+    onDressingJoin: edit((result) => {
+      if (result?.refused) fire("OnDressing", dressingState(result.refused));
+      else afterDressingChange(result?.done === "apart"
+        ? `Taken apart into ${result.wings} buildings.`
+        : `Joined into one building of ${result?.wings ?? 0} wings.`);
+    }),
     // Relief marks follow exactly the same three rules, for the same reasons.
     onReliefChanged: edit(() => afterReliefChange()),
     onMarkSelected:  () => fire("OnRelief", reliefState()),
@@ -576,17 +584,21 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // Placed props live on the canvas (it is where they are put, moved and picked); the bridge announces changes
   // and carries them in and out of the stored document. Unlike a theme edit this does not repaint the Blocks
   // overlay: that shows the painter's surface colours, and dressing adds blocks *above* the surface.
-  function dressingState() {
+  function dressingState(note) {
     const tools = canvas.dressingTools;
     const selectedId = tools?.selectedId ?? null;
     return JSON.stringify({
       props: canvas.dressing.props,
       selectedId,
+      // Every picked id, primary first. The inspector edits one prop and the join reads the rest, so the
+      // selection travels whole rather than the host inferring a second pick it cannot see.
+      selection: tools?.selection ?? (selectedId ? [selectedId] : []),
       selected: selectedId ? canvas.dressing.byId(selectedId) : null,
+      note: note ?? null,
     });
   }
 
-  function afterDressingChange() { markDirty(); fire("OnDressing", dressingState()); }
+  function afterDressingChange(note) { markDirty(); fire("OnDressing", dressingState(note)); }
 
   // ── the painted Blocks overlay ─────────────────────────────────────────────
   // The Blocks toggle shows the blocks the export places, not an approximation of them: the live layout goes
@@ -949,6 +961,9 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     setDressingMode(on) { canvas.setDressingMode(!!on); if (on) fire("OnDressing", dressingState()); },
     selectProp(id) { canvas.dressingTools?.select(id || null); },
     deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
+    /** Join the selected buildings, or take a joined one apart — the inspector button's half of `mod+g`, so
+     *  the two run the same operation rather than each having their own. */
+    joinDressing() { canvas.joinDressing(); },
     /** Patch the selected prop. `patchJson` is a partial prop; returns an error string on bad JSON, else null. */
     updateProp(patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }

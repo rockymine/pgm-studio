@@ -30,10 +30,17 @@ namespace PgmStudio.Minecraft.Houses;
 /// <para><b>Distances are measured from the wall line, not from the roof's own edge, and are allowed to go
 /// negative.</b> That is what makes the overhang part of the slope: the course over the wall rests on the wall,
 /// and every course outward from there keeps falling at the same rate, so the eave hangs below its neighbour
-/// instead of running the last blocks flat exactly where the roof is most visible.</para>
+/// instead of running the last blocks flat exactly where the roof is most visible. The fall stops two courses
+/// down (<see cref="EaveFloor"/>) and the rest of the overhang runs flat at that depth.</para>
 /// </summary>
 public sealed class RoofField
 {
+    /// <summary>The lowest the surface may fall below the course it stands at over the wall line, in half
+    /// blocks — two courses. One course down is what makes a pitch of 1 read as a roof rather than a lid;
+    /// past two the eave hangs in front of the wall it shelters instead of over it, and at a deep overhang
+    /// and a steep pitch it reaches below the floor the building stands on.</summary>
+    private const int EaveFloor = -4;
+
     private readonly RoofForm form;
     private readonly int wallMinX, wallMinZ, wallMaxX, wallMaxZ;
     private readonly int overhang, baseY, pitch;
@@ -154,7 +161,7 @@ public sealed class RoofField
         // inside each form is what leaves the six formulas untouched — they answer in blocks travelled and the
         // roof decides what a block travelled is worth.
         var step = inHalves ? pitch : 2 * pitch;
-        return form switch
+        return Math.Max(EaveFloor, form switch
         {
             RoofForm.Flat => 0,
             RoofForm.Shed => Reach(fromFront) * step,
@@ -171,7 +178,7 @@ public sealed class RoofField
             RoofForm.Saltbox => Math.Min(SteepSide(acrossLow, acrossHigh) * (step + 1),
                                          ShallowSide(acrossLow, acrossHigh) * step),
             _ => Math.Min(acrossLow, acrossHigh) * step,
-        };
+        });
     }
 
     /// <summary>Halve, rounding <b>down</b> rather than toward zero. The eave falls below the roof's own base

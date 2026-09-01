@@ -117,6 +117,59 @@ export function rectPlan(prop) {
   return { minX, minZ, width: maxX - minX + 1, depth: maxZ - minZ + 1 };
 }
 
+/** Every wing of a building as a whole-block rectangle, in the order they are stated. Where `rectPlan` reads
+ *  the one wing a drag is shaping, this reads the whole plan — what an overlap test, a silhouette and a joint
+ *  have to be measured over. A wing that is not a pair of corners is left out rather than crashing the layer. */
+export function wingRects(prop) {
+  const rects = [];
+  for (const wing of prop?.wings ?? []) {
+    const corners = wingCorners(wing);
+    if (!corners) continue;
+    rects.push({
+      minX: Math.floor(Math.min(corners[0][0], corners[1][0])),
+      minZ: Math.floor(Math.min(corners[0][1], corners[1][1])),
+      maxX: Math.floor(Math.max(corners[0][0], corners[1][0])),
+      maxZ: Math.floor(Math.max(corners[0][1], corners[1][1])),
+    });
+  }
+  return rects;
+}
+
+/** Whether two whole-block rectangles share a cell. */
+export const rectsOverlap = (a, b) =>
+  a.minX <= b.maxX && b.minX <= a.maxX && a.minZ <= b.maxZ && b.minZ <= a.maxZ;
+
+/** Whether two whole-block rectangles meet along an edge — a shared line, not a shared corner, since a corner
+ *  is not an edge to build a joint on. */
+export const rectsAbut = (a, b) =>
+  ((a.maxX + 1 === b.minX || b.maxX + 1 === a.minX) && a.minZ <= b.maxZ && b.minZ <= a.maxZ)
+  || ((a.maxZ + 1 === b.minZ || b.maxZ + 1 === a.minZ) && a.minX <= b.maxX && b.minX <= a.maxX);
+
+/** Whether every rectangle reaches every other through edges they share. A building is one shell under one
+ *  roof, so its wings hang together; a set that falls into two pieces is two buildings whatever the document
+ *  says. */
+export function rectsJoinUp(rects) {
+  if (rects.length < 2) return true;
+  const reached = new Set([0]);
+  const queue = [0];
+  while (queue.length) {
+    const at = queue.pop();
+    for (let other = 0; other < rects.length; other++)
+      if (!reached.has(other) && rectsAbut(rects[at], rects[other])) { reached.add(other); queue.push(other); }
+  }
+  return reached.size === rects.length;
+}
+
+/** Whether two buildings share ground. A plan states its ground once, so this is what a drag may not cross and
+ *  what a merge is refused for: the same statement `HJ1` makes between two wings of one building and
+ *  `DR-CLAIM` makes between two buildings, applied here in the pointer because a drag cannot wait for an
+ *  answer. The server stays the authority — it claims what it stamps grown a block outward, which is wider
+ *  than this — so a drag this allows may still be declined, and one it refuses would always have been. */
+export function buildingsOverlap(a, b) {
+  const left = wingRects(a), right = wingRects(b);
+  return left.some(one => right.some(other => rectsOverlap(one, other)));
+}
+
 /** A prop's position, as one point: a marker's own cell, else the middle of what it covers. What a label is
  *  anchored to and what a click is measured against. A building's middle is measured across every wing's own
  *  corners, so a multi-wing plan anchors in the middle of the whole shape rather than of its first rectangle

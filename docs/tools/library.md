@@ -339,6 +339,19 @@ optional porch — plus three ways of composing: per-part **course stacks**, opt
 and a **storey stack** whose position in the list is the position in the building, ground first, so there is no
 ordinal on the wire. Reordering the list reorders the house.
 
+**Every field the row stores has a control, and each sits at the part it belongs to.** Beams are the wall's
+timber frame, so they are a wall knob; the slab a roof steps in and the openings cut into the gable are roof
+knobs; the door's width and the lintel over it are the doorway's. The one shape written once is the window:
+a wall's opening, a storey style's and a gable's are the same seven knobs, so they are one `WindowFields`
+component rather than a copy per surface — which is also where an opening's **host block**, the band it is set
+into, became reachable. What a control offers first is a state that passes: a beam starts as a log (`HS1`), a
+head as stairs over a slab of the same material (`HS4`), a gable's opening as the wall's own.
+
+**An editor loads a row through `RoomStyleDetail.AsSaveRequest()` and never through a field list of its own.**
+A house is loaded into a draft and the draft is PUT back, so what the load leaves out the save writes away —
+and a field with no control is exactly the one a hand-written list forgets. The mapping lives in one place so
+a field added later is added to it rather than around it.
+
 A course names its part, its ordinal (0 being the course nearest that part's own base), the style it resolves
 through and how many courses it runs. `post`, `sill` and `verge` take one material rather than a stack — a post
 is a post all the way up — so only their first course is read. A part with no courses keeps the built-in

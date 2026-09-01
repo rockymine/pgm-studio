@@ -38,9 +38,12 @@ public partial class SketchDressingInspector
     private JsonObject? prop;                 // what is being edited: the selection, else the tool's settings
     private bool editingSelection;
     private int propCount;
+    private int picked;                       // how many props are selected — a join reads more than one
     private string kind = "";
 
     private DressingPreviewDto? preview;
+    private string? refusal;                  // why the gate would not take this prop, in its own sentence
+    private string? note;                     // what the last canvas operation did, or would not do
     private string previewedFor = "";
     private IReadOnlyList<PropOptionDto> pathStyles = [];
     private IReadOnlyList<PropOptionDto> waterForms = [];
@@ -73,6 +76,8 @@ public partial class SketchDressingInspector
         editingSelection = false;
         kind = DressingTools.KindOf(ActiveTool) ?? "";
         propCount = 0;
+        picked = 0;
+        note = null;
 
         if (string.IsNullOrWhiteSpace(StateJson)) return;
         JsonNode? root;
@@ -80,6 +85,8 @@ public partial class SketchDressingInspector
         if (root is not JsonObject state) return;
 
         propCount = (state["props"] as JsonArray)?.Count ?? 0;
+        picked = (state["selection"] as JsonArray)?.Count ?? 0;
+        note = state["note"]?.GetValue<string>();
         if (state["selected"] is JsonObject selected)
         {
             prop = (JsonObject)selected.DeepClone();
@@ -180,6 +187,27 @@ public partial class SketchDressingInspector
     /// author actually chose rather than a stock one.</summary>
     private string? Spec(string field) => Material(field)?.ToJsonString();
 
+    // ── wings ──────────────────────────────────────────────────────────────────
+    /// <summary>How many rectangles the selected building states. One is the plain house every board carries;
+    /// more is an L, a T or a U stamped under one roof.</summary>
+    private int Wings => (prop?["wings"] as JsonArray)?.Count ?? 0;
+
+    /// <summary>Whether the chord has anything to do: two buildings to join, or one joined one to take
+    /// apart. The canvas answers the same question for the keyboard, and this is the button's half of it.</summary>
+    private bool CanJoin => editingSelection && (picked > 1 || Wings > 1);
+
+    private string JoinLabel => Wings > 1 && picked <= 1 ? "Take apart" : "Join into one building";
+
+    /// <summary>The chord as the platform spells it, so the sentence naming it cannot disagree with the key
+    /// that runs it.</summary>
+    private string JoinChord => OperatingSystem.IsMacOS() ? "⌘G" : "Ctrl+G";
+
+    private async Task Join()
+    {
+        if (Handle is null) return;
+        await Handle.InvokeVoidAsync("joinDressing");
+    }
+
     /// <summary>Redraw the picture, but only when the prop actually changed — the preview is a round trip that
     /// runs the real pass, so re-issuing it on every render would make a slider feel like treacle.</summary>
     private async Task RefreshPreview()
@@ -188,7 +216,9 @@ public partial class SketchDressingInspector
         var json = prop.ToJsonString();
         if (json == previewedFor) return;
         previewedFor = json;
-        preview = await Library.PropPreviewAsync(json, themeJson);
+        var answered = await Library.PropPreviewAsync(json, themeJson);
+        preview = answered.Pictures;
+        refusal = answered.Refusal;
         StateHasChanged();
     }
 

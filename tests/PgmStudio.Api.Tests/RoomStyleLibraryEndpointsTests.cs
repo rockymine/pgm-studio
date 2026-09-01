@@ -92,6 +92,55 @@ public sealed class RoomStyleLibraryEndpointsTests
         }
     }
 
+    /// <summary>
+    /// The editor's own load-and-save path keeps every field, not only the ones it draws a control for.
+    ///
+    /// <para>An editor loads a row into a draft and PUTs the draft back, so what the load leaves out the save
+    /// writes away — and a field with no control is exactly the field a hand-written load list omits.
+    /// <c>RoomStyleDetail.AsSaveRequest</c> is the one place that mapping lives, and this is what fails when
+    /// a later field is added outside it.</para>
+    /// </summary>
+    [Test]
+    public async Task Loading_a_house_and_saving_it_back_unchanged_loses_nothing()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        const int StoneBricks = 98, StoneBrickStairs = 109, StoneBrickSlabData = 5;
+        var brick = await StyleAsync(client, "stone bricks", StoneBricks);
+        var draft = Draft("round trip", new RoomCourseDto(RoomParts.Roof, 0, brick, 1)) with
+        {
+            RoofForm = RoofForms.Gable,
+            Windows = new RoomWindowDto(WindowForms.StairLattice, Blocks.CobblestoneStairs, 0, 2, 2, 2, 3,
+                HostBlock: Blocks.Cobblestone, HostData: 0),
+            Beams = new RoomBeamDto(Blocks.Log, 2, 3),
+            RoofSlab = Blocks.StoneSlab, RoofSlabData = StoneBrickSlabData,
+            GableWindows = new RoomWindowDto(WindowForms.Open, 102, 0, 1, 2, 2, 3),
+            DoorHead = new RoomDoorHeadDto(DoorHeadForms.Arched, StoneBrickStairs,
+                DoorHeadFills.UpperSlab, Blocks.StoneSlab, StoneBrickSlabData),
+            DoorWidth = 3,
+        };
+
+        var created = await client.PostAsJsonAsync("/api/room-styles", draft);
+        var saved = await created.Content.ReadFromJsonAsync<RoomStyleDetail>();
+
+        // Exactly what the editor does: read the row, turn it into a request, send it straight back.
+        var loaded = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved!.Id}");
+        var response = await client.PutAsJsonAsync($"/api/room-styles/{saved.Id}", loaded!.AsSaveRequest());
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var after = await client.GetFromJsonAsync<RoomStyleDetail>($"/api/room-styles/{saved.Id}");
+        await Assert.That(after!.Beams).IsNotNull();
+        await Assert.That(after.Beams!.Block).IsEqualTo(Blocks.Log);
+        await Assert.That(after.RoofSlab).IsEqualTo(Blocks.StoneSlab);
+        await Assert.That(after.RoofSlabData).IsEqualTo(StoneBrickSlabData);
+        await Assert.That(after.GableWindows).IsNotNull();
+        await Assert.That(after.DoorHead).IsNotNull();
+        await Assert.That(after.DoorHead!.Form).IsEqualTo(DoorHeadForms.Arched);
+        await Assert.That(after.DoorWidth).IsEqualTo(3);
+        await Assert.That(after.Windows.HostBlock).IsEqualTo(Blocks.Cobblestone);
+    }
+
     /// <summary>A house that states none of them answers absent rather than a shape meaning none, so the
     /// editor reads the absence — and saving what it read stores the same nothing back.</summary>
     [Test]

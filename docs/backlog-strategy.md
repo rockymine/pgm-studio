@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 79 open entries and `TODO.md` three — the interaction slice of the programme that put a
+`BACKLOG.md` holds 73 open entries and `TODO.md` three — the interaction slice of the programme that put a
 room's building and a dressed one on one model. This document is the reading that says which of them are
 defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,11 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **82 open entries over 12,977 words**: a median entry of 146 words, 30 between 150 and
-250, and **7 above 250** — the length at which `CLAUDE.md` says an entry "is not a task yet and wants
-investigating until it is". `G163` is 390 words, `WS3` 356, `B169` 281, and `WE28` and `B58` 270 each. The
-prefix spread is `B` 25, `WE` 15, `TS` 9, `S` 8, `G` 8, `N` 4, `C` 4, `WS` 3, and four others in ones and
-twos.
+The two boards carry **76 open entries over 12,080 words**: a median entry of 146 words and **7 above 250** —
+the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `G163`
+is 390 words, `WS3` 356, `B169` 281, and `WE28` and `B58` 270 each. The prefix spread is `B` 22, `WE` 14,
+`TS` 9, `S` 7, `G` 7, `N` 4, `C` 4, `WS` 3, and four others in ones and twos.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -177,8 +176,9 @@ dangerous kind.
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** | `grep -n DyeColors src/PgmStudio.Client/Features/Edit/ObjectivePhase.razor.cs` |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |
 
-Two held: `B260`'s three room-style fields with no control anywhere in the client, and `G143`'s "handful of
-consumers" for the four misnamed edge lists, which is five sites. `C51` has now moved on **every** reading it
+One held: `G143`'s "handful of consumers" for the four misnamed edge lists, which is five sites. `B260`'s
+count was the other way round — it named three room-style fields with no control and there were six, plus a
+window's host block. `C51` has now moved on **every** reading it
 has been given — 28, 29, 31, 30 — which is what a hand-maintained count does.
 
 **`RP59` is the kind that does not survive its drift.** Its ask stands — `flow.md` presents
@@ -219,7 +219,9 @@ preamble of its own, which is the shape a cause should reach before it is worked
 **The client mirrors the server's schema by hand.** `GET /api/terrain/patterns` answers every material kind
 and field, typed, and the client keeps 422 lines of `ThemeVocabulary.cs` instead — which is why a kind added
 server-side reaches no editor, why three room-style fields have no control, and why a band stack is
-authorable only over HTTP. `B261` · `B260` · `B200` · `WE54` · `C51`.
+authorable only over HTTP. `B261` · `B200` · `WE54` · `C51`. `B260` was this cause and has landed: the six
+room-style fields the editor could not reach are controls now, and the load that wrote them away goes through
+the one mapping that states them all.
 
 **`PlanCompiler` fuses by surface height and drops every identity in the plan.** One `GroupBy(p => p.Surface)`
 followed by a rectilinear union produces `s0`, `s1`, `s2` — so a piece name cannot address anything
@@ -267,7 +269,7 @@ previous reading left the board unanswered: `B55` (which API paths read a map as
 Deleting the entry answers the question by declining to have it, and four of those five were questions about
 work nobody was blocked on.
 
-Twelve stand, stated so they can be answered in a line each:
+Nine stand, stated so they can be answered in a line each:
 
 1. `C11` — is the Edit tool being kept? Three unwired inspectors are work on a surface that may be retired
    whole, and the author has never driven it.
@@ -280,14 +282,11 @@ Twelve stand, stated so they can be answered in a line each:
    has shipped and answered its half — *within a layer, smallest area still wins a contested cell; across
    layers there is no contest, because each surface shows its own* — so what is open is the nested-tier case
    alone, and that ruling is the precedent for it.
-7. `WE2` — should a roof's eave descend by `pitch` at all?
-8. `B225` — does a course marching under a neighbour's verge stop at the verge or at the wall?
-9. `B92` — does a house fill respect the storey stack, and how deep behind an opening does it start?
-10. `B70` — which view should a library card carry?
-11. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-12. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
+7. `B70` — which view should a library card carry?
+8. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
+9. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
 
-`TODO.md` carries a thirteenth in its preamble: a dressed prop is capped at 192 covered cells by `HP3` and a
+`TODO.md` carries a tenth in its preamble: a dressed prop is capped at 192 covered cells by `HP3` and a
 room's building at 20×20 by `ST9`, and whether those should be one number is the author's. It blocks nothing
 below it.
 
@@ -311,14 +310,14 @@ ambiguity at their edges.
 **Blocked decisions** are the twelve questions above, plus `S47` and `WS1`, which wait on material rather than
 on a ruling. Each has a definite end and none of it is work until the answer arrives.
 
-**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B260`, `B200`, `B263`, `B264`,
-`WE54`, `N08`, `N12`, `TS64`, `TS75`, `S59`, `S60`, `B262`, `B44`. Three more — `B107`, `S25b`, `B145` — were
+**Reach gaps** — the backend exists and the browser cannot say it: `B261`, `B200`, `B263`, `B264`,
+`WE54`, `N08`, `N12`, `TS64`, `TS75`, `S59`, `B262`, `B44`. Three more — `B107`, `S25b`, `B145` — were
 this population until the building's one model turned them from three reaches into one, and they are on
 `TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `B258`, `B221`, `S46`, `S56`,
-`S34`, `TS51`, `TS63`, `TS30`, `G187`, `G164`, `G178`, `B92`, `B54`, `B9`, `B58`, `WE34`, `WE52`.
+`S34`, `TS51`, `TS63`, `TS30`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE34`, `WE52`.
 
 **Relocating the roadmap to the ideas files was tried and refused.** Seventeen of the eighteen entries named
 on the previous reading are still on the board; only `B21` left, and it left by withdrawal rather than by
@@ -334,7 +333,7 @@ for.
 
 ## The order the board empties in
 
-**Phase 0 — ask, then cut.** The twelve unanswered questions, in one sitting. Each answer either turns its
+**Phase 0 — ask, then cut.** The nine unanswered questions, in one sitting. Each answer either turns its
 entry into work small enough to state in a paragraph or withdraws it, and withdrawal is now the demonstrated
 majority outcome. Nothing else on this list is worth starting first: two of the causes above have a question
 sitting in them — `WE28` in the layer word, `WE48` in the ungated convention — and a third, the programme
@@ -377,8 +376,10 @@ author.
 **No measurement is written by hand.** Seven of nine re-measured figures had drifted, one entry's retake
 *command* had drifted with them, and one entry's whole premise had. `census.sh` is the precedent.
 
-**A question is asked before the entry is filed, not after.** The oracle rule already says this. Twelve
-entries carry a question nobody has answered, and each has been costing the board's readability ever since.
+**A question is asked before the entry is filed, not after.** The oracle rule already says this. Nine entries
+carry a question nobody has answered, and each has been costing the board's readability ever since. The house
+group is what one sitting of answers looks like: five entries, of which one became a clamp, three were
+withdrawn outright, and one turned into the surface the other four had been standing in the way of.
 
 **A withdrawal is a close, and it carries a close's obligations.** `CLAUDE.md` rule 2 spells out what shipping
 owes — a line in `FEATURES.md`, and every document naming the id as a gap fixed in the same commit — and the

@@ -133,7 +133,7 @@ public sealed class RoofFieldTests
     [Arguments(RoofForm.Shed)]
     [Arguments(RoofForm.Gambrel)]
     [Arguments(RoofForm.Saltbox)]
-    public async Task The_overhang_keeps_falling_at_the_same_rate_as_the_slope(RoofForm form)
+    public async Task The_overhang_falls_with_the_slope_and_the_walls_are_untouched(RoofForm form)
     {
         // Measured from the wall line and allowed to go past it, so the eave hangs below its neighbour instead
         // of running the last blocks of the roof flat exactly where it is most visible.
@@ -145,6 +145,42 @@ public sealed class RoofFieldTests
 
         if (form == RoofForm.Flat) return;
         await Assert.That(eaved.Trough).IsLessThan(flush.Trough);
+    }
+
+    [Test]
+    [Arguments(1, 1)]
+    [Arguments(2, 2)]
+    [Arguments(3, 2)]
+    [Arguments(4, 2)]
+    [Arguments(8, 2)]
+    public async Task The_eave_descends_one_course_then_no_more_than_two(int pitch, int drop)
+    {
+        // One course down is what makes a pitch of 1 read as a roof rather than a lid; past two the overhang
+        // hangs in front of the wall it shelters instead of over it.
+        var field = Field(RoofForm.Gable, pitch: pitch);
+        await Assert.That(BaseY - field.Crown(5, -1)).IsEqualTo(drop);
+    }
+
+    [Test]
+    public async Task A_deeper_overhang_runs_flat_once_it_has_fallen_its_two_courses()
+    {
+        // The floor is on the fall, not on the reach: a wider eave keeps sheltering further out at the depth
+        // it has already reached rather than diving another course per block.
+        var field = Field(RoofForm.Gable, overhang: 3, pitch: 4);
+        await Assert.That(field.Crown(5, -1)).IsEqualTo(BaseY - 2);
+        await Assert.That(field.Crown(5, -2)).IsEqualTo(BaseY - 2);
+        await Assert.That(field.Crown(5, -3)).IsEqualTo(BaseY - 2);
+        await Assert.That(field.Trough).IsEqualTo(BaseY - 2);
+    }
+
+    [Test]
+    public async Task No_eave_reaches_below_the_floor_the_building_stands_on()
+    {
+        // A wing 5 courses tall on a floor at y8 tops out at y13 and roofs from y14. At a two-block overhang
+        // and a pitch of 4 an unfloored eave lands at y6, two courses under the floor a player walks on.
+        const int floorY = 8, wallCourses = 5;
+        var field = new RoofField(RoofForm.Gable, 0, 0, 10, 8, 2, floorY + wallCourses + 1, 4, RoomEdge.NegZ);
+        await Assert.That(field.Trough).IsGreaterThan(floorY);
     }
 
     // ── a roof that climbs half a block at a time ───────────────────────────────────────────────────

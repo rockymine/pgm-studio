@@ -6020,6 +6020,36 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   test cannot stand in for — a seal passes happily on a roof with a hole in its body. Both `Ell()` fixtures had
   two **parallel** ridges and therefore no junction to test, which is how all four shipped unnoticed (`G182`);
   `EllMarch`/`EllProject` are the ones with crossing ridges, and `G186` redrew the rest.
+- **The eave falls with the slope and stops two courses down (WE2, author).** Distances are measured from the
+  wall line and go negative outside it, so the overhang kept falling one course per unit of pitch: at a
+  two-block overhang and a pitch of 4 the tip landed at y6 under a floor at y8 — two courses below the ground
+  the building stands on. The fall is now floored at two courses under the course the roof stands at over the
+  wall line, so a pitch of 1 drops one (which is what makes it read as a roof rather than a lid) and every
+  steeper pitch drops two, with a deeper overhang running flat at that depth instead of diving further. It
+  also stops the eave eating a stripe of wall that grew with the pitch: it reaches exactly one course under
+  the wall top at every pitch. One clamp in `RoofField.Rise`; the six form formulas are untouched.
+  (`RoofFieldTests`, `HouseStamperTests`, `docs/world-export/structures.md`)
+- **A building is joined out of the footprints an author drew, and taken apart the same way (S60).** `HouseProp`
+  carried a list of wings and the canvas only ever drew and dragged the first, so an L, a T or a U was
+  authorable only by writing the document by hand. Shift-click picks a second building and `mod+g` joins them
+  into one — the earliest-placed keeps its id, style, door edge and layer and gains the others' wings; the same
+  chord on a joined building takes it apart into one building per wing, so the pair round-trips. Every wing
+  wears its own grips, so a joined building is reshaped a rectangle at a time. The outline is now the wings'
+  union rather than a box each, because what the stamp takes is the union and a box each reads as two buildings
+  with a seam down the middle. **A building is no longer dragged onto another building's ground**: the drag
+  stops against it the way a marker's stops at the void. **And a refused building says why** — the prop preview
+  already answered `HP1`–`HP3` and `HJ1`–`HJ5` and the client swallowed the 400 as a missing picture; the
+  inspector now renders the gate's own sentence. The joint model is asked, never copied.
+  (`tests/js/dressing.test.js`, `docs/tools/sketch.md`)
+- **Five room-style fields an editor could not reach, and the load that wrote them away (B260).** Beams, gable
+  windows, a door head, the slab a roof steps in and the door's width had no control, and `HouseEditor.Load`
+  rebuilt its draft from a hand-written field list that stopped short of all six — so opening a seeded house
+  and pressing Save wrote away its beams, its door head and its slab roof. The load now goes through
+  `RoomStyleDetail.AsSaveRequest()`, the one place that mapping lives; `RoomStyleMapping.ToDetail` never passed
+  `DoorWidth` either, so a 3-wide door read back as 2. The controls are added at the part each belongs to, and
+  the seven window knobs — the wall's, a storey style's and the gable's — are one `WindowFields` component
+  rather than three copies, which is also where the window's host block became reachable.
+  (`RoomStyleLibraryEndpointsTests`, `docs/tools/library.md`)
 - **A building stands on a foundation, and a stored style reads forward into it (B196).** The sill, the floor
   and its zoning were three fields sitting beside everything else in a 25-field record, and "no footing" was a
   bare `SolidMaterial(Air)` sentinel — so asking whether a building had one was a comparison against a magic

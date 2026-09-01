@@ -859,6 +859,29 @@ over. The cursor shows in advance whether a spot will take it. A **building** is
 rectangle, because a stamper takes a box: it must be at least three by three to hold two walls and an inside,
 and no larger than 192 blocks of footprint, and a drag outside that range places nothing.
 
+**Two buildings are joined into one with `mod+g`, and the same chord takes a joined one apart.** Shift-click
+picks a second building beside the first; joining keeps the earliest-placed one — its id, its style, its door
+edge, its seed and its layer — and gives it the others' wings, and taking apart is the exact inverse, one
+building per wing, each keeping what the whole one stated. A joined building draws as the **union** of its
+wings rather than as a box each, because the union is what the stamp takes and a box each reads as two
+buildings with a seam down the middle; wings that do not touch still draw an outline each, because that is
+what they are. Every wing wears its own grips, so a joined building is reshaped a rectangle at a time. The
+inspector's Wings row does the same thing for an author who would rather press a button.
+
+**A building is not dragged onto another building's ground.** A plan states its ground once, so the drag stops
+against a standing building the way a marker's stops at the void, leaving the prop on the last legal cell. It
+is the necessary half of what `DR-CLAIM` asks at export, applied in the pointer because a drag cannot wait for
+an answer; the server stays the authority, and claims what it stamps grown a block outward, which is wider.
+
+**Whether the wings make a building is the joint model's to say, and it is asked rather than copied.** The
+`mod+g` gesture refuses only the two cases no reading is needed for — two buildings standing on the same
+ground, and two that do not touch at all, since a building is one shell under one roof and a corner is not an
+edge to build a joint on — and every
+other verdict comes back from `POST /api/terrain/prop-preview`, which answers `HP1`–`HP3` for the prop's own
+shape and `HJ1`–`HJ5` for how its wings meet. The inspector renders the gate's own sentence, so an author who
+joins two ranges lying side by side is told they meet in a gutter and to turn one across the other. A join is
+one undo step, so a refused one is taken back with `mod+z` or by pressing the chord again.
+
 **A building prop states one or more touching rectangles, and what each one is.** Its `wings` field is a list
 of entries — `corners`, the two opposite corners a drag always stored, and an optional `spec` holding
 everything the wing states about itself — and `HouseProp.Plan()` composes them into a `BuildingPlan`
@@ -930,9 +953,9 @@ happened to lay the block.
 **The overlap rule tells two buildings colliding from one building's own wings meeting.** Two props whose
 plans share a cell are still refused — the second is dropped rather than raised through the first's walls — but
 a plan's own wings never reach that test against each other, since the whole plan is composed and checked as
-one `BuildingPlan` before anything is placed. The canvas still only ever drags one rectangle at a time: a second
-wing is something a hand-authored or agent-authored document can state today, and the drawing tool to add one
-on the canvas is not built (`S60`).
+one `BuildingPlan` before anything is placed. A second wing is drawn as a building of its own and joined to the
+first with `mod+g`, so what the canvas drags is always a rectangle and what it stamps is the plan they make
+together.
 
 The document is a flat list of what was placed, in placement order, each entry carrying its own knobs. One of
 each:
@@ -1426,9 +1449,9 @@ into the ground and rasterized as a footprint, while a `path` **prop** repaints 
 adds no cell. The tool exists for the prop; the shape has none.
 
 A placed building's `wings` can state an L, a T or a U, and `Decorator` composes them into one house under one
-style the way the stamper always could (`G177`) — but the canvas itself still only ever drags one rectangle, so
-reaching a second wing today means writing the document by hand or generating it. The drawing tool to add one
-on the canvas is `S60`'s open half.
+style the way the stamper always could (`G177`). On the canvas each wing is drawn as its own rectangle and the
+rectangles are joined with `mod+g`; the joined building draws as one silhouette and each wing keeps its own
+grips.
 
 Symmetry here is a **preview and a mirror flag**, not a constraint. Shapes are drawn on one side and copied at
 export for every group that opted in; nothing stops an author drawing across the axis, and nothing checks that

@@ -16,6 +16,7 @@ import { BUILDING_COLORS } from "./primitive-style.js";
 import { pathRing, pathCenterline } from "../geometry/path.js";
 import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
+import polygonClipping from "../vendor/polygon-clipping.js";
 
 // One colour family per kind, so a glance separates a route from a stand of trees without reading a label. A
 // house takes the shared building ink, since a room's shell is drawn in it too.
@@ -135,11 +136,22 @@ function rectRing(points) {
   return [[minX, minZ], [minX + width, minZ], [minX + width, minZ + depth], [minX, minZ + depth]];
 }
 
-/** Every wing of a rect prop, each as its own four-corner ring — one entry for the plain building every board
- *  carries, more for an L, a T or a U (G177). */
+/** A rect prop's outline: one four-corner ring for the plain building every board carries, and for an L, a T
+ *  or a U the traced silhouette of the wings together rather than a box each. What the stamp takes is the
+ *  union, so the union is what an author is shown — drawn as separate boxes, a joined building reads as two
+ *  buildings with a seam down the middle, which is the one thing joining them said it was not. Wings that do
+ *  not meet still answer a ring each, because that is what they are. */
 function wingRings(prop) {
   const wings = prop?.wings ?? (prop?.points ? [prop.points] : []);
-  return wings.map(wing => rectRing(wingCorners(wing) ?? [])).filter(ring => ring.length >= 3);
+  const rings = wings.map(wing => rectRing(wingCorners(wing) ?? [])).filter(ring => ring.length >= 3);
+  if (rings.length < 2) return rings;
+  const united = polygonClipping.union(...rings.map(ring => [[[...ring, ring[0]]]]));
+  // A union answers polygons of [exterior, ...holes]; a building's outline is the exteriors, and the closing
+  // repeat each carries is dropped so the result is the same open ring shape a single wing answers.
+  const outlines = united.map(poly => poly[0]).map(ring =>
+    ring.length > 1 && ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+      ? ring.slice(0, -1) : ring);
+  return outlines.filter(ring => ring.length >= 3);
 }
 
 function disc(cx, cz, radius) {

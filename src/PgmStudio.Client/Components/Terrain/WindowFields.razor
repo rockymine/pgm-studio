@@ -1,0 +1,56 @@
+@namespace PgmStudio.Client.Components
+@using PgmStudio.Vocabulary
+
+@* The knobs one window opening states, wherever it is cut. A wall states one, a storey style states its own,
+   and a gable states a third; they are one shape and one set of controls, so they are written once here.
+
+   A stair's metadata is which way it climbs and a slab's is which half it fills. The four stairs of a lattice
+   differ from each other by geometry alone, and a material resolving its data from where the cell sits would
+   turn all four the same way — a solid patch of wall rather than a window. *@
+
+<Field Label="Form">
+  <Select Options="@Select.Words(WindowForms.All, WindowForms.Describe)"
+          Value="@Window.Form" ValueChanged="SetForm" />
+</Field>
+@if (Glazing)
+{
+  <Field Label="Made of">
+    <BlockPicker Blocks="Blocks" Id="Window.Block" Data="Window.Data" OnPick="PickBlock" />
+  </Field>
+  <Field Label="Sill">
+    <input class="field-input field-input--slim" type="number" min="1" max="16" step="1"
+           title="@SillTitle" value="@Window.Sill" @onchange="SetSill" />
+  </Field>
+  @if (WindowForms.Canonical(Window.Form) != WindowForms.StairLattice)
+  {
+    <Field Label="Blocks wide">
+      <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+             value="@Window.Width" @onchange="SetWidth" />
+    </Field>
+  }
+  @if (WindowForms.Canonical(Window.Form) == WindowForms.Pane)
+  {
+    <Field Label="Blocks tall">
+      <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
+             value="@Window.Height" @onchange="SetHeight" />
+    </Field>
+  }
+  <Field Label="Spacing">
+    <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
+           title="Clear blocks of wall between one window and the next."
+           value="@Window.Spacing" @onchange="SetSpacing" />
+  </Field>
+  <Field Label="Set into">
+    <div class="panel-actions">
+      <Chip Active="@(Window.HostBlock < 0)" OnClick="ClearHost">The wall's own course</Chip>
+      @if (Window.HostBlock >= 0)
+      {
+        <BlockPicker Blocks="Blocks" Id="Window.HostBlock" Data="Window.HostData" OnPick="PickHost" />
+      }
+      else
+      {
+        <Button OnClick="HostBand"><i data-lucide="square-dashed"></i> A band of its own</Button>
+      }
+    </div>
+  </Field>
+}

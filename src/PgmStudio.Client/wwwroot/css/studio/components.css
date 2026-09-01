@@ -1157,6 +1157,19 @@ svg.canvas-surface { display: block; width: 100%; height: 100%; }
   line-height: 1.6; margin-bottom: var(--space-2);
 }
 
+/* The Dressing inspector's two sentences: what the last canvas operation did, and why the gate will not take
+   the prop as it stands. Both are `.section-desc` first, so they read as panel body text and only the ground
+   under them says which kind of sentence it is. */
+.dressing-note,
+.dressing-refusal {
+  border-radius: var(--radius-sm);
+  padding: var(--space-2);
+}
+
+.dressing-note { background: var(--color-success-bg); color: var(--text-primary); }
+
+.dressing-refusal { background: var(--color-error-bg); color: var(--color-error); }
+
 /* <HelpMark> — the "?" that sits in a heading row or beside the control it explains, and the note the row's
    owner renders under it. The two are separate elements on purpose: a note has to run the full width of the
    panel, which it cannot do from inside the flex row the mark lives in. */

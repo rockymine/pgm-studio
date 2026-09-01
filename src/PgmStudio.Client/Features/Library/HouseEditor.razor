@@ -163,39 +163,27 @@
       @if (part.Id == RoomParts.Wall)
       {
         @* Windows are cut out of the wall the courses above just built, so they are the wall's knob. *@
-        <Field Label="Windows">
-          <Select Options="@Select.Words(WindowForms.All, WindowForms.Describe)"
-                  Value="@Windows.Form" ValueChanged="SetWindowForm" />
+        <WindowFields Window="Windows" WindowChanged="SetWindows" Blocks="blocks" />
+
+        @* Beams are the wall's timber frame: posts and a plate the courses are laid between, so they belong
+           to the wall rather than to the trim the corners are finished in. *@
+        <Field Label="Beams">
+          <Chip Active="@Beamed" OnClick="ToggleBeams">
+            @(Beamed ? "A timber frame" : "Plain courses")
+          </Chip>
         </Field>
-        @if (Glazing)
+        @if (draft.Beams is { } beams)
         {
           <Field Label="Made of">
-            <BlockPicker Blocks="blocks" Id="Windows.Block" Data="Windows.Data" OnPick="PickWindowBlock" />
+            <BlockPicker Blocks="blocks" Id="beams.Block" Data="beams.Data" OnPick="PickBeamBlock" />
           </Field>
-          <Field Label="Sill">
-            <input class="field-input field-input--slim" type="number" min="1" max="16" step="1"
-                   title="The course above the floor the opening starts at."
-                   value="@Windows.Sill" @onchange="SetWindowSill" />
-          </Field>
-          @if (Windows.Form != WindowForms.StairLattice)
-          {
-            <Field Label="Blocks wide">
-              <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                     value="@Windows.Width" @onchange="SetWindowWidth" />
-            </Field>
-          }
-          @if (Windows.Form == WindowForms.Pane)
-          {
-            <Field Label="Blocks tall">
-              <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                     value="@Windows.Height" @onchange="SetWindowHeight" />
-            </Field>
-          }
-          <Field Label="Spacing">
+          <Field Label="Reach">
             <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
-                   title="Clear blocks of wall between one window and the next."
-                   value="@Windows.Spacing" @onchange="SetWindowSpacing" />
+                   title="How far a beam runs from a corner, in blocks. 0 posts the corners alone."
+                   value="@beams.Reach" @onchange="SetBeamReach" />
           </Field>
+          <p class="section-desc">A beam is a log, and only a log — anything else is refused as
+            <code>HS1</code> before the style is stored.</p>
         }
       }
 
@@ -247,6 +235,33 @@
               @(draft.RidgeCap ? "Capped in the verge" : "The roof's own material")
             </Chip>
           </Field>
+          @* A slab halves the rise per block travelled inward, so a roof laid in slabs stands half as tall at
+             the same pitch and the body fills the cubes between. *@
+          <Field Label="Steps in">
+            <Chip Active="@Slabbed" OnClick="ToggleRoofSlab">
+              @(Slabbed ? "Half courses — slabs" : "Whole blocks")
+            </Chip>
+          </Field>
+          @if (Slabbed)
+          {
+            <Field Label="The slab">
+              <BlockPicker Blocks="blocks" Id="draft.RoofSlab" Data="draft.RoofSlabData"
+                           OnPick="PickRoofSlab" />
+            </Field>
+            <p class="section-desc">A single slab, in the material the roof body is laid in —
+              <code>HS3</code> refuses a pair that do not continue each other.</p>
+          }
+          @* The gable is the triangle above the wall's own top, so what is cut into it is its own opening. *@
+          <Field Label="Gable windows">
+            <Chip Active="@Gabled" OnClick="ToggleGableWindows">
+              @(Gabled ? "Cut into the gable" : "A blank gable")
+            </Chip>
+          </Field>
+          @if (draft.GableWindows is { } gable)
+          {
+            <WindowFields Window="gable" WindowChanged="SetGableWindows" Blocks="blocks"
+                          SillTitle="The course above the wall's own top the opening starts at." />
+          }
         }
         else
         {
@@ -326,6 +341,39 @@
         <input class="field-input field-input--slim" type="number" min="1" step="1"
                value="@draft.DoorHeight" @onchange="SetDoorHeight" />
       </Field>
+      <Field Label="Blocks wide">
+        <input class="field-input field-input--slim" type="number" min="2" max="8" step="1"
+               title="Never cut under two: a single-width gap is not a door, and a room an objective is carried out of has to read as somewhere to walk through."
+               value="@draft.DoorWidth" @onchange="SetDoorWidth" />
+      </Field>
+
+      <div class="section-header section-header--ruled"><h2 class="section-title">Head</h2></div>
+      <p class="section-desc">The lintel over the opening — a course of stairs turned in over the gap, with
+        what fills the middle above them. The stairs and the fill are one material: <code>HS4</code> refuses a
+        head made of two.</p>
+      <Field Label="Over the door">
+        <Chip Active="@Headed" OnClick="ToggleDoorHead">
+          @(Headed ? "A stair lintel" : "The wall carries straight over")
+        </Chip>
+      </Field>
+      @if (draft.DoorHead is { } head)
+      {
+        <Field Label="Form">
+          <Select Options="@DoorHeadFormOptions" Value="@head.Form" ValueChanged="SetDoorHeadForm" />
+        </Field>
+        <Field Label="Stairs">
+          <BlockPicker Blocks="blocks" Id="head.Block" Data="0" OnPick="PickDoorHeadBlock" />
+        </Field>
+        <Field Label="Filled with">
+          <Select Options="@DoorHeadFillOptions" Value="@head.Fill" ValueChanged="SetDoorHeadFill" />
+        </Field>
+        @if (DoorHeadFilled)
+        {
+          <Field Label="The fill">
+            <BlockPicker Blocks="blocks" Id="head.FillBlock" Data="head.FillData" OnPick="PickDoorHeadFill" />
+          </Field>
+        }
+      }
     }
   </Fields>
   <Actions>

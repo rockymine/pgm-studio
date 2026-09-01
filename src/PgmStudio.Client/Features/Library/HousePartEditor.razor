@@ -62,6 +62,22 @@
                 @(roof.RidgeCap ? "Capped in the verge" : "The roof's own material")
               </Chip>
             </Field>
+            @* A slab halves the rise per block travelled inward, so a roof laid in slabs stands half as tall
+               at the same pitch and the body fills the cubes between. *@
+            <Field Label="Steps in">
+              <Chip Active="@Slabbed" OnClick="ToggleRoofSlab">
+                @(Slabbed ? "Half courses — slabs" : "Whole blocks")
+              </Chip>
+            </Field>
+            @if (Slabbed)
+            {
+              <Field Label="The slab">
+                <BlockPicker Blocks="blocks" Id="roof.RoofSlab" Data="roof.RoofSlabData"
+                             OnPick="PickRoofSlab" />
+              </Field>
+              <p class="section-desc">A single slab, in the material the roof body is laid in —
+                <code>HS3</code> refuses a pair that do not continue each other.</p>
+            }
           }
           else
           {
@@ -138,45 +154,8 @@
     }
     else if (selected == WindowsPart && storey is not null)
     {
-    <p class="section-desc">A stair's metadata is which way it climbs and a slab's is which half it fills. The four stairs
-        of a lattice differ from each other by geometry alone, and a material resolving its data from
-        where the cell sits would turn all four the same way — a solid patch of wall rather than a
-        window.</p>
-        <Field Label="Form">
-          <Select Options="@Select.Words(WindowForms.All, WindowForms.Describe)"
-                  Value="@storey.Windows.Form" ValueChanged="SetWindowForm" />
-        </Field>
-        @if (Glazing)
-        {
-          <Field Label="Made of">
-            <BlockPicker Blocks="blocks" Id="storey.Windows.Block" Data="storey.Windows.Data"
-                         OnPick="PickWindowBlock" />
-          </Field>
-          <Field Label="Sill">
-            <input class="field-input field-input--slim" type="number" min="1" max="16" step="1"
-                   title="The course above this storey's own floor the opening starts at."
-                   value="@storey.Windows.Sill" @onchange="SetWindowSill" />
-          </Field>
-          @if (WindowForms.Canonical(storey.Windows.Form) != WindowForms.StairLattice)
-          {
-            <Field Label="Blocks wide">
-              <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                     value="@storey.Windows.Width" @onchange="SetWindowWidth" />
-            </Field>
-          }
-          @if (WindowForms.Canonical(storey.Windows.Form) == WindowForms.Pane)
-          {
-            <Field Label="Blocks tall">
-              <input class="field-input field-input--slim" type="number" min="1" max="8" step="1"
-                     value="@storey.Windows.Height" @onchange="SetWindowHeight" />
-            </Field>
-          }
-          <Field Label="Spacing">
-            <input class="field-input field-input--slim" type="number" min="0" max="16" step="1"
-                   title="Clear blocks of wall between one window and the next."
-                   value="@storey.Windows.Spacing" @onchange="SetWindowSpacing" />
-          </Field>
-        }
+      <WindowFields Window="storey.Windows" WindowChanged="SetWindows" Blocks="blocks"
+                    SillTitle="The course above this storey's own floor the opening starts at." />
     }
     else if (Stacked is { } stacked)
     {
