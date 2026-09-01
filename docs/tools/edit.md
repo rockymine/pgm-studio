@@ -2,6 +2,10 @@
 
 ## What it is
 
+**This tool is being retired (`TE3`, author).** The intent model authors a map now and nobody has driven
+`/maps/{slug}/edit`, so what is described below stands until the route and `Features/Edit/` are taken out.
+`WorldCanvas` and `world-bridge` are not part of it — the Configure tool mounts the same canvas.
+
 Edit opens a map that already exists. Its route is `/maps/{slug}/edit`, and what it shows is a `map.xml` that
 has been parsed into the database — the teams, spawns, wools and the whole region tree, laid out as panels and
 a canvas so they can be read and adjusted directly.
@@ -293,7 +297,7 @@ already exist before it can be assigned. Build Regions is the only phase with a 
 
 **The inspector is only partly wired.** Renaming and deleting a region are offered in Build Regions and
 nowhere else — Regions, Teams and Objective pass the inspector coordinate editing but no delete or rename
-handler, so those controls are absent rather than broken (`C11`).
+handler, so those controls are absent rather than broken.
 
 **Filters and apply-rules are not reachable here at all.** They are the machinery that makes a PGM map mean
 anything — which team may break which block, when — and this tool was to be where an author typed them. The

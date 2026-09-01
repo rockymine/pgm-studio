@@ -13,9 +13,9 @@ Board rules live in `CLAUDE.md` (§ "Status & task board").
 least span, one ink on all three canvases, and the prose that said otherwise corrected. What is left is the
 interaction that shape makes possible. Anything found while working goes to `BACKLOG.md`.
 
-**One question is open and blocks nothing below it.** A building's *ceiling* is still two numbers — a dressed
-prop is capped at 192 covered cells (`HP3`), a room's building at 20×20 by `ST9` — and whether those should
-be one is the author's.
+**A building's ceiling stays two numbers, for now (author).** A dressed prop is capped at 192 covered cells
+(`HP3`) and a room's building at 20×20 by `ST9`; they measure the same concept since `WE71`, and holding them
+apart is a deliberate not-yet rather than an oversight. Nothing below depends on it.
 
 **Three numbers are the author's and are not to be re-derived.** A protection region is at most **20×30**
 blocks (`ST10`), a building footprint at most **20×20** (`ST9`), and the smallest room with no building over

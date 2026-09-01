@@ -59,11 +59,16 @@ the focus-integration polish remains.
   `B58`: unlike a core, a destroyable has no signature of its own, so the phase should offer manual
   placement first and adopt candidates when that ranker lands.
 
-- [ ] **C11 — Wire + verify inspector edits across activities.** `OnDelete`/`OnRename` are wired only
-  in Build Regions; the Regions/Teams/Objective inspectors are **unwired** (rename/delete silently
-  no-op). Wire all three + verify rename/delete/coord-patch end-to-end.
-  *Held pending the Edit tool's own question: the author has never driven it, and the intent model is what
-  authors a map now. Wiring three inspectors is work on a surface that may be retired whole.*
+- [ ] **TE3 — Retire the Edit tool.** The author's ruling: it is not being kept. The intent model authors a
+  map now, and nobody has driven `/maps/{slug}/edit` — so its three unwired inspectors were never work, they
+  were work on a surface with no future. `Features/Edit/` is 16 files and 2,155 lines behind one route.
+  **`WorldCanvas` and `world-bridge` stay**: the Configure tool's build-layer, core-casing and core-objective
+  steps mount the same canvas, so what goes is the tool, not the surface it draws on. Take the route out of
+  the smoke sweep's list and the nav rail with it, and grep `docs/` for the tool's own name in the same
+  commit — `capabilities.md` and `routing-and-ia.md` both describe it as a surface an author can open, and
+  `docs/tools/edit.md` is the document that goes. `TE2` went with it: the tool's wool picker spelling the
+  sixteen dyes a second way is a defect in a surface with no future, and `WoolColors` is already the one list
+  every other reader takes.
 
 ## The sketch tool: shapes, islands, and the ground they become
 
@@ -119,8 +124,9 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 - [ ] **WE48 — A pattern's brush is smaller than the thing it dresses.** A field whose features are smaller
   than what they are laid over reads as static however good its palette is. Complain under a floor on
-  `CellMaterial.CellSize` and the field patterns' `Scale`; the floor is the author's to state.
-  `docs/world-export/terrain-painting.md`.
+  `CellMaterial.CellSize` and the field patterns' `Scale`. **The floor is 2 (author)** — a guard against a
+  brush finer than the blocks it paints rather than a style rule, so it flags a pathological value and leaves
+  every board on the shelf alone. `docs/world-export/terrain-painting.md`.
 
   *Medians over the committed themes: `cellSize` 6 for a cell pattern (down to 2), `scale` 8 for a noise field
   (down to 4), `cellSize` 6 for a voronoi. Those are the numbers that produced the boards under review.*
@@ -168,11 +174,12 @@ what is gathered here is the parked and dormant slices of the same surface.
   between two documents that a recompile, a rename, a fork or a hand-edit can each break on their own, with
   no gate to notice — an orphaned relief is caught only on the compile path (`SK1`), not on a plain save.
 
-  **The question to settle before building anything**: whether the key should be the *layer* plus the island
-  (which is what an author means — "the ground of the ground storey"), or whether a relief should ride on the
-  layer that carries it rather than at the document root. Either would make the pairing structural instead of
-  nominal. Wants the model in `docs/world-export/relief.md` amended first; there is no code task until the
-  key is decided.
+  **Settled (author): the key is the layer plus the island.** That is what an author means — "the ground of
+  the ground storey" — and it is the reading that lets a relief be solved on a storey *under* the board, which
+  is the case a bare island id cannot express at all. The pairing becomes structural rather than a string
+  equality two documents have to keep agreeing on. Amend the model in `docs/world-export/relief.md` first,
+  then the key, then a read-forward for a stored relief keyed by island alone — its layer is the one that
+  carries the island, which is recoverable.
 
 - [ ] **S42 — Relief: the carve and the graded road fold too.** The solve folds, and so now does the stair cut
   (`FEATURES.md`) — the first later pass to land, and the one that showed the rule is real rather than
@@ -296,8 +303,15 @@ placement takes it — so what is left is each surface reading and writing the l
   sandstone at y21 where `(0, 70)` — the same shelf at the same height — is quartz.*
 
   **The stacked case is already settled** (`TS23`, `FEATURES.md`): across layers there is no contest, because
-  each surface shows its own paint. What is open is the nested-tier case within one layer, and that ruling —
-  smallest area wins a contested cell — is the precedent it has to be answered against.
+  each surface shows its own paint.
+
+  **The nested-tier case is settled the same way: paint follows the shape that forms the surface.** Among the
+  shapes covering a column, only those reaching the visible top may own its paint; among *those*, the smallest
+  area still wins. That keeps patch-scoping exactly as it is — two shapes at one height are a theme scoped to
+  a patch, and the smaller one is the scope — and stops a shape running *under* another from painting a
+  surface it does not form, which is the whole of the defect. It is `TS23`'s rule read within a layer rather
+  than across layers: each surface shows its own. `ShapeScopeOwners` gains the height test `MergeCell` already
+  makes; where two shapes tie on height nothing changes.
 
 ### A made thing is a third kind, and it is drawn out of layers
 
@@ -397,16 +411,9 @@ forward for the two clicked ones, and the per-placement handful — seed, positi
 
 ### What the author sees while authoring
 
-B221 and B258 make the preview *heavier*, and both are downstream of `TL5`'s decision about how wide it is —
-so they wait for the frame rather than being built into the one it replaces.
-
-- [~] **B70 — The card shows the one view its knobs are invisible in.** A library card carries the section
-  alone, and a section projected onto the front wall shows a window as a patch of the same colour as the wall
-  around it, a porch as nothing at all. Which view a card should carry instead is a look-and-choose question
-  rather than a derivable one: the plan reads the roof form, its hole, its overhang and a porch's notch but no
-  window; the cutaway reads a window as the opening it is but draws a block as its own shape, which is tens of
-  kilobytes per row. The sample is now a parameter, so a card could also be judged at a proportion where more
-  reads. Wants the author's eye on which picture picks a house out of a grid.
+**The card carries the section, and that is settled** (author): an author knows a house by its name, and the
+one that wants looking at is a click away from a 3-D view of the real thing. B221 and B258 both make that
+deeper view *heavier*, which is the axis worth spending on.
 
 - [ ] **B221 — The style libraries preview a stamped world, and the cut follows the selected row.**
   Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
@@ -806,17 +813,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   *Five authored boards never opened it. What they read instead was `relief.md`, `decoration.md`,
   `terrain-painting.md` and the endpoint tables inside them — the split this entry proposes, observed.*
 
-- [ ] **TE2 — The Edit tool's wool picker spells the dyes a second way.** `ObjectivePhase` builds its colour
-  list from `GameColors.DyeColors` (`ObjectivePhase.razor.cs:201`, `:211`), whose values are the space form
-  `light blue` loaded from `game-colors.json`, and converts on every read with `.Replace('_', ' ')`. The plan
-  tool, `WoolEditor`, `PlanValidator` and both renderers read `WoolColors` (`PgmStudio.Vocabulary`), whose
-  values are the underscore form the wire carries. Two lists for one closed set of sixteen, and only one is
-  the word `map.xml` holds. `PgmStudio.Client` reaches `Vocabulary` through `Contracts`, so the picker can
-  read `WoolColors.All` and `.Label`, keeping `game-colors.json` for the chat table it is actually the oracle
-  for. **Evidence:** `game-colors.json` has no `light_gray`, so on a map whose author wrote PGM's accepted
-  alias the `<select>` at `ObjectivePhase.razor:56` has no option matching its own value and shows a colour
-  the wool is not — while the plan tool folds the same word to `silver`.
-
 - [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
   surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
   remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
@@ -900,13 +896,17 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **WE13 — The catalogue map cannot export, and both doors agree on why.** `tools/library-map.cs` emits a
-  grid of 37 unconnected plots; `GET /map/{slug}/export` refuses it **409 `EX1`** — *3 spawn/objective
-  point(s) are not reachable from the rest*, naming `spawn red-team`, `wool red` and `wool blue`. It is the
-  map's own shape rather than a route's: a catalogue is a row of islands nothing bridges, and `EX1` asks
-  whether a match can walk between its spawns and its objectives. Either the wool rooms and spawns move onto one plot,
-  or a board that is a catalogue says so and is exempted. Which is the author's — the map exists to be walked
-  plot by plot, not played.
+- [ ] **WE13 — The catalogue map is not a map, and may not be wanted at all.** `tools/library-map.cs` emits a
+  grid of 37 unconnected plots and `GET /map/{slug}/export` refuses it 409 `EX1` — *3 spawn/objective point(s)
+  are not reachable from the rest*. **The ruling (author): a catalogue is not a map**, so `EX1` is asking it a
+  question it was never built to answer, and moving its wools onto one plot would make it a worse catalogue to
+  fix a verdict that does not apply.
+
+  **What is open is whether to keep the catalogue at all**, and the author's lean is not to: it has not been
+  opened in a while, and the library's own 3-D preview now shows a piece far better than walking to its plot
+  does. So the exemption is not worth building until that is settled — an exemption for a tool nobody opens is
+  the more expensive of the two answers. Retiring it takes `tools/library-map.cs` out of the seven scripts in
+  `tools/` and its paragraph out of `docs/tools/library.md`.
 
 - [ ] **G262 — The seed corpus states iron the placement rules no longer seat.** Measured across
   `tools/seeds`: 12 of 14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled
@@ -921,7 +921,8 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   `PgmStudio.Compose` would add **no dependency edge** — the split is free in graph terms, and it would make
   `Pgm`'s charter true again while making the generator's own dependencies enforceable (today it can reach the
   codec and nothing notices). Against it: a rename across every citation, and `PlanCompiler` — the plan →
-  layout + intent seam — would sit on a project boundary rather than inside one. **The blocking question is
-  whether `PlanCompiler` belongs to the generator or to authoring**, and that is answerable only when the
-  generator next needs a structural change; doing it as a standalone refactor buys nothing today.
+  layout + intent seam — would sit on a project boundary rather than inside one. **Deferred (author): not
+  yet**, because which side `PlanCompiler` belongs to is not yet known — and it is the one thing the split
+  turns on. The answer arrives when the generator next needs a structural change and the seam has to be
+  argued about anyway; doing the rename as a standalone refactor before then buys nothing.
   See `docs/project-structure.md` §6.1.

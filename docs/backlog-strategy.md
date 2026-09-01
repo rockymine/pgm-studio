@@ -1,6 +1,6 @@
 # The board, and how it empties
 
-`BACKLOG.md` holds 73 open entries and `TODO.md` three — the interaction slice of the programme that put a
+`BACKLOG.md` holds 68 open entries and `TODO.md` three — the interaction slice of the programme that put a
 room's building and a dressed one on one model. This document is the reading that says which of them are
 defects, which are questions, which share a cause, and what order drains them. Its subject is the board
 itself, and it expires when the board it describes is gone. It is the one document this work adds:
@@ -12,10 +12,10 @@ measured today disagree, the measured one is here.
 
 ## Where the board stands
 
-The two boards carry **76 open entries over 12,080 words**: a median entry of 146 words and **7 above 250** —
+The two boards carry **71 open entries over 11,766 words**: a median entry of 151 words and **8 above 250** —
 the length at which `CLAUDE.md` says an entry "is not a task yet and wants investigating until it is". `G163`
-is 390 words, `WS3` 356, `B169` 281, and `WE28` and `B58` 270 each. The prefix spread is `B` 22, `WE` 14,
-`TS` 9, `S` 7, `G` 7, `N` 4, `C` 4, `WS` 3, and four others in ones and twos.
+is the longest at 390 words, then `WS3` at 356. The prefix spread is `B` 20, `WE` 14, `TS` 7, `S` 7, `G` 7,
+`N` 4, `C` 3, `WS` 3, and four others in ones and twos.
 
 **An entry is measured from its bullet to the next bullet *or the next heading*, at any indent.** Counting to
 the next bullet alone folds a section's preamble into whichever entry precedes it and inflates the long tail.
@@ -272,24 +272,33 @@ previous reading left the board unanswered: `B55` (which API paths read a map as
 Deleting the entry answers the question by declining to have it, and four of those five were questions about
 work nobody was blocked on.
 
-Seven stand, stated so they can be answered in a line each:
+**The sitting has happened, and it drained the whole list.** Seven questions were put to the author in one
+pass and seven came back, which is what this section claimed would happen and had never been tested. What the
+answers cost is worth recording, because it is not what the board's shape suggested:
 
-1. `C11` — is the Edit tool being kept? Three unwired inspectors are work on a surface that may be retired
-   whole, and the author has never driven it.
-2. `WE28` — should a relief be keyed by layer *plus* island, or ride on the layer that carries it?
-3. `WE48` — what is the floor on a pattern's brush size, under which it is smaller than what it dresses?
-4. `B144` — how do height and paint resolve an overlap, where one takes the taller shape and the other the
-   smaller? The entry says its stacked half is `TS23`'s `Q4` and that neither may be answered alone; `TS23`
-   has shipped and answered its half — *within a layer, smallest area still wins a contested cell; across
-   layers there is no contest, because each surface shows its own* — so what is open is the nested-tier case
-   alone, and that ruling is the precedent for it.
-5. `B70` — which view should a library card carry?
-6. `WE13` — does a catalogue map move its wools onto one plot, or is a catalogue exempt from `EX1`?
-7. `A8` — does `PlanCompiler` belong to the generator or to authoring? (gates the `PgmStudio.Compose` split)
+| question | answer | what it left |
+|---|---|---|
+| `C11` — is the Edit tool kept? | **no** | the entry withdrawn, and `TE3` — retire the tool — filed in its place. `TE2` went with it |
+| `WE28` — how is a relief keyed? | **layer + island** | work, with the reason: it is the reading that lets a relief be solved on a storey *under* the board |
+| `WE48` — the floor on a brush? | **2** | work. A guard against a brush finer than the blocks it paints, not a style rule — every board on the shelf passes |
+| `B144` — height against paint? | **delegated** | ruled below, on `TS23`'s precedent |
+| `B70` — which view on a card? | **the section, as it is** | the entry withdrawn: an author knows a house by name, and the one worth looking at is a click from a 3-D view |
+| `WE13` — is a catalogue a map? | **no** | and the catalogue itself is probably not wanted, so the exemption is not worth building until that is settled |
+| `A8` — where does `PlanCompiler` belong? | **not yet** | deferred, with the reason stated: the answer is not known, and it is the one thing the split turns on |
 
-`TODO.md` carries an eighth in its preamble: a dressed prop is capped at 192 covered cells by `HP3` and a
-room's building at 20×20 by `ST9`, and whether those should be one number is the author's. It blocks nothing
-below it.
+`TODO.md`'s eighth — whether a building's two ceilings should be one number — came back the same way: they
+stay apart for now, deliberately.
+
+**Three of the seven were answered by declining to have the question**, which is the pattern the withdrawal
+section already names: `C11` and `B70` left the board, and `WE13` turned into a question about whether to keep
+the thing at all. Two became work with a stated reason. Two were deferred with the reason for deferring. Not
+one of them needed more measurement, which is the whole claim this section makes.
+
+**`B144` was handed back, and the ruling is: paint follows the shape that forms the surface.** Among the shapes
+covering a column, only those reaching the visible top may own its paint; among those the smallest area still
+wins. Patch-scoping is untouched — two shapes at one height are a theme scoped to a patch — and a shape running
+*under* another stops painting a surface it does not form, which is the whole of the defect. It is `TS23`'s
+rule read within a layer rather than across layers: each surface shows its own.
 
 Two entries carry an answer in their prose and still read as open, which costs a reader the same as an
 unanswered one. `WE41` opens *"Parked on a ruling: nothing is built until one is chosen"* and then states the
@@ -334,12 +343,11 @@ for.
 
 ## The order the board empties in
 
-**Phase 0 — ask, then cut.** The seven unanswered questions, in one sitting. Each answer either turns its
-entry into work small enough to state in a paragraph or withdraws it, and withdrawal is now the demonstrated
-majority outcome. Nothing else on this list is worth starting first: two of the causes above have a question
-sitting in them — `WE28` in the layer word, `WE48` in the ungated convention — and a third, the programme
-`TODO.md` is running, waits on the ceiling question that board's preamble names. It is the one phase nobody
-can do alone.
+**Phase 0 — ask, then cut. Done, and it worked.** Seven questions went to the author in one pass and seven came
+back: three by declining to have the question, two as work with a stated reason, two deferred with the reason
+for deferring. It cost one message. This phase is the one nobody can do alone, and it is the one to run first
+whenever the list refills — the causes below each had a question sitting in them, and none of them could move
+until it was answered.
 
 **Phase 1 — the verified defect run.** `TS31`, `B145`, `B57`. Each lands with a test that fails on the old
 behaviour — that is the deliverable, not the fix.
@@ -366,7 +374,7 @@ because what drifted there is its premise.
 Five rules, each of which the repository already believes and none of which it enforces.
 
 **Nothing is filed without a reproduction.** An entry that cannot say what fails, at which coordinates, is the
-five-paragraph entry `CLAUDE.md` rule 10 warns about. Seven entries are over 250 words, down from twelve, and
+five-paragraph entry `CLAUDE.md` rule 10 warns about. Eight entries are over 250 words, down from twelve, and
 the longest is now 390 words rather than 1,068 — the retirement pass took the tail off the distribution
 rather than trimming the entries in it, which is the faster of the two moves and the one that needs the
 author.
@@ -377,8 +385,8 @@ author.
 **No measurement is written by hand.** Seven of nine re-measured figures had drifted, one entry's retake
 *command* had drifted with them, and one entry's whole premise had. `census.sh` is the precedent.
 
-**A question is asked before the entry is filed, not after.** The oracle rule already says this. Seven entries
-carry a question nobody has answered, and each has been costing the board's readability ever since. The house
+**A question is asked before the entry is filed, not after.** The oracle rule already says this. No entry now
+carries a question nobody has answered, and each has been costing the board's readability ever since. The house
 group is what one sitting of answers looks like: five entries, of which one became a clamp, three were
 withdrawn outright, and one turned into the surface the other four had been standing in the way of.
 
