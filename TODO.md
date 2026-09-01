@@ -34,27 +34,22 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
   where a style is bound. The emitters then need no cell-size arithmetic at all — a small piece carries a
   small room rather than a refusal.
 
-- [ ] **B37 — An iron cube is stamped with no gate at all.** `StructureStamper.StampIronCube` centres a 4×4
-  on its anchor and writes it wherever that lands, with no bounds test of any kind; only the `ST2` lint
-  watches, it tests the **marker block** rather than the footprint, and it fires only when a spawn-role piece
-  exists somewhere on the board. Both go when `B177` derives the cube — there is no marker left to gate and no
-  second stamping path to reach.
+- [ ] **B177 — An iron cube stamps outside its piece with nothing watching.** `StructureStamper.StampIronCube`
+  centres a cube on its anchor and writes it wherever that lands, with no bounds test of any kind — the
+  standalone path a marker takes when its piece carries no spawn marker, which is one deletion away from any
+  authored spawn. Gate it on the piece the marker rides, the way `RoomFrames.PlaceIron` already gates the
+  spawn-room path, and let an out-of-bounds cube resolve unplaceable rather than stamp into the void. `ST2`
+  goes with it: it tests the marker block rather than the cube's footprint, and fires only when a spawn-role
+  piece exists somewhere on the board.
 
-  *Reproduced 2026-08-31 · one `lane` piece `x[-24,-8) z[-24,-8)`, a `cube-4` destroyable and an iron marker
-  both at `at:[0.5,0.5]`. The destroyable is refused `OB17`; the iron cube stamps at `x[-26,-22) z[-26,-22)`,
-  two columns into the void, with no finding.*
+  *Reproduced 2026-08-31 · one `lane` piece `x[-24,-8) z[-24,-8)`, an iron marker at `at:[0.5,0.5]`. The cube
+  stamps at `x[-26,-22) z[-26,-22)`, two columns into the void, with no finding.*
 
-- [ ] **B177 — Iron is authored on a lattice too coarse to place it and resolved by a negotiation nobody
-  asked for.** Derive it: delete `PlanPlacements.Iron`, `SpawnIntent.Iron`, `StructureIntent.IronCubes` and
-  the `IronCube` record, and let a spawn placement carry an **`iron`** count. The resolver seats each cube
-  **inside the protection region**, forward of the pad along the door axis and clear of the **door
-  corridor** — the door's own opening projected out to the region's edge — which is `SP7` as geometry rather
-  than as a complaint. Parity picks the size from the seated position, so nothing walks a ladder and nothing
-  resolves unplaceable: `WX8`'s negotiation and `WX9`'s placeability go with it.
-
-  *All 13 iron markers across the 49 seeds are spawn-family; the three on plain pieces are traced maps that
-  put the cube on the piece ahead of the door. `<renewable region>` is the cube's own footprint, so renewal
-  never depended on the protection region.*
+- [ ] **G262 — Every authored iron marker in the corpus is unplaceable.** Measured across `tools/seeds`: 12 of
+  14 spawn-room cubes resolve unplaceable, on five seeds, because a cube and a walled room need `6 + 3 + 3`
+  = 12 blocks on one axis and those spawn pieces are 10×10, 15×15 and 20×10. The rule is right and the data
+  is stale: re-author each seed's spawn piece so it either has the depth for a yard or states a footprint
+  small enough to open one, and re-record whatever `docs/generator/seed-stats.md` measures off them.
 
 - [ ] **TN11 — The seeded footprint has no handle on the canvas.** A drawn `spawn` or `wool-room` piece now
   states its marker and its footprint, but the only way to resize the building is to type the numbers. Draw

@@ -71,9 +71,9 @@ rounding it away.
   piece carries a shell whose footprint is the **room the plan states** — the placement's `footprint`, in
   blocks from the piece's minimum corner, which the editor writes when the piece is drawn
   (docs/tools/plan.md). Where it states none the piece is
-  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **seven** on
-  the side the door opens through, which is the largest iron cube plus the standing room it holds to the wall.
-  A 20×20 spawn piece facing −z therefore opens as an **18×12** room with somewhere for its iron to stand,
+  inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **six** on
+  the side the door opens through, which is an iron cube plus the standing room it holds to the wall.
+  A 20×20 spawn piece facing −z therefore opens as an **18×13** room with somewhere for its iron to stand,
   rather than as an 18×18 room the cube has to make the shell shrink for. A wool room takes the plain
   inset: its entries come from whichever sides abut it, so it has no one side to keep clear, and no iron.
 
@@ -151,22 +151,19 @@ marker is never freely placeable.
 Iron is spawn family — a renewable resource the spawn room exists beside — but it is a separate
 structure, and structures never fuse.
 
-- **WX8** *The room yields, the iron degrades, the room wins.* An iron marker on a spawn piece
-  stamps its cube **outside the room shell**, inside the piece, with **three blocks of clear air** to
-  the wall — the standing room a player has to get round it, never flush, never merged into a
-  corner. Fitting is a two-sided negotiation with a fixed priority: the shell pulls **one edge**
-  back from its WX1 footprint by the minimum that clears the cube — legal while the shell holds the
-  WX2 minimum and the spawn marker stays inside the interior (the pad may still clamp with a WX4
-  shift); among legal shrinks the largest retained area wins, ties breaking toward the edge
-  farthest from the spawn marker, so orbit images shrink
-  mirror-consistently. The cube itself degrades by marker parity — a **grid-line** marker centres
-  **4×4**, falling back to **2×2**; a **block-centre** marker centres **3×3**. A marker whose two axes
-  disagree centres no square at all, so it takes the whole ladder (**4×4 · 3×3 · 2×2**) and settles half
-  a block off centre on the odd axis; refusing it instead is what turned a column of three iron markers
-  down one side of a spawn piece into three lints and no ore. The low corner is always the marker less
-  half the span, rounded away from zero, which is what keeps a half-block landing symmetric across the
-  orbit. The renewables wiring covers exactly the resolved footprints. `RoomFrames.ResolveRoom` owns the
-  negotiation; `Composer`-emitted plans and authored plans go through the same resolver.
+- **WX8** *The cube is one size, and the room never gives an edge up for it.* An iron marker on a spawn
+  piece stamps a **3×3** cube **outside the room shell**, inside the piece, with **three blocks of clear
+  air** to the wall — the standing room a player has to get round it, never flush, never merged into a
+  corner. There is no negotiation and no ladder: the cube centres on its marker, put back on the block
+  lattice by rounding away from zero (which is what keeps a half-block landing symmetric across an orbit),
+  and it fits there or it does not. The shell keeps the footprint `WX1` gave it whatever the iron asks for,
+  because that footprint is the author's statement and a resolver quietly shrinking a building to make room
+  for a cube the author dropped is the opacity the stated footprint exists against.
+
+  **What this costs, stated plainly.** A cube and a walled room on the same axis need `6 + 3 + 3` = **12
+  blocks**, and the default reaches its full door gap only on a piece **16 deep**. Below that a spawn piece
+  carries a room and no iron unless the author shrinks the footprint themselves to open a yard — which is
+  exactly what a stated footprint is for.
 
 - **WX9** *Placeability is an attribute, not an exception.* Every iron marker resolves to
   **placeable or not** (`IronResolution.Placeable`) rather than to a refusal. An unplaceable marker stamps

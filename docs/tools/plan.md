@@ -214,7 +214,7 @@ from the piece's minimum corner — the same corner the marker's `at` is measure
 holding the room and the bounds every marker on it is held to; the footprint is the room itself, so a wide
 protection region can carry a small hall. It is fanned like the piece is, so an orbit image raises the same
 building on its own ground. Absent leaves it to the resolver's default (`WX1`): the piece inset by one block
-on every side, and by up to seven in front of a spawn's door, which is the largest iron cube plus the standing
+on every side, and by up to six in front of a spawn's door, which is an iron cube plus the standing
 room it holds to the wall. A footprint smaller than a room can be (`WX2`) or reaching past its piece (`WX12`)
 is refused rather than clamped.
 

@@ -20,10 +20,10 @@ public sealed class PieceRoomTests
     public async Task A_spawn_piece_is_seeded_with_the_room_the_default_would_have_given_it()
     {
         // The seeded rectangle and the resolver's fallback are one number: a 20×20 spawn facing −z opens as
-        // an 18×12 room, seven blocks of ground in front of its door and one on the other three sides.
+        // an 18×13 room, six blocks of ground in front of its door and one on the other three sides.
         var piece = new BlockRect(0, 0, 20, 20);
         var seed = PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front")!.Value;
-        await Assert.That(seed.Footprint).IsEquivalentTo(new double[] { 1, RoomFrames.DefaultDoorGap, 18, 12 });
+        await Assert.That(seed.Footprint).IsEquivalentTo(new double[] { 1, RoomFrames.DefaultDoorGap, 18, 13 });
 
         var stated = PlanMarkers.Footprint(piece, seed.Footprint)!.Value;
         var fallback = RoomFrames.DefaultFootprint(
@@ -80,6 +80,41 @@ public sealed class PieceRoomTests
     }
 
     [Test]
+    public async Task A_spawn_is_seeded_with_one_cube_beside_its_door_and_a_wool_room_with_none()
+    {
+        // One cube is the seed; adding more is the author's. It stands hard against the piece's outer edge —
+        // the door gap is the cube plus its clear air exactly, so that is the only row it fits in — and clear
+        // of the door corridor, so nobody walks out into it.
+        var piece = new BlockRect(0, 0, 20, 20);
+        var spawn = PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front")!.Value;
+        await Assert.That(spawn.Iron).IsNotNull();
+        await Assert.That(spawn.Iron![1]).IsEqualTo(RoomFrames.IronSpan / 2.0);
+
+        var room = RoomFrames.ResolveRoom(piece, PlanMarkers.Footprint(piece, spawn.Footprint), walled: true,
+            piece.MinX + spawn.At[0], piece.MinZ + spawn.At[1], [], RoomEdge.NegZ,
+            [(piece.MinX + spawn.Iron[0], piece.MinZ + spawn.Iron[1])], out _)!;
+        var cube = room.Iron[0];
+        await Assert.That(cube.Placeable).IsTrue();
+        await Assert.That(cube.Size).IsEqualTo(RoomFrames.IronSpan);
+        // Clear of the door's own opening projected out to the piece edge.
+        await Assert.That(cube.MinX + cube.Size).IsLessThanOrEqualTo(room.Frame.Doors[0].Lo);
+
+        // A wool room names no door, so there is no yard in front of it and no iron.
+        await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.WoolRoom, "front")!.Value.Iron).IsNull();
+    }
+
+    [Test]
+    public async Task A_yard_too_shallow_for_a_cube_seeds_no_iron()
+    {
+        // The gap only reaches the cube's own span plus its clear air on a deep enough piece; below that the
+        // spawn is seeded with its room and nothing else.
+        await Assert.That(PieceRoom.ForPiece(new BlockRect(0, 0, 20, 12), PlanRoles.Spawn, "front")!.Value.Iron)
+            .IsNull();
+        await Assert.That(PieceRoom.ForPiece(new BlockRect(0, 0, 20, 20), PlanRoles.Spawn, "front")!.Value.Iron)
+            .IsNotNull();
+    }
+
+    [Test]
     public async Task A_piece_too_small_to_raise_a_shell_on_is_left_bare()
     {
         // 7×7 insets to 5×5, under WX2's 6×6 — seeding it would hand the author a rectangle its own export
@@ -102,13 +137,13 @@ public sealed class PieceRoomTests
         var piece = new BlockRect(0, 0, 20, 20);
         var gap = (double)RoomFrames.DefaultDoorGap;
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front")!.Value.Footprint)
-            .IsEquivalentTo(new[] { 1d, gap, 18d, 12d });
+            .IsEquivalentTo(new[] { 1d, gap, 18d, 13d });
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "back")!.Value.Footprint)
-            .IsEquivalentTo(new[] { 1d, 1d, 18d, 12d });
+            .IsEquivalentTo(new[] { 1d, 1d, 18d, 13d });
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "left")!.Value.Footprint)
-            .IsEquivalentTo(new[] { gap, 1d, 12d, 18d });
+            .IsEquivalentTo(new[] { gap, 1d, 13d, 18d });
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "right")!.Value.Footprint)
-            .IsEquivalentTo(new[] { 1d, 1d, 12d, 18d });
+            .IsEquivalentTo(new[] { 1d, 1d, 13d, 18d });
     }
 
     public static IEnumerable<Func<string>> Roles() => [() => PlanRoles.Spawn, () => PlanRoles.WoolRoom];

@@ -192,114 +192,94 @@ public sealed class RoomFramesTests
     public async Task A_spawn_piece_opens_with_ground_in_front_of_its_door_and_the_iron_stands_in_it()
     {
         // The default footprint keeps one block of clean floor on three sides and DefaultDoorGap in front of
-        // the door, so a 20×20 piece facing −z opens as an 18×12 room with seven blocks of ground ahead of it.
-        // The cube stands in that ground at its full span, and the room gives up nothing to make space.
+        // the door, so a 20×20 piece facing −z opens as an 18×13 room with six blocks of ground ahead of it.
+        // The cube stands in that ground, and the room gives up nothing to make space.
         var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 20), footprint: null, walled: true,
-            10, 16, [], RoomEdge.NegZ, [(10, 2)], out var refusal)!;
+            10, 16, [], RoomEdge.NegZ, [(10, 1.5)], out var refusal)!;
         await Assert.That(refusal).IsNull();
         await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
-            .IsEqualTo((1, 7, 19, 19));
-        await Assert.That((room.Frame.Width, room.Frame.Depth)).IsEqualTo((18, 12));
+            .IsEqualTo((1, 6, 19, 19));
 
         var iron = room.Iron[0];
         await Assert.That(iron.Placeable).IsTrue();
-        await Assert.That(iron.Size).IsEqualTo(RoomFrames.MaxIronSpan);
-        // In front of the room rather than beside it, with the gap the rule keeps.
+        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((9, 0, RoomFrames.IronSpan));
+        // In front of the room rather than beside it, with the standing room the rule keeps.
         await Assert.That(iron.MinZ + iron.Size).IsLessThanOrEqualTo(room.Frame.MinZ - RoomFrames.IronGap);
-        // And the room is exactly where it would have been with no iron on the piece at all.
-        var alone = RoomFrames.Resolve(new BlockRect(0, 0, 20, 20), footprint: null, walled: true,
-            10, 16, [], RoomEdge.NegZ, out _)!;
-        await Assert.That((room.Frame.MinZ, room.Frame.MaxZ)).IsEqualTo((alone.MinZ, alone.MaxZ));
     }
 
     [Test]
-    public async Task Iron_at_a_back_cell_centre_shrinks_the_shell_and_takes_a_3x3()
+    public async Task A_cube_is_one_size_whatever_its_markers_parity()
     {
-        // The 10×15 piece: spawn marker in the front region, centre-parity iron in the back — the shell
-        // gives up the back strip (8×7), the cube takes 3×3, the standing room between them.
-        var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 10, 15), new BlockRect(1, 1, 9, 14), walled: true, 5, 5, [], RoomEdge.NegZ, [(7.5, 12.5)], out _)!;
-        var iron = room.Iron[0];
-        await Assert.That(iron.Placeable).IsTrue();
-        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((6, 11, 3));
-        await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
-            .IsEqualTo((1, 1, 9, 8));
-        // Separated: the shell ends at z=8, the cube starts at z=11.
-        await Assert.That(room.Frame.MaxZ).IsLessThanOrEqualTo(iron.MinZ - RoomFrames.IronGap);
+        // No ladder: a grid-line marker and a block-centre marker both centre the same cube, each put back on
+        // the block lattice. Nothing about the marker chooses a size.
+        var piece = new BlockRect(0, 0, 20, 20);
+        var onGrid = RoomFrames.ResolveRoom(piece, null, walled: true, 10, 16, [], RoomEdge.NegZ,
+            [(10, 1.5)], out _)!.Iron[0];
+        var onCentre = RoomFrames.ResolveRoom(piece, null, walled: true, 10, 16, [], RoomEdge.NegZ,
+            [(6.5, 1.5)], out _)!.Iron[0];
+        await Assert.That(onGrid.Size).IsEqualTo(RoomFrames.IronSpan);
+        await Assert.That(onCentre.Size).IsEqualTo(RoomFrames.IronSpan);
+        await Assert.That((onGrid.MinX, onGrid.MinZ)).IsEqualTo((9, 0));
+        await Assert.That((onCentre.MinX, onCentre.MinZ)).IsEqualTo((5, 0));
     }
 
     [Test]
-    public async Task Grid_line_iron_carries_the_full_4x4()
+    public async Task The_room_keeps_the_footprint_it_was_given_whatever_the_iron_asks_for()
     {
-        var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 10, 15), new BlockRect(1, 1, 9, 14), walled: true, 5, 5, [], RoomEdge.NegZ, [(5, 12)], out _)!;
-        var iron = room.Iron[0];
-        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((3, 10, 4));
-        await Assert.That((room.Frame.MaxZ - room.Frame.MinZ)).IsEqualTo(6);   // shell yielded to 8×6
+        // Whether a cube seats, is refused, or there are two of them, the shell is the one WX1 resolved with
+        // no iron on the piece at all.
+        var piece = new BlockRect(0, 0, 20, 20);
+        var alone = RoomFrames.Resolve(piece, null, walled: true, 10, 16, [], RoomEdge.NegZ, out _)!;
+        (double X, double Z)[][] cases =
+        [
+            [(10, 1.5)],                    // one cube, seated
+            [(6.5, 1.5), (13.5, 1.5)],      // two, both seated
+            [(10, 4.5)],                    // one too close to the shell to seat
+        ];
+        foreach (var irons in cases)
+        {
+            var room = RoomFrames.ResolveRoom(piece, null, walled: true, 10, 16, [], RoomEdge.NegZ,
+                [.. irons], out _)!;
+            await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
+                .IsEqualTo((alone.MinX, alone.MinZ, alone.MaxX, alone.MaxZ));
+        }
     }
 
     [Test]
-    public async Task Iron_the_room_cannot_host_is_unplaceable_and_the_room_stands()
+    public async Task A_cube_with_no_clear_air_to_the_shell_is_unplaceable_and_the_room_stands()
     {
-        // The 10×10 piece with both markers: the shell cannot shrink below 6×6 and even a 3×3 cube finds
-        // no clear strip — the room has priority, the marker resolves unplaceable, nothing else changes.
-        var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 10, 10), new BlockRect(1, 1, 9, 9), walled: true, 5, 5, [], RoomEdge.NegZ, [(2.5, 2.5)], out _)!;
+        // WX9 — an unplaceable marker is not an error: it stamps nothing, the room takes its full footprint,
+        // and the marker stays on the board for validation to flag.
+        var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 20), footprint: null, walled: true,
+            10, 16, [], RoomEdge.NegZ, [(10, 4.5)], out var refusal)!;
+        await Assert.That(refusal).IsNull();
         await Assert.That(room.Iron[0].Placeable).IsFalse();
         await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
-            .IsEqualTo((1, 1, 9, 9));
+            .IsEqualTo((1, 6, 19, 19));
     }
 
     [Test]
-    public async Task Iron_whose_axes_disagree_settles_half_a_block_off_centre()
+    public async Task A_cube_that_would_hang_off_the_piece_is_unplaceable()
     {
-        // A grid line in x but a block centre in z centres no square cube. Rather than refuse it, the ladder
-        // runs and the cube lands on the nearest block lattice — the whole 4×4, half a block south of the mark.
-        var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 10, 15), new BlockRect(1, 1, 9, 14), walled: true, 5, 5, [], RoomEdge.NegZ, [(5, 12.5)], out _)!;
-        var iron = room.Iron[0];
-        await Assert.That(iron.Placeable).IsTrue();
-        await Assert.That((iron.MinX, iron.MinZ, iron.Size)).IsEqualTo((3, 11, 4));
-        await Assert.That((room.Frame.MinX, room.Frame.MinZ, room.Frame.MaxX, room.Frame.MaxZ))
-            .IsEqualTo((1, 1, 9, 8));
+        var room = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 20), footprint: null, walled: true,
+            10, 16, [], RoomEdge.NegZ, [(0.5, 1.5)], out _)!;
+        await Assert.That(room.Iron[0].Placeable).IsFalse();
     }
 
     [Test]
-    public async Task A_column_of_iron_down_one_side_stamps_every_cube()
+    public async Task Iron_landing_is_mirror_consistent()
     {
-        // The authoring case the refusal ate: three markers in a line down the long side of a 25×15 spawn
-        // piece, on a cell grid whose odd size puts them on a grid line in x and a block centre in z. The
-        // shell yields once, on the axis that has room, and every cube is placed.
-        var room = RoomFrames.ResolveRoom(new BlockRect(30, -130, 55, -115), new BlockRect(31, -129, 54, -116), walled: true, 45, -125, [], RoomEdge.PosZ,
-            [(35, -127.5), (35, -122.5), (35, -117.5)], out var refusal)!;
-        await Assert.That(refusal).IsNull();
-        await Assert.That(room.Iron.All(i => i.Placeable)).IsTrue();
-        await Assert.That(room.Iron.Select(i => i.Size).Distinct().Single()).IsEqualTo(4);
-        // The room kept the far side of the piece rather than falling back to a default shell.
-        await Assert.That(room.Frame.MinX).IsGreaterThanOrEqualTo(38);
-        await Assert.That((room.Frame.MaxX, room.Frame.MinZ, room.Frame.MaxZ)).IsEqualTo((54, -129, -116));
-    }
-
-    [Test]
-    public async Task Iron_whose_axes_disagree_is_still_mirror_consistent()
-    {
-        // The same half-block landing has to reflect: away-from-zero rounding is what makes an orbit image of
-        // the cube cover the images of its cells, instead of a row one block off.
-        var west = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 8), new BlockRect(1, 1, 19, 7), walled: true, 4.5, 3.5, [], RoomEdge.NegZ, [(14, 3.5)], out _)!;
-        var east = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 8), new BlockRect(1, 1, 19, 7), walled: true, 15.5, 3.5, [], RoomEdge.NegZ, [(6, 3.5)], out _)!;
-        await Assert.That(west.Iron[0].Placeable).IsTrue();
-        await Assert.That(east.Iron[0].Placeable).IsTrue();
-        await Assert.That(20 - (east.Iron[0].MinX + east.Iron[0].Size)).IsEqualTo(west.Iron[0].MinX);
-        await Assert.That((20 - east.Frame.MaxX, 20 - east.Frame.MinX)).IsEqualTo((west.Frame.MinX, west.Frame.MaxX));
-    }
-
-    [Test]
-    public async Task Iron_resolution_is_mirror_consistent()
-    {
-        // A wide flat piece and its mirror image (marker west + iron east, then marker east + iron west):
-        // the shrink choice must mirror with the geometry, or orbit images stamp different rooms.
-        var west = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 8), footprint: null, walled: true, 4.5, 3.5, [], RoomEdge.NegZ, [(14, 4)], out _)!;
-        var east = RoomFrames.ResolveRoom(new BlockRect(0, 0, 20, 8), footprint: null, walled: true, 15.5, 3.5, [], RoomEdge.NegZ, [(6, 4)], out _)!;
-        await Assert.That(west.Iron[0].Placeable).IsTrue();
-        await Assert.That((west.Frame.MinX, west.Frame.MaxX)).IsEqualTo((1, 9));
-        await Assert.That((20 - east.Frame.MaxX, 20 - east.Frame.MinX)).IsEqualTo((1, 9));
-        await Assert.That(20 - (east.Iron[0].MinX + east.Iron[0].Size)).IsEqualTo(west.Iron[0].MinX);
+        // Away-from-zero rounding is what makes an orbit image of the cube cover the images of its cells
+        // instead of a row one block off. With the shell no longer yielding, this is all that has to mirror.
+        var piece = new BlockRect(0, 0, 20, 20);
+        var west = RoomFrames.ResolveRoom(piece, null, walled: true, 10, 16, [], RoomEdge.NegZ,
+            [(6.5, 1.5)], out _)!.Iron[0];
+        var east = RoomFrames.ResolveRoom(piece, null, walled: true, 10, 16, [], RoomEdge.NegZ,
+            [(13.5, 1.5)], out _)!.Iron[0];
+        await Assert.That(west.Placeable).IsTrue();
+        await Assert.That(east.Placeable).IsTrue();
+        await Assert.That(20 - (east.MinX + east.Size)).IsEqualTo(west.MinX);
+        await Assert.That(east.MinZ).IsEqualTo(west.MinZ);
     }
 
     [Test]

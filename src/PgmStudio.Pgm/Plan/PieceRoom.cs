@@ -3,9 +3,10 @@ using PgmStudio.Geom;
 
 namespace PgmStudio.Pgm.Plan;
 
-/// <summary>What a freshly drawn role piece carries: the marker the room is built around and the footprint
-/// the building stands on, both as piece-relative block offsets ready to store.</summary>
-public readonly record struct DrawnRoom(double[] At, double[] Footprint);
+/// <summary>What a freshly drawn role piece carries: the marker the room is built around, the footprint the
+/// building stands on, and — on a spawn whose yard has room for one — the iron marker. All piece-relative
+/// block offsets, ready to store.</summary>
+public readonly record struct DrawnRoom(double[] At, double[] Footprint, double[]? Iron);
 
 /// <summary>
 /// The contents a <c>spawn</c> or <c>wool-room</c> piece is drawn with. A piece that arrives empty leaves its
@@ -43,7 +44,35 @@ public static class PieceRoom
 
         return new DrawnRoom(
             [markerX, markerZ],
-            [footprint.MinX - piece.MinX, footprint.MinZ - piece.MinZ, footprint.Width, footprint.Depth]);
+            [footprint.MinX - piece.MinX, footprint.MinZ - piece.MinZ, footprint.Width, footprint.Depth],
+            doorEdge is { } door ? Iron(piece, footprint, door, markerX, markerZ) : null);
+    }
+
+    /// <summary>The spawn's one iron marker, or null where the yard has no room for a cube. One is the seed;
+    /// adding more is the author's. It stands hard against the piece's outer edge — the door gap is the cube
+    /// plus its clear air exactly, so that is the only row along the door axis a cube fits in — and beside the
+    /// <b>door corridor</b>, the door's own opening projected out to that edge, so nobody walks out into it.
+    /// The low side of the corridor every time, which the author slides along.</summary>
+    private static double[]? Iron(
+        BlockRect piece, BlockRect footprint, RoomEdge door, double markerX, double markerZ)
+    {
+        var frame = RoomFrames.Resolve(piece, footprint, walled: true,
+            piece.MinX + markerX, piece.MinZ + markerZ, [], door, out _);
+        if (frame?.Doors is not [{ } opening, ..]) return null;
+
+        var alongX = door is RoomEdge.NegZ or RoomEdge.PosZ;
+        var outward = door is RoomEdge.NegZ or RoomEdge.NegX
+            ? (alongX ? piece.MinZ : piece.MinX)
+            : (alongX ? piece.MaxZ : piece.MaxX) - RoomFrames.IronSpan;
+        var aside = opening.Lo - RoomFrames.IronSpan;
+        var (cubeMinX, cubeMinZ) = alongX ? (aside, outward) : (outward, aside);
+
+        double ironX = cubeMinX + RoomFrames.IronSpan / 2.0, ironZ = cubeMinZ + RoomFrames.IronSpan / 2.0;
+        var seated = RoomFrames.ResolveRoom(piece, footprint, walled: true,
+            piece.MinX + markerX, piece.MinZ + markerZ, [], door, [(ironX, ironZ)], out _);
+        return seated?.Iron is [{ Placeable: true }, ..]
+            ? [ironX - piece.MinX, ironZ - piece.MinZ]
+            : null;
     }
 
     private static double Centre(int lo, int hi) => (lo + hi) / 2.0;

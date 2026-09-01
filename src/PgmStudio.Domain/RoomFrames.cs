@@ -97,15 +97,15 @@ public static class RoomFrameRules
     [Rule(RuleConcern.Structure)]
     public const string DoorWidth = "WX7";
 
-    /// <summary>An iron cube stands outside the room shell, inside the piece, with one block of clear air to
-    /// the wall. Fitting is a negotiation in a fixed order: the shell pulls one edge back from its
-    /// <c>WX1</c> footprint by the minimum that clears the cube, then the cube itself
-    /// degrades by marker parity. The room wins — a shrink is legal only while the shell holds
-    /// <c>WX2</c>'s minimum and the spawn marker stays inside the interior — so a marker no
-    /// yield can seat resolves unplaceable.</summary>
-    /// <remarks>Enlarge the spawn piece, or move the iron marker further from the shell. The cube needs its
-    /// own footprint plus one block of clear air in the ring between the shell and the piece edge, and the
-    /// shell will not shrink past the least legal span to make room for it.</remarks>
+    /// <summary>An iron cube is <see cref="IronSpan"/> blocks square and stands outside the room shell,
+    /// inside the piece, holding <see cref="IronGap"/> blocks of clear air to the wall — the standing room a
+    /// player has to get round it. It fits where its marker puts it or it does not: the room keeps the
+    /// footprint <c>WX1</c> gave it and never yields an edge, and the cube is one size whatever the marker's
+    /// parity. A marker with no room for its cube resolves unplaceable (<c>WX9</c>).</summary>
+    /// <remarks>Move the iron marker further from the shell, or enlarge the spawn piece — the cube needs its own
+    /// footprint plus its clear air in the ring between the shell and the piece edge. Shrinking the room's own
+    /// footprint is the other way to make the ring wider, and is the author's to state rather than the
+    /// resolver's to take.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure, RuleConcern.Spawn)]
     public const string IronFit = "WX8";
 
@@ -211,7 +211,7 @@ public static class RoomFrames
     /// <summary>The clean floor kept in front of the door (WX1): enough for the largest iron cube plus the
     /// standing room it holds to the wall, so a spawn opens with somewhere for its iron to stand rather than
     /// with a shell that has to shrink to make room.</summary>
-    public const int DefaultDoorGap = MaxIronSpan + IronGap;
+    public const int DefaultDoorGap = IronSpan + IronGap;
 
     /// <summary>The footprint a piece carries where none is stated (WX1): the piece inset by
     /// <see cref="DefaultGap"/> on every side, and by up to <see cref="DefaultDoorGap"/> on the side the door
@@ -348,13 +348,11 @@ public static class RoomFrames
         }
 
         // WX8 — each iron marker in turn: the cube stands in the ring between the footprint and the piece
-        // edge, one block of clear air to the shell, never fused. The room has priority: the footprint pulls
-        // one edge back as far as WX2 and the room marker allow, the cube degrades by parity, and an
-        // unfittable marker resolves unplaceable (WX9).
+        // edge, the standing room of IronGap to the shell, never fused. The room has priority and keeps the
+        // footprint it was given; a marker with no room for its cube resolves unplaceable (WX9).
         var iron = new List<IronResolution>();
         foreach (var (ironX, ironZ) in ironMarkers)
-            iron.Add(PlaceIron(ironX, ironZ, piece, walled, markerX, markerZ,
-                ref minX, ref minZ, ref maxX, ref maxZ));
+            iron.Add(PlaceIron(ironX, ironZ, piece, minX, minZ, maxX, maxZ));
 
         // The pad's allowed region is the interior inset by the wall clearance (WX4) — the whole footprint
         // where no wall stands, since there is nothing to clear.
@@ -410,67 +408,30 @@ public static class RoomFrames
     /// has to get round the cube, so it reads as a thing in the yard rather than as part of the wall.</summary>
     public const int IronGap = 3;
 
-    /// <summary>The widest cube the parity ladder offers (WX8): what a grid-line marker centres before it
-    /// degrades.</summary>
-    public const int MaxIronSpan = 4;
+    /// <summary>The side of an iron cube (WX8). One size, whatever the marker's parity: a cube that changed
+    /// size under the marker was a second thing to reason about at every seat, and the author moves the
+    /// marker rather than reading a size off it.</summary>
+    public const int IronSpan = 3;
 
-    // Resolve one iron marker against the current footprint, shrinking it in place when a legal yield
-    // exists. Size ladder by parity: a grid-line marker centres 4 then 2, a block-centre marker centres 3,
-    // and a marker that is a grid line on one axis and a block centre on the other centres no square at all,
-    // so it takes the whole ladder and settles half a block off centre on the odd axis. A shrink candidate
-    // pulls exactly one edge back to clear the cube plus gap, and is legal while the footprint holds WX2 and
-    // the room marker stays inside the interior; the largest retained area wins, ties broken toward moving
-    // the edge farthest from the room marker — a marker-relative choice, so orbit images shrink
-    // mirror-consistently.
+    // Resolve one iron marker against the footprint: the cube centres on the marker, put back on the block
+    // lattice, and stands where it lands. It fits or it does not — the room never gives an edge up for it,
+    // and nothing walks a size ladder, so what the author sees on the board is what the export writes.
+    // Rounding away from zero keeps a half-block landing symmetric: an orbit image of the cube covers the
+    // images of its cells rather than a row one block off.
     private static IronResolution PlaceIron(
-        double ironX, double ironZ, BlockRect piece, bool walled,
-        double markerX, double markerZ, ref int minX, ref int minZ, ref int maxX, ref int maxZ)
+        double ironX, double ironZ, BlockRect piece, int minX, int minZ, int maxX, int maxZ)
     {
-        int[] sizes = IsGridLine(ironX) == IsGridLine(ironZ)
-            ? IsGridLine(ironX) ? [MaxIronSpan, 2] : [3]
-            : [MaxIronSpan, 3, 2];
-        foreach (var size in sizes)
-        {
-            // The cube's low corner: the marker less half its span, put back on the block lattice. Rounding
-            // away from zero is what keeps a half-block landing symmetric — an orbit image of the cube covers
-            // the images of its cells rather than a row one block off.
-            int Lo(double marker) => (int)Math.Round(marker - size / 2.0, MidpointRounding.AwayFromZero);
-            int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
-            int cubeMaxX = cubeMinX + size, cubeMaxZ = cubeMinZ + size;
-            if (cubeMinX < piece.MinX || cubeMinZ < piece.MinZ || cubeMaxX > piece.MaxX || cubeMaxZ > piece.MaxZ)
-                continue;   // off the piece at this size — try the smaller cube
+        int Lo(double marker) => (int)Math.Round(marker - IronSpan / 2.0, MidpointRounding.AwayFromZero);
+        int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
+        int cubeMaxX = cubeMinX + IronSpan, cubeMaxZ = cubeMinZ + IronSpan;
 
-            bool Separated(int shellMinX, int shellMinZ, int shellMaxX, int shellMaxZ) =>
-                shellMaxX <= cubeMinX - IronGap || shellMinX >= cubeMaxX + IronGap
-                || shellMaxZ <= cubeMinZ - IronGap || shellMinZ >= cubeMaxZ + IronGap;
-            if (Separated(minX, minZ, maxX, maxZ))
-                return new IronResolution(ironX, ironZ, cubeMinX, cubeMinZ, size, Placeable: true);
-
-            var candidates = new List<(int MinX, int MinZ, int MaxX, int MaxZ, double EdgeDistance)>
-            {
-                // one edge pulled back per candidate; EdgeDistance = room marker to the moved edge, on that
-                // edge's own axis
-                (minX, minZ, cubeMinX - IronGap, maxZ, Math.Abs(markerX - (cubeMinX - IronGap))),
-                (cubeMaxX + IronGap, minZ, maxX, maxZ, Math.Abs(markerX - (cubeMaxX + IronGap))),
-                (minX, minZ, maxX, cubeMinZ - IronGap, Math.Abs(markerZ - (cubeMinZ - IronGap))),
-                (minX, cubeMaxZ + IronGap, maxX, maxZ, Math.Abs(markerZ - (cubeMaxZ + IronGap))),
-            };
-            // Legal while WX2 holds and the room marker stays inside the interior — the pad may still clamp
-            // with a WX4 shift, exactly as it can against an un-shrunk wall.
-            var wall = walled ? 1 : 0;
-            var legal = candidates
-                .Where(c => !FootprintTooSmall(c.MaxX - c.MinX, c.MaxZ - c.MinZ, walled)
-                    && markerX >= c.MinX + wall && markerX <= c.MaxX - wall
-                    && markerZ >= c.MinZ + wall && markerZ <= c.MaxZ - wall)
-                .OrderByDescending(c => (c.MaxX - c.MinX) * (c.MaxZ - c.MinZ))
-                .ThenByDescending(c => c.EdgeDistance)
-                .ToList();
-            if (legal.Count == 0) continue;   // the room cannot yield this much — try the smaller cube
-
-            (minX, minZ, maxX, maxZ) = (legal[0].MinX, legal[0].MinZ, legal[0].MaxX, legal[0].MaxZ);
-            return new IronResolution(ironX, ironZ, cubeMinX, cubeMinZ, size, Placeable: true);
-        }
-        return new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
+        var onPiece = cubeMinX >= piece.MinX && cubeMinZ >= piece.MinZ
+            && cubeMaxX <= piece.MaxX && cubeMaxZ <= piece.MaxZ;
+        var clearOfShell = maxX <= cubeMinX - IronGap || minX >= cubeMaxX + IronGap
+            || maxZ <= cubeMinZ - IronGap || minZ >= cubeMaxZ + IronGap;
+        return onPiece && clearOfShell
+            ? new IronResolution(ironX, ironZ, cubeMinX, cubeMinZ, IronSpan, Placeable: true)
+            : new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
     }
 
     /// <summary>The interior corner cells (chest stacks in a wool cage), door-wall corners first.</summary>
