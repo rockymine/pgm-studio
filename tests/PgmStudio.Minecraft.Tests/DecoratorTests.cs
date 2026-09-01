@@ -136,7 +136,7 @@ public sealed class DecoratorTests
                 Id = "h", Wings = [new AuthoredWing([[2, 16], [10, 24]])],
                 Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
             },
-            new TreeProp { Id = "t", X = 30, Z = 20, Species = "oak", Height = 14, Seed = 5 },
+            new TreeProp { Id = "t", X = 30, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } },
         ]));
 
         await Assert.That(tally.Houses).IsEqualTo(1);
@@ -202,13 +202,13 @@ public sealed class DecoratorTests
 
         var (painted, paintedTop) = Plateau();
         var overPaint = Decorator.Decorate(painted, Context(paintedTop,
-            [Band(route: false), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
+            [Band(route: false), new TreeProp { Id = "t", X = 20, Z = 23, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } }]));
         await Assert.That(overPaint.Trees).IsEqualTo(1);
         await Assert.That(overPaint.Declines).IsEmpty();
 
         var (paved, pavedTop) = Plateau();
         var overRoute = Decorator.Decorate(paved, Context(pavedTop,
-            [Band(route: true), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
+            [Band(route: true), new TreeProp { Id = "t", X = 20, Z = 23, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } }]));
         await Assert.That(overRoute.Trees).IsEqualTo(0);
         await Assert.That(overRoute.Declines.Single(d => d.SubjectIds.Contains("t")).Rule)
             .IsEqualTo(DressingRules.RoadStandoff);
@@ -232,7 +232,7 @@ public sealed class DecoratorTests
 
         var (near, nearTop) = Plateau();
         var refused = Decorator.Decorate(near, Context(nearTop,
-            [Road(), new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 }]));
+            [Road(), new TreeProp { Id = "t", X = 20, Z = 23, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } }]));
         await Assert.That(refused.Trees).IsEqualTo(0);
         var drop = refused.Declines.Single(d => d.SubjectIds.Contains("t"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.RoadStandoff);
@@ -240,7 +240,7 @@ public sealed class DecoratorTests
 
         var (clear, clearTop) = Plateau();
         var seated = Decorator.Decorate(clear, Context(clearTop,
-            [Road(), new TreeProp { Id = "t", X = 20, Z = 25, Species = "oak", Height = 14, Seed = 5 }]));
+            [Road(), new TreeProp { Id = "t", X = 20, Z = 25, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } }]));
         await Assert.That(seated.Trees).IsEqualTo(1);
         await Assert.That(seated.Declines).IsEmpty();
 
@@ -248,8 +248,8 @@ public sealed class DecoratorTests
         var rocks = Decorator.Decorate(rocky, Context(rockyTop,
         [
             Road(),
-            new BoulderProp { Id = "b-near", X = 10, Z = 22, Size = 1, Mossy = false, Seed = 3 },
-            new BoulderProp { Id = "b-clear", X = 28, Z = 27, Size = 1, Mossy = false, Seed = 3 },
+            new BoulderProp { Id = "b-near", X = 10, Z = 22, Seed = 3, Style = new BoulderStyle { Size = 1, Mossy = false } },
+            new BoulderProp { Id = "b-clear", X = 28, Z = 27, Seed = 3, Style = new BoulderStyle { Size = 1, Mossy = false } },
         ]));
         await Assert.That(rocks.Boulders).IsEqualTo(1);
         await Assert.That(rocks.Declines.Single().SubjectIds).IsEquivalentTo(new[] { "b-near" });
@@ -262,13 +262,13 @@ public sealed class DecoratorTests
         // reported decline rather than a silently smaller count — and a board with no drops answers null.
         var (world, top) = Plateau();
         var seated = Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "t-on", X = 14, Z = 20, Species = "oak", Height = 16, Seed = 5 }]));
+            [new TreeProp { Id = "t-on", X = 14, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 16 } }]));
         await Assert.That(seated.Trees).IsEqualTo(1);
         await Assert.That(seated.Declines).IsEmpty();
 
         var (world2, top2) = Plateau();
         var dropped = Decorator.Decorate(world2, Context(top2,
-            [new TreeProp { Id = "t-off", X = 200, Z = 200, Species = "oak", Height = 16, Seed = 5 }]));
+            [new TreeProp { Id = "t-off", X = 200, Z = 200, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 16 } }]));
         await Assert.That(dropped.Trees).IsEqualTo(0);
         var drop = dropped.Declines.Single(d => d.SubjectIds.Contains("t-off"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.NoGround);
@@ -284,7 +284,7 @@ public sealed class DecoratorTests
         // there. Nothing anywhere else on a forty-block plateau.
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "t", X = 14, Z = 20, Species = "oak", Height = 16, Seed = 5 }]));
+            [new TreeProp { Id = "t", X = 14, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 16 } }]));
 
         await Assert.That(tally.Trees).IsEqualTo(1);
         var logs = Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Log).ToList();
@@ -307,7 +307,7 @@ public sealed class DecoratorTests
         // Decorator.CanopyRadius is read before any world exists — a caller placing the point-and-radius render
         // has no build to measure. This is the check that the number it answers with is honest: no real leaf
         // block, in the tree the same prop actually stamps, stands further from the trunk than it claims.
-        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Form = form, Species = wood, Wood = wood, Height = height, Seed = 7 };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Seed = 7, Style = new TreeStyle { Form = form, Species = wood, Wood = wood, Height = height } };
         var (world, top) = Plateau();
         Decorator.Decorate(world, Context(top, [tree]));
 
@@ -328,8 +328,8 @@ public sealed class DecoratorTests
     {
         // The measured figure tracks what the tree is actually asked to be, which a species-nominal constant
         // could not — the same species at two heights builds two different crowns.
-        var small = new TreeProp { Id = "t", X = 0, Z = 0, Species = "oak", Height = 8, Seed = 3 };
-        var large = new TreeProp { Id = "t", X = 0, Z = 0, Species = "oak", Height = 30, Seed = 3 };
+        var small = new TreeProp { Id = "t", X = 0, Z = 0, Seed = 3, Style = new TreeStyle { Species = "oak", Height = 8 } };
+        var large = new TreeProp { Id = "t", X = 0, Z = 0, Seed = 3, Style = new TreeStyle { Species = "oak", Height = 30 } };
 
         await Assert.That(Decorator.CanopyRadius(large)).IsGreaterThan(Decorator.CanopyRadius(small));
     }
@@ -342,11 +342,11 @@ public sealed class DecoratorTests
         // spruce blocks. Six grower presets named after species is exactly what this rules out.
         var (vanilla, vanillaTop) = Plateau();
         Decorator.Decorate(vanilla, Context(vanillaTop,
-            [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Template, Species = "spruce", Height = 15, Seed = 5 }]));
+            [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Form = TreeForm.Template, Species = "spruce", Height = 15 } }]));
 
         var (grown, grownTop) = Plateau();
         Decorator.Decorate(grown, Context(grownTop,
-            [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Grown, Wood = "spruce", Height = 15, Seed = 5 }]));
+            [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Form = TreeForm.Grown, Wood = "spruce", Height = 15 } }]));
 
         // Same wood in both — the material is the one thing a form does not decide. The wood is the low two data
         // bits; the rest carry the all-bark orientation, so it is masked off to read the species.
@@ -391,7 +391,7 @@ public sealed class DecoratorTests
             var species = DressingPalette.Species.First(row => row.Name == name);
             var (world, top) = Plateau();
             Decorator.Decorate(world, Context(top,
-                [new TreeProp { Id = "t", X = 20, Z = 20, Species = name, Height = species.Height, Seed = 5 }]));
+                [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = name, Height = species.Height } }]));
 
             return [.. Placed(world, top.Keys, 8, 40).Where(b => b.Id is Blocks.Leaves or Blocks.Leaves2)
                 .GroupBy(b => b.Y).OrderBy(course => course.Key)
@@ -409,7 +409,7 @@ public sealed class DecoratorTests
         {
             var (world, top) = Plateau();
             Decorator.Decorate(world, Context(top,
-                [new TreeProp { Id = "t", X = 20, Z = 20, Species = species.Name, Height = height, Seed = 5 }]));
+                [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = species.Name, Height = height } }]));
 
             var tree = Placed(world, top.Keys, 8, 40).ToList();
             var courses = tree.Max(b => b.Y) - 8 + 1;
@@ -428,7 +428,7 @@ public sealed class DecoratorTests
         // almost every block still lands, and near enough that the crown reaches into it.
         var (world, top) = Wall(gap: 8);
         var report = Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "oak", X = 0, Z = 0, Form = TreeForm.Grown, Wood = "oak", Height = 20, Seed = 7 }]));
+            [new TreeProp { Id = "oak", X = 0, Z = 0, Seed = 7, Style = new TreeStyle { Form = TreeForm.Grown, Wood = "oak", Height = 20 } }]));
 
         var cut = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.PropCut);
         await Assert.That(cut).IsNotNull();
@@ -453,7 +453,8 @@ public sealed class DecoratorTests
         await Assert.That(Rock(world)).IsLessThan(whole * 4 / 5);         // the wall really did cut it
         await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.PropCut)).IsFalse();
 
-        static BoulderProp Erratic() => new() { Id = "rock", X = 0, Z = 0, Size = 7, Mossy = false, Seed = 7 };
+        static BoulderProp Erratic() => new() { Id = "rock", X = 0, Z = 0, Seed = 7,
+            Style = new BoulderStyle { Size = 7, Mossy = false } };
         static int Rock(VoxelWorld world) => Cells(world).Count(block => block.Id == Blocks.Stone && block.Y >= 8);
     }
 
@@ -465,7 +466,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Wall(gap: 8);
         var report = Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "oak", X = 0, Z = 0, Form = TreeForm.Grown, Wood = "oak", Height = 8, Seed = 7 }]));
+            [new TreeProp { Id = "oak", X = 0, Z = 0, Seed = 7, Style = new TreeStyle { Form = TreeForm.Grown, Wood = "oak", Height = 8 } }]));
 
         await Assert.That(report.Trees).IsEqualTo(1);
         await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.PropCut)).IsFalse();
@@ -508,7 +509,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Plateau();
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 20, Z = 20, Size = 5, Mossy = false, Seed = 3 }]));
+            [new BoulderProp { Id = "b", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 5, Mossy = false } }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
         var rock = Placed(world, top.Keys, 4, 20).Where(b => b.Id == Blocks.Stone && b.Y >= 8).ToList();
@@ -538,7 +539,7 @@ public sealed class DecoratorTests
         // upright log wherever a limb turns. The wood the log paints as still reads through the low two bits.
         var (world, top) = Plateau();
         Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "t", X = 20, Z = 20, Form = TreeForm.Grown, Wood = "birch", Height = 16, Seed = 5 }]));
+            [new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Form = TreeForm.Grown, Wood = "birch", Height = 16 } }]));
 
         var logs = Placed(world, top.Keys, 8, 40).Where(b => b.Id == Blocks.Log).ToList();
         await Assert.That(logs).IsNotEmpty();
@@ -905,7 +906,7 @@ public sealed class DecoratorTests
         var tally = Decorator.Decorate(world, Context(top,
         [
             new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5 },
-            new BoulderProp { Id = "b", X = 20, Z = 20, Size = 3, Seed = 3 },
+            new BoulderProp { Id = "b", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 3 } },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
         ], keptClear: (x, z) => Math.Abs(x - 20) < 8 && Math.Abs(z - 20) < 8 ? KeepOut.Structure : null));
 
@@ -919,7 +920,7 @@ public sealed class DecoratorTests
     {
         // What a prop *rests* on needs ground; what it merely occupies does not, or no tree could grow within
         // a crown's reach of a shoreline or an island edge.
-        var stand = new TreeProp { Id = "t", X = 7, Z = 7, Species = "oak", Seed = 5 };
+        var stand = new TreeProp { Id = "t", X = 7, Z = 7, Seed = 5, Style = new TreeStyle { Species = "oak" } };
         var (edge, edgeTop) = Plateau(14);
 
         await Assert.That(Decorator.Decorate(edge, Context(edgeTop, [stand])).Trees).IsEqualTo(1);
@@ -933,7 +934,7 @@ public sealed class DecoratorTests
         // the fault; a canopy reaching over one at height is not — a hand-built map's trees overhang its
         // structures too, and testing the whole volume would make a tree taller by refusing to build it: a
         // wider crown claims more protected columns the taller it grows, which silently empties a forest.
-        var stand = new TreeProp { Id = "t", X = 10, Z = 10, Species = "oak", Height = 20, Seed = 5 };
+        var stand = new TreeProp { Id = "t", X = 10, Z = 10, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 20 } };
 
         var (open, openTop) = Plateau(20);
         await Assert.That(Decorator.Decorate(open, Context(openTop, [stand])).Trees).IsEqualTo(1);
@@ -967,7 +968,7 @@ public sealed class DecoratorTests
                 Door = DoorMaterial.Air,
             },
         } };
-        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 14, Seed = 5 };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } };
 
         var tally = Decorator.Decorate(world, Context(top, [house, tree]));
 
@@ -1196,8 +1197,8 @@ public sealed class DecoratorTests
         // The first boulder claims its footprint; the second, anchored at the same spot, has nowhere of its
         // own to rest and is refused rather than merging into (or overwriting) the first rock.
         var (world, top) = Plateau();
-        var first = new BoulderProp { Id = "b1", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3 };
-        var second = new BoulderProp { Id = "b2", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 11 };
+        var first = new BoulderProp { Id = "b1", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 3, Mossy = false } };
+        var second = new BoulderProp { Id = "b2", X = 20, Z = 20, Seed = 11, Style = new BoulderStyle { Size = 3, Mossy = false } };
 
         var tally = Decorator.Decorate(world, Context(top, [first, second]));
 
@@ -1218,7 +1219,7 @@ public sealed class DecoratorTests
                 Door = DoorMaterial.Air,
             },
         } };
-        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Species = "oak", Height = 16, Seed = 5 };
+        var tree = new TreeProp { Id = "t", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 16 } };
 
         var tally = Decorator.Decorate(world, Context(top, [house, tree]));
 
@@ -1234,7 +1235,7 @@ public sealed class DecoratorTests
         // east must point west on the mirrored half, or the cover each team gets differs cell by cell.
         var (world, top) = Plateau(80, from: -40);
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 12, Z = 9, Form = BoulderForm.Cairn, Size = 3, Mossy = false, Seed = 3 }],
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Seed = 3, Style = new BoulderStyle { Form = BoulderForm.Cairn, Size = 3, Mossy = false } }],
             symmetry: "rot_180"));
 
         await Assert.That(tally.Boulders).IsEqualTo(2);
@@ -1270,7 +1271,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Plateau(80, from: -40);
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }]));
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Seed = 3, Style = new BoulderStyle { Size = 3 } }]));
 
         await Assert.That(tally.Boulders).IsEqualTo(1);
     }
@@ -1283,7 +1284,7 @@ public sealed class DecoratorTests
         // exact asymmetry a mirrored map is not allowed to show. Deciding for the whole orbit drops both.
         var (world, top) = Plateau(80, from: -40);
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Seed = 3 }],
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Seed = 3, Style = new BoulderStyle { Size = 3 } }],
             keptClear: (x, z) => Math.Abs(x - 12) < 3 && Math.Abs(z - 9) < 3 ? KeepOut.Spawn : null,
             symmetry: "rot_180"));
 
@@ -1358,8 +1359,8 @@ public sealed class DecoratorTests
             [
                 new StrokeProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Rough, Seed = 5,
                                Pave = new CellMaterial(5, 3, 100, 0, [new SolidMaterial(4), new SolidMaterial(13)]) },
-                new TreeProp { Id = "t", X = 5, Z = 6, Species = "birch", Height = 22, Stems = 2, Seed = 9 },
-                new BoulderProp { Id = "b", X = 7, Z = 8, Form = BoulderForm.Cairn, Size = 4, Seed = 11 },
+                new TreeProp { Id = "t", X = 5, Z = 6, Seed = 9, Style = new TreeStyle { Species = "birch", Height = 22, Stems = 2 } },
+                new BoulderProp { Id = "b", X = 7, Z = 8, Seed = 11, Style = new BoulderStyle { Form = BoulderForm.Cairn, Size = 4 } },
                 new FloraProp { Id = "f", Points = [[0, 0], [8, 0], [8, 8]], Spec = new FloraSpec(Coverage: 0.9), Seed = 13 },
             ],
         };
@@ -1370,8 +1371,8 @@ public sealed class DecoratorTests
             .IsEquivalentTo(doc.Props.Select(prop => prop.GetType().Name));
         await Assert.That(((StrokeProp)back.Props[0]).Style).IsEqualTo(PathStyle.Rough);
         await Assert.That(((StrokeProp)back.Props[0]).Pave).IsEqualTo(((StrokeProp)doc.Props[0]).Pave);
-        await Assert.That(((TreeProp)back.Props[1]).Species).IsEqualTo("birch");
-        await Assert.That(((BoulderProp)back.Props[2]).Form).IsEqualTo(BoulderForm.Cairn);
+        await Assert.That(((TreeProp)back.Props[1]).Style.Species).IsEqualTo("birch");
+        await Assert.That(((BoulderProp)back.Props[2]).Style.Form).IsEqualTo(BoulderForm.Cairn);
         await Assert.That(((FloraProp)back.Props[3]).Spec.Coverage).IsEqualTo(0.9);
     }
 
@@ -1387,7 +1388,7 @@ public sealed class DecoratorTests
         var rock = new CellMaterial(9, 3, 100, 0,
             [new SolidMaterial(Blocks.Gravel), new SolidMaterial(Blocks.Cobblestone), new SolidMaterial(Blocks.Sand)]);
         var tally = Decorator.Decorate(world, Context(top,
-            [new BoulderProp { Id = "b", X = 12, Z = 9, Size = 3, Mossy = false, Seed = 3, Rock = rock }],
+            [new BoulderProp { Id = "b", X = 12, Z = 9, Seed = 3, Style = new BoulderStyle { Size = 3, Mossy = false, Rock = rock } }],
             symmetry: "rot_180"));
 
         await Assert.That(tally.Boulders).IsEqualTo(2);
@@ -1405,13 +1406,9 @@ public sealed class DecoratorTests
     public async Task A_layered_rock_weathers_its_crust_and_not_the_ground_it_sits_in()
     {
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new BoulderProp
-        {
-            Id = "b", X = 20, Z = 20, Size = 3, Mossy = false, Seed = 3,
-            Rock = new LayeredMaterial(new BandStack([
+        Decorator.Decorate(world, Context(top, [new BoulderProp { Id = "b", X = 20, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 3, Mossy = false, Rock = new LayeredMaterial(new BandStack([
                 new Band(new SolidMaterial(Blocks.Cobblestone), 1),
-                new Band(new SolidMaterial(Blocks.Stone), 1)])),
-        }]));
+                new Band(new SolidMaterial(Blocks.Stone), 1)])) } }]));
 
         var column = Column(world, 20, 20);
         await Assert.That(column.Count).IsGreaterThanOrEqualTo(2);
@@ -1426,7 +1423,7 @@ public sealed class DecoratorTests
     {
         var prop = (BoulderProp)DressingJson.DeserializeProp(
             "{\"kind\":\"boulder\",\"id\":\"b\",\"x\":1,\"z\":2,\"blockId\":4,\"blockData\":3}")!;
-        await Assert.That(prop.Rock).IsEqualTo((TerrainMaterial)new SolidMaterial(4, 3));
+        await Assert.That(prop.Style.Rock).IsEqualTo((TerrainMaterial)new SolidMaterial(4, 3));
     }
 
     /// <summary>A cobbled path stored its blocks and a style that tiled them over a jittered grid. The style is
@@ -1487,15 +1484,11 @@ public sealed class DecoratorTests
     [Test]
     public async Task A_tree_knob_outside_its_range_is_held_to_the_range()
     {
-        var absurd = new TreeProp
-        {
-            Form = TreeForm.Grown, Height = 999, Stems = 99, Levels = 99,
-            Leader = 55, Flow = 45, BranchAngle = 55, LeafSize = 60,
-        };
+        var absurd = new TreeProp { Style = new TreeStyle { Form = TreeForm.Grown, Height = 999, Stems = 99, Levels = 99, Leader = 55, Flow = 45, BranchAngle = 55, LeafSize = 60 } };
 
-        await Assert.That(absurd.Reach).IsEqualTo(40);
-        await Assert.That(absurd.LeafCluster).IsEqualTo(1);
-        var shape = absurd.Shape;
+        await Assert.That(absurd.Style.Reach).IsEqualTo(40);
+        await Assert.That(absurd.Style.LeafCluster).IsEqualTo(1);
+        var shape = absurd.Style.Shape;
         await Assert.That(shape.Height).IsEqualTo(40);
         await Assert.That(shape.Stems).IsEqualTo(3);
         await Assert.That(shape.Levels).IsEqualTo(3);
@@ -1504,17 +1497,17 @@ public sealed class DecoratorTests
         await Assert.That(shape.BranchAngle).IsEqualTo(1.5);
 
         // and the other way: a knob below its range is lifted rather than left to build nothing
-        var tiny = new TreeProp { Form = TreeForm.Grown, Height = -10, Leader = -5, LeafSize = 0 };
-        await Assert.That(tiny.Reach).IsEqualTo(5);
-        await Assert.That(tiny.Shape.Leader).IsEqualTo(0);
-        await Assert.That(tiny.LeafCluster).IsEqualTo(0.2);
+        var tiny = new TreeProp { Style = new TreeStyle { Form = TreeForm.Grown, Height = -10, Leader = -5, LeafSize = 0 } };
+        await Assert.That(tiny.Style.Reach).IsEqualTo(5);
+        await Assert.That(tiny.Style.Shape.Leader).IsEqualTo(0);
+        await Assert.That(tiny.Style.LeafCluster).IsEqualTo(0.2);
     }
 
     [Test]
     public async Task A_boulder_size_outside_its_range_is_held_to_the_range()
     {
-        await Assert.That(new BoulderProp { Size = 999 }.Reach).IsEqualTo(10);
-        await Assert.That(new BoulderProp { Size = 0 }.Reach).IsEqualTo(2);
+        await Assert.That(new BoulderProp { Style = new BoulderStyle { Size = 999 } }.Style.Reach).IsEqualTo(10);
+        await Assert.That(new BoulderProp { Style = new BoulderStyle { Size = 0 } }.Style.Reach).IsEqualTo(2);
     }
 
     [Test]
@@ -1523,11 +1516,7 @@ public sealed class DecoratorTests
         // The bound is not merely arithmetic: the pass has to finish and place wood on the plateau it was
         // given, which is what a runaway shape did not do.
         var (world, top) = Plateau();
-        Decorator.Decorate(world, Context(top, [new TreeProp
-        {
-            Form = TreeForm.Grown, X = 20, Z = 20, Seed = 3,
-            Height = 999, Stems = 99, Levels = 99, Leader = 55, Flow = 45, BranchAngle = 55, LeafSize = 60,
-        }]));
+        Decorator.Decorate(world, Context(top, [new TreeProp { X = 20, Z = 20, Seed = 3, Style = new TreeStyle { Form = TreeForm.Grown, Height = 999, Stems = 99, Levels = 99, Leader = 55, Flow = 45, BranchAngle = 55, LeafSize = 60 } }]));
 
         var logs = Placed(world, top.Keys, 8, 60).Where(block => block.Id == Blocks.Log).ToList();
         await Assert.That(logs).IsNotEmpty().Because("a bounded tree is still a tree");
@@ -1547,7 +1536,7 @@ public sealed class DecoratorTests
         var dropped = Decorator.Decorate(world, Context(top,
         [
             // no ground under it at all
-            new TreeProp { Id = "t-void", X = 400, Z = 400, Species = "oak", Height = 8, Seed = 1 },
+            new TreeProp { Id = "t-void", X = 400, Z = 400, Seed = 1, Style = new TreeStyle { Species = "oak", Height = 8 } },
             // a footprint under the floor
             new HouseProp { Id = "h-thin", Wings = [new AuthoredWing([[4, 4], [7, 6]])] },
             // two buildings over one cell: the second loses the ground
@@ -1573,7 +1562,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Plateau(60);
         var dropped = Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "t-goal", X = 20, Z = 20, Species = "oak", Height = 14, Seed = 5 }],
+            [new TreeProp { Id = "t-goal", X = 20, Z = 20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } }],
             goalClearance: ClearanceAt20));
 
         await Assert.That(dropped.Trees).IsEqualTo(0);
@@ -1609,7 +1598,7 @@ public sealed class DecoratorTests
     {
         var (world, top) = Plateau(60, from: -30);
         var dropped = Decorator.Decorate(world, Context(top,
-            [new TreeProp { Id = "t-mirror", X = -20, Z = -20, Species = "oak", Height = 14, Seed = 5 }],
+            [new TreeProp { Id = "t-mirror", X = -20, Z = -20, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } }],
             symmetry: "rot_180", goalClearance: ClearanceAt20));
 
         await Assert.That(dropped.Trees).IsEqualTo(0);
@@ -1629,5 +1618,97 @@ public sealed class DecoratorTests
 
         await Assert.That(covered.Declines).IsEmpty();
         await Assert.That(covered.Plants).IsGreaterThan(0);
+    }
+}
+
+/// <summary>
+/// A placement names its recipe; the document states each recipe once.
+///
+/// <para>What is placed is a position and what it is made of is a recipe, so a board carrying hundreds of trees
+/// over a few dozen recipes stores the recipes and not the repetition. A document written before recipes had
+/// names states them on every placement, and reading one forward is what names them: identical recipes collapse
+/// onto one key and the placement is left carrying the key.</para>
+/// </summary>
+public sealed class PropRecipeTests
+{
+    private static string Tree(string species, int height, int x)
+        => $$"""{"kind":"tree","id":"t{{x}}","x":{{x}},"z":0,"form":"template","species":"{{species}}","height":{{height}}}""";
+
+    [Test]
+    public async Task A_stored_board_of_repeated_trees_reads_as_the_few_recipes_it_always_was()
+    {
+        var placements = string.Join(",", [
+            .. Enumerable.Range(0, 20).Select(i => Tree("oak", 10, i)),
+            .. Enumerable.Range(20, 8).Select(i => Tree("birch", 14, i)),
+            .. Enumerable.Range(28, 2).Select(i => Tree("oak", 18, i)),
+        ]);
+        var doc = DressingJson.Deserialize($$"""{"props":[{{placements}}]}""");
+
+        await Assert.That(doc.Props.Count).IsEqualTo(30);
+        await Assert.That(doc.Styles.Count).IsEqualTo(3);
+        // The key is read off the recipe, so it says what it is rather than counting.
+        await Assert.That(doc.Styles.Keys.Order()).IsEquivalentTo(new[] { "birch-14", "oak-10", "oak-18" });
+
+        var trees = doc.Props.OfType<TreeProp>().ToList();
+        await Assert.That(trees.Count(tree => tree.StyleKey == "oak-10")).IsEqualTo(20);
+        await Assert.That(trees[0].Style.Species).IsEqualTo("oak");
+        await Assert.That(trees[0].Style.Height).IsEqualTo(10);
+        await Assert.That(trees[28].Style.Height).IsEqualTo(18);
+    }
+
+    [Test]
+    public async Task Writing_a_document_built_in_code_names_its_recipes()
+    {
+        var oak = new TreeStyle { Species = "oak", Height = 10 };
+        var doc = new DressingDoc
+        {
+            Props = [
+                new TreeProp { Id = "a", X = 0, Z = 0, Style = oak },
+                new TreeProp { Id = "b", X = 5, Z = 0, Style = oak },
+                new BoulderProp { Id = "c", X = 9, Z = 0, Style = new BoulderStyle { Size = 6 } },
+            ],
+        };
+
+        var back = DressingJson.Deserialize(DressingJson.Serialize(doc));
+        await Assert.That(back.Styles.Count).IsEqualTo(2);
+        await Assert.That(((TreeProp)back.Props[0]).StyleKey).IsEqualTo(((TreeProp)back.Props[1]).StyleKey);
+        await Assert.That(((TreeProp)back.Props[1]).Style.Height).IsEqualTo(10);
+        await Assert.That(((BoulderProp)back.Props[2]).Style.Size).IsEqualTo(6);
+    }
+
+    [Test]
+    public async Task A_key_naming_no_recipe_is_refused_rather_than_built_as_something_else()
+    {
+        // A tree built as a stock oak because its recipe was dropped is a map that differs from the one the
+        // author drew, and nothing downstream could tell.
+        var fault = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(
+            """{"props":[{"kind":"tree","id":"t","x":0,"z":0,"style":"maple-9"}],"styles":{}}"""));
+        await Assert.That(fault!.Message).Contains("maple-9");
+        await Assert.That(fault.Finding.Rule).IsEqualTo(DressingParseException.Rule);
+    }
+
+    [Test]
+    public async Task A_recipe_of_the_wrong_kind_is_refused()
+    {
+        var fault = Assert.Throws<DressingParseException>(() => DressingJson.Deserialize(
+            """
+            {"props":[{"kind":"tree","id":"t","x":0,"z":0,"style":"rock"}],
+             "styles":{"rock":{"kind":"boulder","size":4}}}
+            """));
+        await Assert.That(fault!.Message).Contains("boulder");
+    }
+
+    [Test]
+    public async Task Two_recipes_that_read_the_same_way_are_still_two_recipes()
+    {
+        // Same wood and height, different shape: the name collides and the second is numbered rather than
+        // quietly becoming the first.
+        var doc = DressingJson.Deserialize("""
+            {"props":[
+              {"kind":"tree","id":"a","x":0,"z":0,"form":"grown","wood":"oak","height":12,"levels":2},
+              {"kind":"tree","id":"b","x":9,"z":0,"form":"grown","wood":"oak","height":12,"levels":3}]}
+            """);
+        await Assert.That(doc.Styles.Count).IsEqualTo(2);
+        await Assert.That(doc.Props.OfType<TreeProp>().Select(t => t.Style.Levels)).IsEquivalentTo(new[] { 2, 3 });
     }
 }

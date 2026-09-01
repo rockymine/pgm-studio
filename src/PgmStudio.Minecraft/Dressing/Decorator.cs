@@ -921,7 +921,7 @@ public static class Decorator
         VoxelWorld world, DressingContext context, BoulderProp boulder, GroundClaims.Storey claims,
         List<Finding> declined)
     {
-        var lobes = BoulderShapes.Of(boulder.Form, boulder.Reach, boulder.Seed);
+        var lobes = BoulderShapes.Of(boulder.Style.Form, boulder.Style.Reach, boulder.Seed);
         return Fan(world, context, context.GroundFor(boulder), (boulder.X, boulder.Z), BoulderCells(lobes, boulder), claims, boulder.RouteStandoff, boulder.Id, "boulder", declined);
     }
 
@@ -940,13 +940,13 @@ public static class Decorator
         {
             if (!Blob.Contains(lobes, new Vec3(x, y, z), boulder.Seed)) continue;
             var lit = y >= 0 && !Blob.Contains(lobes, new Vec3(x, y + 1, z), boulder.Seed);
-            var mossy = boulder.Mossy && lit && PatternNoise.Unit(x, z, boulder.Seed + 3) < 0.55;
+            var mossy = boulder.Style.Mossy && lit && PatternNoise.Unit(x, z, boulder.Seed + 3) < 0.55;
             // Depth is measured down from the rock's own crust, not the map's surface, so a layer stack reads
             // as a weathered skin over a core rather than as the terrain bands it would name anywhere else.
             var depth = Crust(lobes, boulder, x, y, z, top);
             var (id, data) = mossy
                 ? (MossyCobblestone, 0)
-                : boulder.Rock.Resolve(new BucketContext(x, y, z, TerrainBucket.Surface, depth));
+                : boulder.Style.Rock.Resolve(new BucketContext(x, y, z, TerrainBucket.Surface, depth));
             // A cell below the anchor is buried and may replace ground; one above it must find air.
             cells.Add(new PropCell(x, y, z, id, data, Buried: y < 0));
         }
@@ -976,7 +976,7 @@ public static class Decorator
     /// always going to run.</summary>
     public static double CanopyRadius(TreeProp tree)
     {
-        var (_, leaves) = tree.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
+        var (_, leaves) = tree.Style.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
         var farthest = 0.0;
         foreach (var (x, _, z) in leaves)
         {
@@ -993,8 +993,8 @@ public static class Decorator
     /// after the map loads.</summary>
     private static List<PropCell> TreeCells(TreeProp tree)
     {
-        var (wood, leaves) = tree.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
-        var timber = tree.Timber;
+        var (wood, leaves) = tree.Style.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
+        var timber = tree.Style.Timber;
         var leafData = timber.LeafData | DressingPalette.LeafNoDecay;
         var logData = timber.LogData | DressingPalette.LogAllBark;
 
@@ -1011,21 +1011,21 @@ public static class Decorator
     /// <summary>The vanilla tree: its species' proportions scaled to the prop's height.</summary>
     private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) TemplateTree(TreeProp tree)
     {
-        var built = TreeTemplate.Build(DressingPalette.SpeciesNamed(tree.Species).ShapeAt(tree.Reach), tree.Seed);
+        var built = TreeTemplate.Build(DressingPalette.SpeciesNamed(tree.Style.Species).ShapeAt(tree.Style.Reach), tree.Seed);
         return ([.. built.Wood], built.Leaves);
     }
 
     /// <summary>The grown tree: wood swept from the limb splines, leaves owned cluster by cluster.</summary>
     private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) GrownTree(TreeProp tree)
     {
-        var shape = tree.Shape;
+        var shape = tree.Style.Shape;
         var grown = TreeSkeleton.Grow(shape, tree.Seed);
         var wood = new HashSet<(int X, int Y, int Z)>();
         foreach (var limb in grown.Limbs)
             foreach (var cell in SweptVolume.Sweep(limb.Path, limb.StartRadius, limb.EndRadius))
                 wood.Add(cell);
 
-        var clusters = TreeCrown.Clusters(grown.Tips, tree.LeafCluster, shape.Size, tree.Seed);
+        var clusters = TreeCrown.Clusters(grown.Tips, tree.Style.LeafCluster, shape.Size, tree.Seed);
         var (min, max) = TreeCrown.Bounds(clusters);
         var leaves = new List<(int X, int Y, int Z)>();
         for (var y = (int)Math.Floor(min.Y); y <= (int)Math.Ceiling(max.Y); y++)

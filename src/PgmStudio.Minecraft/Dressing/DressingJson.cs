@@ -15,6 +15,11 @@ public sealed record DressingDoc
 {
     public List<PlacedProp> Props { get; init; } = [];
 
+    /// <summary>The recipes this document's placements name, by key — what a tree, a boulder or a building is
+    /// made of, stated once however many placements wear it. A library row is pulled in here and the key is
+    /// what the placements carry (<see cref="PropStyle"/>).</summary>
+    public Dictionary<string, PropStyle> Styles { get; init; } = [];
+
     /// <summary>Nothing placed — what a map that never opened the phase carries, and what makes the pass a
     /// no-op rather than a walk over an empty world.</summary>
     public static DressingDoc Empty { get; } = new();
@@ -72,7 +77,48 @@ public static class DressingJson
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    public static string Serialize(DressingDoc doc) => JsonSerializer.Serialize(doc, Options);
+    /// <summary>The document, with every placement naming its recipe. A document assembled in code carries its
+    /// recipes on the placements and no registry; writing it names them, identical recipes collapsing onto one
+    /// key, so what is stored is always referenced however it was built.</summary>
+    public static string Serialize(DressingDoc doc) => JsonSerializer.Serialize(Named(doc), Options);
+
+    /// <summary>A document whose placements name their recipes. Keys already in the registry are kept, so a
+    /// document read and written back keeps the names an author sees.</summary>
+    public static DressingDoc Named(DressingDoc doc)
+    {
+        var styles = new Dictionary<string, PropStyle>(doc.Styles, StringComparer.Ordinal);
+        var keys = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var (key, style) in styles) keys[Body(style)] = key;
+
+        var props = new List<PlacedProp>(doc.Props.Count);
+        foreach (var prop in doc.Props)
+        {
+            var (style, kind, keyed) = RecipeOf(prop);
+            if (style is null) { props.Add(prop); continue; }
+            var body = Body(style);
+            if (!keys.TryGetValue(body, out var key))
+            {
+                key = Unique(KeyFor(JsonNode.Parse(body) as JsonObject ?? [], kind), null, styles.Keys);
+                keys[body] = key;
+                styles[key] = style;
+            }
+            props.Add(keyed(key));
+        }
+        return doc with { Props = props, Styles = styles };
+    }
+
+    private static string Body(PropStyle style) => JsonSerializer.Serialize(style, Options);
+
+    /// <summary>What a placement is made of, what kind of recipe that is, and how to hand it a key — the one
+    /// place the three referencing kinds are listed, so a fourth is added here and nowhere else.</summary>
+    private static (PropStyle? Style, string Kind, Func<string, PlacedProp> Keyed) RecipeOf(PlacedProp prop)
+        => prop switch
+        {
+            TreeProp tree => (tree.Style, "tree", key => tree with { StyleKey = key }),
+            BoulderProp boulder => (boulder.Style, "boulder", key => boulder with { StyleKey = key }),
+            HouseProp house => (new HouseStyleRef { Shell = house.Style }, "house", key => house with { StyleKey = key }),
+            _ => (null, "", _ => prop),
+        };
 
     /// <summary>Every prop, parsed and upgraded. A document with no <c>props</c> key at all is what a map that
     /// never opened the phase carries and reads as <see cref="DressingDoc.Empty"/>'s shape; anything else that
@@ -88,11 +134,64 @@ public static class DressingJson
         if (propsNode is not JsonArray propsArray)
             throw new DressingParseException("the document", "props", $"is {Describe(propsNode)}, not a list");
 
+        var styles = ParseStyles(root["styles"]);
         var props = new List<PlacedProp>(propsArray.Count);
         for (var index = 0; index < propsArray.Count; index++)
-            props.Add(ParseProp(propsArray[index], Label(propsArray[index], index)));
-        return new DressingDoc { Props = props };
+            props.Add(Resolved(ParseProp(propsArray[index], Label(propsArray[index], index)),
+                               styles, Label(propsArray[index], index)));
+        return new DressingDoc { Props = props, Styles = styles };
     }
+
+    /// <summary>The document's recipe registry. Absent is a document whose placements name nothing, which is
+    /// every document written before recipes were named and every one carrying only drawn props.</summary>
+    private static Dictionary<string, PropStyle> ParseStyles(JsonNode? node)
+    {
+        if (node is null) return [];
+        if (node is not JsonObject entries)
+            throw new DressingParseException("the document", "styles", $"is {Describe(node)}, not a table of recipes");
+
+        var styles = new Dictionary<string, PropStyle>(StringComparer.Ordinal);
+        foreach (var (key, value) in entries)
+        {
+            try
+            {
+                if (value.Deserialize<PropStyle>(Options) is { } style) styles[key] = style;
+            }
+            catch (JsonException ex)
+            {
+                throw new DressingParseException($"recipe '{key}'", null, StripPath(ex.Message));
+            }
+        }
+        return styles;
+    }
+
+    /// <summary>A placement carrying the recipe its key names. A key that names nothing is a refusal rather
+    /// than a default: a tree built as a stock oak because its recipe was dropped is a map that differs from
+    /// the one an author drew, and nothing downstream could tell.</summary>
+    private static PlacedProp Resolved(
+        PlacedProp prop, Dictionary<string, PropStyle> styles, string subject) => prop switch
+    {
+        TreeProp tree => tree with { Style = Recipe<TreeStyle>(styles, tree.StyleKey, subject) },
+        BoulderProp boulder => boulder with { Style = Recipe<BoulderStyle>(styles, boulder.StyleKey, subject) },
+        HouseProp house => house with { Style = Recipe<HouseStyleRef>(styles, house.StyleKey, subject).Shell },
+        _ => prop,
+    };
+
+    private static TStyle Recipe<TStyle>(
+        Dictionary<string, PropStyle> styles, string key, string subject) where TStyle : PropStyle, new()
+    {
+        if (key.Length == 0) return new TStyle();
+        if (!styles.TryGetValue(key, out var style))
+            throw new DressingParseException(subject, "style", $"names the recipe '{key}', which the document does not state");
+        if (style is not TStyle typed)
+            throw new DressingParseException(subject, "style", $"names the recipe '{key}', which is a {StyleWord(style)} recipe");
+        return typed;
+    }
+
+    private static string StyleWord(PropStyle style) => style switch
+    {
+        TreeStyle => "tree", BoulderStyle => "boulder", HouseStyleRef => "house", _ => "different",
+    };
 
     public static string SerializeProp(PlacedProp prop) => JsonSerializer.Serialize(prop, Options);
 
@@ -101,7 +200,11 @@ public static class DressingJson
     public static PlacedProp DeserializeProp(string json)
     {
         var node = ParseNode(json, "the prop");
-        return ParseProp(node, Label(node, index: null));
+        var subject = Label(node, index: null);
+        // A prop on its own has no document behind it, so its recipe travels with it: the lift puts it in a
+        // registry of one, which is what the preview and the picker cards each hand over.
+        var styles = node is JsonObject bare ? ParseStyles(bare["styles"]) : [];
+        return Resolved(ParseProp(node, subject), styles, subject);
     }
 
     private static JsonNode? ParseNode(string json, string subject)
@@ -244,7 +347,107 @@ public static class DressingJson
         var props = node is JsonObject doc && doc["props"] is JsonArray list ? list.AsEnumerable() : [node];
         foreach (var prop in props) UpgradeProp(prop as JsonObject);
         TerrainThemeJson.Upgrade(node);
+        if (node is JsonObject document) Registered(document);
         return node;
+    }
+
+    /// <summary>
+    /// Lift every placement's inline recipe into the document's registry, under a key one recipe owns.
+    ///
+    /// <para>A stored placement states what it is made of on itself, because it was written before a recipe had
+    /// a name. Reading it forward names it: identical recipes collapse onto one key, so a board's hundreds of
+    /// trees arrive as the few dozen recipes they always were, and the placement is left carrying the key. A
+    /// document that already names its recipes has nothing inline to lift and passes through.</para>
+    ///
+    /// <para>The key is minted from the recipe rather than counted, so re-reading one document twice mints the
+    /// same names and a diff between two saves shows what changed rather than a renumbering.</para>
+    /// </summary>
+    private static void Registered(JsonObject document)
+    {
+        // A document's list, or the one prop this is: an edited prop arrives on its own and states its recipe
+        // inline exactly as a stored placement does.
+        var props = document["props"] as JsonArray ?? (document["kind"] is not null ? [document] : null);
+        if (props is null) return;
+        var styles = document["styles"] as JsonObject;
+        var minted = new Dictionary<string, string>(StringComparer.Ordinal);
+
+        foreach (var node in props)
+        {
+            if (node is not JsonObject prop) continue;
+            var kind = prop["kind"] is JsonValue k && k.TryGetValue<string>(out var name) ? name : null;
+            if (kind is not ("tree" or "boulder" or "house")) continue;
+            // A prop already naming its recipe is one this has read before; a house's `style` is an object
+            // until it is lifted, so the string is what says "already named".
+            // A prop already naming its recipe is one this has read before: the key is a string where an
+            // unlifted recipe is an object (a house's shell) or a spread of fields (a tree's, a boulder's).
+            if (prop["style"] is JsonValue) continue;
+
+            var recipe = Lifted(prop, kind);
+            if (recipe is null) continue;
+            var body = recipe.ToJsonString();
+            if (!minted.TryGetValue(body, out var key))
+            {
+                key = Unique(KeyFor(recipe, kind), styles, minted.Values);
+                minted[body] = key;
+                styles ??= [];
+                styles[key] = recipe;
+            }
+            prop["style"] = key;
+        }
+
+        if (styles is not null) document["styles"] = styles;
+    }
+
+    /// <summary>One placement's inline recipe, taken off it — the fields that say what it is made of, leaving
+    /// the ones that say where it stands.</summary>
+    private static JsonObject? Lifted(JsonObject prop, string kind)
+    {
+        if (kind == "house")
+            return prop["style"] is JsonObject shell
+                ? new JsonObject { ["kind"] = "house", ["shell"] = shell.DeepClone() }
+                : new JsonObject { ["kind"] = "house", ["shell"] = new JsonObject() };
+
+        string[] fields = kind == "tree"
+            ? ["form", "species", "wood", "height", "stems", "leader", "flow", "branchAngle", "levels", "whorled", "leafSize"]
+            : ["form", "size", "rock", "mossy"];
+
+        var recipe = new JsonObject { ["kind"] = kind };
+        foreach (var field in fields)
+            if (prop[field] is { } value) { recipe[field] = value.DeepClone(); prop.Remove(field); }
+        return recipe;
+    }
+
+    /// <summary>A recipe's name, read off what it is: a tree by its wood and height, a boulder by its form and
+    /// size, a building by its shell's own name where it has one. Readable, because a key is what an author
+    /// picks a recipe by once it is in the registry.</summary>
+    private static string KeyFor(JsonObject recipe, string kind)
+    {
+        string Text(string field, string fallback)
+            => recipe[field] is JsonValue v && v.TryGetValue<string>(out var s) && s.Length > 0 ? s : fallback;
+        int Number(string field, int fallback)
+            => recipe[field] is JsonValue v && v.TryGetValue<double>(out var d) ? (int)Math.Round(d) : fallback;
+
+        if (kind == "house")
+            return recipe["shell"]?["name"] is JsonValue n && n.TryGetValue<string>(out var shell) && shell.Length > 0
+                ? Slug(shell) : "building";
+        if (kind == "boulder") return $"{Text("form", "round")}-{Number("size", 4)}";
+
+        var grown = Text("form", "template") == "grown";
+        var wood = grown ? Text("wood", "oak") : Text("species", "oak");
+        return $"{(grown ? "grown-" : "")}{Slug(wood)}-{Number("height", 12)}";
+    }
+
+    private static string Slug(string name)
+        => new string([.. name.ToLowerInvariant().Select(c => char.IsLetterOrDigit(c) ? c : '-')]).Trim('-');
+
+    /// <summary>The name, numbered where it is taken — two recipes that read the same way are still two
+    /// recipes, and the second may not quietly become the first.</summary>
+    private static string Unique(string name, JsonObject? styles, IEnumerable<string> taken)
+    {
+        var used = new HashSet<string>(taken, StringComparer.Ordinal);
+        if (styles is not null) foreach (var (key, _) in styles) used.Add(key);
+        if (!used.Contains(name)) return name;
+        for (var n = 2; ; n++) if (!used.Contains($"{name}-{n}")) return $"{name}-{n}";
     }
 
     private static void UpgradeProp(JsonObject? prop)

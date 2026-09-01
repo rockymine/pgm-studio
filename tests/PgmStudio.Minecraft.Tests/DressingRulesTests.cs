@@ -55,7 +55,7 @@ public sealed class DressingRulesTests
                 Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
                 Pave = new Painting.SolidMaterial(Palette.Blocks.Gravel),
             },
-            new TreeProp { Id = "t", X = 20, Z = 23, Species = "oak", Height = 14, Seed = 5 },
+            new TreeProp { Id = "t", X = 20, Z = 23, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } },
         ]));
 
         var decline = tally.Declines.Single();

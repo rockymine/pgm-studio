@@ -148,7 +148,7 @@ public sealed class DressingPreviewTests
     public async Task A_prop_is_re_centred_on_the_sample_so_a_card_shows_it_wherever_it_was_placed()
     {
         // A tree placed at (900, -400) on a real map must still be the thing in the middle of its own card.
-        var far = DressingPreview.Views(new TreeProp { X = 900, Z = -400, Species = "oak", Seed = 5 }, TerrainTheme.Default);
+        var far = DressingPreview.Views(new TreeProp { X = 900, Z = -400, Seed = 5, Style = new TreeStyle { Species = "oak" } }, TerrainTheme.Default);
         await Assert.That(far.Counts.Trees).IsEqualTo(1);
     }
 
@@ -170,7 +170,7 @@ public sealed class DressingPreviewTests
         {
             Points = [[0, 20], [40, 20]], Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel),
         }, TerrainTheme.Default);
-        var tree = DressingPreview.Views(new TreeProp { Species = "spruce", Height = 24, Seed = 5 }, TerrainTheme.Default);
+        var tree = DressingPreview.Views(new TreeProp { Seed = 5, Style = new TreeStyle { Species = "spruce", Height = 24 } }, TerrainTheme.Default);
 
         await Assert.That(path.Counts.PathCells).IsGreaterThan(50);
         await Assert.That(Height(tree.Section)).IsGreaterThan(Height(path.Section));
@@ -183,7 +183,7 @@ public sealed class DressingPreviewTests
         // grid, and makes a spruce and an acacia look the same size. One crop per set fixes both: the tallest
         // option decides the top, the ground decides the bottom, and the heights compare honestly.
         var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
-        var forms = DressingPreview.BoulderFormCards(new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default);
+        var forms = DressingPreview.BoulderFormCards(new BoulderProp { Seed = 3, Style = new BoulderStyle { Size = 3 } }, TerrainTheme.Default);
 
         await Assert.That(species.Select(card => Height(card.Svg)).Distinct().Count()).IsEqualTo(1);
         await Assert.That(forms.Select(card => Height(card.Svg)).Distinct().Count()).IsEqualTo(1);
@@ -194,7 +194,7 @@ public sealed class DressingPreviewTests
     {
         // A cut through one row meets a crown wherever that row falls — as often through the air between leaf
         // clusters as through them. Projecting every row is what makes the silhouette the shape it is.
-        var tree = DressingPreview.Views(new TreeProp { Species = "oak", Height = 20, Seed = 5 }, TerrainTheme.Default);
+        var tree = DressingPreview.Views(new TreeProp { Seed = 5, Style = new TreeStyle { Species = "oak", Height = 20 } }, TerrainTheme.Default);
 
         // Depth shades a block without repainting it, so a projected crown is many shades of the one leaf
         // colour — where a cut would give one flat shade with holes through it.
@@ -226,7 +226,7 @@ public sealed class DressingPreviewTests
         // outermost ring is its own boundary, not ground. Seen from the side that ring is the entire front
         // face, and a preview that included it showed a tree standing behind a wall instead of in the grass
         // the plan view plainly draws under it. Both views carry the same ground.
-        var tree = DressingPreview.Views(new TreeProp { Species = "oak", Height = 20, Seed = 5 }, Grassed);
+        var tree = DressingPreview.Views(new TreeProp { Seed = 5, Style = new TreeStyle { Species = "oak", Height = 20 } }, Grassed);
 
         var ground = BlockPalette.Hex(Blocks.Grass, 0);
         await Assert.That(Fills(tree.Plan)).Contains(ground);
@@ -239,7 +239,7 @@ public sealed class DressingPreviewTests
         // A wood is a material, so six wood cards are one tree six times. If they differed in shape the picker
         // would be claiming the wood decides the silhouette, which is the claim the species picker makes and
         // this one must not.
-        var woods = DressingPreview.WoodCards(new TreeProp { Form = TreeForm.Grown, Height = 18, Seed = 5 }, TerrainTheme.Default);
+        var woods = DressingPreview.WoodCards(new TreeProp { Seed = 5, Style = new TreeStyle { Form = TreeForm.Grown, Height = 18 } }, TerrainTheme.Default);
 
         await Assert.That(woods.Select(card => card.Key)).IsEquivalentTo(DressingPalette.Woods.Select(wood => wood.Name));
         await Assert.That(woods.Select(card => Cells(card.Svg)).Distinct().Count()).IsEqualTo(1);
@@ -267,7 +267,7 @@ public sealed class DressingPreviewTests
         // not produce — which is only true if every option actually draws something.
         var styles = DressingPreview.StrokeStyleCards(
             new StrokeProp { Radius = 3, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) }, TerrainTheme.Default);
-        var forms = DressingPreview.BoulderFormCards(new BoulderProp { Size = 3, Seed = 3 }, TerrainTheme.Default);
+        var forms = DressingPreview.BoulderFormCards(new BoulderProp { Seed = 3, Style = new BoulderStyle { Size = 3 } }, TerrainTheme.Default);
         var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
 
         await Assert.That(styles.Select(card => card.Key))

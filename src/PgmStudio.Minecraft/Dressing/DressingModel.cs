@@ -1,4 +1,6 @@
 using System.Text.Json.Serialization;
+using PgmStudio.Geom.Algorithms;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Minecraft.Dressing;
 
@@ -171,4 +173,135 @@ public static class BoulderShapes
 
     private static Geom.Algorithms.BlobLobe Lobe(double x, double y, double z, double rx, double ry, double rz, double erosion)
         => new(new Geom.Vec3(x, y, z), new Geom.Vec3(rx, ry, rz), erosion);
+}
+
+/// <summary>
+/// A prop's recipe, named once and referenced by every placement that wears it.
+///
+/// <para><b>What is placed is a position; what it is made of is a recipe.</b> A board carries 618 trees over
+/// 75 distinct recipes and 247 boulders over a handful, so a knob per placement is the same answer written out
+/// hundreds of times — and one an author cannot change without editing hundreds of placements. A placement
+/// therefore names a key into <see cref="DressingDoc.Styles"/>, the way a shape names a key into the layout's
+/// theme registry, and the registry is what a library row is pulled into.</para>
+///
+/// <para><b>The registry is the document's, not the library's.</b> The world export reads a stored document and
+/// has no database to resolve a library row against, and a shipped map must build the same way next year as it
+/// did today. So a library row is <em>pulled in</em> — copied into the registry under a key — and the key is
+/// what every placement carries. Editing the library row changes the next pull, not a map already written.</para>
+/// </summary>
+[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
+[JsonDerivedType(typeof(TreeStyle), "tree")]
+[JsonDerivedType(typeof(BoulderStyle), "boulder")]
+[JsonDerivedType(typeof(HouseStyleRef), "house")]
+public abstract record PropStyle;
+
+/// <summary>
+/// One tree, as a recipe — and one of <b>two</b> trees, which <see cref="Form"/> picks.
+///
+/// <para>A <see cref="TreeForm.Template"/> tree is vanilla: <see cref="Species"/> names its wood, its canopy
+/// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Grown"/> tree is
+/// the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. Each form
+/// reads only its own fields, so the ones it does not read are inert rather than wrong.</para>
+/// </summary>
+public sealed record TreeStyle : PropStyle
+{
+    public TreeForm Form { get; init; } = TreeForm.Template;
+
+    /// <summary>Template only — a row in <see cref="DressingPalette.Species"/>: the wood, the canopy profile
+    /// and the proportions of one vanilla species.</summary>
+    public string Species { get; init; } = "oak";
+
+    /// <summary>Grown only — a row in <see cref="DressingPalette.Woods"/>. A grown tree's shape is the
+    /// author's, so its wood is all that is left to name.</summary>
+    public string Wood { get; init; } = "oak";
+
+    /// <summary>Overall height in blocks. Template: it scales the species' proportions. Grown: not a uniform
+    /// scale — a smaller tree also carries a thinner stem and fewer branches, so a sapling reads as a sapling
+    /// rather than as a shrunken tree.</summary>
+    public double Height { get; init; } = 12;
+
+    /// <summary>Grown only — 1–3 stems at the base.</summary>
+    public int Stems { get; init; } = 1;
+
+    /// <summary>Grown only — how far the central axis climbs: low spreads, high spires.</summary>
+    public double Leader { get; init; } = 0.55;
+
+    /// <summary>Grown only — how much the trunk wanders on its way up.</summary>
+    public double Flow { get; init; } = 0.45;
+
+    /// <summary>Grown only — how far a branch leaves its parent, in radians. A hand-built corpus leaves the
+    /// trunk at 59° off vertical and forks its children at 67°, so the default is a radian rather than the
+    /// half one a tighter fan wants.</summary>
+    public double BranchAngle { get; init; } = 1.1;
+
+    /// <summary>Grown only — branching depth: 2 is a tree, 3 a denser one.</summary>
+    public int Levels { get; init; } = 2;
+
+    /// <summary>Grown only — whether the branches are gathered into whorls, a ring every few courses, each ring
+    /// shorter than the one below. It is the conifer against the broadleaf, and it is the one shape choice a
+    /// picker of six woods cannot make for an author.</summary>
+    public bool Whorled { get; init; }
+
+    /// <summary>Grown only — how big each tip's leaf cluster is.</summary>
+    public double LeafSize { get; init; } = 0.6;
+
+    /// <summary>How tall this tree is built, held to the range the editor offers.
+    ///
+    /// <para>The bounds on this and the knobs below are load-bearing rather than tidiness. A tree's cost is
+    /// superlinear in its reach — the sample patch a preview cuts is quadratic in it, a grown crown is filled by
+    /// testing every cell of its bounding box — while the knobs that set that reach are plain multipliers. A
+    /// <see cref="Leader"/> of 55 rather than 0.55 therefore does not draw a strange tree, it asks for a volume
+    /// hundreds of blocks on a side and never returns. Holding the values here covers every caller instead of
+    /// each guarding its own input, and means a stored recipe that is out of range still builds something.</para></summary>
+    public double Reach => Math.Clamp(Height, 5, 40);
+
+    /// <summary>This tree's growth parameters, as the grower wants them, each bounded like
+    /// <see cref="Reach"/>. Read only when it is grown.</summary>
+    public TreeShape Shape => new(
+        Height: Reach, Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
+        BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.5), Flow: Math.Clamp(Flow, 0, 1),
+        Leader: Math.Clamp(Leader, 0, 1), Whorled: Whorled);
+
+    /// <summary>How big each tip's leaf cluster is, bounded like <see cref="Reach"/>: it scales the crown, and
+    /// the crown is filled cell by cell.</summary>
+    public double LeafCluster => Math.Clamp(LeafSize, 0.2, 1);
+
+    /// <summary>The blocks this tree is made of, whichever form it is: a template takes its species' wood, a
+    /// grown tree the one it was given.</summary>
+    public TreeWood Timber => Form == TreeForm.Template
+        ? DressingPalette.SpeciesNamed(Species).Wood
+        : DressingPalette.WoodNamed(Wood);
+}
+
+/// <summary>One boulder, as a recipe: a glacial erratic's form, its reach, what it is cut from and whether moss
+/// takes its sky-lit faces.</summary>
+public sealed record BoulderStyle : PropStyle
+{
+    public BoulderForm Form { get; init; } = BoulderForm.Round;
+
+    /// <summary>How far the rock reaches from its centre, in blocks. A boulder is an erratic — a mass a glacier
+    /// carried and left — so the default is a rock a player takes cover behind rather than one they step
+    /// over.</summary>
+    public double Size { get; init; } = 4;
+
+    /// <summary>That reach held to the range the editor offers, for the reason <see cref="TreeStyle.Reach"/>
+    /// holds a tree's: it sizes both the lobes built and the sample patch a preview cuts.</summary>
+    public double Reach => Math.Clamp(Size, 2, 10);
+
+    /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
+    /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit
+    /// instead of sampling whatever the world pattern happens to say where each image landed.</summary>
+    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Palette.Blocks.Stone);
+
+    /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
+    /// <see cref="Rock"/> resolved.</summary>
+    public bool Mossy { get; init; } = true;
+}
+
+/// <summary>A building's shell, as a registry entry. The shell itself is a <see cref="Houses.HouseStyle"/> —
+/// the stamper's own type, which a room style composes to — so this is the wrapper that lets one registry hold
+/// all three kinds under one discriminator rather than three registries differing only in what they hold.</summary>
+public sealed record HouseStyleRef : PropStyle
+{
+    public Houses.HouseStyle Shell { get; init; } = new();
 }

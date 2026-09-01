@@ -398,10 +398,10 @@ forward for the two clicked ones, and the per-placement handful — seed, positi
   directly as `PorchStyleRow` does. `DressingPreview.SpeciesCards`/`WoodCards` already draw one card per
   recipe. Two kinds through one editor, the way `HousePartEditor` serves roofs, storeys and porches.
 
-  **One question rides on it**: a building's `style` is a *snapshot* and deliberately not an id, so editing a
-  library row leaves placed buildings alone (`structures.md` §9). A board carries 192 buildings and 618 trees,
-  so the same doctrine costs three times as much JSON — and `B47` is the provenance that a snapshot already
-  loses. Whether a tree references or snapshots is the one thing this entry does not settle.
+  **The reference model has landed** (`FEATURES.md`): a placement carries a `style` key into the dressing
+  document's own registry, which states each recipe once, and a stored inline placement is read forward into
+  it. What is left here is the *library* half — the two kinds, their rows, and the pull that copies a row into
+  a document's registry under a key.
 
 - [ ] **TS50 — The dressing inspector becomes a picker for what is clicked and an editor for what is drawn.**
   Follows `TS49`. The sidebar is 22 words and no controls; the inspector is 291 words and 54, and embeds the

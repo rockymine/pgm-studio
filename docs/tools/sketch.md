@@ -987,9 +987,26 @@ each:
 
 The three geometries are visible in the shape of the entries: a marker carries `x`/`z`, a traced prop carries
 `points` — a line for a stroke or a channel, a closed ring for ground cover — and a building carries the two
-opposite corners of its rectangle. `pave`, `bank` and `rock` are full terrain materials, so any of the
-fourteen kinds in `library.md` may stand there; a building's `style` is a `HouseStyle` snapshot, and `{}`
-means the built-in shell.
+opposite corners of its rectangle. `pave` and `bank` are full terrain materials, so any of the fourteen kinds
+in `library.md` may stand there.
+
+**What a prop is *made of* is named once, beside the placements.** A tree, a boulder and a building each carry
+a `style` key into the document's own `styles` registry, and the registry states each recipe once — a board
+carrying hundreds of trees over a few dozen recipes stores the recipes and not the repetition, and changing one
+changes every placement wearing it. A recipe names its kind the way a placement does, so one registry holds all
+three; the key is read off the recipe (`oak-10`, `grown-birch-18`, `angular-6`), so it says what it is rather
+than counting, and two recipes that read the same way are numbered rather than collapsed.
+
+A key naming no recipe is a **refusal**, not a fallback: a tree built as a stock oak because its recipe went
+missing is a map that differs from the one the author drew, and nothing downstream could tell. A document
+stored before recipes had names states them on every placement, and reading it forward is what names them —
+identical recipes collapse onto one key and each placement is left carrying it.
+
+**The registry is the document's, not the library's.** The export reads a stored layout and has no database to
+resolve a library row against, and a shipped map must build the same way next year as it did today. A library
+row is *pulled in* — copied into the registry under a key — and editing that row afterwards changes the next
+pull rather than a map already written. That is the same rule a bound room style follows, kept by referencing
+inside the document rather than by copying onto every placement.
 
 **On a stacked board a prop says which storey it rests on.** Every entry takes an optional `layer` — the id of
 the layer whose surface it sits on, as the tree above states it. Naming none takes the board's **ground** —

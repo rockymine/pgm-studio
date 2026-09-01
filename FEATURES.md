@@ -6029,6 +6029,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   also stops the eave eating a stripe of wall that grew with the pitch: it reaches exactly one course under
   the wall top at every pitch. One clamp in `RoofField.Rise`; the six form formulas are untouched.
   (`RoofFieldTests`, `HouseStamperTests`, `docs/world-export/structures.md`)
+- **A prop names its recipe; the document states each recipe once (TS49's model half, author).** A tree carried
+  eleven knobs on every placement, a boulder four and a building a whole shell — so a board carrying 618 trees
+  over 75 distinct recipes stored the same answer hundreds of times, and an author could not retune a stand of
+  trees without editing every tree in it. A `TreeProp` is now `x`, `z`, a seed and a `style` key into the
+  document's own `styles` registry; `BoulderProp` and `HouseProp` reference the same way, and one registry holds
+  all three under the `kind` discriminator props already use. The key is read off the recipe — `oak-10`,
+  `grown-birch-18`, `angular-6` — so it says what it is rather than counting, and two recipes that read alike
+  are numbered rather than collapsed onto one. A key naming no recipe is a **refusal**: a tree built as a stock
+  oak because its recipe went missing is a map that differs from the one the author drew, and nothing
+  downstream could tell. A document assembled in code names its recipes on the way out, so what is stored is
+  referenced however it was built, and a stored inline placement is read forward — thirty repeated trees arrive
+  as the three recipes they always were. **The registry is the document's, not the library's**: the export reads
+  a stored layout and has no database, and a shipped map must build the same way next year, so a library row is
+  pulled in under a key rather than resolved at build time. (`PropRecipeTests`, `docs/tools/sketch.md`,
+  `docs/world-export/decoration.md`)
 - **A building is joined out of the footprints an author drew, and taken apart the same way (S60).** `HouseProp`
   carried a list of wings and the canvas only ever drew and dragged the first, so an L, a T or a U was
   authorable only by writing the document by hand. Shift-click picks a second building and `mod+g` joins them

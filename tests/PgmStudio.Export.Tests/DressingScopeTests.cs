@@ -45,8 +45,8 @@ public sealed class DressingScopeTests
 
         await Assert.That(props.Count).IsEqualTo(4);
         await Assert.That(((StrokeProp)props[0]).Style).IsEqualTo(PathStyle.Stones);
-        await Assert.That(((TreeProp)props[1]).Species).IsEqualTo("birch");
-        await Assert.That(((BoulderProp)props[2]).Form).IsEqualTo(BoulderForm.Cairn);
+        await Assert.That(((TreeProp)props[1]).Style.Species).IsEqualTo("birch");
+        await Assert.That(((BoulderProp)props[2]).Style.Form).IsEqualTo(BoulderForm.Cairn);
         await Assert.That(((FloraProp)props[3]).Spec.Coverage).IsEqualTo(0.8);
     }
 

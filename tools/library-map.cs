@@ -237,20 +237,8 @@ for (var index = 0; index < patterns.Length; index++)
     {
         var (x, z) = (originX + spots[slot].Item1, originZ + spots[slot].Item2);
         props.Add(slot % 2 == 0
-            ? new TreeProp
-            {
-                X = x, Z = z, Form = TreeForm.Grown, Wood = woods[(index + slot) % woods.Length],
-                Height = 11 + (index + slot) % 9, Stems = 1 + (index + slot) % 3,
-                Levels = 2 + (index / 5) % 2, Leader = 0.35 + 0.12 * ((index + slot) % 4),
-                Flow = 0.25 + 0.15 * (slot % 4), BranchAngle = 0.35 + 0.15 * ((index + slot) % 5),
-                LeafSize = 0.45 + 0.12 * (slot % 4),
-            }
-            : new TreeProp
-            {
-                X = x, Z = z,
-                Species = DressingPalette.Species[(index + slot) % DressingPalette.Species.Count].Name,
-                Height = 9 + (index + slot) % 6,
-            });
+            ? new TreeProp { X = x, Z = z, Style = new TreeStyle { Form = TreeForm.Grown, Wood = woods[(index + slot) % woods.Length], Height = 11 + (index + slot) % 9, Stems = 1 + (index + slot) % 3, Levels = 2 + (index / 5) % 2, Leader = 0.35 + 0.12 * ((index + slot) % 4), Flow = 0.25 + 0.15 * (slot % 4), BranchAngle = 0.35 + 0.15 * ((index + slot) % 5), LeafSize = 0.45 + 0.12 * (slot % 4) } }
+            : new TreeProp { X = x, Z = z, Style = new TreeStyle { Species = DressingPalette.Species[(index + slot) % DressingPalette.Species.Count].Name, Height = 9 + (index + slot) % 6 } });
     }
 }
 

@@ -272,7 +272,7 @@ public sealed class BoulderFormCardsEndpoint : EndpointWithoutRequest<List<PropO
         var rock = PropOptionEndpoints.MaterialOf(
             Query<string>("rock", isRequired: false), new SolidMaterial(Blocks.Stone));
         return Send.OkAsync([.. DressingPreview.BoulderFormCards(
-            new BoulderProp { Size = 3, Seed = 3, Rock = rock }, ThemePresets.Meadow)], ct);
+            new BoulderProp { Seed = 3, Style = new BoulderStyle { Size = 3, Rock = rock } }, ThemePresets.Meadow)], ct);
     }
 }
 
@@ -294,18 +294,7 @@ public sealed class TreeWoodEndpoint : EndpointWithoutRequest<List<PropOptionDto
 
     public override Task HandleAsync(CancellationToken ct)
     {
-        var template = new TreeProp
-        {
-            Form = TreeForm.Grown, Seed = 5,
-            Height = Query<double?>("height", isRequired: false) ?? 18,
-            Leader = Query<double?>("leader", isRequired: false) ?? 0.55,
-            BranchAngle = Query<double?>("branchAngle", isRequired: false) ?? 1.1,
-            Levels = Query<int?>("levels", isRequired: false) ?? 2,
-            LeafSize = Query<double?>("leafSize", isRequired: false) ?? 0.6,
-            Whorled = Query<bool?>("whorled", isRequired: false) ?? false,
-            Stems = Query<int?>("stems", isRequired: false) ?? 1,
-            Flow = Query<double?>("flow", isRequired: false) ?? 0.45,
-        };
+        var template = new TreeProp { Seed = 5, Style = new TreeStyle { Form = TreeForm.Grown, Height = Query<double?>("height", isRequired: false) ?? 18, Leader = Query<double?>("leader", isRequired: false) ?? 0.55, BranchAngle = Query<double?>("branchAngle", isRequired: false) ?? 1.1, Levels = Query<int?>("levels", isRequired: false) ?? 2, LeafSize = Query<double?>("leafSize", isRequired: false) ?? 0.6, Whorled = Query<bool?>("whorled", isRequired: false) ?? false, Stems = Query<int?>("stems", isRequired: false) ?? 1, Flow = Query<double?>("flow", isRequired: false) ?? 0.45 } };
         return Send.OkAsync([.. DressingPreview.WoodCards(template, ThemePresets.Meadow)], ct);
     }
 }

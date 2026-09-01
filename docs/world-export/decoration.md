@@ -494,6 +494,12 @@ A grove is therefore a handful of trees an author placed rather than a density f
 intended trade: a forest that clumps by itself is quicker to get and impossible to aim, and a treeline
 across a lane is exactly the thing worth aiming.
 
+**A placement is a position; what stands there is a recipe named once.** A `TreeProp` carries `x`, `z`, a seed
+and a `style` key into the dressing document's registry; the `TreeStyle` under that key carries the form and
+every knob above. A `BoulderProp` and a `HouseProp` reference the same way. A grove of forty oaks is therefore
+forty positions and one recipe, and retuning that recipe retunes the grove — which is what a stand of trees is,
+against forty separately-tuned trees that happen to match. `docs/tools/sketch.md` states the registry.
+
 The crown described above is the intent; `tree-corpus.md` is the measured record of what the code builds,
 against 75 hand-built trees. It reports the gap — the cluster seated beyond its own branch tip, the missing
 tiers — and the thresholds a generated crown can be gated on. It reads the wood the same way, with the

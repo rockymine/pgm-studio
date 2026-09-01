@@ -123,7 +123,7 @@ public static class DressingPreview
         => SectionCards(theme, cell, [.. Enum.GetValues<BoulderForm>().Select(form => (
             Key: form.ToString().ToLowerInvariant(),
             Label: form.ToString(),
-            Prop: (PlacedProp)(template with { Form = form }),
+            Prop: (PlacedProp)(template with { Style = template.Style with { Form = form } }),
             Defaults: (string?)null))]);
 
     /// <summary>Every vanilla species, built at card size — so a picker cannot name a tree the pass could not
@@ -133,10 +133,7 @@ public static class DressingPreview
         => SectionCards(theme, cell, [.. DressingPalette.Species.Select(species => (
             Key: species.Name,
             Label: species.Name,
-            Prop: (PlacedProp)new TreeProp
-            {
-                Form = TreeForm.Template, Species = species.Name, Height = species.Height, Seed = 5,
-            },
+            Prop: (PlacedProp)new TreeProp { Seed = 5, Style = new TreeStyle { Form = TreeForm.Template, Species = species.Name, Height = species.Height } },
             Defaults: (string?)new JsonObject
             {
                 ["species"] = species.Name, ["height"] = species.Height,
@@ -149,7 +146,7 @@ public static class DressingPreview
         => SectionCards(theme, cell, [.. DressingPalette.Woods.Select(wood => (
             Key: wood.Name,
             Label: wood.Name,
-            Prop: (PlacedProp)(template with { Form = TreeForm.Grown, Wood = wood.Name }),
+            Prop: (PlacedProp)(template with { Style = template.Style with { Form = TreeForm.Grown, Wood = wood.Name } }),
             Defaults: (string?)null))]);
 
     private static readonly IReadOnlyDictionary<PathStyle, string> PathStyleLabels = new Dictionary<PathStyle, string>
@@ -173,8 +170,8 @@ public static class DressingPreview
     /// only half applied.</para></summary>
     private static int SpanFor(PlacedProp prop) => prop switch
     {
-        TreeProp tree => Math.Max(24, (int)tree.Reach + 8),
-        BoulderProp boulder => Math.Max(16, (int)(boulder.Reach * 5)),
+        TreeProp tree => Math.Max(24, (int)tree.Style.Reach + 8),
+        BoulderProp boulder => Math.Max(16, (int)(boulder.Style.Reach * 5)),
         _ => Span,
     };
 

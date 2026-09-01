@@ -161,121 +161,38 @@ public sealed record WaterProp : PlacedProp
 }
 
 /// <summary>
-/// One tree, standing where it was placed — and one of <b>two</b> trees, which <see cref="Form"/> picks.
-///
-/// <para>A <see cref="TreeForm.Template"/> tree is vanilla: <see cref="Species"/> names its wood, its canopy
-/// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Grown"/> tree
-/// is the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. Each
-/// form reads only its own fields, so the ones it does not read are inert rather than wrong — the same way a
-/// <see cref="StrokeProp"/> spends <see cref="StrokeProp.Coverage"/> only when it is worn.</para>
+/// One tree, standing where it was placed. What it is made of is a <see cref="TreeStyle"/> named once in the
+/// document's registry: a board carries hundreds of trees over a few dozen recipes, so the recipe is referenced
+/// rather than restated, and changing one changes every tree that wears it.
 /// </summary>
 public sealed record TreeProp : PlacedProp
 {
     public int X { get; init; }
     public int Z { get; init; }
 
-    public TreeForm Form { get; init; } = TreeForm.Template;
+    /// <summary>The recipe's key in <see cref="DressingDoc.Styles"/>. What the document carries.</summary>
+    [JsonPropertyName("style")] public string StyleKey { get; init; } = "";
 
-    /// <summary>Template only — a row in <see cref="DressingPalette.Species"/>: the wood, the canopy profile
-    /// and the proportions of one vanilla species.</summary>
-    public string Species { get; init; } = "oak";
+    /// <summary>The recipe itself, resolved out of the registry when the document was read — never written,
+    /// because the document states it once under its key.</summary>
+    [JsonIgnore] public TreeStyle Style { get; init; } = new();
 
-    /// <summary>Grown only — a row in <see cref="DressingPalette.Woods"/>. A grown tree's shape is the
-    /// author's, so its wood is all that is left to name.</summary>
-    public string Wood { get; init; } = "oak";
-
-    /// <summary>Overall height in blocks. Template: it scales the species' proportions. Grown: not a uniform
-    /// scale — a smaller tree also carries a thinner stem and fewer branches, so a sapling reads as a sapling
-    /// rather than as a shrunken tree.</summary>
-    public double Height { get; init; } = 12;
-
-    /// <summary>Grown only — 1–3 stems at the base.</summary>
-    public int Stems { get; init; } = 1;
-
-    /// <summary>Grown only — how far the central axis climbs: low spreads, high spires.</summary>
-    public double Leader { get; init; } = 0.55;
-
-    /// <summary>Grown only — how much the trunk wanders on its way up.</summary>
-    public double Flow { get; init; } = 0.45;
-
-    /// <summary>Grown only — how far a branch leaves its parent, in radians. A hand-built corpus leaves the
-    /// trunk at 59° off vertical and forks its children at 67°, so the default is a radian rather than the
-    /// half one a tighter fan wants.</summary>
-    public double BranchAngle { get; init; } = 1.1;
-
-    /// <summary>Grown only — branching depth: 2 is a tree, 3 a denser one.</summary>
-    public int Levels { get; init; } = 2;
-
-    /// <summary>Grown only — whether the branches are gathered into whorls, a ring every few courses, each
-    /// ring shorter than the one below. It is the conifer against the broadleaf, and it is the one shape
-    /// choice a picker of six woods cannot make for an author.</summary>
-    public bool Whorled { get; init; }
-
-    /// <summary>Grown only — how big each tip's leaf cluster is.</summary>
-    public double LeafSize { get; init; } = 0.6;
-
-    /// <summary>How tall this tree is built, held to the range the inspector offers — the bounded reading of
-    /// <see cref="Height"/> that every builder and every preview uses.
-    ///
-    /// <para>The bounds on this and the knobs below are load-bearing rather than tidiness. A tree's cost is
-    /// superlinear in its reach — the sample patch a preview cuts is quadratic in it, a grown crown is filled
-    /// by testing every cell of its bounding box — while the knobs that set that reach are plain multipliers.
-    /// A <see cref="Leader"/> of 55 rather than 0.55 therefore does not draw a strange tree, it asks for a
-    /// volume hundreds of blocks on a side and never returns. Holding the values here covers every caller —
-    /// the inspector's preview, the picker cards and the world export — instead of each guarding its own
-    /// input, and means a stored prop that is out of range still builds something.</para></summary>
-    public double Reach => Math.Clamp(Height, 5, 40);
-
-    /// <summary>This tree's growth parameters, as the grower wants them, each bounded like
-    /// <see cref="Reach"/>. Read only when it is grown.</summary>
-    public TreeShape Shape => new(
-        Height: Reach, Stems: Math.Clamp(Stems, 1, 3), Levels: Math.Clamp(Levels, 2, 3),
-        BranchAngle: Math.Clamp(BranchAngle, 0.2, 1.5), Flow: Math.Clamp(Flow, 0, 1),
-        Leader: Math.Clamp(Leader, 0, 1), Whorled: Whorled);
-
-    /// <summary>How big each tip's leaf cluster is, bounded like <see cref="Reach"/>: it scales the crown, and
-    /// the crown is filled cell by cell.</summary>
-    public double LeafCluster => Math.Clamp(LeafSize, 0.2, 1);
-
-    /// <summary>The blocks this tree is made of, whichever form it is: a template takes its species' wood, a
-    /// grown tree the one it was given.</summary>
-    public TreeWood Timber => Form == TreeForm.Template
-        ? DressingPalette.SpeciesNamed(Species).Wood
-        : DressingPalette.WoodNamed(Wood);
-
-    /// <summary>A trunk stands off the road by three blocks (the author's ruling): nearer and the canopy
-    /// closes over the route, which stops reading as a road through trees and starts reading as trees in
-    /// the road.</summary>
+    /// <summary>A trunk stands off the road by three blocks (the author's ruling): nearer and the canopy closes
+    /// over the route, which stops reading as a road through trees and starts reading as trees in the
+    /// road.</summary>
     public override int RouteStandoff => 3;
 }
 
-/// <summary>One boulder, standing bedded into the ground where it was placed.</summary>
 public sealed record BoulderProp : PlacedProp
 {
     public int X { get; init; }
     public int Z { get; init; }
-    public BoulderForm Form { get; init; } = BoulderForm.Round;
 
-    /// <summary>How far the rock reaches from its centre, in blocks. A boulder is an erratic — a mass a
-    /// glacier carried and left — so the default is a rock a player takes cover behind rather than a stone
-    /// they step over.</summary>
-    public double Size { get; init; } = 4;
+    /// <summary>The recipe's key in <see cref="DressingDoc.Styles"/>.</summary>
+    [JsonPropertyName("style")] public string StyleKey { get; init; } = "";
 
-    /// <summary>That reach held to the range the inspector offers, for the reason
-    /// <see cref="TreeProp.Reach"/> holds a tree's: it sizes both the lobes built and the sample patch a
-    /// preview cuts, so an out-of-range value asks for a patch thousands of blocks across.</summary>
-    public double Reach => Math.Clamp(Size, 2, 10);
-
-    /// <summary>What the rock is cut from — a full terrain material, resolved in the boulder's <em>own</em>
-    /// frame rather than the map's, so a mottled rock carries the same mottling to every image of its orbit
-    /// instead of sampling whatever the world pattern happens to say where each image landed. Its coordinates
-    /// are therefore small (a boulder is a few blocks across), which is what a pattern's patch size has to be
-    /// read against here.</summary>
-    public TerrainMaterial Rock { get; init; } = new SolidMaterial(Palette.Blocks.Stone);
-
-    /// <summary>Whether moss creeps onto the sky-lit faces — the rock's own micro-flora, laid over whatever
-    /// <see cref="Rock"/> resolved.</summary>
-    public bool Mossy { get; init; } = true;
+    /// <summary>The recipe itself, resolved out of the registry when the document was read.</summary>
+    [JsonIgnore] public BoulderStyle Style { get; init; } = new();
 
     /// <summary>A rock keeps two blocks off the road (the author's ruling) — less than a tree because a rock
     /// carries no canopy, more than zero because a boulder against the kerb narrows the route it was placed
@@ -283,8 +200,6 @@ public sealed record BoulderProp : PlacedProp
     public override int RouteStandoff => 2;
 }
 
-/// <summary>A stretch of ground that grows cover. The ring is drawn; what fills it is the density field of
-/// <see cref="FloraSpec"/>, because placing every blade by hand is not authoring, it is data entry.</summary>
 public sealed record FloraProp : PlacedProp
 {
     /// <summary>The drawn outline, as <c>[x, z]</c> pairs. Three points or more.</summary>
@@ -363,10 +278,14 @@ public sealed record HouseProp : PlacedProp
     /// every image of its orbit, or a mirrored pair both open toward the same side of the map.</summary>
     public RoomEdge? Front { get; init; }
 
-    /// <summary>The shell to raise, snapshotted onto the prop rather than referenced by library id — the rule
-    /// a map's bound room styles follow (docs/world-export/structures.md §9). Editing the library row a
-    /// building was picked from must never rebuild a shipped map's scenery.</summary>
-    public HouseStyle Style { get; init; } = new();
+    /// <summary>The shell's key in <see cref="DressingDoc.Styles"/>. What the document carries.</summary>
+    [JsonPropertyName("style")] public string StyleKey { get; init; } = "";
+
+    /// <summary>The shell itself, resolved out of the registry when the document was read. A registry entry
+    /// rather than a snapshot on every building: a board raises far more buildings than it has shells, and one
+    /// entry is what an author edits to change all of them. The registry is still the document's, so editing
+    /// the library row a shell was pulled from never rebuilds a shipped map's scenery.</summary>
+    [JsonIgnore] public HouseStyle Style { get; init; } = new();
 
     /// <summary>The largest footprint a placed building may cover, in blocks — three times the 8×8 shell a wool
     /// cage is stamped in, so a 12×16 or a 14×13 house is buildable and a 20×30 one is not.
