@@ -173,6 +173,7 @@ below are what that would cost. Each names the question that has to be answered 
   slope-fit has the same problem and the same fix. The 3-D preview is where a height edit is actually legible
   and it now draws the built world (`FEATURES.md`), but it is a modal swap rather than a companion view, so it
   confirms an edit after the fact rather than while it is being made.
+
 ## The storey a placement rests on
 
 `WE24` gave every placement an optional layer and two resolvers that agree about where a floor is. The export
@@ -339,7 +340,6 @@ it, what they can *see* while saying it, and what is on the shelf to say it abou
   they build the world and hold `Built.Provenance`. Wants `--provenance <path>` on the reads that take a
   region directory, so a sidecar kept beside the documents can be pointed at.
 
-
 - [ ] **C57 — The plan canvas enters a box without showing it has.** Both authoring canvases hold the same
   two-level model, and the sketch draws the island it has entered as a dashed outline under the selection —
   the frame clicks are resolving inside. `PlanCanvas` holds `#scopeBoxId` and honours it in `#selectDown`,
@@ -364,29 +364,7 @@ it, what they can *see* while saying it, and what is on the shelf to say it abou
   *`tallow-mirefast`: the raster draws five pieces, both spawns and the legend, and nothing at `(0, −50)`
   where the wardstone stands.*
 
-
 ## Mapgen authoring tasks
-
-**These came out of the mapgen authoring runs** — `pgm-studio-mapgen/reports/`, Grok run 1 and the five
-Opus 5 authoring records. Each was reproduced against the tree rather than taken from the report; one
-finding those reports carry (a house past `HouseProp.MaxFootprint` dropped in silence) is **already fixed**
-by `HousePropRules.PastCap` and is not filed. The section is grouped by **the concept an entry spends**
-rather than by which pass found it, so a heading is one object and a pass over it is one job.
-
-**What the fifth run added has shipped** — `WE20` `WE21` `WE22` `WE23` `TS20` `TS21` `WS10` each carry a
-`FEATURES.md` line. Four entries in this file gained a measured case from the same runs and moved nowhere:
-`B103`, `B144`, `B96` and `S56`.
-
-**The `B141`–`B188` audit pool no longer has a heading of its own**, because every entry in it turned out to
-be about a house, a distance, a tree, a destroy stamp, the plan model, a gate or the paint — and it now sits
-under whichever of those owns it. What left the pool entirely, so nobody refiles it: `B142` `B147` `B148`
-`B149` `B152` `B155` `B156` `B157` `B158` `B160` `B161` `B164` `B167` `B168` `B172` `B180` `B186` `B188`
-`B201` all carry a `FEATURES.md` line; `B136` `B153` `B170` `B173` `B182` `B183` are composition law and live
-in `pgm-studio-mapgen/AUTHORING-BRIEF.md` § *What the studio checks for you, and what it does not*, which
-`B189` was filed to keep true and is withdrawn with them; `B199` is withdrawn because the surface's inward band (`B200`) already
-says what a concentric house floor would have; and four folded into a neighbour — `B176` into `B162`, `B97`
-into `B166`, an absolutely-placed goal invisible in a plan raster into `B107`, and a walled wool room reading
-as an isolated marker into `B99`.
 
 - [ ] **RP59 — The authoring call a headless caller wants is documented as a way back in.** `POST
   /map/from-documents` stores a plan, a layout and an intent under a named slug, replacing whatever is there,
@@ -400,7 +378,6 @@ as an isolated marker into `B99`.
 
   *`opus5-thornfell` was corrected three times and left `thornfell`, `thornfell-2` and `thornfell-3` in the
   database; every render, provenance sidecar and column read had to be traced to the right one by hand.*
-
 
 - [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
   from across the map, which means its walls are not in the tone family under its feet. Complain where a
@@ -440,7 +417,6 @@ as an isolated marker into `B99`.
   *122 buildings on 32 boards: 4 fail today. A side with ground and under 3 clear blocks fails 51, under 5
   fails 76. `whinnymoor/hut-w` reads E=24 W=23 S=2 N=22.*
 
-
 - [ ] **B249 — An author can force a compile and an export past its refusals; an agent cannot.** The gates
   are right to refuse an agent — an unenterable board or a wall through a wool room is a defect it cannot see
   — but they also refuse **an author doing something deliberately off the norm**, and there is no way past
@@ -472,11 +448,6 @@ as an isolated marker into `B99`.
   note rather than a change of scope: a waiver reached for in place of a fix hides the fix, and the whole
   value of this entry is that it does not.
 
-Three gates, three ways of being wrong about their own verdict: one that misreports its cause, one that cannot
-see half the board, and one that refuses what the rule document recommends. They are the last of the
-`B141`–`B188` audit findings that are not about a house, a distance, a tree, a destroy stamp or the plan
-model — everything else from that pool has moved to the heading its subject owns.
-
 - [ ] **TN2 — `structural-integrity` carries one sentence where several refusals fired.** The term folds
   every `PlanValidator` refusal into one hard violation, and where there is more than one its message is
   `"{n} structural errors ({first})"` — so `/plan/evaluate` tells an agent the count and one of them, and the
@@ -492,7 +463,6 @@ model — everything else from that pool has moved to the heading its subject ow
   read through the scorer's own resolution — and `GET /api/rules?rule=CT12` answers the rule's own sentence.
   A band the author moves leaves the driver telling every future run the old one. Read them once at the top
   of the run and print what came back.
-
 
 - [ ] **B150 — Nothing evaluates a map's own sketch, so `G8` can only ever score the plan.** The term now
   measures ground over the ground's own frame (`FEATURES.md`), which is the whole of the author's rule that a
@@ -842,14 +812,7 @@ counted rather than eyeballed — and two are the material a species is supposed
 
 `Geom.Walk` is the traversal now — eight-connected and octile, charging a climb in the blocks a player places,
 counting a fall, slowing through water, narrowed per team where an `enter` rule bars one — and it runs over a
-set that reads a surface as somewhere a player can stand rather than as any column holding a block. `KitReach`
-and the two walk reads ask it.
-
-Most of the studio does not. A goal's walk to a spawn, a wool separation, the corridors the coverage read
-paints, the detour factor a relief budget would need: all of those still come from `Cells.PathLength`, an
-**unweighted 4-connected BFS** over the flat Manhattan proxy. The entries below share that cause and want
-reading together — the callers still on it, the bands they are compared against, and the demand set they are
-asked over.
+set that reads a surface as somewhere a player can stand rather than as any column holding a block. 
 
 - [ ] **WS1 — The corridor allowance wants restating where a map runs thinner than kanto.**
   `GroundCoverage` now reads a ribbon at an absolute `Walk.Detour` of 10 blocks, calibrated against
@@ -971,16 +934,11 @@ asked over.
 
 ## What a board cannot be told, and what it cannot be asked
 
-Eleven boards were authored through `pgm-studio-mapgen/tools/drive.py`, and the driver is the record of what
+Multiple boards were authored through `pgm-studio-mapgen/tools/drive.py`, and the driver is the record of what
 the studio does not answer: a statement an author has to make with no field to make it in, and a question
 whose answer is inside a refusal, a solver or a palette and which no read returns — or one a read does answer
 in a field no driver printed. Not one of these faults was caught by a gate; the export gate was open, the
 mirror clean and the traversability whole on every board named below.
-
-**`WE31` has shipped**, taken up when the map review measured the fault it describes. The rest wait here, and
-the two relief entries — `WE32` and `WE33` — are the mechanisms under `WE38`'s definition, so they are the
-first back when it lands.
-
 
 - [ ] **TS30 — Teach an author to deform a compiled shape, rather than to restate its coast.** The compiler
   emits a staircase of the plan's rectangles, and **a sketch outline disagreeing with the plan outline is the
@@ -1073,7 +1031,6 @@ first back when it lands.
 
 ## The remainder: work no concept above has claimed
 
-
 - [ ] **WE70 — Six callers guess whether a shell is bound, and the export is the only one that knows.**
   `WoolFrame`/`SpawnRoom` take `shellBound`, which sizes the default footprint (`WX1`) and the wall inset;
   `WorldBuilder:148,179` pass the map's real binding (`RoomStyleScope.StylesOf`) and six others hardcode
@@ -1086,16 +1043,6 @@ first back when it lands.
   *Swept over spawn pieces 6×6–24×24 facing −z with no stated footprint, 94 sizes resolve a different
   default: a 20×14 piece frames `(1,4)..(19,13)` bound and `(1,5)..(19,13)` open, and a 6×12 piece frames
   `(1,1)..(5,11)` against `(1,5)..(5,11)`.*
-
-
-- [ ] **C62 — Three CSS rules describe a component nothing renders.** `components.css:989–1004` carries an
-  `AUTHOR CHIP (avatar + resolved player name — used in map detail view)` block — `.map-author-chip`,
-  `.map-author-avatar`, `.map-author-name` — and no markup in the repo uses any of the three: `grep -r
-  "map-author" src/ tests/` hits only that CSS. The comment names a surface (the map detail view) that
-  either never shipped or lost the rows since, so a reader looking for the author chip finds a definition
-  and no component. Delete the block, or build the chip the comment names and say which page carries it.
-  `src/PgmStudio.Client/wwwroot/css/studio/components.css:989`. The class list in
-  `docs/client/ui-conventions.md` names no chip either, so nothing else has to move with it.
 
 - [ ] **RP63 — The e2e sweep cannot pass where the container has no egress, and the decision is the
   author's.** `./tools/e2e.sh all` ends `e2e: FAIL` on one check — smoke's *edit tool is clean*, from
@@ -1128,31 +1075,21 @@ first back when it lands.
   *Forms* tier already names it.
 
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
-`/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
-different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
-the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
-sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
-models, one file — the thing the tool-consistency alignment exists to prevent.
-Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
-change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
-differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
-was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
-bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
-the plan schema doc with it.
-**Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
-hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
-`/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
-no home on a map-backed plan.
-
-The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
-too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
-Fixing the tool makes both unnecessary.
-
-*diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
-same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
-`smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
-time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
-
+  `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
+  different products. Map-backed gets the phase rail (Info · Draw), the flow bar, and the three panels as chips;
+  the bare route gets no flow bar, no phases, the same three panels as **rail buttons**, and a collapsible
+  sidebar the map-backed one cannot have (`SidebarOpen => MapBacked || leftOpen`). Same panels, two navigation
+  models, one file — the thing the tool-consistency alignment exists to prevent.
+  Unify on the phase-rail + flow-bar + chips structure and keep the collapsible sidebar for both. The route may
+  change **only** the topbar — its crumbs and which actions exist — because that is where the binding genuinely
+  differs: a map-backed plan saves into its map's artifact, while a plan row saves as a row and forks when it
+  was generated or imported. Rename the bare route to `/plans/{id}` (and `/plans/new`), which says what it is
+  bound to where `/plan-editor` says nothing, updating the generator hand-off, the smoke sweep's route list and
+  the plan schema doc with it.
+  **Do not delete the route.** It is the only surface that opens a **plan row**, which is what the generator
+  hands a candidate off as and what `G119`'s fork-on-edit rule operates on; routing candidates through
+  `/maps/{slug}/plan` would mint a map per candidate looked at, and New, Import, Open and the origin badge have
+  no home on a map-backed plan.
 
 - [ ] **B9 — Re-import a world into an existing map (keep the authored intent).** When an author tweaks the
   terrain (e.g. adds iron inside the spawns so the renewable populates) they currently have to import the
@@ -1165,18 +1102,18 @@ time — its hypothesis, that an earlier spec breaks the stored plan, is disprov
   artifact + re-scan, then `PUT /map/{slug}/intent`.)
 
 - [ ] **B54 — A rebuild has no undo.** The rebuild now carries the finish and the credits across (B49, B52)
-and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
-board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a
-deliberate press that turns out to have been wrong. The mechanism is cheap, because both authored blobs
-are already rows in `map_artifact` keyed by a 64-char `kind` with no unique constraint: before each
-from-plan write, copy the current blob to a `…_prior` kind, and add a restore that puts both back and
-re-runs the pipeline from them (restore layout → `sketch/finish` → restore intent, the same chain the
-build uses, so the world cannot end up disagreeing with the layout). The finish step wants extracting out
-of `SketchFinishEndpoint` first so both callers share it. Surface it where the loss would be noticed: a
-one-shot *Undo this rebuild* in the plan editor's success panel. Deliberately not built with S39 — with
-the carries landed, the remaining exposure is a mis-click rather than silent data loss, and the
-confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
-braces, worth having once the studio is used by someone who did not write it.
+  and says what it trades before it runs (S39), so what it still replaces is replaced *on purpose*: the
+  board, and the teams/spawns/wools/build zones the plan states. What is missing is a way back from a
+  deliberate press that turns out to have been wrong. The mechanism is cheap, because both authored blobs
+  are already rows in `map_artifact` keyed by a 64-char `kind` with no unique constraint: before each
+  from-plan write, copy the current blob to a `…_prior` kind, and add a restore that puts both back and
+  re-runs the pipeline from them (restore layout → `sketch/finish` → restore intent, the same chain the
+  build uses, so the world cannot end up disagreeing with the layout). The finish step wants extracting out
+  of `SketchFinishEndpoint` first so both callers share it. Surface it where the loss would be noticed: a
+  one-shot *Undo this rebuild* in the plan editor's success panel. Deliberately not built with S39 — with
+  the carries landed, the remaining exposure is a mis-click rather than silent data loss, and the
+  confirmation already covers a mis-click at a fraction of the cost. This is the belt to that pair of
+  braces, worth having once the studio is used by someone who did not write it.
 
 ### Refactoring and cleanup
 
@@ -1202,6 +1139,15 @@ braces, worth having once the studio is used by someone who did not write it.
   registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
   anything out keeps its blob and the library cannot see it.
 
+  - [ ] **C62 — Three CSS rules describe a component nothing renders.** `components.css:989–1004` carries an
+  `AUTHOR CHIP (avatar + resolved player name — used in map detail view)` block — `.map-author-chip`,
+  `.map-author-avatar`, `.map-author-name` — and no markup in the repo uses any of the three: `grep -r
+  "map-author" src/ tests/` hits only that CSS. The comment names a surface (the map detail view) that
+  either never shipped or lost the rows since, so a reader looking for the author chip finds a definition
+  and no component. Delete the block, or build the chip the comment names and say which page carries it.
+  `src/PgmStudio.Client/wwwroot/css/studio/components.css:989`. The class list in
+  `docs/client/ui-conventions.md` names no chip either, so nothing else has to move with it.
+
 ### Test coverage
 
 - [ ] **G163 — `map-layers`' rebuild-confirmation step flakes about one run in three.** The step drives
@@ -1220,6 +1166,15 @@ braces, worth having once the studio is used by someone who did not write it.
   drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
   the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
   than the step is worth, because it makes every unrelated run ambiguous.
+  
+  The suite half is one missing wait. `map-layers.mjs:75` waits for `.map-canvas-svg`, the element that exists
+  too early; at `:122`, before the *second* compile, it waits 1500 ms with a comment saying exactly why.
+  Fixing the tool makes both unnecessary.
+
+  *diagnosed 2026-08-16 by intercepting the editor's own `POST /api/plan/compile` under both navigations:
+  same database, `goto` → **200**, row-link → **422**. `./tools/e2e.sh all` gives `map-layers` 13/14 with
+  `smoke` 39/39 in the same run; `./tools/e2e.sh map-layers` alone is 18/18. `B229` was this filed a second
+  time — its hypothesis, that an earlier spec breaks the stored plan, is disproved by the same test.*
 
 ## Future
 
