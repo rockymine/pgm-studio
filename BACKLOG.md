@@ -101,7 +101,7 @@ what is gathered here is the parked and dormant slices of the same surface.
   pass could be merged out of the first. Whether the rest is worth an incremental cache depends on a number
   nobody has: a typical board is ~93 ms end to end now, so this is the 200×200 case, not the common one.
 
-  - [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
+- [ ] **WE46 — A building wears the ground it stands on.** A house has to read as something somebody built,
   from across the map, which means its walls are not in the tone family under its feet. Complain where a
   building's wall material and the terrain ringing its footprint resolve to one `TerrainPalette` family, and
   refuse an ore block as a building material outright. `docs/world-export/decoration.md`.
@@ -125,7 +125,7 @@ what is gathered here is the parked and dormant slices of the same surface.
   *Medians over the committed themes: `cellSize` 6 for a cell pattern (down to 2), `scale` 8 for a noise field
   (down to 4), `cellSize` 6 for a voronoi. Those are the numbers that produced the boards under review.*
 
-  - [~] **WE41 — A pattern is a family shown off rather than a ground.** *Parked on a ruling: no candidate
+- [~] **WE41 — A pattern is a family shown off rather than a ground.** *Parked on a ruling: no candidate
   predicate reproduces the author's judgement, and nothing is built until one is chosen.* The predicate the
   author has since named is not colour distance but **how much of a family a pattern takes**: two blocks is a
   texture, three a mottle, five a family on display. Complain where a pattern's entry list carries more than
@@ -141,7 +141,7 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Relief
 
-  - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
+- [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
   factor between key places, the ford count and direction on a barrier, the reachable share per team side —
@@ -182,7 +182,7 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
-  - [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
+- [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
   falloff` over its skirt and at `crown / half` from the ring's edge to its medial axis, and where those two
   disagree the landform has a step at its own outline — a cliff with a hill on top of it, whatever its height.
   `relief/read` reports the *face* — `faces` carries its facing, width, drop and whether it qualifies as a
@@ -518,7 +518,7 @@ mirror clean and the traversability whole on every board named below.
   `subtract`. The plan's bbox is 150 × 105 blocks; the built world is 150 × 204, with 23,417 ground columns
   (0.77 of its own frame) and a void hole through the lower middle.*
 
-  - [ ] **B262 — The read-backs have no browser surface, and neither do the ones already taken.**
+- [ ] **B262 — The read-backs have no browser surface, and neither do the ones already taken.**
   `render/topdown`, `surface`, `walk`, `mirror`, `section`, `structures`, `traversability` and `heightmap`
   answer a picture each over HTTP and are fetched by nothing in the client. `docs/world-scan/read-backs.md`
   never claimed a UI, so this is a gap rather than drift — but reviewing what a board looks like is the loop
@@ -579,7 +579,7 @@ mirror clean and the traversability whole on every board named below.
   tracks, **308 cells**, checked for a step greater than one. Written fresh each time and thrown away each
   time.*
 
-  - [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
+- [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
   placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
   that; it does not run the generator (author). Reach rather than capability, and upstream of `PL13`: a dock
   seated against the hub has a face to wall that is not its own door, so getting the attachment right removes
