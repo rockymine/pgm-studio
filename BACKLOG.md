@@ -385,16 +385,6 @@ is library material — picked in the inspector, with a way through to the libra
 building already works this way. The inspector then holds a full editor for the two drawn kinds, a picker and a
 forward for the two clicked ones, and the per-placement handful — seed, position, door edge — for all of them.
 
-- [ ] **TS76 — A dressing key naming no recipe is stored without a word, and only a read says so.** Every read
-  refuses it — `DR-DOC`, naming the placement and the key — but `PUT …/sketch` and `POST …/sketch/finish` both
-  store the document without parsing its dressing, so a hand-authored or agent-authored layout keeps a
-  placement pointing at nothing until a preview or an export is asked for. The picker cannot produce one (it
-  pulls before it names), so this is the driver's path. The check is `DressingJson.Deserialize` over the
-  stored blob, which the finish already holds; the question is only whether finish refuses or complains.
-
-  *measured on `base-2wool`: a layout whose one tree names `maple` against an empty registry stores 200 and
-  finishes 200; `POST /terrain/prop-preview` on the same prop answers 400 `DR-DOC`.*
-
 ### What the author can say
 
 - [ ] **B261 — The theme editor mirrors a schema the API already publishes.** `GET /api/terrain/patterns`

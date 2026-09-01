@@ -6029,6 +6029,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   also stops the eave eating a stripe of wall that grew with the pitch: it reaches exactly one course under
   the wall top at every pitch. One clamp in `RoofField.Rise`; the six form formulas are untouched.
   (`RoofFieldTests`, `HouseStamperTests`, `docs/world-export/structures.md`)
+- **A placement naming a recipe the document does not state is refused at the gate it passes through (TS76,
+  `SK19`).** Every read of the dressing refused one already — the preview, the paint and the export each answer
+  `DR-DOC` naming the placement and the key — but `PUT …/sketch` and `POST …/sketch/finish` both stored the
+  document without parsing its dressing, so a layout written by a driver or by hand was taken twice with a 200
+  and only said no at the export, the fault sitting in the map in between. The document gate reads it now,
+  off the raw JSON, since the question is about two names and needs nothing else parsed. The finish stops on
+  it (422, naming the placement, the key and what to do); the save stores the board and reports `1 SK19` on
+  `Pgm-Warnings`, because a save that fails halfway through authoring is worse than a board carrying a fault.
+  `POST /map/from-documents` runs the same finish, so the driver's one-call path is covered. A placement
+  naming *nothing* is outside it — an empty key is a prop put down before a recipe was picked, and it builds
+  the kind's default the way a sketch binding no room style stamps the built-in shell.
+  (`SketchRecipeGateTests`, `docs/refusals.md`, `docs/tools/sketch.md`)
 - **Trees and boulders are library kinds, and the Dressing inspector is a picker for what is clicked (TS49,
   TS50, author).** The line is what an author *draws*: a path and a channel are traced, so pre-authoring one is
   authoring a shape without its place and their controls stay in the tool; a tree and a boulder are a click, so

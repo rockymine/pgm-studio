@@ -181,4 +181,21 @@ public static class SketchRules
     /// <remarks>Move one of the two — which one is the author's call, and the finding names both so it can be made. Raising the made thing is usually the smaller change: it is drawn at an absolute floor and has nothing seated on it, while a building is placed against the ground, the routes and the other buildings. A complaint rather than a refusal: a thing deliberately drawn around a structure — a gantry over a shed, a hull in a dry dock — is a legitimate board, and this is the read that tells the two apart from a fault.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Structure, RuleConcern.Feature)]
     public const string MadeThingInBuilt = "SK18";
+
+    /// <summary>A placement naming a recipe the document does not state. A tree, a boulder and a building each
+    /// carry a key into the layout's own <c>dressing.styles</c> registry — what is placed is a position, what
+    /// stands there is a recipe named once — and a key the registry has no entry for names nothing at all.
+    ///
+    /// <para>Every <em>read</em> of the dressing refuses it already, naming the placement and the key, so the
+    /// world is never built from one. What this adds is <b>when</b>: a layout is stored and finished without
+    /// its dressing being parsed, so a document written by a driver or by hand was taken twice with a 200 and
+    /// only said no at the export or the first preview — the fault sitting in the map in between. The gate the
+    /// document passes through is where a document fault belongs.</para>
+    ///
+    /// <para>A placement naming <em>nothing</em> — an empty key — is not this. That is a prop put down before
+    /// a recipe was picked, which builds the kind's own default, the way a sketch that binds no room style
+    /// stamps the built-in shell.</para></summary>
+    /// <remarks>Pull the recipe into the document's `dressing.styles` under the key the placement names, or name a key the registry already states. A recipe is copied in rather than referenced by library id, so a document carries every recipe its placements name and builds the same way wherever it is read.</remarks>
+    [Rule(RuleCategory.Unknown, RuleConcern.Feature)]
+    public const string RecipeNotStated = "SK19";
 }

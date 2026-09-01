@@ -33,6 +33,36 @@ namespace PgmStudio.Pgm.Sketch;
 /// </summary>
 public static class SketchLayoutCheck
 {
+    /// <summary>Every placement naming a recipe the document's registry has no entry for, as the placement's
+    /// own id and the key it named.
+    ///
+    /// <para>Read off the raw JSON rather than the typed document, because a layout carries its dressing as
+    /// an opaque element — the model lives in <c>Minecraft</c>, which this project does not see — and because
+    /// what is being asked is a question about two <em>names</em> and needs nothing else parsed.</para></summary>
+    private static IEnumerable<(string Subject, string Key)> UnstatedRecipes(SketchLayout layout)
+    {
+        if (layout.Dressing is not { ValueKind: JsonValueKind.Object } dressing) yield break;
+        if (!dressing.TryGetProperty("props", out var props) || props.ValueKind != JsonValueKind.Array) yield break;
+
+        var stated = new HashSet<string>(StringComparer.Ordinal);
+        if (dressing.TryGetProperty("styles", out var styles) && styles.ValueKind == JsonValueKind.Object)
+            foreach (var entry in styles.EnumerateObject()) stated.Add(entry.Name);
+
+        var index = 0;
+        foreach (var prop in props.EnumerateArray())
+        {
+            var at = index++;
+            if (prop.ValueKind != JsonValueKind.Object) continue;
+            if (prop.TryGetProperty("style", out var style) && style.ValueKind == JsonValueKind.String
+                && style.GetString() is { Length: > 0 } key && !stated.Contains(key))
+            {
+                var id = prop.TryGetProperty("id", out var stated_id) && stated_id.ValueKind == JsonValueKind.String
+                    ? stated_id.GetString() ?? $"#{at}" : $"#{at}";
+                yield return (id, key);
+            }
+        }
+    }
+
     /// <summary>The shape kinds the rasterizer draws (<c>SketchRasterizer.RingOf</c>). Anything else rings
     /// empty, which is the same board as a shape that was never drawn.</summary>
     private static readonly string[] Kinds = ["rectangle", "circle", "polygon", "lasso", "path"];
@@ -120,6 +150,16 @@ public static class SketchLayoutCheck
                 $"'{thing}' seats on the ground and none of its {cells} column(s) has any under it, so it "
                 + "stands at the height it was drawn. Move it over ground, or take its `seat` off",
                 Severity.Complaint, Subjects: [thing]));
+
+        // SK19 — a placement naming a recipe the document does not state. A refusal rather than a complaint:
+        // every read of the dressing refuses it anyway, so a document carrying one is one no world can be
+        // built from. The save still stores it and says so, because a save that fails halfway through
+        // authoring is worse than a board with a fault in it; the finish is where it stops.
+        foreach (var (subject, key) in UnstatedRecipes(layout))
+            findings.Add(new Finding(SketchRules.RecipeNotStated,
+                $"placement '{subject}' names the recipe '{key}', which this document's dressing does not "
+                + "state — pull it into `dressing.styles` under that key, or name one the registry has",
+                Severity.Refusal, Field: "dressing", Subjects: [subject]));
 
         // SK11 — ground with sky over it and no way onto it. Roofed ground is a room and stays silent.
         foreach (var (places, x, z, y) in SketchRasterizer.DetachedMasses(layout))

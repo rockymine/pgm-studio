@@ -1206,6 +1206,17 @@ complaint, and deliberately not a refusal: a gantry over a shed or a hull in a d
 meant, and which of the two moves is the author's call. Raising the made thing is usually the smaller change,
 since it is drawn at an absolute floor and has nothing seated on it.
 
+**And it refuses a placement naming a recipe the document does not state.** A tree, a boulder and a building
+each carry a `style` key into the layout's own `dressing.styles`, and a key the registry has no entry for names
+nothing at all. Every *read* of the dressing refuses one already — the preview, the paint and the export each
+answer `DR-DOC` naming the placement and the key — so what `SK19` adds is **when**: without it a document
+written by a driver was stored and finished with two 200s and only said no at the export, the fault sitting in
+the map in between. It is a refusal, so the **finish** stops on it (422); the **save** still stores the board
+and reports it on `Pgm-Warnings`, because a save that fails halfway through authoring is worse than a board
+carrying a fault someone is about to fix. A placement naming *nothing* is outside it: an empty key is a prop
+put down before a recipe was picked, and it builds the kind's own default the way a sketch binding no room
+style stamps the built-in shell.
+
 **And it complains where a shape belongs to no group.** A group is the unit the symmetry orbit is fanned
 by — the build reads each mirroring group's `shapeIds` and copies exactly those shapes onto their images — so
 a shape no group lists is built once, on the side it was drawn on, with no image anywhere. `SK17` names the

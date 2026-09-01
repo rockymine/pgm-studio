@@ -422,3 +422,76 @@ public sealed class SketchLayoutCheckTests
             .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
     }
 }
+
+/// <summary>
+/// A placement names a recipe, and the document that carries it has to state it.
+///
+/// <para>Every read of the dressing refuses a key that names nothing, so a world is never built from one. What
+/// the gate adds is <b>when</b>: the layout is stored and finished without its dressing being parsed, so a
+/// document written by a driver was taken twice with a 200 and only said no at the export — the fault sitting
+/// in the map in between.</para>
+/// </summary>
+public sealed class SketchRecipeGateTests
+{
+    private static string WithDressing(string dressing) =>
+        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
+        + "\"layers\":[{\"base_y\":0,\"layout\":{\"shapes\":[{\"id\":\"s1\",\"type\":\"rectangle\","
+        + "\"operation\":\"add\",\"min_x\":-20,\"max_x\":20,\"min_z\":-20,\"max_z\":20,\"floor\":8,"
+        + "\"base_height\":12}],\"groups\":[{\"id\":\"i\",\"name\":\"I\",\"shapeIds\":[\"s1\"]}]}}],"
+        + "\"dressing\":" + dressing + "}";
+
+    [Test]
+    public async Task A_placement_naming_a_recipe_the_document_does_not_state_is_refused()
+    {
+        var findings = SketchLayoutCheck.Check(WithDressing(
+            """{"props":[{"kind":"tree","id":"t1","x":0,"z":0,"style":"maple-9"}],"styles":{}}"""));
+
+        var finding = findings.Single(f => f.Rule == SketchRules.RecipeNotStated);
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Refusal);
+        await Assert.That(finding.Message).Contains("maple-9");
+        await Assert.That(finding.Subjects).Contains("t1");
+        await Assert.That(findings.Refuses).IsTrue();
+    }
+
+    [Test]
+    public async Task A_placement_naming_a_recipe_the_document_states_says_nothing()
+    {
+        var findings = SketchLayoutCheck.Check(WithDressing(
+            """
+            {"props":[{"kind":"tree","id":"t1","x":0,"z":0,"style":"oak-10"}],
+             "styles":{"oak-10":{"kind":"tree","form":"template","species":"oak","height":10}}}
+            """));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.RecipeNotStated)).IsFalse();
+    }
+
+    /// <summary>A prop put down before a recipe was picked builds the kind's own default, the way a sketch
+    /// binding no room style stamps the built-in shell. Refusing it would make a board unsaveable halfway
+    /// through being authored.</summary>
+    [Test]
+    public async Task A_placement_naming_nothing_at_all_is_not_this()
+    {
+        var findings = SketchLayoutCheck.Check(WithDressing(
+            """{"props":[{"kind":"tree","id":"t1","x":0,"z":0,"style":""}]}"""));
+
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.RecipeNotStated)).IsFalse();
+    }
+
+    [Test]
+    public async Task A_layout_with_no_dressing_at_all_is_not_this()
+    {
+        var findings = SketchLayoutCheck.Check(WithDressing("null"));
+        await Assert.That(findings.Any(f => f.Rule == SketchRules.RecipeNotStated)).IsFalse();
+    }
+
+    /// <summary>The placement is named by its own id where it has one, so a refusal points at the entry to
+    /// fix rather than at the document.</summary>
+    [Test]
+    public async Task An_unnamed_placement_is_reported_by_where_it_sits()
+    {
+        var findings = SketchLayoutCheck.Check(WithDressing(
+            """{"props":[{"kind":"boulder","x":0,"z":0,"style":"gone"}],"styles":{}}"""));
+
+        await Assert.That(findings.Single(f => f.Rule == SketchRules.RecipeNotStated).Subjects).Contains("#0");
+    }
+}
