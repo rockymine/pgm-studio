@@ -1191,12 +1191,6 @@ braces, worth having once the studio is used by someone who did not write it.
   alias the `<select>` at `ObjectivePhase.razor:56` has no option matching its own value and shows a colour
   the wool is not — while the plan tool folds the same word to `silver`.
 
-- [ ] **Comment hygiene sweep — the task ids.** Code comments must describe behaviour only, and the
-  attribution half is done (B43 swept every "port of X.py" / "matches Python" reference out of `src/` and
-  `tests/`). What remains is **implementation-phase and task ids** (`NS`, `N00`, `B8`, `P5`, `ND2`, …) in
-  about nineteen places — a comment that says *when* something was built rather than what it does, which
-  reads as noise to anyone who was not there. New code already follows the rule (`CLAUDE.md`).
-
 - [~] **B44 — Theme + style library: the map's applied theme is still an inline blob.** The tables, the HTTP
   surface, the `/library` page and the sketch's pull/push bridge all shipped (`FEATURES.md`); two slices
   remain. **(1) Apply-as-snapshot** — a map's *applied* theme is still the sketch document's own registry, so
@@ -1207,37 +1201,6 @@ braces, worth having once the studio is used by someone who did not write it.
   persistence uses. **(2) A data migration** lifting the themes inlined in a map's own `sketch_layout_json`
   registry into styles + themes + bindings, deduping identical materials — today a map themed without pushing
   anything out keeps its blob and the library cannot see it.
-
-- [~] **C12 — The last of the component vocabulary: the icon, the generator, the inline styles.** The
-  vocabulary is built and adopted — the atoms, `Section`, the shell and the workspace shells are across every
-  production surface, with two raw `action-btn`s and two raw `list-row`s left as genuine exceptions
-  (`FEATURES.md`; the reference is `docs/client/ui-conventions.md`). Three slices remain, and `/design` is the
-  zero-visual-diff oracle for all of them since a component emits the classes the markup did.
-
-  **`Icon` is built and unadopted.** `Components/Primitives/Icon.razor` centralizes the lucide reconciler
-  gotcha — recreate on a glyph change rather than patch a node lucide has already replaced with an `<svg>` —
-  and **156 raw `<i data-lucide>` still stand**. Adopt incrementally: the icon-bearing components
-  (`Button`/`DetailHeader`/`Chip`) first, then the page sites that re-render. High churn, subtle benefit, so
-  parked by choice rather than blocked.
-
-  **The `gen-*` set is the last real drift**, and the largest thing left here: `/generator`'s filter rail, card
-  grid, candidate cards, badges, tray and census tables are around forty classes in `generator.css`
-  re-implementing `workspace-sidebar`, `card-grid`, `badge` and `filter-chip` under their own names. The atoms
-  inside them have been picked up where they fit; the layout has not.
-
-  **Polish**: fold the one `section-heading` use into `SectionHeader`, and drop the 87 inline `style=`
-  occurrences now expressible as component params (`Fill`, `Full`, a modifier `Class`).
-
-- [ ] **C14 — Dedupe activity code-behind.** The repeated `Post/Patch/Delete/Send` http trio
-  (Build/Objective/Teams) + the `Index`/`CollectDescendants` region-tree walkers (3–4 activities) →
-  a shared `MapApiClient` and/or `EditorActivityBase` / static `RegionNode` helpers.
-
-- [ ] **CV15 — The bridge invoke wrapper is inconsistent.** `plan-bridge` and `sketch-bridge` wrap
-  `dotnetRef.invokeMethodAsync` in a local `fire()` that swallows the throw when the host hasn't wired a
-  callback; `world-bridge` calls it unguarded, so an unwired callback surfaces as a console error instead
-  of a no-op. Settle on one helper next to `fetch-json.js`. Tiny, but it is the only thing the five bridges
-  genuinely share — the rest of their apparent repetition is per-tool document semantics and should stay
-  separate.
 
 ### Test coverage
 
@@ -1257,63 +1220,6 @@ braces, worth having once the studio is used by someone who did not write it.
   drawer that keeps re-rendering rather than at a document that has not arrived — so the fix is a wait on
   the drawer settling, and the 1500ms guard may be guarding nothing. A flake in the browser gate costs more
   than the step is worth, because it makes every unrelated run ambiguous.
-
-- [ ] **B35 — Endpoint coverage: half the API is exercised by nothing.** `PgmStudio.Api` sits at **42.8%**
-  lines (`tools/coverage.sh`), and the shortfall is not spread evenly — a long tail of endpoint files is
-  effectively untouched while the tested ones are fine: `PreflightEndpoint` 2.6%, `ImportEndpoints` 3.6%,
-  `MonumentEndpoints` 5.3%, `LayersEndpoints` 5.5%, `ConfigureEndpoints` 6.2%, `AuthoringEndpoint` 8.2%,
-  `MapPlanEndpoints` 12.3%, `AnalysisEndpoints` 13.0%, `RegionEndpoints` 15.6% (the two island files that
-  were bottom of this list were deleted rather than tested — `RP18`). `ApiTestFactory` (B20) already gives schema-isolated MariaDB, so the
-  marginal cost per endpoint is one happy path plus its error contract; these are cheap tests, not a
-  redesign. Prioritise the ones that write: import, configure, region and map-plan.
-
-  **What the gap costs, measured once:** `POST .../sketch/columns` had no test, and a change to what it
-  returns beside the payload shipped a null spread that answered **400 for every board with nothing wrong
-  with it** — the 3-D preview blank studio-wide, found by starting the app rather than by the suite. The test
-  that now covers it is nine lines.
-
-- [ ] **B36 — The region/filter authoring-and-editing path is half covered.** A coherent cluster sits
-  around 40–58% while its neighbours are high: `RegionAuthoringEncoder` 43.8% (370 uncovered lines),
-  `RegionParser` 52.0% (295), `RegionEditor` 57.5% (180), `FilterParser` 48.9%, `RegionGeometry2d` 39.5%,
-  `RegionBuilder` 43.7%, `FilterEditor` 41.9%, `WoolEditor` 58.5%. This matters more than the endpoint tail
-  because it is map-contract logic, not glue — a silent regression here changes generated `map.xml` rather
-  than returning a wrong status code, and `--authoring` is a manual harness, not a gate. Note the
-  neighbours prove the standard is reachable: `MapParser` 92.9%, `XmlWriter` 88.1%, `RegionCategorizer`
-  91.4%. Cover the type-specific region/filter branches first — that is where the uncovered lines are.
-
-- [~] **C28 — The client's remaining test layers (smoke has landed).** The **smoke layer + runner shipped**
-  as `C31` (`tools/e2e.sh`, `tests/e2e/`) — every route is swept for "renders and raises nothing", seeded
-  from a composed board; `icons.mjs` (C30) added the first *positive* render assertion on top of it.
-  `PgmStudio.Client` is still **absent from the coverage report** (no test project
-  references it), and two layers are still open:
-  **(a) mount/interop** — per canvas tool, assert the bridge mounted and the surface has a real size; this
-  is the C29 class of bug (a canvas at 45% of its workspace for weeks, in two tools) and it is assertable
-  without knowing user intent.
-  **(b) scenarios** — one flow per tool, specifically *the path that creates the artifact*, where a break is
-  unrecoverable rather than cosmetic: Sketch `New → name → draw → Finish → Configure`; Plan
-  `New → globals → piece → Compile`. The seed already proves that chain works headlessly.
-  Deliberately **not** e2e: field-level inspector behaviour and anything asserting where geometry lands —
-  those rot; extract the decidable logic instead (`CV12`). A bUnit project for the phase/step state machines
-  is still worth considering, and is independent of the above.
-
-- [ ] **CV12 — Two thirds of the JS layer is never loaded by a test, and the bridges are the reachable
-  third.** Of 59 studio modules (16,013 lines), the 405 tests in `tests/js/` reach 31 (5,114 lines); the
-  other **28 files / 10,899 lines are never imported**, which `--experimental-test-coverage` reports as
-  *absent* rather than zero, so the report reads healthier than the tree is. The untested set is the whole
-  interactive layer: every canvas (`world-canvas` 1046, `plan-canvas` 1017, `sketch-canvas` 871,
-  `canvas-base`, `sideview-canvas`), every bridge, every controller, `iso-webgl` and `studio.js`.
-
-  **Two slices, and the cheap one is not extraction.** A bridge is not DOM-bound the way a canvas is:
-  `mount()` is handed its canvas and elements, and the only other thing it touches is `fetch` — both
-  stubbable with what `tests/js/` already has (`_dom-stub.js`, `_painter-stub.js`). Drive
-  `enterIso`/`fetchColumns` with a recording canvas and a canned `fetch`: the most stateful function in the
-  untested set (an await, a race guard, a cache stamp, two failure paths, and now a decoded refusal
-  envelope), in the file where a rename shipped a `ReferenceError` to the browser that neither the C# build
-  nor the JS suite could see. `sketch-bridge` is 904 lines, `plan-bridge` 449, and they are near-twins.
-
-  For the canvases and controllers the answer is unchanged: keep **extracting the decidable logic** —
-  hit-testing, snapping, viewport maths, selection resolution — into pure modules the existing harness
-  reaches. Pairs with the JS consolidation review.
 
 ## Future
 
