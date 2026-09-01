@@ -643,20 +643,23 @@ public static class PlanValidator
         return spoken;
     }
 
-    // ST2 — when a spawn-role piece exists, every iron marker belongs inside a spawn piece (iron inside the
-    // spawn region auto-renews in the export; iron elsewhere is dead resource).
+    // ST2 — every iron marker belongs inside a spawn piece: iron there auto-renews in the export, and iron
+    // anywhere else is a one-off block a team mines once. The whole cube must be inside, not just the marker
+    // it centres on — a cube half in the spawn region renews half of itself.
     private static IEnumerable<Finding> LintSt2(PlanModel plan, ContactGraph d)
     {
         var spawnPieces = d.Pieces.Where(p => p.Role == PlanRoles.Spawn).ToList();
-        if (spawnPieces.Count == 0) yield break;
         foreach (var ir in plan.Placements.Iron)
         {
             var piece = d.Piece(ir.Piece);
             if (piece is null) continue;                       // unknown-piece handled as a structural error
-            var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, ir.At);
-            bool inside = spawnPieces.Any(sp =>
-                bx >= sp.Rect.MinX && bx <= sp.Rect.MaxX && bz >= sp.Rect.MinZ && bz <= sp.Rect.MaxZ);
-            if (!inside) yield return Lint("ST2", $"iron at ({bx:0},{bz:0}) outside the spawn piece", ir.Piece);
+            var (markerX, markerZ) = PlanMarkers.Block(piece.Value.Rect, ir.At);
+            var inside = spawnPieces.Any(spawn =>
+                RoomFrames.PlaceIron(markerX, markerZ, spawn.Rect).Placeable);
+            if (!inside)
+                yield return Lint("ST2",
+                    $"the iron cube at ({markerX:0},{markerZ:0}) does not stand inside a spawn piece, so it "
+                    + "is mined once rather than renewed", ir.Piece);
         }
     }
 
@@ -674,11 +677,14 @@ public static class PlanValidator
                 yield return Lint(RoomFrameRules.PadClearance, $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
     }
 
-    // WX8/WX9 — an iron marker on a spawn piece that resolves unplaceable: the room has priority and
-    // stamps alone; the marker stays on the board and is flagged with the clearance requirement instead of
-    // silently disappearing from the world.
+    // WX8/WX9 — an iron marker that resolves unplaceable. Every marker on the board is checked, whether it
+    // rides a framed spawn piece or a piece carrying no room at all: the export stamps nothing for one, the
+    // marker stays on the board where the author put it, and this is what says so.
     private static IEnumerable<Finding> LintWx8(PlanModel plan, ContactGraph d)
     {
+        var framedSpawnPieces = plan.Placements.Spawns
+            .Select(s => s.Piece).Where(id => d.Piece(id)?.Role == PlanRoles.Spawn).ToHashSet();
+
         foreach (var s in plan.Placements.Spawns)
         {
             var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
@@ -686,9 +692,22 @@ public static class PlanValidator
             if (room is null) continue;
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
                 yield return Lint(RoomFrameRules.IronFit,
-                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: no room size "
-                    + $"leaves {RoomFrames.IronGap} blocks clear of the shell for even the smallest cube — "
-                    + "the room has priority and stamps alone", s.Piece);
+                    $"iron at ({iron.MarkerX}, {iron.MarkerZ}) on '{s.Piece}' cannot be placed: the cube needs "
+                    + $"its {RoomFrames.IronSpan}×{RoomFrames.IronSpan} footprint inside the piece and "
+                    + $"{RoomFrames.IronGap} blocks of clear air to the shell, and the room keeps the "
+                    + "footprint it was given", s.Piece);
+        }
+
+        foreach (var ir in plan.Placements.Iron)
+        {
+            if (framedSpawnPieces.Contains(ir.Piece)) continue;
+            if (d.Piece(ir.Piece) is not { } piece) continue;   // unknown piece is a structural error
+            var (markerX, markerZ) = PlanMarkers.Block(piece.Rect, ir.At);
+            if (RoomFrames.PlaceIron(markerX, markerZ, piece.Rect).Placeable) continue;
+            yield return Lint(RoomFrameRules.IronFit,
+                $"iron at ({markerX}, {markerZ}) on '{ir.Piece}' cannot be placed: its "
+                + $"{RoomFrames.IronSpan}×{RoomFrames.IronSpan} cube reaches outside the piece it stands on, "
+                + "so the export stamps nothing for it", ir.Piece);
         }
     }
 

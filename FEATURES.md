@@ -5641,6 +5641,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   before the step existed. Serializing a style also forced structural equality onto every material holding a
   collection (`RoomPart`, `LayeredMaterial`, the three patterns) — record equality compares a collection
   member by reference, so a stack read back from JSON had never equalled the one that wrote it. (G34c)
+- **One iron cube, bounded by the piece it rides (B177).** Two paths stamped a cube from one marker and
+  disagreed about both its size and its bounds: the spawn-room path resolved a `WX8` span-3 cube against the
+  piece, while a marker on any other piece went through `StampIronCube`, which centred a 4×4×4 cube on its
+  anchor and wrote it wherever that landed with **no bounds test of any kind** — a `lane` piece at
+  `x[-24,-8) z[-24,-8)` with a marker at `at:[0.5,0.5]` stamped iron at `x[-26,-22) z[-26,-22)`, two columns
+  into the void, and nothing said so. `RoomFrames.PlaceIron` is now public and takes the room as an optional
+  argument, so both paths resolve through it and a marker with no room simply has no shell to stand clear of;
+  a cube that will not fit its piece resolves unplaceable and the export stamps nothing (`WX9`), which the
+  validator reports for every marker on the board rather than only those beside a spawn. `IronCube` carries
+  the resolved corner rather than the marker, and `StampIronCube`/`IronCubeFootprint`/`IronCubeSize` are gone.
+  `ST2` follows: it tests the cube's footprint where it tested the marker block, and fires on a board with no
+  spawn piece at all. (`rules.md` amendment 31)
 - **The region and the building are two rectangles with two names (B178).** `SpawnIntent.Piece` and
   `Protection[0]` had been the same rect, and `WoolIntent.Piece` and `Room[0]` likewise, so the intent said
   twice what a placement says once and a null `Piece` smuggled in a second meaning — *keep the legacy

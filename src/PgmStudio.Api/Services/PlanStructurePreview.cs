@@ -30,7 +30,7 @@ public readonly record struct StructureBox(
 /// <para>The boxes must agree with <see cref="WorldBuilder"/> block for block, or the preview lies about
 /// the map. So everything is taken from the build's own sources rather than re-derived: the geometry from
 /// <see cref="PlanCompiler"/> output, the sizes from the stampers' constants and footprint helpers
-/// (<see cref="HouseStamper"/>, <see cref="StructureStamper.IronCubeFootprint"/>), and every floor from the same
+/// (<see cref="HouseStamper"/>, <see cref="RoomFrames.PlaceIron"/>), and every floor from the same
 /// per-column surface map the stampers rest structures on — including its fallback for a marker whose column
 /// carries no terrain, which drops that structure to the bottom of the world. Reading the floor from the
 /// marker's plan surface instead would look equivalent and silently disagree in exactly that case.</para>
@@ -96,14 +96,13 @@ public static class PlanStructurePreview
         var st = intent.Structures;
         if (st is null) return boxes;
 
-        // Iron: IronCubeFootprint is max-INCLUSIVE, so +1 to reach the exclusive frame. The base is the
-        // footprint's surface, unclamped — StampIronCube takes it raw.
+        // Iron: the directive already carries the corner its marker resolved to, so the box is the span from
+        // there. The base is the footprint's surface, unclamped — the stamper takes it raw.
         foreach (var ic in st.IronCubes)
         {
-            var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(ic.X, ic.Z);
-            var baseY = PositionSnap.SurfaceYOver(surface, minX, minZ, maxX, maxZ, 1);
-            boxes.Add(new StructureBox("iron", null, minX, minZ, maxX + 1, maxZ + 1,
-                baseY, baseY + StructureStamper.IronCubeSize));
+            int span = RoomFrames.IronSpan, maxX = ic.MinX + span, maxZ = ic.MinZ + span;
+            var baseY = PositionSnap.SurfaceYOver(surface, ic.MinX, ic.MinZ, maxX - 1, maxZ - 1, 1);
+            boxes.Add(new StructureBox("iron", null, ic.MinX, ic.MinZ, maxX, maxZ, baseY, baseY + span));
         }
 
         // Walls: the footprint is already max-exclusive; TopY is inclusive, and the stamper lays one course of

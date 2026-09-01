@@ -180,8 +180,8 @@ which face has the smaller coordinate, and only the piece it looks out at is inv
 every fanned decision should follow.
 
 **MG22 — Iron is authorable the same way and equally unasked-for.** `PlanPlacements.Iron` carries the
-markers, `PlanCompiler` turns each into an `IronCube`, and `StructureStamper.StampIronCube` builds the 4×4×4
-cube on the surface (ST2/ST3). The composer emits no iron markers, so no generated board carries a resource
+markers, `PlanCompiler` resolves each into an `IronCube` through `RoomFrames.PlaceIron`, and
+`StructureStamper.StampIronCubeAt` builds it on the surface (ST2/ST3). The composer emits no iron markers, so no generated board carries a resource
 to fight over. Iron wants placing regularly through the map rather than once near a spawn — it is a reason to
 leave cover, which is the same argument as MG9 about trees.
 

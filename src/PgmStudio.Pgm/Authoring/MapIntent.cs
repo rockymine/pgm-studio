@@ -97,7 +97,9 @@ public sealed record StructureIntent
     /// <summary>Wool-room entrance redstone lines: a wire row with an end torch each side (ST1).</summary>
     public List<RedstoneLine> RedstoneLines { get; init; } = new();
 
-    /// <summary>4×4×4 iron cubes resting on the surface, centred on each iron marker (ST2/ST3).</summary>
+    /// <summary>The iron cubes standing on a piece that carries no room, each already resolved to the
+    /// footprint it stamps on (ST2/ST3). A marker whose cube does not fit inside its piece resolves
+    /// unplaceable and is not here at all (WX9).</summary>
     public List<IronCube> IronCubes { get; init; } = new();
 
     /// <summary>Pre-built bedrock approach walls over a wool-lane interface seam (ST4).</summary>
@@ -117,15 +119,18 @@ public sealed record StructureIntent
 /// export.</param>
 public readonly record struct RedstoneLine(int X1, int Z1, int X2, int Z2, StampId Stamp = default);
 
-/// <summary>An iron cube anchored on a (whole-block) marker; a 4×4×4 iron structure resting on the surface.
+/// <summary>A resolved iron cube: <see cref="RoomFrames.IronSpan"/> blocks square, standing on the surface
+/// its footprint spans (ST3). The corner rather than the marker, because the marker is what an author places
+/// and this is what the world gets — <see cref="RoomFrames.PlaceIron"/> is the one thing that turns one into
+/// the other, and a marker whose cube would not fit its piece produces none at all (WX9).
 /// <see cref="Renew"/> flags a marker inside a spawn-role piece — its cube regrows via the map.xml renewables
 /// wiring (ST2).</summary>
-/// <param name="X">The marker it is anchored on, east–west.</param>
-/// <param name="Z">That marker, north–south.</param>
+/// <param name="MinX">The cube's minimum corner, east–west.</param>
+/// <param name="MinZ">That corner, north–south.</param>
 /// <param name="Renew">Whether the marker sits inside a spawn-role piece, in which case the cube regrows
 /// through the map's renewables wiring.</param>
 /// <param name="Stamp">Which stamping of the structure this is.</param>
-public readonly record struct IronCube(int X, int Z, bool Renew, StampId Stamp = default);
+public readonly record struct IronCube(int MinX, int MinZ, bool Renew, StampId Stamp = default);
 
 /// <summary>A pre-built bedrock approach wall: a min-inclusive/max-exclusive footprint (two thick across the
 /// seam, full interface width along it) rising from y=0 up to <see cref="TopY"/> inclusive, capped by one

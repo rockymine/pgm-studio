@@ -450,11 +450,15 @@ public static class PlanCompiler
             var renew = piece.Value.Role == PlanRoles.Spawn;
             for (var k = 0; k < d.Order; k++)
             {
+                // The piece bounds the cube, exactly as it bounds one beside a spawn room (WX8): a marker
+                // whose cube would hang off its own ground resolves unplaceable and stamps nothing (WX9),
+                // rather than writing four columns of iron into whatever is next to the piece.
                 var (px, pz) = d.FanPoint(bx, bz, k);
-                int ax = (int)Math.Round(px, MidpointRounding.AwayFromZero);
-                int az = (int)Math.Round(pz, MidpointRounding.AwayFromZero);
-                if (ironSeen.Add((ax, az)))
-                    s.IronCubes.Add(new IronCube(ax, az, renew, Stamp("ironcube", ir.Id, ironIndex, k)));
+                var fanned = d.FanRect(piece.Value.Rect, k);
+                var cube = RoomFrames.PlaceIron(px, pz, fanned);
+                if (!cube.Placeable) continue;
+                if (ironSeen.Add((cube.MinX, cube.MinZ)))
+                    s.IronCubes.Add(new IronCube(cube.MinX, cube.MinZ, renew, Stamp("ironcube", ir.Id, ironIndex, k)));
             }
         }
 

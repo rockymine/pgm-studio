@@ -1,3 +1,4 @@
+using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
@@ -155,20 +156,20 @@ public sealed class StructureStamperTests
     }
 
     [Test]
-    public async Task Iron_cube_is_a_4x4x4_block_resting_on_the_surface_centred_on_the_anchor()
+    public async Task Iron_cube_is_a_span_cube_resting_on_the_surface_over_its_own_corner()
     {
+        var span = RoomFrames.IronSpan;
         var w = new VoxelWorld();
         var surf = FlatSurface(-4, -4, 8, 8, top: 13);
-        StructureStamper.StampIronCube(w, surf, anchorX: 3, anchorZ: 4);
+        StructureStamper.StampIronCubeAt(w, surf, minX: 1, minZ: 2, span);
 
-        // Footprint centres on the anchor: [anchor-2, anchor+1] = x∈[1,4], z∈[2,5]; base at surface, 4 tall.
-        var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(3, 4);
-        await Assert.That((minX, minZ, maxX, maxZ)).IsEqualTo((1, 2, 4, 5));
-        await Assert.That(w.GetBlock(1, 13, 2).Id).IsEqualTo(Blocks.IronBlock);   // base corner
-        await Assert.That(w.GetBlock(4, 16, 5).Id).IsEqualTo(Blocks.IronBlock);   // top far corner (13+3)
-        await Assert.That(w.GetBlock(3, 14, 4).Id).IsEqualTo(Blocks.IronBlock);   // interior
-        await Assert.That(w.GetBlock(3, 17, 4).Id).IsEqualTo(Blocks.Air);         // above the cube
-        await Assert.That(w.GetBlock(0, 13, 2).Id).IsEqualTo(Blocks.Air);         // outside footprint
+        // The corner is where the resolver seated it, and the cube runs span blocks from there on all three
+        // axes with its base on the surface.
+        await Assert.That(w.GetBlock(1, 13, 2).Id).IsEqualTo(Blocks.IronBlock);                  // base corner
+        await Assert.That(w.GetBlock(span, 13 + span - 1, span + 1).Id).IsEqualTo(Blocks.IronBlock);  // top far
+        await Assert.That(w.GetBlock(1, 13 + span, 2).Id).IsEqualTo(Blocks.Air);                 // above it
+        await Assert.That(w.GetBlock(0, 13, 2).Id).IsEqualTo(Blocks.Air);                        // outside
+        await Assert.That(w.GetBlock(1 + span, 13, 2).Id).IsEqualTo(Blocks.Air);                 // past the far face
     }
 
     [Test]

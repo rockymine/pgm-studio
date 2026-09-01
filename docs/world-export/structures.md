@@ -156,15 +156,20 @@ marker is never freely placeable.
 Iron is spawn family — a renewable resource the spawn room exists beside — but it is a separate
 structure, and structures never fuse.
 
-- **WX8** *The cube is one size, and the room never gives an edge up for it.* An iron marker on a spawn
-  piece stamps a **3×3** cube **outside the room shell**, inside the piece, with **three blocks of clear
-  air** to the wall — the least standing room a player needs to get round it, never flush, never merged into
-  a corner. It is a floor rather than a spacing: a long piece carrying a small house leaves the cube further
-  out, and the author moves it there. There is no negotiation and no ladder: the cube centres on its marker, put back on the block
-  lattice by rounding away from zero (which is what keeps a half-block landing symmetric across an orbit),
-  and it fits there or it does not. The shell keeps the footprint `WX1` gave it whatever the iron asks for,
-  because that footprint is the author's statement and a resolver quietly shrinking a building to make room
-  for a cube the author dropped is the opacity the stated footprint exists against.
+- **WX8** *The cube is one size, and the room never gives an edge up for it.* An iron marker stamps a
+  **3×3** cube **inside the piece it rides**, and where that piece carries a room, **outside the shell** with
+  **two blocks of clear air** to the wall — the least standing room a player needs to get round it, never
+  flush, never merged into a corner. It is a floor rather than a spacing: a long piece carrying a small house
+  leaves the cube further out, and the author moves it there. There is no negotiation and no ladder: the cube
+  centres on its marker, put back on the block lattice by rounding away from zero (which is what keeps a
+  half-block landing symmetric across an orbit), and it fits there or it does not. The shell keeps the
+  footprint `WX1` gave it whatever the iron asks for, because that footprint is the author's statement and a
+  resolver quietly shrinking a building to make room for a cube the author dropped is the opacity the stated
+  footprint exists against.
+
+  **Every marker on the board resolves here**, through `RoomFrames.PlaceIron` — the ones beside a spawn room
+  and the ones alone on a piece that carries none, which differ only in having no shell to stand clear of.
+  One resolver is what keeps a cube from being inside its bounds on one path and outside them on the other.
 
   **What this costs, stated plainly.** A cube and a walled room on the same axis need `6 + 2 + 3` = **11
   blocks**, and a piece drawn at the default carries iron from **13 deep**. Below that a spawn piece takes a
@@ -177,13 +182,13 @@ structure, and structures never fuse.
   validation flags it with the clearance requirement (the WX8 lint), and the preview draws **only placeable**
   structures, so the iso view never shows a cube the export refuses to place.
 
-  Placeability is iron's attribute and not a general one, because iron is the only family whose
-  placement is a **negotiation**: the cube walks a size ladder and the room's shell yields an edge to
-  clear it, so whether anything can stand there is the resolver's answer rather than the author's. The
-  objective-separation rules answer the same question a different way and were never going to carry this
-  attribute — a goal against a spawn or a wool room is `OB17`, refused at the gate over the goal's
-  footprint, and how far two goals stand apart is `GO2`/`GO3`/`WL7`, reported by `GoalDistances` and
-  judged by the evaluator terms.
+  Placeability is iron's attribute and not a general one, because iron is the only family the author places
+  as a **point** and the export builds as a **volume**: the marker says where the cube is centred and the
+  ground decides whether one fits there, so whether anything can stand there is the resolver's answer rather
+  than the author's. The objective-separation rules answer the same question a different way and were never
+  going to carry this attribute — a goal against a spawn or a wool room is `OB17`, refused at the gate over
+  the goal's footprint, and how far two goals stand apart is `GO2`/`GO3`/`WL7`, reported by `GoalDistances`
+  and judged by the evaluator terms.
 
   The stampers themselves stay heterogeneous on purpose — their inputs are irreducibly different (a
   wall owns a *seam between two pieces*, a room a *piece + marker + entry interfaces*, an entrance
@@ -192,12 +197,12 @@ structure, and structures never fuse.
   a surface-derived floor.
 
   Three records state that volume, and they are three questions rather than one concept spelled three
-  ways. `IronResolution` is a negotiation's answer — which size won, where the cube landed, whether the
-  shell could yield at all. `PlacedGoal` is the gate's — the footprint a rule is quantified over, before
-  anything is built. `PlacementClaim` is the world's — the columns a stamp actually wrote, taken from the
-  placement rather than rebuilt beside it, which is what lets a claim know what a placement refused. What
-  remains of B37 is neither a fourth record nor a merge of these, but that the iron cube is gated on its
-  marker block (`ST2`) where a goal of the same size is gated on its footprint (`OB17`).
+  ways. `IronResolution` is the resolver's answer — where the cube landed, and whether one could. `PlacedGoal`
+  is the gate's — the footprint a rule is quantified over, before anything is built. `PlacementClaim` is the
+  world's — the columns a stamp actually wrote, taken from the placement rather than rebuilt beside it, which
+  is what lets a claim know what a placement refused. Each is gated over the volume rather than the point it
+  came from: `ST2` reads the cube's footprint as `OB17` reads a goal's, so a marker one block inside a spawn
+  piece's edge is the complaint it is rather than the pass the marker alone would have been.
 
 - **WX10** *A bound shell stands under the build ceiling.* A room style is authored geometry subject to no
   cap of its own, while the goal marker over it hangs `BuildCeiling.MarkerOver` blocks above a ceiling

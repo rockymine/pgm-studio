@@ -12,9 +12,6 @@ namespace PgmStudio.Minecraft.Stamping;
 /// </summary>
 public static class StructureStamper
 {
-    /// <summary>Cube edge (blocks): a 4×4×4 iron structure resting on the surface.</summary>
-    public const int IronCubeSize = 4;
-
     /// <summary>Level the ground under a footprint, so what stands on it has no holes in its floor. This is
     /// the ground the building sits on, not the course a player walks on — that one is the shell's own floor
     /// part. Footprint is min-inclusive, max-exclusive (<c>[minX, maxX) × [minZ, maxZ)</c>).
@@ -90,34 +87,11 @@ public static class StructureStamper
         for (var i = 0; i <= steps; i++) yield return (x1 + dx * i, z1 + dz * i);
     }
 
-    /// <summary>Place a 4×4×4 iron-block cube whose base rests on the surface its footprint spans and whose
-    /// top sits three blocks above it (ST2/ST3). The 4-wide footprint is centred on the anchor
-    /// (<c>[anchor-2, anchor+2)</c>), so a marker snapped to a whole block splits two-and-two cleanly — which
-    /// is also why the base comes from the footprint (<see cref="PositionSnap.SurfaceYOver"/>) and not the
-    /// anchor column: the anchor is a grid line, and sampling one side of it does not survive the symmetry
-    /// orbit.</summary>
-    public static void StampIronCube(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int anchorX, int anchorZ)
-    {
-        var (minX, minZ, maxX, maxZ) = IronCubeFootprint(anchorX, anchorZ);
-        var baseY = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
-        for (var lx = 0; lx < IronCubeSize; lx++)
-        for (var lz = 0; lz < IronCubeSize; lz++)
-        for (var ly = 0; ly < IronCubeSize; ly++)
-            world.SetBlock(minX + lx, baseY + ly, minZ + lz, Blocks.IronBlock);
-    }
-
-    /// <summary>The 4×4 XZ footprint (min inclusive, max inclusive) of an iron cube anchored on
-    /// <paramref name="anchorX"/>/<paramref name="anchorZ"/> — the region a renewable covers.</summary>
-    public static (int MinX, int MinZ, int MaxX, int MaxZ) IronCubeFootprint(int anchorX, int anchorZ)
-    {
-        const int half = IronCubeSize / 2;
-        return (anchorX - half, anchorZ - half, anchorX + half - 1, anchorZ + half - 1);
-    }
-
-    /// <summary>Place a <paramref name="size"/>³ iron-block cube over the given footprint min corner,
-    /// resting on the surface its footprint spans — the spawn-side renewable, placed where its marker's
-    /// resolution seated it (WX8; the marker-anchored 4×4 is <see cref="StampIronCube"/>).</summary>
+    /// <summary>Place a <paramref name="size"/>³ iron-block cube over the given footprint min corner, resting
+    /// on the surface its footprint spans (ST3). Every cube on a board comes through here, seated where
+    /// <see cref="PgmStudio.Domain.RoomFrames.PlaceIron"/> resolved it (WX8). The base comes from the whole
+    /// footprint (<see cref="PositionSnap.SurfaceYOver"/>) rather than one column, so an orbit image of the
+    /// cube rests at the height its own image of the ground reached.</summary>
     public static void StampIronCubeAt(
         VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int minX, int minZ, int size)
     {

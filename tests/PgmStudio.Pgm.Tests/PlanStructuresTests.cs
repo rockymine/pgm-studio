@@ -64,9 +64,33 @@ public sealed class PlanStructuresTests
         await Assert.That(intent.Spawns.Count).IsEqualTo(2);
         await Assert.That(intent.Spawns.All(sp => sp.Iron.Count == 1)).IsTrue();
         await Assert.That(intent.Spawns.Any(sp => sp.Iron[0] is { X: 25, Z: 5 })).IsTrue();
-        // Loose iron on 'far' keeps the legacy marker-anchored directive, never renewed.
-        await Assert.That(s.IronCubes.Any(c => c is { X: 5, Z: 5, Renew: false })).IsTrue();
+        // Loose iron on 'far' rides the directives instead, never renewed, already resolved to the corner
+        // its cube stamps on: the marker at block (5,5) centres a span-3 cube at (4,4).
+        await Assert.That(s.IronCubes.Any(c => c is { MinX: 4, MinZ: 4, Renew: false })).IsTrue();
         await Assert.That(s.IronCubes.Count).IsEqualTo(2);   // the loose marker + its orbit image only
+    }
+
+    [Test]
+    public async Task A_loose_marker_whose_cube_would_hang_off_its_piece_stamps_nothing()
+    {
+        // The piece bounds the cube on this path exactly as it does beside a spawn room (WX8). A marker half
+        // a block inside the corner centres a cube reaching a block past it, which resolves unplaceable and
+        // produces no directive at all — rather than writing iron into whatever is next to the piece (WX9).
+        const string plan = """
+        {
+          "plan": 2,
+          "globals": { "cell": 5, "surface": 9 },
+          "pieces": [ { "id": "lane", "role": "lane", "rect": [0, 0, 2, 2] } ],
+          "placements": { "iron": [ { "piece": "lane", "at": [0.5, 0.5] } ] }
+        }
+        """;
+        // The unplaceable marker is this plan's only directive, so the intent carries no structures at all.
+        var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(plan)!);
+        await Assert.That(intent.Structures?.IronCubes ?? []).IsEmpty();
+
+        // The same marker two blocks further in has room for its cube and stamps one.
+        var (_, seated) = PlanCompiler.Compile(PlanModel.Parse(plan.Replace("[0.5, 0.5]", "[2.5, 2.5]"))!);
+        await Assert.That(seated.Structures!.IronCubes.Select(c => (c.MinX, c.MinZ))).Contains((1, 1));
     }
 
     [Test]

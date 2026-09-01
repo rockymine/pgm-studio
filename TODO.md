@@ -19,17 +19,6 @@ blocks, a building footprint at most **20×20**, and the smallest room with no b
 
 ## The piece that does four jobs: the region, the marker, and the building on it
 
-- [ ] **B177 — An iron cube stamps outside its piece with nothing watching.** `StructureStamper.StampIronCube`
-  centres a cube on its anchor and writes it wherever that lands, with no bounds test of any kind — the
-  standalone path a marker takes when its piece carries no spawn marker, which is one deletion away from any
-  authored spawn. Gate it on the piece the marker rides, the way `RoomFrames.PlaceIron` already gates the
-  spawn-room path, and let an out-of-bounds cube resolve unplaceable rather than stamp into the void. `ST2`
-  goes with it: it tests the marker block rather than the cube's footprint, and fires only when a spawn-role
-  piece exists somewhere on the board.
-
-  *Reproduced 2026-08-31 · one `lane` piece `x[-24,-8) z[-24,-8)`, an iron marker at `at:[0.5,0.5]`. The cube
-  stamps at `x[-26,-22) z[-26,-22)`, two columns into the void, with no finding.*
-
 - [ ] **TN11 — The footprint is drawn on the canvas but never reaches the sketch.**
   `PlanCompiler.AppendStructuralShape` projects a role piece into the sketch as one locked annotation, and it
   is the piece rect that goes — so the building the author now states and drags is invisible downstream.

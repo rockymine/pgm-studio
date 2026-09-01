@@ -603,11 +603,16 @@ disagree with the one that runs.
   turns to open into the room rather than facing a wall: a corner touches two shell walls at once,
   and the room's own door breaks the tie — every chest faces away from whichever of its two walls
   sits on the door's axis (`WoolChests`).
-- **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region** and **sizes the stamped
-  spawn room** (the same WX footprint rule). Iron placed inside it is **auto-renewed** in the
-  generated XML (load-bearing for gameplay); lint: when a spawn piece exists, iron markers belong
-  inside it. Spawns have no redstone line.
-- **ST3 [expert]** *Iron structure*: an iron marker stamps a **4×4×4 iron-block cube**.
+- **ST2 [expert]** *Spawn piece* (optional): defines the spawn **region** and **the ground the
+  spawn room is framed on** (the WX footprint rule). Iron placed inside it is **auto-renewed** in
+  the generated XML (load-bearing for gameplay); lint: every iron marker's **whole cube** belongs
+  inside a spawn piece, since one half in renews half of itself and one outside is a block a team
+  mines once. Spawns have no redstone line.
+- **ST3 [expert]** *Iron structure*: an iron marker stamps an iron-block cube of `WX8`'s span,
+  centred on the marker and put back on the block lattice. Every marker on a board resolves through
+  the same rule, whether it stands beside a spawn room or alone on a piece that carries none: the
+  cube fits inside the piece it rides or the marker resolves unplaceable (`WX9`) and nothing is
+  stamped for it.
 - **ST4 [corpus]** *Pre-built wall*: 2 blocks thick, full seam width, **three courses of bedrock**
   above the approach side (top = approach surface +2) over solid bedrock down to y=0, capped by
   **one course of cobweb**. The web is part of the barrier, not decoration on it: it costs an
@@ -957,3 +962,12 @@ catalogue by being added to that set, which `RulesEndpointTests` holds to the so
     either orientation. Both stay lint, as amendment 17 made the piece-interface set. The traced board's
     30-long spawn ground, which amendment 17 lists as a standing `ST9`/`SP9` complaint, is a region rather
     than a building and is quiet under `ST10`.
+
+31. **`ST3`: one cube, bounded by the piece it rides (2026-09-01).** Author's call, closing `B177`. Two paths
+    stamped a cube from one marker and disagreed about both its size and its bounds: the spawn-room path
+    resolved a `WX8` span-3 cube against the piece, while a marker on any other piece stamped a 4×4×4 cube
+    centred on its anchor with **no bounds test of any kind** — a `lane` piece at `x[-24,-8)` with a marker at
+    its corner wrote iron at `x[-26,-22)`, two columns into the void, and nothing said so. `ST3` now names
+    `WX8`'s span for both and both resolve through `RoomFrames.PlaceIron`, so a cube that will not fit its
+    piece resolves unplaceable and the export stamps nothing. `ST2` follows: it tests the cube rather than the
+    marker block, and fires on a board with no spawn piece at all, where every cube is one a team mines once.

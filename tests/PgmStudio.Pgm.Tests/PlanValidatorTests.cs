@@ -452,7 +452,7 @@ public sealed class PlanValidatorTests
 
 
     [Test]
-    public async Task ST2_fires_on_iron_outside_the_spawn_piece_only_when_a_spawn_role_exists()
+    public async Task ST2_fires_on_a_cube_that_does_not_stand_inside_a_spawn_piece()
     {
         // a spawn-role piece exists; iron on a separate (non-spawn) piece → ST2 fires.
         var outside = Plan("""
@@ -466,15 +466,23 @@ public sealed class PlanValidatorTests
           "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,10,10]}, {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
           "placements":{ "iron":[ {"piece":"sp","at":[5,5]} ] } }
         """);
-        // no spawn-role piece at all → ST2 dormant even with stray iron.
+        // No spawn-role piece at all: the cube is still one a team mines once, which is what ST2 says.
         var noSpawnRole = Plan("""
         { "plan":2, "globals":{"cell":1},
           "pieces":[ {"id":"ln","role":"piece","rect":[0,20,10,10]} ],
           "placements":{ "iron":[ {"piece":"ln","at":[5,5]} ] } }
         """);
+        // The whole cube must be inside, not the marker it centres on: a marker one block inside the spawn
+        // piece's edge centres a cube reaching past it, so half of it would never renew.
+        var halfIn = Plan("""
+        { "plan":2, "globals":{"cell":1},
+          "pieces":[ {"id":"sp","role":"spawn","rect":[0,0,10,10]} ],
+          "placements":{ "iron":[ {"piece":"sp","at":[1,5]} ] } }
+        """);
         await Assert.That(Lint(outside, "ST2")).IsTrue();
         await Assert.That(Lint(inside, "ST2")).IsFalse();
-        await Assert.That(Lint(noSpawnRole, "ST2")).IsFalse();
+        await Assert.That(Lint(noSpawnRole, "ST2")).IsTrue();
+        await Assert.That(Lint(halfIn, "ST2")).IsTrue();
     }
 
     // ── completeness (the compile gate, not the continuous validator) ────────────────────────────────────

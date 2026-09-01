@@ -514,9 +514,10 @@ carries is the author's and one can still be set in Configure.
 contact between otherwise-separate areas is not a connection), `G2` (a zone narrower than the 10-block corridor
 minimum), `G5` (a void hop outside 10–20), `SP2` (a spawn not near the back of its lane), `BZ5` (a zone of
 either kind touching a spawn piece), `WL1` (a water lane covering terrain instead of void), `EL1` (a piece's
-surface delta from the base not a multiple of 2), `ST2` (iron outside the spawn piece on a board that has one), `WX4` (a pad
-shifted inward for wall clearance, moving the exported point with it) and `WX8` (an iron marker beside a spawn
-room that cannot be placed at all). The piece-interface set quantifies over one shared read
+surface delta from the base not a multiple of 2), `ST2` (an iron cube not standing wholly inside a spawn
+piece, so it is mined once rather than renewed), `WX4` (a pad shifted inward for wall clearance, moving the
+exported point with it) and `WX8` (an iron marker whose cube does not fit — beside a spawn room, or off the
+edge of any piece it rides). The piece-interface set quantifies over one shared read
 (`PieceInterfaces`, aggregating the contact graph and the board deriver) rather than private geometry:
 `SP8` (a spawn egress stepping Δ≥2 ahead of the door), `WL11` (the same step at a wool room's entry, measured
 at every one of them since a room has no facing, and met by the **attacker** — a team is kept out of its own

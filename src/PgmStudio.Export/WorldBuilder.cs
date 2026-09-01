@@ -487,7 +487,7 @@ public static class WorldBuilder
             DefenseChest.Stamp(world, surface, w.MinX, w.MinZ, w.MaxX, w.MaxZ, w.ChestOnMinFace);
         }
         foreach (var ic in s.IronCubes)
-            StructureStamper.StampIronCube(world, surface, ic.X, ic.Z);
+            StructureStamper.StampIronCubeAt(world, surface, ic.MinX, ic.MinZ, RoomFrames.IronSpan);
         foreach (var line in s.RedstoneLines)
             StructureStamper.StampRedstoneLine(world, surface, line.X1, line.Z1, line.X2, line.Z2);
     }
@@ -511,8 +511,9 @@ public static class WorldBuilder
         }
         for (var i = 0; i < s.IronCubes.Count; i++)
         {
-            var (minX, minZ, maxX, maxZ) = StructureStamper.IronCubeFootprint(s.IronCubes[i].X, s.IronCubes[i].Z);
-            provenance.ClaimRect(minX, minZ, maxX, maxZ, ProvenancePass.Structure, s.IronCubes[i].Stamp);
+            var cube = s.IronCubes[i];
+            provenance.ClaimRect(cube.MinX, cube.MinZ, cube.MinX + RoomFrames.IronSpan - 1,
+                cube.MinZ + RoomFrames.IronSpan - 1, ProvenancePass.Structure, cube.Stamp);
         }
         for (var i = 0; i < s.RedstoneLines.Count; i++)
         {
@@ -662,8 +663,8 @@ public static class WorldBuilder
                 if (iron.Placeable)
                     footprints.Add((iron.MinX, iron.MinZ, iron.MinX + iron.Size - 1, iron.MinZ + iron.Size - 1));
         if (intent.Structures is { } structures)
-            footprints.AddRange(structures.IronCubes.Where(c => c.Renew)
-                .Select(c => StructureStamper.IronCubeFootprint(c.X, c.Z)));
+            footprints.AddRange(structures.IronCubes.Where(c => c.Renew).Select(c =>
+                (c.MinX, c.MinZ, c.MinX + RoomFrames.IronSpan - 1, c.MinZ + RoomFrames.IronSpan - 1)));
         return footprints;
     }
 

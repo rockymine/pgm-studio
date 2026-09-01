@@ -375,7 +375,7 @@ public static class RoomFrames
         // footprint it was given; a marker with no room for its cube resolves unplaceable (WX9).
         var iron = new List<IronResolution>();
         foreach (var (ironX, ironZ) in ironMarkers)
-            iron.Add(PlaceIron(ironX, ironZ, piece, minX, minZ, maxX, maxZ));
+            iron.Add(PlaceIron(ironX, ironZ, piece, new BlockRect(minX, minZ, maxX, maxZ)));
 
         // The pad's allowed region is the interior inset by the wall clearance (WX4) — the whole footprint
         // where no wall stands, since there is nothing to clear.
@@ -438,23 +438,33 @@ public static class RoomFrames
     /// marker rather than reading a size off it.</summary>
     public const int IronSpan = 3;
 
-    // Resolve one iron marker against the footprint: the cube centres on the marker, put back on the block
-    // lattice, and stands where it lands. It fits or it does not — the room never gives an edge up for it,
-    // and nothing walks a size ladder, so what the author sees on the board is what the export writes.
-    // Rounding away from zero keeps a half-block landing symmetric: an orbit image of the cube covers the
-    // images of its cells rather than a row one block off.
-    private static IronResolution PlaceIron(
-        double ironX, double ironZ, BlockRect piece, int minX, int minZ, int maxX, int maxZ)
+    /// <summary>Resolve one iron marker into the cube it stamps (WX8), or an unplaceable marker (WX9). The
+    /// cube centres on the marker, put back on the block lattice, and stands where it lands: it fits inside
+    /// the piece and clear of the room, or it does not. The room never gives an edge up for it and nothing
+    /// walks a size ladder, so what the author sees on the board is what the export writes.
+    ///
+    /// <para>Every iron marker on the board resolves here, and a marker on a piece carrying no room passes
+    /// <paramref name="room"/> as null: there is no shell to stand clear of, and the piece is the whole
+    /// test. One resolver, so a cube cannot be inside its bounds on one path and outside them on the
+    /// other.</para></summary>
+    /// <param name="ironX">The marker's x, in absolute blocks — the cube centres on it.</param>
+    /// <param name="ironZ">The same marker's z.</param>
+    /// <param name="piece">The ground the marker rides — what the cube must lie inside.</param>
+    /// <param name="room">The room's footprint, or null where the piece carries none.</param>
+    public static IronResolution PlaceIron(double ironX, double ironZ, BlockRect piece, BlockRect? room = null)
     {
+        // Rounding away from zero keeps a half-block landing symmetric: an orbit image of the cube covers the
+        // images of its cells rather than a row one block off.
         int Lo(double marker) => (int)Math.Round(marker - IronSpan / 2.0, MidpointRounding.AwayFromZero);
         int cubeMinX = Lo(ironX), cubeMinZ = Lo(ironZ);
         int cubeMaxX = cubeMinX + IronSpan, cubeMaxZ = cubeMinZ + IronSpan;
 
         var onPiece = cubeMinX >= piece.MinX && cubeMinZ >= piece.MinZ
             && cubeMaxX <= piece.MaxX && cubeMaxZ <= piece.MaxZ;
-        var clearOfShell = maxX <= cubeMinX - IronGap || minX >= cubeMaxX + IronGap
-            || maxZ <= cubeMinZ - IronGap || minZ >= cubeMaxZ + IronGap;
-        return onPiece && clearOfShell
+        var clearOfRoom = room is not { } shell
+            || shell.MaxX <= cubeMinX - IronGap || shell.MinX >= cubeMaxX + IronGap
+            || shell.MaxZ <= cubeMinZ - IronGap || shell.MinZ >= cubeMaxZ + IronGap;
+        return onPiece && clearOfRoom
             ? new IronResolution(ironX, ironZ, cubeMinX, cubeMinZ, IronSpan, Placeable: true)
             : new IronResolution(ironX, ironZ, 0, 0, 0, Placeable: false);
     }

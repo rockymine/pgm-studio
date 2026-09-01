@@ -346,26 +346,26 @@ var intent = new MapIntent
         new SpawnIntent
         {
             Team = "blue-team", Yaw = FacePosZ, Point = new Pt(westX, Surface + 1, At(5).Z),
-            Piece = blueSpawnPiece, Protection = [blueSpawnPiece],
+            Protection = [blueSpawnPiece],
         },
         new SpawnIntent
         {
             Team = "red-team", Yaw = FaceNegZ, Point = new Pt(eastX, Surface + 1, At(24).Z),
-            Piece = redSpawnPiece, Protection = [redSpawnPiece],
+            Protection = [redSpawnPiece],
         },
     ],
     Wools =
     [
         new WoolIntent
         {
-            Owner = "blue-team", Color = "red", Room = [blueRoom],
-            Spawn = new Pt(westX, Surface + 1, roomZ), Piece = blueRoom,
+            Owner = "blue-team", Color = "red", Protection = [blueRoom],
+            Spawn = new Pt(westX, Surface + 1, roomZ),
             Entries = [new Rect(blueRoom.MinX, blueRoom.MinZ, blueRoom.MaxX, blueRoom.MinZ)],
         },
         new WoolIntent
         {
-            Owner = "red-team", Color = "blue", Room = [redRoom],
-            Spawn = new Pt(eastX, Surface + 1, roomZ), Piece = redRoom,
+            Owner = "red-team", Color = "blue", Protection = [redRoom],
+            Spawn = new Pt(eastX, Surface + 1, roomZ),
             Entries = [new Rect(redRoom.MinX, redRoom.MaxZ, redRoom.MaxX, redRoom.MaxZ)],
         },
     ],
