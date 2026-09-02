@@ -1586,6 +1586,31 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   orbit. `MapBoundsDto` is `Bounds2dDto`, named for the contract's own word now that four region writes
   answer it too.
 
+- **A section answers as characters, and a transect walks any line (WS19).** `render/section?format=text`
+  answers the cut one character per block — `#` ground below the surface course, `L` a storey a second layer
+  drew, `~` liquid, `I`/`T` a log and a leaf, and the claim a column carries by its pass — with a y axis, a
+  ruler and the ground's height band under each column, off the same gather the picture draws from.
+  `GET /map/{slug}/transect?points=x,z;x,z…` walks a polyline block by block and answers each station's
+  ground, the storey stood on, the water, the top and what stands there, and the step from the station
+  before classed by `Walk.StepWord`, with the totals and every non-walk step as an event; `beside=N` lists
+  every claim within N cells. Every height is the first free course above a block, the count
+  `BuiltWorld.Surface` keeps, so two of them subtract to blocks.
+- **The heightmap answers as text, and a slope grid names where a relief steps too far (WS20).**
+  `render/heightmap?format=text&every=N` bands the ground `0-9a-z` above the board's lowest surface with the
+  spawns, goals, houses and water overprinted, and a storey narrowed by `layer=` bands its own ground; every
+  picture read on `WorldRenderEndpoint` answers text through one `Text` hook. `GET /map/{slug}/slopes`
+  classes every sampled cell by its worst step to a neighbour — walked, scrambled, barrier — as digit rows
+  and names the barrier runs as faces, largest first; `?format=text` prints `.`/`:`/`#`. `TextGrid` in
+  `Geom/Render` is the one ruler, row frame and base-36 alphabet every text grid draws with, the plan board
+  and the coverage read included.
+- **The walk answers its profile and its neighbours (WS21).** `walk` carries `places` with the storey stood
+  on at every cell, `steps` for every step that is not a plain walk with `rises`, `falls` and `worstStep`, and
+  with `?beside=N` every distinct thing recorded within N cells of the route; `?format=text` is the station
+  table. `WalkProfile` in Export is the computation and the text.
+- **A theme census counts a board's paint (WS22).** `GET /map/{slug}/themes/census` counts every ground cell
+  by the theme that paints it — cells and share per theme, the distinct surface materials each spends, which
+  theme borders which over how many cells, and the board's palette count — resolved the way
+  `TerrainThemeScope` resolves it for the painter. `ThemeCensus` in Export; `?format=text` beside the JSON.
 - **A finding states its edit where the fix is mechanical (RP64).** `Finding.Edit` carries which document,
   the path in the document's own spelling (`relief.team.marks`, `dressing.props[erratic-broken]`), one of
   `add`/`set`/`move`, the value as the document would carry it, and the change in words. `SP8` and `EL1`
@@ -6929,6 +6954,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **The dressing preview answers its claims as a raster (TS81).** `sketch/dressing` carries `claims`: digit
+  rows over the board's own ground classing every cell as a prop's claim (water, route, structure, tree,
+  boulder, flora), a goal's clearance, a keep-out (spawn, door approach, wool room, structure) or free,
+  computed by `ClaimRaster` from the pass's own placements and `DressingScope`'s two functions in the order
+  the decorator asks them; `?format=text` prints the grid with its key, the declines and the tally, so a
+  placement is looked up on the raster rather than tried and read back as a decline.
 - **A read-back can be asked for one storey (WS12).** Four reads project a column to one cell — `topdown`,
   `heightmap`, `surface`, `structures` — so on a stacked board they drew the topmost storey and whatever
   showed past it, and `ymax` was the only cut a caller had. A single height separates two storeys only where

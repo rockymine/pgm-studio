@@ -1,4 +1,4 @@
-using PgmStudio.Contracts;
+using System.Text;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Pgm.Sketch;
 
@@ -13,12 +13,26 @@ namespace PgmStudio.Export;
 /// </summary>
 public static class ThemeCensus
 {
+    /// <summary>One theme's share of the board — a registered theme id, or the map default where no shape
+    /// claims a cell. <see cref="Materials"/> is the distinct surface blocks its cells carry, as
+    /// <c>id:data name</c>, most frequent first and cut at twelve; <see cref="MaterialCount"/> is the true count
+    /// whether or not the list was cut.</summary>
+    public sealed record Row(string Id, int Cells, double Share, IReadOnlyList<string> Materials, int MaterialCount);
+
+    /// <summary>Two themes that share a border, <see cref="A"/> ordered before <see cref="B"/> so a pair is
+    /// named once, and how many 4-neighbour cell pairs cross from one to the other.</summary>
+    public sealed record Border(string A, string B, int Cells);
+
+    /// <summary>The census: how many themes the ground carries, how many distinct <c>id:data</c> surface blocks
+    /// the whole board spends, one row per theme largest first, and every bordering pair largest first.</summary>
+    public sealed record Result(int Themes, int Palette, IReadOnlyList<Row> ByTheme, IReadOnlyList<Border> Adjacency);
+
     // The two neighbours that, taken over every cell, enumerate every 4-neighbour pair once: a cell's own
     // right and down neighbour cover every horizontal and vertical adjacency on the board exactly once.
     private static readonly (int Dx, int Dz)[] HalfNeighbours = [(1, 0), (0, 1)];
 
     /// <summary>The census over every cell of <paramref name="built"/>'s surface.</summary>
-    public static ThemeCensusResultDto Compute(BuiltWorld built, string layoutJson)
+    public static Result Compute(BuiltWorld built, string layoutJson)
     {
         var layout = SketchLayout.Parse(layoutJson);
         var mapThemeId = layout?.MapTheme is { Length: > 0 } named ? named : "default";
@@ -54,7 +68,7 @@ public static class ThemeCensus
         var total = built.Surface.Count;
         var palette = new HashSet<(int Id, int Data)>();
         var byTheme = cellsOf
-            .Select(entry => Row(built, entry.Key, entry.Value, total, palette))
+            .Select(entry => RowOf(built, entry.Key, entry.Value, total, palette))
             .OrderByDescending(row => row.Cells)
             .ToList();
 
@@ -69,13 +83,13 @@ public static class ThemeCensus
             }
         var adjacency = borders
             .OrderByDescending(entry => entry.Value)
-            .Select(entry => new ThemeBorderDto(entry.Key.A, entry.Key.B, entry.Value))
+            .Select(entry => new Border(entry.Key.A, entry.Key.B, entry.Value))
             .ToList();
 
-        return new ThemeCensusResultDto(byTheme.Count, palette.Count, byTheme, adjacency);
+        return new Result(byTheme.Count, palette.Count, byTheme, adjacency);
     }
 
-    private static ThemeCensusDto Row(BuiltWorld built, string themeId, List<(int X, int Z)> cells,
+    private static Row RowOf(BuiltWorld built, string themeId, List<(int X, int Z)> cells,
         int total, HashSet<(int Id, int Data)> palette)
     {
         var materials = new Dictionary<(int Id, int Data), int>();
@@ -90,15 +104,39 @@ public static class ThemeCensus
             .Take(12)
             .Select(entry => $"{entry.Key.Id}:{entry.Key.Data} {BlockPalette.Name(entry.Key.Id, entry.Key.Data)}")
             .ToList();
-        return new ThemeCensusDto(themeId, cells.Count, total == 0 ? 0 : (double)cells.Count / total,
+        return new Row(themeId, cells.Count, total == 0 ? 0 : (double)cells.Count / total,
             named, materials.Count);
     }
 
-    /// <summary>The block a cell's surface reads as in the finished world — the course just under the first
-    /// air <see cref="BuiltWorld.Surface"/> names, which is where painting and dressing leave the ground's
-    /// own material.</summary>
+    /// <summary>The census as characters: one line per theme with its share and its materials, then every
+    /// border between two themes and how many cells cross it.</summary>
+    public static string Render(Result census)
+    {
+        var cells = census.ByTheme.Sum(row => row.Cells);
+        var text = new StringBuilder();
+        text.Append($"THEMES  {census.Themes} themes over {cells} ground cells, {census.Palette} distinct "
+            + "surface blocks\n");
+        foreach (var row in census.ByTheme)
+            text.Append($"  {row.Id}  {row.Cells} cells ({row.Share * 100:F1}%)  "
+                + $"{string.Join(", ", row.Materials)}\n");
+        text.Append("borders:\n");
+        foreach (var border in census.Adjacency)
+            text.Append($"  {border.A} | {border.B}  {border.Cells} cells\n");
+        return text.ToString();
+    }
+
+    /// <summary>The block a cell's surface reads as in the finished world — the first block found scanning
+    /// down from the course under <see cref="BuiltWorld.Surface"/>, since a cut or a levelling leaves the
+    /// recorded surface over air, and air is not a material a theme spends. Air where the column is empty.</summary>
     private static (int Id, int Data) SurfaceBlock(BuiltWorld built, (int X, int Z) cell)
-        => built.World.GetBlock(cell.X, built.Surface[cell] - 1, cell.Z);
+    {
+        for (var y = built.Surface[cell] - 1; y >= 0; y--)
+        {
+            var block = built.World.GetBlock(cell.X, y, cell.Z);
+            if (block.Id != 0) return block;
+        }
+        return (0, 0);
+    }
 
     /// <summary>The layer whose own run reaches each surface cell's height — the storey
     /// <see cref="TerrainThemeScope"/> painted that cell against, read back off the column segments the build

@@ -1,3 +1,4 @@
+using System.Text;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Minecraft.Anvil;
@@ -15,6 +16,18 @@ public static class WalkProfile
     /// lands on, the signed rise from the place before it, and the word <see cref="Walk.StepWord"/> gives
     /// that rise.</summary>
     public readonly record struct Event(int X, int Z, int Rise, string Word);
+
+    /// <summary>The steps of a route that are not a plain walk, and their totals: how many climbed, how
+    /// many fell, and the largest in either direction — zero where the route never left a walk.</summary>
+    public sealed record Profile(IReadOnlyList<Event> Events, int Rises, int Falls, int WorstStep);
+
+    /// <summary>The profile of <paramref name="path"/>: its events and their totals.</summary>
+    public static Profile Of(WalkPath path)
+    {
+        var events = Events(path);
+        return new Profile(events, events.Count(step => step.Rise > 0), events.Count(step => step.Rise < 0),
+            events.Count == 0 ? 0 : events.Max(step => Math.Abs(step.Rise)));
+    }
 
     /// <summary>Every step of <paramref name="path"/> that is not a plain walk, in route order.</summary>
     public static IReadOnlyList<Event> Events(WalkPath path)
@@ -79,4 +92,52 @@ public static class WalkProfile
         }
         return [.. found.Values.OrderBy(n => n.Distance).ThenBy(n => n.Owner.Kind).ThenBy(n => n.Owner.Unit)];
     }
+
+    /// <summary>The route as characters: its own numbers, a station at every place it stood with the word and
+    /// the signed step where it left a walk, the totals, and what stands beside it.</summary>
+    public static string Render(WalkPlace from, WalkPlace to, string aim, WalkPath path, Profile profile,
+        IReadOnlyList<Neighbour> beside)
+    {
+        var text = new StringBuilder();
+        text.Append($"ROUTE ({from.X}, {from.Z}) -> ({to.X}, {to.Z}) aim {aim}: {path.Cost.Distance} blocks, "
+            + $"{path.Cost.Blocks} placed, {path.Cost.Drops} drop(s), worst drop {path.Cost.WorstDrop}\n");
+
+        text.Append("  place            y   step\n");
+        for (var i = 0; i < path.Places.Count; i++)
+        {
+            var place = path.Places[i];
+            text.Append("  ").Append($"({place.X}, {place.Z})".PadRight(16)).Append(place.Y.ToString().PadLeft(4));
+            if (i > 0)
+            {
+                var rise = place.Y - path.Places[i - 1].Y;
+                var word = Walk.StepWord(rise);
+                if (word != "walk") text.Append("   ").Append(word).Append(' ').Append(Signed(rise));
+            }
+            text.Append('\n');
+        }
+
+        text.Append($"rises {profile.Rises}, falls {profile.Falls}, worst step {profile.WorstStep}: ");
+        text.Append(profile.Events.Count == 0
+            ? "walked end to end"
+            : string.Join("; ", profile.Events.Select(step => $"{step.Word} {Signed(step.Rise)} at ({step.X}, {step.Z})")));
+        text.Append('\n');
+
+        if (beside.Count > 0)
+            text.Append("beside: ").Append(string.Join(", ",
+                beside.Select(near => $"{Named(near.Owner)} at ({near.X}, {near.Z}) d{near.Distance}")))
+                .Append('\n');
+
+        return text.ToString();
+    }
+
+    /// <summary>The unreached answer, for a route the ground does not join.</summary>
+    public static string RenderUnreachable(WalkPlace from, WalkPlace to, string aim) =>
+        $"ROUTE ({from.X}, {from.Z}) -> ({to.X}, {to.Z}) aim {aim}: unreachable\n";
+
+    private static string Signed(int value) => value >= 0 ? $"+{value}" : value.ToString();
+
+    /// <summary>A claim as a reader names it — <c>kind unit</c>, with <c>#image</c> where it is an orbit image
+    /// rather than the authored unit itself.</summary>
+    private static string Named(StampId owner) =>
+        owner.Image == 0 ? $"{owner.Kind} {owner.Unit}" : $"{owner.Kind} {owner.Unit}#{owner.Image}";
 }

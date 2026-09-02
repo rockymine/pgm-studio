@@ -1,14 +1,17 @@
 namespace PgmStudio.Contracts;
 
 /// <summary>One station along a walked line (<c>GET /api/map/{slug}/transect</c>) — what stands at one cell of
-/// the polyline, and how the ground stepped from the station before it.</summary>
+/// the polyline, and how the ground stepped from the station before it. Every height is stated in one count,
+/// the first free course above a block — where a walker's feet are — so two of them subtract to a number of
+/// blocks.</summary>
 /// <param name="X">The cell's x.</param>
 /// <param name="Z">The cell's z.</param>
 /// <param name="Ground">The terrain's own recorded height, null over void.</param>
 /// <param name="Surface">The top of the highest rasterized span at the cell, whatever layer drew it — the
 /// storey a walker actually stands on, equal to <see cref="Ground"/> on a flat board.</param>
-/// <param name="Water">The highest liquid course in the column, or null where it holds none.</param>
-/// <param name="Top">The highest block of any kind in the column — what stands there reaches this high.</param>
+/// <param name="Water">The course above the highest liquid in the column, or null where it holds none.</param>
+/// <param name="Top">The course above the highest block of any kind in the column — what stands there reaches
+/// up to it.</param>
 /// <param name="Standing">The claim a walker stands on, as <c>"&lt;kind&gt; &lt;unit&gt;"</c>
 /// (<c>"tree tree-2"</c>, <c>"house barn"</c>), or <c>"storey"</c> where the board stacks above the terrain
 /// with no claim of its own, else null.</param>
@@ -46,3 +49,44 @@ public sealed record TransectNeighbourDto(string Kind, string Unit, int Image, i
 public sealed record TransectDto(IReadOnlyList<TransectStationDto> Stations, int Rises, int Falls,
     int WorstStep, int Barriers, int Scrambles, int Drops, IReadOnlyList<string> Events,
     IReadOnlyList<TransectNeighbourDto> Beside);
+
+/// <summary>One step of a walked route that is not a plain walk — a scramble, a barrier or a drop.</summary>
+/// <param name="X">The cell the step lands on, east–west.</param>
+/// <param name="Z">The same, north–south.</param>
+/// <param name="Rise">The signed rise from the place before it, in blocks.</param>
+/// <param name="Word">What that rise reads as — <c>scramble</c>, <c>barrier</c> or <c>drop</c> — the word
+/// <c>PgmStudio.Geom.Walk.StepWord</c> gives every step in the studio.</param>
+public sealed record WalkStepDto(int X, int Z, int Rise, string Word);
+
+/// <summary>One thing standing within a stated distance of a route: the provenance record's own claim, the
+/// first cell it was met at, and how far that cell is from the nearest cell the route passes through.</summary>
+/// <param name="Kind">What stands there — a tree, a boulder, a house, water, a spawn, a goal, wool or an
+/// iron cube.</param>
+/// <param name="Unit">Which one, the claim's own identity.</param>
+/// <param name="Image">Which image of that unit's orbit this is.</param>
+/// <param name="X">Where the first cell it was met at stands, east–west.</param>
+/// <param name="Z">The same, north–south.</param>
+/// <param name="Distance">That cell's distance to the nearest cell the route passes through, in
+/// cells.</param>
+public sealed record WalkNeighbourDto(string Kind, string Unit, int Image, int X, int Z, int Distance);
+
+/// <summary>What one walk over a built board answers, in the units each part is stated in.</summary>
+/// <param name="Reachable">Whether there is a way at all.</param>
+/// <param name="Distance">How far it is, in blocks — the octile measure a player actually walks.</param>
+/// <param name="Blocks">How many blocks the player must place: the climb, and the void bridged.</param>
+/// <param name="Drops">How many falls over the free height it takes.</param>
+/// <param name="WorstDrop">The deepest of them, in blocks.</param>
+/// <param name="Aim">Which question was asked — <c>travel</c> for the short way, <c>reach</c> for the cheap one.</param>
+/// <param name="Cells">The route itself, as <c>[x, z]</c> pairs.</param>
+/// <param name="Places">The same route with the storey the walk stood on at every cell — <c>[x, z, y]</c> —
+/// rather than the ground under whatever roofs it.</param>
+/// <param name="Steps">Every step between consecutive places that is not a plain walk, in route order.</param>
+/// <param name="Rises">How many of those steps climb.</param>
+/// <param name="Falls">How many drop.</param>
+/// <param name="WorstStep">The largest of them, in blocks, whichever direction it ran — zero where the
+/// route never left a walk.</param>
+/// <param name="Beside">Every distinct thing the provenance record names within the asked distance of the
+/// route (<c>?beside=N</c>), or empty where none was asked for.</param>
+public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int Drops, int WorstDrop,
+    string Aim, IReadOnlyList<int[]> Cells, IReadOnlyList<int[]> Places, IReadOnlyList<WalkStepDto> Steps,
+    int Rises, int Falls, int WorstStep, IReadOnlyList<WalkNeighbourDto> Beside);

@@ -9,25 +9,34 @@ the cost was paid.
 
 ## The surface, measured
 
-`GET /api/openapi/v1.json` declares **141 routes and 178 operations**. By the content type each answers on
+`GET /api/openapi/v1.json` declares **144 routes and 181 operations**. By the content type each answers on
 a 200:
 
 | answer shape | operations | what they are |
 |---|---|---|
-| `application/json` | 147 | every store, every library row, every preview's SVG-in-JSON, every number a rule is stated in |
-| `image/png` only | 9 | the eight world renders (`render/topdown`, `section`, `heightmap`, `surface`, `traversability`, `structures`, `mirror`, `walk`) and `plans/{id}/png` |
+| `application/json` | 145 | every store, every library row, every preview's SVG-in-JSON, every number a rule is stated in |
+| `image/png` only | 7 | `render/topdown`, `surface`, `traversability`, `structures`, `mirror`, `render/walk` and `plans/{id}/png` |
+| `image/png` and `text/plain` | 2 | `render/section` and `render/heightmap`, which answer the same cut and the same relief as characters on `?format=text` |
+| `application/json` and `text/plain` | 5 | `slopes`, `transect`, `walk`, `themes/census` and `sketch/dressing` — numbers for a tool, and the same reading as a table or a grid for a reader |
 | `application/json` and `image/png` | 6 | `coverage` and the five document previews (`theme`, `material`, `prop`, `room-styles/preview`, `preview-snapshot`), which answer a picture on `?format=png` |
 | `text/plain` | 5 | `column`, `plan/ascii` (three routes), `plan/flow` |
 | XML, zip | 2 | the map document and the export |
 | nothing declared | 9 | deletes and redirects |
 
-The reads that answer **a built world** — what exists only after the store — sort three ways. Eight
-pictures answer only as pictures. One read answers as text a person reads (`column`). Six answer numbers or
-grids in JSON: `walk` (a route as cells, and what it costs), `coverage` (class and traffic grids as digit
-rows, the dead patches with coordinates), `editability` (digit rows), `sketch/columns` (every run of every
-column, with the layer that drew it), `sketch/relief/read` (range, steps, tiers, faces, crossings, the
-symmetry error) and `findings`. Before the store the plan tier is nearly all numbers and grids:
-`plan/evaluate`, `plan/inspect`, `plan/ascii`, and `plan/flow` as prose.
+The reads that answer **a built world** — what exists only after the store — sort three ways. Six pictures
+answer only as pictures, and each but two has a read beside it that answers the same question as numbers:
+what `topdown` shows standing somewhere is what `transect` and `walk` list `beside` a line; `surface`'s tone
+families are `themes/census`; `traversability` and `render/walk` are `walk`; `structures` and `mirror` stay
+pictures, and `column` answers what is actually at a coordinate under either. Two pictures answer as text
+too, `section` and `heightmap`. Ten answer numbers or grids in JSON, five of them with a text twin: `walk`
+(the route as cells and as places with the storey stood on, its cost, every step that left a walk, and what
+stands beside it), `transect` (a polyline as stations), `slopes` (the worst step per cell, and the barrier
+runs as faces), `themes/census`, `sketch/dressing` (what the pass would place, and every cell's claim as
+digit rows), `coverage` (class and traffic grids as digit rows, the dead patches with coordinates),
+`editability` (digit rows), `sketch/columns` (every run of every column, with the layer that drew it),
+`sketch/relief/read` (range, steps, tiers, faces, crossings, the symmetry error) and `findings`. Before the
+store the plan tier is nearly all numbers and grids: `plan/evaluate`, `plan/inspect`, `plan/ascii`, and
+`plan/flow` as prose.
 
 The driver (`pgm-studio-mapgen/tools/drive.py`) writes **37 files** for a board the size of Mossgill: two
 text (`00-board.txt`, the plan grid; `01-flow.txt`, the flow account) and 35 PNG — a swatch and a section per
@@ -84,45 +93,51 @@ Every one of these is a claim about a **shape** — a bank, a wall, a slope, a s
 a profile, never a point. A single column answers what is at a coordinate; a render answers what a place
 looks like; only a run of columns with the steps between them named answers whether a player can walk it.
 
-## What the driver now writes, and why the extent is the point
+## What the driver writes, and why the extent is the point
 
-The driver writes the board as text beside every picture, off the exported world, the provenance sidecar
-and the columns it drew the isometric from (`tools/render/textreads.py`): a heightmap as one character per
-two blocks with the houses, water, spawns and goals overprinted; a slope grid; the two axis sections with
-`#` ground, `L` a storey, `~` water, `H` a hall, `M` a made thing; a transect along x and along z through
-every spawn, goal, house, water prop, boulder and made thing, its box taken from the document and padded
-eight blocks each side; and the profile along each team's walk to each goal with what stands beside it. The
-summaries print inline — one line a transect, every step a player cannot walk named with its coordinates —
-so they are in the transcript before a file is opened.
+The driver writes the board as text beside every picture, each file the API's own `?format=text` answer
+(`tools/render/textreads.py`): the heightmap with the houses, water, spawns and goals overprinted; the slope
+grid; the two axis sections with `#` ground, `L` a storey, `~` liquid, `H` a hall, `M` a made thing; a
+transect along x and along z through every spawn, goal, house, water prop, boulder and made thing, its box
+taken from the documents and padded eight blocks each side, with what stands within two cells of the line;
+the profile along each team's walk to each goal with what stands beside it; the theme census; and the
+dressing pass's claims. What the driver decides is the extent, and nothing else. The summaries print inline
+— one line a transect and a route, every step a player cannot walk named with its coordinates — so they are
+in the transcript before a file is opened.
 
 The extent is the point. A read whose extent the reader chooses catches a fault only where the reader
 already suspects one; a read whose extent is the feature's own box catches the fault the reader thought was
 fixed. The Weirbank basin would have printed `BARRIER +13` on its own transect on every drive after the push
 that made it, without anyone asking.
 
-## What the API should answer, and in what shape
+## What the API answers, and in what shape
 
-The driver's text pass is a client-side rendering of reads the API already answers in JSON, plus a world
-file. Each of the following moves one of them into the API, where any client and any future tool gets it,
-and where the studio's own knowledge of a column — which pass claimed it, which layer drew it, what a goal's
-clearance is — is available without a sidecar. They are filed on the board under the ids given.
+Each of these is a read the studio answers itself, so any client and any future tool gets it, and the
+studio's own knowledge of a column — which pass claimed it, which layer drew it, what a goal keeps clear —
+is in the answer without a sidecar. `read-backs.md` carries each one's row and query words; the ids are
+the tasks that delivered them.
 
-- **A section and a transect as text and as numbers** (`WS19`). `render/section` answers a PNG; the same
-  cut as characters with a y axis and the ground's height under each column, and a `transect` along any
-  polyline answering each station's ground, water, top, claim and the step from the station before, classed
-  as walked, scrambled, barrier or drop. JSON beside the text, so a tool sums and a reader reads.
-- **A heightmap and a slope grid as text** (`WS20`). `render/heightmap?format=text&every=N`, the height band
-  per cell with the markers overprinted, and a `slopes` read with the worst step per cell — the two grids a
-  relief is judged by, in the shape the plan grid already has.
-- **The walk with its profile and its neighbours** (`WS21`). `walk` answers cells; it should also answer the
-  ground under each, the steps between them classed, and every claim within a stated distance of the route —
-  the read for a thing in the players' way, and for a path that does not work.
-- **A theme census** (`WS22`). Cells per theme, distinct materials per theme, adjacency between themes, the
-  palette count for the board. The number for a board that mashes its themes, which today has no gate and no
-  read.
-- **Claimed cells as a raster** (`TS81`). `sketch/dressing` answers `claimedCells` as a count; it should
-  answer the claims as digit rows the way `coverage` does, so a placement is looked up rather than tried. A
-  board this size took ten preview passes to place eleven trees by trial.
+- **A section and a transect as text and as numbers** (`WS19`). `render/section?format=text` answers the
+  same cut as characters — `#` ground below the surface course, `L` a storey, every claim by its pass — with
+  a y axis, a ruler and the ground's height band under each column. `transect?points=x,z;x,z…` walks any
+  polyline and answers each station's ground, the storey stood on, the water, the top, what stands there and
+  the step from the station before, classed walked, scrambled, barrier or drop, with the totals and every
+  non-walk step as an event; `beside=N` lists what stands within N cells. JSON beside the text, so a tool
+  sums and a reader reads. Every height is the first free course above a block, so two subtract to blocks.
+- **A heightmap and a slope grid as text** (`WS20`). `render/heightmap?format=text&every=N` answers the
+  height band per cell with the spawns, goals, houses and water overprinted; `slopes` answers the worst
+  step to a neighbour per cell — `.` walked, `:` scrambled, `#` a barrier — and names the barrier runs as
+  faces, largest first, which is where an overdone relief is.
+- **The walk with its profile and its neighbours** (`WS21`). `walk` answers, beside its cells, the storey it
+  stood on at every place, every step that left a walk with the totals, and with `?beside=N` everything
+  recorded within N cells of the route; `?format=text` is the station table — the read for a thing in the
+  players' way, and for a path that does not work.
+- **A theme census** (`WS22`). `themes/census` answers cells and share per theme, the distinct materials
+  each spends, which theme borders which over how many cells, and the board's palette count — the number
+  for a board that mashes its themes.
+- **Claimed cells as a raster** (`TS81`). `sketch/dressing` answers `claims`: digit rows over the board the
+  way `coverage` answers its classes — a prop's claim, a goal's clearance, a keep-out, or free — and
+  `?format=text` prints them with the key, so a placement is looked up rather than tried.
 - **A finding states its edit** (`RP64`). Where a finding has a mechanical fix, it carries the edit as a
   document, a path in the document's own spelling, an operation and a value beside its message: `SP8` and
   `EL1` state the line mark that grades their seam, `WX11` the area mark that benches a house on falling
@@ -130,10 +145,12 @@ clearance is — is available without a sidecar. They are filed on the board und
   what the author's runs show works. `docs/refusals.md` § *A finding* has the shape and a worked example;
   the mapgen driver prints an edit under its finding.
 
-And one convention rather than a read: **every picture has a text twin, and every text grid states its
-scale, its extent and its key on its first lines.** `coverage` already has both shapes; the eight world
-renders have one. The plan grid's first line — one character per cell, a key — is the model to follow, and
-the driver's text files follow it.
+And one convention rather than a read: **a picture has a text twin or a numbers read beside it, and every
+text grid states its scale, its extent and its key on its first lines.** `coverage`, `section` and
+`heightmap` have both shapes; every other world render has a read beside it that answers the same question
+as numbers. The plan grid's first line — one character per cell, a key — is the model, and `TextGrid`
+draws every grid's ruler and rows the same way, so a coordinate is read off the picture rather than
+counted from an edge.
 
 ## What a picture is still for
 

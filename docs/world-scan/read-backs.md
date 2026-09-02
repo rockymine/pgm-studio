@@ -141,8 +141,7 @@ every distinct thing the provenance record names within `N` cells of any cell th
 tree, a boulder, a house, water, a spawn, a goal, wool or an iron cube, the first cell it is met at and its
 distance; flora and paint are left out, since neither is a thing a player runs into. `?format=text` answers
 the same reading as characters: the route's own numbers, a station at every place it stood with the word and
-the signed step where it left a walk, the totals, and what stands beside it — the same table the driver's
-route profile printed from a client-side copy that could not know which storey the walk chose.
+the signed step where it left a walk, the totals, and what stands beside it.
 
 ## A stacked board is drawn one storey at a time
 
@@ -225,8 +224,8 @@ tone family claims, and the legend says how many there were.
 ## What each read is for
 
 `answer-shapes.md`, beside this document, measures which of these reads a model can subtract from and
-which it can only gauge, against two runs where the difference cost a board; the reads it asks for are on
-the board as `WS19`–`WS22`.
+which it can only gauge, against two runs where the difference cost a board, and names the read each fault
+the runs repeated is subtracted from.
 
 `column` is the workhorse and the only honest answer: every picture beside it is a projection, and this is
 what is actually at a coordinate. It is the read to reach for when a picture and a document disagree.

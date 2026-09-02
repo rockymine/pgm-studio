@@ -19,14 +19,15 @@ public sealed class SectionTextTests
             for (var y = 0; y <= 4; y++) world.SetBlock(10, y, z, Blocks.Stone);
         for (var y = 0; y <= 12; y++) world.SetBlock(10, y, 3, Blocks.Stone);
 
-        var surface = new Dictionary<(int X, int Z), int> { [(10, 0)] = 4, [(10, 1)] = 4, [(10, 2)] = 4, [(10, 3)] = 12 };
+        // The surface is the first air course above the ground, the count BuiltWorld.Surface keeps.
+        var surface = new Dictionary<(int X, int Z), int> { [(10, 0)] = 5, [(10, 1)] = 5, [(10, 2)] = 5, [(10, 3)] = 13 };
 
         var text = SectionText.Render(world, new WorldProvenance(), surface, columns: null, groundLayer: "ground",
             SectionAxis.AlongZ, from: 0, to: 3, at: 10, yMin: 0, yMax: 12, depth: 0, every: 1);
 
         await Assert.That(text).IsNotNull();
 
-        // y4 is where every column carries a block, and every one of them is at or below its own surface.
+        // y4 is where every column carries a block, and every one of them is below its own surface.
         await Assert.That(RowFor(text!, 4, highest: 12)).IsEqualTo("####");
 
         // y12 is the riser's own top: only the fourth column (z3) reaches it, and only it is ground there.
@@ -40,7 +41,7 @@ public sealed class SectionTextTests
     {
         var world = new VoxelWorld();
         for (var z = 0; z <= 1; z++) world.SetBlock(0, 5, z, Blocks.Stone);
-        var surface = new Dictionary<(int X, int Z), int> { [(0, 0)] = 5, [(0, 1)] = 5 };
+        var surface = new Dictionary<(int X, int Z), int> { [(0, 0)] = 6, [(0, 1)] = 6 };
 
         var text = SectionText.Render(world, new WorldProvenance(), surface, columns: null, groundLayer: "ground",
             SectionAxis.AlongZ, from: 0, to: 1, at: 0, yMin: 5, yMax: 6, depth: 0, every: 1);

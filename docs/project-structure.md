@@ -22,7 +22,7 @@ Every arrow points at something the project is allowed to reach; read it bottom-
    │
    ├── Client  ──> Contracts, Geom                       (Blazor WASM)
    ├── Data    ──> Domain, Contracts, Pgm, Minecraft, Analysis
-   ├── Export  ──> Domain, Analysis, Minecraft, Pgm, Contracts   (world build + map.xml + the read-back DTOs, no DB)
+   ├── Export  ──> Domain, Analysis, Minecraft, Pgm       (the export path — world build + map.xml, no DB)
    ├── Pgm     ──> Domain, Geom
    ├── Analysis──> Domain, Geom
    ├── Minecraft ──> Domain, Geom
@@ -58,13 +58,6 @@ the generator reads them off it.
 `Pgm`) was already reachable from `Api` — directly, or through `Data` — so the cut is free in graph terms:
 `Api` reaches the same set of projects through one more hop, and the export path is reachable from a script
 that wants it without the web host it would never start.
-
-**The theme census gave it one** (`WS22`). `ThemeCensus` counts a built board's ground cells against
-`TerrainThemeScope`'s own resolution, and its answer — `ThemeCensusResultDto` and the rows under it — is a
-wire shape rather than an internal fact, so it belongs where every wire shape does: `Contracts`, the DTOs'
-own home. `Api` already reached `Contracts` directly, so the edge does not widen what a script pulling in
-`Export` alone can reach; it only lets `Export` hand back the shape it computes instead of a caller
-re-deriving it from a plainer one.
 
 **Two constraints are what force the shape**, and they are the reason there appear to be "two model projects":
 
@@ -109,17 +102,17 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | Project | Files | Lines | Internal shape |
 |---|---|---|---|
 | `Analysis` | 24 | 4,138 | `Playability/` 14 · `Region/` 3 · `Footprint/` 2 · `Scan/` 2 · `Suggest/` 2 · 1 at root |
-| `Api` | 96 | 12,901 | `Endpoints/` 54 · `Services/` 38 · `Http/` 3 · 1 at root |
+| `Api` | 96 | 13,058 | `Endpoints/` 54 · `Services/` 38 · `Http/` 3 · 1 at root |
 | `Client` | 206 | 25,059 | `Features/` 117 (nested) · `Components/` 70 (nested) · `Pages/` 7 · `Models/` 6 · `Layout/` 3 · 3 at root |
-| `Contracts` | 32 | 3,165 | flat |
+| `Contracts` | 33 | 3,300 | flat |
 | `Data` | 16 | 2,647 | `Map/` 5 · `Features/` 4 · `Theme/` 4 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 26 | 2,721 | flat |
-| `Export` | 12 | 2,407 | flat |
-| `Geom` | 49 | 5,903 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 5 · 18 at root |
+| `Export` | 13 | 2,629 | flat |
+| `Geom` | 50 | 5,967 | `Algorithms/` 20 · `Relief/` 6 · `Render/` 6 · 18 at root |
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 32 | 1,984 | `Migrations/` 31 · 1 at root |
-| `Minecraft` | 88 | 17,844 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Render/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 151 | 25,117 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 8 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Minecraft` | 92 | 18,481 | `Stamping/` 16 · `Anvil/` 13 · `Palette/` 13 · `Render/` 13 · `Painting/` 12 · `Houses/` 10 · `Dressing/` 9 · `Views/` 4 · `Suggest/` 1 · 1 at root |
+| `Pgm` | 151 | 25,103 | `Compose/` 42 (nested) · `Authoring/` 22 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Derive/` 9 · `Sketch/` 9 · `Plan/` 8 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 11 | 1,114 | flat |
 <!-- /census -->
 

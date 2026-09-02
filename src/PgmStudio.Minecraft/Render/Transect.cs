@@ -18,11 +18,14 @@ namespace PgmStudio.Minecraft.Render;
 /// </summary>
 public static class Transect
 {
-    /// <summary>One station along the walked line. <see cref="Ground"/> is the terrain's own recorded height,
-    /// null over void. <see cref="Surface"/> is the top of the highest rasterized span at the cell, whatever
-    /// layer drew it — the storey a walker actually stands on, equal to <see cref="Ground"/> on a flat board.
-    /// <see cref="Water"/> is the highest liquid course in the world's column, or null where it holds none.
-    /// <see cref="Top"/> is the highest block of any kind in the column — what stands there reaches this high.
+    /// <summary>One station along the walked line. Every height is stated in one count, the one
+    /// <c>BuiltWorld.Surface</c> keeps: the first free course above a block, where a walker's feet are, so two
+    /// of them subtract to a number of blocks. <see cref="Ground"/> is the terrain's own recorded height, null
+    /// over void. <see cref="Surface"/> is the top of the highest rasterized span at the cell, whatever layer
+    /// drew it — the storey a walker actually stands on, equal to <see cref="Ground"/> on a flat board.
+    /// <see cref="Water"/> is the course above the highest liquid in the world's column, or null where it holds
+    /// none. <see cref="Top"/> is the course above the highest block of any kind in the column — what stands
+    /// there reaches up to it.
     /// <see cref="Standing"/> names the claim a walker stands on as <c>"&lt;kind&gt; &lt;unit&gt;"</c>, or
     /// <c>"storey"</c> where the board stacks above the terrain with no claim of its own, else null.
     /// <see cref="Step"/> is the rise from the previous station's <see cref="Surface"/> — null at the first
@@ -54,7 +57,7 @@ public static class Transect
         IReadOnlyList<(int X, int Z)> points, int every, int beside)
     {
         var storeys = (columns ?? []).GroupBy(segment => segment.Cell)
-            .ToDictionary(group => group.Key, group => group.Max(segment => segment.YTop - 1));
+            .ToDictionary(group => group.Key, group => group.Max(segment => segment.YTop));
         var cells = Sampled(points, every);
 
         var stations = new List<Station>(cells.Count);
@@ -65,7 +68,7 @@ public static class Transect
             var stationSurface = storeys.TryGetValue(cell, out var storeyTop) ? storeyTop : ground;
             var (top, water) = TopAndWater(world, cell.X, cell.Z);
             var owner = provenance.OwnerAt(cell.X, cell.Z);
-            var standing = owner is { } id ? $"{id.Kind} {id.Unit}"
+            var standing = owner is { } id ? Named(id.Kind, id.Unit, id.Image)
                 : stationSurface is { } stationTop && ground is { } groundValue && stationTop > groundValue
                     ? "storey" : null;
 
@@ -120,12 +123,16 @@ public static class Transect
 
         if (beside > 0)
             written.AppendLine(walked.Beside.Count == 0 ? "beside: (none)"
-                : "beside: " + string.Join(", ", walked.Beside.Select(n => $"{n.Kind} {n.Unit} at ({n.X}, {n.Z})")));
+                : "beside: " + string.Join(", ", walked.Beside.Select(n => $"{Named(n.Kind, n.Unit, n.Image)} at ({n.X}, {n.Z})")));
 
         return written.ToString();
     }
 
     private static string Cell(int? value) => value?.ToString() ?? "";
+
+    /// <summary>A claim as a reader names it — <c>kind unit</c>, with <c>#image</c> where it is an orbit image
+    /// rather than the authored unit itself.</summary>
+    private static string Named(string kind, string unit, int image) => image == 0 ? $"{kind} {unit}" : $"{kind} {unit}#{image}";
 
     private static string StepDisplay(Station station) => station.Word switch
     {
@@ -159,9 +166,9 @@ public static class Transect
         return near;
     }
 
-    /// <summary>The highest block of any kind in the column, and the highest liquid course in it — one scan
-    /// down from the world's own ceiling, since a bridge deck over open water needs both answers from the
-    /// same column.</summary>
+    /// <summary>The course above the highest block of any kind in the column, and above the highest liquid in
+    /// it — one scan down from the world's own ceiling, since a bridge deck over open water needs both answers
+    /// from the same column.</summary>
     private static (int? Top, int? Water) TopAndWater(VoxelWorld world, int x, int z)
     {
         int? top = null, water = null;
@@ -169,8 +176,8 @@ public static class Transect
         {
             var (id, _) = world.GetBlock(x, y, z);
             if (id == 0) continue;
-            top ??= y;
-            if (water is null && BlockRoles.IsLiquid(id)) water = y;
+            top ??= y + 1;
+            if (water is null && BlockRoles.IsLiquid(id)) water = y + 1;
             if (top is not null && water is not null) break;
         }
         return (top, water);

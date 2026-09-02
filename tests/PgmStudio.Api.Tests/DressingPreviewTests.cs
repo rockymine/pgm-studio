@@ -327,8 +327,9 @@ public sealed class DressingPreviewTests
         var width = claims.GetProperty("width").GetInt32();
         var height = claims.GetProperty("height").GetInt32();
         var bounds = claims.GetProperty("bounds");
-        await Assert.That(width).IsEqualTo((int)(bounds.GetProperty("max_x").GetDouble() - bounds.GetProperty("min_x").GetDouble()));
-        await Assert.That(height).IsEqualTo((int)(bounds.GetProperty("max_z").GetDouble() - bounds.GetProperty("min_z").GetDouble()));
+        // The bounds name edges, both inclusive, so the width is one more than their difference.
+        await Assert.That(width).IsEqualTo((int)(bounds.GetProperty("max_x").GetDouble() - bounds.GetProperty("min_x").GetDouble()) + 1);
+        await Assert.That(height).IsEqualTo((int)(bounds.GetProperty("max_z").GetDouble() - bounds.GetProperty("min_z").GetDouble()) + 1);
 
         var rows = claims.GetProperty("rows");
         await Assert.That(rows.GetArrayLength()).IsEqualTo(height);

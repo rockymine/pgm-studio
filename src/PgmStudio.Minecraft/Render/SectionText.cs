@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Palette;
 
@@ -11,7 +12,7 @@ namespace PgmStudio.Minecraft.Render;
 /// the picture rather than instead of it.
 ///
 /// <para>Every block classes first by what it is — liquid, a log, a leaf or a plant, bedrock — then by where
-/// it stands: at or below the recorded terrain surface it is ground, above it and inside a stacked layer's own
+/// it stands: below the recorded terrain surface it is ground, above it and inside a stacked layer's own
 /// span it is that layer's storey, and failing both it classes by which pass claimed the column, so a wall, a
 /// wool cage, a spawn platform and a made thing each read as themselves.</para>
 /// </summary>
@@ -83,7 +84,7 @@ public static class SectionText
             if (block.Id == BedrockId) return Bedrock;
 
             (int X, int Z) cell = axis == SectionAxis.AlongX ? (cut, at + block.Behind) : (at + block.Behind, cut);
-            if (surface.TryGetValue(cell, out var top) && y <= top) return Ground;
+            if (surface.TryGetValue(cell, out var top) && y < top) return Ground;
 
             if (byCell.TryGetValue(cell, out var segments))
                 foreach (var segment in segments)
@@ -126,26 +127,16 @@ public static class SectionText
 
         written.Append(rows);
 
-        written.Append("     ");
-        for (var cut = from; cut <= to; cut += every)
-            written.Append(cut % 10 == 0 ? Digit(Math.Abs(cut / 10) % 10) : ' ');
-        written.AppendLine();
+        TextGrid.Ruler(written, "     ", from, (to - from) / every + 1, every);
 
         written.Append("grnd ");
         for (var cut = from; cut <= to; cut += every)
         {
             (int X, int Z) cell = axis == SectionAxis.AlongX ? (cut, at) : (at, cut);
-            written.Append(surface.TryGetValue(cell, out var top) ? Band(top - lowest) : ' ');
+            written.Append(surface.TryGetValue(cell, out var top) ? TextGrid.Base36(top - lowest) : ' ');
         }
         written.AppendLine();
         return written.ToString();
     }
 
-    private static char Digit(int value) => (char)('0' + value);
-
-    /// <summary>The height above the bottom row as one character, base-36 so a two-hundred-block board still
-    /// fits a single column: <c>0</c>-<c>9</c> then <c>a</c>-<c>z</c>, clamped at <c>z</c> rather than
-    /// wrapping — a clamped band still reads as "tall", where a wrapped one would read as "low".</summary>
-    private static char Band(int value) =>
-        value < 0 ? ' ' : value <= 9 ? (char)('0' + value) : value <= 35 ? (char)('a' + value - 10) : 'z';
 }

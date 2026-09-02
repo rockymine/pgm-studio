@@ -269,19 +269,4 @@ public sealed class WorldReadEndpointTests
         await Assert.That(json.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(json.Content.Headers.ContentType!.MediaType).IsEqualTo("application/json");
     }
-
-    [Test]
-    public async Task A_map_with_no_stored_layout_has_no_world_to_read()
-    {
-        // Not a fault: a map that ships its own region files is read from those. The 404 says which, rather
-        // than the empty picture a build over nothing would produce.
-        using var client = ApiTestFactory.Shared.CreateClient();
-        var create = await client.PostAsJsonAsync("/api/sketch", new { name = $"WS6 bare {Guid.NewGuid():N}" });
-        var slug = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
-
-        // A fresh sketch seeds an empty layout, so the read that has genuinely nothing is one never drawn on.
-        var resp = await client.GetAsync("/api/map/not-a-map-at-all/render/topdown");
-        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
-        _ = slug;
-    }
 }

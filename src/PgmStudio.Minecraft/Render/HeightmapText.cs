@@ -59,7 +59,7 @@ public static class HeightmapText
 
         var text = new System.Text.StringBuilder();
         text.Append($"HEIGHTMAP  1 char = {every}x{every} blocks (the top-left block of each)  ")
-            .Append($"x {minX}..{maxX} across, z {minZ}..{maxZ} down\n");
+            .Append($"x {minX}..{minX + (width - 1) * every} across, z {minZ}..{minZ + (height - 1) * every} down\n");
         text.Append($"KEY  char = ground height above y{low} in bands of {band} block(s): ")
             .Append($"0 = y{low}..{low + band - 1}, 1 = …; H house or hall  ~ water  @ spawn point  ")
             .Append("! goal  space = void\n");
