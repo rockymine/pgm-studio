@@ -153,6 +153,30 @@ public sealed record CoverageDto(
 /// <param name="Color">Its canonical swatch, the same one every picture draws that kind in.</param>
 public sealed record CoverageMarkerDto(string Kind, int X, int Z, string Color);
 
+/// <summary>One connected run of barrier cells in a <see cref="SlopesDto"/> grid, 8-connected over the
+/// sampled cells — the read that names <b>where</b> a relief is overdone.</summary>
+/// <param name="Cells">How many sampled cells the run covers.</param>
+/// <param name="MinX">Its west edge, in blocks.</param>
+/// <param name="MinZ">Its north edge.</param>
+/// <param name="MaxX">Its east edge.</param>
+/// <param name="MaxZ">Its south edge.</param>
+public sealed record SlopeFaceDto(int Cells, int MinX, int MinZ, int MaxX, int MaxZ);
+
+/// <summary>GET /api/map/{slug}/slopes — the worst step to a neighbour per sampled cell, classed <c>0</c>
+/// walked, <c>1</c> scrambled, <c>2</c> barrier, the tiers <c>PgmStudio.Geom.Walk</c> prices a step in.</summary>
+/// <param name="Bounds">The ground the grid covers, in blocks.</param>
+/// <param name="Every">The sample step: cells apart in blocks each grid cell was taken at.</param>
+/// <param name="Width">Cells across, which is the length of every row.</param>
+/// <param name="Height">Cells down, which is how many rows there are.</param>
+/// <param name="Rows">One string per grid row, each character the digit of that cell's class, space where
+/// the sampled block has no ground.</param>
+/// <param name="Walked">Sampled cells whose worst step is a walk.</param>
+/// <param name="Scrambled">Sampled cells whose worst step wants a placed block.</param>
+/// <param name="Barrier">Sampled cells whose worst step is a face.</param>
+/// <param name="Faces">The barrier runs worth naming, largest first, capped at twenty.</param>
+public sealed record SlopesDto(Bounds2dDto Bounds, int Every, int Width, int Height, IReadOnlyList<string> Rows,
+    int Walked, int Scrambled, int Barrier, IReadOnlyList<SlopeFaceDto> Faces);
+
 /// <summary>One Review pre-flight finding. <c>Status</c> ∈ <c>"pass"</c> | <c>"fail"</c> | <c>"skip"</c>.</summary>
 /// <param name="Key">What the check is, for a caller branching on it.</param>
 /// <param name="Label">The check as an author reads it.</param>

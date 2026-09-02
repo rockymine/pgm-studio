@@ -36,9 +36,10 @@ block, 1 to 16, default 4, clamped rather than refused.
 |---|---|---|
 | `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `made` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
 | `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project |
-| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey |
+| `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey. `?format=text` answers the same reading as a height-banded grid, `every` blocks a character, with the spawns, goals, houses and water overprinted |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
+| `slopes` | — | the worst step to a neighbour per sampled cell, as JSON digit rows or, on `?format=text`, `.`/`:`/`#` — the tiers a walk is priced in. `faces` names the barrier runs worth checking, largest first |
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
@@ -220,9 +221,17 @@ footing. A flat list of swatches cannot say that, and a reader given one reads t
 class as a hue.
 
 `heightmap` answers whether a relief solved into the shape it was drawn as, and shows a flat pad butted
-against a hill as the ruled edge it is. `surface` answers whether a board's paint is the palette it was
-authored from — a whole tone family taken where two members were meant reads as the noise it is. `mirror`
-answers whether a board somebody believes is symmetric actually is.
+against a hill as the ruled edge it is. Its text twin answers the same question as characters rather than
+tone: a neighbour's height is a subtraction rather than an estimate, and the houses, halls, water, spawns
+and goals overprinted on it say what the relief carries rather than leaving a reader to guess from shape
+alone. `surface` answers whether a board's paint is the palette it was authored from — a whole tone family
+taken where two members were meant reads as the noise it is. `mirror` answers whether a board somebody
+believes is symmetric actually is.
+
+`slopes` answers where a relief is too steep to be crossed for free, the way `heightmap` answers its overall
+shape: a cliff reads as a line of `#`, a ramp as a band of `.` running through it, and ground graded past
+what a player can scramble up reads as a page of `#` rather than one count with nowhere to check it. Its
+faces name the barrier runs worth walking to in-game, largest first.
 
 It asks that as **two** questions, and the picture separates them. The first is shape: a column is solid where
 its image is solid, at the same heights, taken through the build's own transform about the map's stated

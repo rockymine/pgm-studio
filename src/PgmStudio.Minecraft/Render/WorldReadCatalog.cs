@@ -45,7 +45,16 @@ public static class WorldReadCatalog
         new("render/heightmap", "--heightmap",
             "Elevation as tone, with contour lines every `contour` blocks. The read for whether a relief "
             + "solved into the shape it was drawn as, and the one that shows a flat pad butted against a hill "
-            + "as the ruled edge it is."),
+            + "as the ruled edge it is. `?format=text` answers the same reading as a height-banded grid, "
+            + "`every` blocks a character, with the spawns, goals, houses and water overprinted."),
+
+        new("slopes", null,
+            "The worst step to a neighbour per sampled cell, classed `.` walked, `:` scrambled with a block, "
+            + "`#` a barrier — the same tiers a walk is priced in. A cliff reads as a line, a ramp as a band "
+            + "crossing it, and an overdone relief as a page. `faces` names the barrier runs worth checking, "
+            + "largest first, each with the box to find it in.",
+            "The grid samples one block per cell, so a one-block lip inside a cell of four can hide; "
+            + "`every=1` reads every block."),
 
         new("render/surface", "--surface",
             "The paint, read as the tone families `TerrainPalette.Families` names — so a board can be checked "

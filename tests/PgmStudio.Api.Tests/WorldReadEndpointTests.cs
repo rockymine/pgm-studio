@@ -136,6 +136,33 @@ public sealed class WorldReadEndpointTests
     }
 
     [Test]
+    public async Task The_heightmap_text_twin_and_the_slope_grid_answer_the_format_asked_for()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var heightmapPng = await client.GetAsync($"/api/map/{slug}/render/heightmap?format=text");
+        await Assert.That(heightmapPng.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(heightmapPng.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        var heightmapText = await heightmapPng.Content.ReadAsStringAsync();
+        await Assert.That(heightmapText).Contains("HEIGHTMAP");
+        await Assert.That(heightmapText).Contains("KEY");
+
+        var slopesJson = await client.GetAsync($"/api/map/{slug}/slopes");
+        await Assert.That(slopesJson.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(slopesJson.Content.Headers.ContentType!.MediaType).IsEqualTo("application/json");
+        var slopes = await slopesJson.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(slopes.GetProperty("width").GetInt32()).IsGreaterThan(0);
+
+        var slopesText = await client.GetAsync($"/api/map/{slug}/slopes?format=text&every=4");
+        await Assert.That(slopesText.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(slopesText.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        var slopesTextBody = await slopesText.Content.ReadAsStringAsync();
+        await Assert.That(slopesTextBody).Contains("SLOPES");
+        await Assert.That(slopesTextBody).Contains("cells:");
+    }
+
+    [Test]
     public async Task A_map_with_no_stored_layout_has_no_world_to_read()
     {
         // Not a fault: a map that ships its own region files is read from those. The 404 says which, rather

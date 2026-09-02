@@ -270,6 +270,8 @@ public sealed class SchemaCompletenessTests
         ("GET /api/map/{slug}/render/topdown", "image/png"),
         ("GET /api/map/{slug}/render/section", "image/png"),
         ("GET /api/map/{slug}/render/heightmap", "image/png"),
+        ("GET /api/map/{slug}/render/heightmap", "text/plain"),
+        ("GET /api/map/{slug}/slopes", "text/plain"),
         ("GET /api/map/{slug}/render/surface", "image/png"),
         ("GET /api/map/{slug}/render/traversability", "image/png"),
         ("GET /api/map/{slug}/render/structures", "image/png"),

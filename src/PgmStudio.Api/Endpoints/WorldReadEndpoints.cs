@@ -1,5 +1,6 @@
 using FastEndpoints;
 using PgmStudio.Api.Services;
+using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Domain;
@@ -106,6 +107,10 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
     /// <summary>What this read cannot draw, for the 422 that says so.</summary>
     protected virtual string Empty => "this world has no column to draw";
 
+    /// <summary>The same reading as characters, for a read that declares <see cref="Answers.AlsoText"/>. Null
+    /// answers the same 422 an empty picture does — a read with no text twin never overrides this.</summary>
+    protected virtual string? Text(BuiltRead read) => null;
+
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
@@ -137,6 +142,21 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             {
                 Built = read.Built with { World = storey.World, Provenance = storey.Provenance },
             };
+        }
+
+        if (TextAnswer.Wanted(HttpContext))
+        {
+            var text = Text(read);
+            if (text is null)
+            {
+                await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
+                    [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+            }
+            else
+            {
+                await TextAnswer.WriteAsync(HttpContext, text, ct);
+            }
+            return;
         }
 
         byte[]? png;
@@ -271,12 +291,14 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
         Get("/map/{slug}/render/heightmap");
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("render/heightmap"));
-        Description(b => b.Png().Refuses(404, 422).Reads(
+        Description(b => b.Png().AlsoText().Refuses(404, 422).Reads(
             new QueryWord("contour", "Blocks between contour lines. Absent draws one every 4."),
             new QueryWord("grey", "Present draws elevation in grey rather than in tone, for a board whose own "
                 + "palette fights the height reading."),
             Storey,
-            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16)));
+            new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16),
+            new QueryWord("every", "For `?format=text`: sample every Nth block, 1 to 8. Absent takes the "
+                + "smallest that keeps the grid at most 100 characters wide.", Min: 1, Max: 8)));
     }
 
     protected override bool Storeyed => true;
@@ -287,6 +309,97 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
         read.Built.World, Scale, OptionalInt("contour") ?? 4,
         Query<string?>("grey", isRequired: false) is not null,
         markWater: true, drawContours: true, read.Name);
+
+    protected override string? Text(BuiltRead read)
+    {
+        var every = OptionalInt("every") is { } asked ? Math.Clamp(asked, 1, 8) : DefaultEvery(read.Built.Surface);
+        return HeightmapText.Render(read.Built.Surface, read.Built.Provenance, Markers(read.Map), every);
+    }
+
+    /// <summary>The smallest sample step that keeps the text grid within a hundred characters — the read is
+    /// meant for a terminal, and a board wider than one is unreadable at 1:1.</summary>
+    private static int DefaultEvery(IReadOnlyDictionary<(int X, int Z), int> surface)
+    {
+        if (surface.Count == 0) return 1;
+        var width = surface.Keys.Max(cell => cell.X) - surface.Keys.Min(cell => cell.X) + 1;
+        for (var every = 1; every < 8; every++)
+            if ((width + every - 1) / every <= 100) return every;
+        return 8;
+    }
+
+    /// <summary>The map's own spawns and goals, as the single point each overprints — the same overlay
+    /// extraction <see cref="TopDownRender.Overlays"/> draws as boxes, reduced to the box's own middle. Empty
+    /// with no projected document, which is the reading with nothing to overprint rather than a fault.</summary>
+    private static IReadOnlyList<(string Kind, int X, int Z)> Markers(MapXml? map)
+    {
+        if (map is null) return [];
+        var markers = new List<(string Kind, int X, int Z)>();
+        foreach (var overlay in TopDownRender.Overlays(map))
+        {
+            var kind = overlay.Label.StartsWith("spawn", StringComparison.Ordinal) ? "spawn"
+                : overlay.Label.StartsWith("destroyable", StringComparison.Ordinal)
+                    || overlay.Label.StartsWith("core", StringComparison.Ordinal)
+                    || overlay.Label.StartsWith("wool", StringComparison.Ordinal) ? "goal"
+                : null;
+            if (kind is null) continue;
+            markers.Add((kind, (overlay.Box.MinX + overlay.Box.MaxX) / 2, (overlay.Box.MinZ + overlay.Box.MaxZ) / 2));
+        }
+        return markers;
+    }
+}
+
+/// <summary>GET /api/map/{slug}/slopes — the worst step to a neighbour per sampled cell, classed by
+/// <see cref="Walk"/>'s own tiers: the grid a cliff reads as a line in, a ramp as a band crossing it, and an
+/// overdone relief as a page. JSON by default, the same reading as characters on <c>?format=text</c>.</summary>
+internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<SlopesDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/slopes");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("slopes"));
+        Description(b => b.AlsoText().Refuses(404, 422).Reads(
+            new QueryWord("every", "Sample every Nth block, 1 to 8. Absent reads every block.", Min: 1, Max: 8)));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no world for the studio to build and "
+                    + "read back")], ct);
+            return;
+        }
+
+        var every = Query<int?>("every", isRequired: false) is { } asked ? Math.Clamp(asked, 1, 8) : 1;
+        var grid = SlopeGrid.Build(read.Built.Surface, every);
+        if (grid is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nothing to grade",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    "this world has no ground column, so it has no slope to read")], ct);
+            return;
+        }
+
+        if (TextAnswer.Wanted(HttpContext))
+        {
+            await TextAnswer.WriteAsync(HttpContext, SlopeGrid.Render(grid), ct);
+            return;
+        }
+
+        await Send.OkAsync(new SlopesDto(
+            new Bounds2dDto(grid.MinX, grid.MinZ, grid.MinX + grid.Width * every, grid.MinZ + grid.Height * every),
+            every, grid.Width, grid.Height, SlopeGrid.Rows(grid),
+            grid.Walked, grid.Scrambled, grid.Barrier,
+            [.. grid.Faces.Select(face => new SlopeFaceDto(face.Cells, face.MinX, face.MinZ, face.MaxX, face.MaxZ))]),
+            ct);
+    }
 }
 
 /// <summary>GET /api/map/{slug}/render/surface — the paint, read as the tone families
