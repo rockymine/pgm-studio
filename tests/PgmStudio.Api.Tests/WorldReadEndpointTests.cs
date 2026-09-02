@@ -176,4 +176,39 @@ public sealed class WorldReadEndpointTests
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
         _ = slug;
     }
+
+    [Test]
+    public async Task Section_and_transect_answer_the_media_type_asked_for()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var sectionText = await client.GetAsync(
+            $"/api/map/{slug}/render/section?axis=x&from=-30&to=30&at=0&format=text");
+        await Assert.That(sectionText.StatusCode).IsEqualTo(HttpStatusCode.OK)
+            .Because(await sectionText.Content.ReadAsStringAsync());
+        await Assert.That(sectionText.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        await Assert.That(await sectionText.Content.ReadAsStringAsync()).Contains("SECTION");
+
+        var transectJson = await client.GetAsync($"/api/map/{slug}/transect?points=0,0;5,5");
+        await Assert.That(transectJson.StatusCode).IsEqualTo(HttpStatusCode.OK)
+            .Because(await transectJson.Content.ReadAsStringAsync());
+        await Assert.That(transectJson.Content.Headers.ContentType!.MediaType).IsEqualTo("application/json");
+
+        var transectText = await client.GetAsync($"/api/map/{slug}/transect?points=0,0;5,5&format=text");
+        await Assert.That(transectText.StatusCode).IsEqualTo(HttpStatusCode.OK)
+            .Because(await transectText.Content.ReadAsStringAsync());
+        await Assert.That(transectText.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        await Assert.That(await transectText.Content.ReadAsStringAsync()).Contains("TRANSECT");
+    }
+
+    [Test]
+    public async Task A_transect_with_one_point_is_refused()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var resp = await client.GetAsync($"/api/map/{slug}/transect?points=0,0");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableEntity);
+    }
 }

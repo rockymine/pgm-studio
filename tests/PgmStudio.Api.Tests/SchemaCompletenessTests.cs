@@ -276,7 +276,9 @@ public sealed class SchemaCompletenessTests
         ("GET /api/map/{slug}/render/traversability", "image/png"),
         ("GET /api/map/{slug}/render/structures", "image/png"),
         ("GET /api/map/{slug}/render/mirror", "image/png"),
+        ("GET /api/map/{slug}/render/section", "text/plain"),
         ("GET /api/map/{slug}/column", "text/plain"),
+        ("GET /api/map/{slug}/transect", "text/plain"),
 
         ("GET /api/plans/{id}/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/ascii", "text/plain"),

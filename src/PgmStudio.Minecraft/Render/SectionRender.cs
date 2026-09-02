@@ -128,20 +128,27 @@ public static class SectionRender
         return png;
     }
 
-    /// <summary>The pure render: chunks in, an RGB pixel buffer out. No file or console I/O.</summary>
-    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, SectionAxis axis, int rangeMin, int rangeMax,
-        int fixedCoord, int? yMin, int? yMax, int tickInterval = 8, int depth = 0)
-    {
-        if (rangeMin > rangeMax) (rangeMin, rangeMax) = (rangeMax, rangeMin);
-        if (tickInterval <= 0) tickInterval = 8;
+    /// <summary>How deep the projection looks behind the cut, clamped to <see cref="MaxDepth"/> — the one
+    /// place the clamp is applied, so a caller cannot read a depth the render did not honour.</summary>
+    internal static int ClampDepth(int depth) => Math.Clamp(depth, 0, MaxDepth);
 
+    /// <summary>What <see cref="Gather"/> answers: every block along the cut keyed by cut coordinate then Y —
+    /// <c>Behind</c> is how far behind the plane the kept block stands, 0 at the plane itself — and
+    /// <see cref="LoadedChunks"/>, which chunk each cut coordinate falls in, for telling ordinary air from a
+    /// column nothing covers.</summary>
+    internal readonly record struct Gathered(
+        Dictionary<int, Dictionary<int, (int Id, int Data, int Behind)>> Columns,
+        HashSet<(int Cx, int Cz)> LoadedChunks);
+
+    /// <summary>Every block along the cut, nearest wins where <paramref name="depth"/> projects behind the
+    /// plane — the one pass over the chunks the picture and the text render both take, so the projection is
+    /// not written twice. <paramref name="depth"/> is assumed already <see cref="ClampDepth"/>d.</summary>
+    internal static Gathered Gather(IEnumerable<AnvilRegion.Chunk> chunks, SectionAxis axis, int rangeMin,
+        int rangeMax, int fixedCoord, int depth)
+    {
         var chunkList = chunks as ICollection<AnvilRegion.Chunk> ?? chunks.ToList();
         var loadedChunks = new HashSet<(int Cx, int Cz)>(chunkList.Select(chunk => (chunk.ChunkX, chunk.ChunkZ)));
 
-        // One dictionary per cut coordinate, Y -> the nearest block at or behind the plane and how far behind
-        // it stands, populated only for the line asked for. At depth 0 that is the plane itself and every
-        // block is at distance 0, which is the single-slice read.
-        depth = Math.Clamp(depth, 0, MaxDepth);
         var columns = new Dictionary<int, Dictionary<int, (int Id, int Data, int Behind)>>();
         foreach (var chunk in chunkList)
             foreach (var block in AnvilRegion.Blocks(chunk))
@@ -156,6 +163,18 @@ public static class SectionRender
                 if (!stack.TryGetValue(block.Y, out var standing) || behind < standing.Behind)
                     stack[block.Y] = (block.Id, block.Data, behind);
             }
+        return new Gathered(columns, loadedChunks);
+    }
+
+    /// <summary>The pure render: chunks in, an RGB pixel buffer out. No file or console I/O.</summary>
+    public static Result? Render(IEnumerable<AnvilRegion.Chunk> chunks, SectionAxis axis, int rangeMin, int rangeMax,
+        int fixedCoord, int? yMin, int? yMax, int tickInterval = 8, int depth = 0)
+    {
+        if (rangeMin > rangeMax) (rangeMin, rangeMax) = (rangeMax, rangeMin);
+        if (tickInterval <= 0) tickInterval = 8;
+
+        depth = ClampDepth(depth);
+        var (columns, loadedChunks) = Gather(chunks, axis, rangeMin, rangeMax, fixedCoord, depth);
         if (columns.Count == 0) return null;
 
         var lowestFound = columns.Values.SelectMany(stack => stack.Keys).Min();
@@ -227,8 +246,9 @@ public static class SectionRender
         return min is { } lowChunk && max is { } highChunk ? (lowChunk * 16, highChunk * 16 + 15) : null;
     }
 
-    /// <summary>Which chunk a cut coordinate falls in, on the fixed side of the line.</summary>
-    private static (int Cx, int Cz) ChunkOf(SectionAxis axis, int cut, int fixedCoord) =>
+    /// <summary>Which chunk a cut coordinate falls in, on the fixed side of the line — shared with
+    /// <see cref="SectionText"/> so the two answer "is this column loaded" the same way.</summary>
+    internal static (int Cx, int Cz) ChunkOf(SectionAxis axis, int cut, int fixedCoord) =>
         axis == SectionAxis.AlongX ? (FloorDiv16(cut), FloorDiv16(fixedCoord)) : (FloorDiv16(fixedCoord), FloorDiv16(cut));
 
     private static int FloorDiv16(int value) => value >= 0 ? value / 16 : (value - 15) / 16;

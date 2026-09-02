@@ -36,7 +36,9 @@ public static class WorldReadCatalog
         new("render/section", "--section",
             "A vertical cut with a Y scale: `axis` which way it runs, `from`/`to` its extent, `at` the other "
             + "coordinate, `depth` how far behind it to project. One of only two reads that keep Y, and the "
-            + "one that shows a layer stack, a roof idiom and a riser's courses.",
+            + "one that shows a layer stack, a roof idiom and a riser's courses. `?format=text` answers the "
+            + "same cut as characters — one per block, ground and storey and every claim named — for a "
+            + "caller that subtracts a height rather than estimating one from a shade.",
             "Without `depth` it samples ONE plane, so a cut through a house that misses its walls reads as "
             + "floor, air, roof — a correct reading of that plane rather than a broken building. With it, "
             + "each column takes the nearest block up to that many behind the cut, in its own material "
@@ -109,6 +111,17 @@ public static class WorldReadCatalog
             "`from` and `to` are snapped to the nearest ground within 24 blocks, because a marker's stated "
             + "coordinates are a block in a room rather than a cell of terrain. A journey between two "
             + "markers deep inside walls is measured between the cells outside them."),
+
+        new("transect", null,
+            "A polyline walked block by block, answered as numbers: `points` is the line as `x,z;x,z[;x,z…]`, "
+            + "`every` thins the stations, `beside` lists every distinct claim within that many cells of the "
+            + "line. Each station carries the ground, the storey stood on, the water and the highest block in "
+            + "its column, and the step from the station before it, classed walked / scrambled / a barrier / "
+            + "a drop. The read for a claim about a SHAPE — a bank, a wall, a stair, a basin — which a single "
+            + "column cannot answer because a shape is a profile and never a point. `?format=text` answers "
+            + "the same walk as a table, one row a station.",
+            "A transect answers exactly the line asked for and nothing either side of it — a barrier two "
+            + "cells off the stated points is invisible to it, which is what `beside` is for."),
     ];
 
     /// <summary>What one read answers, and where it misleads — the sentence a route publishes as its own

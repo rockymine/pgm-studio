@@ -35,7 +35,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | Route | Also | Answers |
 |---|---|---|
 | `render/topdown` | `--topdown --subject …` | the board from above, one question per image. `subject` = `ground` · `structure` · `made` · `foliage` · `objectives` · `combined`; `material` colours by the real palette rather than by category; `ymax` looks under a roof or a canopy; `layer` draws one storey of a stacked board |
-| `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project |
+| `render/section` | `--section` | a vertical cut with a Y scale. `axis` = `x`\|`z`, `from`/`to` its extent, `at` the other coordinate, `ymin`/`ymax` the courses drawn, `depth` how far behind the plane to project; `?format=text` answers the same cut as characters, `every` blocks a char |
 | `render/heightmap` | `--heightmap` | elevation as tone, contour lines every `contour` blocks (default 4); `grey` drops the tone where a board's own palette fights the height reading; `layer` draws one storey. `?format=text` answers the same reading as a height-banded grid, `every` blocks a character, with the spawns, goals, houses and water overprinted |
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
@@ -46,6 +46,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` and `team` as above |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
+| `transect` | — | a polyline walked block by block, as JSON: `{stations, rises, falls, worstStep, barriers, scrambles, drops, events, beside}`. `?points=x,z;x,z[;x,z…]`, `every` thins the stations, `beside` lists every claim within that many cells of the line; `?format=text` answers the same walk as a table |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
 by a person or an agent rather than parsed, and it is the one read a caller with no image reader can act on.
@@ -195,6 +196,15 @@ the board as `WS19`–`WS22`.
 
 `column` is the workhorse and the only honest answer: every picture beside it is a projection, and this is
 what is actually at a coordinate. It is the read to reach for when a picture and a document disagree.
+
+**A claim about a shape — a bank, a wall, a stair, a basin — is read off a transect and not off a column.** A
+column answers what is at one coordinate, and a shape is a claim about the *step* between two of them, which
+neither a column nor a picture states. A basin whose wall is a sheer eight-block face reads, column by column,
+as a set of true numbers that say nothing about the wall; the same two cells as neighbouring stations on a
+transect answer `BARRIER +8 at (-52, 0)`, which is unmissable where the numbers alone were not. Every station
+carries the ground, the storey a walker stands on, the water and the highest block in its column, and the step
+from the one before it, classed the way `PgmStudio.Geom.Walk.StepWord` classes every step in the studio —
+walked, scrambled, a barrier, or a drop.
 
 `topdown` keeps no Y at all — a riser, a ramp's step heights, a stamped room's floor and a goal's clearance
 are none of them in it. `section` and `column` are the two that keep it, which is why every shipped roof fault

@@ -149,16 +149,23 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
 
         if (TextAnswer.Wanted(HttpContext))
         {
-            var text = Text(read);
+            string? text;
+            try { text = Text(read); }
+            catch (Exception fault) when (fault is InvalidOperationException or ArgumentException
+                                              or FormatException or OverflowException)
+            {
+                await Refusals.UnreadableAsync(HttpContext, "cannot draw that", fault.Message, ct);
+                return;
+            }
+
             if (text is null)
             {
                 await Refusals.WriteAsync(HttpContext, 422, "nothing to draw",
                     [new Vocabulary.Finding(RequestRules.Conflict, Empty)], ct);
+                return;
             }
-            else
-            {
-                await TextAnswer.WriteAsync(HttpContext, text, ct);
-            }
+
+            await TextAnswer.WriteAsync(HttpContext, text, ct);
             return;
         }
 
@@ -250,7 +257,10 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
             new QueryWord("scale", "Pixels a block takes, 1 to 16. Absent draws at 4, and out of range clamps.", Min: 1, Max: 16),
             new QueryWord("depth", "How many blocks behind the plane to project, 0 to 16. Absent samples the "
                 + "one-block slice; above 0 each column takes the nearest block at or behind the cut, drawn "
-                + "in its own material dimmed by how far back it stands.", Min: 0, Max: 16)));
+                + "in its own material dimmed by how far back it stands.", Min: 0, Max: 16),
+            new QueryWord("every", "For the text answer, one character per this many blocks across. Absent is "
+                + "1. Ignored for the picture.", Min: 1, Max: 8))
+            .AlsoText());
     }
 
     /// <summary>Set while drawing when <c>at</c> falls outside the world, so the refusal names the range a
@@ -260,7 +270,9 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
 
     protected override string Empty => _offWorld ?? "nothing stands along that cut";
 
-    protected override byte[]? Draw(BuiltRead read)
+    /// <summary>The axis and the coordinate the cut is taken at, shared by the picture and the text — both
+    /// refuse the same way when <c>at</c> falls outside the world.</summary>
+    private (SectionAxis Axis, int At)? Plane(BuiltRead read)
     {
         var axis = string.Equals(Query<string?>("axis", isRequired: false), "z", StringComparison.OrdinalIgnoreCase)
             ? SectionAxis.AlongZ : SectionAxis.AlongX;
@@ -276,10 +288,24 @@ internal sealed class SectionReadEndpoint(MapRepository repo, MapReader reader, 
                 + $"at={at} is outside this world, which spans {named} {span.Min}..{span.Max}";
             return null;
         }
+        return (axis, at);
+    }
 
-        return SectionRender.Png(read.Built.World, axis,
-            OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, at,
+    protected override byte[]? Draw(BuiltRead read)
+    {
+        if (Plane(read) is not { } plane) return null;
+        return SectionRender.Png(read.Built.World, plane.Axis,
+            OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, plane.At,
             Scale, OptionalInt("ymin"), OptionalInt("ymax"), depth: OptionalInt("depth") ?? 0);
+    }
+
+    protected override string? Text(BuiltRead read)
+    {
+        if (Plane(read) is not { } plane) return null;
+        var every = OptionalInt("every") is { } asked ? Math.Clamp(asked, 1, 8) : 1;
+        return SectionText.Render(read.Built.World, read.Built.Provenance, read.Built.Surface, read.Built.Columns,
+            SketchLayer.GroundId, plane.Axis, OptionalInt("from") ?? -64, OptionalInt("to") ?? 64, plane.At,
+            OptionalInt("ymin"), OptionalInt("ymax"), OptionalInt("depth") ?? 0, every);
     }
 }
 
@@ -795,5 +821,112 @@ internal sealed class WalkRenderEndpoint(MapRepository repo, MapReader reader, M
         var picture = WalkRender.Png(ground, field, what, from, to, route, scale);
         HttpContext.Response.ContentType = "image/png";
         await HttpContext.Response.Body.WriteAsync(picture.Pixels, ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/transect — a polyline walked block by block, answered as numbers. A column
+/// says what is at a coordinate; this says whether a player can walk between two of them, since a claim about
+/// a shape — a bank, a wall, a stair, a basin — is a profile and never a point. <c>points</c> is the line as
+/// <c>x,z;x,z[;x,z…]</c>, at least two; <c>every</c> thins the stations, and <c>beside</c> above zero also
+/// lists every distinct claim within that many cells of the line.</summary>
+internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<TransectDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/transect");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("transect"));
+        Description(b => b.Refuses(404, 422).Reads(
+            new QueryWord("points", "The line to walk, as `x,z;x,z[;x,z…]` — at least two points, walked "
+                + "block by block between each consecutive pair."),
+            new QueryWord("every", "Thin the stations to one every this many blocks walked. Absent is 1.",
+                Min: 1, Max: 8),
+            new QueryWord("beside", "List every distinct claim within this many cells of any station. Absent "
+                + "is 0, which asks for none."))
+            .AlsoText());
+    }
+
+    private int? OptionalInt(string name) => Query<int?>(name, isRequired: false);
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no world for the studio to build and "
+                    + "read back")], ct);
+            return;
+        }
+
+        var points = new List<(int X, int Z)>();
+        var raw = Query<string?>("points", isRequired: false) ?? "";
+        foreach (var piece in raw.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var pair = piece.Split(',', StringSplitOptions.TrimEntries);
+            if (pair.Length != 2 || !int.TryParse(pair[0], out var x) || !int.TryParse(pair[1], out var z))
+            {
+                await Refusals.WriteAsync(HttpContext, 422, "unreadable point",
+                    [new Vocabulary.Finding(RequestRules.Conflict,
+                        $"'{piece}' is not a point — each is two whole numbers, `x,z`", Field: "points")], ct);
+                return;
+            }
+            points.Add((x, z));
+        }
+        if (points.Count < 2)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "not enough points",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    "a transect needs at least two points: `?points=x,z;x,z`", Field: "points")], ct);
+            return;
+        }
+
+        // The world's own chunk-aligned extent on each axis — a cut along z is taken at an x, so the span
+        // along x is what `SectionRender.Span` answers for a cut Along z, and the same the other way round.
+        var chunks = AnvilRegion.FromWorld(read.Built.World).ToList();
+        var xSpan = SectionRender.Span(chunks, SectionAxis.AlongZ);
+        var zSpan = SectionRender.Span(chunks, SectionAxis.AlongX);
+        foreach (var point in points)
+            if (xSpan is not { } xRange || zSpan is not { } zRange
+                || point.X < xRange.Min || point.X > xRange.Max || point.Z < zRange.Min || point.Z > zRange.Max)
+            {
+                await Refusals.WriteAsync(HttpContext, 422, "point outside the world",
+                    [new Vocabulary.Finding(RequestRules.Conflict,
+                        xSpan is { } known && zSpan is { } knownZ
+                            ? $"({point.X}, {point.Z}) is outside this world, which spans x {known.Min}..{known.Max}, "
+                              + $"z {knownZ.Min}..{knownZ.Max}"
+                            : $"({point.X}, {point.Z}) is outside this world, which has no chunks at all",
+                        Field: "points")], ct);
+                return;
+            }
+
+        var every = OptionalInt("every") ?? 1;
+        if (every is < 1 or > 8)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "every out of range",
+                [new Vocabulary.Finding(RequestRules.Conflict, $"`every` takes 1 to 8; {every} does not",
+                    Field: "every")], ct);
+            return;
+        }
+        var beside = OptionalInt("beside") ?? 0;
+
+        var walked = Transect.Walk(read.Built.World, read.Built.Provenance, read.Built.Surface,
+            read.Built.Columns, points, every, beside);
+
+        if (TextAnswer.Wanted(HttpContext))
+        {
+            await TextAnswer.WriteAsync(HttpContext, Transect.Render(walked, points, every, beside), ct);
+            return;
+        }
+
+        await Send.OkAsync(new TransectDto(
+            [.. walked.Stations.Select(station => new TransectStationDto(station.X, station.Z, station.Ground,
+                station.Surface, station.Water, station.Top, station.Standing, station.Step, station.Word))],
+            walked.Rises, walked.Falls, walked.WorstStep, walked.Barriers, walked.Scrambles, walked.Drops,
+            walked.Events,
+            [.. walked.Beside.Select(n => new TransectNeighbourDto(n.Kind, n.Unit, n.Image, n.X, n.Z))]), ct);
     }
 }
