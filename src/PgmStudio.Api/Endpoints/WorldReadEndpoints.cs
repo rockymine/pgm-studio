@@ -607,6 +607,23 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
     }
 }
 
+/// <summary>One step of a walked route that is not a plain walk — a scramble, a barrier or a drop — the cell
+/// it lands on, the signed rise from the place before it, and the word <see cref="Walk.StepWord"/> gives
+/// that rise.</summary>
+public sealed record WalkStepDto(int X, int Z, int Rise, string Word);
+
+/// <summary>One thing standing within a stated distance of a route: the provenance record's own claim, the
+/// first cell it was met at, and how far that cell is from the nearest cell the route passes through.</summary>
+/// <param name="Kind">What stands there — a tree, a boulder, a house, water, a spawn, a goal, wool or an
+/// iron cube.</param>
+/// <param name="Unit">Which one, the claim's own identity.</param>
+/// <param name="Image">Which image of that unit's orbit this is.</param>
+/// <param name="X">Where the first cell it was met at stands, east–west.</param>
+/// <param name="Z">The same, north–south.</param>
+/// <param name="Distance">That cell's distance to the nearest cell the route passes through, in
+/// cells.</param>
+public sealed record WalkNeighbourDto(string Kind, string Unit, int Image, int X, int Z, int Distance);
+
 /// <summary>What one walk over a built board answers, in the units each part is stated in.</summary>
 /// <param name="Reachable">Whether there is a way at all.</param>
 /// <param name="Distance">How far it is, in blocks — the octile measure a player actually walks.</param>
@@ -615,8 +632,18 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
 /// <param name="WorstDrop">The deepest of them, in blocks.</param>
 /// <param name="Aim">Which question was asked — <c>travel</c> for the short way, <c>reach</c> for the cheap one.</param>
 /// <param name="Cells">The route itself, as <c>[x, z]</c> pairs.</param>
+/// <param name="Places">The same route with the storey the walk stood on at every cell — <c>[x, z, y]</c> —
+/// rather than the ground under whatever roofs it.</param>
+/// <param name="Steps">Every step between consecutive places that is not a plain walk, in route order.</param>
+/// <param name="Rises">How many of those steps climb.</param>
+/// <param name="Falls">How many drop.</param>
+/// <param name="WorstStep">The largest of them, in blocks, whichever direction it ran — zero where the
+/// route never left a walk.</param>
+/// <param name="Beside">Every distinct thing the provenance record names within the asked distance of the
+/// route (<c>?beside=N</c>), or empty where none was asked for.</param>
 public sealed record WalkReadDto(bool Reachable, int Distance, int Blocks, int Drops, int WorstDrop,
-    string Aim, IReadOnlyList<int[]> Cells);
+    string Aim, IReadOnlyList<int[]> Cells, IReadOnlyList<int[]> Places, IReadOnlyList<WalkStepDto> Steps,
+    int Rises, int Falls, int WorstStep, IReadOnlyList<WalkNeighbourDto> Beside);
 
 /// <summary>How a walk read finds its ground and its two ends, shared by the numbers and the picture.</summary>
 internal static class WalkReads
@@ -705,7 +732,7 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
         Get("/map/{slug}/walk");
         AllowAnonymous();
         Summary(s => s.Summary = WorldReadCatalog.Sentence("walk"));
-        Description(b => b.Refuses(404, 422).Reads(
+        Description(b => b.Refuses(404, 422).AlsoText().Reads(
             new QueryWord("from", "Where the journey starts, as `x,z`, or `x,z,y` to pick which storey of a "
                                + "stacked column is meant. Snapped onto the nearest ground."),
             new QueryWord("to", "Where it ends, as `x,z`, or `x,z,y`."),
@@ -716,7 +743,11 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
                 ["travel", "reach", "comfort"]),
             new QueryWord("team", "Whose walk this is. Ground an `enter` rule bars that team from is taken "
                                + "out of it, so a route through an enemy protection is not offered. Absent "
-                               + "walks the ground every team shares.")));
+                               + "walks the ground every team shares."),
+            new QueryWord("beside", "Every distinct thing recorded within this many cells (Chebyshev) of any "
+                               + "cell the route passes through — a tree, a boulder, a house, water, a spawn, "
+                               + "a goal, wool or an iron cube; flora and paint are left out. 0 to 6, absent "
+                               + "asks for none.", Min: 0, Max: 6)));
     }
 
     public override async Task HandleAsync(CancellationToken ct)
@@ -749,11 +780,84 @@ internal sealed class WalkReadEndpoint(MapRepository repo, MapReader reader, Map
 
         var path = Walk.Between(from.Value, to.Value, ground, aim);
         var name = aim switch { WalkAim.Reach => "reach", WalkAim.Comfort => "comfort", _ => "travel" };
-        await Send.OkAsync(path is null
-            ? new WalkReadDto(false, -1, -1, 0, 0, name, [])
-            : new WalkReadDto(true, path.Cost.Distance, path.Cost.Blocks, path.Cost.Drops, path.Cost.WorstDrop,
-                name, [.. path.Cells.Select(cell => new[] { cell.X, cell.Z })]), ct);
+        var besideRadius = Query<int?>("beside", isRequired: false) is { } askedBeside
+            ? Math.Clamp(askedBeside, 0, 6) : 0;
+
+        if (path is null)
+        {
+            var unreached = new WalkReadDto(false, -1, -1, 0, 0, name, [], [], [], 0, 0, 0, []);
+            if (TextAnswer.Wanted(HttpContext))
+            {
+                await TextAnswer.WriteAsync(HttpContext,
+                    $"ROUTE ({from.Value.X}, {from.Value.Z}) -> ({to.Value.X}, {to.Value.Z}) aim {name}: "
+                    + "unreachable\n", ct);
+                return;
+            }
+            await Send.OkAsync(unreached, ct);
+            return;
+        }
+
+        var events = WalkProfile.Events(path);
+        var steps = events.Select(e => new WalkStepDto(e.X, e.Z, e.Rise, e.Word)).ToList();
+        var rises = events.Count(e => e.Rise > 0);
+        var falls = events.Count(e => e.Rise < 0);
+        var worstStep = events.Count == 0 ? 0 : events.Max(e => Math.Abs(e.Rise));
+        var beside = WalkProfile.Beside(path, read.Built.Provenance, besideRadius)
+            .Select(n => new WalkNeighbourDto(n.Owner.Kind, n.Owner.Unit, n.Owner.Image, n.X, n.Z, n.Distance))
+            .ToList();
+
+        var reached = new WalkReadDto(true, path.Cost.Distance, path.Cost.Blocks, path.Cost.Drops,
+            path.Cost.WorstDrop, name, [.. path.Cells.Select(cell => new[] { cell.X, cell.Z })],
+            [.. path.Places.Select(place => new[] { place.X, place.Z, place.Y })],
+            steps, rises, falls, worstStep, beside);
+
+        if (TextAnswer.Wanted(HttpContext))
+        {
+            await TextAnswer.WriteAsync(HttpContext,
+                RenderText(from.Value, to.Value, name, path, events, rises, falls, worstStep, beside), ct);
+            return;
+        }
+        await Send.OkAsync(reached, ct);
     }
+
+    /// <summary>The route's own numbers, a station at every place it stood, and what stands beside it — the
+    /// same answer <see cref="WalkReadDto"/> carries, for a reader with no JSON parser.</summary>
+    private static string RenderText(WalkPlace from, WalkPlace to, string aim, WalkPath path,
+        IReadOnlyList<WalkProfile.Event> events, int rises, int falls, int worstStep,
+        IReadOnlyList<WalkNeighbourDto> beside)
+    {
+        var text = new System.Text.StringBuilder();
+        text.Append($"ROUTE ({from.X}, {from.Z}) -> ({to.X}, {to.Z}) aim {aim}: {path.Cost.Distance} blocks, "
+            + $"{path.Cost.Blocks} placed, {path.Cost.Drops} drop(s), worst drop {path.Cost.WorstDrop}\n");
+
+        text.Append("  place            y   step\n");
+        for (var i = 0; i < path.Places.Count; i++)
+        {
+            var place = path.Places[i];
+            text.Append("  ").Append($"({place.X}, {place.Z})".PadRight(16)).Append(place.Y.ToString().PadLeft(4));
+            if (i > 0)
+            {
+                var rise = place.Y - path.Places[i - 1].Y;
+                var word = Walk.StepWord(rise);
+                if (word != "walk") text.Append("   ").Append(word).Append(' ').Append(Signed(rise));
+            }
+            text.Append('\n');
+        }
+
+        text.Append($"rises {rises}, falls {falls}, worst step {worstStep}: ");
+        text.Append(events.Count == 0
+            ? "walked end to end"
+            : string.Join("; ", events.Select(e => $"{e.Word} {Signed(e.Rise)} at ({e.X}, {e.Z})")));
+        text.Append('\n');
+
+        if (beside.Count > 0)
+            text.Append("beside: ").Append(string.Join(", ",
+                beside.Select(n => $"{n.Kind} {n.Unit} at ({n.X}, {n.Z}) d{n.Distance}"))).Append('\n');
+
+        return text.ToString();
+    }
+
+    private static string Signed(int value) => value >= 0 ? $"+{value}" : value.ToString();
 }
 
 /// <summary>GET /api/map/{slug}/render/walk — the same walk, drawn. Every passable cell shaded by what
@@ -928,5 +1032,59 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
             walked.Rises, walked.Falls, walked.WorstStep, walked.Barriers, walked.Scrambles, walked.Drops,
             walked.Events,
             [.. walked.Beside.Select(n => new TransectNeighbourDto(n.Kind, n.Unit, n.Image, n.X, n.Z))]), ct);
+    }
+}
+
+/// <summary>GET /api/map/{slug}/themes/census — the board's ground cells counted by the theme that paints
+/// them: how many cells each theme owns, what it is made of, and which theme borders which. The number for a
+/// board that mashes its themes, which `render/surface`'s tone-family legend has no count for.</summary>
+internal sealed class ThemeCensusReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<ThemeCensusResultDto>
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/themes/census");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("themes/census"));
+        Description(b => b.Refuses(404).AlsoText());
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+        var layout = await artifacts.LoadAsync(map.Id, ArtifactKind.SketchLayoutJson, ct);
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null || layout is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no board to count themes over")], ct);
+            return;
+        }
+
+        var census = ThemeCensus.Compute(read.Built, System.Text.Encoding.UTF8.GetString(layout));
+        if (TextAnswer.Wanted(HttpContext))
+        {
+            await TextAnswer.WriteAsync(HttpContext, RenderText(census), ct);
+            return;
+        }
+        await Send.OkAsync(census, ct);
+    }
+
+    /// <summary>The census as characters: one line per theme with its share and its materials, then every
+    /// border between two themes and how many cells cross it.</summary>
+    private static string RenderText(ThemeCensusResultDto census)
+    {
+        var cells = census.ByTheme.Sum(row => row.Cells);
+        var text = new System.Text.StringBuilder();
+        text.Append($"THEMES  {census.Themes} themes over {cells} ground cells, {census.Palette} distinct "
+            + "surface blocks\n");
+        foreach (var row in census.ByTheme)
+            text.Append($"  {row.Id}  {row.Cells} cells ({row.Share * 100:F1}%)  "
+                + $"{string.Join(", ", row.Materials)}\n");
+        text.Append("borders:\n");
+        foreach (var border in census.Adjacency)
+            text.Append($"  {border.A} | {border.B}  {border.Cells} cells\n");
+        return text.ToString();
     }
 }

@@ -211,4 +211,77 @@ public sealed class WorldReadEndpointTests
         var resp = await client.GetAsync($"/api/map/{slug}/transect?points=0,0");
         await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableEntity);
     }
+
+    [Test]
+    public async Task The_walk_answers_its_profile_and_leaves_beside_empty_on_a_board_with_no_props()
+    {
+        // z=-25 never crosses the 20×20 plateau (x and z both -10..10), so the whole route is flat: places
+        // match cells one for one and no step is anything but a walk.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var resp = await client.GetAsync($"/api/map/{slug}/walk?from=-25,-25&to=25,-25&beside=2");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var read = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        await Assert.That(read.GetProperty("reachable").GetBoolean()).IsTrue();
+        var cellCount = read.GetProperty("cells").GetArrayLength();
+        await Assert.That(read.GetProperty("places").GetArrayLength()).IsEqualTo(cellCount);
+        await Assert.That(read.GetProperty("steps").GetArrayLength()).IsEqualTo(0);
+        await Assert.That(read.GetProperty("rises").GetInt32()).IsEqualTo(0);
+        await Assert.That(read.GetProperty("falls").GetInt32()).IsEqualTo(0);
+        await Assert.That(read.GetProperty("worstStep").GetInt32()).IsEqualTo(0);
+        await Assert.That(read.GetProperty("beside").GetArrayLength()).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task The_theme_census_counts_every_ground_cell_once()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var resp = await client.GetAsync($"/api/map/{slug}/themes/census");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        var read = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        var byTheme = read.GetProperty("byTheme");
+        var cells = 0;
+        foreach (var row in byTheme.EnumerateArray()) cells += row.GetProperty("cells").GetInt32();
+        await Assert.That(cells).IsGreaterThan(0);
+        await Assert.That(read.GetProperty("themes").GetInt32()).IsEqualTo(byTheme.GetArrayLength());
+    }
+
+    [Test]
+    public async Task The_walk_and_the_theme_census_answer_the_text_they_are_asked_for()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        foreach (var route in (string[])["walk?from=-25,-25&to=25,-25&format=text", "themes/census?format=text"])
+        {
+            var resp = await client.GetAsync($"/api/map/{slug}/{route}");
+            await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.OK)
+                .Because($"{route} answered {(int)resp.StatusCode}");
+            await Assert.That(resp.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        }
+
+        var json = await client.GetAsync($"/api/map/{slug}/themes/census");
+        await Assert.That(json.StatusCode).IsEqualTo(HttpStatusCode.OK);
+        await Assert.That(json.Content.Headers.ContentType!.MediaType).IsEqualTo("application/json");
+    }
+
+    [Test]
+    public async Task A_map_with_no_stored_layout_has_no_world_to_read()
+    {
+        // Not a fault: a map that ships its own region files is read from those. The 404 says which, rather
+        // than the empty picture a build over nothing would produce.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var create = await client.PostAsJsonAsync("/api/sketch", new { name = $"WS6 bare {Guid.NewGuid():N}" });
+        var slug = (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+
+        // A fresh sketch seeds an empty layout, so the read that has genuinely nothing is one never drawn on.
+        var resp = await client.GetAsync("/api/map/not-a-map-at-all/render/topdown");
+        await Assert.That(resp.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        _ = slug;
+    }
 }

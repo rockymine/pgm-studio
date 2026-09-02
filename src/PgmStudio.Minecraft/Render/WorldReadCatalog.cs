@@ -107,7 +107,9 @@ public static class WorldReadCatalog
             + "free height it takes. Four answers in four units, none weighed against the others, so a "
             + "caller reads the field its own rule is stated in. `aim` picks which route is measured: the "
             + "shortest (`travel`), the one placing fewest blocks (`reach`), or the least edge-hugging of "
-            + "the routes within ten blocks of the shortest (`comfort`).",
+            + "the routes within ten blocks of the shortest (`comfort`). It also says which storey it stood "
+            + "on at every place, which steps it scrambled, dropped or climbed as a barrier, and — with "
+            + "`?beside=N` — every distinct thing recorded within N cells of the route.",
             "`from` and `to` are snapped to the nearest ground within 24 blocks, because a marker's stated "
             + "coordinates are a block in a room rather than a cell of terrain. A journey between two "
             + "markers deep inside walls is measured between the cells outside them."),
@@ -122,6 +124,12 @@ public static class WorldReadCatalog
             + "the same walk as a table, one row a station.",
             "A transect answers exactly the line asked for and nothing either side of it — a barrier two "
             + "cells off the stated points is invisible to it, which is what `beside` is for."),
+
+        new("themes/census", null,
+            "Every ground cell counted by the theme that paints it: cells per theme and their share, the "
+            + "distinct surface materials each carries, which theme borders which and over how many cells, "
+            + "and the board's whole palette count. The number for a board that mashes its themes, which "
+            + "`render/surface`'s tone-family legend has no count for."),
     ];
 
     /// <summary>What one read answers, and where it misleads — the sentence a route publishes as its own

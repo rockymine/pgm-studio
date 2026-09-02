@@ -5,6 +5,7 @@
     <ProjectReference Include="..\PgmStudio.Analysis\PgmStudio.Analysis.csproj" />
     <ProjectReference Include="..\PgmStudio.Minecraft\PgmStudio.Minecraft.csproj" />
     <ProjectReference Include="..\PgmStudio.Pgm\PgmStudio.Pgm.csproj" />
+    <ProjectReference Include="..\PgmStudio.Contracts\PgmStudio.Contracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

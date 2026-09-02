@@ -44,9 +44,10 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
-| `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells}`. `?from=x,z&to=x,z`, `aim` and `team` as above |
+| `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
 | `transect` | — | a polyline walked block by block, as JSON: `{stations, rises, falls, worstStep, barriers, scrambles, drops, events, beside}`. `?points=x,z;x,z[;x,z…]`, `every` thins the stations, `beside` lists every claim within that many cells of the line; `?format=text` answers the same walk as a table |
+| `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
 by a person or an agent rather than parsed, and it is the one read a caller with no image reader can act on.
@@ -131,6 +132,18 @@ avoids. `comfort` has no field of its own — the bound is the journey's own len
 two cells; `render/walk?aim=comfort` shades the travel field and draws the comfort route on it, which is the
 pairing that shows what the standoff bought.
 
+**`walk` also says which storey it stood on at every place, which steps it left a walk for, and what stands
+beside it.** `places` carries the route's own `y` at each cell — the storey the walk chose, not the ground a
+deck or a gallery roofs it with — and `steps` names every consecutive pair whose rise is not a plain walk: a
+scramble, a barrier or a drop, classed the way `PgmStudio.Geom.Walk.StepWord` classes any signed step, with
+the totals `rises`, `falls` and `worstStep` over the whole route. `?beside=N` (0 to 6 cells, Chebyshev) adds
+every distinct thing the provenance record names within `N` cells of any cell the route passes through — a
+tree, a boulder, a house, water, a spawn, a goal, wool or an iron cube, the first cell it is met at and its
+distance; flora and paint are left out, since neither is a thing a player runs into. `?format=text` answers
+the same reading as characters: the route's own numbers, a station at every place it stood with the word and
+the signed step where it left a walk, the totals, and what stands beside it — the same table the driver's
+route profile printed from a client-side copy that could not know which storey the walk chose.
+
 ## A stacked board is drawn one storey at a time
 
 Four reads project a column to one cell — `topdown`, `heightmap`, `surface`, `structures` — so on a stacked
@@ -166,6 +179,27 @@ because that deck is level, which is a property of that board and not of stackin
 `section` and `column` take no `layer` word: they keep Y and show every storey already. Neither do
 `traversability` and `walk`, which run over the ground rather than draw it and answer per storey without being
 asked.
+
+## What a theme census counts
+
+`themes/census` counts every ground cell of the built board by the theme that paints it, resolved the way
+`TerrainThemeScope` resolves it for the painter: a shape's own override where one claims the cell, the map
+default everywhere else. `render/surface` already reads a board against the tone families it was authored
+from, but only as a legend baked into a picture; this is the number a board that mashes its themes has no
+gate for.
+
+Per theme it answers `cells` and `share` — that count over the board's whole ground — and `materials`, the
+distinct surface blocks its cells carry in the finished world, as `id:data name`, most frequent first and cut
+at twelve, with `materialCount` holding the true count whether or not the list was cut. `adjacency` is every
+pair of themes that shares a border: for every 4-neighbour pair of cells painted in different themes, one
+count per unordered pair, largest first — the number that says a hillside painted in three unrelated themes
+is three themes mashed together rather than one graded slope. `palette` is the board's own distinct
+`id:data` count, over every theme, the same reading `render/surface`'s legend gives a single board without
+naming which theme spent which block.
+
+`?format=text` answers `THEMES  n themes over c ground cells, p distinct surface blocks`, one row per theme
+with its cells, share and materials, then `borders:` and one row per bordering pair with the cells that cross
+it.
 
 ## One of them misleads, and it has cost a reader a conclusion
 
