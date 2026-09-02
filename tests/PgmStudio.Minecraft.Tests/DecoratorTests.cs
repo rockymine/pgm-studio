@@ -276,6 +276,50 @@ public sealed class DecoratorTests
         await Assert.That(drop.Message).Contains("tree 't-off' has no ground at (");
     }
 
+    /// <summary>A hand-built tree carried as its own blocks: three logs up, a stair laid across the top climbing
+    /// east, and two leaves — one saved with the game's check bit on. It stands where it was clicked with its
+    /// foot on the ground, every leaf comes out no-decay, and its <c>rot_90</c> image turns the stair with the
+    /// body rather than leaving it climbing east.</summary>
+    private static TreeStyle Copied() => new()
+    {
+        Form = TreeForm.Copied,
+        Body = [[0, 0, 0, Blocks.Log, 12], [0, 1, 0, Blocks.Log, 12], [0, 2, 0, Blocks.Log, 12],
+                [1, 3, 0, 164, Blocks.StairEast], [0, 3, 0, Blocks.Leaves, 8], [-1, 3, 0, Blocks.Leaves, 0]],
+    };
+
+    [Test]
+    public async Task A_copied_tree_stands_block_for_block_with_its_leaves_kept_and_its_stairs_turned()
+    {
+        var (world, top) = Plateau(size: 60);
+        var placed = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "cut", X = 20, Z = 20, Seed = 5, Style = Copied() }],
+            symmetry: "rot_90", centerX: 30, centerZ: 30));
+        await Assert.That(placed.Trees).IsEqualTo(4);
+        await Assert.That(placed.Declines).IsEmpty();
+
+        // The original: foot on the first air course, the stair climbing east, both leaves no-decay.
+        await Assert.That(world.GetBlock(20, 8, 20)).IsEqualTo((Blocks.Log, 12));
+        await Assert.That(world.GetBlock(20, 10, 20)).IsEqualTo((Blocks.Log, 12));
+        await Assert.That(world.GetBlock(21, 11, 20)).IsEqualTo((164, Blocks.StairEast));
+        await Assert.That(world.GetBlock(20, 11, 20)).IsEqualTo((Blocks.Leaves, DressingPalette.LeafNoDecay));
+        await Assert.That(world.GetBlock(19, 11, 20)).IsEqualTo((Blocks.Leaves, DressingPalette.LeafNoDecay));
+
+        // Its quarter-turned image about (30, 30): the anchor lands at (39, 20) and the stair, which stood a
+        // block east of the trunk, stands a block along the turned axis — climbing that way, not east.
+        var image = Enumerable.Range(0, 60).SelectMany(x => Enumerable.Range(0, 60).Select(z => (x, z)))
+            .Where(c => c != (20, 20) && world.GetBlock(c.x, 8, c.z).Id == Blocks.Log).ToList();
+        await Assert.That(image.Count).IsEqualTo(3);
+        foreach (var (ax, az) in image)
+        {
+            var stair = new[] { (ax + 1, az), (ax - 1, az), (ax, az + 1), (ax, az - 1) }
+                .Single(c => world.GetBlock(c.Item1, 11, c.Item2).Id == 164);
+            var facing = world.GetBlock(stair.Item1, 11, stair.Item2).Data & 3;
+            var expected = stair.Item1 > ax ? Blocks.StairEast : stair.Item1 < ax ? Blocks.StairWest
+                : stair.Item2 > az ? Blocks.StairSouth : Blocks.StairNorth;
+            await Assert.That(facing).IsEqualTo(expected);
+        }
+    }
+
     // ── a prop stands where it was placed ──────────────────────────────────────────────────────────
     [Test]
     public async Task A_tree_grows_where_it_was_placed_and_nowhere_else()

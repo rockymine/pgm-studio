@@ -31,7 +31,12 @@ public sealed class PropStyleLibrary(PropStyleStore store)
 
     public static TreeStyle TreeOf(TreeStyleRow row) => new()
     {
-        Form = TreeForms.Canonical(row.Form) == TreeForms.Grown ? TreeForm.Grown : TreeForm.Template,
+        Form = TreeForms.Canonical(row.Form) switch
+        {
+            TreeForms.Grown => TreeForm.Grown,
+            TreeForms.Copied => TreeForm.Copied,
+            _ => TreeForm.Template,
+        },
         Species = TreeSpeciesNames.Canonical(row.Species),
         Wood = TreeWoodNames.Canonical(row.Wood),
         Height = row.Height,
@@ -42,15 +47,20 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         Levels = row.Levels,
         Whorled = row.Whorled,
         LeafSize = row.LeafSize,
+        Body = BodyOf(row.Body),
     };
 
+    /// <summary>A copied recipe's height is what its body stands, read rather than stated: a knob that
+    /// disagrees with the blocks would size a preview's sample patch for a tree that is not there.</summary>
     public static TreeStyleRow RowOf(TreeStyleSaveRequest req) => new()
     {
         Name = req.Name,
         Form = TreeForms.Canonical(req.Form),
         Species = TreeSpeciesNames.Canonical(req.Species),
         Wood = TreeWoodNames.Canonical(req.Wood),
-        Height = Math.Clamp(req.Height, 5, 40),
+        Height = TreeForms.Canonical(req.Form) == TreeForms.Copied
+            ? new TreeStyle { Form = TreeForm.Copied, Body = req.Body }.BodyHeight
+            : Math.Clamp(req.Height, 5, 40),
         Stems = Math.Clamp(req.Stems, 1, 3),
         Leader = Math.Clamp(req.Leader, 0, 1),
         Flow = Math.Clamp(req.Flow, 0, 1),
@@ -58,11 +68,23 @@ public sealed class PropStyleLibrary(PropStyleStore store)
         Levels = Math.Clamp(req.Levels, 2, 3),
         Whorled = req.Whorled,
         LeafSize = Math.Clamp(req.LeafSize, 0.2, 1),
+        Body = TreeForms.Canonical(req.Form) == TreeForms.Copied && req.Body is { Length: > 0 }
+            ? JsonSerializer.Serialize(req.Body) : "",
     };
 
     public static TreeStyleDetail ToDetail(TreeStyleRow row) => new(
         row.Id, row.Name, TreeForms.Canonical(row.Form), row.Species, row.Wood, row.Height,
-        row.Stems, row.Leader, row.Flow, row.BranchAngle, row.Levels, row.Whorled, row.LeafSize);
+        row.Stems, row.Leader, row.Flow, row.BranchAngle, row.Levels, row.Whorled, row.LeafSize,
+        BodyOf(row.Body)?.Select(cell => cell).ToArray());
+
+    /// <summary>The body a row stores, or nothing where it stores none or stores something that is not a
+    /// list of rows — a hand-edited column still answers a recipe rather than a 500.</summary>
+    private static int[][]? BodyOf(string json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return null;
+        try { return JsonSerializer.Deserialize<int[][]>(json); }
+        catch (JsonException) { return null; }
+    }
 
     /// <summary>The draft as the editor's own stage draws it — the same recipe as a browse card, at the
     /// size a knob is judged at rather than the size a row is scanned at.</summary>

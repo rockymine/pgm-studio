@@ -56,6 +56,42 @@ public static class BlockGeometry
     public static int Stair(RoomEdge toward, bool upsideDown = false) =>
         StairFacing(toward) | (upsideDown ? Blocks.StairUpsideDown : 0);
 
+    /// <summary>A block's data with its direction turned by <paramref name="turn"/>, which maps a horizontal
+    /// offset to its image the way a prop's own cells are turned round the symmetry.
+    ///
+    /// <para>Two blocks a copied prop carries have a direction in their data. A log's two orientation bits name
+    /// the axis it lies along — upright, along x, along z, or bark on every face — and a stair's two low bits
+    /// name the side it climbs toward. Both are turned by taking the direction as an offset, turning that, and
+    /// reading the bits back off the result; a mirror sends an axis to itself and a facing to its opposite, a
+    /// quarter turn swaps the axes, and a half turn leaves an axis alone while reversing a facing. Every other
+    /// block keeps its data: a slab, a leaf and a wool block face no way in particular.</para></summary>
+    public static int Turned(int id, int data, Func<int, int, (int X, int Z)> turn)
+    {
+        if (id is Blocks.Log or Blocks.Log2)
+        {
+            var axis = data & 12;
+            if (axis is 0 or 12) return data;
+            var (tx, tz) = turn(axis == 4 ? 1 : 0, axis == 8 ? 1 : 0);
+            return (data & 3) | (Math.Abs(tx) >= Math.Abs(tz) ? 4 : 8);
+        }
+        if (BlockFamilies.IsStair(id))
+        {
+            var (dx, dz) = (data & 3) switch
+            {
+                Blocks.StairEast => (1, 0),
+                Blocks.StairWest => (-1, 0),
+                Blocks.StairSouth => (0, 1),
+                _ => (0, -1),
+            };
+            var (tx, tz) = turn(dx, dz);
+            var facing = Math.Abs(tx) >= Math.Abs(tz)
+                ? tx < 0 ? Blocks.StairWest : Blocks.StairEast
+                : tz < 0 ? Blocks.StairNorth : Blocks.StairSouth;
+            return (data & ~3) | facing;
+        }
+        return data;
+    }
+
     /// <summary>A slab in the upper or lower half of its cube, keeping the three low bits that say what it is
     /// made of. An upper slab is the lintel over an opening and the underside of a course; a lower one is the
     /// sill beneath it and the tread of a step.</summary>

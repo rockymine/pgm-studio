@@ -294,14 +294,15 @@ public sealed record TreeStyleSummary(long Id, string Name, string Preview);
 /// names it by once it is pulled into a map's dressing registry.</summary>
 public sealed record TreeStyleDetail(
     long Id, string Name, string Form, string Species, string Wood, double Height,
-    int Stems, double Leader, double Flow, double BranchAngle, int Levels, bool Whorled, double LeafSize)
+    int Stems, double Leader, double Flow, double BranchAngle, int Levels, bool Whorled, double LeafSize,
+    int[][]? Body = null)
     : TreeStyleSaveRequest(Name, Form, Species, Wood, Height, Stems, Leader, Flow, BranchAngle, Levels,
-                           Whorled, LeafSize);
+                           Whorled, LeafSize, Body);
 
-/// <summary>Create or replace a tree recipe — one of <b>two</b> trees, which <paramref name="Form"/> picks. A
+/// <summary>Create or replace a tree recipe — one of <b>three</b> trees, which <paramref name="Form"/> picks. A
 /// <c>template</c> tree is vanilla and reads its species; a <c>grown</c> tree is the recursive skeleton and
-/// reads its wood and the knobs under it. Each form reads only its own fields, so the ones it does not read are
-/// inert rather than wrong.</summary>
+/// reads its wood and the knobs under it; a <c>copied</c> tree is cut out of a world and reads only its body.
+/// Each form reads only its own fields, so the ones it does not read are inert rather than wrong.</summary>
 /// <param name="Name">What the library lists it under.</param>
 /// <param name="Form">Which tree this is, from <see cref="TreeForms"/>.</param>
 /// <param name="Species">Template only — the vanilla species, whose row carries the wood, the canopy profile
@@ -319,13 +320,17 @@ public sealed record TreeStyleDetail(
 /// <param name="Whorled">Grown only — whether the branches gather into rings, each shorter than the one below.
 /// It is the conifer against the broadleaf, and the one shape choice a picker of six woods cannot make.</param>
 /// <param name="LeafSize">Grown only — how big each tip's leaf cluster is, 0.2–1.</param>
+/// <param name="Body">Copied only — the tree's blocks as <c>[x, y, z, id, data]</c> rows, offsets from the
+/// foot: the lowest wood block stands at <c>(0, 0, 0)</c> and every block at <c>y 0</c> rests on the ground.
+/// A copied recipe's height is read off the body rather than stated.</param>
 public record TreeStyleSaveRequest(
     string Name,
     [property: WordSet(typeof(TreeForms))] string Form,
     [property: WordSet(typeof(TreeSpeciesNames))] string Species,
     [property: WordSet(typeof(TreeWoodNames))] string Wood,
     double Height, int Stems = 1, double Leader = 0.55, double Flow = 0.45,
-    double BranchAngle = 1.1, int Levels = 2, bool Whorled = false, double LeafSize = 0.6);
+    double BranchAngle = 1.1, int Levels = 2, bool Whorled = false, double LeafSize = 0.6,
+    int[][]? Body = null);
 
 /// <summary>A boulder recipe as the library lists it.</summary>
 /// <param name="Id">The row a placement names once the recipe is pulled into a map's registry.</param>

@@ -2928,6 +2928,15 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   OB8 demands** — shared by the stamp and the region generator, with `CuboidMax` encoding OB13 (a
   cuboid spans `[min, max)`), because a region that misses its structure yields a silent zero-health goal.
   `Blocks` gains obsidian, gold, emerald, end stone and lava. (B24d, B25d, DT1–DT4/DC1–DC2/OB8/OB13)
+- **A copied tree: a hand-built tree cut out of a world and planted as a recipe (`WE72`).** The third
+  `TreeForm` beside template and grown carries its own `body` — every block as `[x, y, z, id, data]` from its
+  foot — and the dressing pass stamps it block for block: the foot seats on the ground like a trunk, leaves
+  take the no-decay bit and lose the game's check bit, and a log's axis or a stair's facing turns with the body
+  round the symmetry (`BlockGeometry.Turned`). The library row stores the body (`M0031`), the editor shows a
+  copied recipe as its card and block count, and `tools/seed-trees.cs` files every tree standing in a world —
+  the 74 of `pgm-studio-mapgen/showcase/tree-showcase` — under `<world>-r<row>-<n>`, dropping bodies that hang
+  in the air as fragments. `docs/world-export/decoration.md` §6, `docs/tools/library.md`.
+
 ## Pipeline / world import (M7)
 - **Anvil `.mca` reader** — byte-exact vs Python. (P1)
 - **Feature extractors** — wool / resource / chest / spawner / segments, 11/11 parity. (P2)
@@ -7767,6 +7776,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   it had. Both exist now, alongside `setReliefScope`, and all three write **absence** rather than an empty
   string — a shape without the word is ground, and a shape carrying `""` is a shape carrying a word nothing
   reads. (`sketch-bridge.js`)
+
+- **An override add standing in ground keeps the ground under its floor (`TS77`).** `RasterGroup` gives an
+  override add whose column's ordinary span reaches its floor the span from the ground's own floor to the
+  override's top, so a wall traced along a lip with its floor under the bed no longer leaves a shaft to
+  bedrock beneath it; a deck drawn above the ground's top keeps the air it was drawn with. Measured on
+  `opus5-millrace`: the two canal walls, the spawn stair and the three cairn walls each stood over a void from
+  y0 to their floors, which the map's authors filled by hand.
+- **A cell's theme is its own layer's shape's (`TS80`).** `TerrainThemeScope` keys the shape-to-theme
+  table by `(layer, shape id)`, so two layers carrying a shape of one id — every made thing a compiler emits
+  numbers its shapes from nought — each paint their own theme. Measured on `fable-millrace-revamp`: a red
+  statue and a blue one compiled alike stood in two places and both painted blue.
+- **`SK19` reads a placement's kind before its key (`TS78`).** Only a tree, a boulder and a building name a
+  recipe; a stroke's `style` is the word for its edge, and a road drawn `rough` no longer refuses the store.
 
 ## Analysis-backed authoring (backends — UI tracked in TODO)
 - **Analysis endpoints over the ported services** — `GET /buildability`, `GET /traversability`,

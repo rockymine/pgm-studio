@@ -650,6 +650,9 @@ public sealed class TreeStyleRow
     [Column("levels")] public int Levels { get; set; } = 2;
     [Column("whorled")] public bool Whorled { get; set; }
     [Column("leaf_size")] public double LeafSize { get; set; } = 0.6;
+    /// <summary>Copied only — the tree's blocks as the recipe's own JSON (<c>[[x, y, z, id, data], …]</c>,
+    /// M0031). Empty on the two built forms, which carry no blocks of their own.</summary>
+    [Column("body"), NotNull] public string Body { get; set; } = "";
     [Column("created_at")] public DateTime CreatedAt { get; set; }
 }
 

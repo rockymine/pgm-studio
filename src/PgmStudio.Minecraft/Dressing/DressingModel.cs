@@ -75,6 +75,10 @@ public enum TreeForm
     Template,
     /// <summary>The grown skeleton, in a chosen wood.</summary>
     Grown,
+    /// <summary>A tree an author built by hand, cut out of a world and carried block by block as the recipe's
+    /// own <see cref="TreeStyle.Body"/>. It has no species, no wood and no knob: what it looks like is what
+    /// was built, and the studio's part is only to seat it, turn it round the symmetry and keep its leaves.</summary>
+    Copied,
 }
 
 /// <summary>What a tree is made of: the log and leaf blocks, named once. It is separate from the species
@@ -196,16 +200,33 @@ public static class BoulderShapes
 public abstract record PropStyle;
 
 /// <summary>
-/// One tree, as a recipe — and one of <b>two</b> trees, which <see cref="Form"/> picks.
+/// One tree, as a recipe — and one of <b>three</b> trees, which <see cref="Form"/> picks.
 ///
 /// <para>A <see cref="TreeForm.Template"/> tree is vanilla: <see cref="Species"/> names its wood, its canopy
 /// profile and its proportions, and <see cref="Height"/> scales the lot. A <see cref="TreeForm.Grown"/> tree is
-/// the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. Each form
+/// the recursive skeleton: <see cref="Wood"/> names what it is cut from and the knobs below shape it. A
+/// <see cref="TreeForm.Copied"/> tree is the blocks an author placed, carried in <see cref="Body"/>. Each form
 /// reads only its own fields, so the ones it does not read are inert rather than wrong.</para>
 /// </summary>
 public sealed record TreeStyle : PropStyle
 {
     public TreeForm Form { get; init; } = TreeForm.Template;
+
+    /// <summary>Copied only — the tree's blocks as <c>[x, y, z, id, data]</c> offsets from its foot, the foot
+    /// being the lowest wood block: it stands at <c>(0, 0, 0)</c> and every block at <c>y 0</c> rests on the
+    /// ground. Leaves carry whatever data they were cut with; the stamp sets the no-decay bit and clears the
+    /// game's own check bit, so a copied crown neither rots nor depends on how it was saved.</summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public IReadOnlyList<int[]>? Body { get; init; }
+
+    /// <summary>The body as cells, dropping any row that does not carry five numbers. A document is read by
+    /// hand as often as by a tool, and a short row is a slip rather than a reason to refuse the whole recipe.</summary>
+    [JsonIgnore] public IEnumerable<(int X, int Y, int Z, int Id, int Data)> BodyCells =>
+        (Body ?? []).Where(row => row.Length >= 5).Select(row => (row[0], row[1], row[2], row[3], row[4]));
+
+    /// <summary>How many courses the body stands, or nought where it carries none.</summary>
+    [JsonIgnore] public int BodyHeight =>
+        Body is { Count: > 0 } ? BodyCells.Max(cell => cell.Y) - BodyCells.Min(cell => cell.Y) + 1 : 0;
 
     /// <summary>Template only — a row in <see cref="DressingPalette.Species"/>: the wood, the canopy profile
     /// and the proportions of one vanilla species.</summary>
@@ -253,7 +274,7 @@ public sealed record TreeStyle : PropStyle
     /// <see cref="Leader"/> of 55 rather than 0.55 therefore does not draw a strange tree, it asks for a volume
     /// hundreds of blocks on a side and never returns. Holding the values here covers every caller instead of
     /// each guarding its own input, and means a stored recipe that is out of range still builds something.</para></summary>
-    [JsonIgnore] public double Reach => Math.Clamp(Height, 5, 40);
+    [JsonIgnore] public double Reach => Math.Clamp(Form == TreeForm.Copied ? BodyHeight : Height, 5, 40);
 
     /// <summary>This tree's growth parameters, as the grower wants them, each bounded like
     /// <see cref="Reach"/>. Read only when it is grown.</summary>

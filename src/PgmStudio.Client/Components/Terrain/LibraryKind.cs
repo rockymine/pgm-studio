@@ -70,10 +70,11 @@ public static class LibraryKinds
         Composed: true);
 
     /// <summary>A tree is a recipe rather than a placement: what is put on the canvas is a position, and what
-    /// stands there is one of these. The two forms are two trees, not one with a switch.</summary>
+    /// stands there is one of these. The three forms are three trees, not one with a switch.</summary>
     public static readonly LibraryKind Trees = new(
         TreesSlug, "tree-styles", "Trees", "tree", "trees",
-        "One of two trees: a vanilla species with a drawn canopy, or a skeleton grown from knobs you shape. "
+        "One of three trees: a vanilla species with a drawn canopy, a skeleton grown from knobs you shape, "
+        + "or a tree an author built, copied out of a world. "
         + "Placed by a click, so what is placed is a position and what stands there is this.",
         Composed: true);
 

@@ -18,10 +18,11 @@
   <Fields>
     @if (tree is not null)
     {
-      <p class="section-desc">Two trees, not one with a switch. A <strong>vanilla</strong> tree is a named
+      <p class="section-desc">Three trees, not one with a switch. A <strong>vanilla</strong> tree is a named
         species with a drawn canopy — a notched cone is a spruce, a flat umbrella on a leaning trunk an acacia,
         and neither is a knob setting of the other. A <strong>grown</strong> tree is a skeleton you shape, in
-        whichever wood you cut it from.</p>
+        whichever wood you cut it from. A <strong>copied</strong> tree is one an author built by hand, cut out
+        of a world block by block and carried whole.</p>
       <Field Label="Which tree">
         <Select Options="@Select.Words(TreeForms.All, TreeForms.Describe)" Value="@tree.Form"
                 ValueChanged="SetTreeForm" />
@@ -42,9 +43,27 @@
         </Field>
       }
 
-      <Field Label="Height"><LabelEnd><strong>@($"{tree.Height:0} blocks")</strong></LabelEnd>
-        <ChildContent><input type="range" class="field-range" min="5" max="40" step="1" value="@((int)tree.Height)"
-               @oninput="e => Tree(t => t with { Height = Number(e, t.Height) })" /></ChildContent></Field>
+      @if (TreeForms.Canonical(tree.Form) == TreeForms.Copied)
+      {
+        <p class="section-desc">
+          @if (tree.Body is { Length: > 0 })
+          {
+            <text>@tree.Body.Length blocks, @tree.Height.ToString("0") courses tall. The body is what was cut
+              and has no knob: it is retuned by cutting it again.</text>
+          }
+          else
+          {
+            <text>No body yet. A copied tree is cut out of a world with <code>tools/seed-trees.cs</code>, which
+              files every tree it finds here under its own name.</text>
+          }
+        </p>
+      }
+      else
+      {
+        <Field Label="Height"><LabelEnd><strong>@($"{tree.Height:0} blocks")</strong></LabelEnd>
+          <ChildContent><input type="range" class="field-range" min="5" max="40" step="1" value="@((int)tree.Height)"
+                 @oninput="e => Tree(t => t with { Height = Number(e, t.Height) })" /></ChildContent></Field>
+      }
 
       @if (TreeForms.Canonical(tree.Form) == TreeForms.Grown)
       {

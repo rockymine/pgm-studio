@@ -411,7 +411,7 @@ public static class DressingJson
                 : new JsonObject { ["kind"] = "house", ["shell"] = new JsonObject() };
 
         string[] fields = kind == "tree"
-            ? ["form", "species", "wood", "height", "stems", "leader", "flow", "branchAngle", "levels", "whorled", "leafSize"]
+            ? ["form", "species", "wood", "height", "stems", "leader", "flow", "branchAngle", "levels", "whorled", "leafSize", "body"]
             : ["form", "size", "rock", "mossy"];
 
         var recipe = new JsonObject { ["kind"] = kind };
@@ -435,7 +435,10 @@ public static class DressingJson
                 ? Slug(shell) : "building";
         if (kind == "boulder") return $"{Text("form", "round")}-{Number("size", 4)}";
 
-        var grown = Text("form", "template") == "grown";
+        var form = Text("form", "template");
+        if (form == "copied")
+            return $"copied-{(recipe["body"] is JsonArray body ? body.Count : 0)}";
+        var grown = form == "grown";
         var wood = grown ? Text("wood", "oak") : Text("species", "oak");
         return $"{(grown ? "grown-" : "")}{Slug(wood)}-{Number("height", 12)}";
     }

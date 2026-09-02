@@ -231,6 +231,14 @@ what is gathered here is the parked and dormant slices of the same surface.
   here runs the other way — a drawn channel handed to the solver as a line mark below base level makes the
   terrain form a valley around it (`world-export/relief.md` §9).
 
+- [ ] **WE73 — Nothing stands in the water.** A `pool` or `channel` claims every column of its bed
+  (`ClaimKind.Water`) and a quay wall drawn as a `keepClear` path keeps its band, so a boulder stated in the
+  race is refused before it is seated — `DR-CLAIM` by the channel at `(−110, 55)`, `DR-KEEP` by the wall at
+  `(−70, 52)` on `maps/fable-millrace-revamp` — and a rock's cells above the bed would meet water rather
+  than air in `Decorator.Fan` if it were. The author brushed about twenty rocks into Millrace's bed and the
+  studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
+  claim for everything else; `docs/world-export/decoration.md` §5 and §7.
+
 ### Path
 
 - [ ] **S56 — A path's height varies along it.** The path primitive takes a uniform `base_height` over its
@@ -335,6 +343,24 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   31 in its `RQ4` refusal. Render the strip, the layer list and the topdown filter **by `prop`** — one row per
   made thing with its layers folded under it. **A prop is also what moves**: dragging one has to take every
   layer of it together, since a made thing standing half a block from where it was put is not a made thing.
+
+- [ ] **TS79 — `SK18` reads a column and not a course, so a frame over a goal is "inside" it.** The
+  provenance a made thing and a stamped structure are compared on carries one claim per column and no Y, so a
+  beacon frame at y72–80 over a monument at y37–40 raises one complaint per layer of the frame — fourteen on
+  `maps/fable-millrace-revamp`, all wrong about a thing forty courses up. Compare the made thing's own span
+  (`ColumnSegment` floor and top, which the rasterizer has) against the structure's stamped courses, and name
+  only the columns where the two share a course. `SketchRasterizer` and the check that raises `SK18`;
+  `docs/tools/sketch.md` Refusals and `docs/refusals.md`.
+
+  *`beacon-front-L2` … `L6` against `destroyable-1`, first at `(−90, 18)`; the frame's lowest block is y72.*
+
+- [ ] **WE74 — A made thing fanned across the axis cannot change colour with the side it lands on.** The
+  author's statue is red clay and wool on one island and blue on the other; a `teamTint` material answers
+  the team only where the column resolves one, and a made thing on a neutral island resolves none, so the
+  restated board states the statue twice, unmirrored, with the blues swapped by hand
+  (`specs/fable-millrace-revamp/build.py`). Let a made-thing layer state the team its images take — the
+  image index is what the fan already knows — so one authored statue fans into a red one and a blue one.
+  `docs/tools/sketch.md` § A made thing; `docs/world-export/terrain-painting.md` § 5.
 
 - [ ] **TS63 — A form library: the round structures a layer already draws.** `ring_wall`, `ellipse_wall`,
   `dome`, `spire`, `ziggurat`, `arch`, `colonnade`, `tapered_tower`, `bowl`, `crenellated_wall`, `drum_tower`,

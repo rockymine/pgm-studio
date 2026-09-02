@@ -132,6 +132,21 @@ public sealed class TerrainThemeScopeTests
         await Assert.That(FillId(at("deck", 4, 4))).IsEqualTo(300);
     }
 
+    /// <summary>A shape id is unique within its layer and not across the stack: two made things compiled by one
+    /// tool number their shapes alike, and each layer's cell has to paint its own shape's theme rather than
+    /// whichever layer stated that id last.</summary>
+    [Test]
+    public async Task Two_layers_carrying_a_shape_of_one_id_each_paint_their_own_theme()
+    {
+        var themes = new Dictionary<string, JsonElement>
+            { ["map"] = Fill(100), ["red"] = Fill(200), ["blue"] = Fill(300) };
+        var at = TerrainThemeScope.ThemeAt(Stacked(themes, "map",
+            Slab("statue-0", 0, 4, "red"), Slab("statue-0", 0, 6, "blue")));
+
+        await Assert.That(FillId(at("ground", 4, 4))).IsEqualTo(200);
+        await Assert.That(FillId(at("deck", 4, 4))).IsEqualTo(300);
+    }
+
     /// <summary>And the paint follows: each storey's own surface takes its own theme's material, so a themed
     /// upper slab lands on blocks rather than on nothing.</summary>
     [Test]

@@ -1039,7 +1039,15 @@ public static class SketchRasterizer
         // ((adds − subs) ∪ override-adds) − override-subs; height = the tallest add on each cell.
         var result = new Dictionary<(int, int), (int Top, int Floor)>(add);
         foreach (var k in sub) result.Remove(k);
-        foreach (var (k, v) in oadd) result[k] = v;        // override-add overwrites the column
+        // An override add overwrites the column — and where it stands in ground, takes the ground under its
+        // floor with it. A wall traced along a lip with its floor a few courses under the bed is the case: the
+        // column is the wall from its own floor up and the ground below that, not a wall over a shaft to
+        // bedrock. Only a column whose ordinary span reaches the override's floor is ground it stands in; a
+        // deck drawn above the ground's top keeps the air beneath it, because that gap was drawn.
+        foreach (var (k, v) in oadd)
+            result[k] = result.TryGetValue(k, out var ground) && ground.Floor < v.Floor && ground.Top >= v.Floor
+                ? (v.Top, ground.Floor)
+                : v;
         foreach (var k in osub) result.Remove(k);
         claimed = [.. oadd.Keys.Where(result.ContainsKey)];
         return result;

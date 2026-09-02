@@ -53,6 +53,10 @@ public static class SketchLayoutCheck
         {
             var at = index++;
             if (prop.ValueKind != JsonValueKind.Object) continue;
+            // Only the clicked kinds name a recipe. A stroke's `style` is the word for its edge — worn,
+            // rough, stepping stones — and names nothing in the registry.
+            if (!prop.TryGetProperty("kind", out var kind) || kind.ValueKind != JsonValueKind.String
+                || kind.GetString() is not ("tree" or "boulder" or "house")) continue;
             if (prop.TryGetProperty("style", out var style) && style.ValueKind == JsonValueKind.String
                 && style.GetString() is { Length: > 0 } key && !stated.Contains(key))
             {

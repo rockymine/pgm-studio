@@ -277,7 +277,12 @@ what the author's ruling asks for.
 
 **The set algebra runs by category, not in document order**: `((adds − subtracts) ∪ override-adds) −
 override-subtracts`, per layer. An override-add is therefore laid after every ordinary subtract, which is what
-lets a shape sit inside a hole another shape cut.
+lets a shape sit inside a hole another shape cut. **An override add standing in ground keeps the ground under
+its floor.** It overwrites the column it lands on, and where that column's ordinary span reaches the
+override's floor the result runs from the ground's own floor to the override's top — a wall traced along a
+lip with its floor a few courses under the bed is the wall from its floor up and the ground below that, not a
+wall over a shaft to bedrock. A deck drawn above the ground's top keeps the air beneath it, because that gap
+was drawn; only a column the override actually stands in is filled.
 
 **One line lets an air gap survive between two slabs.** `TerrainPainter.Paint` writes only where the world
 already holds *stone*, and the gap between a gallery and the deck over it is air. Without that invariant the
@@ -291,7 +296,8 @@ seated on the top. `docs/world-export/decoration.md` §1 carries the prop half.
 **A column carries one theme per layer, not one theme.** The board is painted one pass per layer, each layer
 against its own surface, so a cell standing on two layers is painted twice. Within a layer the smallest-area
 themed shape still wins a contested cell; across layers there is no contest, because each surface shows its
-own. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
+own. A shape id is unique within its layer and not across the stack — two made things compiled by one tool
+number their shapes alike — and the theme a cell paints with is its own layer's shape's. `docs/world-export/terrain-painting.md` §3 carries the mechanism.
 
 **A stacked board is walked layer by layer.** The walk's node is a place — a cell and the layer of it — so
 a deck twenty blocks over a yard is two somewheres rather than one, and a step between them is a step only
@@ -1001,8 +1007,9 @@ in `library.md` may stand there.
 a `style` key into the document's own `styles` registry, and the registry states each recipe once — a board
 carrying hundreds of trees over a few dozen recipes stores the recipes and not the repetition, and changing one
 changes every placement wearing it. A recipe names its kind the way a placement does, so one registry holds all
-three; the key is read off the recipe (`oak-10`, `grown-birch-18`, `angular-6`), so it says what it is rather
-than counting, and two recipes that read the same way are numbered rather than collapsed.
+three; the key is read off the recipe (`oak-10`, `grown-birch-18`, `copied-716`, `angular-6`), so it says what
+it is rather than counting, and two recipes that read the same way are numbered rather than collapsed. A
+copied tree's key counts its blocks, which is the one thing about a cut body that reads at a glance.
 
 A key naming no recipe is a **refusal**, not a fallback: a tree built as a stock oak because its recipe went
 missing is a map that differs from the one the author drew, and nothing downstream could tell. A document

@@ -2,10 +2,12 @@
 
 The tree-showcase world holds 75 author-built trees, one per 19×19 platform, sorted into 14 families by
 platform band plus a single wool tree. It is the first measured ground truth for the grown tree of
-`decoration.md` §6, and it says the grower is wrong in three specific, separable ways. The world is a
-measurement fixture kept outside the repo — it ships with nothing and no runtime path reads it — so the
-numbers below are the artifact, and re-taking a reading means a scratch pass over that world against today's
-code (`CLAUDE.md`, *Investigation stays local*).
+`decoration.md` §6, and it says the grower is wrong in three specific, separable ways. The world is committed
+at `pgm-studio-mapgen/showcase/tree-showcase`, and it is read by one operational tool: `tools/seed-trees.cs`
+cuts every tree standing in it into the library as a **copied** recipe (`decoration.md` §6), which is how a
+board plants the author's own trees rather than a grower's. The numbers below are still the artifact —
+re-taking a reading means a scratch pass over that world against today's code (`CLAUDE.md`, *Investigation
+stays local*).
 
 The world is worth describing before the numbers, because its layout is what makes them clean. Every tree
 body fits entirely inside its own platform and no crown reaches across a gap, so a plain connected-component

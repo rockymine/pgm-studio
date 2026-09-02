@@ -30,17 +30,20 @@ public static class TerrainThemeScope
 
         if (themes.Count == 0) return (_, _, _) => mapDefault;
 
-        // shapeId → its resolved theme, over every shape in every layer that carries a known theme id.
-        var shapeTheme = new Dictionary<string, TerrainTheme>();
-        foreach (var shapes in ShapeLists(layout))
-            foreach (var s in shapes)
-                if (s.Theme is { } tid && themes.TryGetValue(tid, out var theme)) shapeTheme[s.Id] = theme;
+        // (layer, shapeId) → its resolved theme, over every shape in every layer that carries a known theme
+        // id. Keyed with the layer because a shape id is unique within its layer and not across the stack:
+        // two made things compiled by one tool carry the same shape ids on different layers, and a cell is
+        // owned by a shape of its own layer.
+        var shapeTheme = new Dictionary<(string Layer, string Shape), TerrainTheme>();
+        foreach (var layer in SketchLayout.Stack(layout))
+            foreach (var s in layer.Shapes)
+                if (s.Theme is { } tid && themes.TryGetValue(tid, out var theme)) shapeTheme[(layer.Id!, s.Id)] = theme;
 
         if (shapeTheme.Count == 0) return (_, _, _) => mapDefault;
 
         var cellToShape = SketchRasterizer.ShapeThemeOwners(layoutJson);
         return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var shapeId)
-            && shapeTheme.TryGetValue(shapeId, out var theme) ? theme : mapDefault;
+            && shapeTheme.TryGetValue((layer, shapeId), out var theme) ? theme : mapDefault;
     }
 
     /// <summary>Every theme a layout carries, by the id it is registered under. What a gate reading the
@@ -58,7 +61,4 @@ public static class TerrainThemeScope
         }
     }
 
-    // Every layer's shapes, read through the document's one stack reader.
-    private static IEnumerable<List<SketchShape>> ShapeLists(SketchLayout? layout)
-        => SketchLayout.Stack(layout).Select(layer => layer.Shapes);
 }

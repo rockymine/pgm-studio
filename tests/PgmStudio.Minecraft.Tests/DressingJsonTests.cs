@@ -46,6 +46,34 @@ public sealed class DressingJsonTests
 
     // ── the first-key constraint (B130) ────────────────────────────────────────────────────────────────
     [Test]
+    public async Task A_copied_tree_round_trips_with_its_body_and_names_its_key_by_its_block_count()
+    {
+        var doc = new DressingDoc
+        {
+            Props = [new TreeProp { Id = "t", Seed = 3, X = 1, Z = 1, StyleKey = "cut",
+                                    Style = new TreeStyle { Form = TreeForm.Copied, Body = [[0, 0, 0, 17, 12], [0, 1, 0, 18, 4]] } }],
+            Styles = { ["cut"] = new TreeStyle { Form = TreeForm.Copied, Body = [[0, 0, 0, 17, 12], [0, 1, 0, 18, 4]] } },
+        };
+        var json = DressingJson.Serialize(doc);
+        await Assert.That(json).Contains("\"form\":\"copied\"");
+        await Assert.That(json).Contains("\"body\":[[0,0,0,17,12],[0,1,0,18,4]]");
+        var back = DressingJson.Deserialize(json);
+        var tree = (TreeProp)back.Props[0];
+        await Assert.That(tree.Style.Form).IsEqualTo(TreeForm.Copied);
+        await Assert.That(tree.Style.BodyHeight).IsEqualTo(2);
+        await Assert.That(tree.Style.BodyCells.Count()).IsEqualTo(2);
+
+        // Stated inline rather than under a key — the fields spread on the placement, the way a document
+        // written before recipes had names states them — the recipe is named by what it is and how much of
+        // it there is.
+        var inline = DressingJson.Deserialize("""
+            {"props":[{"kind":"tree","id":"t","x":1,"z":1,"seed":3,
+              "form":"copied","body":[[0,0,0,17,12],[0,1,0,18,4]]}]}
+            """);
+        await Assert.That(((TreeProp)inline.Props[0]).StyleKey).IsEqualTo("copied-2");
+    }
+
+    [Test]
     public async Task A_props_kind_reads_regardless_of_where_it_falls_in_the_object()
     {
         // `kind` last rather than first — a hand-edited or LLM-authored document has no reason to prefer one

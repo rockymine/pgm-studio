@@ -107,6 +107,22 @@ public sealed class SketchLayoutCheckTests
     }
 
     [Test]
+    public async Task A_placement_naming_a_recipe_the_document_does_not_state_is_refused_and_a_strokes_edge_word_is_not()
+    {
+        // A tree's `style` is a key into the registry; a stroke's `style` is the word for its edge and names
+        // nothing, so a road drawn `rough` beside an unstated recipe is one refusal, about the tree.
+        var findings = SketchLayoutCheck.Check(Layout(Rect, """
+            ,"dressing":{"props":[
+              {"kind":"stroke","id":"road","points":[[0,0],[10,0]],"radius":2,"style":"rough"},
+              {"kind":"tree","id":"t","x":0,"z":0,"style":"cut-oak"}],
+             "styles":{}}
+            """));
+        var refusal = findings.Refusals.Single();
+        await Assert.That(refusal.Rule).IsEqualTo(SketchRules.RecipeNotStated);
+        await Assert.That(refusal.Message).Contains("'t' names the recipe 'cut-oak'");
+    }
+
+    [Test]
     public async Task A_relief_keyed_to_an_island_that_is_not_there_is_named()
     {
         var findings = SketchLayoutCheck.Check(Layout(Rect, ""","relief":{"group-2":{"kind":"hills"}}"""));

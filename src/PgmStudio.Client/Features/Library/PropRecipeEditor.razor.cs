@@ -91,7 +91,8 @@ public partial class PropRecipeEditor
             (editingId, draftName) = (detail.Id, detail.Name);
             tree = new TreeStyleSaveRequest(
                 detail.Name, detail.Form, detail.Species, detail.Wood, detail.Height, detail.Stems,
-                detail.Leader, detail.Flow, detail.BranchAngle, detail.Levels, detail.Whorled, detail.LeafSize);
+                detail.Leader, detail.Flow, detail.BranchAngle, detail.Levels, detail.Whorled, detail.LeafSize,
+                detail.Body);
             return;
         }
 
@@ -121,8 +122,9 @@ public partial class PropRecipeEditor
         return Preview();
     }
 
-    /// <summary>Switching form keeps both names, because the two are two trees rather than one: an author who
-    /// tries the grown skeleton and goes back finds the species they had chosen still chosen.</summary>
+    /// <summary>Switching form keeps every field, because the three are three trees rather than one: an author
+    /// who tries the grown skeleton and goes back finds the species they had chosen still chosen, and a copied
+    /// body survives a look at what the same recipe would be as a template.</summary>
     private Task SetTreeForm(string form) => Tree(t => t with { Form = TreeForms.Canonical(form) });
 
     private Task Boulder(Func<BoulderStyleSaveRequest, BoulderStyleSaveRequest> edit)

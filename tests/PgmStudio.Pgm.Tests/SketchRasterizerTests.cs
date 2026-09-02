@@ -28,6 +28,29 @@ public sealed class SketchRasterizerTests
     }
 
     [Test]
+    public async Task An_override_add_standing_in_ground_keeps_the_ground_under_its_floor()
+    {
+        // A mass from y0 to y10 and a wall over part of it whose floor is y4: the wall's columns run from the
+        // ground's own floor, not from y4 over a shaft. Where the same wall stands over nothing — a deck past
+        // the ground's edge — its stated floor is kept, because the gap under a deck is drawn on purpose.
+        var columns = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"mirror_x","center":{"cx":1000,"cz":0}},
+         "layers": [{ "id": "ground", "base_y": 0, "layout":{"shapes":[
+            {"id":"mass","type":"rectangle","operation":"add","override":false,"min_x":0,"max_x":10,"min_z":0,"max_z":10,"floor":0,"base_height":10},
+            {"id":"wall","type":"rectangle","operation":"add","override":true,"min_x":8,"max_x":14,"min_z":0,"max_z":2,"floor":4,"base_height":8},
+            {"id":"deck","type":"rectangle","operation":"add","override":true,"min_x":2,"max_x":4,"min_z":4,"max_z":6,"floor":14,"base_height":2}],
+          "groups":[{"id":"i1","name":"A","mirrors":false,"shapeIds":["mass","wall","deck"]}]} }]}
+        """);
+        var inGround = columns.Single(c => c is { X: 9, Z: 1 });
+        await Assert.That(inGround.YFloor).IsEqualTo(0);
+        await Assert.That(inGround.YTop).IsEqualTo(12);
+        var pastTheEdge = columns.Single(c => c is { X: 12, Z: 1 });
+        await Assert.That(pastTheEdge.YFloor).IsEqualTo(4);
+        var overTheTop = columns.Single(c => c is { X: 3, Z: 5 });
+        await Assert.That(overTheTop.YFloor).IsEqualTo(14);
+    }
+
+    [Test]
     public async Task Subtract_carves_an_interior_hole()
     {
         var cells = Raster("""

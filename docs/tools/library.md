@@ -340,19 +340,30 @@ canvas, so pre-authoring one is authoring a shape without its place and their kn
 phase. A tree and a boulder are a *click* — there is no geometry to draw — so what is placed is a point plus a
 name, and the name is a row here (author).
 
-A `tree_style` is one of **two trees**, which its form picks. A `template` tree names a **species**, whose row
+A `tree_style` is one of **three trees**, which its form picks. A `template` tree names a **species**, whose row
 carries the wood, the canopy profile and the proportions, and scales it by height. A `grown` tree names a
 **wood** and is shaped by the skeleton knobs beside it — stems, leader, trunk flow, branch angle, levels,
-whorled, leaf size. Each form reads only its own fields, so the ones it does not read are inert rather than
-wrong, and switching form keeps both names: an author who tries the skeleton and goes back finds the species
-they had chosen still chosen. A `boulder_style` is four statements — form, size, whether moss takes its
-sky-lit faces, and the material it is cut from, which is a full terrain material and so may be any of the
-fourteen kinds.
+whorled, leaf size. A `copied` tree is one an author built by hand and carries its own **body**: every block
+as `[x, y, z, id, data]` from its foot, the lowest log, which stands at the origin and rests on the ground.
+Its height is read off the body rather than stated, and it has no knob — it is retuned by cutting it again.
+Each form reads only its own fields, so the ones it does not read are inert rather than wrong, and switching
+form keeps every field: an author who tries the skeleton and goes back finds the species they had chosen
+still chosen, and a body survives a look at the template. A `boulder_style` is four statements — form, size,
+whether moss takes its sky-lit faces, and the material it is cut from, which is a full terrain material and
+so may be any of the fourteen kinds.
+
+**A copied tree is cut out of a world, not typed in.** `dotnet run tools/seed-trees.cs <worldDir> [name]`
+reads a world where every tree stands clear of every other, takes each connected body of logs, leaves and
+carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here as
+`<name>-r<row>-<n>`, rows by the z the trees stand at and numbered along x, so a re-run over the same world
+updates the same rows. A body hanging in the air is a fragment of a tree that broke and is reported rather
+than filed. The 74 trees of `pgm-studio-mapgen/showcase/tree-showcase` are the corpus it was written for.
 
 **The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
 *shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
-number. So both kinds browse as one card each, drawn through the pass that builds them, and the editor's own
-stage draws the draft larger for the same reason: a recipe is tuned by watching one knob move the picture.
+number; a copied tree has no number at all. So both kinds browse as one card each, drawn through the pass that
+builds them, and the editor's own stage draws the draft larger for the same reason: a recipe is tuned by
+watching one knob move the picture.
 
 **A pull copies the row into a map's own registry.** `GET /tree-styles/{id}/json` answers the recipe as a
 dressing document states it, and picking a card in the Dressing phase files it under the row's name in the

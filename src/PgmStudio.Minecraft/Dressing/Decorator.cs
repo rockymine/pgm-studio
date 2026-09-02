@@ -976,7 +976,12 @@ public static class Decorator
     /// always going to run.</summary>
     public static double CanopyRadius(TreeProp tree)
     {
-        var (_, leaves) = tree.Style.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
+        var (_, leaves) = tree.Style.Form switch
+        {
+            TreeForm.Template => TemplateTree(tree),
+            TreeForm.Copied => CopiedTree(tree),
+            _ => GrownTree(tree),
+        };
         var farthest = 0.0;
         foreach (var (x, _, z) in leaves)
         {
@@ -993,6 +998,7 @@ public static class Decorator
     /// after the map loads.</summary>
     private static List<PropCell> TreeCells(TreeProp tree)
     {
+        if (tree.Style.Form == TreeForm.Copied) return CopiedCells(tree);
         var (wood, leaves) = tree.Style.Form == TreeForm.Template ? TemplateTree(tree) : GrownTree(tree);
         var timber = tree.Style.Timber;
         var leafData = timber.LeafData | DressingPalette.LeafNoDecay;
@@ -1013,6 +1019,39 @@ public static class Decorator
     {
         var built = TreeTemplate.Build(DressingPalette.SpeciesNamed(tree.Style.Species).ShapeAt(tree.Style.Reach), tree.Seed);
         return ([.. built.Wood], built.Leaves);
+    }
+
+    /// <summary>The copied tree, block for block. Wood is every log; leaves are every leaf block; what the
+    /// author built out of anything else — a slab branch, a wool bough — is neither and is carried by
+    /// <see cref="CopiedCells"/> alone, which is why the crown's reach is measured on the leaves.</summary>
+    private static (HashSet<(int X, int Y, int Z)> Wood, IReadOnlyList<(int X, int Y, int Z)> Leaves) CopiedTree(TreeProp tree)
+    {
+        var wood = new HashSet<(int X, int Y, int Z)>();
+        var leaves = new List<(int X, int Y, int Z)>();
+        foreach (var (x, y, z, id, _) in tree.Style.BodyCells)
+        {
+            if (id is Blocks.Log or Blocks.Log2) wood.Add((x, y, z));
+            else if (id is Blocks.Leaves or Blocks.Leaves2) leaves.Add((x, y, z));
+        }
+        return (wood, leaves);
+    }
+
+    /// <summary>A copied tree's blocks as the stamp writes them: every block the author placed, at its own
+    /// offset. A leaf takes the no-decay bit and loses the game's check bit, so the crown stands however the
+    /// source world happened to save it; every other block is written with the data it was cut with, and the
+    /// orbit turns a log's axis and a stair's facing with the body (<see cref="BlockGeometry.Turned"/>).</summary>
+    private static List<PropCell> CopiedCells(TreeProp tree)
+    {
+        var cells = new List<PropCell>();
+        foreach (var (x, y, z, id, data) in tree.Style.BodyCells)
+        {
+            if (id == Blocks.Air) continue;
+            var written = id is Blocks.Leaves or Blocks.Leaves2
+                ? (data & 3) | DressingPalette.LeafNoDecay
+                : data;
+            cells.Add(new PropCell(x, y, z, id, written, Buried: false));
+        }
+        return cells;
     }
 
     /// <summary>The grown tree: wood swept from the limb splines, leaves owned cluster by cluster.</summary>
@@ -1060,10 +1099,16 @@ public static class Decorator
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
             var anchor = context.Symmetry.ImageCell(site.X, site.Z, k);
+            var image = k;
             var turned = prop.Select(cell =>
             {
-                var (tx, tz) = context.Symmetry.TurnCell(cell.X, cell.Z, k);
-                return cell with { X = tx, Z = tz };
+                var (tx, tz) = context.Symmetry.TurnCell(cell.X, cell.Z, image);
+                // A block with a direction in its data turns with the body it belongs to: a log laid along x
+                // on the original lies along z on a quarter-turned image, and a stair keeps climbing toward
+                // the same side of the tree it was cut from.
+                var data = image == 0 ? cell.Data
+                    : BlockGeometry.Turned(cell.Id, cell.Data, (dx, dz) => context.Symmetry.TurnCell(dx, dz, image));
+                return cell with { X = tx, Z = tz, Data = data };
             }).ToList();
 
             // Decided once for the whole orbit, so the report is too: whichever image seats first refuses the

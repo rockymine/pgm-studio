@@ -479,7 +479,7 @@ reads through the low two data bits. `TreeTemplate.Build` answers the vanilla tr
 `TreeShape`, `SweptVolume` fills each limb as a capsule along its spline, and `TreeCrown` places the
 clusters and answers which one owns a cell.
 
-A `TreeProp` is placed at a cell and names which of the two it is. **The forms are two trees, not two
+A `TreeProp` is placed at a cell and names which of the three it is. **The forms are three trees, not three
 settings of one**, and collapsing them is a mistake worth naming because it was made: six presets of the
 grower, one per species, offer six silhouettes and build one. The grower has no notched cone and no flat
 umbrella in it — there is no knob for a canopy that steps in as it rises — so a "spruce" preset is the
@@ -489,6 +489,19 @@ scales it by height, while a grown tree names a **wood** (`TreeWood`: the log an
 by the knobs above. Wood is the one thing neither form decides for the other, which is why it is its own
 row and why the grown tree's picker is six cards of the same tree in six colours — where the species
 picker's six cards must differ in shape, or they are one tree wearing six palettes.
+
+**The third tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
+a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest
+log, which stands at the origin. The stamp writes it block for block: the foot lands on the ground the way a
+template's trunk does, the cells at the foot's course are the ones that rest and are asked about ground,
+protection, claims and roads like any other prop's, and the crown overhangs whatever it overhangs. Two things
+are the stamp's rather than the body's. Every leaf takes the no-decay bit and loses the game's own check bit,
+so a crown stands however the source world happened to save it; and a block with a direction in its data
+turns with the body round the symmetry — a log laid along x lies along z on a quarter-turned image, a stair
+keeps climbing toward the same side of the tree it was cut from (`BlockGeometry.Turned`), and a mirror sends
+a facing to its opposite. Everything else — a slab branch, a wool bough, a fence — is written as it was cut.
+The crown's reach for the foliage render is measured on the leaf blocks alone, so a copied tree whose
+branches are carpentry still answers a radius. `tree-corpus.md` says where the bodies come from.
 
 A grove is therefore a handful of trees an author placed rather than a density field, and that is the
 intended trade: a forest that clumps by itself is quicker to get and impossible to aim, and a treeline
