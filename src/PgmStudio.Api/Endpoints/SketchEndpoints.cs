@@ -293,6 +293,10 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
         Description(b => b.Accepts<SketchLayout>("application/json").Refuses(400, 404, 422));
     }
 
+    /// <summary>The relief group a cell's ground is solved under, for the finding that states a bench.</summary>
+    private static Func<(int X, int Z), string?> GroupLookup(Dictionary<(int X, int Z), string> owners) =>
+        cell => owners.TryGetValue(cell, out var group) ? group : null;
+
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
@@ -322,7 +326,8 @@ public sealed class SketchColumnsEndpoint(MapRepository repo, MapArtifactStore a
             // WX11, for the same reason and off the same build: a building whose neighbours have no ground
             // to meet it on shows the world a sheer face of its own foundation, and nothing else reports it.
             Complaints.Add(HttpContext,
-                MapExportComposer.CheckStructureSites(built.Surface, built.Provenance));
+                MapExportComposer.CheckStructureSites(built.Surface, built.Provenance,
+                    GroupLookup(SketchRasterizer.GroupOwners(layoutJson))));
         }
         // A dressing document that will not read is refused by name, exactly as the export refuses it — the
         // preview and the export cannot disagree about what a malformed prop list is.

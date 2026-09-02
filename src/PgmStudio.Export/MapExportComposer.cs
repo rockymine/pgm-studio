@@ -319,8 +319,13 @@ public static class MapExportComposer
     /// <para><b>surface</b> — The <b>terrain's</b> tops, cell by cell — <see cref="BuiltWorld.Surface"/>. Not the
     /// board's highest: what stands over a cell is not what a building beside it steps down to, and a balloon
     /// flying over a field would read as a fifty-block plinth under the shed on it.</para></summary>
+    /// <para><b>groupAt</b> — The relief group a cell's ground is solved under, where the caller holds the
+    /// layout to say. With it, the finding states the edit that settles it: an <c>area</c> mark held flat at
+    /// the structure's own floor, two cells past its footprint on every side, on that group's relief. Without
+    /// it the finding carries the sentence alone.</para>
     public static Findings CheckStructureSites(
-        IReadOnlyDictionary<(int X, int Z), int> surface, WorldProvenance provenance)
+        IReadOnlyDictionary<(int X, int Z), int> surface, WorldProvenance provenance,
+        Func<(int X, int Z), string?>? groupAt = null)
     {
         var byOwner = new Dictionary<string, List<(int X, int Z)>>();
         foreach (var (cell, pass, owner) in provenance.Claims)
@@ -354,9 +359,31 @@ public static class MapExportComposer
                 $"{identity.Replace(":", " ")} stands {worst} blocks above the cell beside it at "
                 + $"({atX}, {atZ}) — {over}. Its foundation fills that face in bedrock, which is a wall a "
                 + "player cannot climb and nobody drew.",
-                Severity.Complaint, Subjects: [identity]));
+                Severity.Complaint, Subjects: [identity], Edit: BenchEdit(identity, cells, floor, groupAt)));
         }
         return findings;
+    }
+
+    /// <summary>The change that meets a structure on falling ground: an <c>area</c> mark on its group's
+    /// relief, held at the structure's own floor over a ring two cells past its footprint, so the ground
+    /// beside it is level with it rather than under it. Null where no group owns the footprint's cells.</summary>
+    private static FindingEdit? BenchEdit(string identity, List<(int X, int Z)> cells, int floor,
+                                          Func<(int X, int Z), string?>? groupAt)
+    {
+        if (groupAt is null || cells.Count == 0) return null;
+        var group = cells.Select(groupAt).FirstOrDefault(found => found is not null);
+        if (group is null) return null;
+        int minX = cells.Min(cell => cell.X) - 2, maxX = cells.Max(cell => cell.X) + 2;
+        int minZ = cells.Min(cell => cell.Z) - 2, maxZ = cells.Max(cell => cell.Z) + 2;
+        var unit = identity.Split(':') is { Length: 3 } parts ? $"{parts[1]}-{parts[2]}" : identity;
+        return FindingEdit.Of(FindingEdit.Layout, $"relief.{group}.marks", FindingEdit.Add,
+            new
+            {
+                id = $"bench-{unit}", kind = "area", h = floor,
+                ring = new[] { new[] { minX, minZ }, new[] { maxX, minZ }, new[] { maxX, maxZ }, new[] { minX, maxZ } },
+            },
+            $"an area mark held at {floor} over x {minX}..{maxX}, z {minZ}..{maxZ}, so the ground beside it "
+            + "meets its floor");
     }
 
     /// <summary>

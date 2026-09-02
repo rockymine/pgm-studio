@@ -1,3 +1,4 @@
+using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Vocabulary;
@@ -337,6 +338,34 @@ public sealed class PlanValidatorTests
         await Assert.That(Lint(step, "EL1")).IsTrue().Because("a three-block step is not walked up");
         await Assert.That(Lint(walkable, "EL1")).IsFalse().Because("one block is a walk");
         await Assert.That(Lint(buffer, "EL1")).IsFalse().Because("a buffer is not terrain to step onto");
+    }
+
+    /// <summary>The seam's finding states the ramp that grades it: a line mark on the group's relief, from a
+    /// point inside the higher piece to a point inside the lower, at the two surfaces. The pieces meet on
+    /// x = 10; the high one lies east of it, so the mark runs west to east and falls from 12 to 9.</summary>
+    [Test]
+    public async Task EL1_states_the_ramp_mark_that_grades_its_seam()
+    {
+        var step = Plan("""
+        { "plan":2, "globals":{"cell":1,"surface":9},
+          "pieces":[ {"id":"low","role":"piece","rect":[0,0,10,10],"surface":9},
+                     {"id":"high","role":"piece","rect":[10,0,10,10],"surface":12} ] }
+        """);
+        var finding = PlanValidator.Check(step).Single(f => f.Rule == "EL1");
+        var edit = finding.Edit;
+        await Assert.That(edit).IsNotNull();
+        await Assert.That(edit!.Document).IsEqualTo("layout");
+        await Assert.That(edit.Path).IsEqualTo("relief.team.marks");
+        await Assert.That(edit.Op).IsEqualTo("add");
+        var value = edit.Value;
+        await Assert.That(value.GetProperty("kind").GetString()).IsEqualTo("line");
+        var heights = value.GetProperty("h").EnumerateArray().Select(h => h.GetInt32()).ToArray();
+        await Assert.That(heights).IsEquivalentTo(new[] { 12, 9 });
+        var points = value.GetProperty("points").EnumerateArray()
+            .Select(p => p.EnumerateArray().Select(v => v.GetDouble()).ToArray()).ToArray();
+        await Assert.That(points[0][0]).IsGreaterThan(10).Because("the high end stands inside the high piece, east of the seam");
+        await Assert.That(points[1][0]).IsLessThan(10).Because("the low end stands inside the low piece, west of it");
+        await Assert.That(points[0][0] - points[1][0]).IsEqualTo(8).Because("a step of 3 grades over 2 × (3 + 1) blocks");
     }
 
     /// <summary>A piece off the old odd-surface palette is not itself the fault. What the plan states is a

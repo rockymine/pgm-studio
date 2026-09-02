@@ -49,6 +49,29 @@ public sealed class StructureSiteTests
         await Assert.That(finding.Message).Contains("30 blocks above");
     }
 
+    /// <summary>With the group a cell's ground is solved under, the finding states its bench: an area mark
+    /// on that group's relief, at the floor, two cells past the footprint on every side.</summary>
+    [Test]
+    public async Task A_room_on_a_wall_states_the_bench_that_would_meet_it()
+    {
+        var surface = Plateau(0, 0, 5, 5, top: 30);
+        var findings = MapExportComposer.CheckStructureSites(surface, Stamped(0, 0, 5, 5), _ => "team");
+
+        var edit = findings.Single().Edit;
+        await Assert.That(edit).IsNotNull();
+        await Assert.That(edit!.Path).IsEqualTo("relief.team.marks");
+        await Assert.That(edit.Op).IsEqualTo("add");
+        await Assert.That(edit.Value.GetProperty("kind").GetString()).IsEqualTo("area");
+        await Assert.That(edit.Value.GetProperty("h").GetInt32()).IsEqualTo(30);
+        var ring = edit.Value.GetProperty("ring").EnumerateArray()
+            .Select(p => p.EnumerateArray().Select(v => v.GetInt32()).ToArray()).ToArray();
+        await Assert.That(ring[0]).IsEquivalentTo(new[] { -2, -2 });
+        await Assert.That(ring[2]).IsEquivalentTo(new[] { 7, 7 });
+
+        var unplaced = MapExportComposer.CheckStructureSites(surface, Stamped(0, 0, 5, 5));
+        await Assert.That(unplaced.Single().Edit).IsNull().Because("no group is known, so no bench can be stated");
+    }
+
     [Test]
     public async Task A_room_on_ground_that_runs_past_it_says_nothing()
     {

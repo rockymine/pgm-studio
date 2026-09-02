@@ -237,6 +237,15 @@ public sealed class DecoratorTests
         var drop = refused.Declines.Single(d => d.SubjectIds.Contains("t"));
         await Assert.That(drop.Rule).IsEqualTo(DressingRules.RoadStandoff);
         await Assert.That(drop.Message).Contains("nearer than 3 blocks to the road at (");
+        // The decline states the move that clears the standoff: the tree's own anchor carried away from the
+        // road, on the layout's props by the tree's id, to a cell three or more off the pavement's z 18–21.
+        var edit = drop.Edit;
+        await Assert.That(edit).IsNotNull();
+        await Assert.That(edit!.Document).IsEqualTo("layout");
+        await Assert.That(edit.Path).IsEqualTo("dressing.props[t]");
+        await Assert.That(edit.Op).IsEqualTo("move");
+        await Assert.That(edit.Value.GetProperty("x").GetInt32()).IsEqualTo(20);
+        await Assert.That(edit.Value.GetProperty("z").GetInt32()).IsGreaterThanOrEqualTo(24);
 
         var (clear, clearTop) = Plateau();
         var seated = Decorator.Decorate(clear, Context(clearTop,

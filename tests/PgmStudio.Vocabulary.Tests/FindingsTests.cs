@@ -33,6 +33,30 @@ public class FindingsTests
         await Assert.That(mixed.Complaints.Single().Rule).IsEqualTo("PL3");
     }
 
+    /// <summary>An edit rides on the wire only where a gate stated one, and then in the document's own
+    /// vocabulary: which document, the path, the operation, the value and the words.</summary>
+    [Test]
+    public async Task An_edit_is_written_only_where_a_gate_states_one()
+    {
+        var wire = new JsonSerializerOptions(JsonSerializerDefaults.Web);
+        var bare = JsonSerializer.Serialize(Complaint, wire);
+        await Assert.That(bare).DoesNotContain("\"edit\"");
+
+        var stated = Complaint with
+        {
+            Edit = FindingEdit.Of(FindingEdit.Layout, "relief.team.marks", FindingEdit.Add,
+                new { id = "ramp-a-b", kind = "line", h = new[] { 12, 9 } }, "a ramp"),
+        };
+        var json = JsonSerializer.Serialize(stated, wire);
+        using var read = JsonDocument.Parse(json);
+        var edit = read.RootElement.GetProperty("edit");
+        await Assert.That(edit.GetProperty("document").GetString()).IsEqualTo("layout");
+        await Assert.That(edit.GetProperty("path").GetString()).IsEqualTo("relief.team.marks");
+        await Assert.That(edit.GetProperty("op").GetString()).IsEqualTo("add");
+        await Assert.That(edit.GetProperty("value").GetProperty("kind").GetString()).IsEqualTo("line");
+        await Assert.That(edit.GetProperty("says").GetString()).IsEqualTo("a ramp");
+    }
+
     /// <summary>Nothing wrong is a value rather than an absence, so a gate with nothing to say never returns
     /// null and a caller never checks for it.</summary>
     [Test]

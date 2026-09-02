@@ -1266,7 +1266,7 @@ public static class Decorator
             {
                 decline = Declined(DressingRules.RoadStandoff, id, kind,
                     $"rests on ({ground.X}, {ground.Z}), nearer than {routeStandoff} blocks to the road "
-                    + $"at ({road.X}, {road.Z})");
+                    + $"at ({road.X}, {road.Z})") with { Edit = MovedOffRoad(id, anchor, ground, road, routeStandoff, claims) };
                 return false;
             }
             if (!tops.TryGetValue(ground, out var top))
@@ -1288,6 +1288,39 @@ public static class Decorator
     /// ignore.</summary>
     private static Finding Declined(string rule, string id, string kind, string what) =>
         new(rule, $"{kind} '{id}' {what}", Severity.Decline, Subjects: [id]);
+
+    /// <summary>The move that takes a prop out of a road's standoff: its anchor carried straight away from
+    /// the road, along whichever axis clears the standoff in the fewest blocks — a road running along x is
+    /// cleared by a move in z however the nearest paved cell lies — with the direction taken from where the
+    /// resting cell stands relative to that cell. Null where no move of the standoff's own length clears it,
+    /// which is a prop inside a bend of the road.</summary>
+    private static FindingEdit? MovedOffRoad(string id, (int X, int Z) anchor, (int X, int Z) rests,
+                                             (int X, int Z) road, int standoff, GroundClaims.Storey claims)
+    {
+        var awayX = Math.Sign(rests.X - road.X);
+        var awayZ = Math.Sign(rests.Z - road.Z);
+        (int StepX, int StepZ)[] directions =
+            [(0, awayZ == 0 ? 1 : awayZ), (0, awayZ == 0 ? -1 : -awayZ),
+             (awayX == 0 ? 1 : awayX, 0), (awayX == 0 ? -1 : -awayX, 0)];
+        (int StepX, int StepZ, int By)? best = null;
+        foreach (var (stepX, stepZ) in directions)
+            for (var by = 1; by <= standoff + 1; by++)
+            {
+                if (claims.NearerThan(rests.X + stepX * by, rests.Z + stepZ * by, ClaimKind.Route, standoff) is not null)
+                    continue;
+                if (best is null || by < best.Value.By) best = (stepX, stepZ, by);
+                break;
+            }
+        if (best is not { } move) return null;
+        var to = (X: anchor.X + move.StepX * move.By, Z: anchor.Z + move.StepZ * move.By);
+        return FindingEdit.Of(FindingEdit.Layout, $"dressing.props[{id}]", FindingEdit.Move,
+            new { x = to.X, z = to.Z },
+            $"move it {move.By} block(s) {Direction(move.StepX, move.StepZ)} to ({to.X}, {to.Z}), "
+            + $"which stands {standoff} off the road");
+    }
+
+    private static string Direction(int stepX, int stepZ) =>
+        stepX > 0 ? "east" : stepX < 0 ? "west" : stepZ > 0 ? "south" : "north";
 
     // What the map is holding a cell for, as the decline's own words.
     private static string KeptFor(KeepOut keptFor) => keptFor switch

@@ -28,6 +28,34 @@ not it — the layout rule the fault falls under, or the open task that would re
 `cites` is a field of its own rather than a second id: a rule is stable forever and a task id is a debt with a
 due date, and one field holding either would make the two indistinguishable to a reader.
 
+**A finding states its edit where the fix is mechanical.** A seam that steps wants a ramp mark; a house on
+falling ground wants a bench held flat under it; a prop inside a road's standoff wants moving a stated number
+of blocks the other way. Where the gate can say that in the document's own vocabulary it does, as an
+**edit** beside the sentence: which document (`plan`, `layout` or `intent`), the path the change lands on,
+spelled the way an unread field is (`relief.team.marks`; an array element by its `id` in brackets where it
+carries one, by its index otherwise — `dressing.props[erratic-broken]`), one of three operations — `add`
+appends the value to the array at the path, `set` replaces the value there, `move` sets the `x` and `z` the
+value carries on the object there — the value as the document would carry it, and the change in words. A
+reader applies it rather than re-deriving it from the rule's prose, which is the half of a finding a model
+acts on where the sentence alone is inspected and left. `SP8` and `EL1` state the ramp, `WX11` the bench and
+`DR-ROAD` the move; a finding whose fix is a decision rather than a change carries none.
+
+```json
+{
+  "rule": "SP8",
+  "message": "spawn egress steps 5 blocks at 'crag'–'brow' — use 1-level steps or a ramp against the spawn",
+  "severity": "complaint",
+  "subjects": ["crag", "brow"],
+  "edit": {
+    "document": "layout",
+    "path": "relief.team.marks",
+    "op": "add",
+    "value": {"id": "ramp-crag-brow", "kind": "line", "width": 6, "points": [[-51, -50], [-39, -50]], "h": [27, 22]},
+    "says": "a line mark six wide from (-51, -50) at 27 to (-39, -50) at 22, so the seam grades over 12 blocks"
+  }
+}
+```
+
 **What a finding does not carry is the rule's own classification.** A category and a concerns list are fixed
 by the id, not by the raising site, so they live on the rule and a caller joins them from `/api/rules` — which
 is the same lookup an id was already worth keying on for. Putting them on the finding would put one fact at 96

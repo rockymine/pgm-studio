@@ -252,6 +252,24 @@ public static class SketchRasterizer
         return fields;
     }
 
+    /// <summary>Maps every cell an add shape covers to the id of the group that shape belongs to, later
+    /// layers over earlier ones — what a gate needs to speak about the relief a cell's ground is solved
+    /// under, since a relief is keyed on its group. A cell no grouped shape covers is absent.</summary>
+    public static Dictionary<(int X, int Z), string> GroupOwners(string layoutJson)
+    {
+        var state = SketchLayout.Parse(layoutJson);
+        var groupOfShape = new Dictionary<(string Layer, string Shape), string>();
+        foreach (var layer in SketchLayout.Stack(state))
+            foreach (var group in layer.Groups)
+                foreach (var shapeId in group.ShapeIds)
+                    if (group.Id is { } groupId) groupOfShape[(layer.Id!, shapeId)] = groupId;
+
+        var owners = new Dictionary<(int X, int Z), string>();
+        foreach (var ((layer, x, z), shapeId) in ShapeScopeOwners(layoutJson, shape => shape.Id))
+            if (groupOfShape.TryGetValue((layer, shapeId), out var groupId)) owners[(x, z)] = groupId;
+        return owners;
+    }
+
     /// <summary>Maps every cell a <em>themed</em> shape covers, on the layer that covers it, to that shape's
     /// id — the scope <c>TerrainThemeScope</c> resolves a cell's paint through.</summary>
     public static Dictionary<(string Layer, int X, int Z), string> ShapeThemeOwners(string layoutJson)

@@ -66,13 +66,18 @@ public enum Severity
 /// falls under, or the <b>open task</b> that would resolve it. Kept apart from <paramref name="Rule"/> for the
 /// reason task ids are kept apart from rule ids everywhere — a rule is stable forever and a task id is a debt
 /// with a due date, and one field holding either would make the two indistinguishable to a reader.</param>
+/// <param name="Edit">The change that would settle this finding, where the gate can state one in the
+/// document's own vocabulary — a ramp mark for a seam that steps, a bench under a house on falling ground, a
+/// prop moved out of a road's standoff. Absent where the fix is a decision rather than a mechanical
+/// change. A reader applies it rather than re-deriving it from the sentence.</param>
 public sealed record Finding(
     string Rule,
     string Message,
     Severity Severity = Severity.Refusal,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Field = null,
     [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] IReadOnlyList<string>? Subjects = null,
-    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cites = null)
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] string? Cites = null,
+    [property: JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] FindingEdit? Edit = null)
 {
     /// <summary>The implicated ids, never null. A reader of the wire takes <see cref="Subjects"/>, which is
     /// absent rather than empty when the gate indicted nothing.</summary>
@@ -96,4 +101,32 @@ public sealed record Finding(
     /// with nothing to say gets an empty string rather than a sentence about having nothing to say.</summary>
     public static string Summarize(IEnumerable<Finding> findings) =>
         string.Join("; ", findings.Select(finding => finding.Message));
+}
+
+/// <summary>
+/// One mechanical change to one of the three documents, stated so a reader applies it rather than
+/// re-deriving it from a rule's prose.
+///
+/// <para><b>Document</b> names which of the three the path is into: <c>plan</c>, <c>layout</c> or
+/// <c>intent</c>. <b>Path</b> is the field the change lands on, spelled the way an unread field is
+/// (<c>relief.team.marks</c>, <c>dressing.props[erratic-broken]</c>): members joined by dots, an array
+/// element by its <c>id</c> in brackets where the element carries one and by its index otherwise. <b>Op</b>
+/// is one of three: <c>add</c> appends <see cref="Value"/> to the array at the path; <c>set</c> replaces the
+/// value at the path with it; <c>move</c> sets the <c>x</c> and <c>z</c> the value carries on the object at
+/// the path. <b>Says</b> is the change in the author's terms, one sentence.</para>
+/// </summary>
+/// <param name="Document">Which document: <c>plan</c>, <c>layout</c> or <c>intent</c>.</param>
+/// <param name="Path">Where in it the change lands.</param>
+/// <param name="Op"><c>add</c>, <c>set</c> or <c>move</c>.</param>
+/// <param name="Value">What is added, set or moved to, as the document would carry it.</param>
+/// <param name="Says">The change in words.</param>
+public sealed record FindingEdit(string Document, string Path, string Op, JsonElement Value, string Says)
+{
+    public const string Plan = "plan", Layout = "layout", Intent = "intent";
+    public const string Add = "add", Set = "set", Move = "move";
+
+    /// <summary>An edit whose value is built from an anonymous object or a dictionary, serialized the way
+    /// the document states it.</summary>
+    public static FindingEdit Of(string document, string path, string op, object value, string says) =>
+        new(document, path, op, JsonSerializer.SerializeToElement(value), says);
 }
