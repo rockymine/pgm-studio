@@ -1,3 +1,6 @@
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using PgmStudio.Api.Services;
 using PgmStudio.Geom.Algorithms;
@@ -280,5 +283,118 @@ public sealed class DressingPreviewTests
             await Assert.That(card.Svg).Contains("<rect");
             await Assert.That(card.Label).IsNotEmpty();
         }
+    }
+
+    // ── the claims raster (TS81) ───────────────────────────────────────────────────────────────────
+    // A flat board wide enough to carry a stroke off to one side and a goal well clear of it, so the two
+    // classes never overlap and each can be read in isolation.
+    private const string ClaimsBoard = """
+        {"setup":{"mirror_mode":"none","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
+            {"id":"a","type":"rectangle","operation":"add","min_x":-60,"max_x":60,"min_z":-60,"max_z":60,"base_height":10}],
+          "groups":[{"id":"i1","name":"Ground","mirrors":false,"shapeIds":["a"]}]} }],
+         "dressing":{"props":[
+            {"kind":"stroke","id":"p1","points":[[-40,0],[40,0]],"radius":2,"seed":5}]}}
+        """;
+
+    private static async Task<string> MapAsync(HttpClient client)
+    {
+        var create = await client.PostAsJsonAsync("/api/sketch", new { name = $"TS81 {Guid.NewGuid():N}" });
+        return (await create.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("slug").GetString()!;
+    }
+
+    private static Task<HttpResponseMessage> PostDressingAsync(HttpClient client, string slug, string query = "") =>
+        client.PostAsync($"/api/map/{slug}/sketch/dressing{query}",
+            new StringContent(ClaimsBoard, Encoding.UTF8, "application/json"));
+
+    private static char At(JsonElement claims, int x, int z)
+    {
+        var bounds = claims.GetProperty("bounds");
+        int minX = (int)bounds.GetProperty("min_x").GetDouble(), minZ = (int)bounds.GetProperty("min_z").GetDouble();
+        return claims.GetProperty("rows")[z - minZ].GetString()![x - minX];
+    }
+
+    [Test]
+    public async Task The_claims_rasters_rows_span_exactly_its_own_width_and_height()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var resp = await PostDressingAsync(client, slug);
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+        var claims = (await resp.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("claims");
+
+        var width = claims.GetProperty("width").GetInt32();
+        var height = claims.GetProperty("height").GetInt32();
+        var bounds = claims.GetProperty("bounds");
+        await Assert.That(width).IsEqualTo((int)(bounds.GetProperty("max_x").GetDouble() - bounds.GetProperty("min_x").GetDouble()));
+        await Assert.That(height).IsEqualTo((int)(bounds.GetProperty("max_z").GetDouble() - bounds.GetProperty("min_z").GetDouble()));
+
+        var rows = claims.GetProperty("rows");
+        await Assert.That(rows.GetArrayLength()).IsEqualTo(height);
+        foreach (var row in rows.EnumerateArray()) await Assert.That(row.GetString()!.Length).IsEqualTo(width);
+    }
+
+    [Test]
+    public async Task A_strokes_own_covered_cells_read_as_route_on_the_raster()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var body = await (await PostDressingAsync(client, slug)).Content.ReadFromJsonAsync<JsonElement>();
+        var claims = body.GetProperty("claims");
+        var stroke = body.GetProperty("props").EnumerateArray()
+            .First(prop => prop.GetProperty("kind").GetString() == "stroke");
+
+        foreach (var cell in stroke.GetProperty("covered").EnumerateArray())
+            await Assert.That(At(claims, cell.GetProperty("x").GetInt32(), cell.GetProperty("z").GetInt32()))
+                .IsEqualTo('2');
+    }
+
+    [Test]
+    public async Task A_goals_clearance_reads_around_its_anchor_on_the_raster()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var intent = await client.PutAsync($"/api/map/{slug}/intent", new StringContent("""
+            {"destroyables":[{"owner":"red","name":"reds monument","style":"pillar-1","materials":"obsidian",
+                              "anchor":{"x":30,"y":8,"z":30}}]}
+            """, Encoding.UTF8, "application/json"));
+        await Assert.That(intent.IsSuccessStatusCode).IsTrue().Because(await intent.Content.ReadAsStringAsync());
+
+        var body = await (await PostDressingAsync(client, slug)).Content.ReadFromJsonAsync<JsonElement>();
+        var claims = body.GetProperty("claims");
+
+        // Two blocks off the marker is inside the clearance however the structure resolved, since the
+        // clearance reaches at least GoalClearance (4) past the smallest footprint and GoalStandoff (10)
+        // past the marker either way.
+        await Assert.That(At(claims, 32, 30)).IsEqualTo('9');
+    }
+
+    [Test]
+    public async Task Format_text_answers_a_key_naming_every_character_the_rows_use()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var resp = await PostDressingAsync(client, slug, "?format=text");
+        await Assert.That(resp.StatusCode).IsEqualTo(System.Net.HttpStatusCode.OK);
+        await Assert.That(resp.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+
+        var text = await resp.Content.ReadAsStringAsync();
+        var lines = text.Split('\n');
+        await Assert.That(lines[0]).Contains("1 char = 1 block");
+        var key = lines[1];
+        await Assert.That(key).StartsWith("KEY");
+
+        // Each row opens with its z, right-aligned in four characters and a space (the shared grid
+        // convention) — stripped off before reading the raster characters, so the sign of a negative z
+        // is never mistaken for one of them.
+        var used = lines.Skip(3).TakeWhile(line => !line.StartsWith("decline") && !line.StartsWith("placed"))
+            .SelectMany(line => line.Length > 5 ? line[5..] : "").Distinct().Where(ch => ch != ' ');
+        foreach (var digit in used) await Assert.That(key).Contains(digit);
+
+        await Assert.That(text).Contains("placed 1, declined 0");
     }
 }

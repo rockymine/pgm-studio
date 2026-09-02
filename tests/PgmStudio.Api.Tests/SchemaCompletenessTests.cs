@@ -281,6 +281,7 @@ public sealed class SchemaCompletenessTests
         ("GET /api/plans/{id}/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/ascii", "text/plain"),
         ("GET /api/map/{slug}/plan/flow", "text/plain"),
+        ("POST /api/map/{slug}/sketch/dressing", "text/plain"),
 
         // One route, two worlds: a map that ships its own gets the bare XML, a sketch-originated one gets
         // the world built around it.

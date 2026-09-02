@@ -324,15 +324,20 @@ public sealed record ResourceSourcesResponseDto(IReadOnlyList<ResourceTypeSummar
 ///
 /// <para>A keep-out is computed against what a prop <em>claims</em>, and a stroke's claim is decided by its
 /// style, its coverage and its seed — none of which can be reasoned about from the document. Guessing it and
-/// correcting by drive-read-move is how a board ends up tuned to the wrong distances in both directions.</para></summary>
+/// correcting by drive-read-move is how a board ends up tuned to the wrong distances in both directions. So a
+/// candidate site is looked up on <see cref="Claims"/> rather than tried: it names the same class the pass
+/// would answer, cell by cell, before an author places anything at all.</para></summary>
 /// <param name="Props">Every prop that landed something, one entry per orbit image.</param>
 /// <param name="Declines">Every prop that did not land, as the <c>DR-*</c> finding it draws.</param>
 /// <param name="ClaimedCells">How many columns the pass claimed in total — the mask a keep-out is measured
 /// against, as one number.</param>
+/// <param name="Claims">Every cell of the board, classed as a digit row — what claims it, what keeps it clear,
+/// or that it is free.</param>
 public sealed record DressingRunDto(
     IReadOnlyList<DressingPropDto> Props,
     IReadOnlyList<Vocabulary.Finding> Declines,
-    int ClaimedCells);
+    int ClaimedCells,
+    ClaimRasterDto Claims);
 
 /// <summary>One prop as the pass placed it.</summary>
 /// <param name="Kind">What it is: <c>stroke</c>, <c>water</c>, <c>tree</c>, <c>boulder</c>, <c>flora</c> or a
@@ -350,3 +355,17 @@ public sealed record DressingRunDto(
 public sealed record DressingPropDto(
     string Kind, string Id, int Image, string Layer, int Cells, int X, int Z, int Y,
     IReadOnlyList<CellDto> Covered);
+
+/// <summary>What the dressing pass would say about every cell of the board, as digit rows over its bounding
+/// box — classed against the same claims and keep-outs <see cref="DressingRunDto.Props"/> and
+/// <see cref="DressingRunDto.Declines"/> already carry, so a caller reads where the next prop would land
+/// rather than trying it and reading the decline.</summary>
+/// <param name="Bounds">The board's own extent — the bounding box of every cell it has ground on.</param>
+/// <param name="Width">Cells across, the length of every row.</param>
+/// <param name="Height">Cells down, how many rows there are.</param>
+/// <param name="Classes">The class each digit stands for, in digit order — <c>rows[z][x]</c> at
+/// <c>'0'</c>–<c>'9'</c> indexes into this directly, and <c>'a'</c>/<c>'b'</c> at <c>10</c>/<c>11</c>.</param>
+/// <param name="Rows">One string per grid row, each character the digit of that cell's class, or a space where
+/// the board has no ground at all.</param>
+public sealed record ClaimRasterDto(
+    Bounds2dDto Bounds, int Width, int Height, IReadOnlyList<string> Classes, IReadOnlyList<string> Rows);
