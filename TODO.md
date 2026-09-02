@@ -70,14 +70,6 @@ knowledge of a column is available without a sidecar.
   preview passes of trial; `tools/loop.py --candidates` is the workaround. `docs/tools/sketch.md` § the
   dressing preview.
 
-- [ ] **RP64 — A finding that states its edit.** Where a finding has a mechanical fix, carry it as a JSON
-  pointer and a value beside the message: `SP8` on a seam wants a `line` mark from the high piece's edge
-  to the low one's at the two surfaces; `WX11` wants an `area` mark held flat under the house's box; `DR-ROAD`
-  wants the prop moved a stated number of blocks away from the road's band; `EL1` the same as `SP8`. A model
-  applies a stated edit where it fails to derive one from a rule's prose, which is what the author's runs
-  show — small directed edits land, inspection does not. The rule catalogue (`GET /api/rules`) already
-  carries the fix in words; this is the same fix in the document's own vocabulary. `docs/refusals.md`.
-
 ## A building is a footprint and a shell, wherever it came from
 
 - [ ] **B145 — A spawn or wool room's ground carries no theme.** A role piece reaches the sketch as a

@@ -1586,6 +1586,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   orbit. `MapBoundsDto` is `Bounds2dDto`, named for the contract's own word now that four region writes
   answer it too.
 
+- **A finding states its edit where the fix is mechanical (RP64).** `Finding.Edit` carries which document,
+  the path in the document's own spelling (`relief.team.marks`, `dressing.props[erratic-broken]`), one of
+  `add`/`set`/`move`, the value as the document would carry it, and the change in words. `SP8` and `EL1`
+  state the line mark that grades their seam, `WX11` the area mark that benches a house on falling ground
+  (the sketch columns read hands the check the relief group a cell is solved under), `DR-ROAD` the move that
+  clears the road's standoff along the axis that clears it. `docs/refusals.md` § *A finding*.
 - **One finding shape, in the one leaf three parties reach (RP28).** `PgmStudio.Vocabulary` references
   nothing and holds `Finding`, `Findings`, `Severity` and the closed sets of wire words — `MapStage`,
   `MaterialKind`, `ThemeBuckets`, `RoomParts`, `RoofForms`, `RimEdgeModes`, `PorchEdges`, `WindowForms`,

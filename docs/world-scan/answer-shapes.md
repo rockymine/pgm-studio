@@ -123,11 +123,12 @@ clearance is — is available without a sidecar. They are filed on the board und
 - **Claimed cells as a raster** (`TS81`). `sketch/dressing` answers `claimedCells` as a count; it should
   answer the claims as digit rows the way `coverage` does, so a placement is looked up rather than tried. A
   board this size took ten preview passes to place eleven trees by trial.
-- **A finding that states its edit** (`RP64`). The author's own finding is that small directed edits work
-  where inspection does not. A finding with a mechanical fix — `SP8` wants a line mark from here to there,
-  `WX11` wants an area mark held flat under this box, `DR-ROAD` wants this prop three blocks that way —
-  should carry the edit as a JSON pointer and a value beside its message, so a model applies it rather than
-  re-derives it.
+- **A finding states its edit** (`RP64`). Where a finding has a mechanical fix, it carries the edit as a
+  document, a path in the document's own spelling, an operation and a value beside its message: `SP8` and
+  `EL1` state the line mark that grades their seam, `WX11` the area mark that benches a house on falling
+  ground, `DR-ROAD` the move that clears the road. A model applies it rather than re-deriving it, which is
+  what the author's runs show works. `docs/refusals.md` § *A finding* has the shape and a worked example;
+  the mapgen driver prints an edit under its finding.
 
 And one convention rather than a read: **every picture has a text twin, and every text grid states its
 scale, its extent and its key on its first lines.** `coverage` already has both shapes; the eight world
