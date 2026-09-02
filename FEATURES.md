@@ -6111,6 +6111,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the stack is a band **inside** one (a rim two blocks in and then the surface, not two blocks of cobble
   and then cobble forever). `BandEnding` is stated on the stack; the axis stays the caller's, since the
   distance is measured by whoever has it.
+- **The style previews are cut to the row the editor has open (B221).** `RoomStylePreview.Views` took the
+  whole shell whichever part was being authored, so an author tuning a roof looked at a picture of a building
+  with a roof somewhere on it. The four views are now taken over the part's own band — a floor is its plate
+  claimed down from the course players walk on, a wall is that course up to the eave, a roof is everything
+  over it — and the part libraries cut to their own part without being asked, a roof style's preview drawing
+  the roof. **The part is cut out of the building rather than stamped alone**, because a roof's eave sits on
+  the summed storey stack and a porch decides the front the body is split on: a part built in isolation
+  synthesises the context that decides its geometry. `?part=` carries it, a word outside the set drawing the
+  whole building the way a bad `footprint` draws the default.
+
+  Two things had to give for the cut to draw the part it names. `WorldViews.Isometric`'s opacity test read
+  the world unbounded, so a block on the cut plane saw solid beyond it and its face went undrawn — a section
+  at the eave came out with no top; a neighbour outside the drawn box now reads as air. And the roof band
+  reaches **under** the eave by `RoofField.MaxEaveDrop`, because the overhang keeps falling past the course it
+  rests on: cut at the eave, a roof preview lost the very edge the pitch and overhang fields tune.
+  (`docs/tools/library.md`)
 - **The material editor is driven by the schema the API publishes, not by a copy of it (B261).** `GET
   /api/terrain/patterns` answers every kind, its label, a sentence on what it draws, the cell facts it varies
   with and its fields with their types and defaults — all of it read off the records' own `JsonDerivedType`

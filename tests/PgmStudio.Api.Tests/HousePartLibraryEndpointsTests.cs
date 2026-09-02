@@ -50,6 +50,27 @@ public sealed class HousePartLibraryEndpointsTests
     private static HashSet<string> Fills(string svg)
         => Regex.Matches(svg, "fill='(#[0-9a-f]{6})'").Select(m => m.Groups[1].Value).ToHashSet();
 
+    private static int[] Channels(string hex)
+        => [Convert.ToInt32(hex[1..3], 16), Convert.ToInt32(hex[3..5], 16), Convert.ToInt32(hex[5..7], 16)];
+
+    /// <summary>Whether any of <paramref name="fills"/> is <paramref name="blockId"/>'s own colour seen at
+    /// some distance. A section shades a block toward the back of the view, so a material shows up in one as
+    /// a family of shades rather than as the single hex a swatch carries, and a picture drawn over a box that
+    /// starts outside the building has nothing on its front plane to draw unshaded. Every channel is the
+    /// block's scaled by one factor, so the test is that factor existing.</summary>
+    private static bool AnyShadeOf(IEnumerable<string> fills, int blockId, int blockData = 0)
+    {
+        var full = Channels(BlockPalette.Hex(blockId, blockData));
+        var brightest = full.Max();
+        return brightest > 0 && fills.Any(fill =>
+        {
+            var shade = Channels(fill);
+            var keep = shade.Max() / (double)brightest;
+            return keep is > 0 and <= 1
+                && shade.Zip(full).All(pair => Math.Abs(pair.First - (int)(pair.Second * keep)) <= 1);
+        });
+    }
+
     private static int Height(string svg) => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
 
     private static async Task<RoomStylePreviewDto> HousePreview(HttpClient client, RoomStyleSaveRequest draft)
@@ -86,11 +107,13 @@ public sealed class HousePartLibraryEndpointsTests
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
 
-        var slate = await StyleAsync(client, "slate", Blocks.Stone);
+        // Planks, not stone: the picture is checked for the roof's own colour, and a grey is indistinguishable
+        // from the shading a section applies to anything else grey in it.
+        var shingle = await StyleAsync(client, "shingle", Blocks.Planks);
         var trim = await StyleAsync(client, "trim", Blocks.StainedClay);
 
         var created = await (await client.PostAsJsonAsync("/api/roof-styles", Roof("shingled", RoofForms.Gable,
-                new RoomCourseDto(RoomParts.Roof, 0, slate, 1),
+                new RoomCourseDto(RoomParts.Roof, 0, shingle, 1),
                 new RoomCourseDto(RoomParts.Verge, 0, trim, 1))))
             .Content.ReadFromJsonAsync<RoofStyleDetail>();
 
@@ -99,10 +122,14 @@ public sealed class HousePartLibraryEndpointsTests
         await Assert.That(detail.Courses.Count).IsEqualTo(2);
         await Assert.That(detail.Courses.Single(c => c.Part == RoomParts.Verge).StyleId).IsEqualTo(trim);
 
-        // Drawn on the sample building, so a roof card is a picture of a roof rather than of nothing.
+        // Drawn on the sample building and cut to the roof, so a roof card is a picture of a roof — the
+        // material the author named for it, and none of the ground the building stands on.
         var listed = await client.GetFromJsonAsync<List<RoofStyleSummary>>("/api/roof-styles");
         await Assert.That(listed!.Count).IsEqualTo(1);
-        await Assert.That(Fills(listed[0].Preview)).Contains(BlockPalette.Hex(Blocks.Stone, 0));
+        await Assert.That(AnyShadeOf(Fills(listed[0].Preview), Blocks.Planks)).IsTrue();
+        // The ground the sample stands on is stone laid to the front plane of the box, so it is the one thing
+        // in the picture drawn unshaded. Cut to the roof, it is out of frame.
+        await Assert.That(Fills(listed[0].Preview)).DoesNotContain(BlockPalette.Hex(Blocks.Stone, 0));
     }
 
     /// <summary>A roof part carries its own half-course slab, which is what lets the slab/pitch pairing run

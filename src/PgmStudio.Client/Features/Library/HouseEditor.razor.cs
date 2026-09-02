@@ -138,7 +138,13 @@ public partial class HouseEditor
         await OnName.InvokeAsync(name);
     }
 
-    private void Pick(string part) => selected = part;
+    /// <summary>Open a row — and redraw, because the pictures are cut to whatever is open: picking the roof is
+    /// how an author asks to see the roof.</summary>
+    private Task Pick(string part)
+    {
+        selected = part;
+        return Preview();
+    }
 
     /// <summary>Which picture is showing. The isometric and the three cuts answer different questions, so
     /// asking for one alone is the only way to read it at the size the stage can give it.</summary>
@@ -540,9 +546,15 @@ public partial class HouseEditor
     {
         preview = draft is null
             ? null
-            : await Library.DraftPreviewAsync<RoomStylePreviewDto>(LibraryKinds.Houses, Saveable(draft), footprint);
+            : await Library.DraftPreviewAsync<RoomStylePreviewDto>(
+                LibraryKinds.Houses, Saveable(draft), footprint, CutPart);
         StateHasChanged();
     }
+
+    /// <summary>Which part the pictures are cut to: the outline row that is open, where that row is a part of
+    /// the building. The rows that are not — what it is composed from, its trim, its porch, its doorway — are
+    /// read against the whole shell, because none of them is a band of it.</summary>
+    private string? CutPart => RoomPartInfo.All.Any(part => part.Id == selected) ? selected : null;
 
     private RoomStyleSaveRequest Saveable(RoomStyleSaveRequest current) => current with
     {

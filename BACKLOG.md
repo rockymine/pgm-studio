@@ -404,25 +404,19 @@ forward for the two clicked ones, and the per-placement handful — seed, positi
 ### What the author sees while authoring
 
 **The card carries the section, and that is settled** (author): an author knows a house by its name, and the
-one that wants looking at is a click away from a 3-D view of the real thing. B221 and B258 both make that
-deeper view *heavier*, which is the axis worth spending on.
+one that wants looking at is a click away from a 3-D view of the real thing — and the pictures are cut to the
+row the author has open (`FEATURES.md`), so the deeper view is the axis left to spend on.
 
-- [ ] **B221 — The style libraries preview a stamped world, and the cut follows the selected row.**
-  Authoring a **whole style** — a house, a wool cage, a spawn shell — wants the building as it will stand, so
-  the library builds a small world with the house in it and draws that: the path `B165` was found down, and
-  now that the 3-D preview draws the world the export builds (`S54`) the library can show the real thing
-  rather than a stamp of a fixed sample. Authoring a **part** wants a **section** through that world at the
-  part, and `B254`'s outline is what says which: `RoomStylePreview.Views` takes `Outer(style)`, the entire
-  shell, whichever part is open, and nothing on that path asks which part is being edited.
+- [ ] **TL13 — The house editor waits ten seconds on a list it barely uses.** `HouseEditor.OnInitializedAsync`
+  makes six sequential fetches before `OnParametersSetAsync` may run, so nothing renders until the last one
+  lands — and one of them is `GET /api/styles`, which answers **203 rows each carrying its preview SVG**
+  (843 ms on localhost) to fill a select that shows a name and a kind. The editor shows "Reading the house…"
+  for about ten seconds on a cold open. Either the six run together, or the style list answers a summary
+  without the pictures for callers that only pick by name; `StyleSelect` groups by kind and renders no swatch,
+  so it needs neither `preview` nor `params`.
 
-  Where a Y range is the right cut the bands are public: a storey is `LevelBases[i]` to `+ Clear`, a roof is
-  `WallCourses` upward; a porch is an XZ restriction instead. Stamping the part alone is the wrong design — a
-  roof's eave sits on the summed storey stack and the porch decides the front the body is split on, so an
-  isolated part synthesises the context that decides its geometry anyway.
-
-  *One trap: `WorldViews.Isometric`'s `Opaque()` reads `world.GetBlock` unbounded, so a face at the cut plane
-  sees solid beyond it and is not drawn — a box restriction leaves the cut open unless out-of-box reads as
-  air.*
+  *measured 2026-09-02 on the workshop preset: doors, blocks and styles fire, then roofs, storeys and porches,
+  and `GET /room-styles/{id}` only after all six.*
 
 - [ ] **B258 — The library draws the iso the map draws.** `iso-webgl.js` renders the world the export builds,
   meshed by `column-mesh.js` from per-column runs — and both routes that answer those runs, `POST

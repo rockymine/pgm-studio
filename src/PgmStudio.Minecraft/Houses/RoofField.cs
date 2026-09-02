@@ -31,15 +31,20 @@ namespace PgmStudio.Minecraft.Houses;
 /// negative.</b> That is what makes the overhang part of the slope: the course over the wall rests on the wall,
 /// and every course outward from there keeps falling at the same rate, so the eave hangs below its neighbour
 /// instead of running the last blocks flat exactly where the roof is most visible. The fall stops two courses
-/// down (<see cref="EaveFloor"/>) and the rest of the overhang runs flat at that depth.</para>
+/// down (<see cref="MaxEaveDrop"/>) and the rest of the overhang runs flat at that depth.</para>
 /// </summary>
 public sealed class RoofField
 {
-    /// <summary>The lowest the surface may fall below the course it stands at over the wall line, in half
-    /// blocks — two courses. One course down is what makes a pitch of 1 read as a roof rather than a lid;
-    /// past two the eave hangs in front of the wall it shelters instead of over it, and at a deep overhang
-    /// and a steep pitch it reaches below the floor the building stands on.</summary>
-    private const int EaveFloor = -4;
+    /// <summary>How far below the course over the wall line the surface may fall, in whole blocks. One course
+    /// down is what makes a pitch of 1 read as a roof rather than a lid; past two the eave hangs in front of
+    /// the wall it shelters instead of over it, and at a deep overhang and a steep pitch it reaches below the
+    /// floor the building stands on. Public because it is the bottom of the roof: a reader taking the roof
+    /// out of a stamped building has to reach under the eave to find all of it.</summary>
+    public const int MaxEaveDrop = 2;
+
+    /// <summary>Where <see cref="MaxEaveDrop"/> stops the fall, on the half-block scale heights are answered
+    /// in.</summary>
+    private const int EaveFloor = -2 * MaxEaveDrop;
 
     private readonly RoofForm form;
     private readonly int wallMinX, wallMinZ, wallMaxX, wallMaxZ;

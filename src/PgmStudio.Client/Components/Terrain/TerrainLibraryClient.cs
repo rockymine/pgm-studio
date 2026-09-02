@@ -102,10 +102,19 @@ public sealed class TerrainLibraryClient(HttpClient http)
     ///
     /// <para><paramref name="footprint"/> is the sample piece a building is drawn on, one of
     /// <see cref="HouseFootprints"/>; absent draws it on the default.</para></summary>
-    public Task<TPreview?> DraftPreviewAsync<TPreview>(LibraryKind kind, object draft, string? footprint = null)
-        => PostOrNull<TPreview>(
-            footprint is null ? $"api/{kind.Route}/preview" : $"api/{kind.Route}/preview?footprint={footprint}",
-            draft);
+    /// <summary><paramref name="part"/> cuts the pictures to the row the editor has open, so what an author is
+    /// working on is what they are looking at. Absent draws the whole of it.</summary>
+    public Task<TPreview?> DraftPreviewAsync<TPreview>(
+        LibraryKind kind, object draft, string? footprint = null, string? part = null)
+    {
+        var query = string.Join('&', new[]
+        {
+            footprint is null ? null : $"footprint={footprint}",
+            string.IsNullOrEmpty(part) ? null : $"part={part}",
+        }.OfType<string>());
+        return PostOrNull<TPreview>(
+            query.Length == 0 ? $"api/{kind.Route}/preview" : $"api/{kind.Route}/preview?{query}", draft);
+    }
 
     public Task<TDetail?> CreateAsync<TDetail>(LibraryKind kind, object request)
         => PostOrNull<TDetail>($"api/{kind.Route}", request);

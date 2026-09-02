@@ -24,8 +24,9 @@ internal static class StylePngAnswer
         where TEndpoint : IEndpoint
     {
         var footprint = endpoint.HttpContext.Footprint();
+        var part = endpoint.HttpContext.Part();
         return await PngAnswer.AnsweredAsync(endpoint.HttpContext, RoomStylePreview.PngViews,
-            (view, scale) => RoomStylePreview.Png(style, view, scale, footprint), ct);
+            (view, scale) => RoomStylePreview.Png(style, view, scale, footprint, part), ct);
     }
 }
 
@@ -37,6 +38,13 @@ internal static class FootprintQuery
 {
     public static string Footprint(this HttpContext http)
         => HouseFootprints.Canonical(http.Request.Query["footprint"].FirstOrDefault());
+
+    /// <summary>Which part of the building the views are cut to, or an empty string for the whole of it — what
+    /// an editor sends so the picture follows the row the author has open. A word outside the set is the whole
+    /// building, for the reason a bad <c>footprint</c> draws the default: a cut is how the answer is looked at
+    /// rather than part of the question.</summary>
+    public static string Part(this HttpContext http)
+        => RoomParts.Canonical(http.Request.Query["part"].FirstOrDefault());
 }
 
 /// <summary>Row ↔ wire-DTO mapping for the room-style library (G34b), the sibling of
@@ -187,7 +195,7 @@ public sealed class RoomStyleDraftPreviewEndpoint(RoomStyleLibrary library)
     {
         var style = await library.ComposeDraftAsync(req, ct);
         if (await this.SendStylePngAsync(style, ct)) return;
-        await Send.OkAsync(RoomStylePreview.Views(style, footprint: HttpContext.Footprint()), ct);
+        await Send.OkAsync(RoomStylePreview.Views(style, footprint: HttpContext.Footprint(), part: HttpContext.Part()), ct);
     }
 }
 
@@ -226,7 +234,7 @@ public sealed class RoomStyleSnapshotPreviewEndpoint : EndpointWithoutRequest<Ro
             var style = HouseStyleJson.Deserialize(json, out var unread);
             Complaints.Unread(HttpContext, unread);
             if (await this.SendStylePngAsync(style, ct)) return;
-            await Send.OkAsync(RoomStylePreview.Views(style, footprint: HttpContext.Footprint()), ct);
+            await Send.OkAsync(RoomStylePreview.Views(style, footprint: HttpContext.Footprint(), part: HttpContext.Part()), ct);
         }
         catch (JsonException ex) { await Refusals.UnreadableAsync(HttpContext, "invalid room style JSON", ex, ct); }
     }

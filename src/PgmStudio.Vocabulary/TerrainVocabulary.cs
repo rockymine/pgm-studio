@@ -127,6 +127,10 @@ public static class RoomParts
     /// <summary>The parts bottom-up, the order a shell is stamped in.</summary>
     public static readonly string[] All =
         [Floor, Field, Border, Inlay, Wall, Deck, Gable, Roof, Post, Sill, Verge];
+
+    /// <summary>The part a name means, or an empty string for one that names none — what a preview asked to
+    /// cut to an unknown part falls back to, which is the whole building.</summary>
+    public static string Canonical(string? part) => All.Contains(part) ? part! : "";
 }
 
 /// <summary>

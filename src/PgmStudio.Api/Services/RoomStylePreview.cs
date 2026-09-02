@@ -54,21 +54,56 @@ public static class RoomStylePreview
     /// ground it stands on either side.</summary>
     private const int Margin = 2;
 
-    /// <summary>The one picture a library card carries. Kept apart from <see cref="Views"/> so listing the
-    /// library does not draw an isometric per row.</summary>
-    public static string Card(HouseStyle style, int cell = 6, string? footprint = null)
+    /// <summary>The one picture a library card carries, cut to <paramref name="part"/> the way
+    /// <see cref="Views"/> cuts, so a row and the draft that becomes it draw the same thing. Kept apart from
+    /// <see cref="Views"/> so listing the library does not draw an isometric per row.</summary>
+    public static string Card(HouseStyle style, int cell = 6, string? footprint = null, string? part = null)
     {
         var sample = SampleOf(footprint);
-        return WorldViews.Section(Stamped(style, sample), Outer(style, sample), cell);
+        return WorldViews.Section(
+            Stamped(style, sample), CutTo(style, Outer(style, sample), part), cell);
+    }
+
+    /// <summary>
+    /// The box the views are taken over for the part an editor has open — the whole shell where none is.
+    ///
+    /// <para><b>The part is cut out of the building rather than stamped on its own.</b> A roof's eave sits on
+    /// the summed storey stack and a porch decides the front the body is split on, so a part built in
+    /// isolation has to synthesise the very context that decides its geometry. What an author wants is the
+    /// building as it will stand, looked at where they are working.</para>
+    ///
+    /// <para>The bands are the style's own: a floor is its plate, claimed downward from the course players
+    /// walk on; a wall is that course up to the eave, which is every storey's headroom plus a slab between
+    /// each pair; a roof is everything over the eave, <b>reaching under it by
+    /// <see cref="RoofField.MaxEaveDrop"/></b> — the overhang keeps falling past the course it rests on, so a
+    /// roof cut at the eave loses the very edge an author is tuning. A porch is an XZ restriction instead —
+    /// it is a strip of the footprint rather than a band of height — and is left to the whole box, since the
+    /// strip is only legible against the wall it stands on.</para>
+    ///
+    /// <para>Two neighbouring bands therefore share courses. That is the honest picture: the eave is both the
+    /// top of the wall and what the roof lands on, and a band drawn to exclude its neighbour would draw a
+    /// join that is not there.</para>
+    /// </summary>
+    private static BlockBox CutTo(HouseStyle style, BlockBox whole, string? part)
+    {
+        var eave = FloorY + style.WallCourses;
+        return RoomParts.Canonical(part) switch
+        {
+            RoomParts.Floor => whole with { MaxY = FloorY },
+            RoomParts.Wall => whole with { MinY = FloorY, MaxY = eave },
+            RoomParts.Roof => whole with { MinY = eave - RoofField.MaxEaveDrop },
+            _ => whole,
+        };
     }
 
     /// <summary>Every view of the sample room, for the one style an editor has open.</summary>
-    public static RoomStylePreviewDto Views(HouseStyle style, int cell = 6, string? footprint = null)
+    public static RoomStylePreviewDto Views(
+        HouseStyle style, int cell = 6, string? footprint = null, string? part = null)
     {
         var sample = SampleOf(footprint);
         var world = Stamped(style, sample);
-        var box = Outer(style, sample);
-        var inner = Inner(style, sample);
+        var box = CutTo(style, Outer(style, sample), part);
+        var inner = CutTo(style, Inner(style, sample), part);
         return new RoomStylePreviewDto(
             WorldViews.Plan(world, box, cell),
             WorldViews.Section(world, box, cell),
@@ -82,11 +117,12 @@ public static class RoomStylePreview
     /// lattice's whole trick is the quarter each stair is missing — so they have no raster to encode and stay
     /// SVG. Every other preview in the studio answers <c>?format=png</c>, and a building is the one picture
     /// the reviewer's checklist asks to be looked at, so the two that can are offered.</summary>
-    public static byte[]? Png(HouseStyle style, string view, int scale = 1, string? footprint = null)
+    public static byte[]? Png(
+        HouseStyle style, string view, int scale = 1, string? footprint = null, string? part = null)
     {
         var sample = SampleOf(footprint);
         var world = Stamped(style, sample);
-        var box = Outer(style, sample);
+        var box = CutTo(style, Outer(style, sample), part);
         return view switch
         {
             "plan" => WorldViews.PlanRaster(world, box, Cell).Scaled(scale).Png(),

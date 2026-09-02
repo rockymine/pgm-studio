@@ -102,7 +102,11 @@ public static class WorldViews
         // facing out of the page.
         (int Id, int Data) Block(int x, int y, int z) => world.GetBlock(x, y, box.MinZ + box.MaxZ - z);
 
-        bool Opaque(int x, int y, int z) => Block(x, y, z).Id != Blocks.Air;
+        // A neighbour outside the drawn box reads as air, so a face on the box's own edge is drawn. Reading the
+        // world unbounded instead hides exactly the faces a cut exists to show: a section taken at the eave
+        // sees the roof above it, decides the top face is covered, and draws a building with no top.
+        bool Opaque(int x, int y, int z)
+            => box.Contains(x, y, box.MinZ + box.MaxZ - z) && Block(x, y, z).Id != Blocks.Air;
 
         void Face(int depth, BlockPalette.Rgb rgb, double shade, params int[] points)
             => faces.Add((depth, Shade(rgb, shade),

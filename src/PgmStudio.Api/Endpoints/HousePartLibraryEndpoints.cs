@@ -5,6 +5,7 @@ using PgmStudio.Data.Schema;
 using PgmStudio.Data.Theme;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Houses;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -59,7 +60,8 @@ public sealed class RoofStyleListEndpoint(HousePartLibrary library) : EndpointWi
 
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeRoofsAsync(ct))
-            .Select(entry => new RoofStyleSummary(entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style)))
+            .Select(entry => new RoofStyleSummary(
+                entry.Row.Id, entry.Row.Name, RoomStylePreview.Card(entry.Style, part: RoomParts.Roof)))
             .ToList(), ct);
 }
 
@@ -125,7 +127,8 @@ public sealed class RoofStyleDraftPreviewEndpoint(HousePartLibrary library)
 
     public override async Task HandleAsync(RoofStyleSaveRequest req, CancellationToken ct)
         => await Send.OkAsync(
-            RoomStylePreview.Views(await library.ComposeRoofDraftAsync(req, ct), footprint: HttpContext.Footprint()), ct);
+            RoomStylePreview.Views(await library.ComposeRoofDraftAsync(req, ct),
+                                   footprint: HttpContext.Footprint(), part: RoomParts.Roof), ct);
 }
 
 /// <summary>DELETE /api/roof-styles/{id} — forget a roof, unless a house still wears it. A part bound by a
@@ -161,7 +164,8 @@ public sealed class StoreyStyleListEndpoint(HousePartLibrary library)
     public override async Task HandleAsync(CancellationToken ct)
         => await Send.OkAsync((await library.ComposeStoreysAsync(ct))
             .Select(entry => new StoreyStyleSummary(
-                entry.Row.Id, entry.Row.Name, entry.Row.Clear, RoomStylePreview.Card(entry.Style)))
+                entry.Row.Id, entry.Row.Name, entry.Row.Clear,
+                RoomStylePreview.Card(entry.Style, part: RoomParts.Wall)))
             .ToList(), ct);
 }
 
@@ -221,7 +225,8 @@ public sealed class StoreyStyleDraftPreviewEndpoint(HousePartLibrary library)
 
     public override async Task HandleAsync(StoreyStyleSaveRequest req, CancellationToken ct)
         => await Send.OkAsync(
-            RoomStylePreview.Views(await library.ComposeStoreyDraftAsync(req, ct), footprint: HttpContext.Footprint()), ct);
+            RoomStylePreview.Views(await library.ComposeStoreyDraftAsync(req, ct),
+                                   footprint: HttpContext.Footprint(), part: RoomParts.Wall), ct);
 }
 
 public sealed class StoreyStyleDeleteEndpoint(HousePartStore store) : EndpointWithoutRequest
