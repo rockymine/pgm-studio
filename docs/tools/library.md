@@ -729,8 +729,6 @@ Windows and rails are chosen as blocks rather than as styles, which means the pa
 available to them. That is deliberate — their metadata is geometry, not material — but it does mean a window
 frame cannot be a voronoi.
 
-**The editor offers a kind it cannot build.** `laidLog` is in the dropdown as "Laid log beam", but the client
-has no shape for it: choosing it replaces the material wholesale with a plain stone `solid`, silently. The
-painter, the wire format and every preview handle a laid log correctly — `{"kind": "laidLog", "id": 17}`
-renders — so it is authorable by hand and by an agent, and only the picker is missing. Thirteen of the fourteen
-kinds are reachable in the UI.
+All fourteen kinds are reachable in the UI, and the editor takes their shapes from the schema `GET
+/api/terrain/patterns` publishes rather than from a list of its own, so a kind added to the painter is
+authorable without the client being taught it.
