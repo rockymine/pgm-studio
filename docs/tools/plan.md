@@ -657,7 +657,21 @@ draws the board as characters.
 
 ## Driving it without the UI
 
-An agent authoring a plan writes the document itself and never touches the canvas. The whole loop is six calls.
+An agent authoring a plan writes the document itself and never touches the canvas. **The whole loop is two
+calls**: compile the plan, then store the three documents together.
+
+```
+POST   /api/plan/compile              <the plan document>        → {layout, intent} (+ warnings)
+POST   /api/map/from-documents        {plan, layout, intent, name, slug, authors}
+                                      → {slug, replaced, cells, islands, configureUrl}
+```
+
+The store originates the map under the slug it is given, runs the finish that rasterizes the layout, stores
+the intent and projects the document from it, and writes the authors — so a caller sequences nothing, and a
+re-drive under the same slug **replaces** the map rather than leaving a second one behind it.
+
+**The staged path is the other caller's**, and it is six calls because each stage writes the document it has
+just drawn:
 
 ```
 POST   /api/plan                      {"name": "Voidwatch"}      → {"slug": "voidwatch"}
@@ -667,6 +681,9 @@ PUT    /api/map/voidwatch/sketch/from-plan   <layout verbatim>
 POST   /api/map/voidwatch/sketch/finish
 PUT    /api/map/voidwatch/intent/from-plan   <intent verbatim>
 ```
+
+That is the editor's own order, and its two `…/from-plan` routes **merge** onto what is already stored, which
+is what recompiling a map somebody has drawn on needs and what a first store does not.
 
 `POST /api/plan/evaluate` and `POST /api/plan/feasibility` may be called on the document at any point before
 the compile, with no map in existence, and are the cheapest way to find out whether a board is well-formed.

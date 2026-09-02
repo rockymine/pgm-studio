@@ -181,12 +181,12 @@ count was the other way round — it named three room-style fields with no contr
 window's host block. `C51` has now moved on **every** reading it
 has been given — 28, 29, 31, 30 — which is what a hand-maintained count does.
 
-**`RP59` is the kind that does not survive its drift.** Its ask stands — `flow.md` presents
+**`RP59` was the kind that does not survive its drift.** Its ask was sound — `flow.md` presented
 `POST /map/from-documents` under *The three documents are also the way back in*, which reads as a re-import
-when it is also the authoring call, and `architecture.md` says nothing else. But its evidence argues from a
-six-call path the driver has left, and an entry whose premise has been overtaken argues for work that may
-already be unnecessary. A stale count still points at the right code; a stale premise points at nothing, and
-it reads exactly as convincing as a live one.
+when it is also the authoring call, and `architecture.md` said nothing else; that is what shipped
+(`FEATURES.md`). But its evidence argued from a six-call path the driver had already left, so the entry read
+as work that was mostly done and was worth doing for a reason it did not give. A stale count still points at
+the right code; a stale premise points at nothing, and it reads exactly as convincing as a live one.
 
 **`C62` is the instructive one on the mechanical side**, because what rotted is not the number but **the
 command the entry gives for retaking it**: `grep -r "map-author"` matches `new-map-authoring.md`, cited in
@@ -371,8 +371,8 @@ than a queue that runs beside the one already open.
 **Phase 3 — put the surviving measurements under a script.** `C51`, `B261`, `A8`, `WE70`, `C62` and `TE2` each
 carry a count or a line number that has drifted, and `C62` carries a retake command that no longer measures
 its own claim. Where the number is load-bearing it earns a `census.sh`-shaped generator; where it is not, it
-comes out of the entry and the prose stands alone. `RP59` is not part of this phase and is rewritten instead,
-because what drifted there is its premise.
+comes out of the entry and the prose stands alone. `RP59` was not part of this phase — what drifted there was
+its premise, so it was written rather than rewritten (`FEATURES.md`).
 
 ## What keeps it empty
 

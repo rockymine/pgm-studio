@@ -15,6 +15,11 @@ parsed.
 The pipeline has one entry point: `PgmStudio.Api`, **149 endpoint classes** over 45 files. Everything that
 authors a map arrives through it — the browser, the headless drivers agents write, and the catalogue map,
 which is emitted as a layout and an intent and loaded through `POST /map/from-documents` like any other.
+That route is the **authoring** call for a headless caller and not only an import: it takes the three
+documents together and stores a whole map in one request, running the finish and the intent's projection
+inside itself. The staged routes behind the tools are the browser's path, where a map is walked one stage at
+a time and each stage writes the document it has just drawn (`docs/tools/flow.md` § *The three documents are
+the way in, and the way back in*).
 
 That is not an arrangement the code enforces; it is where the doors happen to be. A second driver linking
 `Pgm`, `Minecraft` and `Export` directly is a few lines away at any time, and the moment one exists, a gate

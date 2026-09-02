@@ -1556,6 +1556,14 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   `roof.verge.id = 17`, a log, which `HouseStyleValidation.CheckRoof` has refused since it was written.
   `SketchRoomStyleGateTests` posts one bad board down all three roads.
 
+- **The one-call path is documented as the authoring call, not only the import one (RP59).** `flow.md`
+  presented `POST /map/from-documents` under *the way back in*, so a headless author read it as a re-import
+  and walked the editor's six staged calls instead — a fresh slug on every correction, and the intent's
+  projection landing after the metadata write. The section is now *The three documents are the way in, and
+  the way back in*, `plan.md` § *Driving it without the UI* leads with the two-call loop (compile, then
+  store) and keeps the staged path as what a map walked one stage at a time takes, and `architecture.md`
+  says which caller each is for.
+
 - **The one-call authoring path answers for every field it could not keep (RP60).** `POST /map/from-documents`
   reads three documents into three types and complained about none of them, while each of the single-document
   writes beside it answers `RQ3` — so the route a headless author stores a whole map through was the one route

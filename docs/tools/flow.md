@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under. A map already at that slug is replaced — see *The three documents are also the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 422 the layout carries no ground |
+| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 422 the layout carries no ground |
 
 ## The hand-offs
 
@@ -136,12 +136,22 @@ document — teams, kits, regions, filters, apply-rules, spawns — in one idemp
 `GET /api/map/{slug}/xml` renders that document, gated on the pre-flight checks;
 `GET /api/map/{slug}/export` gives the world.
 
-**The three documents are also the way back in.** `POST /api/map/from-documents` takes a plan, a layout and
-an intent together and stores a whole map from them — the plan to re-plan from, the drawing rasterized into
-geometry, the intent projected into the document — and answers the slug it landed under. A map already stored
-under that slug is **replaced**: the documents name one map, so loading them twice is a reload.
+**The three documents are the way in, and the way back in.** `POST /api/map/from-documents` takes a plan, a
+layout and an intent together and stores a whole map from them — the plan to re-plan from, the drawing
+rasterized into geometry, the intent projected into the document — and answers the slug it landed under. A
+map already stored under that slug is **replaced**: the documents name one map, so loading them twice is a
+reload.
 
-It exists because nothing else can take a map back. `POST /map/import-folder` refuses a folder carrying a
+**It is the authoring call and not only the import one, and that is the distinction to get right.** A caller
+holding a layout and an intent — compiled from a plan, or written by hand — stores the whole map in this one
+request under a slug it names: the finish that rasterizes the layout runs inside it, the intent's projection
+runs inside it, and the authors ride in the body. The five hand-offs above are the **other** caller's path,
+a map walked through the tools one stage at a time, each stage writing the document it has just drawn — which
+is what the browser does, and what a driver never needs. A driver that walks them instead pays six calls for
+one store, originates a fresh slug on every correction, and has to know that the intent's projection lands
+after the metadata write.
+
+It is also the way back in, because nothing else can take a map back. `POST /map/import-folder` refuses a folder carrying a
 `map.xml` outright, `import-url` extracts only `region/*.mca`, and no route in the studio reads a `map.xml` at
 all — so a map authored against one studio could reach another only as a world, arriving without its plan, its
 drawing or its intent, and could never be re-planned. What the documents carry is more than the world does.

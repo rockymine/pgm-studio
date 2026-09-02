@@ -60,19 +60,6 @@ whose answer is inside a refusal, a solver or a palette and which no read return
 in a field no driver printed. Not one of these faults was caught by a gate; the export gate was open, the
 mirror clean and the traversability whole on every board named below.
 
-- [ ] **RP59 — The authoring call a headless caller wants is documented as a way back in.** `POST
-  /map/from-documents` stores a plan, a layout and an intent under a named slug, replacing whatever is there,
-  and applies the authors in the same body (`RP13`). `docs/tools/flow.md` presents it under *The three
-  documents are also the way back in*, which reads as a re-import, so every authored board took six calls
-  instead: `POST /plan` — a fresh slug each time — then `PUT …/plan`, `PUT …/sketch/from-plan`, `POST
-  …/sketch/finish`, `PUT …/intent/from-plan`, and `PATCH …/metadata` last, because storing an intent projects
-  the map document over whatever the metadata said. Say in `flow.md` and `docs/architecture.md` that it is the
-  authoring call as well, and what the six-call path is for: a map walked through the tools one stage at a
-  time, which is the editor's path and not a driver's.
-
-  *`opus5-thornfell` was corrected three times and left `thornfell`, `thornfell-2` and `thornfell-3` in the
-  database; every render, provenance sidecar and column read had to be traced to the right one by hand.*
-
 - [ ] **TN2 — `structural-integrity` carries one sentence where several refusals fired.** The term folds
   every `PlanValidator` refusal into one hard violation, and where there is more than one its message is
   `"{n} structural errors ({first})"` — so `/plan/evaluate` tells an agent the count and one of them, and the
