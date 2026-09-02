@@ -80,11 +80,17 @@
       }
       else if (kind == MarkKinds.Scarp)
       {
-        <Field Label="Above the line">
-          <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
+        <Field Label="Shelf">
+          <LabelHint>(the +z hand of the drawn direction: south of a line drawn west to east)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
+          </ChildContent>
         </Field>
-        <Field Label="Below the line">
-          <NumberField Value="Num(MarkFields.Low, 5)" ValueChanged="SetLow" />
+        <Field Label="Ground below">
+          <LabelHint>(the other side)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Num(MarkFields.Low, 5)" ValueChanged="SetLow" />
+          </ChildContent>
         </Field>
         <Field Label="Face">
           <LabelHint>(how wide the drop is)</LabelHint>

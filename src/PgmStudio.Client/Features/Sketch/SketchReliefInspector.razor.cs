@@ -306,7 +306,7 @@ public partial class SketchReliefInspector
         [MarkKinds.Area] = ("pentagon", "Bench",
             "A drawn ring held flat — a floor, a plateau, the ground a building stands on."),
         [MarkKinds.Scarp] = ("triangle", "Scarp",
-            "A shelf above a line and open ground below it. The face is the drop; where the line stops is where the shelf can be crossed."),
+            "A shelf on one side of a line and open ground on the other — the shelf is on the +z hand of the direction the line is drawn. The face is the drop; where the line stops is where the shelf can be crossed."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
             "The group's whole outline, held at one height."),
         [MarkKinds.Push] = ("arrows-up-from-line", "Push",

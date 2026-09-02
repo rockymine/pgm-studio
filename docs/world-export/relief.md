@@ -235,8 +235,10 @@ matters is not "is anything unreachable" but *what the terrain charges*.
 
 The **scarp** mark is how that is stated directly. Every other mark gives a height; a scarp gives a **drop** — a
 height each side of a drawn line and the width of the face between — so what the author picks is the grade, and
-the grade decides the crossing. It pins two bands and leaves the face free, and the relaxation runs a
-near-linear ramp between them, which means one number spells a hillside or a wall. Measured with the same
+the grade decides the crossing. Which side is `high` is the order the points are written in: the shelf is on the
++z hand of the drawn direction, south of a line traced west to east and north of one traced east to west. It
+pins two bands and leaves the face free, and the relaxation runs a near-linear ramp between them, which means
+one number spells a hillside or a wall. Measured with the same
 ten-block drop on a 90×135 board, along the 135 rows that cross it:
 
 | Face | Grade | Crossed on foot | With a block | Descended | Walk from side to side |
