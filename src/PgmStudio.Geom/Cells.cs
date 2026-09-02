@@ -12,6 +12,26 @@ namespace PgmStudio.Geom;
 /// </summary>
 public static class Cells
 {
+    /// <summary>Every cell a straight walk from <paramref name="from"/> to <paramref name="to"/> passes
+    /// through, both ends included — the standard integer line, so a line a caller asked for is the line
+    /// actually walked rather than an interpolation free to skip a cell. Every read that follows a line over
+    /// the ground takes this one: a transect's polyline, a route's own centreline.</summary>
+    public static IEnumerable<(int X, int Z)> Line((int X, int Z) from, (int X, int Z) to)
+    {
+        int x = from.X, z = from.Z;
+        int dx = Math.Abs(to.X - from.X), sx = from.X < to.X ? 1 : -1;
+        int dz = -Math.Abs(to.Z - from.Z), sz = from.Z < to.Z ? 1 : -1;
+        var err = dx + dz;
+        while (true)
+        {
+            yield return (x, z);
+            if (x == to.X && z == to.Z) yield break;
+            var doubled = 2 * err;
+            if (doubled >= dz) { err += dz; x += sx; }
+            if (doubled <= dx) { err += dx; z += sz; }
+        }
+    }
+
     /// <summary>The four orthogonal neighbours of <paramref name="c"/> (4-connectivity).</summary>
     public static IEnumerable<(int, int)> N4((int, int) c)
     {

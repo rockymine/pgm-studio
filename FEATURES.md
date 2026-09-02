@@ -1615,6 +1615,13 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   on at every cell, `steps` for every step that is not a plain walk with `rises`, `falls` and `worstStep`, and
   with `?beside=N` every distinct thing recorded within N cells of the route; `?format=text` is the station
   table. `WalkProfile` in Export is the computation and the text.
+- **A drawn route is read back (WS14).** `route: true` on a stroke made `DR-ROAD` measure every other prop's
+  standoff to it, and nothing read the stroke itself. `GET /map/{slug}/route?id=&image=` walks the road down
+  its own centreline — the same spline and the same orbit fan the pass laid it with — and answers per block
+  the ground, whether the paving reached it, what it is made of and the step from the block before, then the
+  worst step, the materials with the count of unbroken runs, and every stretch the paving misses.
+  `RouteRead` in Export; `?format=text` is the station table. The integer line both this and `transect` walk
+  moved into `Geom.Cells.Line`, so the two follow a line the same way.
 - **A theme census counts a board's paint (WS22).** `GET /map/{slug}/themes/census` counts every ground cell
   by the theme that paints it — cells and share per theme, the distinct surface materials each spends, which
   theme borders which over how many cells, and the board's palette count — resolved the way

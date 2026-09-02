@@ -47,6 +47,7 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
 | `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
 | `transect` | — | a polyline walked block by block, as JSON: `{stations, rises, falls, worstStep, barriers, scrambles, drops, events, beside}`. `?points=x,z;x,z[;x,z…]`, `every` thins the stations, `beside` lists every claim within that many cells of the line; `?format=text` answers the same walk as a table |
+| `route` | — | a drawn route walked end to end down its own centreline: per block the ground, whether the paving reaches it, what it is made of and the step from the block before, then the worst step, the materials and every stretch the paving misses. `?id=` names the stroke, `image` which of the orbit's roads; `?format=text` answers the station table |
 | `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
 
 `column` answers characters rather than JSON for the reason the plan grid and the flow account do: it is read
@@ -178,6 +179,24 @@ because that deck is level, which is a property of that board and not of stackin
 `section` and `column` take no `layer` word: they keep Y and show every storey already. Neither do
 `traversability` and `walk`, which run over the ground rather than draw it and answer per storey without being
 asked.
+
+## A drawn route is read as the road it is, not the way a walker would go
+
+`walk` answers the journey a player finds between two points; a stroke marked `route: true` is the way the
+**author** drew, and until it was read back the only thing that ever looked at one was `DR-ROAD`, measuring
+every other prop's standoff to it. `route` walks the stroke itself: its own centreline, taken through the
+same spline and the same orbit fan the pass laid it with, so a curve is followed rather than cut across and
+the mirrored image is the road that image actually stands on.
+
+Three answers come off it that no column read gives. The **step** between neighbouring blocks, classed the
+way every step in the studio is — a road with a `scramble +2` in it is a road a player hops up, and one with
+a `BARRIER` is a road that stops being one. What it is **made of**, as the blocks under its paved stations,
+most of it first, with the number of unbroken runs beside them: one run is a road of a single block, and a
+count near its own length is paving speckled over a patterned ground. And where the paving **does not
+reach** — each stretch from its first block to its last, which is ground the map keeps clear, coverage the
+style left out, or the line running off the board. Whether a block is paved is read off the claim the pass
+recorded, because the style, the coverage and the seed decide which cells of a band take surface and none of
+the three can be reasoned about from the document.
 
 ## What a theme census counts
 

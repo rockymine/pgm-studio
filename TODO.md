@@ -122,17 +122,6 @@ mirror clean and the traversability whole on every board named below.
   *`opus5-thornfell`: 36 compiled vertices → 99 drawn, strait measured at **26–28 blocks** over 23 transects
   against a plan stating a flat 30. A vertex moved outward would have closed it.*
 
-- [ ] **WS14 — A declared route is never read back.** `route: true` on a stroke makes `DR-ROAD` measure
-  every other prop's standoff to it, and nothing reads the stroke itself. Two of the three pieces landed:
-  `transect` walks any polyline and classes every step (`WS19`), and the dressing preview answers a stroke's
-  `covered` cells. What is missing is the join — a read that resolves a stroke id to the cells the pass
-  actually **laid**, which its style, coverage and seed decide and its points do not, and walks those end to
-  end for the worst step, the material run and where the road leaves the ground. `GET …/walk` answers a
-  journey the walker chooses, which is not the one that was drawn. `docs/world-scan/read-backs.md`.
-
-  *`opus5-thornfell`'s four tracks, **308 cells**, were swept for a step over one by a throwaway column
-  script; a transect along the drawn points reads the spine rather than the road.*
-
 - [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
   placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
   that; it does not run the generator (author). Reach rather than capability, and upstream of `PL13`: a dock

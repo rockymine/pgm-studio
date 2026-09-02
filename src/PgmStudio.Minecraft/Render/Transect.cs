@@ -183,37 +183,19 @@ public static class Transect
         return (top, water);
     }
 
-    /// <summary>Every point of the polyline walked block by block and thinned to one every
-    /// <paramref name="every"/> blocks — the stations a caller actually sees.</summary>
+    /// <summary>Every point of the polyline walked block by block (<see cref="Cells.Line"/>) and thinned to
+    /// one every <paramref name="every"/> blocks — the stations a caller actually sees.</summary>
     private static List<(int X, int Z)> Sampled(IReadOnlyList<(int X, int Z)> points, int every)
     {
         if (every < 1) every = 1;
         var full = new List<(int X, int Z)>();
         for (var i = 0; i < points.Count - 1; i++)
         {
-            var segment = Bresenham(points[i], points[i + 1]).ToList();
+            var segment = Cells.Line(points[i], points[i + 1]).ToList();
             if (i > 0) segment.RemoveAt(0);
             full.AddRange(segment);
         }
         return [.. full.Where((_, index) => index % every == 0)];
     }
 
-    /// <summary>Every cell a straight walk from <paramref name="from"/> to <paramref name="to"/> passes
-    /// through, both ends included — the standard integer line, so the line a caller asked for is the line
-    /// actually walked rather than an interpolation that can skip a cell.</summary>
-    private static IEnumerable<(int X, int Z)> Bresenham((int X, int Z) from, (int X, int Z) to)
-    {
-        int x = from.X, z = from.Z;
-        int dx = Math.Abs(to.X - from.X), sx = from.X < to.X ? 1 : -1;
-        int dz = -Math.Abs(to.Z - from.Z), sz = from.Z < to.Z ? 1 : -1;
-        var err = dx + dz;
-        while (true)
-        {
-            yield return (x, z);
-            if (x == to.X && z == to.Z) yield break;
-            var doubled = 2 * err;
-            if (doubled >= dz) { err += dz; x += sx; }
-            if (doubled <= dx) { err += dx; z += sz; }
-        }
-    }
 }

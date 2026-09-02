@@ -125,6 +125,15 @@ public static class WorldReadCatalog
             "A transect answers exactly the line asked for and nothing either side of it — a barrier two "
             + "cells off the stated points is invisible to it, which is what `beside` is for."),
 
+        new("route", null,
+            "A drawn route walked end to end, down its own centreline rather than between its points: per "
+            + "block the ground, whether the paving reaches it, what it is made of and the step from the "
+            + "block before, then the worst step, the material runs and every stretch the paving does not "
+            + "reach. The read for a road a player has to cross, which `walk` cannot answer because that "
+            + "walks the way a player would choose.",
+            "It walks one image of the symmetry orbit. The mirrored road stands on mirrored ground, so its "
+            + "steps are its own — read each image that matters."),
+
         new("themes/census", null,
             "Every ground cell counted by the theme that paints it: cells per theme and their share, the "
             + "distinct surface materials each carries, which theme borders which and over how many cells, "

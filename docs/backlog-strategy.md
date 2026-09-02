@@ -247,7 +247,8 @@ answer — a complaint pass over a themed board, with the floor stated by the au
 
 **A read answers the picture and not the knob that made it.** A push has two gradients and `relief/read`
 reports the face rather than either (`WE32`). Two flat marks build a wall and it is reported as terrain,
-attributed to nothing (`WE33`). A declared route is never walked back (`WS14`). `RouteFork` reports one fork
+attributed to nothing (`WE33`). A declared route was never walked back until `WS14` (`FEATURES.md`).
+`RouteFork` reports one fork
 where a board has several, and reports it against no demand set (`WS3`). Eleven world reads answer a picture
 each and no browser surface shows any of them (`B262`), and a read taken off a shipped world cannot be given
 the sidecar that would name its materials (`B265`). Every one of these is an author holding an artifact with

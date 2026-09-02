@@ -269,4 +269,17 @@ public sealed class WorldReadEndpointTests
         await Assert.That(json.StatusCode).IsEqualTo(HttpStatusCode.OK);
         await Assert.That(json.Content.Headers.ContentType!.MediaType).IsEqualTo("application/json");
     }
+
+    [Test]
+    public async Task A_drawn_route_is_walked_back_and_a_stroke_the_board_lacks_is_named()
+    {
+        // The fixture board carries no dressing, so the refusal is the one a caller meets first — and it
+        // names what the board does carry rather than only that this is not it.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await FinishedAsync(client);
+
+        var missing = await client.GetAsync($"/api/map/{slug}/route?id=nowhere");
+        await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableContent);
+        await Assert.That(await missing.Content.ReadAsStringAsync()).Contains("no stroke");
+    }
 }
