@@ -2017,6 +2017,10 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   enforced one. The road standoff got its citable id (`DR-ROAD`, cited by the census reason, catalogue
   sentence carrying the per-kind values), and two drift gates pin the prose to the code: GO1's stated band
   to `GoalSpawnRatio.AuthoredBand`, DR-ROAD's sentence to `PlacedProp.RouteStandoff`.
+- **A caller prints the band the studio is enforcing, not one it wrote down (`TN3`).** The mapgen driver
+  restated `GO1 wants 3.0-4.0` and `CT12 wants 15-40` in its own f-strings, so an author moving either
+  number would have left it telling every future run the old one. It reads `GET /api/rules/terms` for a
+  term's band and its source, and a rule's own headline sentence off `GET /api/rules`, once per run.
 - **Typed ground claims and the road standoff (`B232`).** The dressing pass's claim set carries who claimed
   each cell (`GroundClaims`: water/route/structure/scatter), which is what lets a building ignore pavement
   while colliding with everything else — and lets a prop kind state a standoff from the road:

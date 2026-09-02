@@ -670,6 +670,14 @@ PUT    /api/map/voidwatch/intent/from-plan   <intent verbatim>
 
 `POST /api/plan/evaluate` and `POST /api/plan/feasibility` may be called on the document at any point before
 the compile, with no map in existence, and are the cheapest way to find out whether a board is well-formed.
+
+**A measure is printed beside the band the studio is enforcing, and the band is read rather than restated.**
+`inspect` answers `goalDistances` and `islandGaps` as bare numbers, and what makes one of them a fault is a
+band that belongs to a rule: `GET /api/rules/terms` answers each scored term with the band the scorer is
+using right now and where it came from — `goal-spawn-ratio` is `GO1`'s `[3, 4]`, `authored` — and
+`GET /api/rules?rule=<id>` answers the rule's own sentence, which is where a rule with no scored term states
+its number. A caller that writes either down instead goes on reporting the old one after the author moves
+it.
 `GET /api/map/{slug}/state` before the build says whether this is an origination or a rebuild, and what
 else may be done from here. `GET /api/map/{slug}/export` afterwards returns the world.
 
