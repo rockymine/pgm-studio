@@ -23,7 +23,7 @@ namespace PgmStudio.Geom.Relief;
 public static class StairRepair
 {
     /// <summary>The step a player takes for free. A stair exists to bring a riser down to it.</summary>
-    private const int WalkStep = 1;
+    private const int WalkStep = Walk.FreeRise;
 
     /// <summary>The field with a stair cut into each stranded place, or the same field when nothing is
     /// stranded. Reachability is judged at the walking step, since a riser a player can only cross by

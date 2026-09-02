@@ -604,58 +604,6 @@ mirror clean and the traversability whole on every board named below.
   stained-clay / stained-glass remainder must stay out — admitting wool takes the candidate set from 15,488
   clusters to 439,440, because a CTW map is made of wool.
 
-## Read-backs a model subtracts from: the shape an answer arrives in
-
-`docs/world-scan/answer-shapes.md` measures the surface — of the reads that answer a built world, eight
-answer only as pictures, one as text, six as numbers — and places the faults agents repeat against the read
-that would show each as a number. The driver already writes the board as text beside every picture
-(`pgm-studio-mapgen/tools/render/textreads.py`); these move that into the API, where the studio's own
-knowledge of a column is available without a sidecar.
-
-- [ ] **WS19 — A section and a transect as text and as numbers.** `render/section` answers a PNG; answer the
-  same cut on `?format=text` as one character per block with a y axis and the ground's height under each
-  column, and add `GET /map/{slug}/transect?points=x,z;x,z…[&every=N]` answering each station's ground,
-  water line, top, provenance claim and the step from the station before, classed as walked (0–1), scrambled
-  (2), barrier (3+) or drop (4+ down), as JSON with the text beside it. The extent is the caller's polyline,
-  so a feature's own box drives it. The categories are `WorldProvenance`'s and the storeys the layers'.
-  `SectionRender.Render` already holds the columns of the cut; `docs/world-scan/read-backs.md` gets the two
-  rows.
-  *Weirbank's basin: `(-42, 38) ground 38` beside `(-40, 38) ground 22`, a thirteen-course wall read as a
-  six-block pond off single columns and a PNG.*
-
-- [ ] **WS20 — A heightmap and a slope grid as text.** `render/heightmap?format=text&every=N` answers the
-  ground's height band per cell (`0-9a-z` above the board's lowest ground) with the spawns, goals, houses
-  and water overprinted, in the plan grid's shape (scale, extent and key on the first lines). Beside it a
-  `slopes` read: the worst step to a neighbour per cell, `.` walked, `:` a block, `#` a barrier, so a cliff
-  reads as a line and an overdone relief as a page. `HeightProfileRender` already computes the grid.
-
-- [ ] **WS21 — The walk answers its profile and its neighbours.** `walk` answers the route as cells; answer
-  beside them the surface a walker stands on at each cell (the storey, not the ground under a deck), the
-  step between consecutive cells classed as `WS19` classes them, and every claim within a stated distance
-  of the route (`?beside=2`). It is the read for a thing thrown in the players' way and for a path that
-  does not work, and the drive's route profile is a client-side copy of it that cannot know which storey the
-  walk chose. `docs/world-scan/read-backs.md` § *What a walk costs*.
-
-- [ ] **WS22 — A theme census.** `GET /map/{slug}/themes/census`: cells per theme, distinct materials per
-  theme, which theme borders which over how many cells, and the board's palette count. A board that mashes
-  its themes has no gate and no read today; `render/surface` counts tone families into a legend baked into a
-  PNG. `TerrainThemeScope` knows every cell's theme.
-
-- [ ] **TS81 — The dressing preview answers its claims as a raster.** `sketch/dressing` answers
-  `claimedCells` as a count; answer the claims as digit rows over a bounding box the way `coverage` answers
-  its classes — one digit per claim kind (water, structure, door lane, goal clearance, road band, house,
-  tree) — so a placement is looked up rather than tried. Placing eleven trees on `fable-mossgill` took ten
-  preview passes of trial; `tools/loop.py --candidates` is the workaround. `docs/tools/sketch.md` § the
-  dressing preview.
-
-- [ ] **RP64 — A finding that states its edit.** Where a finding has a mechanical fix, carry it as a JSON
-  pointer and a value beside the message: `SP8` on a seam wants a `line` mark from the high piece's edge
-  to the low one's at the two surfaces; `WX11` wants an `area` mark held flat under the house's box; `DR-ROAD`
-  wants the prop moved a stated number of blocks away from the road's band; `EL1` the same as `SP8`. A model
-  applies a stated edit where it fails to derive one from a rule's prose, which is what the author's runs
-  show — small directed edits land, inspection does not. The rule catalogue (`GET /api/rules`) already
-  carries the fix in words; this is the same fix in the document's own vocabulary. `docs/refusals.md`.
-
 ## The plan model: pieces, and the edges between them
 
 `PieceInterfaces` turned every seam between two plan pieces into a read — its height delta, its typed wall,

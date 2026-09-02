@@ -37,6 +37,12 @@ internal static class Answers
     public static RouteHandlerBuilder AlsoPng(this RouteHandlerBuilder builder, params string[] views) =>
         builder.WithMetadata(new PngPreview(views));
 
+    /// <summary>The route answers its reading as characters on <c>?format=text</c>, beside its default — a
+    /// picture or a JSON document. <see cref="TextQuery"/> publishes the word and the media type together,
+    /// so the flag that makes a route answer text is the flag that documents how to ask for it.</summary>
+    public static RouteHandlerBuilder AlsoText(this RouteHandlerBuilder builder) =>
+        builder.WithMetadata(new TextTwin());
+
     /// <summary>The query words this route reads off the request rather than binding to a record — a
     /// magnification, a view name, the extent of a cut. <see cref="QueryWords"/> publishes them, so a knob
     /// that exists is a knob the schema names; declared here, beside the route, because the reader and the

@@ -75,6 +75,9 @@ builder.Services.SwaggerDocument(o =>
     // A route that answers a picture says how to ask for one, beside the media type that says it can.
     // PgmStudio.Api.Endpoints.PngQuery says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new PngQuery());
+    // And a route that answers the same reading as characters says so the same way.
+    // PgmStudio.Api.Endpoints.TextQuery says how.
+    o.DocumentSettings += doc => doc.OperationProcessors.Add(new TextQuery());
     // And a route that reads a word off the request rather than binding it says which words, and what each
     // takes. PgmStudio.Api.Endpoints.QueryWords says how.
     o.DocumentSettings += doc => doc.OperationProcessors.Add(new QueryWords());

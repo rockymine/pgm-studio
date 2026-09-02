@@ -2,6 +2,7 @@ using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Analysis.Playability;
 
+using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Relief;
 
@@ -23,9 +24,10 @@ using PgmStudio.Geom.Relief;
 public static class ReliefReadback
 {
     /// <summary>The step a player crosses freely, and the one they cross by placing a block. Above the second
-    /// is a face. These are the game's numbers, not a tuning choice.</summary>
-    public const int WalkStep = 1;
-    public const int ScrambleStep = 2;
+    /// is a face. They are <see cref="Walk"/>'s numbers, read from there so a step counted here is the same
+    /// kind of step a transect or a slope grid names.</summary>
+    public const int WalkStep = Walk.FreeRise;
+    public const int ScrambleStep = Walk.ScrambleStep;
 
     /// <summary>The share of the ground a connected region has to hold before it is a <b>place</b> rather than
     /// a <b>ledge</b>. Counting them together is what turns "one connected map with twenty cliff-top ledges"

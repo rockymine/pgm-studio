@@ -203,6 +203,21 @@ public static class Walk
     /// first have to make, so a rise of Δ costs Δ−1 blocks.</summary>
     public const int FreeRise = 1;
 
+    /// <summary>The tallest step crossed by placing one block and climbing it: a scramble. Above it a step is
+    /// a face, whatever the walk charges to build up it. The game's number, not a tuning choice, and the one
+    /// every read that classes a step reads — the relief read's tiers, a transect's words, a slope grid's
+    /// characters — so a step is the same kind of step wherever it is counted.</summary>
+    public const int ScrambleStep = 2;
+
+    /// <summary>The word for a signed step between two neighbouring places: <c>walk</c> up to
+    /// <see cref="FreeRise"/> either way, <c>scramble</c> up to <see cref="ScrambleStep"/>, <c>barrier</c>
+    /// above it, and <c>drop</c> for a fall past <see cref="FreeDrop"/>, where damage starts.</summary>
+    public static string StepWord(int delta) =>
+        delta > ScrambleStep ? "barrier"
+        : delta > FreeRise ? "scramble"
+        : delta < -FreeDrop ? "drop"
+        : "walk";
+
     /// <summary>The tallest rise that still reads as ground rather than as a wall: more than five blocks is a
     /// face a player goes round rather than up (author). A climb inside the bound is a slope, a bank or a
     /// flight of steps; past it the two sides are separate places however much clearance stands over each.
