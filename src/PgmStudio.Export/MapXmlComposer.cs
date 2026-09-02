@@ -9,7 +9,7 @@ using Dict = Dictionary<string, object?>;
 /// Composes a PGM <c>map.xml</c> string from a map document: <c>Deserializer.FromDict</c> →
 /// <c>MapXml</c> → <c>XmlWriter.ToXml</c>. Intent-authored maps additionally get the standard CTW
 /// boilerplate (<see cref="CtwStandards"/>), spawn-ore renewables (<see cref="ResourceRenewables"/>), and
-/// the no-void apply-rule ordered last. Shared by the XML and world-export endpoints.
+/// the not-build-area void apply-rule ordered last. Shared by the XML and world-export endpoints.
 /// </summary>
 public static class MapXmlComposer
 {
@@ -30,7 +30,7 @@ public static class MapXmlComposer
                     if (!spawnOre.Contains(ore)) spawnOre.Add(ore);
             SpawnOreProtection.State(mx, spawnOre);
 
-            // The not-build-area "no-void" rule must decide last (PGM stops at the first applicator).
+            // The not-build-area void rule must decide last (PGM stops at the first applicator).
             var voidRules = mx.ApplyRules.Where(r => r.RegionId == "not-build-area").ToList();
             if (voidRules.Count > 0)
             {

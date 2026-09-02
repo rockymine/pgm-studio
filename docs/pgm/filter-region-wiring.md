@@ -68,7 +68,8 @@ Template 1 is the canonical *suggest + confirm* flow: detect the positive build 
 scopes at once, so a void filter written under it seals whatever already stands over the void — and what
 stands over the void on a studio-built board is decoration, because the dressing stage scatters trees and
 flora across a coast and a canopy reaches past it. The break side therefore carries its own filter,
-`over-void-breakable = any(all(<the vegetation list>, void), no-void)`: everything placing allows, plus, over
+`block-break-void-filter = any(all(<the vegetation list>, void), block-place-void-filter)`: everything placing
+allows, plus, over
 the void only, the log, leaves and plants the dressing palette writes. Terrain materials are deliberately
 absent — a crag or a sea stack is a shape the author built, and admitting stone out there would let a team
 mine the board apart. `EZ1` is the read-back that finds the columns this is for.

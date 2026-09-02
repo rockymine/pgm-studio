@@ -1,3 +1,4 @@
+using System.Xml.Linq;
 using PgmStudio.Pgm.Authoring;
 
 namespace PgmStudio.Pgm.Tests;
@@ -30,6 +31,40 @@ public sealed class BuildGeneratorTests
     private static Dict Filters(Dict d) => (Dict)d["filters"]!;
     private static List<object?> Rules(Dict d) => (List<object?>)d["apply_rules"]!;
 
+    /// <summary>The regression the dict-level assertions above cannot make: the fault was not in the
+    /// document, it was in what the document serialised to. A `void` filter is trivial and XmlWriter never
+    /// gives it an id (B15); a filter referenced by two parents is hoisted into the &lt;filters&gt; block by
+    /// the >= 2 rule and every reference to it is written as &lt;filter id="..."/&gt;. A named void filter
+    /// shared by the place side and the break side met both rules at once: the definition came out as a bare
+    /// &lt;void/&gt; with the id stripped and two references pointed at nothing. The map is well-formed, it
+    /// round-trips, and PGM refuses it at load.
+    ///
+    /// <para>So the assertion is about the XML and not about the ids: every filter a document references
+    /// resolves to one it defines.</para></summary>
+    [Test]
+    public async Task Every_filter_reference_in_the_written_xml_resolves()
+    {
+        var doc = Map();
+        BuildGenerator.Apply(doc, Intent());
+        var xml = XDocument.Parse(XmlWriter.ToXml(Deserializer.FromDict(doc)));
+
+        var defined = xml.Descendants()
+            .Where(e => e.Name.LocalName != "filter" && e.Attribute("id") is not null)
+            .Select(e => e.Attribute("id")!.Value).ToHashSet();
+        var referenced = xml.Descendants("filter")
+            .Where(e => e.Attribute("id") is not null && !e.HasElements)
+            .Select(e => e.Attribute("id")!.Value).ToList();
+        foreach (var rule in xml.Descendants("apply"))
+            foreach (var name in new[] { "block", "block-place", "block-break" })
+                if (rule.Attribute(name)?.Value is { } v && !v.StartsWith("deny(") && !v.StartsWith("allow("))
+                    referenced.Add(v);
+
+        await Assert.That(referenced).IsNotEmpty();
+        foreach (var id in referenced.Distinct())
+            await Assert.That(defined).Contains(id)
+                .Because($"<filter id=\"{id}\"/> is referenced and nothing defines it");
+    }
+
     [Test]
     public async Task Builds_union_negative_voidfilter_and_rule()
     {
@@ -45,12 +80,14 @@ public sealed class BuildGeneratorTests
         await Assert.That(neg["type"]).IsEqualTo("negative");
         await Assert.That(((List<object?>)neg["children"]!).Single()).IsEqualTo("build-area");
 
-        await Assert.That(((Dict)Filters(doc)["no-void"]!)["type"]).IsEqualTo("not");
-        await Assert.That(((Dict)Filters(doc)["is-void"]!)["type"]).IsEqualTo("void");
+        await Assert.That(((Dict)Filters(doc)["block-place-void-filter"]!)["type"]).IsEqualTo("not");
+        await Assert.That(((Dict)Filters(doc)["__bvf-void-place"]!)["type"]).IsEqualTo("void");
+        await Assert.That(Filters(doc).ContainsKey("is-void")).IsFalse()
+            .Because("a shared named void filter is hoisted into the block and written without its id, and both references then dangle");
 
         var rule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "not-build-area");
-        await Assert.That(rule["block_place"]).IsEqualTo("no-void");
-        await Assert.That(rule["block_break"]).IsEqualTo("over-void-breakable");
+        await Assert.That(rule["block_place"]).IsEqualTo("block-place-void-filter");
+        await Assert.That(rule["block_break"]).IsEqualTo("block-break-void-filter");
         await Assert.That(rule.ContainsKey("block")).IsFalse()
             .Because("one filter over both scopes is what seals a canopy over the void");
         await Assert.That(doc["max_build_height"]).IsEqualTo(24);
@@ -119,14 +156,15 @@ public sealed class BuildGeneratorTests
         var doc = Map();
         BuildGenerator.Apply(doc, Intent());
 
-        var breakable = (Dict)Filters(doc)["over-void-breakable"]!;
+        var breakable = (Dict)Filters(doc)["block-break-void-filter"]!;
         await Assert.That(breakable["type"]).IsEqualTo("any");
-        await Assert.That((List<object?>)breakable["children"]!).IsEquivalentTo(new object?[] { "__ovb-over-void", "no-void" })
+        await Assert.That((List<object?>)breakable["children"]!).IsEquivalentTo(new object?[] { "__ovb-over-void", "block-place-void-filter" })
             .Because("allow over ground exactly as placing does, and over the void only what is listed");
 
         var overVoid = (Dict)Filters(doc)["__ovb-over-void"]!;
         await Assert.That(overVoid["type"]).IsEqualTo("all");
-        await Assert.That((List<object?>)overVoid["children"]!).Contains("is-void");
+        await Assert.That((List<object?>)overVoid["children"]!).Contains("__bvf-void-break")
+            .Because("its own inline void, not the place side's -- one filter with two parents is the one that dangles");
 
         var materials = Filters(doc).Where(f => f.Key.StartsWith("__ovb-") && ((Dict)f.Value!)["type"] as string == "material")
             .Select(f => ((Dict)f.Value!)["material"] as string).ToList();
@@ -296,7 +334,7 @@ public sealed class BuildGeneratorTests
 
         await Assert.That(Rules(doc).Count).IsEqualTo(2);
         var legacyRule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "not-build-area");
-        await Assert.That(legacyRule["block_place"]).IsEqualTo("no-void");
+        await Assert.That(legacyRule["block_place"]).IsEqualTo("block-place-void-filter");
         var standaloneRule = Rules(doc).OfType<Dict>().Single(r => r.GetValueOrDefault("region") as string == "void-enforcement-area");
         await Assert.That(standaloneRule["block_place"]).IsEqualTo("deny(void)");
     }

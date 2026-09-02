@@ -23,7 +23,7 @@ public static class IntentGenerator
         // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first
         // keeps the region ordering stable regardless of how many lanes a plan carries.
         WaterLaneGenerator.Apply(doc, intent);
-        // Build last: its broad not-build-area "no-void" rule ALLOWs editing any solid block, and PGM stops
+        // Build last: its broad not-build-area place rule ALLOWs editing any solid block, and PGM stops
         // at the first apply rule that decides — so it must come *after* the spawn/wool-room protections
         // (which sit outside the build area) or it short-circuits them. Matches docs/pgm/template.xml ordering.
         BuildGenerator.Apply(doc, intent);

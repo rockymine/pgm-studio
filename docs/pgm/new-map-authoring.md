@@ -171,7 +171,7 @@ captures, and the ownership falls out of it — so the two can never disagree, b
 
 `BuildIntent.Areas` and void enforcement look like one decision — declare where a player may build, and the
 void everywhere else follows — but `BuildGenerator.Apply` used to make that literal: it returned before it
-ever reached the `no-void` wiring when `Areas` was empty, so a map that declared no buildable rectangles at
+ever reached the void-filter wiring when `Areas` was empty, so a map that declared no buildable rectangles at
 all got **no void enforcement of any kind**. `approaches.md` states the intended behaviour as settled law — a
 void gap with no build region over it is permanent, which is what makes a channel a control on flow rather
 than a delay — so the empty-`Areas` case was exercising exactly the opposite of what the void is for, silently,
@@ -200,7 +200,7 @@ destroyable float over open void without its own goal becoming unbreakable.
 So `BuildIntent.VoidEnforcement` states this as its own knob: null (the default, and every map's behaviour
 before B132) leaves the void bridgeable outside any declared build area; a `VoidEnforcementIntent` — even an
 empty one — wires `block-place="deny(void)"` over `everywhere` minus its `Exclusions`, whether or not `Areas`
-is populated, and alongside the legacy `not-build-area`/`no-void` wiring when both are declared, since the two
+is populated, and alongside the legacy `not-build-area` void-filter wiring when both are declared, since the two
 scope different regions and neither implies the other. `BuildGenerator` emits `negative(exclusion…)` rather
 than `complement(everywhere, union(exclusion…))` for this — PGM's `<negative>` already unions its children
 before negating, so the two are the same region with one fewer node. An empty `Exclusions` list still

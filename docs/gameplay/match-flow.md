@@ -309,7 +309,7 @@ against a median life of 66 seconds.
 ## 5. What the build rules allow
 
 `BuildGenerator` emits the declared build areas as `build-area`, wraps their complement as
-`not-build-area`, and applies `block = no-void` to it. Outside the declared build area a player may
+`not-build-area`, and applies `block-place = block-place-void-filter` to it. Outside the declared build area a player may
 therefore edit **any column that is not void**, and inside it may bridge freely. On generated output the
 only declared area is the mid band.
 

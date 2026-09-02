@@ -12,11 +12,12 @@ using PgmStudio.Geom;
 /// or both: the buildable rectangles (the over-void bridges/platforms) unioned into <c>build-area</c>,
 /// optional no-build <see cref="MapIntent.Build"/> holes subtracted as
 /// <c>buildable = complement(build-area, holes…)</c>, all wrapped in the <c>not-build-area</c> negative
-/// with void enforcement — <c>block-place=no-void</c> where <c>no-void = not(void)</c> — so players can't
-/// bridge over the void outside the buildable region and terrain-backed columns stay editable. Breaking is
-/// the same rule with an exception: <c>block-break=over-void-breakable</c> also admits what the dressing
-/// stage leaves hanging over the void, so a canopy past a coast can still be cut down instead of standing
-/// there for the match. And, separately,
+/// with void enforcement — <c>block-place=block-place-void-filter</c>, which is <c>not(void)</c> — so
+/// players can't bridge over the void outside the buildable region and terrain-backed columns stay
+/// editable. Breaking is the same rule with an exception: <c>block-break=block-break-void-filter</c> also
+/// admits what the dressing stage leaves hanging over the void, so a canopy past a coast can still be cut
+/// down instead of standing there for the match. The pair is the shape <c>docs/pgm/template.xml</c> writes,
+/// down to the two ids. And, separately,
 /// <see cref="BuildIntent.VoidEnforcement"/> — the corpus idiom
 /// (<c>block-place=deny(void)</c> over everywhere minus its exclusions) — which fires whether or not
 /// <see cref="BuildIntent.Areas"/> is declared, because a map with no buildable rectangles can still want the
@@ -33,7 +34,19 @@ public static class BuildGenerator
     private const string VoidMessage = "You may not edit the void!";
     private const string VoidEnforcementAreaId = "void-enforcement-area";
     private const string VoidEnforcementExclusionPrefix = "void-enforcement-exclusion";
-    private const string OverVoidBreakable = "over-void-breakable";
+
+    // The two ids docs/pgm/template.xml uses, and they are the template's for a reason: the pair is what a
+    // loading PGM has been seen to accept, and the corpus writes nothing else.
+    private const string BreakVoidFilter = "block-break-void-filter";
+    private const string PlaceVoidFilter = "block-place-void-filter";
+
+    // One inline <void/> per use, never a shared named one. A `void` filter is trivial and XmlWriter
+    // deliberately never gives it an id (B15) -- so a single filter referenced by two parents is hoisted
+    // into the filters block by the >= 2 rule, written there as a bare <void/> with the id stripped, and
+    // both references come out as <filter id="..."/> pointing at nothing. That document is well-formed,
+    // round-trips, and is refused by PGM at load. Synthetic ids stay out of the block entirely.
+    private const string PlaceVoidLeaf = "__bvf-void-place";
+    private const string BreakVoidLeaf = "__bvf-void-break";
 
     /// <summary>What the dressing stage puts over the void and a player must still be able to cut down: a
     /// tree's own two materials and every plant the flora overlay scatters. A canopy reaching past a coast
@@ -93,14 +106,15 @@ public static class BuildGenerator
         // "everywhere except the buildable region" — the void-enforcement wrapper.
         RegionEditor.GroupRegions(doc, new Dict { ["type"] = "negative", ["id"] = "not-build-area", ["child_ids"] = new List<object?> { buildableId } });
 
-        // void enforcement, one scope at a time: no-void = not(void) denies placing where the column is void,
-        // and breaking is the same rule with what decoration leaves over the void carved out of it.
-        FilterEditor.CreateFilter(doc, new Dict { ["id"] = "is-void", ["type"] = "void" });
-        FilterEditor.CreateFilter(doc, new Dict { ["id"] = "no-void", ["type"] = "not", ["child"] = "is-void" });
-        EnsureOverVoidBreakable(doc);
+        // void enforcement, one scope at a time: the place side is not(void), which denies placing where the
+        // column is void, and the break side is the same rule with what decoration leaves over the void
+        // carved out of it. Each side gets its own inline <void/> — see PlaceVoidLeaf.
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = PlaceVoidLeaf, ["type"] = "void" });
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = PlaceVoidFilter, ["type"] = "not", ["child"] = PlaceVoidLeaf });
+        EnsureBreakVoidFilter(doc);
         ApplyRuleEditor.CreateApplyRule(doc, new Dict
         {
-            ["block_place"] = "no-void", ["block_break"] = OverVoidBreakable,
+            ["block_place"] = PlaceVoidFilter, ["block_break"] = BreakVoidFilter,
             ["region"] = "not-build-area", ["message"] = VoidMessage,
         });
     }
@@ -138,10 +152,13 @@ public static class BuildGenerator
 
     /// <summary>The break-side filter: allow over ground exactly as the place side does, and over the void
     /// allow only what decoration puts there. One <c>any</c> of synthetic leaves so the serializer inlines
-    /// it, the same idiom the wool-room whitelist uses.</summary>
-    private static void EnsureOverVoidBreakable(Dict doc)
+    /// it, the same idiom the wool-room whitelist uses — and its own inline <c>void</c> rather than the
+    /// place side's, so neither is a shared filter the writer has to hoist and strip the id from.
+    /// <para>What it writes is <c>docs/pgm/template.xml</c>'s pair:
+    /// <c>any(all(any(material…), void), block-place-void-filter)</c>.</para></summary>
+    private static void EnsureBreakVoidFilter(Dict doc)
     {
-        if (DocAccess.Filters(doc).ContainsKey(OverVoidBreakable)) return;
+        if (DocAccess.Filters(doc).ContainsKey(BreakVoidFilter)) return;
 
         var materials = new List<object?>();
         foreach (var (filterId, material) in OverVoidMaterials)
@@ -149,16 +166,17 @@ public static class BuildGenerator
             FilterEditor.CreateFilter(doc, new Dict { ["id"] = filterId, ["type"] = "material", ["material"] = material });
             materials.Add(filterId);
         }
+        FilterEditor.CreateFilter(doc, new Dict { ["id"] = BreakVoidLeaf, ["type"] = "void" });
         FilterEditor.CreateFilter(doc, new Dict { ["id"] = "__ovb-any", ["type"] = "any", ["children"] = materials });
         FilterEditor.CreateFilter(doc, new Dict
         {
             ["id"] = "__ovb-over-void", ["type"] = "all",
-            ["children"] = new List<object?> { "__ovb-any", "is-void" },
+            ["children"] = new List<object?> { "__ovb-any", BreakVoidLeaf },
         });
         FilterEditor.CreateFilter(doc, new Dict
         {
-            ["id"] = OverVoidBreakable, ["type"] = "any",
-            ["children"] = new List<object?> { "__ovb-over-void", "no-void" },
+            ["id"] = BreakVoidFilter, ["type"] = "any",
+            ["children"] = new List<object?> { "__ovb-over-void", PlaceVoidFilter },
         });
     }
 
@@ -183,11 +201,18 @@ public static class BuildGenerator
     {
         var regions = DocAccess.Regions(doc);
         foreach (var k in regions.Keys.Where(IsGenerated).ToList()) regions.Remove(k);
-        DocAccess.Filters(doc).Remove("no-void");
-        DocAccess.Filters(doc).Remove("is-void");
-        DocAccess.Filters(doc).Remove(OverVoidBreakable);
+        DocAccess.Filters(doc).Remove(PlaceVoidFilter);
+        DocAccess.Filters(doc).Remove(PlaceVoidLeaf);
+        DocAccess.Filters(doc).Remove(BreakVoidFilter);
+        DocAccess.Filters(doc).Remove(BreakVoidLeaf);
         DocAccess.Filters(doc).Remove("__ovb-any");
         DocAccess.Filters(doc).Remove("__ovb-over-void");
+        // The ids this generator wrote before the pair was named after the template. A stored document
+        // still carrying them is cleaned on re-apply rather than left with two filter sets, one of which
+        // is the one PGM refuses.
+        DocAccess.Filters(doc).Remove("no-void");
+        DocAccess.Filters(doc).Remove("is-void");
+        DocAccess.Filters(doc).Remove("over-void-breakable");
         foreach (var (filterId, _) in OverVoidMaterials) DocAccess.Filters(doc).Remove(filterId);
         if (doc.GetValueOrDefault("apply_rules") is List<object?> rules)
             rules.RemoveAll(r => r is Dict d && d.GetValueOrDefault("region") as string is "not-build-area" or VoidEnforcementAreaId);

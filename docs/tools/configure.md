@@ -247,9 +247,9 @@ orbits them onto the other teams as read-only copies that are listed so the unio
 rectangle tool. The islands' own terrain needs no rectangle — it is buildable through the void filter — so
 what is drawn here is the crossing: the places a player may bridge a gap. The generator unions the areas,
 subtracts the holes as a complement, and wires the void enforcement over the result (`not-build-area`,
-`block-place=no-void`).
+`block-place=block-place-void-filter`, which is `not(void)`).
 
-**Breaking out there is a second rule, and it is not the same rule.** `block-break=over-void-breakable`
+**Breaking out there is a second rule, and it is not the same rule.** `block-break=block-break-void-filter`
 allows what placing allows, and over the void additionally admits what the dressing stage leaves hanging
 there — a tree's log and leaves, and every plant the flora overlay scatters. Without it a canopy reaching
 past a coast is sealed for the whole match, since no column out there has a block at y=0. Terrain materials

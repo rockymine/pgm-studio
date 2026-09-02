@@ -157,7 +157,7 @@ public static class TraversabilityRender
 
     /// <summary>Whether a block-edit filter value ultimately reads "void" — chasing the same
     /// <c>not</c>/<c>deny</c>/<c>allow</c> wrapping <c>BuildGenerator</c> writes around its own
-    /// <c>void</c> filter (<c>no-void = not(void)</c>), plus the inline <c>deny(void)</c> shorthand a
+    /// <c>void</c> filter (<c>block-place-void-filter = not(void)</c>), plus the inline <c>deny(void)</c> shorthand a
     /// hand-authored map can write straight into the attribute without registering a filter at all.</summary>
     private static bool GatesOnVoid(string filterValue, IReadOnlyDictionary<string, Filter> filters, HashSet<string> seen)
     {
