@@ -1,4 +1,5 @@
 using PgmStudio.Geom;
+using PgmStudio.Geom.Render;
 
 namespace PgmStudio.Minecraft.Render;
 
@@ -140,7 +141,7 @@ public static class SlopeGrid
             .Append($": scrambled with a block (rise {Range(Walk.FreeRise + 1, Walk.ScrambleStep)})  ")
             .Append($"# barrier (rise {Walk.ScrambleStep + 1}+)  space void\n");
 
-        TextGridRows.Append(text, grid.Width, grid.Height, grid.MinX, grid.MinZ, grid.Every,
+        TextGrid.Frame(text, grid.MinX, grid.MinZ, grid.Width, grid.Height, grid.Every,
             (col, row) => grid.At(col, row) switch
             {
                 SlopeClass.Walked => '.', SlopeClass.Scrambled => ':', SlopeClass.Barrier => '#', _ => ' ',

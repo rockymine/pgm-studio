@@ -1,5 +1,6 @@
 using System.Text;
 using PgmStudio.Geom;
+using PgmStudio.Geom.Render;
 using PgmStudio.Pgm.Plan;
 
 namespace PgmStudio.Pgm.Render;
@@ -119,20 +120,7 @@ public static class PlanBoardAscii
         var text = new StringBuilder();
         var columns = (nx + every - 1) / every;
 
-        // Two ruler rows: the tens digit of x above the units, so a coordinate can be read off the picture
-        // rather than counted from the edge.
-        for (var digit = 0; digit < 2; digit++)
-        {
-            text.Append("      | ");
-            for (var i = 0; i < columns; i++)
-            {
-                var x = minX + i * every;
-                text.Append(digit == 0
-                    ? (x % 10 == 0 ? Digit(Math.Abs(x / 10) % 10) : (x < 0 && x % 10 == 0 ? '-' : ' '))
-                    : Digit(Math.Abs(x) % 10));
-            }
-            text.Append(" |\n");
-        }
+        TextGrid.Ruler(text, "      | ", minX, columns, every, " |");
 
         for (var i = 0; i < (nz + every - 1) / every; i++)
         {
@@ -156,8 +144,6 @@ public static class PlanBoardAscii
         if (line.ToString().Trim().Length > 0) text.Append(line).Append('\n');
         return text.ToString();
     }
-
-    private static char Digit(int value) => (char)('0' + value);
 
     private static void Fill(char[,] glyph, int nx, int nz, int minX, int minZ, CellRect rect, char mark)
     {

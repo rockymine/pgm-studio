@@ -1,6 +1,9 @@
+using System.Text;
+using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 using PgmStudio.Minecraft.Dressing;
 using PgmStudio.Minecraft.Stamping;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export;
 
@@ -29,11 +32,6 @@ public static class ClaimRaster
         "spawn keep-out", "door approach", "goal clearance", "wool-room keep-out", "structure keep-out",
     ];
 
-    /// <summary>The character one class prints as — the digits through <c>9</c>, then <c>a</c>, <c>b</c>, the
-    /// same base <see cref="Classes"/> is ordered by.</summary>
-    public static char Digit(int classIndex) =>
-        classIndex < 10 ? (char)('0' + classIndex) : (char)('a' + classIndex - 10);
-
     /// <summary>Rows over the board's own surface — its bounding box, one character per cell, void outside
     /// the surface as a space. <see cref="Rows"/> runs <paramref name="MinZ"/> to its far edge, each row
     /// <paramref name="MinX"/> to its far edge.</summary>
@@ -61,11 +59,27 @@ public static class ClaimRaster
             var row = new char[width];
             for (var x = minX; x <= maxX; x++)
                 row[x - minX] = surface.ContainsKey((x, z))
-                    ? Digit(ClassAt((x, z), claimed, keptClearAt, goalClearanceAt))
+                    ? TextGrid.Base36(ClassAt((x, z), claimed, keptClearAt, goalClearanceAt))
                     : ' ';
             rows.Add(new string(row));
         }
         return new Grid(minX, minZ, width, maxZ - minZ + 1, rows);
+    }
+
+    /// <summary>The grid as characters: the scale and the extent, a key naming every class, the ruler and the
+    /// rows, then every decline as a line and the placed/declined tally — what a reader scans for a free cell.</summary>
+    public static string Render(Grid grid, int placed, IReadOnlyList<Finding> declines)
+    {
+        var text = new StringBuilder();
+        text.Append($"CLAIMS  1 char = 1 block  x {grid.MinX}..{grid.MinX + grid.Width - 1} across, ")
+            .Append($"z {grid.MinZ}..{grid.MinZ + grid.Height - 1} down\n");
+        text.Append("KEY  ")
+            .AppendJoin("  ", Classes.Select((name, index) => $"{TextGrid.Base36(index)} {name}"))
+            .Append("  space void\n");
+        TextGrid.Frame(text, grid.MinX, grid.MinZ, grid.Width, grid.Height, 1, (column, row) => grid.Rows[row][column]);
+        foreach (var decline in declines) text.Append($"decline {decline.Rule} {decline.Message}\n");
+        text.Append($"placed {placed}, declined {declines.Count}\n");
+        return text.ToString();
     }
 
     private static int ClassAt(

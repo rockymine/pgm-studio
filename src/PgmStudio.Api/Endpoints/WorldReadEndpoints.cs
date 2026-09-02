@@ -140,7 +140,10 @@ internal abstract class WorldRenderEndpoint(MapRepository repo, MapReader reader
             }
             read = read with
             {
-                Built = read.Built with { World = storey.World, Provenance = storey.Provenance },
+                Built = read.Built with
+                {
+                    World = storey.World, Provenance = storey.Provenance, Ground = storey.Ground ?? read.Built.Ground,
+                },
             };
         }
 
@@ -394,7 +397,7 @@ internal sealed class SlopesReadEndpoint(MapRepository repo, MapReader reader, M
         }
 
         await Send.OkAsync(new SlopesDto(
-            new Bounds2dDto(grid.MinX, grid.MinZ, grid.MinX + grid.Width * every, grid.MinZ + grid.Height * every),
+            new Bounds2dDto(grid.MinX, grid.MinZ, grid.MinX + (grid.Width - 1) * every, grid.MinZ + (grid.Height - 1) * every),
             every, grid.Width, grid.Height, SlopeGrid.Rows(grid),
             grid.Walked, grid.Scrambled, grid.Barrier,
             [.. grid.Faces.Select(face => new SlopeFaceDto(face.Cells, face.MinX, face.MinZ, face.MaxX, face.MaxZ))]),

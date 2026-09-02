@@ -29,9 +29,12 @@ namespace PgmStudio.Minecraft.Anvil;
 /// </summary>
 public static class WorldStorey
 {
-    /// <summary>One storey as a read of it sees it: the narrowed world and the provenance record that
-    /// describes the courses it shows.</summary>
-    public sealed record Storey(VoxelWorld World, WorldProvenance Provenance);
+    /// <summary>One storey as a read of it sees it: the narrowed world, the provenance record that describes
+    /// the courses it shows, and the storey's own ground — per column the first course above the last one the
+    /// layer drew, in the count <c>BuiltWorld.Surface</c> keeps, so a height or a step on that storey is read
+    /// against the storey rather than the board. Null where the world was not narrowed.</summary>
+    public sealed record Storey(VoxelWorld World, WorldProvenance Provenance,
+        IReadOnlyDictionary<(int X, int Z), int>? Ground);
 
     /// <summary>The world narrowed to one layer's storey, or the world itself where the layer is not named.
     /// Null where the spans carry no such layer — the caller's cue to refuse by naming the ones they do.
@@ -43,7 +46,7 @@ public static class WorldStorey
     public static Storey? Of(VoxelWorld world, IReadOnlyList<ColumnSegment>? columns, string? layer,
         WorldProvenance provenance)
     {
-        if (layer is not { Length: > 0 }) return new Storey(world, provenance);
+        if (layer is not { Length: > 0 }) return new Storey(world, provenance, null);
         if (columns is null || !columns.Any(segment => segment.Layer == layer)) return null;
 
         // Per column: where this layer starts, and where the next one up does. Both are read off the spans
@@ -74,7 +77,10 @@ public static class WorldStorey
                 for (var y = Math.Max(run.YBottom, keep.Floor); y <= Math.Min(run.YTop, keep.Ceiling); y++)
                     storey.SetBlock(x, y, z, run.BlockId, run.BlockData);
         }
-        return new Storey(storey, Narrow(provenance, storey, world, window));
+        var tops = WorldColumns.Tops(storey);
+        var ground = window.Where(entry => tops.ContainsKey(entry.Key))
+            .ToDictionary(entry => entry.Key, entry => Math.Min(entry.Value.Drawn, tops[entry.Key]) + 1);
+        return new Storey(storey, Narrow(provenance, storey, world, window), ground);
     }
 
     /// <summary>The record as this storey's read of it: the claim kept where the storey still shows the

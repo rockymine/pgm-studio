@@ -1,3 +1,4 @@
+using PgmStudio.Geom.Render;
 using PgmStudio.Minecraft.Anvil;
 
 namespace PgmStudio.Minecraft.Render;
@@ -39,7 +40,7 @@ public static class HeightmapText
             {
                 int x = minX + col * every, z = minZ + row * every;
                 glyph[col, row] = surface.TryGetValue((x, z), out var elevation)
-                    ? BandChar(Math.Min(Bands - 1, (elevation - low) / band)) : ' ';
+                    ? TextGrid.Base36(Math.Min(Bands - 1, (elevation - low) / band)) : ' ';
 
                 var owner = provenance.OwnerAt(x, z);
                 if (owner?.Kind == "house" || provenance.PassAt(x, z) == ProvenancePass.Structure)
@@ -62,12 +63,10 @@ public static class HeightmapText
         text.Append($"KEY  char = ground height above y{low} in bands of {band} block(s): ")
             .Append($"0 = y{low}..{low + band - 1}, 1 = …; H house or hall  ~ water  @ spawn point  ")
             .Append("! goal  space = void\n");
-        TextGridRows.Append(text, width, height, minX, minZ, every, (col, row) => glyph[col, row]);
+        TextGrid.Frame(text, minX, minZ, width, height, every, (col, row) => glyph[col, row]);
         text.Append($"low y{low}, high y{high}, range {high - low}\n");
         return text.ToString();
     }
 
     private static int FloorDiv(int value, int by) => (int)Math.Floor(value / (double)by);
-
-    private static char BandChar(int index) => index < 10 ? (char)('0' + index) : (char)('a' + index - 10);
 }

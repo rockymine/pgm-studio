@@ -420,38 +420,16 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
 
         if (TextAnswer.Wanted(HttpContext))
         {
-            await TextAnswer.WriteAsync(HttpContext, ClaimsText(raster, props.Count, built.Dressing.Declines), ct);
+            await TextAnswer.WriteAsync(HttpContext, ClaimRaster.Render(raster, props.Count, built.Dressing.Declines), ct);
             return;
         }
 
         var claims = new ClaimRasterDto(
-            new Bounds2dDto(raster.MinX, raster.MinZ, raster.MinX + raster.Width, raster.MinZ + raster.Height),
+            new Bounds2dDto(raster.MinX, raster.MinZ, raster.MinX + raster.Width - 1, raster.MinZ + raster.Height - 1),
             raster.Width, raster.Height, ClaimRaster.Classes, raster.Rows);
         await Send.OkAsync(new DressingRunDto(
             props, built.Dressing.Declines, props.Sum(prop => prop.Cells), claims), ct);
     }
-
-    // The scale, the extent and the key first, a column-index line, then the rows themselves — the
-    // conventions every text answer in the studio draws its grid by.
-    private static string ClaimsText(ClaimRaster.Grid raster, int placed, IReadOnlyList<Finding> declines)
-    {
-        int maxX = raster.MinX + raster.Width - 1, maxZ = raster.MinZ + raster.Height - 1;
-        var text = new StringBuilder();
-        text.Append($"CLAIMS  1 char = 1 block  x {raster.MinX}..{maxX} across, z {raster.MinZ}..{maxZ} down\n");
-        text.Append("KEY  0 free  1 water  2 route  3 structure  4 tree  5 boulder  6 flora  7 spawn keep-out  "
-            + "8 door approach  9 goal clearance  a wool-room keep-out  b structure keep-out  space void\n");
-        text.Append(new string(' ', 5));
-        for (var x = raster.MinX; x <= maxX; x++) text.Append(ColumnMark(x));
-        text.Append('\n');
-        for (var index = 0; index < raster.Rows.Count; index++)
-            text.Append($"{raster.MinZ + index,4} {raster.Rows[index]}\n");
-        foreach (var decline in declines) text.Append($"decline {decline.Rule} {decline.Message}\n");
-        text.Append($"placed {placed}, declined {declines.Count}\n");
-        return text.ToString();
-    }
-
-    private static char ColumnMark(int x) =>
-        x % 10 != 0 ? ' ' : x < 0 ? '-' : (char)('0' + Math.Abs(x / 10) % 10);
 }
 
 /// <summary>POST /api/map/{slug}/sketch/probe-footprint — whether a ring stands on ground, asked of the
