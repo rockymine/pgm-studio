@@ -369,3 +369,29 @@ public sealed record DressingPropDto(
 /// the board has no ground at all.</param>
 public sealed record ClaimRasterDto(
     Bounds2dDto Bounds, int Width, int Height, IReadOnlyList<string> Classes, IReadOnlyList<string> Rows);
+
+/// <summary>One rule that turned an anchor away, and how many anchors it turned away — what a board with no
+/// room for a prop is short of, rather than only that it is short.</summary>
+/// <param name="Rule">The rule id the dressing pass would decline under: <c>DR-CLAIM</c>, <c>DR-KEEP</c>,
+/// <c>DR-ROAD</c>, <c>DR-SITE</c> or <c>OB19</c>.</param>
+/// <param name="Cells">How many anchors it refused.</param>
+public sealed record SeatRefusalDto(string Rule, int Cells);
+
+/// <summary>Where a prop of a kind and a footprint may stand (<c>POST /api/map/{slug}/sketch/seats</c>) — the
+/// dressing pass's own seat rules run forwards over every cell of the board, instead of backwards over one
+/// guess.</summary>
+/// <param name="Bounds">The ground the mask covers, in blocks.</param>
+/// <param name="Width">Cells across, the length of every row.</param>
+/// <param name="Height">Cells down, how many rows there are.</param>
+/// <param name="Kind">Whose rules were run.</param>
+/// <param name="Standoff">The blocks that kind keeps from a route — its own, not a knob.</param>
+/// <param name="FootprintWidth">The box asked about, across.</param>
+/// <param name="FootprintDepth">The box asked about, down.</param>
+/// <param name="Rows">One string per row: <c>1</c> where the footprint seats with its minimum corner on that
+/// cell, <c>0</c> where it does not, a space where the cell itself is off the board.</param>
+/// <param name="Seats">How many cells answer <c>1</c>.</param>
+/// <param name="Refused">Why the rest did not, largest first.</param>
+public sealed record SeatsDto(
+    Bounds2dDto Bounds, int Width, int Height, string Kind, int Standoff,
+    int FootprintWidth, int FootprintDepth, IReadOnlyList<string> Rows, int Seats,
+    IReadOnlyList<SeatRefusalDto> Refused);

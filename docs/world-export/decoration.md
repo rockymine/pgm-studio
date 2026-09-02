@@ -812,6 +812,25 @@ held for a spawn, a wool room, a stated structure, built ground or a door's appr
 carries the *owner* of every claim, so a collision reads `claimed by the route 'p'` rather than `already
 claimed`. The first claimant keeps a cell, so that owner is the one that actually holds the ground.
 
+**The same rules run forwards answer where a prop may stand.** A decline is a predicate over the cells a
+prop rests on, so asking every cell of the board instead of one guess answers the other half of the question:
+`POST /map/{slug}/sketch/seats?kind=&width=&depth=` takes the layout and answers a mask — `1` where a box of
+that size seats with its minimum corner on that cell, `0` where it does not, a space off the board — with the
+count of seats and a tally of which rule turned the rest away. `ClaimRaster.Seat` reads it off the same
+classification the preview's `claims` raster answers, so a seat and a decline cannot disagree about a cell.
+
+Two things make the answer the pass's own rather than an approximation of it. The standoff is the kind's
+(`PlacedProp.RouteStandoff`), measured as `GroundClaims.NearerThan` measures it — a route cell strictly
+nearer than the standoff refuses, so a cell exactly at it stands. And **a claim only refuses a kind that
+places at or before the claimant's own turn**: cover goes down last, so a bed of flora is not what stops a
+tree, while a tree's claim does stop the flora. `PlacedProp.PlacementOrder` is where that order is stated and
+`DecoratorTests` pins it against the pass, since the pass records a claim as it places it.
+
+What the mask does not run is the four rules a **building** meets after it seats — `DR-PASS`, `DR-CROSS`,
+`DR-WAY` and `DR-SLOPE` — each of which reads the built world rather than the ground under the footprint. A
+seat is a seat the pass will not decline for a cell the prop rests on; a house still has to leave a way past
+itself.
+
 Each one is a **`decline`**, the severity between a refusal and a complaint: the world was built, so nothing
 stopped, and this prop is not in it, so there is nothing for the author to ignore. That is what a caller reads
 off a 2xx to answer *did what I posted survive* — a complaint beside a success would say the opposite.
@@ -930,6 +949,7 @@ and lands in the same realize seam.
 | Buildings | `HouseStamper` + `HouseStyle` whole; the room-style library; `DressingSymmetry`'s outline fan | `HouseProp` + `Decorator.PlaceHouse`; the rectangle drag; `TurnEdge` for the door | `DR-HO` |
 | The ways past a building | `Walk` + `WalkGround.OfSpans` — the one traversal every distance is measured with, and `Walk.Detour`'s ten blocks | `WayThrough` — the waypoint-pair routes read off the bare terrain, held as each building is admitted to them | `DR-WAY` |
 | A road a building stands on | the stroke's own placed cells, per orbit image | `RouteCrossing` — the runs the paving falls into with the footprint out of it, before against after | `DR-CROSS` |
+| Where a prop may stand | the same five seat predicates a decline is raised by; the preview's `claims` raster | `ClaimRaster.Seat` — the mask over every anchor, and the tally of which rule refused the rest (`WE34`) | `DR-*` |
 | The document itself | — | `DressingParseException` — a parse failure anywhere in the stored document names the prop and the field rather than being read as though nothing had been placed; joins the export gate as a 422 (`docs/tools/configure.md`) | `DR-DOC` |
 
 Two neighbours bound the stage. G32-C (structures & elevation, the "second generator") is the sibling pass

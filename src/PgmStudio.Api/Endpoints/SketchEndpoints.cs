@@ -375,26 +375,8 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        var layoutJson = await RawBody.ReadAsync(HttpContext, ct);
-
-        Findings document;
-        try { document = SketchLayoutCheck.Check(layoutJson); }
-        catch (JsonException fault)
-        { await Refusals.UnreadableAsync(HttpContext, "invalid layout", fault.Message, ct); return; }
-        Complaints.Add(HttpContext, document.AsComplaints());
-
-        BuiltWorld built;
-        try
-        {
-            built = WorldBuilder.Build(layoutJson,
-                await artifacts.LoadJsonOrEmptyAsync<MapIntent>(map.Id, ArtifactKind.MapIntentJson, ct));
-        }
-        catch (DressingParseException fault)
-        { await Refusals.WriteAsync(HttpContext, 422, "dressing document invalid", [fault.Finding], ct); return; }
-        catch (Exception fault) when (fault is JsonException or ArgumentException
-                                          or InvalidOperationException or FormatException
-                                          or OverflowException or KeyNotFoundException)
-        { await Refusals.UnreadableAsync(HttpContext, "could not build layout", fault.Message, ct); return; }
+        if (await DressedBoard.OfAsync(HttpContext, map.Id, artifacts, ct) is not { } board) return;
+        var (built, layoutJson, raster) = board;
 
         // The height each prop resolved to, read off the world this pass just built rather than re-derived
         // from the document: a second derivation is free to disagree with the one that placed the blocks.
@@ -412,12 +394,6 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
                 [.. claim.Cells.Take(NamedCells).Select(cell => new CellDto(cell.X, cell.Z))]);
         }).ToList();
 
-        // The same two functions the pass itself asks a candidate site, read off the resolved intent — the
-        // goals' boxes as the build actually stamped them, not the unbuilt ones the request carried in.
-        var raster = ClaimRaster.Read(built.Dressing.Placements, built.Surface,
-            DressingScope.KeptClearAt(built.World, built.Surface, built.ResolvedIntent, layoutJson),
-            DressingScope.GoalClearanceAt(built.ResolvedIntent));
-
         if (TextAnswer.Wanted(HttpContext))
         {
             await TextAnswer.WriteAsync(HttpContext, ClaimRaster.Render(raster, props.Count, built.Dressing.Declines), ct);
@@ -429,6 +405,109 @@ public sealed class SketchDressingEndpoint(MapRepository repo, MapArtifactStore 
             raster.Width, raster.Height, ClaimRaster.Classes, raster.Rows);
         await Send.OkAsync(new DressingRunDto(
             props, built.Dressing.Declines, props.Sum(prop => prop.Cells), claims), ct);
+    }
+}
+
+/// <summary>The board a posted layout builds and what the dressing pass would say about every cell of it —
+/// the one build the preview and the seat read both take, so a placement and the ground it is looked up on
+/// cannot come from two boards. Null where the refusal has already been written to the response.</summary>
+internal static class DressedBoard
+{
+    public static async Task<(BuiltWorld Built, string LayoutJson, ClaimRaster.Grid Claims)?> OfAsync(
+        HttpContext http, long mapId, MapArtifactStore artifacts, CancellationToken ct)
+    {
+        var layoutJson = await RawBody.ReadAsync(http, ct);
+
+        Findings document;
+        try { document = SketchLayoutCheck.Check(layoutJson); }
+        catch (JsonException fault)
+        { await Refusals.UnreadableAsync(http, "invalid layout", fault.Message, ct); return null; }
+        Complaints.Add(http, document.AsComplaints());
+
+        BuiltWorld built;
+        try
+        {
+            built = WorldBuilder.Build(layoutJson,
+                await artifacts.LoadJsonOrEmptyAsync<MapIntent>(mapId, ArtifactKind.MapIntentJson, ct));
+        }
+        catch (DressingParseException fault)
+        { await Refusals.WriteAsync(http, 422, "dressing document invalid", [fault.Finding], ct); return null; }
+        catch (Exception fault) when (fault is JsonException or ArgumentException
+                                          or InvalidOperationException or FormatException
+                                          or OverflowException or KeyNotFoundException)
+        { await Refusals.UnreadableAsync(http, "could not build layout", fault.Message, ct); return null; }
+
+        // The same two functions the pass itself asks a candidate site, read off the resolved intent — the
+        // goals' boxes as the build actually stamped them, not the unbuilt ones the request carried in.
+        return (built, layoutJson, ClaimRaster.Read(built.Dressing.Placements, built.Surface,
+            DressingScope.KeptClearAt(built.World, built.Surface, built.ResolvedIntent, layoutJson),
+            DressingScope.GoalClearanceAt(built.ResolvedIntent)));
+    }
+}
+
+/// <summary>POST /api/map/{slug}/sketch/seats — where a prop of a stated kind and footprint <b>may</b> stand,
+/// which the five declines only ever answer backwards. The dressing pass refuses a placement for the ground
+/// it rests on — a goal's clearance, the map's keep-out, another prop's claim, a route's standoff, no ground
+/// at all — and every one of those is a predicate over a cell, so running them forwards over the whole board
+/// answers where to put the thing instead of whether one guess landed.
+///
+/// <para>The footprint is a box, <c>width</c> by <c>depth</c> blocks, and a cell answers for the box laid
+/// with its minimum corner there. A tree or a boulder is 1×1 at its trunk and needs no more; a building
+/// states its own, and for one the answer is a seat rather than a verdict — <c>DR-PASS</c>, <c>DR-CROSS</c>,
+/// <c>DR-WAY</c> and <c>DR-SLOPE</c> read the built world and are still the pass's to raise.</para>
+///
+/// <para>Body: the layout, as <c>sketch/dressing</c> takes it. The cost is the same build.</para></summary>
+public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<SeatsDto>
+{
+    /// <summary>The largest footprint worth asking about: a building is capped at 20×20 by `ST9`, and a box
+    /// wider than the board is a question with one answer.</summary>
+    private const int WidestFootprint = 32;
+
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/seats"); AllowAnonymous();
+        Description(b => b.Accepts<SketchLayout>("application/json").AlsoText().Refuses(400, 404, 422).Reads(
+            new QueryWord("kind", "Whose placement rules to run — the standoff a route is kept at is the "
+                + "kind's own. Absent runs `tree`'s.", [.. PlacedProp.Kinds]),
+            new QueryWord("width", $"The footprint across, in blocks, 1 to {WidestFootprint}. Absent is 1.",
+                Min: 1, Max: WidestFootprint),
+            new QueryWord("depth", $"The footprint down, in blocks, 1 to {WidestFootprint}. Absent is "
+                + "`width`, so one number asks about a square.", Min: 1, Max: WidestFootprint)));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var kind = Query<string?>("kind", isRequired: false) is { Length: > 0 } asked ? asked : "tree";
+        if (PlacedProp.RouteStandoffOf(kind) is not { } standoff)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "no such prop kind",
+                [new Finding(RequestRules.NoSuchSubject,
+                    $"'{kind}' is not a kind a dressing document names — it carries "
+                    + $"{string.Join(", ", PlacedProp.Kinds)}", Field: "kind")], ct);
+            return;
+        }
+
+        var width = Math.Clamp(Query<int?>("width", isRequired: false) ?? 1, 1, WidestFootprint);
+        var depth = Math.Clamp(Query<int?>("depth", isRequired: false) ?? width, 1, WidestFootprint);
+
+        if (await DressedBoard.OfAsync(HttpContext, map.Id, artifacts, ct) is not { } board) return;
+        var seating = ClaimRaster.Seat(board.Claims, kind, standoff, width, depth);
+
+        if (TextAnswer.Wanted(HttpContext))
+        {
+            await TextAnswer.WriteAsync(HttpContext, ClaimRaster.RenderSeats(seating), ct);
+            return;
+        }
+
+        await Send.OkAsync(new SeatsDto(
+            new Bounds2dDto(seating.MinX, seating.MinZ,
+                            seating.MinX + seating.Width - 1, seating.MinZ + seating.Height - 1),
+            seating.Width, seating.Height, seating.Kind, seating.Standoff,
+            seating.FootprintWidth, seating.FootprintDepth, seating.Rows, seating.Seats,
+            [.. seating.Refused.Select(because => new SeatRefusalDto(because.Rule, because.Cells))]), ct);
     }
 }
 

@@ -1351,7 +1351,26 @@ carry — the board an author is looking at is the one place those complaints ar
 | `POST /map/{slug}/sketch/relief/read` | `{groups[]}` — per group the cell count, low/high/relief, steps, tiers, the first twelve faces and the total, cliffs, crossings in X and Z, the symmetry error, and the `landform` it measures as beside the `smoothing` it kept. Carries `RL1` where the group states a different word and `RL2` where it carries elevation it never graded (`docs/world-export/relief.md` §6.1) |
 | `POST /map/{slug}/sketch/columns` | `{palette, cols, layers, min_x, min_z, max_x, max_z}` — the whole built world as per-column runs, which the 3-D preview meshes. `cols` is one flat array walked as `[x, z, runCount, (yTop, yBottom, paletteIndex, layerIndex) × runCount, …]`, and `layerIndex` is into `layers` or `-1` for a run no layer accounts for; its `warnings` carries every prop the dressing pass declined (`DR-*`) as well, at severity `decline`: the world built and those things are not in it | 400 `RQ1` a body that is not a layout · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/dressing` | `{props[], declines[], claimedCells, claims}` — what the dressing pass would place, run and stopped before anything is written: per prop the columns it covers, where it rests and the height it resolved to, and every prop that did not land as its `DR-*` finding. `claims` is `{bounds, width, height, classes[], rows[]}`, digit rows over the board's own ground the way `coverage`'s own classes are, classing every cell as a prop's own claim, a goal's clearance, a keep-out, or free — so a candidate site is looked up on the raster rather than tried and read back as a decline. `?format=text` answers the same reading as characters, with the classes' key, a column-index line, the declines and a `placed n, declined n` line under it | 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
+| `POST /map/{slug}/sketch/seats[?kind=&width=&depth=]` | `{bounds, width, height, kind, standoff, footprintWidth, footprintDepth, rows[], seats, refused[]}` — where a prop of that kind and footprint **may** stand, which the `DR-*` declines only ever answer backwards: `1` where a box of `width`×`depth` blocks seats with its minimum corner on that cell, `0` where it does not, a space off the board, and `refused` the tally of which rule turned the rest away. `kind` is one of the document's own prop kinds (absent: `tree`) and decides the route standoff; one number asks about a square. `?format=text` answers the same mask with its key and the tally under it | 422 `no such prop kind` `RQ4` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
+
+**A placement is looked up rather than tried, and `seats` is the half that says where.** The `claims` raster
+answers what holds every cell; `seats` runs the pass's own five seat rules forwards over the whole board for
+one kind and one footprint, so finding a spot for a tree is one call rather than a preview pass per guess.
+Two things keep the answer the pass's own. The standoff is the kind's — a tree keeps three blocks off a
+route, a boulder two — and a claim only refuses a kind that places at or before the claimant's own turn, so
+a bed of flora does not stop a tree while a tree stops the flora (`docs/world-export/decoration.md` § 8). And
+a building gets a seat rather than a verdict: `DR-PASS`, `DR-CROSS`, `DR-WAY` and `DR-SLOPE` read the built
+world, and the pass still raises them.
+
+```json POST /api/map/{slug}/sketch/seats?kind=tree&width=3
+{"setup": {"mirror_mode": "none", "center": {"cx": 0, "cz": 0}},
+ "layers": [{"id": "ground", "base_y": 0, "layout": {
+    "shapes": [{"id": "a", "type": "rectangle", "operation": "add",
+                "min_x": -30, "max_x": 30, "min_z": -30, "max_z": 30, "base_height": 10}],
+    "groups": [{"id": "i1", "name": "Ground", "mirrors": false, "shapeIds": ["a"]}]}}],
+ "dressing": {"props": [{"kind": "stroke", "id": "p1", "points": [[-20, 0], [20, 0]], "radius": 2, "seed": 5}]}}
+```
 
 **A ring can be asked about before a shape is built on it.** `probe-footprint` measures against the
 **rasterised** footprint — the only coast that decides anything. A model of it rebuilt from the compiled

@@ -6966,6 +6966,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **The seat rules run forwards: where a prop may stand, not only that one guess did not (WE34).**
+  `POST /map/{slug}/sketch/seats?kind=&width=&depth=` answers a mask over the whole board — `1` where a box
+  of that size seats with its minimum corner on the cell, `0` where it does not — with the seat count and a
+  tally of which rule refused the rest, so a placement is looked up in one call rather than found by a
+  preview pass per guess. `ClaimRaster.Seat` reads it off the same classification the `claims` raster
+  answers. The standoff is the kind's own (`PlacedProp.RouteStandoff`), measured as `GroundClaims.NearerThan`
+  measures it; and a claim only refuses a kind that places at or before the claimant's turn, since cover goes
+  down last — `PlacedProp.PlacementOrder` states that order and `DecoratorTests` pins it against the pass
+  itself. A building gets a seat rather than a verdict: `DR-PASS`, `DR-CROSS`, `DR-WAY` and `DR-SLOPE` read
+  the built world. The raster's own precedence was corrected with it — the **first** claimant of a cell keeps
+  it, which is `GroundClaims`'s rule, so the road under a porch is still the road a tree stands off.
 - **The dressing preview answers its claims as a raster (TS81).** `sketch/dressing` carries `claims`: digit
   rows over the board's own ground classing every cell as a prop's claim (water, route, structure, tree,
   boulder, flora), a goal's clearance, a keep-out (spawn, door approach, wool room, structure) or free,

@@ -1672,6 +1672,49 @@ public sealed class DecoratorTests
         await Assert.That(covered.Declines).IsEmpty();
         await Assert.That(covered.Plants).IsGreaterThan(0);
     }
+
+
+    /// <summary><b>The pass's order is the numbers the kinds declare.</b> A claim is recorded as it is placed,
+    /// so the order this list comes back in <em>is</em> the order the groups ran in — and
+    /// <see cref="PlacedProp.PlacementOrder"/> is what a reader of the finished board looks that order up in,
+    /// to know that a tree may take ground a bed of flora covers and a bed of flora may not take a tree's.
+    /// Resequence the pass without moving the numbers and this fails.</summary>
+    [Test]
+    public async Task Every_kind_is_placed_in_the_order_its_own_type_declares()
+    {
+        var (world, top) = Plateau(60);
+        var tally = Decorator.Decorate(world, Context(top,
+        [
+            new FloraProp { Id = "f", Points = AreaOver(60), Spec = new FloraSpec(Coverage: 1.0), Seed = 7 },
+            new TreeProp { Id = "t", X = 44, Z = 34, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } },
+            new BoulderProp { Id = "b", X = 30, Z = 20, Seed = 3, Style = new BoulderStyle { Size = 1, Mossy = false } },
+            new HouseProp
+            {
+                Id = "h", Wings = [new AuthoredWing([[2, 2], [10, 10]])],
+                Style = new HouseStyle { Doorway = new Doorway { Door = DoorMaterial.Air } },
+            },
+            new StrokeProp
+            {
+                Id = "p", Points = [[4, 48], [55, 48]], Radius = 2, Seed = 5, Route = true,
+                Pave = new SolidMaterial(Blocks.Gravel),
+            },
+            new WaterProp
+            {
+                Id = "w", Points = [[4, 54], [50, 54]], Radius = 3, Depth = 2, Seed = 5, Shore = 0,
+                Bank = new SolidMaterial(Blocks.Sand),
+            },
+        ]));
+
+        await Assert.That(tally.Declines).IsEmpty();
+        var orders = tally.Placements
+            .Select(claim => PlacedProp.PlacementOrderOf(claim.Owner.Kind)!.Value).ToList();
+
+        await Assert.That(orders.Distinct().Count()).IsEqualTo(6)
+            .Because("every kind has to land for the order between them to be pinned at all");
+        for (var i = 1; i < orders.Count; i++)
+            await Assert.That(orders[i]).IsGreaterThanOrEqualTo(orders[i - 1])
+                .Because("the pass records a claim as it places it, so the list is its own run order");
+    }
 }
 
 /// <summary>

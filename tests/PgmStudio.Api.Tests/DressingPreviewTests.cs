@@ -398,4 +398,65 @@ public sealed class DressingPreviewTests
 
         await Assert.That(text).Contains("placed 1, declined 0");
     }
+
+    // ── the raster read forwards (WE34) ────────────────────────────────────────────────────────────────
+
+    private static Task<HttpResponseMessage> PostSeatsAsync(HttpClient client, string slug, string query) =>
+        client.PostAsync($"/api/map/{slug}/sketch/seats{query}",
+            new StringContent(ClaimsBoard, Encoding.UTF8, "application/json"));
+
+    [Test]
+    public async Task The_seat_read_answers_where_a_prop_of_its_kind_and_footprint_may_stand()
+    {
+        // The board carries one stroke along z=0. A tree keeps three blocks off a route, so the pavement
+        // and the two cells either side of it refuse and open ground away from it seats.
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var resp = await PostSeatsAsync(client, slug, "?kind=tree");
+        await Assert.That(resp.IsSuccessStatusCode).IsTrue().Because(await resp.Content.ReadAsStringAsync());
+        var seats = await resp.Content.ReadFromJsonAsync<JsonElement>();
+
+        await Assert.That(seats.GetProperty("kind").GetString()).IsEqualTo("tree");
+        await Assert.That(seats.GetProperty("standoff").GetInt32()).IsEqualTo(3);
+        await Assert.That(seats.GetProperty("seats").GetInt32()).IsGreaterThan(0);
+        await Assert.That(At(seats, 0, 0)).IsEqualTo('0').Because("the stroke's own pavement is claimed");
+        await Assert.That(At(seats, 0, 40)).IsEqualTo('1').Because("open ground well off the road seats");
+        await Assert.That(seats.GetProperty("refused").EnumerateArray()
+                .Any(because => because.GetProperty("rule").GetString() == "DR-ROAD")).IsTrue();
+    }
+
+    [Test]
+    public async Task A_footprint_wider_than_the_gap_it_is_asked_about_does_not_seat_in_it()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var one = await (await PostSeatsAsync(client, slug, "?kind=house&width=1")).Content
+            .ReadFromJsonAsync<JsonElement>();
+        var wide = await (await PostSeatsAsync(client, slug, "?kind=house&width=20")).Content
+            .ReadFromJsonAsync<JsonElement>();
+
+        await Assert.That(wide.GetProperty("footprintDepth").GetInt32()).IsEqualTo(20)
+            .Because("one number asks about a square");
+        await Assert.That(wide.GetProperty("seats").GetInt32())
+            .IsLessThan(one.GetProperty("seats").GetInt32());
+    }
+
+    [Test]
+    public async Task The_seat_read_answers_text_and_refuses_a_kind_no_document_names()
+    {
+        using var client = ApiTestFactory.Shared.CreateClient();
+        var slug = await MapAsync(client);
+
+        var text = await PostSeatsAsync(client, slug, "?kind=boulder&format=text");
+        await Assert.That(text.Content.Headers.ContentType!.MediaType).IsEqualTo("text/plain");
+        var body = await text.Content.ReadAsStringAsync();
+        await Assert.That(body).StartsWith("SEATS  boulder, footprint 1x1, 2 blocks off a route");
+        await Assert.That(body).Contains("KEY  1 the footprint seats");
+
+        var nonsense = await PostSeatsAsync(client, slug, "?kind=obelisk");
+        await Assert.That((int)nonsense.StatusCode).IsEqualTo(422);
+        await Assert.That(await nonsense.Content.ReadAsStringAsync()).Contains("boulder");
+    }
 }

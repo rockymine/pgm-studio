@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.Json.Serialization;
 using PgmStudio.Domain;
 using PgmStudio.Geom.Algorithms;
@@ -51,6 +52,35 @@ public abstract record PlacedProp
     /// a trunk against the kerb reads as the road growing through the forest rather than the road passing it.
     /// A stroke that is paint rather than a route claims nothing, so nothing stands off it.</summary>
     public virtual int RouteStandoff => 0;
+
+    /// <summary>Where this kind goes in the pass's order, low first — what <see cref="Decorator.Decorate"/>
+    /// runs its groups in, and the reason the order matters at all: a prop meets the claims of everything
+    /// placed <em>before</em> it and none of the claims of what comes after, so a tree may stand on ground a
+    /// bed of flora covers today and a bed of flora may not stand on a tree. <c>DecoratorTests</c> pins each
+    /// neighbouring pair against the pass itself, so a resequenced pass fails rather than drifts.</summary>
+    public virtual int PlacementOrder => 0;
+
+    /// <summary>Every kind a dressing document names, in the order the codec declares them — read off the
+    /// discriminator above rather than listed again, so a kind added there is a kind every caller can ask
+    /// for.</summary>
+    public static IReadOnlyList<string> Kinds => [.. Prototypes.Keys];
+
+    /// <summary>The standoff a named kind keeps from a route, or null where no such kind is named. The number
+    /// lives on the kind's own type (<see cref="RouteStandoff"/>) and is read off an empty one of it, so
+    /// there is no second table of standoffs to disagree with the rule.</summary>
+    public static int? RouteStandoffOf(string kind) =>
+        Prototypes.TryGetValue(kind, out var prototype) ? prototype.RouteStandoff : null;
+
+    /// <summary>Where a named kind goes in the pass's order, or null where no such kind is named — read the
+    /// same way, off the kind's own <see cref="PlacementOrder"/>.</summary>
+    public static int? PlacementOrderOf(string kind) =>
+        Prototypes.TryGetValue(kind, out var prototype) ? prototype.PlacementOrder : null;
+
+    private static readonly Dictionary<string, PlacedProp> Prototypes =
+        typeof(PlacedProp).GetCustomAttributes<JsonDerivedTypeAttribute>()
+            .Where(derived => derived.TypeDiscriminator is string)
+            .ToDictionary(derived => (string)derived.TypeDiscriminator!,
+                          derived => (PlacedProp)Activator.CreateInstance(derived.DerivedType)!);
 }
 
 /// <summary>
@@ -68,6 +98,9 @@ public abstract record PlacedProp
 /// </summary>
 public sealed record StrokeProp : PlacedProp
 {
+    /// <summary>a stroke is paved over the ground water left, and everything after it seats on the paving or clear of it (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 1;
+
     /// <summary>The drawn centerline, as <c>[x, z]</c> pairs. Two points or more.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
@@ -98,6 +131,9 @@ public sealed record StrokeProp : PlacedProp
 /// carve stops at the surface it crosses and never fills what was already air.</summary>
 public sealed record WaterProp : PlacedProp
 {
+    /// <summary>water is carved first: it is the one prop that changes the ground, and everything after it seats on what it leaves (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 0;
+
     /// <summary>The default bank: a cellular voronoi — gravel picking out the cell edges, coarse dirt just
     /// inside them, sand in the middle — so a bed reads like patterned ground the map is finished with rather
     /// than one flat block or a smear of patches.</summary>
@@ -167,6 +203,9 @@ public sealed record WaterProp : PlacedProp
 /// </summary>
 public sealed record TreeProp : PlacedProp
 {
+    /// <summary>a tree seats after the rock and before the cover (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 4;
+
     public int X { get; init; }
     public int Z { get; init; }
 
@@ -185,6 +224,9 @@ public sealed record TreeProp : PlacedProp
 
 public sealed record BoulderProp : PlacedProp
 {
+    /// <summary>a boulder is placed before the trees, so a wood grows around the rock rather than the rock landing in the wood (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 3;
+
     public int X { get; init; }
     public int Z { get; init; }
 
@@ -202,6 +244,9 @@ public sealed record BoulderProp : PlacedProp
 
 public sealed record FloraProp : PlacedProp
 {
+    /// <summary>cover goes last, into whatever ground is left (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 5;
+
     /// <summary>The drawn outline, as <c>[x, z]</c> pairs. Three points or more.</summary>
     public IReadOnlyList<double[]> Points { get; init; } = [];
 
@@ -266,6 +311,9 @@ public static class HousePropRules
 /// </summary>
 public sealed record HouseProp : PlacedProp
 {
+    /// <summary>a building goes down after the roads it fronts and before the props that must stand clear of it (<see cref="PlacementOrder"/>).</summary>
+    public override int PlacementOrder => 2;
+
     /// <summary>The rectangles the building stands on, each with whatever it states about itself. They abut and
     /// never overlap, and where they touch they share the edge whole — <see cref="Check"/> holds them to it,
     /// since a wing standing clear of the rest is not part of the outline the walls are painted against and a

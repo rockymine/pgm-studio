@@ -112,16 +112,82 @@ public sealed class ClaimRasterTests
     }
 
     [Test]
-    public async Task A_later_claim_over_the_same_cell_wins()
+    public async Task The_first_claim_on_a_cell_keeps_it()
     {
+        // `GroundClaims` is a TryAdd, and this answers the placement question, so the road under a porch is
+        // still the road a tree stands off — reading it the other way round would hide it under the house.
         var surface = Ground(0, 0, 0, 0);
         var claims = new[]
         {
-            Claim("tree", ProvenancePass.Prop, (0, 0)),
-            Claim("boulder", ProvenancePass.Prop, (0, 0)),
+            Claim("stroke", ProvenancePass.Prop, (0, 0)),
+            Claim("house", ProvenancePass.Structure, (0, 0)),
         };
         var grid = ClaimRaster.Read(claims, surface, (_, _) => null, (_, _) => false);
 
-        await Assert.That(grid.Rows[0]).IsEqualTo("5");   // the boulder, placed after the tree
+        await Assert.That(grid.Rows[0]).IsEqualTo("2");   // the route, which was laid first
+    }
+
+    // ── the raster read forwards: where a prop may seat ────────────────────────────────────────────────
+
+    [Test]
+    public async Task A_footprint_seats_only_where_the_whole_box_is_free()
+    {
+        // Free ground x 0..4 with a boulder at x 2: a tree's 1x1 seats at 0, 1, 3 and 4; its 2x1 only at
+        // 0 and 3, since the box is laid from its minimum corner.
+        var surface = Ground(0, 0, 4, 0);
+        var grid = ClaimRaster.Read([Claim("boulder", ProvenancePass.Prop, (2, 0))], surface,
+                                    (_, _) => null, (_, _) => false);
+
+        await Assert.That(ClaimRaster.Seat(grid, "tree", standoff: 0, width: 1, depth: 1).Rows[0])
+            .IsEqualTo("11011");
+        await Assert.That(ClaimRaster.Seat(grid, "tree", standoff: 0, width: 2, depth: 1).Rows[0])
+            .IsEqualTo("10010");
+    }
+
+    [Test]
+    public async Task Ground_a_later_kind_claims_is_free_ground_for_an_earlier_one()
+    {
+        // Cover is placed last, so a bed of flora is not what stops a tree — on the next pass the flora
+        // meets the tree. A tree's claim does stop the flora, which is the same rule read the other way.
+        var surface = Ground(0, 0, 2, 0);
+        var flora = ClaimRaster.Read([Claim("flora", ProvenancePass.Prop, (1, 0))], surface,
+                                     (_, _) => null, (_, _) => false);
+        var tree = ClaimRaster.Read([Claim("tree", ProvenancePass.Prop, (1, 0))], surface,
+                                    (_, _) => null, (_, _) => false);
+
+        await Assert.That(ClaimRaster.Seat(flora, "tree", standoff: 0, width: 1, depth: 1).Rows[0]).IsEqualTo("111");
+        await Assert.That(ClaimRaster.Seat(tree, "flora", standoff: 0, width: 1, depth: 1).Rows[0]).IsEqualTo("101");
+        await Assert.That(ClaimRaster.Seat(tree, "tree", standoff: 0, width: 1, depth: 1).Rows[0]).IsEqualTo("101")
+            .Because("a prop of the same kind is an exclusion like any other");
+    }
+
+    [Test]
+    public async Task A_route_refuses_the_cells_nearer_than_the_standoff_and_lets_the_one_at_it_stand()
+    {
+        // A route cell at x 0, a tree's standoff of 3: x 1 and x 2 are strictly nearer and refuse, x 3 is
+        // exactly at the standoff and stands — GroundClaims.NearerThan's own comparison.
+        var surface = Ground(0, 0, 5, 0);
+        var grid = ClaimRaster.Read([Claim("stroke", ProvenancePass.Prop, (0, 0))], surface,
+                                    (_, _) => null, (_, _) => false);
+
+        var seating = ClaimRaster.Seat(grid, "tree", standoff: 3, width: 1, depth: 1);
+        await Assert.That(seating.Rows[0]).IsEqualTo("000111");
+        await Assert.That(seating.Refused.Single(because => because.Rule == DressingRules.RoadStandoff).Cells)
+            .IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task Every_cell_is_either_a_seat_or_one_rules_refusal()
+    {
+        var surface = Ground(0, 0, 9, 9);
+        var grid = ClaimRaster.Read([Claim("stroke", ProvenancePass.Prop, (0, 0), (1, 0))], surface,
+                                    (x, _) => x == 9 ? KeepOut.Spawn : null, (_, z) => z == 9);
+
+        var seating = ClaimRaster.Seat(grid, "tree", standoff: 3, width: 1, depth: 1);
+
+        await Assert.That(seating.Seats + seating.Refused.Sum(because => because.Cells)).IsEqualTo(100);
+        await Assert.That(seating.Refused.Select(because => because.Rule))
+            .Contains(DressingRules.KeptClear).And.Contains(ObjectiveRules.PropInClearance);
+        await Assert.That(ClaimRaster.RenderSeats(seating)).Contains("SEATS  tree, footprint 1x1, 3 blocks off a route");
     }
 }

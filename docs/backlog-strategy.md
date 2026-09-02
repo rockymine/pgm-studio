@@ -255,8 +255,8 @@ no way back to the field that produced it.
 
 **A gate's verdict exists only at the compile boundary.** `PlanValidator` runs at compile and not in the live
 inspect feed, so an author sets a number, sees nothing, and meets the refusal a phase later. `TN2` folds every
-refusal into one sentence and drops the rest; `WE34` is the same rule set never run forwards, so nothing
-answers "where may this stand?" — only "no". Two entries where there were four, the other two withdrawn.
+refusal into one sentence and drops the rest; `WE34` was the same rule set never run forwards, and shipped
+as the seat read (`FEATURES.md`). Two entries where there were four, the other two withdrawn.
 
 **A term measures the artifact it can reach rather than the one the claim is about.** This has drained to
 `B150` alone — every evaluator caller is plan-tier by construction, so a board's own ground is never the thing
@@ -330,9 +330,9 @@ this population until the building's one model turned them from three reaches in
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`, `S56`,
-`S34`, `TS51`, `TS63`, `TS30`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE34`, `WE52`. Two left it by shipping —
-`B221` and `B258`, the library's pictures — which is the population behaving as intended: a roadmap entry is
-drained by being built, not by being triaged again.
+`S34`, `TS51`, `TS63`, `TS30`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE52`. Three left it by shipping —
+`B221` and `B258`, the library's pictures, and `WE34`, the seat read — which is the population behaving as
+intended: a roadmap entry is drained by being built, not by being triaged again.
 
 **Relocating the roadmap to the ideas files was tried and refused.** Seventeen of the eighteen entries named
 on the previous reading are still on the board; only `B21` left, and it left by withdrawal rather than by

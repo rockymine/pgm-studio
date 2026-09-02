@@ -122,19 +122,6 @@ mirror clean and the traversability whole on every board named below.
   *`opus5-thornfell`: 36 compiled vertices → 99 drawn, strait measured at **26–28 blocks** over 23 transects
   against a plan stating a flat 30. A vertex moved outward would have closed it.*
 
-- [ ] **WE34 — Nothing runs a placement rule forwards; the raster answers only what is free.**
-  `sketch/dressing`'s `claims` raster answers which cells nothing holds and no keep-out covers (`TS81`),
-  which is where to **try** — but a free cell is not a legal seat. `DR-SITE`, `DR-SLOPE`, `DR-CLAIM` and
-  `DR-ROAD` read the prop's own footprint rather than the cell, so the verdict still arrives as a decline.
-  Run the same predicates forwards: one read taking a footprint and a prop kind and answering the candidate
-  cells. Every predicate is already written. The *shape* of the answer exists three times for goals —
-  `monument-suggestions`, `core-suggestions`, `wool-suggestions` — but each scores scanned candidate rows
-  rather than asking a placement rule, so this is the first read that runs the rules themselves.
-  `docs/world-export/decoration.md`.
-
-  *`opus5-rimegarth` took **fourteen declines** on one pass, and the honest answer for a hundred-block CTW
-  board turned out to be **nine legal spots**. `tools/loop.py --candidates` is the trial loop this replaces.*
-
 - [ ] **WS14 — A declared route is never read back.** `route: true` on a stroke makes `DR-ROAD` measure
   every other prop's standoff to it, and nothing reads the stroke itself. Two of the three pieces landed:
   `transect` walks any polyline and classes every step (`WS19`), and the dressing preview answers a stroke's
