@@ -188,6 +188,10 @@ tone family claims, and the legend says how many there were.
 
 ## What each read is for
 
+`answer-shapes.md`, beside this document, measures which of these reads a model can subtract from and
+which it can only gauge, against two runs where the difference cost a board; the reads it asks for are on
+the board as `WS19`–`WS22`.
+
 `column` is the workhorse and the only honest answer: every picture beside it is a projection, and this is
 what is actually at a coordinate. It is the read to reach for when a picture and a document disagree.
 
