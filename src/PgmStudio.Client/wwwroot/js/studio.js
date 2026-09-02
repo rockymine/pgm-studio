@@ -122,6 +122,13 @@ window.studio = {
     return mod.mount(svgEl, wrapEl, cursorEl, dotnetRef);
   },
 
+  // Mount the library editor's 3-D view of the building it has open. Answers null when WebGL cannot run, so
+  // the editor can say why instead of showing an empty box. The handle draws a preview's `columns` node.
+  async mountHouseIso(wrapEl) {
+    const mod = await import("/js/studio/bridge/house-iso-bridge.js");
+    return mod.mount(wrapEl);
+  },
+
   // Bring an element into the scrolling column it sits in. A flat library document draws every section at
   // once, so its outline reaches a section rather than choosing which one exists.
   scrollIntoView(id) {

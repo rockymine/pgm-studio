@@ -7,9 +7,10 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Minecraft.Views;
 
 /// <summary>
-/// The four ways a stamped <see cref="VoxelWorld"/> is drawn: <b>isometric</b> for what a building looks like,
-/// <b>plan</b> for what its roof does, <b>section</b> for the course stack behind its front wall, and
-/// <b>elevation</b> for one wall at the scale of the pieces in it.
+/// The three ways a stamped <see cref="VoxelWorld"/> is drawn flat: <b>plan</b> for what its roof does,
+/// <b>section</b> for the course stack behind its front wall, and <b>elevation</b> for one wall at the scale
+/// of the pieces in it. What a building <em>looks like</em> is drawn in 3-D from the world itself
+/// (<see cref="PgmStudio.Minecraft.Anvil.WorldColumns"/>), not flattened to a picture here.
 ///
 /// <para>They live here, below every consumer, because there are two of those and they must not drift: the
 /// studio's library cards and the house-generation showcase draw the same buildings, and a picture the studio
@@ -22,102 +23,6 @@ namespace PgmStudio.Minecraft.Views;
 /// </summary>
 public static class WorldViews
 {
-    // ── the isometric ─────────────────────────────────────────────────────────────────────────────────
-    /// <summary>A block world seen from above one corner. The camera stands off the box's <b>−z</b> side, which
-    /// is the wall a house fronts on — its door, its porch and most of its windows are there, and a view of the
-    /// back of a house is a view of a box.
-    ///
-    /// <para>The view direction is (−1, −1, +1), so a cell is nearer the camera the larger x + y − z is, which
-    /// is the paint order — and each of the three faces that can face the camera is drawn only when the
-    /// neighbour it points at is air. <b>Face</b> culling rather than block culling is what keeps the payload
-    /// small: a wall shows one face per block rather than three, and a building's interior draws nothing at
-    /// all.</para>
-    ///
-    /// <para>Consecutive faces of one colour then coalesce into a single path, because a house is a few
-    /// materials repeated thousands of times and a per-face fill attribute is most of the bytes. Consecutive
-    /// rather than all-of-one-colour: a nearer face still has to paint over a farther one — an eave over the
-    /// wall behind it — so the depth order is what the emission follows and the colour run is only how far it
-    /// can be carried.</para>
-    ///
-    /// <para>Scale is even and every projected coordinate a multiple of half a tile, so the whole picture is
-    /// integer arithmetic and no coordinate carries a decimal point.</para></summary>
-    public static string Isometric(VoxelWorld world, BlockBox box, int scale = 10)
-    {
-        int halfWide = Math.Max(2, scale), halfTall = halfWide / 2, side = halfWide;   // a 2:1 tile, one cell tall
-
-        int ScreenX(int x, int z) => (x - z) * halfWide;
-        int ScreenY(int x, int y, int z) => (x + z) * halfTall - y * side;
-
-        // The drawn extent, so the viewBox fits the building rather than the block box it was read out of.
-        int left = (box.MinX - box.MaxZ) * halfWide - halfWide, right = (box.MaxX - box.MinZ) * halfWide + halfWide;
-        int top = ScreenY(box.MinX, box.MaxY, box.MinZ);
-        int bottom = ScreenY(box.MaxX, box.MinY, box.MaxZ) + 2 * halfTall + side;
-
-        var faces = new List<(int Depth, string Color, string Path)>();
-        for (var x = box.MinX; x <= box.MaxX; x++)
-            for (var z = box.MinZ; z <= box.MaxZ; z++)
-                for (var y = box.MinY; y <= box.MaxY; y++)
-                {
-                    var (id, data) = Block(x, y, z);
-                    if (id == Blocks.Air) continue;
-                    var rgb = BlockPalette.Color(id, data);
-                    int px = ScreenX(x, z) - left, py = ScreenY(x, y, z) - top;
-
-                    // Three faces, three shades: the top full, the +z face three-quarters, the +x face half.
-                    // Depth in a flat picture has to come from the light, and a single fill turns a roof into
-                    // a silhouette.
-                    if (!Opaque(x, y + 1, z))
-                        Face(x + y + z, rgb, 1.0,
-                            px, py, px + halfWide, py + halfTall, px, py + 2 * halfTall, px - halfWide, py + halfTall);
-                    if (!Opaque(x, y, z + 1))
-                        Face(x + y + z, rgb, 0.74,
-                            px - halfWide, py + halfTall, px, py + 2 * halfTall,
-                            px, py + 2 * halfTall + side, px - halfWide, py + halfTall + side);
-                    if (!Opaque(x + 1, y, z))
-                        Face(x + y + z, rgb, 0.52,
-                            px, py + 2 * halfTall, px + halfWide, py + halfTall,
-                            px + halfWide, py + halfTall + side, px, py + 2 * halfTall + side);
-                }
-
-        // Nearer last, and stably, so the three faces of one block keep the order they were built in.
-        var ordered = faces.OrderBy(face => face.Depth).ToList();
-
-        var svg = new StringBuilder();
-        int width = right - left, height = bottom - top;
-        svg.Append($"<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 {width} {height}' ")
-           .Append($"width='{width}' height='{height}' role='img'>");
-        for (var at = 0; at < ordered.Count;)
-        {
-            var run = new StringBuilder(ordered[at].Path);
-            var color = ordered[at].Color;
-            var next = at + 1;
-            while (next < ordered.Count && ordered[next].Color == color) run.Append(ordered[next++].Path);
-            svg.Append($"<path fill='{color}' d='{run}'/>");
-            at = next;
-        }
-        svg.Append("</svg>");
-        return svg.ToString();
-
-        // The one mirror: a drawn cell at z reads the world at its reflection, so the −z wall is the one
-        // facing out of the page.
-        (int Id, int Data) Block(int x, int y, int z) => world.GetBlock(x, y, box.MinZ + box.MaxZ - z);
-
-        // A neighbour outside the drawn box reads as air, so a face on the box's own edge is drawn. Reading the
-        // world unbounded instead hides exactly the faces a cut exists to show: a section taken at the eave
-        // sees the roof above it, decides the top face is covered, and draws a building with no top.
-        bool Opaque(int x, int y, int z)
-            => box.Contains(x, y, box.MinZ + box.MaxZ - z) && Block(x, y, z).Id != Blocks.Air;
-
-        void Face(int depth, BlockPalette.Rgb rgb, double shade, params int[] points)
-            => faces.Add((depth, Shade(rgb, shade),
-                $"M{points[0]} {points[1]}L{points[2]} {points[3]}L{points[4]} {points[5]}L{points[6]} {points[7]}Z"));
-    }
-
-    /// <summary>A colour dimmed by a constant factor — how a face says which way it points.</summary>
-    public static string Shade(BlockPalette.Rgb rgb, double factor) => string.Create(
-        CultureInfo.InvariantCulture,
-        $"#{(int)Math.Round(rgb.R * factor):x2}{(int)Math.Round(rgb.G * factor):x2}{(int)Math.Round(rgb.B * factor):x2}");
-
     // ── the flat reads ────────────────────────────────────────────────────────────────────────────────
     /// <summary>The highest block of each column: what the roof does, its hole and whether its eave oversails
     /// the walls, and nothing else.</summary>

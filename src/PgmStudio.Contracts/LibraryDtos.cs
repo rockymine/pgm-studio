@@ -456,16 +456,19 @@ public record RoomStyleSaveRequest(
     RoomBeamDto? Beams = null, int RoofSlab = -1, int RoofSlabData = 0,
     RoomWindowDto? GableWindows = null, RoomDoorHeadDto? DoorHead = null, int DoorWidth = 2);
 
-/// <summary>The four pictures of a room style: from above, projected onto its front, in isometric, and one
-/// plane drawn at the scale of the pieces in it. A library <em>card</em> carries the section alone — the
-/// isometric is tens of kilobytes, which is nothing for the one style an editor has open and megabytes for a
-/// grid of them.</summary>
+/// <summary>What an editor draws a room style from: three flat pictures — from above, projected onto its
+/// front, and one plane at the scale of the pieces in it — and the building itself, as the columns a 3-D view
+/// meshes. A library <em>card</em> carries the section alone, since a grid of them can afford one raster each
+/// and not a world each.</summary>
 /// <param name="Plan">The style from above.</param>
 /// <param name="Section">One plane cut open downward — the view a library card carries, since the isometric
 /// is tens of kilobytes.</param>
-/// <param name="Iso">The building in isometric.</param>
+/// <param name="Columns">The building itself, as the per-column runs a 3-D view meshes — the same shape
+/// <c>POST /plan/columns</c> answers for a map. It is the world rather than a picture of it, so the one
+/// renderer the studio has draws a house exactly as it draws a board.</param>
 /// <param name="Cutaway">One plane drawn at the scale of the pieces in it.</param>
-public sealed record RoomStylePreviewDto(string Plan, string Section, string Iso, string Cutaway);
+public sealed record RoomStylePreviewDto(
+    string Plan, string Section, WorldColumnsDto Columns, string Cutaway);
 
 /// <summary>One field of a material kind (<c>GET /api/terrain/patterns</c>), as the painter's deserializer
 /// will accept it. <paramref name="Type"/> is a wire type word — <c>int</c>, <c>bool</c>, <c>material</c>,

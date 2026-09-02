@@ -6111,6 +6111,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where the stack is a band **inside** one (a rim two blocks in and then the surface, not two blocks of cobble
   and then cobble forever). `BandEnding` is stated on the stack; the axis stays the caller's, since the
   distance is measured by whoever has it.
+- **The library draws the building the map draws (B258).** A house's 3-D view was a server-rendered SVG
+  isometric — a second renderer beside the WebGL one every board is turned in, and free to disagree with it.
+  The preview now answers the stamped world's own per-column runs, in the shape `POST /plan/columns` answers
+  for a map, and the browser meshes them through `column-mesh.js` into the same `IsoScene`. So a house is
+  drawn once, by the renderer that draws everything else, and it **turns** — which is the whole reason a
+  building is worth drawing in 3-D rather than in projection. `WorldViews.Isometric` and its `Shade` helper
+  are gone with their only caller.
+
+  `house-iso-bridge.js` is the one bridge with no canvas under it: nothing is drawn in 2-D on that surface, so
+  it takes neither a `CanvasBase` nor a document, and `mount` answers **null** where WebGL cannot run, which
+  is what lets the editor say so rather than show an empty box. The world rides on the preview response the
+  editor already asks for — a house is small enough that a second route would buy nothing — and it is smaller
+  than the SVG it replaces. (`docs/tools/library.md`, `docs/client/canvas-interaction.md`)
 - **The style previews are cut to the row the editor has open (B221).** `RoomStylePreview.Views` took the
   whole shell whichever part was being authored, so an author tuning a roof looked at a picture of a building
   with a roof somewhere on it. The four views are now taken over the part's own band — a floor is its plate

@@ -92,6 +92,7 @@ canvas layer can then reuse or test it.
 | `render/primitive-style.js` | the one place a primitive's fill/stroke style is decided, across all four editors |
 | `render/iso-webgl.js` | the depth-buffered 3-D preview, on raw WebGL, lazily imported |
 | `render/column-mesh.js` | the server's per-column runs → the triangles that preview draws; decides which faces are seen, and drops the runs of any sketch layer the viewer has hidden before deciding |
+| `bridge/house-iso-bridge.js` | the library's 3-D building: an `IsoScene` on a wrap with no canvas under it (§6) |
 | `canvas/canvas-base.js` | the shared pan/zoom/drag machinery (§3) |
 | `canvas/world-canvas.js` | the shared engine behind Edit + Configure (§1) |
 | `canvas/plan-canvas.js`, `sketch-canvas.js`, `sideview-canvas.js` | the plan grid, the sketch surface, the depth cross-section (all painted; the first two hybrid, the third painted throughout) |
@@ -262,6 +263,14 @@ it persists nothing — saving is the host's, on the author's word), `sketch-bri
 bridges look repetitive but are not: each owns different document semantics. What they genuinely share is
 only the invoke wrapper, and only two of them use it.
 
+**`house-iso-bridge` is the one with no canvas under it.** The library's editors draw a building in 3-D, and
+nothing is drawn in 2-D on that surface, so it takes neither a `CanvasBase` nor a document: `mount(wrapEl)`
+gives an `IsoScene` the wrap outright and answers a handle of `draw`/`show`/`hide`/`rotate`/`dispose`, or
+**null** where WebGL cannot run — which is what lets the editor say so instead of showing an empty box. It
+does not fetch either. A house is small enough that the world rides on the preview response the editor
+already asks for, so `draw` takes the payload rather than a route, and the mesh is kept against it so
+turning and resizing re-render rather than re-mesh.
+
 **A layer switch seeds group identity from the layer it is switching to.** `sketch-bridge` keeps one live
 group list for the active layer and caches the rest, and `recompute` carries a name, a `mirrors` flag and —
 load-bearingly — an **id** across from whatever that live list holds, matching by centroid within 32 blocks.
@@ -302,11 +311,11 @@ works from the shared folder. 333 tests over 19 files pass.
 
 Coverage splits cleanly along the DOM line. The modules the tests import average around 92% lines, several
 at 100% (`transform`, `symmetry`, `groups`, `polygon`, `plan-inspect`, `decompose-cut`, `shape-render`);
-`canvas-painter` is the one DOM-adjacent module under test, via a small context stub. Of the 55 studio
-modules (12,694 lines), the tests reach 28 — the other **27 files, 8,017 lines, are never imported by a test
-at all**: every canvas, every bridge (`sketch-bridge` 904 lines, `plan-bridge` 449), every controller,
-`iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage` reports
-such files as *absent*, not as zero, so the report reads healthier than the tree is.
+`canvas-painter` is the one DOM-adjacent module under test, via a small context stub. Of the 60 studio
+modules (14,386 lines, the vendored ones aside), the tests reach 32 — the other **28 files, 8,952 lines, are
+never imported by a test at all**: every canvas, every bridge (`sketch-bridge` 1,164 lines, `plan-bridge`
+479), every controller, `iso-webgl` and `studio.js`. Note that `node --test --experimental-test-coverage`
+reports such files as *absent*, not as zero, so the report reads healthier than the tree is.
 
 This is a coherent split rather than neglect: pure logic is tested, DOM-bound code is not. The painted
 render layer sits on the tested side of it because a stateless painter takes a stand-in — `_painter-stub.js`
@@ -321,7 +330,7 @@ already stubbable with what `tests/js/` has — `_dom-stub.js` and `_painter-stu
 `enterIso`/`fetchColumns` can be driven directly, with the canvas a recorder and `fetch` answering a canned
 payload or a refusal. That matters because `enterIso` is the most stateful function in the untested set: an
 await, a race guard, a cache stamp and two failure paths, and a rename inside it shipped a
-`ReferenceError` to the browser that neither the C# build nor the 333 JS tests could see.
+`ReferenceError` to the browser that neither the C# build nor the JS tests could see.
 
 Above the unit line, `tests/e2e/paint.mjs` is the one check that a painted surface actually paints. A blank
 canvas raises no error and leaves no elements behind, so it is exactly as "clean" as a working one to the

@@ -1,23 +1,40 @@
 @namespace PgmStudio.Client.Components
+@implements IAsyncDisposable
+@inject IJSRuntime JS
 
 @* The four pictures of a building, shown wherever one is being composed — a room style, a roof, a storey, a
-   porch. One component because the four views are the building rather than the editor: an isometric of what it
-   looks like, a plan of what the roof does, a section through the course stack, and a cutaway of one plane at
+   porch. One component because the four views are the building rather than the editor: the building itself
+   standing up, a plan of what the roof does, a section through the course stack, and a cutaway of one plane at
    the scale of the pieces in it. Every one is stamped by the real HouseStamper and read back out of the world,
    so none can promise a building the export would not put down.
 
-   Together they are the isometric over a row of the three cuts, because the isometric is what the building
-   looks like and the cuts are how it is made — two questions, not four pictures. Any one of them can be asked
-   for alone, which is the only way to read a cut at the size the stage can give it.
+   The three cuts are drawn on the server and arrive as SVG. What the building *looks like* is not: the preview
+   answers the world's own columns and the browser draws them in 3-D, through the renderer a map is drawn by.
+   One renderer, so a house cannot be drawn one way here and another way on a board — and the view turns, which
+   is the whole reason a building is worth drawing in 3-D rather than in projection.
 
-   A library *card* deliberately carries only the section: an isometric runs tens of kilobytes, which is
-   nothing once and megabytes in a grid. *@
+   Together they are the building over a row of the three cuts, because what it looks like and how it is made
+   are two questions, not four pictures. Any one of them can be asked for alone, which is the only way to read
+   a cut at the size the stage can give it.
+
+   A library *card* deliberately carries only the section: a grid of them can afford one raster each, not a
+   world each. *@
 
 @if (Preview is not null)
 {
   @if (Shows(Iso))
   {
-    <figure class="house-views__iso">@((MarkupString)Preview.Iso)</figure>
+    <figure class="house-views__iso @(unavailable is null ? "" : "house-views__iso--flat")" @ref="wrap">
+      @if (unavailable is not null)
+      {
+        <p class="house-views__note">@unavailable</p>
+      }
+      else
+      {
+        <Button Variant="icon" Icon="rotate-cw" Title="Turn the building a quarter"
+                Class="house-views__turn" OnClick="Rotate" />
+      }
+    </figure>
   }
   @if (Shows(Plan) || Shows(Section) || Shows(Cutaway))
   {

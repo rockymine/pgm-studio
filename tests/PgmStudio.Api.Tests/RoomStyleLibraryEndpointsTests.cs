@@ -41,6 +41,64 @@ public sealed class RoomStyleLibraryEndpointsTests
 
     private static int Height(string svg) => int.Parse(Regex.Match(svg, "height='(\\d+)'").Groups[1].Value);
 
+    /// <summary>The courses a columns payload actually carries, read out of its run stride
+    /// <c>[x, z, runCount, (yTop, yBottom, colour, layer) × runCount]</c>. A picture's extent is the box it was
+    /// drawn over; this is what is standing in it.</summary>
+    private static (int Low, int High, int Runs) Extent(WorldColumnsDto columns)
+    {
+        int low = int.MaxValue, high = int.MinValue, runs = 0;
+        for (var at = 0; at < columns.Cols.Count;)
+        {
+            var count = columns.Cols[at + 2];
+            at += 3;
+            for (var run = 0; run < count; run++, at += 4, runs++)
+            {
+                high = Math.Max(high, columns.Cols[at]);
+                low = Math.Min(low, columns.Cols[at + 1]);
+            }
+        }
+        return (low, high, runs);
+    }
+
+    /// <summary>The preview answers the building itself rather than a picture of it, and the part an editor
+    /// has open cuts it: a roof row draws the roof, standing clear of the ground the whole building stands on.
+    /// The three flat views are cut by the same box, so the section shortens with it while the plan — an XZ
+    /// read — does not.</summary>
+    [Test]
+    public async Task A_preview_answers_a_world_and_the_part_cuts_it()
+    {
+        await ApiTestFactory.ResetSchemaAsync();
+        using var client = ApiTestFactory.Shared.CreateClient();
+
+        var draft = Draft("cut");
+        var whole = await Preview(client, draft, part: null);
+        var roof = await Preview(client, draft, part: RoomParts.Roof);
+        var floor = await Preview(client, draft, part: RoomParts.Floor);
+
+        // A world, not a picture: colours to draw it in and runs to draw.
+        await Assert.That(whole!.Columns.Palette).IsNotEmpty();
+        await Assert.That(Extent(whole.Columns).Runs).IsGreaterThan(0);
+
+        // The bands stack in the order a building does, and neither reaches into the other's.
+        await Assert.That(Extent(roof!.Columns).Low).IsGreaterThan(Extent(floor!.Columns).High);
+
+        // Each band is a slice of the whole, and the two that end on it keep its ends: a floor is claimed
+        // downward from the course players walk on, so it starts where the building does, and the roof is
+        // everything over the eave, so it stops where the building stops.
+        await Assert.That(Extent(floor.Columns).Low).IsEqualTo(Extent(whole.Columns).Low);
+        await Assert.That(Extent(roof.Columns).High).IsEqualTo(Extent(whole.Columns).High);
+
+        // The flat views follow the same cut — except the plan, which reads down the Y the cut is taken on.
+        await Assert.That(Height(roof.Section)).IsLessThan(Height(whole.Section));
+        await Assert.That(Height(roof.Plan)).IsEqualTo(Height(whole.Plan));
+    }
+
+    private static async Task<RoomStylePreviewDto?> Preview(
+        HttpClient client, RoomStyleSaveRequest draft, string? part)
+        => await (await client.PostAsJsonAsync(
+                $"/api/room-styles/preview{(part is null ? "" : $"?part={part}")}", draft))
+            .Content.ReadFromJsonAsync<RoomStylePreviewDto>();
+
     /// <summary>
     /// Every field the row stores comes back on the wire. The five under test here were added to the request
     /// as trailing defaulted parameters, which is exactly why they could go missing from the mapping without

@@ -401,11 +401,11 @@ meant. Leave the `sill` part unbound to reach the same choice from the library.
 where the cell sits, which would turn every stair in a wall the same way. A window's `hostBlock` names the
 block it may be cut into, so a seat chosen by spacing on a banded wall does not land half in one band.
 
-A room style previews in four views — isometric, plan, section and cutaway — and the editor shows them as the
-isometric over a row of the three cuts, because the isometric is what a building looks like and the cuts are
-how it is made. Any one can be asked for alone, which is the only way to read a cut at the size the stage can
-give it; the chips over the picture say which. A library card carries the section alone, since an isometric is
-tens of kilobytes for one style and megabytes for a grid of them.
+A room style previews in four views — the building standing up, and a plan, a section and a cutaway of it —
+and the editor shows them as the building over a row of the three cuts, because what a building looks like and
+how it is made are two questions. Any one can be asked for alone, which is the only way to read a cut at the
+size the stage can give it; the chips over the picture say which. A library card carries the section alone,
+since a grid of rows can afford one raster each and not a world each.
 
 All four are drawn on the shell the `footprint` word names, asked in the dock at the foot of the stage rather
 than among the views: which view and at what proportion are two questions, and a row of nine capsules in one
@@ -510,7 +510,16 @@ paints, from the same preview call the composed picture answers.
 
 **What the outline shows, the preview answers.** A style draws its plan and its section, either or both by a
 chip; a house and a part draw the sample building four ways, and add a dock beneath the picture for the shell
-size — 6×6, 8×8, 10×15 or 16×16 — the sample stands on. A theme's preview is the single composed picture, the
+size — 6×6, 8×8, 10×15 or 16×16 — the sample stands on.
+
+**Three of those four are pictures and the fourth is the building.** The plan, the section and the cutaway are
+SVG the server drew. What the building *looks like* is not drawn on the server at all: the preview answers the
+stamped world's own per-column runs and the browser meshes them into the same WebGL scene a plan and a sketch
+are turned in, so a house is drawn by the one renderer the studio has rather than by a second one free to
+disagree with it — and it **turns**, a quarter at a press, which is the whole reason a building is worth
+drawing in 3-D rather than in projection. The turn sits over the picture and appears on hover, because the
+canvas fills its box and a control in the flow would push the box the scene measures. Where WebGL cannot run
+the box says so and the three cuts still read. A theme's preview is the single composed picture, the
 plateau its buckets and edges finish. The chips above the picture and the dock beneath it answer different
 questions — which view, and what the view is taken over — so they sit in different chrome rather than one row
 of capsules answering neither clearly.
@@ -616,7 +625,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `POST /room-styles` · `PUT /room-styles/{id}` | compose a building from parts and styles — body `{name, roofForm, …parts, courses[]}`. 400 `{error, message, findings[]}` when the composed shell fails the house-style gate |
 | `GET /room-styles/doors` | the doors a room may be stamped with |
 | `GET /room-styles/{id}/json` | the stamper's own JSON — what a sketch binds and a building prop snapshots — as `{styleJson: "…"}`, likewise a string to unwrap |
-| `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
+| `POST /room-styles/preview` · `POST /room-styles/preview-snapshot` | the shell a set of courses composes to, or the one a stored `HouseStyle` snapshot builds. The answer is `{plan, section, cutaway, columns}`: three SVG cuts, and **`columns`** — the stamped world's own per-column runs, the same shape `POST /plan/columns` answers for a map, which the browser meshes and draws in 3-D. **The two take different bodies**: `preview` takes the same record as `POST /room-styles`, `preview-snapshot` takes a **bare `HouseStyle`** — the document itself, unwrapped, exactly what `GET /room-styles/{id}/json` hands back once its string is unwrapped. A wrapper posted to it is dropped and previews the defaults |
 | `DELETE /room-styles/{id}` | forget a room style; its courses cascade, its styles stay |
 | `GET`·`POST`·`PUT`·`DELETE /tree-styles[/{id}]` · `…/boulder-styles` | the two recipe libraries — what a *click* puts down. Each `POST …/preview` draws a draft as the card a browse row carries, answering `{card: "…"}`. Nothing asks before a delete, because nothing binds a recipe: a placement names a key in its **own document's** registry, which the pull copied |
 | `GET /tree-styles/{id}/json` · `GET /boulder-styles/{id}/json` | the recipe as a dressing document states it, as `{styleJson: "…"}` — what a pull copies into a map's `styles` registry under a key |
@@ -640,9 +649,10 @@ instead, which is the form an agent saves and looks at.
 
 The view sets, each stated once in the code and published as the `view` parameter's enum, so what the schema
 names and what a refusal lists are the same list: **`material-preview`** and **`prop-preview`** draw
-`plan`, `section`; **`room-styles/preview`** and **`preview-snapshot`** draw `section`, `plan` — the
-isometric and the cutaway are SVG only, since they draw a block as its own shape rather than as a filled cell
-and so have no raster to encode; **`theme-preview`** draws `section` plus one swatch per bucket
+`plan`, `section`; **`room-styles/preview`** and **`preview-snapshot`** draw `section`, `plan` — the cutaway
+is SVG only, since it draws a block as its own shape rather than as a filled cell and so has no raster to
+encode, and the building itself is not a picture at all; **`theme-preview`** draws `section` plus one swatch
+per bucket
 (`rim`, `surface`, `wall`, `fill`); and **`GET /map/{slug}/coverage`** draws its one grid.
 
 **The editor is driven by that schema, not by a copy of it.** `GET /terrain/patterns` is what the Styles and
@@ -711,6 +721,11 @@ because no map references one; and there is no way to push an edit into a map th
 snapshot is the guarantee that a library edit cannot rebuild a shipped map, so the missing "re-apply to these
 maps" is the price of it rather than a gap. A style filled into another style is the same bargain one level
 down: what was filled in is a copy, so editing the source afterwards does not reach it.
+
+**The 3-D view needs WebGL, and there is no fallback drawing.** A browser that cannot give the page a WebGL
+context gets a sentence in the box where the building would stand; the plan, section and cutaway are drawn on
+the server and are unaffected. A second, server-drawn isometric would be exactly the copy free to disagree
+with the app that the live one exists to retire.
 
 A theme and a house's own proportions are still saved as stated — a style, a theme, a bare porch, and every
 knob that is not one of the three shapes of fault above; the previews are the only feedback on those, and they

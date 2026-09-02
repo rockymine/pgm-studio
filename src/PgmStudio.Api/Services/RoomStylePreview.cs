@@ -16,16 +16,17 @@ namespace PgmStudio.Api.Services;
 /// sample <see cref="RoomFrame"/> and reading the blocks back, so a card cannot promise a shell the export
 /// would not build — the discipline the dressing pickers and the theme cards already hold.
 ///
-/// <para>Four views, because a building varies along more axes than one picture holds. The <b>isometric</b> is
-/// what it looks like. From <b>above</b> the roof reads: its hole, and whether its eave overhangs the walls.
+/// <para>Four views, because a building varies along more axes than one picture holds. What it <b>looks
+/// like</b> is answered as the world's own columns, drawn in 3-D by the renderer a map is drawn by. From
+/// <b>above</b> the roof reads: its hole, and whether its eave overhangs the walls.
 /// The <b>section</b> is the course stack and the doorway through it — a <see cref="BlockSideView"/>
 /// projection rather than a cut, so a doorway on the near wall does not hide the wall behind it. The
 /// <b>cutaway</b> is one plane at the scale of the pieces in it, which is the only view that draws a stair
 /// lattice as the opening it is and the only one that shows a storey's slab, the clear under it and the
 /// ladder through it at once.</para>
 ///
-/// <para>A card takes the section alone. The full set is drawn for the <em>open editor</em> only: an isometric
-/// runs tens of kilobytes, which is nothing for one picture and megabytes for a grid of them.</para>
+/// <para>A card takes the section alone. The full set is drawn for the <em>open editor</em> only: a world runs
+/// kilobytes, which is nothing for one building and megabytes for a grid of them.</para>
 /// </summary>
 public static class RoomStylePreview
 {
@@ -107,7 +108,7 @@ public static class RoomStylePreview
         return new RoomStylePreviewDto(
             WorldViews.Plan(world, box, cell),
             WorldViews.Section(world, box, cell),
-            WorldViews.Isometric(world, box, Math.Max(4, cell)),
+            WorldColumnPayload.Of(world, within: box),
             WorldViews.Elevation(world, inner, CutawayPlane(world, inner, sample), Math.Max(8, cell * 2)));
     }
 

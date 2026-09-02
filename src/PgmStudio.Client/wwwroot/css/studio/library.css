@@ -169,13 +169,28 @@ a.lib-card-fig { text-decoration: none; }
 .lib-stage-figure .lib-fig { min-height: 0; padding: var(--space-2); }
 .lib-stage-figure .lib-fig svg { width: 100%; height: auto; max-height: 38vh; }
 
-/* The house views in a companion column: the isometric over the cuts, stacked rather than side by side,
-   because a column this wide fits one picture across and three of them would each be a thumbnail. */
-.lib-stage-figure .house-views__iso { height: 26vh; }
+/* The house views in a companion column: the building over the cuts, stacked rather than side by side,
+   because a column this wide fits one picture across and three of them would each be a thumbnail. The
+   building is a WebGL canvas the scene positions against this box, so the box is what has to have a size:
+   it claims the column's width outright rather than shrinking to fit a picture the way a cut does. */
+.lib-stage-figure .house-views__iso { position: relative; height: 26vh; width: 100%; }
 .lib-stage-figure .house-views__cuts { display: flex; gap: var(--space-2); justify-content: center; height: 16vh; }
 .lib-stage-figure .house-views__cut { height: 100%; min-width: 0; }
-.lib-stage-figure .house-views__iso svg,
 .lib-stage-figure .house-views__cut svg { height: 100%; width: auto; max-width: 100%; }
+
+/* The turn sits over the picture rather than beside it: the canvas fills its box, and a control in the flow
+   would push the box the scene measures. Shown on hover or focus, so a still building is just the building. */
+.house-views__turn {
+  position: absolute; top: 6px; right: 6px; z-index: 1;
+  opacity: 0; transition: opacity var(--transition-fast);
+}
+.house-views__iso:hover .house-views__turn,
+.house-views__turn:focus-visible { opacity: 1; }
+
+/* Nothing to draw with: the note takes the box the canvas would have had, so the cuts below it do not jump. */
+.house-views__iso--flat { display: flex; align-items: center; justify-content: center; }
+.house-views__note { margin: 0; padding: 0 var(--space-4); text-align: center;
+                     color: var(--text-muted); font-size: var(--font-sm); }
 
 /* One view, alone: nothing shares the column with it, so it takes all of it. */
 .lib-stage-figure:has(.house-views__iso:only-child) .house-views__iso,

@@ -399,13 +399,11 @@ is library material — picked in the inspector, with a way through to the libra
 building already works this way. The inspector then holds a full editor for the two drawn kinds, a picker and a
 forward for the two clicked ones, and the per-placement handful — seed, position, door edge — for all of them.
 
-### What the author can say
-
 ### What the author sees while authoring
 
 **The card carries the section, and that is settled** (author): an author knows a house by its name, and the
-one that wants looking at is a click away from a 3-D view of the real thing — and the pictures are cut to the
-row the author has open (`FEATURES.md`), so the deeper view is the axis left to spend on.
+one that wants looking at is a click away from the real thing, turnable, cut to the row they have open
+(`FEATURES.md`). What is left here is how long the page takes to say any of it.
 
 - [ ] **TL13 — The house editor waits ten seconds on a list it barely uses.** `HouseEditor.OnInitializedAsync`
   makes six sequential fetches before `OnParametersSetAsync` may run, so nothing renders until the last one
@@ -417,12 +415,6 @@ row the author has open (`FEATURES.md`), so the deeper view is the axis left to 
 
   *measured 2026-09-02 on the workshop preset: doors, blocks and styles fire, then roofs, storeys and porches,
   and `GET /room-styles/{id}` only after all six.*
-
-- [ ] **B258 — The library draws the iso the map draws.** `iso-webgl.js` renders the world the export builds,
-  meshed by `column-mesh.js` from per-column runs — and both routes that answer those runs, `POST
-  /plan/columns` and `POST /map/{slug}/sketch/columns`, are map-scoped, so no library editor can ask for one.
-  Answer columns for a stamped style world and drive the existing bridge from it, so a house can be turned in
-  3-D where it is authored. Supersedes the server-rendered `Iso` SVG in `HouseViews`.
 
 ### What is on the shelf
 
