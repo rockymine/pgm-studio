@@ -617,7 +617,7 @@ Five things are placed, and they divide into two kinds.
 | Spot height | `point` | a height at a place, over a radius |
 | Ridgeline | `line` | a traced line at one height, or one height per vertex, over a band either side |
 | Bench | `area` | a closed ring held at one height |
-| Scarp | `scarp` | a traced line with a shelf above and ground below — `high`, `low`, the `face` it drops over and the `band` either side for the land to arrive through |
+| Scarp | `scarp` | a traced line with a shelf above and ground below — `high`, `low`, the `face` it drops over and the `band` either side for the land to arrive through. The `high` side is the +z hand of the drawn direction: south of a line traced west to east, north of one traced east to west |
 | Push | `push` | a closed ring lifted by an `amount`, with `falloff`, `roughness`, `crown` and a seed |
 
 The first four are **marks**, and a mark is a constraint: the ground here *is* twelve. Two marks over the same

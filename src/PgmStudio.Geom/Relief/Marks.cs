@@ -118,7 +118,8 @@ public sealed record RimMark(double Height, int Depth = 1) : Mark
 /// spend a block on, and over two it is not crossed on foot in either direction — though it is still walked
 /// <em>down</em>, because a drop is not a barrier. One number spells all three.</para>
 ///
-/// <para>The high side is the left of the drawn direction, and the band <b>stops where the line stops</b>.
+/// <para>The high side is the +z hand of the drawn direction — south of a line traced with x increasing, north
+/// of one traced against it — and the band <b>stops where the line stops</b>.
 /// Measuring perpendicular distance alone wraps a half-disc around each end, which for a scarp closes the gap
 /// beside it — the gap being the entire reason the line was drawn to end there.</para>
 /// </summary>
