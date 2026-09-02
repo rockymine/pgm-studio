@@ -504,6 +504,7 @@ public static class PlanValidator
     [
         LintPcC, LintG2, LintG5, LintSp2, LintBz5, LintEl1, LintSt2, LintWx4, LintWx8, LintWl1,
         LintSp8, LintSp9, LintWl11, LintSt8, LintSt9, LintSt10, LintBz11, LintBoardEdges,
+        LintZoneReach,
     ];
 
     private static Finding Lint(string rule, string msg, params string[] subjects) =>
@@ -1017,6 +1018,137 @@ public static class PlanValidator
                     + $"stand {gap.Blocks} blocks apart — the CTW strait wants 15–40",
                     [.. gap.PiecesA.Concat(gap.PiecesB)]);
             }
+    }
+
+    /// <summary>BZ9's void half: a stretch of a build zone reaching past everything it docks. A crossing is
+    /// bounded by the ground it connects rather than by a width — it may cover only part of a face, it may be
+    /// wider than any one face where it docks the mirrored images at their corners (the shifted
+    /// <c>rot_180</c> form), and the span between two docked ends is the crossing itself and touches nothing
+    /// by definition. What it may not do is <b>overhang</b>: carry a stretch beyond the last ground it meets,
+    /// which connects nothing and reads as no man's land a player walks into and stops.
+    ///
+    /// <para>So the measure is not whether a line of the zone meets ground but whether it lies outside the
+    /// span of the lines that do: between two docked ends is the gap the zone exists to carry, and a zone
+    /// aimed across a hop it does not reach is <c>G5</c>'s question rather than this one. Measured across the
+    /// bridging axis — the one the zone's own contacts lie on — since that is where growing out means growing
+    /// sideways into nothing. Read over the <b>fanned</b> board, because half of what a zone docks is often an
+    /// image of what the plan states, and over the zone cells as connected regions, so an L- or T-shaped union
+    /// is judged as the one crossing it is.</para></summary>
+    private static IEnumerable<Finding> LintZoneReach(PlanModel plan, ContactGraph d)
+    {
+        BoardStructure board;
+        try { board = BoardDeriver.Derive(plan); }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException
+                                       or NullReferenceException or IndexOutOfRangeException or KeyNotFoundException)
+        { yield break; }
+
+        var zoneOf = new Dictionary<(int X, int Z), string>();
+        foreach (var zone in plan.BuildZones)
+            for (var cx = zone.Rect.X; cx < zone.Rect.X + zone.Rect.Width; cx++)
+                for (var cz = zone.Rect.Z; cz < zone.Rect.Z + zone.Rect.Height; cz++)
+                    zoneOf.TryAdd((cx, cz), zone.Id);
+
+        foreach (var region in Regions(zoneOf.Keys))
+        {
+            // A zone docked left and right bridges in x, so what may overhang is its extent in z, and the
+            // other way about. With no contact at all either answers the same thing — the whole region stands
+            // beyond ground — and x is taken so the report has an axis to name.
+            var (alongX, alongZ) = Contacts(region, board.Filled);
+            var acrossX = alongZ > alongX;
+            var overhang = Overhang(region, board.Filled, acrossX);
+            if (overhang.Count == 0) continue;
+            var axis = acrossX ? "x" : "z";
+
+            var zones = region.Select(cell => zoneOf[cell]).Distinct().OrderBy(id => id, StringComparer.Ordinal).ToList();
+            yield return Lint("BZ9",
+                $"zone{(zones.Count > 1 ? "s" : "")} [{string.Join(", ", zones)}]: "
+                + $"{overhang.Count * plan.Globals.Cell} blocks of it reach past everything it docks — "
+                + $"{axis} {Runs(overhang, plan.Globals.Cell)} stand beyond the last ground the zone meets, so "
+                + "the crossing overhangs into void. A zone may cover part of a face and may span the mirrored "
+                + "images' corners; what it may not do is carry on past them",
+                [.. zones]);
+        }
+    }
+
+    /// <summary>How much of a region's contact with the board lies on each axis — the read that says which way
+    /// the crossing bridges, and so which way it can overhang.</summary>
+    private static (int AlongX, int AlongZ) Contacts(
+        IEnumerable<(int X, int Z)> region, IReadOnlyDictionary<(int, int), (string PieceId, int K)> filled)
+    {
+        int alongX = 0, alongZ = 0;
+        foreach (var (x, z) in region)
+        {
+            if (filled.ContainsKey((x - 1, z))) alongX++;
+            if (filled.ContainsKey((x + 1, z))) alongX++;
+            if (filled.ContainsKey((x, z - 1))) alongZ++;
+            if (filled.ContainsKey((x, z + 1))) alongZ++;
+        }
+        return (alongX, alongZ);
+    }
+
+    /// <summary>The region's lines that stand outside the span of the lines meeting ground, along one axis.
+    /// A line between two that meet ground is the crossing itself; one beyond them all is the overhang.</summary>
+    private static List<int> Overhang(
+        IReadOnlyList<(int X, int Z)> region,
+        IReadOnlyDictionary<(int, int), (string PieceId, int K)> filled, bool alongX)
+    {
+        var lines = region.GroupBy(cell => alongX ? cell.X : cell.Z)
+                          .ToDictionary(line => line.Key, line => line.Any(cell => Touches(cell, filled)));
+        var docked = lines.Where(line => line.Value).Select(line => line.Key).ToList();
+        // Nothing docked at all: the whole region stands beyond ground, which is the same fault at its limit.
+        int from = docked.Count > 0 ? docked.Min() : int.MaxValue, to = docked.Count > 0 ? docked.Max() : int.MinValue;
+        return [.. lines.Keys.Where(line => line < from || line > to).OrderBy(line => line)];
+    }
+
+    /// <summary>The zone cells as connected regions, four-connected — one crossing per region, so an L or a T
+    /// drawn as several rectangles is judged as the shape it makes rather than rectangle by rectangle.</summary>
+    private static List<List<(int X, int Z)>> Regions(IEnumerable<(int X, int Z)> cells)
+    {
+        var left = new HashSet<(int X, int Z)>(cells);
+        var regions = new List<List<(int X, int Z)>>();
+        while (left.Count > 0)
+        {
+            var seed = left.First();
+            left.Remove(seed);
+            var region = new List<(int X, int Z)> { seed };
+            var queue = new Queue<(int X, int Z)>();
+            queue.Enqueue(seed);
+            while (queue.Count > 0)
+            {
+                var cell = queue.Dequeue();
+                foreach (var side in Sides(cell))
+                    if (left.Remove(side)) { region.Add(side); queue.Enqueue(side); }
+            }
+            regions.Add(region);
+        }
+        return regions;
+    }
+
+    /// <summary>Whether a cell has ground on any side of it, or under it — a zone lapping a piece is docked as
+    /// surely as one flush against it (FR1+FR2: overlapping terrain is allowed).</summary>
+    private static bool Touches((int X, int Z) cell, IReadOnlyDictionary<(int, int), (string PieceId, int K)> filled)
+        => filled.ContainsKey(cell) || Sides(cell).Any(filled.ContainsKey);
+
+    private static IEnumerable<(int X, int Z)> Sides((int X, int Z) cell)
+    {
+        yield return (cell.X - 1, cell.Z);
+        yield return (cell.X + 1, cell.Z);
+        yield return (cell.X, cell.Z - 1);
+        yield return (cell.X, cell.Z + 1);
+    }
+
+    /// <summary>Consecutive line indices as block extents — <c>-45..-20 and 15..45</c> — so a reader flies to
+    /// the stretch rather than counting cells off a rectangle.</summary>
+    private static string Runs(IReadOnlyList<int> lines, int cell)
+    {
+        var runs = new List<string>();
+        for (var i = 0; i < lines.Count; i++)
+        {
+            var from = lines[i];
+            while (i + 1 < lines.Count && lines[i + 1] == lines[i] + 1) i++;
+            runs.Add($"{from * cell}..{(lines[i] + 1) * cell}");
+        }
+        return runs.Count == 1 ? runs[0] : string.Join(" and ", runs);
     }
 
     // The board direction a door's facing opens toward (front = −z, the reading the editor renders).

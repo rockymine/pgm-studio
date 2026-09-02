@@ -891,4 +891,74 @@ public sealed class PlanValidatorTests
             await Assert.That(errors).IsEmpty();
         }
     }
+
+    // ── BZ9: a zone reaching past the ground it docks (the author's own five boards) ───────────────────
+
+    /// <summary>The author's shifted <c>rot_180</c> board: one 60×30-block piece and its image, and a zone
+    /// across the middle. Every case below is that board with a different zone, which is what makes the five
+    /// comparable — the fault is the zone's reach, not the pieces.</summary>
+    private static PlanModel Shifted(string pieces, string zone) => Plan($$"""
+    { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+      "pieces":[ {"id":"piece","role":"piece","rect":[-9,-10,12,6]},
+                 {"id":"spawn","role":"spawn","rect":[-9,-10,2,2]}{{pieces}} ],
+      "zones":[ {"id":"zone","rect":{{zone}}} ],
+      "placements":{"spawns":[{"team":0,"piece":"spawn","at":[5,5]}]} }
+    """);
+
+    [Test]
+    public async Task A_zone_docking_part_of_a_shifted_face_is_not_an_overhang()
+    {
+        // The crossing joins the two team islands over the x they share and no more. Covering only part of
+        // each face is what a shifted board's crossing does, and BZ9 does not ask for more.
+        await Assert.That(Lint(Shifted("", "[-3,-4,6,8]"), "BZ9")).IsFalse();
+    }
+
+    [Test]
+    public async Task A_zone_wider_than_either_face_stands_where_it_docks_both_images()
+    {
+        // The other way to take the same board: span the full width of both faces, which means running wider
+        // than either one to reach the mirrored corners. Every column of it has ground on one side.
+        await Assert.That(Lint(Shifted("", "[-9,-4,18,8]"), "BZ9")).IsFalse();
+        await Assert.That(Lint(Shifted(",{\"id\":\"piece-2\",\"role\":\"piece\",\"rect\":[5,-4,4,4]}",
+                                       "[-9,-4,18,8]"), "BZ9")).IsFalse()
+            .Because("corner islands framing the crossing dock it further, they do not make it a fault");
+    }
+
+    [Test]
+    public async Task A_zone_reaching_past_the_last_ground_it_docks_is_an_overhang()
+    {
+        // The same 90-block zone, but the only thing it docks is a 30-block face and its image in the middle
+        // of it: 60 blocks of the zone stand beyond them, connecting nothing.
+        var leaking = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"rot_180","surface":9},
+          "pieces":[ {"id":"piece","role":"piece","rect":[-9,-12,12,6]},
+                     {"id":"spawn","role":"spawn","rect":[-9,-12,2,2]},
+                     {"id":"piece-2","role":"piece","rect":[-3,-6,6,2]} ],
+          "zones":[ {"id":"zone","rect":[-9,-4,18,8]} ],
+          "placements":{"spawns":[{"team":0,"piece":"spawn","at":[5,5]}]} }
+        """);
+
+        var finding = PlanValidator.Check(leaking).Single(f => f.Rule == "BZ9");
+        await Assert.That(finding.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(finding.Message).Contains("60 blocks");
+        await Assert.That(finding.Message).Contains("x -45..-15 and 15..45");
+        await Assert.That(finding.SubjectIds).Contains("zone");
+    }
+
+    [Test]
+    public async Task The_span_between_two_docked_ends_is_the_crossing_and_not_an_overhang()
+    {
+        // A zone docked left and right with a strip in the middle touching nothing: that strip is the gap the
+        // crossing exists to carry. Measured across the wrong axis it reads as a fault, which is why the
+        // measure is taken across the axis the zone's own contacts lie on.
+        var crossing = Plan("""
+        { "plan":2, "globals":{"cell":5,"symmetry":"none","surface":9},
+          "pieces":[ {"id":"west","role":"piece","rect":[-12,0,6,8]},
+                     {"id":"east","role":"piece","rect":[6,0,6,8]},
+                     {"id":"spawn","role":"spawn","rect":[-12,0,2,2]} ],
+          "zones":[ {"id":"zone","rect":[-6,0,12,8]} ],
+          "placements":{"spawns":[{"team":0,"piece":"spawn","at":[5,5]}]} }
+        """);
+        await Assert.That(Lint(crossing, "BZ9")).IsFalse();
+    }
 }

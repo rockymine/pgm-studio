@@ -21,7 +21,12 @@ public sealed class FrontlineCount : SoftTerm
 
 /// <summary>FR6: the width of a team's broadest frontline face, in cells — the wide-vs-split axis. A wide front
 /// is one 6–8-cell face; a split front is narrower tips hung off a hub. Bands how broad the widest authored face
-/// runs; a frontline far wider than the corpus over-commits the edge. Reads the widest derived frontline run.</summary>
+/// runs; a frontline far wider than the corpus over-commits the edge. Reads the widest derived frontline run.
+///
+/// <para><b>A destroy board has no width to bound</b> (FR6, author): a board played for cores or destroyables
+/// may carry a front as broad as the ground it docks — what bounds it there is that the zone abuts its pieces
+/// and does not overhang them (`BZ9`), which is geometry rather than a number. Answering null leaves such a
+/// board out of the scoring and out of the band alike, so the number stays the wool board's own.</para></summary>
 public sealed class FrontlineWidth : SoftTerm
 {
     public override string Id => "frontline-width";
@@ -29,6 +34,9 @@ public sealed class FrontlineWidth : SoftTerm
 
     public override double? Value(EvalContext ctx)
     {
+        var goals = ctx.Plan.Placements;
+        if (goals.Wools.Count == 0 && (goals.Destroyables.Count > 0 || goals.Cores.Count > 0)) return null;
+
         var runs = ctx.Board.FrontlineRuns;
         if (runs.Count == 0) return null;
         return runs.Max(r => r.Width);

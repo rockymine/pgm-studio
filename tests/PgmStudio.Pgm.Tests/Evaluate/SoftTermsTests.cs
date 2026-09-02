@@ -204,6 +204,24 @@ public sealed class SoftTermsTests
     }
 
     [Test]
+    public async Task Frontline_width_asks_nothing_of_a_board_played_for_destroy_goals()
+    {
+        // FR6's 6-8 cells is the wool board's figure. The same broad face on a board whose goals are
+        // destroyables answers null — a destroy board's front is bounded by the ground its zone docks
+        // (BZ9), not by a width — so it is neither scored nor banded.
+        var wool = PlanModel.Parse(PlanTestSupport.ReadSeed("rotate-wide-frontline.plan.json"))!;
+        await Assert.That(new FrontlineWidth().Value(EvalContext.Build(wool))).IsNotNull();
+
+        var destroy = PlanModel.Parse(PlanTestSupport.ReadSeed("rotate-wide-frontline.plan.json"))!;
+        destroy.Placements.Wools.Clear();
+        destroy.Placements.Destroyables.Add(new DestroyablePlacement { Id = "d", Piece = destroy.Pieces[0].Id });
+
+        await Assert.That(new FrontlineWidth().Value(EvalContext.Build(destroy))).IsNull();
+        await Assert.That(new FrontlineCount().Value(EvalContext.Build(destroy))).IsNotNull()
+            .Because("FR4 counts a team's faces on any board; only the width cap is the wool board's");
+    }
+
+    [Test]
     public async Task Lane_width_fires_when_the_narrowest_lane_is_below_the_authored_band()
     {
         // a real seed's lane (10–20 blocks) scored against an absurd band [100,200] → far below → violation.

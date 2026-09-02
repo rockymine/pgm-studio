@@ -6973,6 +6973,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   *around* a tucked-in floor, which is how a roofed gallery is actually built. Verified on the committed
   fixtures — `opus5-mineshaft.one-layer-a` and `-b` each decline in both draw orders, and the real two-layer
   mineshaft and three-layer `opus5-undercroft` stay silent.
+- **A destroy board's frontline has no width cap, and a zone that overhangs is named (G263).** `FR6`'s
+  6–8 cells is the wool board's figure, and an agent read it as law and narrowed a board that was right —
+  the original Weirbank crossed 60 blocks, and nothing measured had complained, since the plan tier scored
+  that board 0. On a board played for cores or destroyables `frontline-width` now answers null, so a wide
+  front is neither scored nor banded. What carries the weight is `BZ9`, restated as the fault it always
+  meant: a stretch of build zone beyond the last ground it docks. `PlanValidator` raises it as a complaint,
+  measured across the axis the zone's own contacts lie on — so the untouched span between two docked ends is
+  the crossing rather than a fault, a zone covering part of a face is right, and one running wider than any
+  single face to reach the mirrored corners is right. Held to the author's own five boards and to Millrace;
+  over the 76 authored plans it fires on 10, between 4 and 40 blocks each.
 - **The seat rules run forwards: where a prop may stand, not only that one guess did not (WE34).**
   `POST /map/{slug}/sketch/seats?kind=&width=&depth=` answers a mask over the whole board — `1` where a box
   of that size seats with its minimum corner on the cell, `0` where it does not — with the seat count and a

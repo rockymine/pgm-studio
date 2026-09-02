@@ -532,7 +532,10 @@ wool), `SP9` (a door with under 15 blocks of ground or bridgeable zone before th
 outside ~15 in front of the wool room's entrance), `ST9` (a building over 20×20 blocks — the footprint the
 placement states, or the one `WX1` defaults from its region), `ST10` (a wool-room or spawn piece over 20×30
 blocks in either orientation),
-`BZ11` (several zones stitching one rectangular region a single zone would have drawn), `FR9` (a crossing
+`BZ11` (several zones stitching one rectangular region a single zone would have drawn), `BZ9` (a build zone
+reaching past the last ground it docks — measured across the axis its own contacts lie on, so the untouched
+span *between* two docked ends is the crossing rather than a fault, and a zone covering part of a face or
+running wider than one face to reach the mirrored corners is right), `FR9` (a crossing
 under fifteen blocks of frontline), `FR8` (a crossing turned into frontline over less than a third of the
 face it docks against) and `CT12` (a two-team wool
 board's direct team-island strait outside 15–40 blocks — read here over the plan's rectangles, and again over

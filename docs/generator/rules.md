@@ -240,6 +240,12 @@ and a fall counted but not charged, routing around voids — never the straight 
   mid band docks **flush** against the front edge: across **both tips** of a split frontline
   (`band-6` spans `frontline-6a`..`6b`), or aligned to the **corners** of a wide frontline (`band-3`
   kept aligned to `frontline-3`'s ends). A specialization of BZ7/BZ8 at the frontline interface.
+  **On a board played for cores or destroyables there is no width cap at all** (amendment
+  2026-09-02): 6–8 cells is the wool board's figure, where a wide front feeds a wool lane and the
+  strait it crosses is `CT12`'s 15–40. A destroy board's front may be as broad as the ground it docks
+  — Weirbank's is 60 blocks — and what bounds it is `BZ9`'s geometry rather than a number: the zone
+  abuts its pieces and does not carry on past them. `frontline-width` answers nothing on such a
+  board, so it is neither scored nor banded there.
 - **FR7 [author]** **Variable-length parallel bands are a rot_180 device, not mirror.** Dual
   frontlines with parallel bands may run **different lengths** (mirror-mid `ex-5`: `band-5a` z0–3 vs
   `band-5b` z0–2). Under **rot_180** the images rotate so each team owns one short + one long
@@ -464,11 +470,22 @@ the stat corpus.
   of a narrow lane end** (sketch `piece-10`↔`zone-5`), and a connector piece with "the perfect
   width to bridge the gap and no overlap" (sketch `piece-6`↔`zone-2`↔`piece-3`). Zone width ≈
   interface width ≈ connector width.
-- **BZ9 [author]** **Fit.** The zone spans exactly what it connects: not **underfit** (sketch
-  `zone-13`: a 1-wide interface between two 2-wide parallel faces), not **overfit** (wider/taller
-  than the gap, lapping pieces or spilling into void with nothing to connect to). Oversized mid
-  regions spanning the whole board width "AND more" are the failure mode; the mid band is sized
-  to the frontline interval it serves.
+- **BZ9 [author]** **Fit — a zone is bounded by the ground it docks, not by a width.** What it may
+  not do is **overhang**: carry a stretch beyond the last ground it meets, which connects nothing and
+  reads as no man's land a player walks into and stops. Oversized mid regions spanning the whole
+  board width "AND more" are that fault at its limit.
+
+  Three shapes are **not** the fault, and the rule is stated so they pass (amendment 2026-09-02).
+  A zone may cover **part** of a face: on a board shifted along one axis under `rot_180`, a crossing
+  joining the two team islands lands against some of each piece's edge and no more. A zone may be
+  **wider than any one face**, where the extra width docks the **mirrored images at their corners** —
+  the same shifted board, taken the other way. And the span **between** two docked ends is the
+  crossing itself and touches nothing by construction; a zone aimed across a hop it does not reach is
+  `G5`'s question, not this one. The measure is therefore not whether a line of the zone meets ground
+  but whether it lies **outside the span of the lines that do**, taken across the axis the zone's own
+  contacts lie on. Millrace's hand-authored crossing is the worked example that passes: a wide zone
+  lapped by two pieces on one side and framed by corner islands on the other, with a strip in the
+  middle that touches nothing and is the crossing.
 - **BZ10 [author]** **Band depth — no long-thin band.** Beyond BZ9's width fit, the band must not
   run **long and thin** into the frontline: a deep 2-wide band is the named smell (mirror-mid `ex-0`
   `band-0` 4×9; `ex-1` `band-1` / `ex-12` `band-12` 2×tall — the negatives). Parallel individual
@@ -924,6 +941,17 @@ both corrected.)
     the tallest core the offer builds is `MaxFloat + 7 − 1 = 18` against a ceiling standing 20 over the
     ground, so **`OB23` can no longer be reached by any goal the studio states**. The rule stays — the
     numbers it reads are the author's and may move — but nothing today can trip it.
+
+31. **`FR6`'s width cap lifted on a destroy board, `BZ9` restated as the overhang (2026-09-02).**
+    Author's call. A board played for cores or destroyables may carry a front as wide as the ground
+    it docks — the original Weirbank crossed 60 blocks — and the 6–8 cells `FR6` stated was read by
+    an agent as law and narrowed a board that was right. Nothing measured had complained: the plan
+    tier scored that board 0. So the cap goes on those boards, `frontline-width` answers null there,
+    and what carries the weight moves to `BZ9`, which now names the fault it always meant — a stretch
+    of zone beyond the last ground it meets — and says outright that partial face coverage, a zone
+    wider than one face docking the mirrored corners, and the untouched span between two docked ends
+    are each right. `PlanValidator` raises it as a complaint; over the 76 authored boards it fires on
+    10, between 4 and 40 blocks each.
 
 ## Correction protocol
 
