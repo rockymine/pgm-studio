@@ -13,6 +13,9 @@ namespace PgmStudio.Minecraft.Dressing;
 /// beside the sketch geometry, because a prop's position is as much a part of the map as a shape's.</summary>
 public sealed record DressingDoc
 {
+    /// <summary>The placements, in the order they were placed. The order is read rather than decorative: the
+    /// pass runs a kind at a time and a prop meets the claims of everything placed before it, so where a prop
+    /// sits in this list is part of what it is allowed to stand on.</summary>
     public List<PlacedProp> Props { get; init; } = [];
 
     /// <summary>The recipes this document's placements name, by key — what a tree, a boulder or a building is

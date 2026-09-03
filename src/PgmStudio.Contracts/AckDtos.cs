@@ -17,6 +17,12 @@ namespace PgmStudio.Contracts;
 /// symmetry confirmation and the metadata patch all answer this.</remarks>
 public sealed record AppliedDto;
 
+/// <summary>One placement of a map's dressing was written, and this is the id it is addressed by from now
+/// on — the one the body stated where it stated a free one, and a minted <c>{kind}-{n}</c> otherwise. A
+/// caller that let the studio name the prop needs it back to edit or remove that prop.</summary>
+/// <param name="Id">What every later route names this placement by.</param>
+public sealed record PropWrittenDto(string Id);
+
 /// <summary>A row was made, and this is the id every later route names it by.</summary>
 /// <param name="Id">The row number the library lists it under and every later route names it by.</param>
 public sealed record CreatedDto(long Id);

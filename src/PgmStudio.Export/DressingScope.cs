@@ -20,10 +20,15 @@ public static class DressingScope
 {
     /// <summary>Everything the author placed. An empty list is what a map that never opened the phase carries,
     /// and it makes the pass a no-op.</summary>
-    public static IReadOnlyList<PlacedProp> PropsOf(string layoutJson)
+    public static IReadOnlyList<PlacedProp> PropsOf(string layoutJson) => DocOf(layoutJson).Props;
+
+    /// <summary>The whole dressing document a layout carries — the placements and the recipes they name.
+    /// Where the <c>dressing</c> key sits inside a layout is stated here and nowhere else, so a caller that
+    /// wants the registry as well as the props does not learn the shape a second time.</summary>
+    public static DressingDoc DocOf(string layoutJson)
     {
         var dressing = SketchLayout.Parse(layoutJson)?.Dressing;
-        return dressing is null ? [] : DressingJson.Deserialize(dressing.Value.GetRawText()).Props;
+        return dressing is null ? DressingDoc.Empty : DressingJson.Deserialize(dressing.Value.GetRawText());
     }
 
     /// <summary>The map's symmetry, as the dressing pass reads it — the frame every prop is fanned through.</summary>

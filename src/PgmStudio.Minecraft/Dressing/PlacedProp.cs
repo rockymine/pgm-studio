@@ -65,6 +65,12 @@ public abstract record PlacedProp
     /// for.</summary>
     public static IReadOnlyList<string> Kinds => [.. Prototypes.Keys];
 
+    /// <summary>The word this placement crosses the wire as, or null for a kind the codec does not declare —
+    /// read off the same discriminator the serializer writes, so a name minted from it is the name the
+    /// document will carry.</summary>
+    public static string? KindOf(PlacedProp prop) =>
+        Prototypes.FirstOrDefault(pair => pair.Value.GetType() == prop.GetType()).Key;
+
     /// <summary>The standoff a named kind keeps from a route, or null where no such kind is named. The number
     /// lives on the kind's own type (<see cref="RouteStandoff"/>) and is read off an empty one of it, so
     /// there is no second table of standoffs to disagree with the rule.</summary>
