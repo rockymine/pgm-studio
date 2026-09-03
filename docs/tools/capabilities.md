@@ -18,11 +18,13 @@ editor reaches it.
 | Document | Type | Lives in | Read / written at |
 |---|---|---|---|
 | plan | `PlanModel` | `Pgm/Plan/PlanModel.cs` | `GET /map/{slug}/plan`, `POST /plan/compile`, `/plans` store |
-| sketch layout | `SketchLayout` | `Pgm/Sketch/SketchLayout.cs` | `GET·PUT /map/{slug}/sketch` |
-| relief | `SketchReliefJson` | `Pgm/Sketch/SketchRelief.cs` | inside the layout under `relief`, keyed by group id |
-| themes | `TerrainTheme` | `Minecraft/Painting/TerrainTheme.cs` | inside the layout under `themes`; library at `/themes` |
-| dressing | `DressingDoc` | `Minecraft/Dressing/DressingJson.cs` | inside the layout under `dressing` |
-| room styles | `HouseStyle` | `Minecraft/Houses/HouseStyle.cs` | inside the layout under `roomStyles`; library at `/room-styles` |
+| sketch layout | `SketchLayout` | `Pgm/Sketch/SketchLayout.cs` | `GET·PUT /map/{slug}/sketch`, whole; each part of it also has an address of its own, below |
+| layers · groups · shapes | `SketchLayer` · `SketchGroup` · `SketchShape` | `Pgm/Sketch/SketchLayout.cs` | inside the layout under `layers`; `GET·PUT·DELETE /sketch/layers/{id}`, `…/groups/{id}`, `GET·PATCH·DELETE /sketch/shapes/{id}` |
+| relief | `SketchReliefJson` | `Pgm/Sketch/SketchRelief.cs` | inside the layout under `relief`, keyed by group id; `GET·PUT·DELETE /sketch/relief/{groupId}` |
+| themes | `TerrainTheme` | `Minecraft/Painting/TerrainTheme.cs` | inside the layout under `themes`; `GET·PUT·DELETE /sketch/themes/{id}` and `PUT /sketch/map-theme`; library at `/themes` |
+| dressing | `DressingDoc` | `Minecraft/Dressing/DressingJson.cs` | inside the layout under `dressing`; `GET·POST /sketch/props` and `PATCH·DELETE /sketch/props/{id}` |
+| biome | `BiomeField` | `Minecraft/Painting/BiomeField.cs` | inside the layout under `biome`; `GET·PUT·DELETE /sketch/biome` |
+| room styles | `HouseStyle` | `Minecraft/Houses/HouseStyle.cs` | inside the layout under `roomStyles`; `GET·PUT·DELETE /sketch/room-styles/{part}`; library at `/room-styles` |
 | intent | `MapIntent` | `Pgm/Authoring/MapIntent.cs` | `GET·PUT /map/{slug}/intent` |
 | map.xml | `MapXml` | `Domain/MapModel.cs` | written by `XmlWriter`, parsed by `MapParser` |
 
