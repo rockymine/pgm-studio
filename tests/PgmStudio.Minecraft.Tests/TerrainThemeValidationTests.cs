@@ -89,4 +89,53 @@ public sealed class TerrainThemeValidationTests
         var findings = TerrainThemeValidation.Check(theme);
         await Assert.That(findings.Single().Field).IsEqualTo("fill");
     }
+
+    /// <summary>
+    /// <b>A band that states its depth and no material is caught where the layout is stored.</b> The three
+    /// pair-carrying members are value types, so an entry naming only its number binds with an empty material
+    /// instead of refusing to bind — which is what a bare list of materials handed to a voronoi's
+    /// <c>bands</c>, by analogy with a noise's <c>stops</c>, produces one of per entry.
+    /// </summary>
+    [Test]
+    public async Task A_band_carrying_no_material_is_named_where_it_sits()
+    {
+        var voronoi = new VoronoiMaterial(1, 7,
+            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1), default]);
+
+        var findings = TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = voronoi });
+
+        await Assert.That(findings.Single().Rule).IsEqualTo(TerrainThemeRules.MaterialMissing);
+        await Assert.That(findings.Single().Field).IsEqualTo("fill.bands[1]");
+    }
+
+    /// <summary>The same gap in every member that holds a material, named by the path to it — a stack's band,
+    /// a wall run's stripe and the two sides of a checker, nested as deep as the pattern goes.</summary>
+    [Test]
+    public async Task Every_member_that_holds_a_material_is_walked()
+    {
+        var stack = new LayeredMaterial(new BandStack([new Band(new SolidMaterial(Blocks.Stone), 1), default]));
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = stack })
+            .Single().Field).IsEqualTo("fill.stack[1]");
+
+        var run = new WallRunMaterial([new WallStripe(new SolidMaterial(Blocks.Stone), 2), default]);
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = run })
+            .Single().Field).IsEqualTo("fill.runs[1]");
+
+        // Nested: the checker's odd side is a voronoi whose second band is empty.
+        var nested = new CheckerMaterial(4, new SolidMaterial(Blocks.Stone),
+            new VoronoiMaterial(1, 7, [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1), default]));
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = nested })
+            .Single().Field).IsEqualTo("fill.odd.bands[1]");
+    }
+
+    /// <summary>A theme whose every member carries its material says nothing, so the gate does not fire on the
+    /// finishes the boards already ship.</summary>
+    [Test]
+    public async Task A_pattern_that_carries_every_material_is_silent()
+    {
+        var voronoi = new VoronoiMaterial(1, 7,
+            [new VoronoiBand(new SolidMaterial(Blocks.Stone), 1),
+             new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 2)]);
+        await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = voronoi })).IsEmpty();
+    }
 }

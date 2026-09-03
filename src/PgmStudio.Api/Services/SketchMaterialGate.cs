@@ -57,14 +57,27 @@ public static class SketchMaterialGate
         return findings;
     }
 
-    /// <summary>Every placed building's own shell, each finding under the prop that carries it. A dressing
-    /// document that will not parse answers <c>DR-DOC</c> at export and nothing here — the same leniency the
-    /// bound styles get, since a blob this gate cannot read is not a style it can judge.</summary>
+    /// <summary>Every placed building's own shell, each finding under the prop that carries it.
+    ///
+    /// <para>A dressing document that will not parse is answered here rather than left to the export.
+    /// The gate cannot judge a style it cannot read, but "this will not parse" is itself the finding, and it
+    /// is the one an author can act on: the export reads the same document while it is building the world, so
+    /// a fault carried that far arrives after the ground is laid and with no field named. A
+    /// <see cref="DressingParseException"/> already states itself as <c>DR-DOC</c>; a binder fault carries the
+    /// JSON path it gave up at, which is the field to fix.</para></summary>
     private static Findings Buildings(string layoutJson)
     {
         IReadOnlyList<PlacedProp> props;
         try { props = DressingScope.PropsOf(layoutJson); }
-        catch (Exception fault) when (fault is JsonException or DressingParseException) { return Findings.None; }
+        catch (DressingParseException fault) { return new List<Finding> { fault.Finding }; }
+        catch (JsonException fault)
+        {
+            return new List<Finding>
+            {
+                new(DressingParseException.Rule, fault.Message,
+                    Field: string.IsNullOrEmpty(fault.Path) ? "dressing" : fault.Path),
+            };
+        }
 
         var findings = new List<Finding>();
         var at = 0;

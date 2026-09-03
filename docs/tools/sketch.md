@@ -1059,7 +1059,16 @@ that the build cannot honour, which **complains** rather than refusing because t
 and the terrain themes it registers, in one gate, because they enter together and are built together. The
 themes answer for what their own materials cannot do at the depth a bucket claims (`PT1`,
 `docs/world-export/terrain-painting.md`): a surfacing block below the course it surfaces, which is the single
-most repeated authoring mistake in this repository.
+most repeated authoring mistake in this repository. They answer for what a pattern states and did not carry as
+well (`PT2`): a `voronoi`'s `bands` and a `layered`'s `stack` each take a **pair** — a material and a depth —
+where a `noise`'s `stops` takes bare materials, so a list of materials handed to `bands` binds one band per
+entry with the material left empty. Each of those three members is a value type, so the document binds rather
+than failing, and without the gate the empty material is met by the painter while the world is being built.
+
+**A dressing document that will not parse is refused here too**, rather than at the export that reads it
+again: the gate cannot judge a style it cannot read, but *that* is the finding, and it carries the JSON path
+the binder gave up at — a polymorphic material stated in the wrong shape names the field it is in
+(`$.shell.storeys[1].deck`) instead of arriving as an unlabelled failure after the ground is laid.
 
 **The house half** reads `roomStyles.cage`, `roomStyles.spawn` and the shell of every building in
 `dressing.props` off the document that is about to be written, and runs each through the same house-style gate

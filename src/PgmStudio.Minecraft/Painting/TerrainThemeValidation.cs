@@ -17,6 +17,13 @@ public static class TerrainThemeRules
     /// <remarks>Put the surfacing block in a `layered` material as the top band at thickness 1, with the soil under it — grass over two dirt is the standard stack. A `cell` or a `voronoi` is a pick and not a stack: whichever block it picks fills the whole depth, so a surfacing block cannot go in one at any depth over one.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Theme, RuleConcern.Terrain)]
     public const string SurfaceBlockBuried = "PT1";
+
+    /// <summary>A pattern states a band, a stop or a side and carries no material in it. The member reads as
+    /// present and holds nothing, so the painter meets it with no block to write — and it meets it while the
+    /// world is being built, long after the document was stored.</summary>
+    /// <remarks>Give the member its material. A `voronoi`'s `bands` and a `layered`'s `stack` each take a pair — `{"material": …, "depth": N}` and `{"material": …, "thickness": N}` — where a `noise`'s `stops` takes bare materials, so a list of materials handed to `bands` binds a band per entry with the material left empty.</remarks>
+    [Rule(RuleCategory.Malformed, RuleConcern.Theme, RuleConcern.Terrain)]
+    public const string MaterialMissing = "PT2";
 }
 
 /// <summary>
@@ -40,10 +47,57 @@ public static class TerrainThemeValidation
     public static Findings Check(TerrainTheme theme)
     {
         var findings = new List<Finding>();
+        CheckCarried("rim", theme.Rim.Material, findings);
+        CheckCarried("surface", theme.Surface.Material, findings);
+        CheckCarried("fill", theme.Fill, findings);
         CheckDepth("rim", theme.Rim.Material, theme.Rim.Depth, findings);
         CheckDepth("surface", theme.Surface.Material, theme.Surface.Depth, findings);
         CheckDepth("fill", theme.Fill, int.MaxValue, findings);
         return findings;
+    }
+
+    /// <summary>Every member of a bucket's material that binds with nothing in it. A pattern's bands, stops
+    /// and sides are each a place a material goes, and a document naming the member without the material
+    /// binds it to an empty one rather than failing — so the fault has to be looked for rather than
+    /// caught.</summary>
+    private static void CheckCarried(string bucket, TerrainMaterial? material, List<Finding> findings)
+    {
+        foreach (var where in Uncarried(material, bucket))
+            findings.Add(new Finding(TerrainThemeRules.MaterialMissing,
+                $"{where} states no material, so nothing can be painted where it is picked",
+                Field: where));
+    }
+
+    /// <summary>The path to every member a pattern states and left empty, the material tree walked to its
+    /// leaves. The three pair-carrying members — a stack's band, a voronoi's band, a wall run's stripe — are
+    /// each a value type, so an entry naming only its width or its depth carries an empty material rather
+    /// than refusing to bind at all.</summary>
+    private static IEnumerable<string> Uncarried(TerrainMaterial? material, string path)
+    {
+        if (material is null) { yield return path; yield break; }
+
+        IEnumerable<(TerrainMaterial? Material, string Path)> members = material switch
+        {
+            LayeredMaterial layered => layered.Stack.Bands
+                .Select((band, at) => ((TerrainMaterial?)band.Material, $"{path}.stack[{at}]")),
+            VoronoiMaterial voronoi => voronoi.Bands
+                .Select((band, at) => ((TerrainMaterial?)band.Material, $"{path}.bands[{at}]")),
+            CellMaterial cell => cell.Palette.Select((entry, at) => (entry, $"{path}.palette[{at}]")),
+            NoiseMaterial noise => noise.Stops.Select((stop, at) => (stop, $"{path}.stops[{at}]")),
+            TurbulenceMaterial turbulence => turbulence.Stops.Select((stop, at) => (stop, $"{path}.stops[{at}]")),
+            ElectricMaterial electric => electric.Stops.Select((stop, at) => (stop, $"{path}.stops[{at}]")),
+            WallRunMaterial run => run.Runs
+                .Select((stripe, at) => ((TerrainMaterial?)stripe.Material, $"{path}.runs[{at}]")),
+            WallDiagonalMaterial diagonal => diagonal.Runs
+                .Select((stripe, at) => ((TerrainMaterial?)stripe.Material, $"{path}.runs[{at}]")),
+            WallFrameMaterial frame => [(frame.Edge, $"{path}.edge"), (frame.Fill, $"{path}.fill")],
+            CheckerMaterial checker => [(checker.Even, $"{path}.even"), (checker.Odd, $"{path}.odd")],
+            _ => [],
+        };
+
+        foreach (var (member, memberPath) in members)
+            foreach (var gap in Uncarried(member, memberPath))
+                yield return gap;
     }
 
     /// <summary>Whether <paramref name="material"/> may fill <paramref name="depth"/> courses. A stack is read
