@@ -71,6 +71,27 @@ public static class BlockFamilies
     public static readonly IReadOnlySet<int> Ores =
         new HashSet<int> { 14, 15, 16, 21, 56, 73, 74, 129, 153 };
 
+    /// <summary>The blocks that mount with a <b>front</b>, reading the one four-number table
+    /// <see cref="BlockGeometry.Fronting"/> writes — north 2, south 3, west 4, east 5 — in the low three bits
+    /// of their data. A chest, a furnace, a ladder, a wall sign, a wall skull and the three redstone
+    /// containers all share it, so a pass turning a block round the symmetry reads one table rather than one
+    /// per block.
+    ///
+    /// <para>Membership means only that those three bits are that table. The blocks whose facing lives
+    /// somewhere else are deliberately absent: a stair counts its two bits from its own corner
+    /// (<see cref="Stairs"/>), a log names an axis rather than a direction (<see cref="Logs"/>), a vine
+    /// carries a mask of every side it clings to, and a door, trapdoor, button or lever each encodes its
+    /// hinge or its mounting alongside its facing. Turning one of those through this table would point it
+    /// somewhere it cannot go.</para></summary>
+    public static readonly IReadOnlySet<int> Fronted = new HashSet<int>
+    {
+        Blocks.Chest, Blocks.Ladder, Blocks.WallSign,
+        23, 61, 62, 130, 144, 146, 154, 158,   // dispenser · furnace, lit · ender chest · skull · trapped chest · hopper · dropper
+    };
+
+    /// <summary>Whether the id mounts with a front — see <see cref="Fronted"/> for what that excludes.</summary>
+    public static bool IsFronted(int blockId) => Fronted.Contains(blockId);
+
     /// <summary>Whether the id is an ore.</summary>
     public static bool IsOre(int blockId) => Ores.Contains(blockId);
 

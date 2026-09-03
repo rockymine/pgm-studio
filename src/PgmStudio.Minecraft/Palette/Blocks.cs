@@ -33,6 +33,10 @@ public static class Blocks
     public const int StandingSign = 63;
     public const int WallSign = 68;
     public const int RedstoneTorch = 76;
+
+    /// <summary>Vines. The data is a <b>mask</b> of the sides the vine clings to — south 1, west 2, north 4,
+    /// east 8 — so a vine can face several ways at once, and 0 means it hangs from the block above.</summary>
+    public const int Vine = 106;
     public const int StainedGlass = 95;
     public const int EndStone = 121;
     public const int EmeraldBlock = 133;

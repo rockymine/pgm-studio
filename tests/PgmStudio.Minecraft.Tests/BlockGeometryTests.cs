@@ -113,4 +113,98 @@ public class BlockGeometryTests
             await Assert.That(Arch.Piece(true, step, 2, Blocks.OakStairs, beam))
                 .IsEqualTo(Arch.Piece(true, step, 2, Blocks.OakStairs, ArchSpan.Open));
     }
+
+    /// <summary>A half-turn of the plan: both axes reversed.</summary>
+    private static (int X, int Z) HalfTurn(int dx, int dz) => (-dx, -dz);
+
+    /// <summary>A quarter-turn of the plan, the orbit a four-team board is fanned round.</summary>
+    private static (int X, int Z) QuarterTurn(int dx, int dz) => (-dz, dx);
+
+    /// <summary>
+    /// <b>A vine clings to the side a turn puts it on.</b> Its data is a mask of sides rather than one
+    /// facing, so a half-turn has to send south to north and west to east — and leave the two opposite
+    /// <em>pairs</em> alone, which is the property a board authored on a <c>rot_180</c> orbit relies on to
+    /// state one vine for both halves.
+    /// </summary>
+    [Test]
+    [Arguments(1, 4)]     // south  -> north
+    [Arguments(4, 1)]     // north  -> south
+    [Arguments(2, 8)]     // west   -> east
+    [Arguments(8, 2)]     // east   -> west
+    [Arguments(5, 5)]     // north|south, invariant under a half-turn
+    [Arguments(10, 10)]   // west|east, the same
+    [Arguments(0, 0)]     // hanging from the block above: no side to turn
+    public async Task A_vine_clings_to_the_side_a_half_turn_puts_it_on(int data, int expected)
+    {
+        await Assert.That((data, BlockGeometry.Turned(Blocks.Vine, data, HalfTurn))).IsEqualTo((data, expected));
+    }
+
+    /// <summary>
+    /// <b>A fronted block looks the way the turn points it.</b> A ladder, a chest and a wall sign share one
+    /// four-number table, so the assertion goes through <see cref="BlockGeometry.Fronting"/> rather than
+    /// against a literal: a ladder looking north, turned a half-turn, is the number that means south.
+    /// </summary>
+    [Test]
+    [Arguments(RoomEdge.NegZ, RoomEdge.PosZ)]
+    [Arguments(RoomEdge.PosZ, RoomEdge.NegZ)]
+    [Arguments(RoomEdge.NegX, RoomEdge.PosX)]
+    [Arguments(RoomEdge.PosX, RoomEdge.NegX)]
+    public async Task A_fronted_block_looks_the_way_a_half_turn_points_it(RoomEdge looks, RoomEdge turned)
+    {
+        foreach (var id in new[] { Blocks.Ladder, Blocks.WallSign, Blocks.Chest })
+            await Assert.That((id, BlockGeometry.Turned(id, BlockGeometry.Fronting(looks), HalfTurn)))
+                .IsEqualTo((id, BlockGeometry.Fronting(turned)));
+    }
+
+    /// <summary>
+    /// <b>Four quarter-turns are no turn at all</b>, for every kind of data that carries a direction. A
+    /// quarter-turn board fans a copied body through all four images, so a turn that is not a group action
+    /// lands the fourth image somewhere the first one is not.
+    /// </summary>
+    [Test]
+    public async Task Four_quarter_turns_return_a_directed_block_to_itself()
+    {
+        (int Id, int Data)[] directed =
+        [
+            (Blocks.Vine, 1), (Blocks.Vine, 2), (Blocks.Vine, 5), (Blocks.Vine, 11),
+            (Blocks.Ladder, BlockGeometry.Fronting(RoomEdge.NegZ)),
+            (Blocks.Chest, BlockGeometry.Fronting(RoomEdge.PosX)),
+            (Blocks.OakStairs, BlockGeometry.Stair(RoomEdge.NegX)),
+            (Blocks.OakStairs, BlockGeometry.Stair(RoomEdge.PosZ, upsideDown: true)),
+            (Blocks.Log, 4), (Blocks.Log, 8), (Blocks.Log, 0), (Blocks.Log, 12),
+        ];
+
+        foreach (var (id, data) in directed)
+        {
+            var turned = data;
+            for (var quarter = 0; quarter < 4; quarter++) turned = BlockGeometry.Turned(id, turned, QuarterTurn);
+            await Assert.That((id, data, turned)).IsEqualTo((id, data, data));
+        }
+    }
+
+    /// <summary>
+    /// <b>A quarter-turn actually moves a face.</b> The half-turn cases above pass on a block whose data is
+    /// simply carried through whenever the two directions happen to coincide, so the discriminating check is
+    /// that one quarter-turn lands a south vine on the west face and a north ladder looking east.
+    /// </summary>
+    [Test]
+    public async Task A_quarter_turn_moves_a_face_off_its_own_axis()
+    {
+        await Assert.That(BlockGeometry.Turned(Blocks.Vine, 1, QuarterTurn)).IsEqualTo(2);          // south -> west
+        await Assert.That(BlockGeometry.Turned(Blocks.Vine, 5, QuarterTurn)).IsEqualTo(10);         // north|south -> west|east
+        await Assert.That(BlockGeometry.Turned(Blocks.Ladder, BlockGeometry.Fronting(RoomEdge.NegZ), QuarterTurn))
+            .IsEqualTo(BlockGeometry.Fronting(RoomEdge.PosX));                                      // north -> east
+    }
+
+    /// <summary>A fronted block's non-geometry bits ride through a turn: a dropper's triggered flag is not a
+    /// direction, and a floor skull's rotation is in its tile entity rather than its nibble.</summary>
+    [Test]
+    public async Task A_fronted_block_carries_what_is_not_a_facing()
+    {
+        const int Dropper = 158, Triggered = 8, Skull = 144, OnFloor = 1;
+
+        await Assert.That(BlockGeometry.Turned(Dropper, BlockGeometry.Fronting(RoomEdge.NegZ) | Triggered, HalfTurn))
+            .IsEqualTo(BlockGeometry.Fronting(RoomEdge.PosZ) | Triggered);
+        await Assert.That(BlockGeometry.Turned(Skull, OnFloor, QuarterTurn)).IsEqualTo(OnFloor);
+    }
 }
