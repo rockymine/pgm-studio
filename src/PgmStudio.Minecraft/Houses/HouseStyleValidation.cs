@@ -1,4 +1,4 @@
-using PgmStudio.Domain;
+﻿using PgmStudio.Domain;
 using PgmStudio.Minecraft.Painting;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Vocabulary;
@@ -15,7 +15,7 @@ public static class HouseStyleRules
     /// that kind of block: <c>doorHead.block</c>, its <c>fillBlock</c> under <c>upperSlab</c>, a window's
     /// <c>block</c> under <c>stairLattice</c>, <c>arched</c> or <c>slabBanded</c>, or <c>roofSlab</c>
     /// itself.</summary>
-    /// <remarks>Name a block of the kind the field means: a stair id where a stair is asked for, a slab where a slab is. The finding names the field; <c>GET /api/house-parts</c> lists what each one accepts.</remarks>
+    /// <remarks>Name a block of the kind the field means: a stair id where a stair is asked for, a slab where a slab is. The finding names the field it read and the kind that field takes, which is the whole of what has to change.</remarks>
     [Rule(RuleCategory.Malformed, RuleConcern.Style, RuleConcern.Material)]
     public const string BlockKind = "HS1";
 

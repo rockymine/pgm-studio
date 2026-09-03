@@ -1,4 +1,4 @@
-using PgmStudio.Vocabulary;
+﻿using PgmStudio.Vocabulary;
 namespace PgmStudio.Domain;
 
 /// <summary>
@@ -81,4 +81,12 @@ public static class ObjectiveRules
     /// <remarks>Move one of the two. Under a mirror or a rotation a goal occupies its own position and every image of it, so check a second goal against the images of the first and not only against where it was drawn — POST /api/plan/inspect answers goalDistances over the fanned closure.</remarks>
     [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.World)]
     public const string GoalsShareGround = "OB24";
+
+    /// <summary>A wool's monument was authored somewhere and the world carries it somewhere else. The
+    /// capturing team's spawn structure <b>stamps</b> the monument block it is won on, so the exported
+    /// location is the air cell that stamp produced and a stated one is not in the world — three write paths
+    /// take a location, every read answers it, and the export replaces it.</summary>
+    /// <remarks>Nothing to fix in the document: on a sketch-originated map a monument's `location` is what the build **produced**, not what it was asked for. Read it back off the exported intent rather than stating it.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Objective, RuleConcern.World)]
+    public const string MonumentDerived = "OB25";
 }

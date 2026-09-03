@@ -599,8 +599,10 @@ where nothing is stated), `reach` (how far a mark's influence travels before the
 zero is unlimited, and a finite value is what keeps a landform local on a large group), `step` (the
 block quantum the finished surface snaps to), `stairs` (cut a way up out of ground the step stranded — offered
 whenever the step is more than one, since that is what turns a riser into a wall), `landform` (what kind of
-ground this is meant to be, which the readback measures the solved surface against) and `grain` (a
-wobble applied after the solve: amplitude, feature scale, seed).
+ground this is meant to be — one of `plain`, `rolling`, `hills`, `mountain` — which the readback measures
+the solved surface against) and `grain` (a wobble applied after the solve: amplitude, feature scale, seed).
+A word outside those four is a `SK3` complaint on the stored document: `RL1` judges a group only against a
+landform it recognises, so an unknown word or the wrong case turns that gate off rather than failing it.
 
 **`base` is the whole group's height, and a fresh relief takes the group's own.** A relief replaces the top
 of every column of its group, so where the marks say nothing the ground is at `base` — a base that differs

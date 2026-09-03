@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using PgmStudio.Domain;
 using PgmStudio.Minecraft;
 using PgmStudio.Minecraft.Dressing;
@@ -266,6 +266,21 @@ public static class WorldBuilder
         // and the goal stands, in a material the author did not name or over the height players may build to,
         // and that is a thing the caller has to be told rather than a reason to stop.
         var built = new List<Finding>();
+
+        // A wool monument's world position is the air cell the capturing team's spawn stamp produced, so an
+        // authored one is replaced rather than honoured. The replacement is reported: a location three write
+        // paths take and every read answers is one an author has every reason to believe in.
+        for (var i = 0; i < wools.Count; i++)
+            foreach (var stated in wools[i].Monuments)
+                if (monLoc.TryGetValue((i, stated.Team), out var carried) && !SamePlace(stated.Location, carried))
+                    built.Add(new Finding(ObjectiveRules.MonumentDerived,
+                        $"{stated.Team}'s monument on {wools[i].Owner}'s wool is authored at "
+                        + $"({Cell(stated.Location.X)}, {Cell(stated.Location.Y)}, {Cell(stated.Location.Z)})"
+                        + $" and the world carries it at ({carried.X}, {carried.Y}, {carried.Z}) — the block it "
+                        + "is won on is stamped by that team's spawn structure, so the exported location is "
+                        + "the one the build produced",
+                        Severity.Complaint, Subjects: [wools[i].Owner]));
+
         var resolvedDestroyables = StampDestroyables(
             world, terrain, intent.Destroyables, teams, pendingMarkers, pendingCeiling, provenance,
             built);
@@ -797,4 +812,10 @@ public static class WorldBuilder
     private static int WoolDataForTeam(string teamId, IReadOnlyList<TeamDef> teams)
         => BlockColors.BlockDamage(teams.FirstOrDefault(t => t.Id == teamId)?.Color ?? "white");
 
+    /// <summary>Whether an authored monument stands on the block the build carries it on. Compared as block
+    /// cells, because a stated coordinate is a double and the built one is the air cell of a stamp.</summary>
+    private static bool SamePlace(Pt stated, Pt carried) =>
+        Cell(stated.X) == carried.X && Cell(stated.Y) == carried.Y && Cell(stated.Z) == carried.Z;
+
+    private static int Cell(double at) => (int)Math.Floor(at);
 }

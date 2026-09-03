@@ -3235,6 +3235,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`IslandSketchArtifact`). Used to land the stair-aware re-detect across the corpus (348 maps updated).
 
 ## New-map authoring — intent model (backend) ★ headline direction
+- **A monument's stated location reaches the world, or is reported when it cannot (`OB25`).** Two things
+  were wrong and only one of them is the export's. On a map the studio did not build, a wool referencing a
+  monument region is written `<wool monument="id"/>` and the server reads the coordinate off `<block id="id">`
+  — so `POST /wools/{id}/monuments` and `PATCH …/monuments/{id}` were moving the monument entry and leaving
+  the region where it was: the location read back correctly from every route and the world kept the old
+  block. `WoolEditor` now moves the region with it, and mints one where the id names none, through
+  `RegionEditor.PlaceBlock`. On a **sketch-originated** map the location is not the author's at all — the
+  capturing team's spawn structure stamps the block a wool is won on, so `WorldBuilder` fills every monument
+  from the air cell that stamp left. That replacement is now a complaint on the built world rather than a
+  silence, naming both coordinates. (`Pgm/Editing/WoolEditor`, `Pgm/Editing/RegionEditor.PlaceBlock`,
+  `Export/WorldBuilder`, `Domain/ObjectiveRules`, `docs/pgm/new-map-authoring.md`, `docs/refusals.md`)
+- **`HS1` stops naming a route that does not exist.** Its fix text sent an author to `GET /api/house-parts`
+  for what each style field accepts; nothing has ever served that path. The finding names the field it read
+  and the rule names the kind that field takes, which is the whole of what has to change.
 - **A plan can say which storey a goal stands on (`TN7`).** `layer` was a field on all six `MapIntent`
   placements and on neither plan placement, so the word existed everywhere the export reads it and nowhere
   the plan writes it: a plan-built goal on a stacked board always resolved against the top surface, and a
@@ -6834,6 +6848,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A landform outside the four words is reported rather than read as silence (`SK3`).** `landform` publishes
+  its four words as an enum and nothing enforced them: `RL1` measures a group's solved ground against the word
+  it states and skips a relief that states none, so `quarry`, `Hills` and `HILLS` were each stored, published
+  as valid, and turned the gate **off** with no refusal, no `RQ3` and no complaint. The layout gate now names
+  the word and the four it is not, at the write. (`Pgm/Sketch/SketchLayoutCheck`, `docs/refusals.md`,
+  `docs/tools/sketch.md`)
 - **Every part of a sketch layout is a resource, and the schema publishes what each one is (part of `RP65`).**
   All eight sketch writes took the whole `SketchLayout`, so a caller changing one tree sent back every shape,
   every theme and every other prop — and half the document's fields reached `/api/openapi/v1.json` as bare

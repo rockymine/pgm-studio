@@ -437,6 +437,73 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(SketchLayoutCheck.Check(Layout(Wall + "," + apart))
             .Where(finding => finding.Rule == SketchRules.PaintedByAnotherShape)).IsEmpty();
     }
+    // ── SK20: the list order and base_y disagree about which layer is on top ──────────
+
+    /// <summary>A stack whose layers are listed in the order their ground stands in.</summary>
+    private static string Stack(params (string Id, double BaseY, string? Kind)[] layers) =>
+        """{"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers":["""
+        + string.Join(",", layers.Select(layer =>
+            $$"""{"id":"{{layer.Id}}","base_y":{{layer.BaseY}}"""
+            + (layer.Kind is null ? "" : $$""","kind":"{{layer.Kind}}" """.TrimEnd())
+            + ""","layout":{"shapes":[],"groups":[]}}"""))
+        + "]}";
+
+    [Test]
+    public async Task A_stack_listed_in_the_order_its_ground_stands_in_says_nothing()
+    {
+        var findings = SketchLayoutCheck.Check(Stack(("ground", 0, null), ("terrace", 14, null), ("roof", 20, null)));
+        await Assert.That(findings.Where(finding => finding.Rule == SketchRules.StackOutOfOrder)).IsEmpty();
+    }
+
+    [Test]
+    public async Task A_layer_drawn_after_one_whose_ground_starts_higher_is_a_complaint()
+    {
+        var findings = SketchLayoutCheck.Check(Stack(("ground", 0, null), ("terrace", 20, null), ("span", 14, null)));
+        var reported = findings.Single(finding => finding.Rule == SketchRules.StackOutOfOrder);
+        await Assert.That(reported.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(reported.Subjects).IsEquivalentTo(new[] { "terrace", "span" });
+    }
+
+    [Test]
+    public async Task A_made_things_slices_are_outside_the_order_and_do_not_break_the_plain_run()
+    {
+        var findings = SketchLayoutCheck.Check(Stack(
+            ("ground", 0, null), ("balloon-top", 40, "made"), ("balloon-basket", 24, "made"), ("lid", 17, null)));
+        await Assert.That(findings.Where(finding => finding.Rule == SketchRules.StackOutOfOrder)).IsEmpty();
+    }
+
+    // ── SK3: a landform outside the four words turns RL1 off rather than failing it ───
+
+    private static string WithRelief(string landform) =>
+        "{\"setup\":{\"mirror_mode\":\"rot_180\",\"center\":{\"cx\":0,\"cz\":0}},"
+        + "\"layers\":[{\"base_y\":0,\"layout\":{\"shapes\":[" + Rect + "],"
+        + "\"groups\":[{\"id\":\"i\",\"shapeIds\":[\"s1\"]}]}}],"
+        + "\"relief\":{\"i\":{\"base\":8,\"landform\":\"" + landform + "\"}}}";
+
+    [Test]
+    [Arguments("plain")]
+    [Arguments("rolling")]
+    [Arguments("hills")]
+    [Arguments("mountain")]
+    public async Task One_of_the_four_landforms_says_nothing(string word)
+    {
+        var findings = SketchLayoutCheck.Check(WithRelief(word));
+        await Assert.That(findings.Where(finding => finding.Field?.EndsWith("landform") == true)).IsEmpty();
+    }
+
+    [Test]
+    [Arguments("quarry")]
+    [Arguments("Hills")]
+    [Arguments("HILLS")]
+    public async Task A_landform_outside_the_four_is_reported_rather_than_read_as_silence(string word)
+    {
+        var findings = SketchLayoutCheck.Check(WithRelief(word));
+        var reported = findings.Single(finding => finding.Rule == SketchRules.NamesNothing
+                                                  && finding.Field == "relief.i.landform");
+        await Assert.That(reported.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(reported.Message).Contains(word);
+        await Assert.That(reported.Message).Contains("mountain");
+    }
 }
 
 /// <summary>
@@ -509,40 +576,5 @@ public sealed class SketchRecipeGateTests
             """{"props":[{"kind":"boulder","x":0,"z":0,"style":"gone"}],"styles":{}}"""));
 
         await Assert.That(findings.Single(f => f.Rule == SketchRules.RecipeNotStated).Subjects).Contains("#0");
-    }
-
-    // ── SK20: the list order and base_y disagree about which layer is on top ──────────
-
-    /// <summary>A stack whose layers are listed in the order their ground stands in.</summary>
-    private static string Stack(params (string Id, double BaseY, string? Kind)[] layers) =>
-        """{"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},"layers":["""
-        + string.Join(",", layers.Select(layer =>
-            $$"""{"id":"{{layer.Id}}","base_y":{{layer.BaseY}}"""
-            + (layer.Kind is null ? "" : $$""","kind":"{{layer.Kind}}" """.TrimEnd())
-            + ""","layout":{"shapes":[],"groups":[]}}"""))
-        + "]}";
-
-    [Test]
-    public async Task A_stack_listed_in_the_order_its_ground_stands_in_says_nothing()
-    {
-        var findings = SketchLayoutCheck.Check(Stack(("ground", 0, null), ("terrace", 14, null), ("roof", 20, null)));
-        await Assert.That(findings.Where(finding => finding.Rule == SketchRules.StackOutOfOrder)).IsEmpty();
-    }
-
-    [Test]
-    public async Task A_layer_drawn_after_one_whose_ground_starts_higher_is_a_complaint()
-    {
-        var findings = SketchLayoutCheck.Check(Stack(("ground", 0, null), ("terrace", 20, null), ("span", 14, null)));
-        var reported = findings.Single(finding => finding.Rule == SketchRules.StackOutOfOrder);
-        await Assert.That(reported.Severity).IsEqualTo(Severity.Complaint);
-        await Assert.That(reported.Subjects).IsEquivalentTo(new[] { "terrace", "span" });
-    }
-
-    [Test]
-    public async Task A_made_things_slices_are_outside_the_order_and_do_not_break_the_plain_run()
-    {
-        var findings = SketchLayoutCheck.Check(Stack(
-            ("ground", 0, null), ("balloon-top", 40, "made"), ("balloon-basket", 24, "made"), ("lid", 17, null)));
-        await Assert.That(findings.Where(finding => finding.Rule == SketchRules.StackOutOfOrder)).IsEmpty();
     }
 }

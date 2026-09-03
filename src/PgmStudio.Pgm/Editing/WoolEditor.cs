@@ -1,4 +1,4 @@
-namespace PgmStudio.Pgm.Editing;
+﻿namespace PgmStudio.Pgm.Editing;
 
 using PgmStudio.Vocabulary;
 
@@ -71,6 +71,7 @@ public static class WoolEditor
             ["monument_region"] = NullIfEmpty((payload.GetValueOrDefault("monument_region") as string ?? "").Trim()),
         };
         EnsureList(wool, "monuments").Add(mon);
+        PlaceMonument(data, mon);
         return new Dict { ["monument"] = mon };
     }
 
@@ -89,6 +90,7 @@ public static class WoolEditor
         }
         if (payload.ContainsKey("location")) mon["location"] = payload["location"];
         if (payload.ContainsKey("monument_region")) mon["monument_region"] = NullIfEmpty((payload["monument_region"] as string ?? "").Trim());
+        PlaceMonument(data, mon);
         return new Dict { ["monument"] = mon };
     }
 
@@ -100,6 +102,21 @@ public static class WoolEditor
             throw EditException.NoSuchSubject($"monument '{monId}' not found in wool '{woolId}'");
         wool["monuments"] = Monuments(wool).Where(m => m.GetValueOrDefault("id") as string != monId).Cast<object?>().ToList();
         return new Dict();
+    }
+
+    /// <summary>Move the block region a monument names onto the monument's own location, creating it where
+    /// the id names none.
+    ///
+    /// <para>A monument that names a region is written <c>&lt;wool monument="id"/&gt;</c> and the server reads
+    /// the coordinate off <c>&lt;block id="id"&gt;</c>, so the region is where the position actually lives —
+    /// the monument's <c>location</c> is what a caller states and what every read answers, and the two are
+    /// one fact. A monument naming no region carries its location inline and has nothing to keep in
+    /// step.</para></summary>
+    private static void PlaceMonument(Dict data, Dict mon)
+    {
+        if (mon.GetValueOrDefault("monument_region") as string is not { Length: > 0 } regionId) return;
+        if (mon.GetValueOrDefault("location") is not Dict location) return;
+        RegionEditor.PlaceBlock(data, regionId, location, "wool");
     }
 
     // ── grouping / inference ──────────────────────────────────────────────────────

@@ -147,6 +147,19 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Relief
 
+- [ ] **WE76 — `step` is keyed once per group, so a bench and a road cannot share a landmass.** A relief's
+  `step` is the block quantum the whole solved surface snaps to, and the schema has no per-mark or per-shape
+  quantum beside it — so ground that wants worked terraces and ground that wants a walkable ramp are one
+  setting on a group and a group is a landmass. Give a mark its own `step`, falling back to the group's, in
+  `SketchReliefJson`'s mark model and in `ReliefSolver`. `docs/world-export/relief.md` §6 and
+  `docs/tools/sketch.md` § the relief document both state the group's step as the only one and change with it.
+
+  *`opus5-scarrow-delph`, one board, the same seventeen marks: `step 1` → 559 scrambles / 603 barriers ·
+  `step 2` → 1881 / 482, and `RL2` goes silent while no row is crossable on foot in either direction ·
+  `step 3` → 12 / 1785 · `step 6` → 2 / 1086 and 31 cliffs. What shipped is four nested `area` rings written
+  outward-in, which terrace themselves at `step 1` and leave the roads at a one-block quantum — a workaround
+  that is better than the knob.*
+
 - [ ] **S47 — A pressure budget for relief.** S43 measures what terrain charges; nothing says how much
   charging is too much. The dressing stage has the identical gap (`world-export/ideas.md` G167) and the two
   should share an answer. The materials exist — the share of the board at each passability tier, the detour
@@ -324,6 +337,21 @@ placement takes it — so what is left is each surface reading and writing the l
 
 ### A made thing is a third kind, and it is drawn out of layers
 
+- [ ] **WE77 — `WX11` measures a structure's plinth from the highest terrain its footprint touches, and the
+  stamper seats it on the lowest.** `MapExportComposer.CheckStructureSites` takes
+  `floor = cells.Select(surface).Max()` and reports `floor - beside` as the face a foundation fills; a house
+  prop seats on the **lowest** column of its own footprint one course down and carves the terrain standing
+  over that floor away (`docs/world-export/structures.md` §6). So a footprint that clips one tall authored
+  shape reports a plinth the world does not build. Read the floor the way the stamper does, or off the
+  provenance the stamp recorded. `docs/refusals.md`'s `WX11` sentence states the maximum reading and changes
+  with it.
+
+  *`opus5-mootgate` build 3: `WX11 house h-south-d 0 stands 7 blocks above the cell beside it at (11, 33)`,
+  where `column?at=11,33` reads Grass Block at y14 and `column?at=11,34` reads the house's own plate at y14 —
+  a drop of 0, and no bedrock face in the world. The house's footprint touches a stair-flight polygon whose
+  top is y21–22, which is exactly 7 above y14. Moving it two blocks clear of the flight silenced the rule.*
+
+
 **The author's ruling.** The shape tool draws **terrain** — shapes and a relief. The dressing pass places
 **props** — houses, trees, boulders. A sculpture is neither: it is a *made thing*, its own kind beside those
 two, and it happens to be written in the layer model because that is what can hold it.
@@ -439,6 +467,17 @@ building already works this way. The inspector then holds a full editor for the 
 forward for the two clicked ones, and the per-placement handful — seed, position, door edge — for all of them.
 
 ### What the author sees while authoring
+
+- [ ] **TL14 — Nothing says what kind of block a house-style field takes.** `HS1` refuses a block named for a
+  geometric role in a field that means another — a stair id under `doorHead.block`, a slab under
+  `roofSlab` — and until this was corrected its fix text sent an author to `GET /api/house-parts`, which has
+  never been served. What exists instead: `GET /api/terrain/blocks` is the **terrain** palette (110 rows, no
+  stairs at all), `GET /api/room-styles/doors` answers door kinds, and the rule's own `means` names the kind
+  per field in prose. An author's way through is to read a shipped preset's `/room-styles/{id}/json` and copy.
+  Wants one catalogue answering, per style field, the kind it accepts and the ids of that kind —
+  `Minecraft/Palette/BlockFamilies.cs` already holds the families the geometry reads. `docs/tools/library.md`
+  § what a style states, and the `HS1` remark, both change with it.
+
 
 **The card carries the section, and that is settled** (author): an author knows a house by its name, and the
 one that wants looking at is a click away from the real thing, turnable, cut to the row they have open

@@ -1,4 +1,4 @@
-namespace PgmStudio.Pgm.Editing;
+﻿namespace PgmStudio.Pgm.Editing;
 
 using Dict = Dictionary<string, object?>;
 
@@ -36,6 +36,26 @@ public static class RegionEditor
 
         TrackCategory(data, payload.GetValueOrDefault("category") as string ?? "other", id);
         return new Dict { ["id"] = id };
+    }
+
+    /// <summary>Put a one-block region at <paramref name="location"/>, creating it where the id names none
+    /// and moving it where it does. What a monument's <c>&lt;block&gt;</c> is written and moved by: a wool
+    /// referencing a region carries its position <b>in the region</b>, so the region is where the coordinate
+    /// has to land for the server to read it.</summary>
+    public static void PlaceBlock(Dict data, string regionId, Dict location, string category)
+    {
+        var regions = Regions(data);
+        if (regions.TryGetValue(regionId, out var found) && found is Dict region
+            && region.GetValueOrDefault("type") as string == "block")
+        {
+            RegionBuilder.ApplyCoordUpdate(region, "block", location);
+            return;
+        }
+        if (regions.ContainsKey(regionId)) return;   // the id names something that is not a block: leave it
+        CreateRegion(data, new Dict
+        {
+            ["type"] = "block", ["id"] = regionId, ["category"] = category, ["coords"] = location,
+        });
     }
 
     public static Dict GroupRegions(Dict data, Dict payload)

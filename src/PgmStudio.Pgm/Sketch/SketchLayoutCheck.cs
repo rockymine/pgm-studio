@@ -309,6 +309,19 @@ public static class SketchLayoutCheck
                 + "elevation is not built",
                 Severity.Complaint, Field: $"relief.{orphan}"));
 
+        // A landform outside the four words is not a word this reads, and the gate that would have judged the
+        // ground against it (RL1) skips a relief that states nothing — so a typo or the wrong case turns that
+        // gate off rather than failing it. Same rule as every other name matching nothing.
+        foreach (var (id, word) in (layout.Relief ?? [])
+                     .Where(entry => entry.Value?.Landform is { Length: > 0 } stated && !Landform.IsKnown(stated))
+                     .Select(entry => (entry.Key, entry.Value!.Landform!))
+                     .OrderBy(entry => entry.Key, StringComparer.Ordinal))
+            findings.Add(new Finding(SketchRules.NamesNothing,
+                $"group '{id}' says its ground is '{word}', which is not one of the {Landform.All.Length} "
+                + $"landforms ({string.Join(", ", Landform.All)}) — so nothing measures the ground against "
+                + "it and the relief reads as one stating no landform at all",
+                Severity.Complaint, Field: $"relief.{id}.landform", Subjects: [id]));
+
         // A theme scope resolves shape → map default, and a shape naming a registry entry that is not there
         // falls all the way through to whatever the map default happens to be — which paints a board and says
         // nothing, exactly the silence the three names above are reported for. Reported once per name rather
