@@ -263,8 +263,10 @@ public sealed class PlanGlobals
     /// <c>mirror_x</c> or <c>mirror_z</c>.</summary>
     [JsonPropertyName("symmetry")]   public string Symmetry { get; set; } = "rot_180";
 
-    /// <summary>How many players the board is sized for, across all teams. It is what the seed envelopes
-    /// judge a board's proportions against.</summary>
+    /// <summary>How many players the board is sized for <b>per team</b> — the cap the export writes into
+    /// every team's <c>max</c>, so a board's total is this times the number of teams. It is what the seed
+    /// envelopes judge a board's proportions against, which read land per team against players per team.
+    /// </summary>
     [JsonPropertyName("maxPlayers")] public int MaxPlayers { get; set; } = 12;
 
     /// <summary>The base island height, in blocks — the ground a piece stands at unless it states a plateau
