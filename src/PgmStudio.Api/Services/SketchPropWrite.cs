@@ -35,7 +35,7 @@ internal static class SketchPropWrite
             }
         }
 
-        var layoutJson = await SketchPropListEndpoint.LayoutOf(artifacts, map.Id, ct);
+        var layoutJson = await SketchPartWrite.LayoutOf(artifacts, map.Id, ct);
         DressingDoc doc;
         try { doc = SketchDressingWrite.Read(layoutJson); }
         catch (Exception fault) when (fault is JsonException or DressingParseException)
@@ -47,23 +47,12 @@ internal static class SketchPropWrite
         var result = edit(doc, prop);
         if (!result.Applied) return PropWriteOutcome.Missing;
 
-        var written = await SketchDressingWrite.StoreAsync(
-            artifacts, map.Id, SketchDressingWrite.With(layoutJson, result.Doc!), result.Id,
-            Revisions.Expected(http), ct);
+        var written = await SketchPartWrite.StoreAsync(
+            http, artifacts, map.Id, SketchDressingWrite.With(layoutJson, result.Doc!), result.Id, ct);
 
-        if (written.Refusal is { } refusal)
-        {
-            await Refusals.WriteAsync(http, refusal, ct);
-            return PropWriteOutcome.Answered;
-        }
-        if (written.Findings.Count > 0)
-        {
-            await Refusals.StopAsync(http, 400, "invalid style or theme", written.Findings, ct);
-            return PropWriteOutcome.Answered;
-        }
-
-        Revisions.Answer(http, written.Revision!.Value);
-        return PropWriteOutcome.Wrote(written.Id);
+        return await SketchPartWrite.RefusedAsync(http, written, ct)
+            ? PropWriteOutcome.Answered
+            : PropWriteOutcome.Wrote(written.Id);
     }
 }
 

@@ -23,6 +23,16 @@ public sealed record AppliedDto;
 /// <param name="Id">What every later route names this placement by.</param>
 public sealed record PropWrittenDto(string Id);
 
+/// <summary>One addressable part of a sketch — a theme, a relief — was written, and this is the id it is
+/// registered under. The id is the caller's own where the route takes one in its path, and is answered back
+/// so a client that batched several writes can tell which landed.</summary>
+/// <param name="Id">What every later route names this part by.</param>
+public sealed record PartWrittenDto(string Id);
+
+/// <summary>Which registered theme covers every cell no shape's own scope claims.</summary>
+/// <param name="Theme">The registry id of the map default, or null to clear it and paint unthemed stone.</param>
+public sealed record MapThemeRequest(string? Theme);
+
 /// <summary>A row was made, and this is the id every later route names it by.</summary>
 /// <param name="Id">The row number the library lists it under and every later route names it by.</param>
 public sealed record CreatedDto(long Id);

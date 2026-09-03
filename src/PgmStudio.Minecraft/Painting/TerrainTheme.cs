@@ -215,11 +215,22 @@ public sealed record TeamTintedMaterial(int BlockId, TerrainMaterial Neutral) : 
 /// surface). Distinct from <see cref="TerrainBand"/>, which is a <em>resolved</em> Y-run in the output — this
 /// is the <em>theme</em> spec a band resolves from. The band resolver always clamps depth to the stone the
 /// bedrock floor leaves, so it never recolours bedrock.</summary>
+/// <param name="Material">What the bucket's courses resolve through — a block, a stack read down from the top,
+/// or a pattern picked per cell.</param>
+/// <param name="Depth">How many top courses the bucket claims. Clamped to the stone the bedrock floor leaves,
+/// so a depth past the column's own height never recolours bedrock.</param>
+/// <param name="Enabled">Whether the bucket paints at all. A disabled rim leaves its edge to the surface, and
+/// a disabled surface leaves its interior to the wall under it.</param>
 public sealed record TopBand(TerrainMaterial Material, int Depth = 1, bool Enabled = true);
 
 /// <summary>How thick the bedrock floor is (TP8): a fixed block count, or the remainder under a fixed painted
 /// terrain depth (bedrock = column height − terrain depth, per column). Always ≥1, never taller than the
 /// column.</summary>
+/// <param name="Relative">Whether <paramref name="Value"/> counts the painted terrain over the floor rather
+/// than the floor itself. Relative keeps a constant depth of paint on a column of any height; absolute keeps
+/// a constant floor under one.</param>
+/// <param name="Value">Blocks: the floor's own thickness where absolute, and the painted depth left above it
+/// where relative.</param>
 public sealed record BedrockSpec(bool Relative, int Value)
 {
     /// <summary>A fixed <paramref name="thickness"/>-block bedrock floor.</summary>

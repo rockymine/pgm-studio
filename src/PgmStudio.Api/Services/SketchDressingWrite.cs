@@ -55,24 +55,4 @@ public static class SketchDressingWrite
         catch (JsonException) { return null; }
     }
 
-    /// <summary>Gate the edited layout and store it, answering the refusal where either says no. The
-    /// <c>If-Match</c> guards the <b>layout</b>, which is the document the placement lives in and the one a
-    /// concurrent edit would lose.</summary>
-    public static async Task<DressingWritten> StoreAsync(
-        MapArtifactStore artifacts, long mapId, string layoutJson, string id, long? expected, CancellationToken ct)
-    {
-        var findings = SketchMaterialGate.Check(layoutJson);
-        if (findings.Count > 0) return new(null, id, findings);
-
-        var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.SketchLayoutJson,
-            "sketch layout", Encoding.UTF8.GetBytes(layoutJson), expected, ct);
-        return written.Refusal is { } refusal
-            ? new(null, id, Findings.None, refusal)
-            : new(written.Revision, id, Findings.None);
-    }
 }
-
-/// <summary>The outcome of writing one placement: the layout's new revision, the id the edit acted on, and
-/// whatever refused it. <see cref="Revision"/> is null exactly when nothing was stored.</summary>
-public readonly record struct DressingWritten(
-    long? Revision, string Id, Findings Findings, Refusal? Refusal = null);

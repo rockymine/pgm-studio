@@ -31,7 +31,7 @@ public sealed class SketchPropListEndpoint(MapRepository repo, MapArtifactStore 
     public override async Task HandleAsync(CancellationToken ct)
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
-        var layoutJson = await LayoutOf(artifacts, map.Id, ct);
+        var layoutJson = await SketchPartWrite.LayoutOf(artifacts, map.Id, ct);
         DressingDoc doc;
         try { doc = SketchDressingWrite.Read(layoutJson); }
         catch (Exception fault) when (fault is JsonException or DressingParseException)
@@ -42,12 +42,6 @@ public sealed class SketchPropListEndpoint(MapRepository repo, MapArtifactStore 
         if (await artifacts.RevisionAsync(map.Id, ArtifactKind.SketchLayoutJson, ct) is { } revision)
             Revisions.Answer(HttpContext, revision);
         await Send.OkAsync(doc, ct);
-    }
-
-    internal static async Task<string?> LayoutOf(MapArtifactStore artifacts, long mapId, CancellationToken ct)
-    {
-        var data = await artifacts.LoadAsync(mapId, ArtifactKind.SketchLayoutJson, ct);
-        return data is null ? null : System.Text.Encoding.UTF8.GetString(data);
     }
 }
 

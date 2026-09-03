@@ -17,28 +17,7 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class SketchPropEndpointsTests
 {
-    private const string Layout = """
-        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
-         "layers":[{"base_y":0,"layout":{
-           "shapes":[{"id":"s1","type":"rectangle","operation":"add",
-                      "min_x":-20,"max_x":20,"min_z":-20,"max_z":20,"floor":8,"base_height":12}],
-           "groups":[{"id":"i","name":"I","shapeIds":["s1"]}]}}]}
-        """;
-
-    private static async Task<HttpClient> BoardAsync()
-    {
-        await ApiTestFactory.ResetSchemaAsync();
-        var client = ApiTestFactory.Shared.CreateClient();
-        var made = await client.PostAsJsonAsync("/api/map/from-documents", new
-        {
-            plan = JsonDocument.Parse("""{"cell":9,"pieces":[]}""").RootElement,
-            layout = JsonDocument.Parse(Layout).RootElement,
-            intent = JsonDocument.Parse("""{"meta":{"name":"Dressed","authors":[],"contributors":[]}}""").RootElement,
-            name = "Dressed",
-        });
-        made.EnsureSuccessStatusCode();
-        return client;
-    }
+    private static Task<HttpClient> BoardAsync() => SketchBoard.FreshAsync();
 
     private static string Props => "/api/map/dressed/sketch/props";
 

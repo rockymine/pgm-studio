@@ -1070,14 +1070,21 @@ again: the gate cannot judge a style it cannot read, but *that* is the finding, 
 the binder gave up at — a polymorphic material stated in the wrong shape names the field it is in
 (`$.shell.storeys[1].deck`) instead of arriving as an unlabelled failure after the ground is laid.
 
-**A placement is a resource, and the whole layout is not the unit of an edit.** `sketch/props` adds, edits
-and removes one prop at a time — the shape the objectives already answer in (`POST /map/{slug}/wools`,
+**A part of the finish is a resource, and the whole layout is not the unit of an edit.** `sketch/props`,
+`sketch/themes` and `sketch/relief` each add, edit and remove one entry at a time — the shape the objectives already answer in (`POST /map/{slug}/wools`,
 `PATCH /map/{slug}/wools/{woolId}`) — so a caller changing one tree does not send back every shape, every
-theme and every other prop. Two things follow from the routes rather than from the edit. A partial write runs
-the **whole layout's** gate before it stores, so a prop whose style is a see-through roof is refused where it
-is posted rather than found while the world is being built; and a body typed as `PlacedProp` publishes the
-six kinds and their recipes into `/api/openapi/v1.json`, which is where an agent looks before asking for
-something the studio cannot do.
+theme and every other prop. Two things follow from the routes rather than from the edit.
+
+**A partial write answers for the whole document.** Each one runs the gate and the check `PUT /sketch` runs,
+in the same two registers: a style or theme its own materials cannot honour **refuses** at 400, and
+everything the document says that the build cannot is a **complaint** riding back on the 200. Anything less
+would make the small route the way to get past the big route's gate.
+
+**And a typed body is what publishes the model.** `PlacedProp` on the wire puts the six prop kinds, their
+knobs and their recipes into `/api/openapi/v1.json` — where the dressing document had no field named at all
+— and `TerrainTheme` and `SketchReliefJson` reach it from the sketch rather than only from a preview route.
+That is where an agent looks before asking for something the studio cannot do, so a part with no address is
+a part it has to learn from prose instead.
 
 **The house half** reads `roomStyles.cage`, `roomStyles.spawn` and the shell of every building in
 `dressing.props` off the document that is about to be written, and runs each through the same house-style gate
@@ -1373,6 +1380,15 @@ carry — the board an author is looking at is the one place those complaints ar
 | `POST /map/{slug}/sketch/props` | `{id}` — place one prop, without sending the board it stands on. A body stating a free id keeps it; one stating none, or one already taken, is minted `{kind}-{n}`. The placement goes on the end, since the pass runs in placement order and an addition has not been placed before anything | 400 `malformed prop` `RQ1` (the message names every kind) · 400 `invalid style or theme` `HS*`/`PT*` · 409 stale `If-Match` · 404 |
 | `PATCH /map/{slug}/sketch/props/{propId}` | `{id}` — replace one placement, keeping its position in the pass's order and the id it is addressed by. Editing a prop must not move it past what the pass places after it | 400 as above · 409 · **404 the id names no placement** |
 | `DELETE /map/{slug}/sketch/props/{propId}` | `{id}` — take one placement off the board. The recipe it named stays in the registry, since a key is shared by every placement wearing it | 409 · **404 the id names no placement** |
+| `GET /map/{slug}/sketch/themes` | `{themes{}, mapTheme}` — the registry by the id an author registered each theme under, and which of it covers every cell no shape scope claims. A registry entry the painter cannot read as a theme is left out, the same way the painter drops it | 404 |
+| `GET /map/{slug}/sketch/themes/{themeId}` | one `TerrainTheme`, as the painter reads it | 404 the registry carries no such id |
+| `PUT /map/{slug}/sketch/themes/{themeId}` | `{id}` — register a theme under an id, replacing whatever that id carried. The one write in the sketch that creates and replaces through the same verb, because a registry entry is addressed by the name an author gave it | 400 `malformed theme` `RQ1` · 400 `invalid style or theme` `PT*` · 409 stale `If-Match` · 404 |
+| `DELETE /map/{slug}/sketch/themes/{themeId}` | `{id}` — take a theme out of the registry. **It does not refuse over what still names the id**: a shape painting with a theme the registry stopped carrying takes the map default, and the map default naming one takes unthemed stone, both already `SK3` complaints on the stored document. They ride back on this write | 409 · 404 the registry carries no such id |
+| `PUT /map/{slug}/sketch/map-theme` | `{id}` — which registered theme covers every cell no shape's own scope claims. Body `{"theme": "<id>"}`; a null or absent theme clears it, which paints unthemed stone. Naming a theme the registry does not carry is stored and complained about (`SK3`) rather than refused | 400 `malformed request` `RQ1` · 409 · 404 |
+| `GET /map/{slug}/sketch/relief` | every group's relief, by the group id it is solved over — a group rather than a shape, because a relief solved per shape leaves a seam wherever two of them meet and disagree about the height they share | 404 |
+| `GET /map/{slug}/sketch/relief/{groupId}` | one `SketchReliefJson` | 404 the layout states none for that group, which is every group as flat as its shapes drew it |
+| `PUT /map/{slug}/sketch/relief/{groupId}` | `{id}` — state one group's interior elevation, replacing whatever that group carried. **It does not check the group exists**: whether the id still names a fusion is `SK1`'s question on the compile path, where losing hand-authored terrain is the risk worth refusing over, and answering it here would refuse a relief written before the geometry it belongs to | 400 `malformed relief` `RQ1` · 409 · 404 |
+| `DELETE /map/{slug}/sketch/relief/{groupId}` | `{id}` — take one group's relief off the board, leaving its ground as flat as the shapes drew it | 409 · 404 |
 | `POST /map/{slug}/sketch/seats[?kind=&width=&depth=]` | `{bounds, width, height, kind, standoff, footprintWidth, footprintDepth, rows[], seats, refused[]}` — where a prop of that kind and footprint **may** stand, which the `DR-*` declines only ever answer backwards: `1` where a box of `width`×`depth` blocks seats with its minimum corner on that cell, `0` where it does not, a space off the board, and `refused` the tally of which rule turned the rest away. `kind` is one of the document's own prop kinds (absent: `tree`) and decides the route standoff; one number asks about a square. `?format=text` answers the same mask with its key and the tally under it | 422 `no such prop kind` `RQ4` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 
