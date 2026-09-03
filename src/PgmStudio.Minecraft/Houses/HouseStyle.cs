@@ -55,6 +55,8 @@ public sealed record FloorSurface
     /// <summary>A ring hugging the walls, or null for a floor that runs to them unbroken.</summary>
     public TerrainMaterial? Border { get; init; }
 
+    /// <summary>How many blocks in from the walls the border ring reaches. Read only where a border is
+    /// stated.</summary>
     public int BorderWidth { get; init; } = 1;
 
     /// <summary>A centred plate, or null for none.</summary>
@@ -276,6 +278,8 @@ public sealed record RoofStyle
     private const int Planks = Blocks.Planks;
     private const int Spruce = 1, DarkOak = 5;
 
+    /// <summary>Which roof it is — what shape the slopes make over the footprint, and whether there are any.
+    /// </summary>
     public RoofForm Form { get; init; } = RoofForm.Gable;
 
     /// <summary>How steep the slope climbs per block travelled inward — courses on a roof laid in cubes, and
@@ -371,6 +375,8 @@ public sealed record Doorway
     /// what is actually cut is <see cref="CutWidth"/>.</summary>
     public int Width { get; init; } = 2;
 
+    /// <summary>How tall the opening is asked for, before the head is laid into its top course. What a player
+    /// is actually left to walk through is <see cref="Clearance"/>.</summary>
     public int Height { get; init; } = 3;
 
     /// <summary>The width an opening is actually cut at: never under two, however it is set.</summary>

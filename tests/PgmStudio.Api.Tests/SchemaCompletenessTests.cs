@@ -129,7 +129,7 @@ public sealed class SchemaCompletenessTests
     /// publishes a discriminator the generator synthesises, and no property carries it. Named rather than
     /// counted, so a genuinely undocumented field cannot hide behind them.</summary>
     private static readonly string[] Synthesised =
-        ["TerrainMaterial.kind", "PlacedProp.kind", "PropStyle.kind"];
+        ["TerrainMaterial.kind", "PlacedProp.kind", "PropStyle.kind", "BiomeField.kind"];
 
     /// <summary>Every schema a route answers on a 2xx, following the references down — a nested record is
     /// read with the answer that carries it.</summary>

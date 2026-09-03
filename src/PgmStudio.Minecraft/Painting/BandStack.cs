@@ -2,6 +2,8 @@ namespace PgmStudio.Minecraft.Painting;
 
 /// <summary>One band of a stack: the material its blocks resolve through, and how far along the stack's axis
 /// it claims before the next takes over.</summary>
+/// <param name="Material">What this band's blocks resolve through.</param>
+/// <param name="Thickness">How far along the stack's axis it claims before the next band takes over.</param>
 public readonly record struct Band(TerrainMaterial Material, int Thickness = 1);
 
 /// <summary>
@@ -43,6 +45,8 @@ public sealed class BandEndingConverter()
 /// field is sampled from world coordinates, so two bands of one material draw one field read twice rather than
 /// two fields.</para>
 /// </summary>
+/// <param name="Bands">The bands in the order they are laid, read from the stack's own base outward.</param>
+/// <param name="Ending">What happens past the last band: repeat the run, or hold its final course.</param>
 public sealed record BandStack(IReadOnlyList<Band> Bands, BandEnding Ending = BandEnding.Repeat)
 {
     /// <summary>A stack of one material, claiming everything.</summary>

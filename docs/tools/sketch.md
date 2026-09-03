@@ -1071,7 +1071,8 @@ the binder gave up at — a polymorphic material stated in the wrong shape names
 (`$.shell.storeys[1].deck`) instead of arriving as an unlabelled failure after the ground is laid.
 
 **A part of the finish is a resource, and the whole layout is not the unit of an edit.** `sketch/props`,
-`sketch/themes` and `sketch/relief` each add, edit and remove one entry at a time — the shape the objectives already answer in (`POST /map/{slug}/wools`,
+`sketch/themes`, `sketch/relief`, `sketch/room-styles` and `sketch/biome` each read and write one part at a
+time — the shape the objectives already answer in (`POST /map/{slug}/wools`,
 `PATCH /map/{slug}/wools/{woolId}`) — so a caller changing one tree does not send back every shape, every
 theme and every other prop. Two things follow from the routes rather than from the edit.
 
@@ -1082,7 +1083,9 @@ would make the small route the way to get past the big route's gate.
 
 **And a typed body is what publishes the model.** `PlacedProp` on the wire puts the six prop kinds, their
 knobs and their recipes into `/api/openapi/v1.json` — where the dressing document had no field named at all
-— and `TerrainTheme` and `SketchReliefJson` reach it from the sketch rather than only from a preview route.
+— and `TerrainTheme`, `SketchReliefJson`, `HouseStyle` and `BiomeField` reach it from the sketch rather than
+only from a preview route or, in the biome's case, from nowhere at all: every field of a stored layout now
+has a route that says what it holds.
 That is where an agent looks before asking for something the studio cannot do, so a part with no address is
 a part it has to learn from prose instead.
 
@@ -1389,6 +1392,12 @@ carry — the board an author is looking at is the one place those complaints ar
 | `GET /map/{slug}/sketch/relief/{groupId}` | one `SketchReliefJson` | 404 the layout states none for that group, which is every group as flat as its shapes drew it |
 | `PUT /map/{slug}/sketch/relief/{groupId}` | `{id}` — state one group's interior elevation, replacing whatever that group carried. **It does not check the group exists**: whether the id still names a fusion is `SK1`'s question on the compile path, where losing hand-authored terrain is the risk worth refusing over, and answering it here would refuse a relief written before the geometry it belongs to | 400 `malformed relief` `RQ1` · 409 · 404 |
 | `DELETE /map/{slug}/sketch/relief/{groupId}` | `{id}` — take one group's relief off the board, leaving its ground as flat as the shapes drew it | 409 · 404 |
+| `GET /map/{slug}/sketch/room-styles` | `{cage, spawn}` — both shells **resolved**, which is what the stampers will read: a part that is absent answers its built-in shell and a part bound to open ground answers null. Raw snapshots would not say which of the three states a caller is in | 404 |
+| `PUT /map/{slug}/sketch/room-styles/{part}` | `{id}` — bind the shell one kind of room is stamped in; `part` is `cage` or `spawn`. **A body of literal `null` is a statement, not an omission**: it asks for open ground, a pad rather than a building over it, which is what a spawn on a plateau the plan already shaped often wants to be | 400 `unknown room part` / `malformed room style` `RQ1` · 400 `invalid style or theme` `HS*` · 409 · 404 |
+| `DELETE /map/{slug}/sketch/room-styles/{part}` | `{id}` — unbind, which puts that kind of room back to its **built-in** shell. Not the same as binding null | 409 · 404 nothing is bound |
+| `GET /map/{slug}/sketch/biome` | one `BiomeField` — `solid`, `cell` or `noise` | 400 `unreadable biome` `RQ1` · 404 the board states none, which is plains everywhere |
+| `PUT /map/{slug}/sketch/biome` | `{id}` — which biome each column of the exported world carries. Map-wide and answered per chunk, because a biome's tint is blended across a radius and a region drawn to a finer edge never reaches its own colour there | 400 `malformed biome` `RQ1` · 409 · 404 |
+| `DELETE /map/{slug}/sketch/biome` | `{id}` — take the field off the board, which is plains everywhere | 409 · 404 |
 | `POST /map/{slug}/sketch/seats[?kind=&width=&depth=]` | `{bounds, width, height, kind, standoff, footprintWidth, footprintDepth, rows[], seats, refused[]}` — where a prop of that kind and footprint **may** stand, which the `DR-*` declines only ever answer backwards: `1` where a box of `width`×`depth` blocks seats with its minimum corner on that cell, `0` where it does not, a space off the board, and `refused` the tally of which rule turned the rest away. `kind` is one of the document's own prop kinds (absent: `tree`) and decides the route standoff; one number asks about a square. `?format=text` answers the same mask with its key and the tally under it | 422 `no such prop kind` `RQ4` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 422 `dressing document invalid` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/probe-footprint` | `{cells, land, void, hole, voidCells[], holeCells[]}` — what a ring stands on, against the **rasterised** footprint rather than a model of the coast rebuilt outside the studio. The ring need not be a shape the layout carries, which is the point: it is asked before one is built on it. Body `{layout, ring}` | 422 `ring too short` · 422 `the board cannot be built as drawn` `SK2` or `SK13` · 404 |
 

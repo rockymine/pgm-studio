@@ -81,6 +81,8 @@ public static class WindowFormWords
 /// </summary>
 public sealed record WindowStyle
 {
+    /// <summary>Which window it is — what the opening is dressed as, or none for a wall with no openings
+    /// cut in it.</summary>
     public WindowForm Form { get; init; } = WindowForm.None;
 
     /// <summary>The block the opening is dressed with. A block id rather than a material because the
@@ -101,6 +103,8 @@ public sealed record WindowStyle
     /// puts the block there — a stripe, a checker, a noise stop — without naming the pattern.</para></summary>
     public int HostBlock { get; init; } = -1;
 
+    /// <summary>The variant of <see cref="HostBlock"/> the wall has to resolve to, since a block id alone
+    /// does not tell one wood from another where a family shares one.</summary>
     public int HostData { get; init; }
 
     /// <summary>The block's own variant nibble — which wood, which stone, which dye. The geometry bits are the
@@ -111,8 +115,11 @@ public sealed record WindowStyle
     /// eye level whatever the wall's height becomes.</summary>
     public int Sill { get; init; } = 2;
 
+    /// <summary>How wide the opening is asked for. What is actually cut is
+    /// <see cref="Normalized"/>'s, since a form builds at the size it can.</summary>
     public int Width { get; init; } = 2;
 
+    /// <summary>How tall the opening is asked for, normalized the same way.</summary>
     public int Height { get; init; } = 2;
 
     /// <summary>Clear blocks of wall between one window and the next.</summary>
@@ -186,6 +193,8 @@ public enum DoorHeadFill
 /// </summary>
 public sealed record DoorHeadStyle
 {
+    /// <summary>Which head it is — the shape the wall takes over the opening, or none for a plain
+    /// rectangular top.</summary>
     public DoorHeadForm Form { get; init; } = DoorHeadForm.None;
 
     /// <summary>The stair at each corner of the head. Which wood it is, is which block it is — a stair's data
@@ -195,8 +204,11 @@ public sealed record DoorHeadStyle
     /// <summary>What spans the middle where the opening is wider than two.</summary>
     public DoorHeadFill Fill { get; init; } = DoorHeadFill.UpperSlab;
 
+    /// <summary>The block the middle is spanned with, where the fill names one.</summary>
     public int FillBlock { get; init; } = Blocks.WoodenSlab;
 
+    /// <summary>That block's variant — which wood a slab is cut from, since a slab's low bits are its
+    /// material and only its top bit is geometry.</summary>
     public int FillData { get; init; }
 
     /// <inheritdoc cref="Arch.LeastWidth"/>

@@ -275,8 +275,9 @@ what is gathered here is the parked and dormant slices of the same surface.
   every studio picture. Swampland wants its own path even then: vanilla paints it two-tone from a noise of its
   own (see `terrain-painting.md` §5b), so a single multiplier cannot reproduce it.
 
-- [ ] **WE54 — A biome field has no surface to author it on.** The field round-trips over the API and through
-  the layout, and nothing in the browser states one. It belongs in the Dressing phase (author), which today
+- [ ] **WE54 — A biome field has no surface to author it on.** `GET`/`PUT`/`DELETE
+  /map/{slug}/sketch/biome` states one and the published schema names `solid`, `cell` and `noise`
+  (`FEATURES.md`); nothing in the browser does. It belongs in the Dressing phase (author), which today
   places props — a prop is a point or a point-list with a radius, and a field is neither — so the phase gains
   its first map-wide control rather than a seventh prop kind. Wants the biome ids as a named list, which
   `Minecraft/Palette/Biome.cs` already holds.
