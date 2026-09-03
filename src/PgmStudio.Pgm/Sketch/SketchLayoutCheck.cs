@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Vocabulary;
@@ -146,6 +146,17 @@ public static class SketchLayoutCheck
                 + $"column(s) — deepest at ({x}, {z}) — so they build as one solid mass where they meet and "
                 + $"the gap between the two layers is not in the world there. Raise the base_y of '{upper}', "
                 + "or lower what stands on it",
+                Severity.Complaint, Subjects: [lower, upper]));
+
+        // SK20 — the list order and base_y disagree about which layer is on top. Read over the plain layers
+        // only: a made thing's slices are a way of holding one sculpture, not a stack, and SK18's exemption
+        // is the same one.
+        foreach (var (lower, upper) in OutOfOrder(layout))
+            findings.Add(new Finding(SketchRules.StackOutOfOrder,
+                $"layer '{upper}' is drawn after '{lower}' and its ground starts below it, so the list order "
+                + "and base_y disagree about which is on top. The world is built from base_y and comes out "
+                + $"as stated; the document is what reads wrong. Move '{upper}' before '{lower}', or correct "
+                + "its base_y",
                 Severity.Complaint, Subjects: [lower, upper]));
 
         // SK16 — a made thing that asked for the ground and found none. The board builds where it was drawn.
@@ -460,4 +471,15 @@ public static class SketchLayoutCheck
     private static string Named(SketchShape shape) => shape.Id.Length > 0 ? $"shape '{shape.Id}'" : "a shape";
 
     private static IReadOnlyList<string>? Ids(SketchShape shape) => shape.Id.Length > 0 ? [shape.Id] : null;
+
+    /// <summary>Consecutive pairs of plain layers whose base_y falls rather than rises, each named by the one
+    /// that is out of place. Made layers are skipped rather than compared: a sculpture's slices share one
+    /// footprint and have no stacking order between them.</summary>
+    private static IEnumerable<(string Lower, string Upper)> OutOfOrder(SketchLayout layout)
+    {
+        var plain = SketchLayout.Stack(layout).Where(layer => !layer.IsMade).ToList();
+        for (var i = 1; i < plain.Count; i++)
+            if (plain[i].BaseY < plain[i - 1].BaseY)
+                yield return (plain[i - 1].Id ?? "", plain[i].Id ?? "");
+    }
 }

@@ -119,6 +119,10 @@ mirror clean and the traversability whole on every board named below.
   The wanted thing is a sketch-side operation an author or an agent reaches for on a shape that is already
   there, and two rules keep it safe: the plan's own vertices never move, and nothing ever moves outward.
 
+  `PATCH /map/{slug}/sketch/shapes/{shapeId}` now restates a shape's `vertices` and `controls` without the
+  board around it, so what remains is the operation itself: a route that bends a ring the studio already
+  carries, over `RingRounding`, refusing a bend that moves a plan vertex or moves any vertex outward.
+
   *`opus5-thornfell`: 36 compiled vertices → 99 drawn, strait measured at **26–28 blocks** over 23 transects
   against a plan stating a flat 30. A vertex moved outward would have closed it.*
 

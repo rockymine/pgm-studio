@@ -1,4 +1,4 @@
-using PgmStudio.Vocabulary;
+﻿using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>The sketch document's own rule ids — what a layout is refused for, and what it is told about a
@@ -198,4 +198,19 @@ public static class SketchRules
     /// <remarks>Pull the recipe into the document's `dressing.styles` under the key the placement names, or name a key the registry already states. A recipe is copied in rather than referenced by library id, so a document carries every recipe its placements name and builds the same way wherever it is read.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Feature)]
     public const string RecipeNotStated = "SK19";
+
+    /// <summary>The layers of a stack are not in the order their ground stands in — a later layer starts
+    /// below an earlier one. A layer's position in the list is its draw order and <c>base_y</c> is its
+    /// height, so the two say different things and a document where they disagree reads as a stack that is
+    /// not the one it builds: a reader walking the list top to bottom meets the storeys out of order, and a
+    /// strip drawn from it puts the cellar above the roof.
+    ///
+    /// <para>A complaint, never a refusal. The world is built from <c>base_y</c> and comes out exactly as
+    /// stated whatever order the list is in, so nothing is lost — what is wrong is the document, and a board
+    /// mid-authoring is allowed to have a layer added before it is raised. Made things are exempt: a
+    /// sculpture is drawn out of layers because that is what can hold it, and the slices of one have no
+    /// stacking order to be in.</para></summary>
+    /// <remarks>Order the layers by the height their ground starts at, or correct the `base_y` of the one that is out of place. The list order is what a reader and the strip walk; `base_y` is what the world is built from.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string StackOutOfOrder = "SK20";
 }

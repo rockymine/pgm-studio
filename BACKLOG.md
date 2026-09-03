@@ -389,6 +389,18 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   a disconnected island made of paint. Nothing before that read mentioned it, and every spec now clamps and
   folds each stroke by hand to avoid both cases.*
 
+- [ ] **TS82 — A compiled shape's address dies at the next recompile.** `PATCH`/`DELETE
+  /map/{slug}/sketch/shapes/{shapeId}` addresses a shape by its id, and the plan compiler mints ids
+  positionally — `s0`, `s1`, `s2` down the emission order — so inserting one piece renumbers every shape after
+  it and every address a caller holds now names a different shape. Hand-drawn shapes are safe (all 777 in the
+  corpus carry stable author names); the compiled ones are the ones a driver edits. `IntentRef` is the
+  identity a recompile already matches by (`SketchLayout.CarryStructuralHeight`), so the fix is to mint from
+  it rather than from the position, and to carry the id across a recompile the way the structural heights are
+  carried. `docs/tools/sketch.md` § the parts, and `docs/tools/plan.md` § what it compiles to.
+
+  *216 of the 217 `themeById` keys across the mapgen specs name a positional `s{n}`, so a recompile also
+  repaints the board.*
+
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -676,17 +688,14 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## Refactoring and cleanup
 
-- [ ] **RP65 — Two `SketchLayout` fields carry no schema, and they are the two an agent writes most of.**
-  `Dressing` and `Biome` are `JsonElement?` because their types (`Minecraft.Painting.BiomeField`,
-  `DressingDoc`, `TerrainMaterial`) live in `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings
-  over `Domain` + `Geom` — the field's own docstring says so (`SketchLayout.cs:41-50`). Three things follow
-  from the one boundary: `/api/openapi/v1.json` names not a single field of either, so half the document an
-  agent is told to check the schema for is unanswerable there; the material graph inside them binds late,
-  outside the `RQ1` refusal envelope; and a store-time gate has nothing to construct. Move the dressing and
-  material model down to a project both reach, or publish the two schemas from `Minecraft` and reference them.
-
-  *`opus5-run1.md`: three of the run's nine dead ends were questions about `dressing` that the schema could not
-  answer, and both of its HTTP 500s were materials nested inside it.*
+- [ ] **RP65 — The layout DTO still says `JsonElement` where its own routes say `DressingDoc` and
+  `BiomeField`.** `SketchLayout.Dressing` and `.Biome` are `JsonElement?` because their types live in
+  `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings over `Domain` + `Geom` — the fields' own
+  docstrings say so (`SketchLayout.cs:41-50`). The part routes publish both models and the store-time gate
+  reads both (`FEATURES.md`), so what is left is the whole-layout route: `GET`/`PUT /map/{slug}/sketch` names
+  the two fields with no shape under them, and a reader who starts from the document rather than from the
+  parts finds two holes in it. Move the dressing and material model down to a project both reach, or publish
+  the two schemas from `Minecraft` and reference them from the layout.
 
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
   `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as

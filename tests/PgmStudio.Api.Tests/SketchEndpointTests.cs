@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -20,8 +20,11 @@ namespace PgmStudio.Api.Tests;
 [NotInParallel("api-db")]
 public sealed class SketchEndpointTests
 {
+    /// <summary>A board is a stack and a flat one is a stack of one, so a fresh create writes its ground
+    /// layer rather than leaving the first surface to draw on it to invent one. Without a frame that is the
+    /// whole of the layout, and the editor falls back to its landscape default on load.</summary>
     [Test]
-    public async Task Create_returns_a_slug_and_seeds_an_empty_layout()
+    public async Task Create_returns_a_slug_and_seeds_the_ground_layer()
     {
         await ApiTestFactory.ResetSchemaAsync();
         using var client = ApiTestFactory.Shared.CreateClient();
@@ -31,11 +34,13 @@ public sealed class SketchEndpointTests
         var created = await resp.Content.ReadFromJsonAsync<JsonElement>();
         await Assert.That(created.GetProperty("slug").GetString()).IsEqualTo("my-sketch");
 
-        // Freshly created with no frame → the layout artifact is an empty object (the editor falls back to
-        // its landscape default on load).
         var layout = await client.GetFromJsonAsync<JsonElement>("/api/map/my-sketch/sketch");
-        await Assert.That(layout.ValueKind).IsEqualTo(JsonValueKind.Object);
-        await Assert.That(layout.EnumerateObject().Any()).IsFalse();
+        await Assert.That(layout.EnumerateObject().Select(field => field.Name)).IsEquivalentTo(new[] { "layers" });
+
+        var ground = layout.GetProperty("layers")[0];
+        await Assert.That(ground.GetProperty("id").GetString()).IsEqualTo("ground");
+        await Assert.That(ground.GetProperty("base_y").GetDouble()).IsEqualTo(0);
+        await Assert.That(ground.GetProperty("layout").GetProperty("shapes").GetArrayLength()).IsEqualTo(0);
     }
 
     /// <summary><b>A drawing in progress is stored whatever its geometry says, and the preview draws it.</b>

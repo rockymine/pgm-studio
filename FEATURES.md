@@ -6834,6 +6834,31 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **Every part of a sketch layout is a resource, and the schema publishes what each one is (part of `RP65`).**
+  All eight sketch writes took the whole `SketchLayout`, so a caller changing one tree sent back every shape,
+  every theme and every other prop — and half the document's fields reached `/api/openapi/v1.json` as bare
+  sentences, which is what put an agent in `docs/` to learn what a dressing or a biome is made of. The layout
+  is now addressed the way the intent half already was: `sketch/layers`, `sketch/layers/{id}/groups/{id}`,
+  `sketch/shapes/{id}`, `sketch/props/{id}`, `sketch/themes/{id}`, `sketch/map-theme`, `sketch/relief/{id}`,
+  `sketch/room-styles/{part}` and `sketch/biome`, each answering that part's own type. `SketchPartWrite` is
+  the one place a partial write is gated, in the two registers `PUT /sketch` uses — a style or theme its own
+  materials cannot honour refuses at 400, everything else complains on the 200 — so a small route cannot be
+  the way past the big route's gate; `SketchGeometryEdit` and `DressingEdit` are the pure editors under them.
+  The address is the id the document already carries, so nothing is minted to make a part reachable.
+  (`Pgm/Sketch/SketchGeometryEdit`, `Minecraft/Dressing/DressingEdit`, `Api/Services/SketchPartWrite`,
+  five `Api/Endpoints/Sketch*Endpoints.cs`, `docs/tools/sketch.md`)
+- **A malformed material is refused where the layout is stored, and a shape patch cannot forge an identity.**
+  `SketchMaterialGate` reads both the dressing and the room styles on the way in, so a polymorphic material
+  in the wrong shape names the field it is in (`$.shell.storeys[1].deck`) instead of arriving as an HTTP 500
+  after the ground is laid. `PATCH /sketch/shapes/{id}` refuses `role`, `intentRef` and `height_authored`:
+  the first two are the identity a plan recompile matches a shape by and the third is the mark that a floor
+  was corrected by hand, all three the compiler's to write. A stated `null` in that patch takes a field off,
+  which is the half a replace cannot do.
+- **`SK20` — a stack whose list order and `base_y` disagree.** A layer's position in the list is its draw
+  order and `base_y` is its height, so a later layer starting below an earlier one reads as a stack that is
+  not the one it builds. A complaint, never a refusal — the world is built from `base_y` and comes out as
+  stated — and `made` layers are outside it, a sculpture's slices having no stacking order between them.
+  (`Pgm/Sketch/SketchRules`, `Pgm/Sketch/SketchLayoutCheck`, `docs/refusals.md`)
 - **`SK4` measures a polygon's area, not just its vertex count (`TS67`).** A polygon or lasso of three
   vertices or more with every point on one line cleared the count, drew no ground, and passed every gate —
   the fault the same rule already named for a rectangle. The gate now takes the shoelace area beside the

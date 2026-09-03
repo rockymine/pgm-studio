@@ -1,6 +1,7 @@
-using PgmStudio.Domain;
+﻿using PgmStudio.Domain;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using FastEndpoints;
 using LinqToDB;
@@ -64,27 +65,36 @@ public sealed class SketchCreateEndpoint(MapRepository repo, MapArtifactStore ar
         catch { /* empty / invalid body → default name, no frame */ }
 
         var (mapId, slug) = await MapOrigin.UnderFreeSlugAsync(repo, name, MapStage.Sketch, ct);
-        // Seed so GET works immediately: a framed create writes its setup; a frameless one stays empty {}.
-        var seed = hasFrame ? SeedSetup(Math.Max(16, width), Math.Max(16, depth), mode, centerX, centerZ) : "{}"u8.ToArray();
+        var seed = Seed(hasFrame ? Math.Max(16, width) : null, Math.Max(16, depth), mode, centerX, centerZ);
         await artifacts.SaveAsync(mapId, ArtifactKind.SketchLayoutJson, seed, ct);
         await Send.OkAsync(new OriginatedDto(slug), ct);
     }
 
-    // The browser layout blob's `setup` object — an origin-centred width×depth bbox, the symmetry centre, and
-    // the mirror mode. Keys match what the JS bridge's load() / the editor's setup-sync read back.
-    private static byte[] SeedSetup(double width, double depth, string mode, double centerX, double centerZ)
+    /// <summary>The layout a fresh board starts as: its ground layer, and the working frame where one was
+    /// given. A board is a stack, and a flat one is a stack of one — so the ground is written here rather
+    /// than invented by whichever surface draws on the board first, which is what left an API-made board
+    /// with no layer to draw on and a browser-made one with a random id for its ground.</summary>
+    private static byte[] Seed(double? width, double depth, string mode, double centerX, double centerZ)
     {
-        double hx = width / 2, hz = depth / 2;
-        return JsonSerializer.SerializeToUtf8Bytes(new
+        double hx = (width ?? 0) / 2, hz = depth / 2;
+        return JsonSerializer.SerializeToUtf8Bytes(new SketchLayout
         {
-            setup = new
+            Setup = width is null ? null : new SketchSetup
             {
-                bbox = new { min_x = -hx, max_x = hx, min_z = -hz, max_z = hz },
-                center = new { cx = centerX, cz = centerZ },
-                mirror_mode = mode,
+                Bbox = new SketchBbox { MinX = -hx, MaxX = hx, MinZ = -hz, MaxZ = hz },
+                Center = new SketchCenter { Cx = centerX, Cz = centerZ },
+                MirrorMode = mode,
             },
-        });
+            Layers = [SketchLayer.Ground()],
+        }, Sparse);
     }
+
+    /// <summary>The layout reader's own options, writing only what the seed states — a fresh board carries a
+    /// frame and a ground layer, and a key spelled <c>null</c> is a statement the board has not made.</summary>
+    private static readonly JsonSerializerOptions Sparse = new(SketchLayout.Json)
+    {
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+    };
 }
 
 /// <summary>GET /api/map/{slug}/sketch — the stored sketch layout (the JS-origin blob), or {} if none.</summary>
