@@ -491,6 +491,17 @@ seams support and nothing asks for, the word the model uses for a seam — and t
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
 
+- [ ] **TN12 — Cycling a spawn's facing leaves the room it seeded pointing the old way.** The editor asks
+  `POST /api/plan/room` once, when the piece is drawn, and writes the answer's `at` and `footprint` onto a new
+  placement (`plan-bridge.js:128` `seedRoom`). Cycling the facing afterwards — a re-click on a selected spawn
+  (`plan-canvas.js:1053`) or the rail's Cycle facing button (`plan-bridge.js:441` `cycleFacing`) — rewrites
+  `facing` alone, so the stored footprint keeps the door apron on the side the room no longer opens on. The
+  endpoint reads the stated facing now, so re-asking it answers correctly; what is missing is the ask. Re-seed
+  on a facing change, leaving a footprint the author has since moved alone.
+
+  *the door gap is `RoomFrames.DefaultFootprint`'s inset in front of the door, so a `front` seed on a `back`
+  spawn puts the apron at the room's `−z` edge and the door at its `+z` one.*
+
 - [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
   rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that
   seam: resize or re-bow either shape and the wall stays where it was, spanning less than the lane it was
@@ -663,6 +674,18 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   the selection box it sits under.
 
 ## Refactoring and cleanup
+
+- [ ] **RP65 — Two `SketchLayout` fields carry no schema, and they are the two an agent writes most of.**
+  `Dressing` and `Biome` are `JsonElement?` because their types (`Minecraft.Painting.BiomeField`,
+  `DressingDoc`, `TerrainMaterial`) live in `Minecraft` and `SketchLayout` lives in `Pgm`, which are siblings
+  over `Domain` + `Geom` — the field's own docstring says so (`SketchLayout.cs:41-50`). Three things follow
+  from the one boundary: `/api/openapi/v1.json` names not a single field of either, so half the document an
+  agent is told to check the schema for is unanswerable there; the material graph inside them binds late,
+  outside the `RQ1` refusal envelope; and a store-time gate has nothing to construct. Move the dressing and
+  material model down to a project both reach, or publish the two schemas from `Minecraft` and reference them.
+
+  *`opus5-run1.md`: three of the run's nine dead ends were questions about `dressing` that the schema could not
+  answer, and both of its HTTP 500s were materials nested inside it.*
 
 - [ ] **G154 — one plan editor, two bindings, two different tools.** `PlanTool` serves `/plan-editor` and
   `/maps/{slug}/plan` from a single component through five `@if (MapBacked)` branches, and the two render as
