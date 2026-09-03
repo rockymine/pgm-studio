@@ -1,3 +1,4 @@
+using PgmStudio.Geom;
 using PgmStudio.Geom.Relief;
 
 namespace PgmStudio.Geom.Tests.Relief;
@@ -241,6 +242,49 @@ public sealed class ReliefSolverTests
 
         foreach (var (x, z) in footprint.Land())
             await Assert.That(resumed.At(x, z)).IsEqualTo(cold.At(x, z));
+    }
+
+    [Test]
+    public async Task A_quarter_turned_map_agrees_across_all_four_quarters()
+    {
+        // A rot_90 orbit has four images, so a fold that separates them by a half-plane leaves two quarters
+        // reading one solved surface and two reading another. The board is square about its centre because a
+        // quarter turn swaps width and depth.
+        const double CentreX = 30, CentreZ = 30;
+        var footprint = Board(60, 60);
+        List<Mark> marks = [new RimMark(5)];
+        for (var image = 0; image < 4; image++)
+        {
+            var (markX, markZ) = Symmetry.Point(14, 9, "rot_90", CentreX, CentreZ, image);
+            marks.Add(new PointMark(markX, markZ, 15, 4));
+        }
+
+        var spec = new ReliefSpec
+        {
+            Base = 5, Marks = marks, Grain = 1.2, GrainScale = 9, Seed = 3,
+            FoldMode = "rot_90", FoldCentreX = CentreX, FoldCentreZ = CentreZ,
+        };
+
+        var folded = ReliefSolver.Solve(footprint, spec);
+        var loose = ReliefSolver.Solve(footprint, spec with { FoldMode = null });
+
+        await Assert.That(WorstQuarterDifference(folded, CentreX, CentreZ)).IsEqualTo(0);
+        await Assert.That(WorstQuarterDifference(loose, CentreX, CentreZ)).IsGreaterThan(0);
+    }
+
+    /// <summary>The worst height difference between any cell and any of the other three images of its
+    /// quarter-turn orbit — zero exactly when every team stands on the same ground.</summary>
+    private static int WorstQuarterDifference(HeightField field, double centreX, double centreZ)
+    {
+        var worst = 0;
+        foreach (var (x, z) in field.Footprint.Land())
+            for (var image = 1; image < 4; image++)
+            {
+                var (ix, iz) = Symmetry.Cell(x, z, "rot_90", centreX, centreZ, image);
+                if (!field.Has(ix, iz)) continue;
+                worst = Math.Max(worst, Math.Abs(field.At(x, z) - field.At(ix, iz)));
+            }
+        return worst;
     }
 
     private static int WorstMirroredDifference(HeightField field, double centreX, double centreZ)

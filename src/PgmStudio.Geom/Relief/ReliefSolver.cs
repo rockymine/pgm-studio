@@ -139,12 +139,33 @@ public static class ReliefSolver
         {
             "mirror_x" => centreX <= spec.FoldCentreX ? (x, z) : (mirroredX, z),
             "mirror_z" => centreZ <= spec.FoldCentreZ ? (x, z) : (x, mirroredZ),
+            "rot_90" => Quarter(centreX, centreZ, spec),
             // A half-turn has no single axis, so the canonical half is one side of a line through the centre,
             // broken along it by the other coordinate so the two images never both claim to be canonical.
             _ => centreZ < spec.FoldCentreZ || (centreZ == spec.FoldCentreZ && centreX <= spec.FoldCentreX)
                 ? (x, z) : (mirroredX, mirroredZ),
         };
     }
+
+    /// <summary>The canonical cell of a <b>quarter-turn</b> orbit: whichever of its four images lies in the
+    /// quadrant running from the <c>+x</c> axis round to — but not including — the <c>+z</c> one.
+    ///
+    /// <para>A half-turn's two images are separated by a half-plane, which is a quadrant too coarse to tell
+    /// four apart, so a cell reaches the canonical region by being <b>turned</b> rather than reflected. The
+    /// turn is <see cref="Symmetry.RotatePoint"/>'s, the same one the board is fanned by, applied to the
+    /// cell's centre and floored once at the end: turning an already-floored image would land it on a fifth
+    /// position rather than on a member of its own orbit.</para></summary>
+    private static (int X, int Z) Quarter(double centreX, double centreZ, ReliefSpec spec)
+    {
+        var (x, z) = (centreX, centreZ);
+        for (var turn = 0; turn < 3 && !IsCanonicalQuarter(x - spec.FoldCentreX, z - spec.FoldCentreZ); turn++)
+            (x, z) = Symmetry.RotatePoint(x, z, 90, spec.FoldCentreX, spec.FoldCentreZ);
+        return ((int)Math.Floor(x), (int)Math.Floor(z));
+    }
+
+    /// <summary>Whether an offset from the fold centre lies in the canonical quadrant. The boundaries are
+    /// taken one open and one closed so that the four images of a cell land in exactly one of them.</summary>
+    private static bool IsCanonicalQuarter(double dx, double dz) => dx > 0 && dz >= 0;
 
     /// <summary>The block surface with every cell taking its mirror image's value from the canonical half —
     /// the same fold the continuous field gets, applied to a pass that ran after it.</summary>
