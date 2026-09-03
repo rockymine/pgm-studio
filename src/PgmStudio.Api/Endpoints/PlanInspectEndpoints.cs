@@ -481,9 +481,11 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
 ///
 /// <para>The numbers are <see cref="PieceRoom"/>'s, which are <see cref="RoomFrames.DefaultFootprint"/>'s, so
 /// the rectangle the author is handed and the one the export would have defaulted to are one number rather
-/// than two free to disagree. A piece whose role carries no room, or which is too small to raise a shell on,
-/// is answered 404 — there is nothing to seed and a rectangle its own export would refuse is worse than
-/// none.</para>
+/// than two free to disagree. That holds only while both read the same door edge, so the answer takes the
+/// facing of the spawn standing on the piece — a footprint seeded against the wrong edge pins the door apron
+/// to the side the room does not open on. A piece whose role carries no room, or which is too small to raise
+/// a shell on, is answered 404 — there is nothing to seed and a rectangle its own export would refuse is
+/// worse than none.</para>
 /// </summary>
 public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
 {
@@ -516,8 +518,14 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
             return;
         }
 
+        // The door edge follows the facing of the spawn already standing on the piece, because that is what
+        // the compiler stamps the shell with. A piece with no placement yet takes the model's own default,
+        // which is the word a spawn drawn on it will carry.
+        var facing = plan.Placements.Spawns.FirstOrDefault(spawn => spawn.Piece == pieceId)?.Facing
+            ?? new SpawnPlacement().Facing;
+
         if (d.Piece(pieceId) is not { } piece
-            || PieceRoom.ForPiece(piece.Rect, piece.Role, "front") is not { } seed)
+            || PieceRoom.ForPiece(piece.Rect, piece.Role, facing) is not { } seed)
         {
             await Send.NotFoundAsync(ct);
             return;
