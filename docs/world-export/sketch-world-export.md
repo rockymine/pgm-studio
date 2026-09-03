@@ -112,7 +112,7 @@ team holds, which is why it is one chest rather than two designs.
 ### 2b. Observer platform (standalone — not a cube)
 
 The observer/default spawn (`ObserverIntent.Point`) gets its own template: a **solid 6×6 bedrock platform**
-(integer-snapped X/Z; placed at the observer's **authored, floating Y** — *not* terrain-snapped, §5). At the
+(integer-snapped X/Z; placed at the observer's **authored, floating Y** — *not* terrain-snapped, §5 — and lifted above the highest block in its own 6×6 where the board builds something over that point, since the floor course is bedrock written through whatever occupies those cells; a lift is reported as `EX5`). At the
 centre of **each of the four edges** sits an identical **"info board"**: a **1-tall × 2-wide bedrock wall** with a
 **2-sign pair mounted on its inner face, facing the platform centre**. Top-down layout (`b` = raised bedrock,
 `s` = sign, `o` = solid bedrock floor):

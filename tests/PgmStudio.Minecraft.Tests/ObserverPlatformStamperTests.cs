@@ -57,4 +57,45 @@ public sealed class ObserverPlatformStamperTests
             Directory.Delete(dir, recursive: true);
         }
     }
+
+    /// <summary>
+    /// <b>The platform seats above whatever the board builds under it.</b> Its floor course is bedrock
+    /// written over the cells it covers, so a height derived from a nominal ground level would put that
+    /// bedrock through a bridge or a keep standing at the board's centre — and stand the observers inside it.
+    /// </summary>
+    [Test]
+    public async Task The_floor_clears_what_is_already_built_under_it()
+    {
+        var world = new VoxelWorld();
+
+        // A bridge deck across the middle of the footprint, well above the height the intent asked for.
+        for (var x = -3; x <= 2; x++)
+            world.SetBlock(x, 30, 0, Blocks.Cobblestone);
+
+        await Assert.That(ObserverPlatformStamper.ClearFloorAt(world, 0, 0, 24)).IsEqualTo(31);
+    }
+
+    /// <summary>Nothing over the footprint leaves the stated height exactly, so a board with an empty centre
+    /// puts its platform where the intent put it.</summary>
+    [Test]
+    public async Task An_empty_footprint_keeps_the_height_it_was_given()
+    {
+        var world = new VoxelWorld();
+        world.SetBlock(40, 60, 40, Blocks.Cobblestone);      // outside the 6x6
+
+        await Assert.That(ObserverPlatformStamper.ClearFloorAt(world, 0, 0, 24)).IsEqualTo(24);
+    }
+
+    /// <summary>Ground below the stated height is not a reason to move: the platform floats, and only what
+    /// reaches into its own courses can bury it.</summary>
+    [Test]
+    public async Task Ground_below_the_stated_height_does_not_lift_it()
+    {
+        var world = new VoxelWorld();
+        for (var x = -3; x <= 2; x++)
+        for (var z = -3; z <= 2; z++)
+            world.SetBlock(x, 9, z, Blocks.Stone);
+
+        await Assert.That(ObserverPlatformStamper.ClearFloorAt(world, 0, 0, 24)).IsEqualTo(24);
+    }
 }

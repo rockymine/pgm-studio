@@ -398,6 +398,10 @@ public static class PlanCompiler
         var laneRects = FanRects(plan.WaterLanes.Select(z => z.Rect), d);
         var waterLanes = laneRects.Count > 0 ? new WaterLaneIntent { Rects = laneRects } : null;
 
+        // A nominal height over the nominal ground: the plan states neither the relief that will roll under
+        // the centre nor anything drawn over it, so this is a starting point rather than an answer. The
+        // export seats the platform clear of what the world actually builds there and writes the height it
+        // settled on back into the intent (EX5).
         var observerY = plan.Globals.ObserverY ?? plan.Globals.Surface + 15;
 
         var structures = BuildStructures(plan, d);

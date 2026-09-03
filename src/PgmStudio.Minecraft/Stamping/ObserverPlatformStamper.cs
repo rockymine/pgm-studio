@@ -28,6 +28,31 @@ public static class ObserverPlatformStamper
         new((5, 2), (5, 3), MapName: (4, 2), Authors: (4, 3), Facing.NegX),   // max-x edge
     ];
 
+    /// <summary>The lowest floor at or above <paramref name="wantedY"/> that leaves the platform's own
+    /// footprint clear of everything the board already builds under it.
+    ///
+    /// <para>The platform is <b>stamped, not fitted</b>: its floor course is bedrock written over whatever
+    /// occupies those cells. A height derived from a nominal ground level knows nothing about a bridge, a keep
+    /// or a made thing standing at the board's centre, so the floor is seated above the highest block in its
+    /// own six-by-six rather than taken on trust. A footprint with nothing over it keeps
+    /// <paramref name="wantedY"/> exactly.</para></summary>
+    public static int ClearFloorAt(VoxelWorld world, int anchorX, int anchorZ, int wantedY)
+    {
+        var (x0, z0) = (anchorX - 3, anchorZ - 3);
+        var highest = int.MinValue;
+
+        for (var lx = 0; lx < Size; lx++)
+        for (var lz = 0; lz < Size; lz++)
+            for (var y = VoxelWorld.MaxHeight - 1; y >= wantedY; y--)
+                if (world.GetBlock(x0 + lx, y, z0 + lz).Id != Blocks.Air)
+                {
+                    highest = Math.Max(highest, y);
+                    break;
+                }
+
+        return highest == int.MinValue ? wantedY : highest + 1;
+    }
+
     public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY, string mapName, IReadOnlyList<string> authors)
     {
         var x0 = anchorX - 3;

@@ -162,7 +162,7 @@ public static class MapExportComposer
     /// <summary>The rule ids the export gate owns itself. The rest it enforces for another document and cites
     /// that document's own id — <see cref="ObjectiveRules"/> for a goal, a gamemode or a prop in a clearance,
     /// and <see cref="DressingParseException.Rule"/> for a dressing document that will not parse.</summary>
-    private static class ExportRules
+    internal static class ExportRules
     {
         /// <summary>Some part of the map cannot be walked to from the rest of it.</summary>
         /// <remarks>The finding names what is cut off. Bridge it: add ground, widen a border, or move the isolated spawn or objective onto the reachable part of the map.</remarks>
@@ -183,6 +183,11 @@ public static class MapExportComposer
         /// <remarks>Add the teams. A wool, a destroyable and a core are each one team's to defend and the others' to take, so a map carrying one and no team has an objective nobody owns.</remarks>
         [Rule(RuleCategory.Unplayable, RuleConcern.Intent, RuleConcern.Objective)]
         public const string NoTeam = "EX4";
+
+        /// <summary>The observer platform stands higher than the intent asked, because the board builds something over the point it named.</summary>
+        /// <remarks>State <c>observerY</c> above whatever the board's centre carries — a bridge, a keep or a made thing. The platform is a solid floor rather than a marker, so leaving it where it was asked for would write bedrock through that build and stand the observers inside it. The derived height clears the built world on its own; this fires on a height that was stated.</remarks>
+        [Rule(RuleCategory.Unsatisfiable, RuleConcern.Intent, RuleConcern.World)]
+        public const string ObserverSeated = "EX5";
     }
 
     // ── EX2 · EX3 · EX4 — is this a map, and is it the map its author stated? ──────────────────────────────

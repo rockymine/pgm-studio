@@ -397,7 +397,13 @@ public static class WorldBuilder
         if (intent.Observer is { } obs)
         {
             var (ox, oz) = PositionSnap.SnapXZ(obs.Point.X, obs.Point.Z);
-            var platformFloor = SafeFloor((int)Math.Round(obs.Point.Y, MidpointRounding.AwayFromZero));
+            var statedFloor = SafeFloor((int)Math.Round(obs.Point.Y, MidpointRounding.AwayFromZero));
+            var platformFloor = SafeFloor(ObserverPlatformStamper.ClearFloorAt(world, ox, oz, statedFloor));
+            if (platformFloor != statedFloor)
+                built.Add(new Finding(MapExportComposer.ExportRules.ObserverSeated,
+                    $"the observer platform is stated at y{statedFloor} and the board builds up to y{platformFloor - 1} "
+                    + $"over ({ox}, {oz}), so it stands at y{platformFloor} instead",
+                    Severity.Complaint, Subjects: ["observer"]));
             var authorNames = intent.Meta?.Authors.Select(a => a.Name).ToList() ?? [];
             ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "", authorNames);
             (spawnX, spawnY, spawnZ) = (ox, platformFloor + 1, oz);
