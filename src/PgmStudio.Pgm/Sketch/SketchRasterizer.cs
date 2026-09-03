@@ -381,12 +381,17 @@ public static class SketchRasterizer
                     var mirrored = groupShapes.Select(s => MirrorShape(s, axis, cx, cz)).ToList();
                     var copy = RasterGroup(mirrored, out var mirroredClaims);
                     // A mirrored copy of a relief-bearing group takes its heights from the group's own
-                    // solved surface, read back through the same transform — exactly symmetric by
-                    // construction, rather than symmetric to within a second solve's tolerance.
+                    // solved surface, read back through the transform that undoes the one that placed it —
+                    // exactly symmetric by construction, rather than symmetric to within a second solve's
+                    // tolerance. The inverse is what a quarter-turn needs: a rot_90 image read back through
+                    // rot_90 lands on the rot_180 image's ground, which the field does not cover, so the
+                    // copy keeps its shapes' flat base heights and one pair of teams plays a solved surface
+                    // while the other pair plays a table.
+                    var back = Symmetry.Inverse(axis);
                     if (field is not null)
                         foreach (var cell in copy.Keys.ToList())
                         {
-                            var source = MirrorCell(cell, axis, cx, cz);
+                            var source = MirrorCell(cell, back, cx, cz);
                             if (!field.Has(source.Item1, source.Item2)) continue;
                             copy[cell] = (Math.Max(copy[cell].Floor + 1, field.At(source.Item1, source.Item2)),
                                           copy[cell].Floor);

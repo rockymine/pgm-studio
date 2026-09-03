@@ -459,4 +459,32 @@ public sealed class SketchRasterizerTests
         await Assert.That(SketchRasterizer.DetachedMasses(storeys).Count).IsGreaterThan(0);
         await Assert.That(SketchRasterizer.DetachedMasses(made)).IsEmpty();
     }
+
+    /// <summary>A relief-bearing group under <c>rot_90</c> hands the same solved surface to all four of its
+    /// orbit images. A quarter-turn is not its own inverse, so an image's heights are read back through the
+    /// transform that undoes the one that placed it; reading them back through the same one lands on a
+    /// different image's ground, which the field does not cover, and two of the four teams get the shapes'
+    /// flat base heights instead of the terrain.</summary>
+    [Test]
+    public async Task A_quarter_turn_orbit_carries_the_relief_onto_all_four_images()
+    {
+        var columns = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"rot_90","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
+            {"id":"q","type":"rectangle","operation":"add","min_x":-40,"max_x":-10,"min_z":-40,"max_z":-10,"floor":0,"base_height":4}],
+          "groups":[{"id":"team","name":"Team","mirrors":true,"shapeIds":["q"]}]}}],
+         "relief":{"team":{"base":4,"reach":0,"step":1,"marks":[
+            {"id":"knoll","kind":"area","h":14,"ring":[[-32,-32],[-18,-32],[-18,-18],[-32,-18]]}]}}}
+        """);
+
+        int Top(int x, int z) => columns.Single(column => column.X == x && column.Z == z).YTop;
+
+        // (-25, -25) stands on the knoll; the other three are its rot_90, rot_180 and rot_270 images, taken
+        // on the cell's centre the way every site that fans a footprint takes them.
+        var stated = Top(-25, -25);
+        await Assert.That(stated).IsGreaterThan(4);
+        await Assert.That(Top(24, -25)).IsEqualTo(stated);
+        await Assert.That(Top(24, 24)).IsEqualTo(stated);
+        await Assert.That(Top(-25, 24)).IsEqualTo(stated);
+    }
 }

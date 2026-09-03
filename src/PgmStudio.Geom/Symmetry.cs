@@ -33,6 +33,18 @@ public static class Symmetry
         ? ["rot_90", "rot_180", "rot_270"]
         : string.IsNullOrEmpty(mode) || mode == "none" ? [] : [mode];
 
+    /// <summary>The axis that undoes a given one. Every mirror and the half-turn are their own inverse, so
+    /// the two quarter-turns are the only pair this distinguishes — and the distinction is load-bearing
+    /// wherever an image cell is used to look a value up in the source it came from: reading a
+    /// <c>rot_90</c> image back through <c>rot_90</c> lands on a fourth position rather than on the cell the
+    /// image was made from.</summary>
+    public static string Inverse(string axis) => axis switch
+    {
+        "rot_90" => "rot_270",
+        "rot_270" => "rot_90",
+        _ => axis,
+    };
+
     /// <summary>Reflect a point across the plane through (ox,oz) with horizontal normal (nx,nz).</summary>
     public static (double X, double Z) ReflectPoint(double px, double pz, double nx, double nz, double ox, double oz)
     {

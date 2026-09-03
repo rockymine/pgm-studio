@@ -1764,6 +1764,17 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   (`Pgm/Sketch/SketchRasterizer.SeatOf`, `Pgm/Plan/PlanCompiler.WoolDoorEdges`, `Domain/RoomEdges.OfFacing`,
   `docs/world-export/relief.md`, `PlanCompilerReliefTests.cs`, `SketchStructuralHeightCarryTests.cs`)
 
+- **A quarter-turn orbit carries its relief onto all four images (`WE75`).** A mirrored copy of a
+  relief-bearing group read its heights back out of the group's own solved surface through the axis that
+  *placed* it. Every mirror and the half-turn are their own inverse, so that was right for every board the
+  studio had built; a `rot_90` board read back through `rot_90` and landed on the `rot_180` image's ground,
+  which the field does not cover, so two of the four copies fell through to their shapes' flat base heights.
+  A four-team board came out with two teams on solved terrain and two on a table, with `relief/read` answering
+  `symmetryError 0` throughout — it measures the one field, not the four copies. `Symmetry.Inverse` names the
+  axis that undoes a given one and the rasterizer's read-back takes it.
+  (`Geom/Symmetry.Inverse`, `Pgm/Sketch/SketchRasterizer.RasterizeLayout`,
+  `docs/world-export/relief.md`, `SketchRasterizerTests.cs`)
+
 - **A relief readback names the pieces, not just the count (`WS10`).** `relief/read` reported *places 3,
   largest 0.95* and left the missing five percent to be found by guessing a coordinate and taking a column
   transect. Each tier now carries `parts`: per piece the cell count, the share, the centroid, the box, and

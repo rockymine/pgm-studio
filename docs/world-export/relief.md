@@ -368,6 +368,15 @@ into one that is exact.
 Both fold on the cell's **centre**, not its corner. Reflecting the corner pairs each cell with its image's
 *neighbour* — a one-cell shear that looks like symmetry and measures as a full block of unfairness.
 
+**An orbit of four wants the inverse, not the axis.** Every mirror and the half-turn are their own inverse, so
+a board under `mirror_x` or `rot_180` can read an image cell's height out of the source field through the same
+transform that placed it. A quarter-turn cannot: reading a `rot_90` image back through `rot_90` lands on the
+`rot_180` image's ground, which the group's field does not cover, and the copy falls through to its shapes'
+flat base heights. On a four-team board that is two teams playing solved terrain and two playing a table, with
+the relief read-back reporting `symmetryError 0` throughout, because what it measures is the one field rather
+than the four copies of it. `Symmetry.Inverse` names the axis that undoes a given one, and the rasterizer's
+mirrored read-back is where it is owed.
+
 And the fold is not finished when the solve is. Every pass that runs afterwards decides things by walking the
 map — a stair cut picks the cheapest riser it finds first, a carve follows a route from one end, a graded road
 smooths along its length — and a walk has a direction the symmetry does not preserve. The stair repair folds
@@ -624,8 +633,9 @@ field instead of from the per-vertex triangulation, and their **floors** are lef
 where the ground is and not how thick the slab under it is. Nothing else about the rasterizer changes — the
 field answers the same question the triangulation did. It solves over the cells the group's add-shapes
 contribute that survive the set algebra, so a relief cannot re-add ground a subtract took away, and a mirrored
-copy reads its heights back out of the group's own solved surface through the same transform, which makes the
-two halves identical by construction rather than to within a second solve's tolerance (§8).
+copy reads its heights back out of the group's own solved surface through the transform that **undoes** the one
+that placed it, which makes the images identical by construction rather than to within a second solve's
+tolerance (§8).
 
 The canvas preview draws the field's **contours**, which is both the readable view of a height field and the
 direct-manipulation surface: dragging a contour line is dragging a line mark at that height, so the topographic
