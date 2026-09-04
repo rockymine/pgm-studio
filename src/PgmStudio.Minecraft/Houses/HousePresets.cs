@@ -492,9 +492,15 @@ public static class HousePresets
     /// posts and the floor they carry. The beams still run their ends out of the seam, and the ladder still
     /// climbs to the storey above; with no wall behind it, it climbs through open air, which is what a stilt
     /// house's ladder does.</para>
+    ///
+    /// <para><b>And the plate goes the same way.</b> A stilt house is raised so the ground can run on
+    /// underneath it — a bank, a mire, a shore — so a plate laid across the footprint would put a plank
+    /// rectangle on that ground and stop it (<c>HS10</c>). Air there is the same word in the same place doing
+    /// the same thing: the terrain the building stands over is what shows between the posts.</para>
     /// </summary>
     public static House Stilts => new("townside on stilts", Townside.Style with
     {
+        Foundation = Townside.Style.Foundation with { Plate = RoomPart.Of(new SolidMaterial(Blocks.Air)) },
         Storeys =
         [
             Townside.Style.Storeys[0] with

@@ -559,4 +559,54 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 0, beamWood: 0, laidWood: 0));
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PartMaterial)).IsFalse();
     }
+
+    // ── a house on stilts standing on a floor (HS10) ─────────────────────────────────────────────────
+
+    private static HouseStyle OnStilts(TerrainMaterial plate) => new()
+    {
+        Foundation = new Foundation { Plate = RoomPart.Of(plate) },
+        Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 5),
+        Doorway = new Doorway { Width = 2, Height = 3, Head = new DoorHeadStyle { Form = DoorHeadForm.None } },
+        Storeys =
+        [
+            // The open storey: air for the whole of the doorway's courses, closed by a laid log.
+            new Storey { Clear = 5, Wall = new RoomPart(new BandStack(
+                [new Band(new SolidMaterial(Blocks.Air), 5), new Band(new LaidLogMaterial(Blocks.Log, 0), 1)]), 5) },
+            new Storey { Clear = 4, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 4) },
+        ],
+    };
+
+    /// <summary>The corpus fault: `opus5-scarrow-delph`'s smithy stands its open storey on a course of oak
+    /// planks, so the mire it was raised over is floored across the whole footprint.</summary>
+    [Test]
+    public async Task A_stilt_house_standing_on_a_plate_is_HS10()
+    {
+        var findings = HouseStyleValidation.Check(OnStilts(new SolidMaterial(Blocks.Planks)));
+
+        var stilt = findings.Single(finding => finding.Rule == HouseStyleRules.StiltFloor);
+        await Assert.That(stilt.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(stilt.Field).IsEqualTo("foundation.plate");
+    }
+
+    /// <summary>And a plate of air says nothing, which is the answer the finding points at: the terrain runs
+    /// on under the building.</summary>
+    [Test]
+    public async Task A_stilt_house_on_a_plate_of_air_says_nothing()
+    {
+        var findings = HouseStyleValidation.Check(OnStilts(new SolidMaterial(Blocks.Air)));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.StiltFloor)).IsFalse();
+    }
+
+    /// <summary>A building with walls on the ground is not on stilts, so its floor is a floor.</summary>
+    [Test]
+    public async Task A_walled_ground_storey_on_a_plate_is_not_HS10()
+    {
+        var walled = OnStilts(new SolidMaterial(Blocks.Planks)) with
+        {
+            Storeys = [new Storey { Clear = 5, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 5) },
+                       new Storey { Clear = 4, Wall = RoomPart.Of(new SolidMaterial(Blocks.Planks, 1), 4) }],
+        };
+        var findings = HouseStyleValidation.Check(walled);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.StiltFloor)).IsFalse();
+    }
 }

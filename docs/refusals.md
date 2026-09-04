@@ -226,6 +226,7 @@ And the building rules, which the dressing document and the room library are bot
 | `HS7` | a footing rings a plate one course deep — a complaint |
 | `HS8` | a porch's canopy climbs past the wall it is attached to — a complaint |
 | `HS9` | beams over a wall with no laid-log course to be the ends of |
+| `HS10` | a house on stilts standing on a floor — a complaint |
 
 ## How a gate is called
 

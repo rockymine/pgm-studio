@@ -90,6 +90,14 @@ public static class HouseStyleRules
     /// <remarks>Lay the storey's top course in a `laidLog` — the same log the beams are cut from — or take the beams off. A laid log takes the axis the wall is going, so the course shows bark and the ends at the corners show the sawn face, which is the whole of what the detail is.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
     public const string BeamsWithoutTimber = "HS9";
+
+    /// <summary>A house on stilts standing on a floor. The point of a stilt storey is that the ground runs on
+    /// underneath it — a bank, a mire, a shore — and a plate laid across the footprint puts a plank rectangle
+    /// on that ground and stops it. Nothing is wrong with the building; what is wrong is that the ground it
+    /// was raised to leave alone has a lid on it.</summary>
+    /// <remarks>State the plate's material as air and the terrain runs on under the building, which is what a stilt house is for. Where the floor is meant — a boarded undercroft, a jetty deck — say so by keeping it; the finding is a complaint and changes nothing on its own.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.World, RuleConcern.Terrain)]
+    public const string StiltFloor = "HS10";
 }
 
 /// <summary>
@@ -130,6 +138,7 @@ public static class HouseStyleValidation
         CheckPorchHeadroom(style, findings);
         CheckBeamsHaveTimber(style, findings);
         CheckFrameTimber(style, findings);
+        CheckStiltFloor(style, findings);
         return findings;
     }
 
@@ -301,16 +310,40 @@ public static class HouseStyleValidation
     private static void CheckDoorHasWall(HouseStyle style, List<Finding> findings)
     {
         if (style.Doorway.Head.Form == DoorHeadForm.None) return;
-        if (style.Storeys.Count == 0 || style.Storeys[0].Wall is not { } wall) return;
-
-        var courses = Math.Max(1, style.Doorway.Height);
-        for (var course = 0; course < courses; course++)
-            if (wall.At(course).Material is not SolidMaterial { Id: 0 }) return;
+        if (!IsOnStilts(style)) return;
 
         findings.Add(new Finding(HouseStyleRules.DoorWithoutWall,
-            $"the ground storey's wall is air over all {courses} of the doorway's courses, so there is no "
-            + "wall to carry a door head — the arch and its lintel stand in mid-air.",
+            $"the ground storey's wall is air over all {Math.Max(1, style.Doorway.Height)} of the doorway's "
+            + "courses, so there is no wall to carry a door head — the arch and its lintel stand in mid-air.",
             Field: "doorHead.form"));
+    }
+
+    /// <summary>HS10 — a stilt storey standing on a floor. Reads a stilt storey the way <see cref="HS6"/> does,
+    /// so the two cannot disagree about what one is: a ground storey whose wall is air for the whole of the
+    /// doorway's courses. Where that storey stands on a plate of anything but air, the ground the stilts were
+    /// raised over is covered by it.</summary>
+    private static void CheckStiltFloor(HouseStyle style, List<Finding> findings)
+    {
+        if (!IsOnStilts(style)) return;
+        if (style.Foundation.Plate.Stack.Bands.All(band => band.Material.IsAir())) return;
+
+        findings.Add(new Finding(HouseStyleRules.StiltFloor,
+            $"the ground storey is open for all {Math.Max(1, style.Doorway.Height)} of the doorway's courses "
+            + "— a house on stilts — and it stands on a plate that is not air, so the ground it was raised "
+            + "over is floored across the whole footprint. State the plate as air to let the terrain run on "
+            + "under it.",
+            Severity.Complaint, Field: "foundation.plate"));
+    }
+
+    /// <summary>Whether the ground storey is open for the whole of the doorway's courses — a house on stilts,
+    /// an open undercroft. One reading, so <see cref="HouseStyleRules.DoorWithoutWall"/> and
+    /// <see cref="HouseStyleRules.StiltFloor"/> mean the same thing by it.</summary>
+    private static bool IsOnStilts(HouseStyle style)
+    {
+        if (style.Storeys.Count == 0 || style.Storeys[0].Wall is not { } wall) return false;
+        for (var course = 0; course < Math.Max(1, style.Doorway.Height); course++)
+            if (!wall.At(course).Material.IsAir()) return false;
+        return true;
     }
 
     /// <summary>A footing on a plate too shallow to have a foot. A complaint: the building stands either

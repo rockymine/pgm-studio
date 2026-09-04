@@ -5281,6 +5281,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   `opus5-scarrow-delph`'s stilt houses stand spruce posts (17:1) under oak ends and an oak laid-log course
   (17:0). The shipped `counting house` failed its own rule and has lost its beams; it shows its floors by
   changing material at each seam, which it already did.
+- **A house on stilts stands on the ground it was raised over (WE90).** A stilt storey is a wall of air — a
+  course that resolves to air is skipped, never written — and the plate under it is a `RoomPart` reading the
+  same word, so a foundation of air was already a building with no floor. Nothing said so, and nothing noticed
+  when a stilt house came with one: `opus5-scarrow-delph`'s smithy at (-24, 93) lays a course of oak planks
+  flat across the mire it stands in, and the shipped `townside on stilts` preset did the same. `HS10` names
+  it, a complaint — the building is not wrong, the ground under it is floored — and the preset now states its
+  plate as air, which is what leaves the terrain showing between the posts.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map
