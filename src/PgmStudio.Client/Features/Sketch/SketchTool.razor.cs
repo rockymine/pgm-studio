@@ -508,8 +508,8 @@ public partial class SketchTool
     private Task SetHeight((string Id, double Base, double Floor) e)
         => handle?.InvokeVoidAsync("setHeight", e.Id, e.Base, e.Floor).AsTask() ?? Task.CompletedTask;
 
-    private Task SetPathBand((string Id, double Radius, string Edge, int Seed) e)
-        => handle?.InvokeVoidAsync("setPathBand", e.Id, e.Radius, e.Edge, e.Seed).AsTask() ?? Task.CompletedTask;
+    private Task SetStrokeBand((string Id, double Radius, string Edge, int Seed) e)
+        => handle?.InvokeVoidAsync("setStrokeBand", e.Id, e.Radius, e.Edge, e.Seed).AsTask() ?? Task.CompletedTask;
 
     private Task SetVertexHeight((string Id, int Idx, double Height) e)
     {

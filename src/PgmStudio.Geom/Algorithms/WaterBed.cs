@@ -35,7 +35,7 @@ public readonly record struct WaterCell(int X, int Z, int Depth);
 /// The bed a drawn channel cuts. Water cannot drape on a slope the way gravel can — laid on the surface it
 /// reads as blue paint — so a channel is not a finish over the ground but a shape taken <em>out</em> of it: a
 /// carved bed under a level fill. This is the pure side of that, the same distance field a
-/// <see cref="PathStroke"/> is (a swept disc of a line), yielding a depth per cell rather than a paving block.
+/// <see cref="StrokeFill"/> is (a swept disc of a line), yielding a depth per cell rather than a paving block.
 ///
 /// <para>The depth law is a parabolic U — deepest on the centerline, rising to a single block at the band's
 /// edge — so the fill sits in a bowl rather than a trench with vertical walls. The world-writing side (the
@@ -58,10 +58,10 @@ public static class WaterBed
     public static IEnumerable<WaterCell> Cells(
         IReadOnlyList<double[]> points, double radius, double depth, ChannelForm form, double edge, uint seed)
     {
-        var centerline = PathBand.Centerline(points);
+        var centerline = Centerline.Of(points);
         if (centerline.Count < 2 || radius <= 0 || depth <= 0) yield break;
 
-        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed);
+        var reach = (int cx, int cz, PolylineHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed);
         foreach (var (x, z, hit) in Polyline.Hits(centerline, radius + Math.Max(0, edge) + 1, reach))
         {
             var here = WidthAt(form, radius, edge, x, z, hit, seed);
@@ -93,11 +93,11 @@ public static class WaterBed
         IReadOnlyList<double[]> points, double radius, ChannelForm form, double shoreWidth, double edge, bool wander, uint seed)
     {
         if (shoreWidth <= 0) yield break;
-        var centerline = PathBand.Centerline(points);
+        var centerline = Centerline.Of(points);
         if (centerline.Count < 2 || radius <= 0) yield break;
 
         var scan = radius + Math.Max(0, edge) + shoreWidth + 1;
-        var reach = (int cx, int cz, PathHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed) + ShoreAt(shoreWidth, wander, hit, seed);
+        var reach = (int cx, int cz, PolylineHit hit) => WidthAt(form, radius, edge, cx, cz, hit, seed) + ShoreAt(shoreWidth, wander, hit, seed);
         foreach (var (x, z, hit) in Polyline.Hits(centerline, scan, reach))
         {
             var water = WidthAt(form, radius, edge, x, z, hit, seed);
@@ -202,7 +202,7 @@ public static class WaterBed
     // radius. A natural edge wobbles it by an absolute amount (a value field, ±edge blocks). A stream beads: the
     // width runs a rectified sine along the arc — pinching to half the radius and swelling back to it on a fixed
     // beat — with the same small wobble on top, so it narrows and widens down its length rather than tapering once.
-    private static double WidthAt(ChannelForm form, double radius, double edge, int x, int z, PathHit hit, uint seed)
+    private static double WidthAt(ChannelForm form, double radius, double edge, int x, int z, PolylineHit hit, uint seed)
     {
         var wobble = edge * (PatternNoise.Value(x, z, seed + 5, WidthNoiseScale) - 0.5);
         return form switch
@@ -217,7 +217,7 @@ public static class WaterBed
     // read along the arc — the same rescaling the prototype's `shoreWidth` uses to drop a shore to nothing in
     // places — but sampled by arc position so both banks share one width and the beach stays wrapped to the water
     // rather than a spatial field that opens on one bank and closes on the other around a bend.
-    private static double ShoreAt(double shoreWidth, bool wander, PathHit hit, uint seed)
+    private static double ShoreAt(double shoreWidth, bool wander, PolylineHit hit, uint seed)
         => wander
             ? Math.Max(0, shoreWidth * (1.9 * PatternNoise.Value((int)Math.Round(hit.Arc), 0, seed + 91, ShoreScale) - 0.25))
             : shoreWidth;

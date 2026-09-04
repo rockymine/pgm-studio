@@ -4,11 +4,11 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Export.Tests;
 
 /// <summary>
-/// <see cref="RouteRead"/>: a drawn route walked down its own centreline, over a built board. What is asserted
+/// <see cref="StrokeRead"/>: a drawn route walked down its own centreline, over a built board. What is asserted
 /// is what the read exists to say and a column read cannot — that the walk follows the road, that a station
 /// knows whether the paving reached it, and that a step in the ground under the road is named where it is.
 /// </summary>
-public sealed class RouteReadTests
+public sealed class StrokeReadTests
 {
     // Two plates meeting at x=0, the east one two courses higher, so a road laid straight through has one
     // rise in it at a cell the read has to name. A shape's `max_x` is the far edge rather than the last cell,
@@ -21,7 +21,7 @@ public sealed class RouteReadTests
             {"id":"b","type":"rectangle","operation":"add","min_x":0,"min_z":-30,"max_x":30,"max_z":30,"base_height":10}],
           "groups":[]}}],
          "dressing":{"props":[
-            {"kind":"stroke","id":"lane","points":[[-20,0],[20,0]],"radius":2,"seed":5,"route":true,
+            {"kind":"stroke","id":"lane","points":[[-20,0],[20,0]],"radius":2,"seed":5,"claimsGround":true,
              "pave":{"kind":"solid","id":4}}]}}
         """;
 
@@ -30,8 +30,8 @@ public sealed class RouteReadTests
         Teams = [new TeamDef { Id = "red", Color = "red" }, new TeamDef { Id = "blue", Color = "blue" }],
     };
 
-    private static RouteRead.Walked Walk(string layout, string id = "lane", int image = 0) =>
-        RouteRead.Of(WorldBuilder.Build(layout, Intent()), layout, id, image)!;
+    private static StrokeRead.Walked Walk(string layout, string id = "lane", int image = 0) =>
+        StrokeRead.Of(WorldBuilder.Build(layout, Intent()), layout, id, image)!;
 
     [Test]
     public async Task The_walk_follows_the_strokes_own_line_end_to_end()
@@ -39,7 +39,7 @@ public sealed class RouteReadTests
         var walked = Walk(Stepped);
 
         await Assert.That(walked.Id).IsEqualTo("lane");
-        await Assert.That(walked.Route).IsTrue();
+        await Assert.That(walked.ClaimsGround).IsTrue();
         await Assert.That(walked.Stations[0].X).IsEqualTo(-20);
         await Assert.That(walked.Stations[^1].X).IsEqualTo(20);
         await Assert.That(walked.Stations.All(station => station.Z == 0)).IsTrue();
@@ -87,7 +87,7 @@ public sealed class RouteReadTests
                 {"id":"a","type":"rectangle","operation":"add","min_x":-30,"min_z":-30,"max_x":0,"max_z":30,"base_height":8}],
               "groups":[]}}],
              "dressing":{"props":[
-                {"kind":"stroke","id":"lane","points":[[60,60],[80,60]],"radius":2,"seed":5,"route":true,
+                {"kind":"stroke","id":"lane","points":[[60,60],[80,60]],"radius":2,"seed":5,"claimsGround":true,
                  "pave":{"kind":"solid","id":4}}]}}
             """;
 
@@ -96,7 +96,7 @@ public sealed class RouteReadTests
         await Assert.That(walked.Paved).IsEqualTo(0);
         await Assert.That(walked.Gaps.Single().Cells).IsEqualTo(walked.Stations.Count);
         await Assert.That(walked.Stations.All(station => station.Word == "void")).IsTrue();
-        await Assert.That(RouteRead.Render(walked)).Contains("materials: (none paved)");
+        await Assert.That(StrokeRead.Render(walked)).Contains("materials: (none paved)");
     }
 
     [Test]
@@ -124,6 +124,6 @@ public sealed class RouteReadTests
     [Test]
     public async Task A_stroke_the_document_does_not_carry_has_no_road_to_walk()
     {
-        await Assert.That(RouteRead.Of(WorldBuilder.Build(Stepped, Intent()), Stepped, "nowhere", 0)).IsNull();
+        await Assert.That(StrokeRead.Of(WorldBuilder.Build(Stepped, Intent()), Stepped, "nowhere", 0)).IsNull();
     }
 }

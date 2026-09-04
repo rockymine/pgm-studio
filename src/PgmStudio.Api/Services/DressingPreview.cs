@@ -103,9 +103,9 @@ public static class DressingPreview
     /// <summary>The six path styles at card size, each drawn by paving the same stroke — a picker showing
     /// hand-drawn icons could promise a look the pass does not produce.</summary>
     public static IReadOnlyList<PropOptionDto> StrokeStyleCards(StrokeProp template, TerrainTheme theme, int cell = 3)
-        => PlanCards(theme, cell, [.. Enum.GetValues<PathStyle>().Select(style => (
+        => PlanCards(theme, cell, [.. Enum.GetValues<StrokeStyle>().Select(style => (
             Key: style.ToString().ToLowerInvariant(),
-            Label: PathStyleLabels[style],
+            Label: StrokeStyleLabels[style],
             Prop: (PlacedProp)(template with { Style = style, Points = CardStroke }),
             Defaults: (string?)null))]);
 
@@ -149,10 +149,10 @@ public static class DressingPreview
             Prop: (PlacedProp)(template with { Style = template.Style with { Form = TreeForm.Grown, Wood = wood.Name } }),
             Defaults: (string?)null))]);
 
-    private static readonly IReadOnlyDictionary<PathStyle, string> PathStyleLabels = new Dictionary<PathStyle, string>
+    private static readonly IReadOnlyDictionary<StrokeStyle, string> StrokeStyleLabels = new Dictionary<StrokeStyle, string>
     {
-        [PathStyle.Solid] = "Solid", [PathStyle.Worn] = "Worn", [PathStyle.Rough] = "Rough edge",
-        [PathStyle.Stones] = "Stepping stones", [PathStyle.Tapered] = "Tapered",
+        [StrokeStyle.Solid] = "Solid", [StrokeStyle.Worn] = "Worn", [StrokeStyle.Rough] = "Rough edge",
+        [StrokeStyle.Stones] = "Stepping stones", [StrokeStyle.Tapered] = "Tapered",
     };
 
     // A bent stroke, so a card shows what a style does through a turn as well as along a straight. Centred on

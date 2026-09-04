@@ -644,7 +644,7 @@ Every endpoint is anonymous, rooted at `/api`, and takes no map.
 | `POST /terrain/material-preview` | one material drawn in plan and section — body is a **bare material**, `{kind, …}`, unwrapped. One column, not an area: a pattern cannot be judged from it |
 | `POST /terrain/theme-preview` · `POST /terrain/theme-map-preview` | a whole theme as it will paint — the first over a sample plateau cut open plus one swatch per themeable bucket, the second over a compiled plan, so a theme is judged against the board it will dress rather than against a sample. Body is a **bare theme**, unwrapped |
 | `POST /terrain/prop-preview` | one placed prop standing on the finish it will stand on — body `{propJson, themeJson}`, because what the paint leaves on top is what decides whether flora grows at all |
-| `GET /terrain/path-styles` · `/terrain/water-forms` · `/terrain/boulder-forms` · `/terrain/species` · `/terrain/woods` | the dressing vocabularies — every path style, water form, boulder form, tree species and wood a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
+| `GET /terrain/stroke-styles` · `/terrain/water-forms` · `/terrain/boulder-forms` · `/terrain/species` · `/terrain/woods` | the dressing vocabularies — every stroke style, water form, boulder form, tree species and wood a prop may name, each with the fields it carries. What a picker offers, and the closed sets a prop document is refused against |
 
 **Every preview also draws a picture, and three query words say how to ask for one.** The default is
 SVG-in-JSON, which is what the client renders inline; `?format=png` answers **one** view as `image/png` bytes

@@ -1,8 +1,8 @@
 /**
- * The band around a drawn line — the JS twin of `PgmStudio.Geom.Algorithms.PathBand` (with the
+ * The band around a drawn line — the JS twin of `PgmStudio.Geom.Algorithms.StrokeOutline` (with the
  * `CatmullRom`, `Ribbon` and `PatternNoise` pieces it stands on). Pure math, NO DOM.
  *
- * The twin exists for the same reason the symmetry preview's does: the canvas rebuilds a path's outline on
+ * The twin exists for the same reason the symmetry preview's does: the canvas rebuilds a stroke's outline on
  * every pointer move, and a round trip to the server per frame is not a preview. That makes this a **parity
  * surface** — the numbers below (`SMOOTH_SAMPLES`, the swing and taper constants, the hash) must equal the
  * C# ones or the band the author drags is not the band the map exports. The C# file is the canonical one;
@@ -14,12 +14,12 @@
  * needs somewhere dense enough to vary along.
  */
 
-// Parity constants — must match C# Geom.Algorithms.PathBand.
+// Parity constants — must match C# Geom.Algorithms.StrokeOutline.
 export const SMOOTH_SAMPLES = 8;    // curve samples per drawn segment
 const ROUGH_PERIOD = 8;             // curve samples per wander of a rough edge
 const ROUGH_SWING  = 0.45;          // how much of the width a rough edge may gain or lose
 const ROUGH_SIDE   = 512;           // the noise row the right edge reads, so the two sides differ
-const TAPER_ENDS   = 0.35;          // what is left of the width where a tapered path runs out
+const TAPER_ENDS   = 0.35;          // what is left of the width where a tapered stroke runs out
 
 /**
  * The drawn points as the dense curve the band is centred on — what a preview strokes, too.
@@ -28,13 +28,13 @@ const TAPER_ENDS   = 0.35;          // what is left of the width where a tapered
  * varies along the stroke needs somewhere to vary, and left at two points a taper reads only its two ends
  * and comes out uniformly thin.
  */
-export function pathCenterline(vertices) {
+export function strokeCenterline(vertices) {
   if (!vertices || vertices.length < 2) return [];
   if (vertices.length === 2) return subdivide(vertices[0], vertices[1]);
   return catmullRom(vertices, SMOOTH_SAMPLES);
 }
 
-// The same point count a spline of one segment gives, so a straight path and a curved one vary at the same
+// The same point count a spline of one segment gives, so a straight stroke and a curved one vary at the same
 // rate along their length.
 function subdivide(from, to) {
   const points = [];
@@ -46,15 +46,15 @@ function subdivide(from, to) {
 }
 
 /**
- * The **closed** outline of the band `radius` blocks to each side of a path prop's route (closed to the
+ * The **closed** outline of the band `radius` blocks to each side of a stroke's centreline (closed to the
  * `toRing` convention — last point repeats the first). `[]` for a route of fewer than two points.
  *
  * The outline is what a canvas strokes to show where a route runs; what the export actually paves is
- * `Geom.PathStroke`, and the two deliberately differ. An outline cannot draw a gap, so a stepping-stone path
+ * `Geom.StrokeFill`, and the two deliberately differ. An outline cannot draw a gap, so a stepping-stone stroke
  * shows here as the corridor its stones fall along — which is the right thing to see while placing it.
  */
-export function pathRing(prop) {
-  const centerline = pathCenterline(prop.points);
+export function strokeRing(prop) {
+  const centerline = strokeCenterline(prop.points);
   const radius = prop.radius ?? 2;
   if (centerline.length < 2 || radius <= 0) return [];
   // Only the two styles that vary a width change the outline; the rest gate cells inside it.

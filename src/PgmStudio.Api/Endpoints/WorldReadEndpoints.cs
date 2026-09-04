@@ -945,18 +945,18 @@ internal sealed class TransectReadEndpoint(MapRepository repo, MapReader reader,
     }
 }
 
-/// <summary>GET /api/map/{slug}/route — a drawn route walked end to end, down its own centreline. A stroke
+/// <summary>GET /api/map/{slug}/stroke — a drawn stroke walked end to end, down its own centreline. A stroke
 /// marked <c>route: true</c> makes every other prop keep its distance and nothing read the stroke itself:
 /// <c>walk</c> answers the way a player would choose between two points, which is not the way the author
 /// drew. <c>id</c> names the stroke, <c>image</c> which of the symmetry orbit's roads to walk.</summary>
 internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
-    : EndpointWithoutRequest<RouteReadDto>
+    : EndpointWithoutRequest<StrokeReadDto>
 {
     public override void Configure()
     {
-        Get("/map/{slug}/route");
+        Get("/map/{slug}/stroke");
         AllowAnonymous();
-        Summary(s => s.Summary = WorldReadCatalog.Sentence("route"));
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("stroke"));
         Description(b => b.AlsoText().Refuses(404, 422).Reads(
             new QueryWord("id", "Which stroke of the dressing document to walk, by its own id."),
             new QueryWord("image", "Which image of the symmetry orbit, 0 for the one the author drew. Absent "
@@ -978,7 +978,7 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
 
         var layoutJson = System.Text.Encoding.UTF8.GetString(layout);
         var id = Query<string?>("id", isRequired: false) ?? "";
-        var walked = RouteRead.Of(read.Built, layoutJson, id, Query<int?>("image", isRequired: false) ?? 0);
+        var walked = StrokeRead.Of(read.Built, layoutJson, id, Query<int?>("image", isRequired: false) ?? 0);
         if (walked is null)
         {
             var drawn = DressingScope.PropsOf(layoutJson).OfType<StrokeProp>().Select(stroke => stroke.Id).ToList();
@@ -993,16 +993,16 @@ internal sealed class RouteReadEndpoint(MapRepository repo, MapReader reader, Ma
 
         if (TextAnswer.Wanted(HttpContext))
         {
-            await TextAnswer.WriteAsync(HttpContext, RouteRead.Render(walked), ct);
+            await TextAnswer.WriteAsync(HttpContext, StrokeRead.Render(walked), ct);
             return;
         }
 
-        await Send.OkAsync(new RouteReadDto(walked.Id, walked.Image, walked.Images, walked.Route,
-            [.. walked.Stations.Select(station => new RouteStationDto(station.X, station.Z, station.Ground,
+        await Send.OkAsync(new StrokeReadDto(walked.Id, walked.Image, walked.Images, walked.ClaimsGround,
+            [.. walked.Stations.Select(station => new StrokeStationDto(station.X, station.Z, station.Ground,
                 station.Paved, station.Material, station.Step, station.Word))],
             walked.Paved, walked.Rises, walked.Falls, walked.WorstStep, walked.Events,
-            [.. walked.Materials.Select(run => new RouteRunDto(run.Material, run.Cells))], walked.MaterialRuns,
-            [.. walked.Gaps.Select(gap => new RouteGapDto(gap.FromX, gap.FromZ, gap.ToX, gap.ToZ, gap.Cells))]), ct);
+            [.. walked.Materials.Select(run => new StrokeRunDto(run.Material, run.Cells))], walked.MaterialRuns,
+            [.. walked.Gaps.Select(gap => new StrokeGapDto(gap.FromX, gap.FromZ, gap.ToX, gap.ToZ, gap.Cells))]), ct);
     }
 }
 

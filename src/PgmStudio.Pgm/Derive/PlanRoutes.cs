@@ -34,7 +34,7 @@ public sealed record HoleRead(
 public sealed record RouteFork((int X, int Z) Split, (int X, int Z) Fuse, int Between);
 
 /// <summary>Everything one journey answers: how far, along which ways, through how much of the board.</summary>
-public sealed record RouteRead(
+public sealed record StrokeRead(
     (int X, int Z) From, (int X, int Z) To, int? Shortest,
     IReadOnlyList<RouteOption> Options,
     IReadOnlySet<(int X, int Z)> Corridor,
@@ -67,7 +67,7 @@ public static class PlanRoutes
     /// <summary>Holes smaller than this are gaps between rectangles, not places a route goes round.</summary>
     public const int HoleFloor = 2;
 
-    public static RouteRead Read(PlanNav nav, (int X, int Z) from, (int X, int Z) to,
+    public static StrokeRead Read(PlanNav nav, (int X, int Z) from, (int X, int Z) to,
         double slack = CorridorSlack)
     {
         var within = nav.Navigable;
@@ -76,7 +76,7 @@ public static class PlanRoutes
         var target = ground.Stand(to);
         var direct = seat is { } a && target is { } b ? Walk.Between(a, b, ground) : null;
         if (direct is null)
-            return new RouteRead(from, to, null, [], new HashSet<(int X, int Z)>(), 0,
+            return new StrokeRead(from, to, null, [], new HashSet<(int X, int Z)>(), 0,
                 ReadHoles(nav, new HashSet<(int X, int Z)>(), from, to, within), null);
 
         var (start, goal) = (seat!.Value, target!.Value);
@@ -102,7 +102,7 @@ public static class PlanRoutes
         }
 
         options.Sort((a, b) => a.Length.CompareTo(b.Length));
-        return new RouteRead(from, to, shortest, options, corridor, share, holes, Fork(options, ground));
+        return new StrokeRead(from, to, shortest, options, corridor, share, holes, Fork(options, ground));
     }
 
     /// <summary>Where the options part company and where they meet again. The split is the end of the run

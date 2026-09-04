@@ -56,21 +56,21 @@
       {
         <Field Label="What it is">
           <label class="ctrl-row" style="cursor:pointer">
-            <input type="checkbox" class="control-input control-input--hidden" checked="@Flag(PropFields.Route)"
-                   @onchange="e => Set(PropFields.Route, JsonValue.Create(e.Value is true))" />
-            <span class="plan-readout">@(Flag(PropFields.Route) ? "a route — trees and boulders keep clear"
+            <input type="checkbox" class="control-input control-input--hidden" checked="@Flag(PropFields.ClaimsGround)"
+                   @onchange="e => Set(PropFields.ClaimsGround, JsonValue.Create(e.Value is true))" />
+            <span class="plan-readout">@(Flag(PropFields.ClaimsGround) ? "claims its ground — trees and boulders keep clear"
                                           : "paint — anything may stand on it")</span>
           </label>
         </Field>
         <p class="section-desc">The style below is the brush and says nothing about this: a gravel tongue over
-          a crag and a road between two spawns can be the same brush at the same width. Only a route is kept
-          clear of, and a board where every stroke is one has nowhere left to plant.</p>
+          a crag and a road between two spawns can be the same brush at the same width. Only a claiming stroke
+          is kept clear of, and a board where every stroke claims has nowhere left to plant.</p>
         <Field Label="Width (blocks)">
           <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
         </Field>
         <div class="section-header section-header--ruled"><h2 class="section-title">Style</h2></div>
         <div class="prop-cards">
-          @foreach (var option in pathStyles)
+          @foreach (var option in strokeStyles)
           {
             <button class="prop-card @(Text(PropFields.Style, PropFields.SolidStyle) == option.Key ? "prop-card--active" : null)"
                     title="@option.Label" @onclick="() => Pick(PropFields.Style, option)">

@@ -41,8 +41,8 @@ public sealed class TerrainLibraryClient(HttpClient http)
     // the value underneath.
     /// <summary>The path-shape cards, drawn in <paramref name="paveJson"/> — the material the author already
     /// chose — so the picker answers "what would <em>mine</em> look like shaped that way".</summary>
-    public async Task<IReadOnlyList<PropOptionDto>> PathStylesAsync(string? paveJson = null)
-        => await GetOrDefault<List<PropOptionDto>>(Card("api/terrain/path-styles", "pave", paveJson)) ?? [];
+    public async Task<IReadOnlyList<PropOptionDto>> StrokeStylesAsync(string? paveJson = null)
+        => await GetOrDefault<List<PropOptionDto>>(Card("api/terrain/stroke-styles", "pave", paveJson)) ?? [];
 
     /// <summary>The rock-shape cards, drawn in the author's own rock material, for the same reason.</summary>
     public async Task<IReadOnlyList<PropOptionDto>> BoulderFormsAsync(string? rockJson = null)

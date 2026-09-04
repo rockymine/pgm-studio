@@ -8,13 +8,13 @@ using PgmStudio.Minecraft.Palette;
 namespace PgmStudio.Export;
 
 /// <summary>
-/// A drawn route, walked end to end — the road as it was laid rather than the journey a walker would choose.
-/// <c>route: true</c> on a stroke makes every other prop keep its distance (<c>DR-ROAD</c>), and nothing read
-/// the stroke itself: <c>walk</c> answers the way a player finds between two points, which is not the way the
+/// A drawn stroke, walked end to end — the paving as it was laid rather than the journey a walker would
+/// choose. <c>claimsGround: true</c> on a stroke makes every other prop keep its distance (<c>DR-ROAD</c>),
+/// and nothing read the stroke itself: <c>walk</c> answers the way a player finds between two points, which is not the way the
 /// author drew, and a picture of the board shows paving without saying what a player crossing it meets.
 ///
 /// <para>The line walked is the stroke's <b>own</b> centreline, taken through the same spline
-/// (<see cref="PathBand.Centerline"/>) and the same orbit fan (<see cref="DressingSymmetry.ImageRing"/>) the
+/// (<see cref="Centerline.Of"/>) and the same orbit fan (<see cref="DressingSymmetry.ImageRing"/>) the
 /// pass laid it with, so a curve is followed rather than cut across and the mirrored image is the road that
 /// image actually stands on. Whether a station is <b>paved</b> is read off the claim the pass recorded, since
 /// the style, the coverage and the seed decide which cells of the band take surface and none of the three can
@@ -25,7 +25,7 @@ namespace PgmStudio.Export;
 /// does not reach, which is ground kept clear, coverage the style left out, or the road running off the
 /// board.</para>
 /// </summary>
-public static class RouteRead
+public static class StrokeRead
 {
     /// <summary>One block of the walk down the centreline. <see cref="Ground"/> is the terrain's own recorded
     /// height, null over void; <see cref="Material"/> is the surface block under the station, named, or null
@@ -44,7 +44,7 @@ public static class RouteRead
     /// <summary>The walk and what it adds up to. <see cref="Images"/> is how many the orbit has, so a caller
     /// reading one knows what else there is to read.</summary>
     public sealed record Walked(
-        string Id, int Image, int Images, bool Route, IReadOnlyList<Station> Stations, int Paved,
+        string Id, int Image, int Images, bool ClaimsGround, IReadOnlyList<Station> Stations, int Paved,
         int Rises, int Falls, int WorstStep, IReadOnlyList<string> Events,
         IReadOnlyList<Run> Materials, int MaterialRuns, IReadOnlyList<Gap> Gaps);
 
@@ -65,7 +65,7 @@ public static class RouteRead
 
         var stations = new List<Station>();
         int? before = null;
-        foreach (var cell in Down(PathBand.Centerline(symmetry.ImageRing(stroke.Points, image))))
+        foreach (var cell in Down(Centerline.Of(symmetry.ImageRing(stroke.Points, image))))
         {
             var ground = built.Surface.TryGetValue(cell, out var top) ? top : (int?)null;
             int? step = before is { } prior && ground is { } here ? here - prior : null;
@@ -79,7 +79,7 @@ public static class RouteRead
             .Select(station => $"{Word(station.Word)} {Signed(station.Step!.Value)} at ({station.X}, {station.Z})")
             .ToList();
 
-        return new Walked(id, image, images, stroke.Route, stations,
+        return new Walked(id, image, images, stroke.ClaimsGround, stations,
             stations.Count(station => station.Paved),
             stations.Count(station => station.Step is > 0), stations.Count(station => station.Step is < 0),
             stations.Where(station => station.Step is not null)
@@ -172,7 +172,7 @@ public static class RouteRead
         var first = walked.Stations.Count > 0 ? walked.Stations[0] : default;
         var last = walked.Stations.Count > 0 ? walked.Stations[^1] : default;
         text.Append($"ROUTE '{walked.Id}' image {walked.Image} of {walked.Images}")
-            .Append(walked.Route ? "" : " (paint, not a route)")
+            .Append(walked.ClaimsGround ? "" : " (paint, claiming no ground)")
             .Append($": {walked.Stations.Count} stations from ({first.X}, {first.Z}) to ({last.X}, {last.Z}), ")
             .Append($"{walked.Paved} paved\n");
 

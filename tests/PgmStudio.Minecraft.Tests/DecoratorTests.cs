@@ -62,12 +62,12 @@ public sealed class DecoratorTests
         [
             new StrokeProp
             {
-                Id = "lane", Points = [[20, 4], [20, 34]], Radius = 2, Seed = 5, Route = true,
+                Id = "lane", Points = [[20, 4], [20, 34]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
             new StrokeProp
             {
-                Id = "cross", Points = [[4, 12], [36, 12]], Radius = 2, Seed = 5, Route = true,
+                Id = "cross", Points = [[4, 12], [36, 12]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
         ], keptClear: Mask));
@@ -117,7 +117,7 @@ public sealed class DecoratorTests
 
     // ── every whole-prop decline is reported with its reason ───────────────────────────────────────
     [Test]
-    public async Task A_house_stands_over_the_path_and_the_road_still_keeps_a_tree_off_the_route()
+    public async Task A_house_stands_over_the_stroke_and_the_paving_still_keeps_a_tree_off_it()
     {
         // The path is laid first and a road is meant to run to a porch or a door, so a house at the END of
         // the pavement wins the ground and the path simply ends at its wall (a house the road carries on past
@@ -128,7 +128,7 @@ public sealed class DecoratorTests
         [
             new StrokeProp
             {
-                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
+                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
             new HouseProp
@@ -149,7 +149,7 @@ public sealed class DecoratorTests
         await Assert.That(drop.Message).Contains("tree 't' rests on (");
         // The road got there first and keeps the cell, so that is what the decline names — the record says
         // who holds the ground, not merely that something does.
-        await Assert.That(drop.Message).Contains("claimed by the route 'p'");
+        await Assert.That(drop.Message).Contains("claimed by the paving 'p'");
         // The road survives up to the wall and the house's floor owns the ground inside it.
         await Assert.That(world.GetBlock(25, 7, 20).Id).IsEqualTo(Blocks.Gravel);
         await Assert.That(world.GetBlock(6, 7, 20).Id).IsNotEqualTo(Blocks.Gravel);
@@ -168,7 +168,7 @@ public sealed class DecoratorTests
         };
         StrokeProp Band(bool route) => new()
         {
-            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = route,
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = route,
             Pave = new SolidMaterial(Blocks.Gravel),
         };
 
@@ -196,7 +196,7 @@ public sealed class DecoratorTests
         // with nothing plantable: the same geometry, the same brush, one word apart.
         StrokeProp Band(bool route) => new()
         {
-            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = route,
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = route,
             Pave = new SolidMaterial(Blocks.Gravel),
         };
 
@@ -226,7 +226,7 @@ public sealed class DecoratorTests
         // standoff is the shorter two: one resting against the kerb is refused, one well clear seats.
         StrokeProp Road() => new()
         {
-            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
+            Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = true,
             Pave = new SolidMaterial(Blocks.Gravel),
         };
 
@@ -624,7 +624,7 @@ public sealed class DecoratorTests
     {
         // Three gates on one distance field. Solid paves its whole band; worn thins it; stones leave the gaps
         // that make them stones — which is exactly what a single closed outline could not express.
-        int Paved(PathStyle style, double coverage = 0.7)
+        int Paved(StrokeStyle style, double coverage = 0.7)
         {
             var (world, top) = Plateau();
             return Decorator.Decorate(world, Context(top, [new StrokeProp
@@ -634,11 +634,11 @@ public sealed class DecoratorTests
             }])).PathCells;
         }
 
-        var solid = Paved(PathStyle.Solid);
-        await Assert.That(Paved(PathStyle.Worn, 0.5)).IsLessThan(solid);
-        await Assert.That(Paved(PathStyle.Stones)).IsLessThan(solid);
-        await Assert.That(Paved(PathStyle.Stones)).IsGreaterThan(0);
-        await Assert.That(Paved(PathStyle.Tapered)).IsLessThan(solid);       // thin at both ends
+        var solid = Paved(StrokeStyle.Solid);
+        await Assert.That(Paved(StrokeStyle.Worn, 0.5)).IsLessThan(solid);
+        await Assert.That(Paved(StrokeStyle.Stones)).IsLessThan(solid);
+        await Assert.That(Paved(StrokeStyle.Stones)).IsGreaterThan(0);
+        await Assert.That(Paved(StrokeStyle.Tapered)).IsLessThan(solid);       // thin at both ends
     }
 
     [Test]
@@ -1379,7 +1379,7 @@ public sealed class DecoratorTests
     {
         PlacedProp[] props =
         [
-            new StrokeProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = PathStyle.Worn, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
+            new StrokeProp { Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Style = StrokeStyle.Worn, Seed = 5, Pave = new SolidMaterial(Blocks.Gravel) },
             new TreeProp { Id = "t", X = 12, Z = 12, Seed = 5 },
             new BoulderProp { Id = "b", X = 28, Z = 28, Seed = 3 },
             new FloraProp { Id = "f", Points = AreaOver(40), Spec = new FloraSpec(), Seed = 7 },
@@ -1410,7 +1410,7 @@ public sealed class DecoratorTests
         {
             Props =
             [
-                new StrokeProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = PathStyle.Rough, Seed = 5,
+                new StrokeProp { Id = "p", Points = [[1, 2], [3, 4]], Radius = 4, Style = StrokeStyle.Rough, Seed = 5,
                                Pave = new CellMaterial(5, 3, 100, 0, [new SolidMaterial(4), new SolidMaterial(13)]) },
                 new TreeProp { Id = "t", X = 5, Z = 6, Seed = 9, Style = new TreeStyle { Species = "birch", Height = 22, Stems = 2 } },
                 new BoulderProp { Id = "b", X = 7, Z = 8, Seed = 11, Style = new BoulderStyle { Form = BoulderForm.Cairn, Size = 4 } },
@@ -1422,7 +1422,7 @@ public sealed class DecoratorTests
 
         await Assert.That(back.Props.Select(prop => prop.GetType().Name))
             .IsEquivalentTo(doc.Props.Select(prop => prop.GetType().Name));
-        await Assert.That(((StrokeProp)back.Props[0]).Style).IsEqualTo(PathStyle.Rough);
+        await Assert.That(((StrokeProp)back.Props[0]).Style).IsEqualTo(StrokeStyle.Rough);
         await Assert.That(((StrokeProp)back.Props[0]).Pave).IsEqualTo(((StrokeProp)doc.Props[0]).Pave);
         await Assert.That(((TreeProp)back.Props[1]).Style.Species).IsEqualTo("birch");
         await Assert.That(((BoulderProp)back.Props[2]).Style.Form).IsEqualTo(BoulderForm.Cairn);
@@ -1479,23 +1479,23 @@ public sealed class DecoratorTests
         await Assert.That(prop.Style.Rock).IsEqualTo((TerrainMaterial)new SolidMaterial(4, 3));
     }
 
-    /// <summary>A cobbled path stored its blocks and a style that tiled them over a jittered grid. The style is
-    /// gone — the tiling is what the cell pattern does — so the stored one becomes that pattern, over the same
-    /// grid it was already tiled by, and its style falls back to the band it always paved.</summary>
+    /// <summary>A cobbled stroke stored its blocks and a style that tiled them over a jittered grid. The style
+    /// is gone — the tiling is what the cell pattern does — so the stored one becomes that pattern, over the
+    /// same grid it was already tiled by, and its style falls back to the band it always paved.</summary>
     [Test]
-    public async Task A_cobbled_path_written_before_the_pave_material_keeps_its_tiling()
+    public async Task A_cobbled_stroke_written_before_the_pave_material_keeps_its_tiling()
     {
         var prop = (StrokeProp)DressingJson.DeserializeProp(
-            "{\"kind\":\"path\",\"id\":\"p\",\"seed\":5,\"style\":\"cobble\","
+            "{\"kind\":\"stroke\",\"id\":\"p\",\"seed\":5,\"style\":\"cobble\","
             + "\"blocks\":[{\"id\":4,\"data\":0},{\"id\":13,\"data\":0}]}")!;
 
-        await Assert.That(prop.Style).IsEqualTo(PathStyle.Solid);
+        await Assert.That(prop.Style).IsEqualTo(StrokeStyle.Solid);
         await Assert.That(prop.Pave).IsEqualTo((TerrainMaterial)new CellMaterial(34, 3, 100, 0,
             [new SolidMaterial(4), new SolidMaterial(13)]));
 
-        // A path of any other style spent only its first block, so that is the solid it becomes.
+        // A stroke of any other style spent only its first block, so that is the solid it becomes.
         var plain = (StrokeProp)DressingJson.DeserializeProp(
-            "{\"kind\":\"path\",\"id\":\"p\",\"seed\":5,\"blocks\":[{\"id\":13,\"data\":0}]}")!;
+            "{\"kind\":\"stroke\",\"id\":\"p\",\"seed\":5,\"blocks\":[{\"id\":13,\"data\":0}]}")!;
         await Assert.That(plain.Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
     }
 
@@ -1695,7 +1695,7 @@ public sealed class DecoratorTests
             },
             new StrokeProp
             {
-                Id = "p", Points = [[4, 48], [55, 48]], Radius = 2, Seed = 5, Route = true,
+                Id = "p", Points = [[4, 48], [55, 48]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new SolidMaterial(Blocks.Gravel),
             },
             new WaterProp

@@ -74,7 +74,7 @@ public abstract record PlacedProp
     /// <summary>The standoff a named kind keeps from a route, or null where no such kind is named. The number
     /// lives on the kind's own type (<see cref="RouteStandoff"/>) and is read off an empty one of it, so
     /// there is no second table of standoffs to disagree with the rule.</summary>
-    public static int? RouteStandoffOf(string kind) =>
+    public static int? PavingStandoffOf(string kind) =>
         Prototypes.TryGetValue(kind, out var prototype) ? prototype.RouteStandoff : null;
 
     /// <summary>Where a named kind goes in the pass's order, or null where no such kind is named — read the
@@ -94,13 +94,14 @@ public abstract record PlacedProp
 /// with. A stroke replaces the surface it crosses rather than adding to it — it is a finish, not terrain —
 /// which is why it carries a material rather than a height.
 ///
-/// <para><b>What a stroke <em>is</em> is <see cref="Route"/>, and it is not the style.</b>
-/// <see cref="PathStyle"/> shapes the band — solid, worn, rough, stones, tapered — which is a brush, and a
-/// brush says nothing about whether players read the result as a way through. A gravel tongue over a crag and
-/// a road between two spawns can be the same brush at the same radius. Only a route claims its cells as one,
-/// and that claim is what a tree's and a boulder's standoff is measured to, so paint is the default and a
-/// route is declared: the standoff exists to stop a canopy closing over a road, and asking it of every
-/// painted patch leaves a board with nothing plantable on it.</para>
+/// <para><b>What a stroke <em>is</em> is <see cref="ClaimsGround"/>, and it is not the style.</b>
+/// <see cref="StrokeStyle"/> shapes the band — solid, worn, rough, stones, tapered — which is a brush, and a
+/// brush says nothing about whether the paving is a thing on the board or a finish on the ground. A gravel
+/// tongue over a crag and a road between two spawns can be the same brush at the same radius. Only a stroke
+/// that claims its cells holds them against what is placed after it, and that claim is what a tree's and a
+/// boulder's standoff is measured to, so paint is the default and the claim is declared: the standoff exists
+/// to stop a canopy closing over a road, and asking it of every painted patch leaves a board with nothing
+/// plantable on it.</para>
 /// </summary>
 public sealed record StrokeProp : PlacedProp
 {
@@ -113,15 +114,17 @@ public sealed record StrokeProp : PlacedProp
     /// <summary>How far either side of the centerline is covered, in blocks — half the band.</summary>
     public double Radius { get; init; } = 3;
 
-    /// <summary>The brush: what shape the band takes along the line. Independent of <see cref="Route"/>, since
-    /// a road and a smear of dirt can be drawn with the same one.</summary>
-    public PathStyle Style { get; init; } = PathStyle.Solid;
+    /// <summary>The brush: what shape the band takes along the line. Independent of <see cref="ClaimsGround"/>,
+    /// since a road and a smear of dirt can be drawn with the same one.</summary>
+    public StrokeStyle Style { get; init; } = StrokeStyle.Solid;
 
-    /// <summary>Whether players read this stroke as a way through. A route claims its cells, so a tree and a
-    /// boulder keep their stated distance from it; paint claims nothing and is planted over freely.</summary>
-    public bool Route { get; init; }
+    /// <summary>Whether the stroke holds the ground it paves against everything placed after it. A claiming
+    /// stroke keeps its cells, so a tree and a boulder stay their stated distance off and a building may end
+    /// one but not stand across it; paint claims nothing and is planted over freely. It is not a claim that
+    /// players walk here — a protected verge, a crop bed's margin and a road are the same declaration.</summary>
+    public bool ClaimsGround { get; init; }
 
-    /// <summary>0–1; what a <see cref="PathStyle.Worn"/> stroke keeps. Every other style covers its whole band.</summary>
+    /// <summary>0–1; what a <see cref="StrokeStyle.Worn"/> stroke keeps. Every other style covers its whole band.</summary>
     public double Coverage { get; init; } = 0.7;
 
     /// <summary>What the stroke lays down — a full terrain material, so a road is a solid, a cobbled fabric, a

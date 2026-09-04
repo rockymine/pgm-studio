@@ -1,4 +1,4 @@
-// The band a drawn line stands for (geometry/path.js) — and, above all, that it is the same band the C#
+// The band a drawn line stands for (geometry/stroke.js) — and, above all, that it is the same band the C#
 // side builds. The two implementations exist because the canvas redraws a path's outline on every pointer
 // move and a round trip per frame is not a preview; the moment they disagree, the route an author drags
 // stops matching the route the map paves. So the parity numbers below are pinned against the C# constants
@@ -6,15 +6,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 
-import { pathRing, pathCenterline, valueNoise, SMOOTH_SAMPLES }
-  from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/path.js";
+import { strokeRing, strokeCenterline, valueNoise, SMOOTH_SAMPLES }
+  from "../../src/PgmStudio.Client/wwwroot/js/studio/geometry/stroke.js";
 
 const line = (radius, extra = {}) => ({ points: [[0, 0], [40, 0]], radius, ...extra });
 const bent = (extra = {}) => ({ points: [[0, 0], [20, 0], [30, 20], [50, 24]], radius: 5, ...extra });
 
 // ── the band ──────────────────────────────────────────────────────────────────
 test("a straight line becomes a closed band of the width asked for", () => {
-  const ring = pathRing(line(4));
+  const ring = strokeRing(line(4));
   assert.ok(ring.length > 3);
   assert.deepEqual(ring[0], ring[ring.length - 1]);          // closed, the toRing convention
   assert.equal(Math.min(...ring.map(([, z]) => z)), -4);
@@ -24,13 +24,13 @@ test("a straight line becomes a closed band of the width asked for", () => {
 });
 
 test("a line with nowhere to go is no band", () => {
-  assert.deepEqual(pathRing({ points: [[5, 5]], radius: 3 }), []);
-  assert.deepEqual(pathRing(line(0)), []);
+  assert.deepEqual(strokeRing({ points: [[5, 5]], radius: 3 }), []);
+  assert.deepEqual(strokeRing(line(0)), []);
 });
 
 test("two drawn points are densified along the line they drew", () => {
   // No curve to sample, but a varying width needs somewhere to vary — and the endpoints must not move.
-  const curve = pathCenterline([[0, 0], [40, 0]]);
+  const curve = strokeCenterline([[0, 0], [40, 0]]);
   assert.equal(curve.length, SMOOTH_SAMPLES + 1);
   assert.deepEqual(curve[0], [0, 0]);
   assert.deepEqual(curve[curve.length - 1], [40, 0]);
@@ -38,7 +38,7 @@ test("two drawn points are densified along the line they drew", () => {
 });
 
 test("three drawn points smooth into SMOOTH_SAMPLES per segment", () => {
-  const curve = pathCenterline([[0, 0], [20, 0], [30, 20]]);
+  const curve = strokeCenterline([[0, 0], [20, 0], [30, 20]]);
   assert.equal(curve.length, 2 * SMOOTH_SAMPLES + 1);        // two segments sampled, plus the final point
 });
 
@@ -49,16 +49,16 @@ const widthAcross = (ring, x) => {
 };
 
 test("a tapered path is widest in the middle and thinnest at its ends", () => {
-  const ring = pathRing(line(6, { style: "tapered" }));
+  const ring = strokeRing(line(6, { style: "tapered" }));
   assert.ok(widthAcross(ring, 20) > widthAcross(ring, 2));
   assert.ok(widthAcross(ring, 20) > widthAcross(ring, 38));
   assert.ok(Math.abs(widthAcross(ring, 20) - 12) < 0.2);
 });
 
 test("a rough edge wanders, and the same seed always wanders the same way", () => {
-  const rough = pathRing(line(5, { style: "rough", seed: 11 }));
-  const again = pathRing(line(5, { style: "rough", seed: 11 }));
-  const other = pathRing(line(5, { style: "rough", seed: 12 }));
+  const rough = strokeRing(line(5, { style: "rough", seed: 11 }));
+  const again = strokeRing(line(5, { style: "rough", seed: 11 }));
+  const other = strokeRing(line(5, { style: "rough", seed: 12 }));
   assert.deepEqual(rough, again);
   assert.notDeepEqual(rough, other);
 
@@ -70,8 +70,8 @@ test("a rough edge wanders, and the same seed always wanders the same way", () =
 });
 
 test("a bend does not pinch the band", () => {
-  const ring = pathRing(bent());
-  for (const [px, pz] of pathCenterline(bent().points)) {
+  const ring = strokeRing(bent());
+  for (const [px, pz] of strokeCenterline(bent().points)) {
     const nearest = Math.min(...ring.map(([x, z]) => Math.hypot(x - px, z - pz)));
     assert.ok(nearest > 4, `pinched to ${nearest} at ${px},${pz}`);
   }

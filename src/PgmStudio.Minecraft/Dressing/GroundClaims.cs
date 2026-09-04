@@ -167,8 +167,9 @@ public enum ClaimKind
 {
     /// <summary>A water channel's bed and beach — carved ground nothing else may take.</summary>
     Water,
-    /// <summary>A path's paved cells. The one kind a building ignores, and the one a standoff measures to.</summary>
-    Route,
+    /// <summary>The paved cells of a stroke that claims its ground. The one kind a building ignores, and the
+    /// one a standoff measures to.</summary>
+    Paving,
     /// <summary>A raised building's stamped footprint, plus the <see cref="DressingRules.StructureClearance"/>
     /// ring it holds around it.</summary>
     Structure,
@@ -214,7 +215,7 @@ public sealed class GroundClaims
         public bool Holds(int x, int z) => Book.cells.ContainsKey((Layer, x, z));
 
         /// <summary>Whether the cell is held by something other than <paramref name="kind"/> — the building's
-        /// question, asked with <see cref="ClaimKind.Route"/>: pavement never blocks a house.</summary>
+        /// question, asked with <see cref="ClaimKind.Paving"/>: pavement never blocks a house.</summary>
         public bool HoldsOtherThan(int x, int z, ClaimKind kind) =>
             Book.cells.TryGetValue((Layer, x, z), out var held) && held.Kind != kind;
 

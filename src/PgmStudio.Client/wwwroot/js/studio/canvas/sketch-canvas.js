@@ -1127,7 +1127,7 @@ export class SketchCanvas extends CanvasBase {
     // so nothing on this canvas is reached by how fast two presses land.
     Keys.register("sketch-draw", [
       { id: "sketch.close", keys: "enter", label: "Close the polygon · end the path", group: "Sketch",
-        priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "path"),
+        priority: 10, when: () => live() && (this._activeTool === "polygon" || this._activeTool === "polyline"),
         run: () => this.#draw.onDblClick() },
     ]);
   }

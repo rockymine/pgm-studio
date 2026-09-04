@@ -1154,7 +1154,7 @@ public static class SketchRasterizer
         "polygon" or "lasso" => PolygonRing(s.Vertices, s.Controls),
         // A path arrives as a centerline and a half-width; the band around it is the ring, so nothing below
         // this point learns a shape that is not a ring.
-        "path" => PathBand.Ring(s.Vertices ?? [], s.Radius ?? 0, ParsePathEdge(s.PathEdge), s.PathSeed ?? 0),
+        "polyline" => StrokeOutline.Ring(s.Vertices ?? [], s.Radius ?? 0, ParseStrokeEdge(s.StrokeEdge), s.StrokeSeed ?? 0),
         _ => [],
     };
 
@@ -1182,11 +1182,11 @@ public static class SketchRasterizer
                                                   MidpointRounding.AwayFromZero));
     }
 
-    private static PathEdge ParsePathEdge(string? edge) => edge switch
+    private static StrokeEdge ParseStrokeEdge(string? edge) => edge switch
     {
-        "rough"   => Geom.Algorithms.PathEdge.Rough,
-        "tapered" => Geom.Algorithms.PathEdge.Tapered,
-        _         => Geom.Algorithms.PathEdge.Solid,
+        "rough"   => Geom.Algorithms.StrokeEdge.Rough,
+        "tapered" => Geom.Algorithms.StrokeEdge.Tapered,
+        _         => Geom.Algorithms.StrokeEdge.Solid,
     };
 
     private static List<double[]> CircleRing(double cx, double cz, double r)

@@ -28,7 +28,7 @@ export function paintSketchShape(painter, shape, { selected = false, alpha = 1 }
       min_x: shape.center_x - shape.radius, max_x: shape.center_x + shape.radius,
       min_z: shape.center_z - shape.radius, max_z: shape.center_z + shape.radius,
     }, style);
-  } else if (shape.type === "path") {
+  } else if (shape.type === "polyline") {
     // The band, not the line — a path is filled by what it covers, the same as every other primitive.
     const ring = toRing(shape);
     if (ring.length >= 3) painter.ring(ring, { ...style, fillRule: "evenodd" });

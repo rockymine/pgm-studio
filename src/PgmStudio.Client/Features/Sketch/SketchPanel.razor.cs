@@ -36,7 +36,7 @@ public partial class SketchPanel
         "circle"    => "circle",
         "polygon"   => "pentagon",
         "lasso"     => "lasso",
-        "path"      => "spline",
+        "polyline"  => "spline",
         _           => "square",
     };
 

@@ -149,11 +149,11 @@ vertices varies that thickness per vertex, interpolated across the footprint as 
 thinner than one block and never floors below zero; a freshly drawn one starts at height 9.
 
 **`anchor_heights` is a polygon and lasso field, and only those two.** A rectangle and a circle have no vertex
-list to align to, and a path's vertices are its centreline rather than its footprint — the band around them
-carries many more points, and a thickness graded along a path would have to interpolate *along the arc*
-instead of over a triangulation. So a path builds one uniform thickness end to end, which is why a causeway
-cannot yet be drawn as the ramp it is (`S56`). Stating `anchor_heights` on a path stores at 200 and is
-ignored without a word (`TS85`).
+list to align to, and a polyline's vertices are its centreline rather than its footprint — the band around
+them carries many more points, and a thickness graded along one would have to interpolate *along the arc*
+instead of over a triangulation. So a polyline builds one uniform thickness end to end, which is why a
+causeway cannot yet be drawn as the ramp it is (`S56`). Stating `anchor_heights` on a polyline stores at 200
+and is ignored without a word (`TS85`).
 
 **That is what makes a tilted quad a stair.** The surface is sampled at each cell's centre and **floored**
 into the column, so a quad rising one course a cell builds a stair of single courses — 24 blocks of run for 24
@@ -169,24 +169,32 @@ plinth held a fixed amount above whatever ground it sits on, a quarry the same d
 from its own outline an erected shape eases back into the ground it meets, in blocks; zero is a sheer face,
 which is right for a built thing and wrong for a landform. `relief_scope` is `hold` or `exclude` and decides
 whether the shape's ground takes part in its group's relief at all (see *Groups and layers*); absent means
-it is simply part of the group's ground. And a path carries `path_edge`
-(`solid`, `rough`, `tapered`) with a `path_seed`, since a path is stored as the open centreline it was drawn
-as and its band is derived.
+it is simply part of the group's ground. And a polyline carries `stroke_edge`
+(`solid`, `rough`, `tapered`) with a `stroke_seed`, since a polyline is stored as the open centreline it was
+drawn as and the band around it is derived.
 
-**A path is the layout's other curve, and it is the one that does not have to be authored.** The drawn points
-are run through a centripetal Catmull-Rom spline at eight samples a segment *before* the band is offset to
-either side, so four clicked points become a twenty-five-point smooth centreline and the band around it reads
-as a flowing wall rather than a chain of chords. Nothing has to be stated for that: it is what the rasterizer
-does with every path. `path_edge` then decides what the two long edges do along it — `solid` holds one width
-the whole way, `rough` lets the width wander up to 45% either side (the two sides reading noise rows far
-apart, so the band does not merely breathe), `tapered` runs fat in the middle and thin at the ends. The ends
-are cut square, because a path in a map arrives somewhere. `opus5-millrace`'s canal walls are the worked
-example: `wall-s` is four points, `radius 1`, `path_edge: solid`, and it draws as a curve.
+**A polyline is the layout's other curve, and it is the one that does not have to be authored.** The drawn
+points are run through a centripetal Catmull-Rom spline at eight samples a segment *before* the band is offset
+to either side, so four clicked points become a twenty-five-point smooth centreline and the band around it
+reads as a flowing wall rather than a chain of chords. Nothing has to be stated for that: it is what the
+rasterizer does with every polyline. `stroke_edge` then decides what the band's two long edges do along it —
+`solid` holds one width the whole way, `rough` lets the width wander up to 45% either side (the two sides
+reading noise rows far apart, so the band does not merely breathe), `tapered` runs fat in the middle and thin
+at the ends. The ends are cut square, because a stroke in a map arrives somewhere. `opus5-millrace`'s canal
+walls are the worked example: `wall-s` is four points, `radius 1`, `stroke_edge: solid`, and it draws as a
+curve.
 
 The other curve is `controls` on a polygon or lasso ring — per-vertex Bézier handles, absolute coordinates,
 which is what a bend fits and what the *Reshaping ground the plan compiled* section below writes. The two are
-not alternatives: a ring is a closed outline of ground and takes handles, a path is an open stroke and takes a
-spline it did not ask for.
+not alternatives: a ring is a closed outline of ground and takes handles, a polyline is an open line and takes
+a spline it did not ask for.
+
+**A `polyline` shape and a `stroke` prop are not the same thing, and only one of them is terrain.** The shape
+adds columns — `floor` to `floor + base_height`, the ground a player stands on. The prop repaints the top
+course of whatever it crosses and adds no cell at all. They share one leaf, `Centerline`, so both flow the
+same way; everything else differs, including the band words: a shape's `stroke_edge` is one of three
+(`solid`, `rough`, `tapered`) because an outline can express nothing else, while a prop's `style` is one of
+five (`worn` and `stones` besides), because a fill can leave gaps and an outline cannot.
 
 A shape tagged with a `role` is not terrain at all. It is something the plan placed, projected in so it stays
 visible instead of dissolving into the fused group, and loaded as a locked render-only overlay: never
@@ -442,7 +450,7 @@ touching what is being worked on.
 
 `Escape` walks the whole way out in the order a press means it: an in-progress draw, then the points, then
 the entered group, then the selection itself. With a theme in hand it does none of that and puts the theme
-down instead. Closing a drawn polygon is no part of the ladder: a polygon or a path closes on `Enter`, or on
+down instead. Closing a drawn polygon is no part of the ladder: a polygon or a polyline closes on `Enter`, or on
 a click landing back at its own first vertex.
 
 **The Shapes chip draws every primitive on the board; without it, the selected or entered group draws its own
@@ -503,7 +511,7 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 | Double-click | Go one level deeper — into a group's member, then into that shape's points | Canvas |
 | `Ctrl`/`⌘`+click | Reach the shape under the cursor and enter its group as the scope | Canvas |
 | `Alt`+click | Pick the parent group and leave any scope | Canvas |
-| `Enter` | Go one level deeper, or close the polygon/path in progress | Canvas |
+| `Enter` | Go one level deeper, or close the polygon/polyline in progress | Canvas |
 | `Escape` | Put the brush down, else cancel the draw, else step back up a level, else clear the selection | Canvas |
 | `Delete` / `Backspace` | Delete the selected shape | Canvas |
 | Arrow keys | Nudge the selection one block (`Shift` for sixteen) | Canvas |
@@ -823,11 +831,13 @@ void — and `tapered` runs it fat in the middle and thin at the ends. What fill
 terrain material**: a solid block, a layer stack, a Voronoi patchwork, a noise ramp, any pattern the painter
 offers. The two are independent, so a worn cobble and a solid cobble are both sayable.
 
-**`route` is the third question, and neither of the first two answers it.** A style is a brush; it says
-nothing about whether players read the result as a way through, and the same brush at the same radius draws a
-road between two spawns and a grass tongue over a crag. `route` is off unless stated: a route claims the cells
-it covers, so a tree keeps three blocks off it and a boulder two (`DR-ROAD`), while paint claims nothing and
-is planted over. Marking every stroke a route is how a board ends up with nowhere left to plant.
+**`claimsGround` is the third question, and neither of the first two answers it.** A style is a brush; it
+says nothing about whether the paving is a thing on the board or a finish on the ground, and the same brush at
+the same radius draws a road between two spawns and a grass tongue over a crag. `claimsGround` is off unless
+stated: a claiming stroke holds the cells it covers, so a tree keeps three blocks off it and a boulder two
+(`DR-ROAD`) and a building may end one but not stand across it (`DR-CROSS`), while paint claims nothing and is
+planted over. It is not a claim that players walk here — a protected verge and a road are the same
+declaration. Marking every stroke a claiming one is how a board ends up with nowhere left to plant.
 
 **Water** is the one prop that changes the ground rather than the surface: it cuts a bed and fills it to a
 level water line, because water laid flat on a surface reads as blue paint. Its `shape` says what its points
@@ -852,7 +862,7 @@ as the beach.
 
 **A tree and a boulder are recipes rather than knobs, because a click has no geometry to draw.** What is
 placed is a point plus a `style` key; what stands there is a row from the library, pulled into the document's
-own registry under its name (`docs/tools/library.md`). A path and a channel are *traced*, so their knobs stay
+own registry under its name (`docs/tools/library.md`). A stroke and a channel are *traced*, so their knobs stay
 here — pre-authoring a river form is authoring a shape without its place — and the split is exactly that line
 (author).
 
@@ -877,7 +887,7 @@ its orbit instead of sampling whatever the world pattern says where each image h
 **Ground cover** is the one place a density field is the point: a drawn ring filled by `coverage` at a feature
 `scale` over some `octaves`, split by `fernShare`, `flowerShare` (with its own `flowerScale`) and `tallShare`.
 
-The pickers show **your** prop rather than a stock one. `GET /terrain/path-styles?pave=…` draws the five band
+The pickers show **your** prop rather than a stock one. `GET /terrain/stroke-styles?pave=…` draws the five band
 styles in the material already chosen, `/terrain/boulder-forms?rock=…` the four rock shapes in the author's
 stone, and `/terrain/water-forms` the three channels as actual dug beds — so the question answered is
 "what would mine look like", not "what does the catalogue contain". A tree and a boulder are picked from their
@@ -1000,7 +1010,7 @@ each:
 ```json
 { "dressing": { "props": [
   { "id": "d1", "kind": "stroke", "seed": 1, "points": [[-36, 0], [-20, 4], [-4, 0]],
-    "radius": 3, "style": "worn", "coverage": 0.7, "route": true,
+    "radius": 3, "style": "worn", "coverage": 0.7, "claimsGround": true,
     "pave": { "kind": "solid", "id": 13, "data": 0 } },
   { "id": "d2", "kind": "water", "seed": 2, "points": [[-30, -16], [-16, -12]],
     "radius": 3, "depth": 2, "form": "stream", "edge": 0.8, "shore": 2, "shoreWander": true,
@@ -1373,7 +1383,7 @@ halves stands on one), a group listing a shape id the layout does not carry, a r
 that does not exist, and a **theme** the registry does not carry, on a shape or as the map default (which
 paints those cells unthemed stone and is otherwise the quietest fault a finish has — one reported per name
 rather than one per shape) — `SK4` for a shape that
-draws no ground (a polygon under three vertices *or of no area, every point on one line*, a circle or path of
+draws no ground (a polygon under three vertices *or of no area, every point on one line*, a circle or polyline of
 no width, a rectangle of no area), and
 `SK5` for a column the world cannot hold. Each carries the document path that named nothing in its `field`
 and the shape's id as its subject.
@@ -1519,7 +1529,7 @@ the terrain-paint library a theme is copied from or saved to; `/room-styles` is 
 phase binds from, with `/room-styles/{id}/json` for the stamper's own form; `/roof-styles`, `/storey-styles` and
 `/porch-styles` are the parts a room style is composed from. `/terrain/blocks` is the
 block palette, and `/terrain/material-preview`, `/terrain/theme-preview`, `/terrain/theme-map-preview` and
-`/terrain/prop-preview` render what an edit will look like; `/terrain/path-styles`, `/terrain/water-forms`,
+`/terrain/prop-preview` render what an edit will look like; `/terrain/stroke-styles`, `/terrain/water-forms`,
 `/terrain/boulder-forms`, `/terrain/species` and `/terrain/woods` are the dressing vocabularies.
 
 ## Driving it without the UI
@@ -1618,7 +1628,7 @@ per-column runs; it is the heaviest of the four (it builds the map) and the only
 **The finish previews draw, in SVG — or as PNG on request.** `POST /terrain/material-preview` and
 `/terrain/theme-preview` answer a material and a theme as they will paint — the theme as a cut-open sample
 plateau plus a top-down swatch per bucket. `POST /terrain/prop-preview` and the five card sets
-(`/terrain/path-styles`, `/water-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
+(`/terrain/stroke-styles`, `/water-forms`, `/boulder-forms`, `/species`, `/woods`) answer a prop as it will be
 built. `POST /room-styles/preview`, its `-snapshot` twin, and `/roof-styles/preview`, `/storey-styles/preview`,
 `/porch-styles/preview` answer a building in plan, section, isometric and cutaway. The default is **SVG text
 inside JSON**, which the client renders inline — and every one of them also answers
@@ -1677,11 +1687,9 @@ tool draws it, so the two tools show one rectangle rather than each showing its 
 recompile is in place; the canvas half is not (`B107`).
 
 The layout model carries two shape types the **Draw** dock cannot draw. A `circle` rasterizes as a 64-gon, and
-a `path` shape is a centreline with a band whose width, edge style and seed the inspector edits — but nothing
-in the Draw dock creates either, so both arrive only in a document written outside the editor. The path shape
-is not the Dressing phase's path tool and the two do different things: a `path` **shape** is terrain, drawn
-into the ground and rasterized as a footprint, while a `path` **prop** repaints the surface it crosses and
-adds no cell. The tool exists for the prop; the shape has none.
+a `polyline` is a centreline with a band whose width, edge and seed the inspector edits — but the dock offers
+rectangle, polygon and lasso only, so both arrive only in a document written outside the editor. The canvas
+controller can draw a polyline; nothing puts a button in front of it.
 
 A placed building's `wings` can state an L, a T or a U, and `Decorator` composes them into one house under one
 style the way the stamper always could (`G177`). On the canvas each wing is drawn as its own rectangle and the

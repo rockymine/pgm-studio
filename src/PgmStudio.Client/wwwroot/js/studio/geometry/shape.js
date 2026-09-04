@@ -5,12 +5,12 @@
  *
  * A *shape* is `{ type, …params }`: rectangle `{min_x,min_z,max_x,max_z}`, circle
  * `{center_x,center_z,radius}`, polygon|lasso `{vertices:[[x,z],…], controls?}`, path
- * `{vertices:[[x,z],…], radius, path_edge?, path_seed?}`. Region/sketch metadata (category/color,
+ * `{vertices:[[x,z],…], radius, stroke_edge?, stroke_seed?}`. Region/sketch metadata (category/color,
  * operation/override) lives on top — not in the geometry.
  *
  * A path is the one shape stored as something other than its own outline: its `vertices` are an **open**
  * centerline and `radius` its half-width, and the band those imply is derived (`path.js`) wherever a ring
- * is wanted. That is what keeps a path editable as the line it was drawn as while every consumer below
+ * is wanted. That is what keeps a polyline editable as the line it was drawn as while every consumer below
  * still sees a ring.
  *
  * Bézier model (lock-step with render/svg.js `ringToPath` and the C# rasterizer): `controls` is a
@@ -21,7 +21,7 @@
 
 import { pointInRing } from "./polygon.js";
 import { splitPiece } from "./decompose-cut.js";
-import { pathRing } from "./path.js";
+import { strokeRing } from "./stroke.js";
 
 // Parity constants — must match the C# rasterizer / export (docs/tools/sketch.md, the rasterizer table).
 export const CIRCLE_POINTS  = 64;   // vertices approximating a circle
@@ -70,8 +70,8 @@ export function toRing(shape) {
       ring.push(ring[0]);
       return ring;
     }
-    case "path":
-      return pathBandOf(shape);
+    case "polyline":
+      return strokeRingOf(shape);
     default:
       throw new Error(`Unknown shape type: ${shape.type}`);
   }
@@ -79,9 +79,9 @@ export function toRing(shape) {
 
 /** A path shape's band, in the field names a shape uses. The band itself is `path.js` — shared with the
  *  dressing prop, which spells the same three things `points`/`style`/`seed`. */
-function pathBandOf(shape) {
-  return pathRing({ points: shape.vertices, radius: shape.radius,
-                    style: shape.path_edge, seed: shape.path_seed });
+function strokeRingOf(shape) {
+  return strokeRing({ points: shape.vertices, radius: shape.radius,
+                    style: shape.stroke_edge, seed: shape.stroke_seed });
 }
 
 /**
@@ -351,10 +351,10 @@ export function toBounds(shape) {
       return { min_x: Math.min(...xs), min_z: Math.min(...zs),
                max_x: Math.max(...xs), max_z: Math.max(...zs) };
     }
-    case "path": {
+    case "polyline": {
       // The band, not the centerline — a wide path reaches its radius past the line the author clicked, and
       // a fit that stopped at the line would crop it.
-      const ring = pathBandOf(shape);
+      const ring = strokeRingOf(shape);
       if (!ring.length) return null;
       const xs = ring.map(([x]) => x), zs = ring.map(([, z]) => z);
       return { min_x: Math.min(...xs), min_z: Math.min(...zs),
@@ -381,9 +381,9 @@ export function boundsOfShapes(shapes) {
 
 /**
  * True if `(x,z)` is inside the shape. Per-type: rectangle = bounds, circle = radius, polygon/lasso/path =
- * ray-cast over the **same closed ring that is rendered** (`toRing`, so Bézier curve bulge and a path's band
+ * ray-cast over the **same closed ring that is rendered** (`toRing`, so Bézier curve bulge and a polyline's band
  * are both included — the hit shape matches the drawn outline). A degenerate polygon/lasso (< 3 vertices),
- * or a path of fewer than two points, contains nothing.
+ * or a polyline of fewer than two points, contains nothing.
  */
 export function containsPoint(shape, x, z) {
   switch (shape.type) {
@@ -393,7 +393,7 @@ export function containsPoint(shape, x, z) {
       return Math.hypot(x - shape.center_x, z - shape.center_z) <= shape.radius;
     case "polygon":
     case "lasso":
-    case "path": {
+    case "polyline": {
       const ring = toRing(shape);
       return ring.length >= 4 && pointInRing(x, z, ring);
     }

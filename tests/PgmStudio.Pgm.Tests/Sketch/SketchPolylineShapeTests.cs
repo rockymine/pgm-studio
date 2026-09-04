@@ -7,7 +7,7 @@ namespace PgmStudio.Pgm.Tests.Sketch;
 /// an open centerline plus a half-width — so the thing under test is that the band those imply reaches every
 /// consumer that expects a ring: the footprint, the column, and the mirror image.
 /// </summary>
-public sealed class SketchPathShapeTests
+public sealed class SketchPolylineShapeTests
 {
     // A straight east-west path across a plate, so the band's width is a column count and not an estimate.
     private static string Layout(double radius, string? edge = null, double baseHeight = 3, bool mirrors = false) => $$"""
@@ -17,10 +17,10 @@ public sealed class SketchPathShapeTests
         "shapes": [
           { "id": "plate", "type": "rectangle", "operation": "add",
             "min_x": 0, "min_z": 0, "max_x": 80, "max_z": 80, "base_height": 2, "floor": 0 },
-          { "id": "road", "type": "path", "operation": "add",
+          { "id": "road", "type": "polyline", "operation": "add",
             "vertices": [[10, 40], [40, 40], [70, 40]],
             "radius": {{radius}}, "base_height": {{baseHeight}}, "floor": 0
-            {{(edge is null ? "" : $", \"path_edge\": \"{edge}\", \"path_seed\": 7")}} }
+            {{(edge is null ? "" : $", \"stroke_edge\": \"{edge}\", \"stroke_seed\": 7")}} }
         ],
         "groups": [ { "id": "i1", "mirrors": {{(mirrors ? "true" : "false")}}, "shapeIds": ["plate", "road"] } ]
       } }]
@@ -119,7 +119,7 @@ public sealed class SketchPathShapeTests
             "shapes": [
               { "id": "plate", "type": "rectangle", "operation": "add",
                 "min_x": 0, "min_z": 0, "max_x": 20, "max_z": 20, "base_height": 2, "floor": 0 },
-              { "id": "road", "type": "path", "operation": "add",
+              { "id": "road", "type": "polyline", "operation": "add",
                 "vertices": [[10, 10]], "radius": 3, "base_height": 9, "floor": 0 }
             ],
             "groups": [ { "id": "i1", "mirrors": false, "shapeIds": ["plate", "road"] } ]

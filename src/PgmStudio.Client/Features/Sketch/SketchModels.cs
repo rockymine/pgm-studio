@@ -24,8 +24,8 @@ public sealed record SketchShapeRow(
     // A path's band: half-width, how its edges are drawn, and the seed a rough edge wanders by. Empty on
     // every other kind of shape, which is what the inspector reads to know whether to offer them.
     [property: JsonPropertyName("radius")] double Radius = 0,
-    [property: JsonPropertyName("pathEdge")] string PathEdge = "",
-    [property: JsonPropertyName("pathSeed")] int PathSeed = 0);
+    [property: JsonPropertyName("strokeEdge")] string StrokeEdge = "",
+    [property: JsonPropertyName("strokeSeed")] int StrokeSeed = 0);
 
 public sealed record SketchGroupRow(
     [property: JsonPropertyName("id")] string Id,

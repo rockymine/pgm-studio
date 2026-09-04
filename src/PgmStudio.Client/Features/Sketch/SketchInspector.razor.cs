@@ -27,7 +27,7 @@ public partial class SketchInspector
     [Parameter] public EventCallback<string> OnToggleMirrors { get; set; }
     [Parameter] public EventCallback<(string Id, string Name)> OnRenameGroup { get; set; }
     [Parameter] public EventCallback<double> OnRotate { get; set; }
-    [Parameter] public EventCallback<(string Id, double Radius, string Edge, int Seed)> OnSetPathBand { get; set; }
+    [Parameter] public EventCallback<(string Id, double Radius, string Edge, int Seed)> OnSetStrokeBand { get; set; }
 
     // "Rotate (°)" field: a relative rotate-by input (rotation bakes into geometry, so there's no absolute
     // angle to hold) — apply the entered degrees about the selection's bbox centre, then clear back to blank.
@@ -48,13 +48,13 @@ public partial class SketchInspector
         "circle"    => "circle",
         "polygon"   => "pentagon",
         "lasso"     => "lasso",
-        "path"      => "spline",
+        "polyline"  => "spline",
         _           => "square",
     };
 
     // How a path's two long sides are drawn. Its finish — gravel, a cell fabric, any pattern at all — is a
     // theme assigned to the shape, so what is offered here is only the shape of the band.
-    private static readonly (string Key, string Label)[] PathEdges =
+    private static readonly (string Key, string Label)[] StrokeEdges =
     [
         ("solid",   "Solid — one width the whole way"),
         ("rough",   "Rough — the outline wanders"),
@@ -64,15 +64,15 @@ public partial class SketchInspector
     // The author sets a width; the shape stores the half-width the band is offset by, so the two edges are
     // always that far from the line the author is dragging.
     private Task WidthChanged(double width)
-        => Shape is null ? Task.CompletedTask : OnSetPathBand.InvokeAsync((Shape.Id, width / 2, Shape.PathEdge, Shape.PathSeed));
+        => Shape is null ? Task.CompletedTask : OnSetStrokeBand.InvokeAsync((Shape.Id, width / 2, Shape.StrokeEdge, Shape.StrokeSeed));
 
     private Task EdgeChanged(ChangeEventArgs e)
         => Shape is null ? Task.CompletedTask
-            : OnSetPathBand.InvokeAsync((Shape.Id, Shape.Radius, e.Value?.ToString() ?? "solid", Shape.PathSeed));
+            : OnSetStrokeBand.InvokeAsync((Shape.Id, Shape.Radius, e.Value?.ToString() ?? "solid", Shape.StrokeSeed));
 
     private Task SeedChanged(double seed)
         => Shape is null ? Task.CompletedTask
-            : OnSetPathBand.InvokeAsync((Shape.Id, Shape.Radius, Shape.PathEdge, (int)seed));
+            : OnSetStrokeBand.InvokeAsync((Shape.Id, Shape.Radius, Shape.StrokeEdge, (int)seed));
 
     // NumberField clamps to its Min (height >= 1, floor >= 0) and snaps the display back, so these just
     // forward the already-valid value to the bridge.

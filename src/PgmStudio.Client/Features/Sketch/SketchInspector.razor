@@ -78,24 +78,24 @@
         <Field Label="Rotate (°)">
           <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
         </Field>
-        @if (Shape.Type == "path")
+        @if (Shape.Type == "polyline")
         {
           <div class="section-header section-header--ruled"><h2 class="section-title">Band</h2></div>
           <Field Label="Width (blocks)">
             <NumberField Value="Shape.Radius * 2" ValueChanged="WidthChanged" Min="2" Step="2" />
           </Field>
           <Field Label="Edge">
-            <select class="field-input" value="@Shape.PathEdge" @onchange="EdgeChanged">
-              @foreach (var edge in PathEdges)
+            <select class="field-input" value="@Shape.StrokeEdge" @onchange="EdgeChanged">
+              @foreach (var edge in StrokeEdges)
               {
-                <option value="@edge.Key" selected="@(edge.Key == Shape.PathEdge)">@edge.Label</option>
+                <option value="@edge.Key" selected="@(edge.Key == Shape.StrokeEdge)">@edge.Label</option>
               }
             </select>
           </Field>
-          @if (Shape.PathEdge == "rough")
+          @if (Shape.StrokeEdge == "rough")
           {
             <Field Label="Wander seed">
-              <NumberField Value="Shape.PathSeed" ValueChanged="SeedChanged" Min="0" />
+              <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
             </Field>
             <p class="section-desc">The same seed always wanders the same way, so a map exports identically.</p>
           }

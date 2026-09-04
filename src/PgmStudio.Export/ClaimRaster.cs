@@ -29,7 +29,7 @@ public static class ClaimRaster
     /// <c>a</c>, <c>b</c>.</summary>
     public static readonly IReadOnlyList<string> Classes =
     [
-        "free", "water", "route", "structure", "tree", "boulder", "flora",
+        "free", "water", "paving", "structure", "tree", "boulder", "flora",
         "spawn keep-out", "door approach", "goal clearance", "wool-room keep-out", "structure keep-out",
     ];
 

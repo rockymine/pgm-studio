@@ -36,7 +36,7 @@ public sealed class DressingScopeTests
     {
         var props = DressingScope.PropsOf(Layout("""
             ,"dressing":{"props":[
-              {"kind":"path","id":"p","points":[[0,0],[20,10]],"radius":3,"style":"stones","seed":5,
+              {"kind":"stroke","id":"p","points":[[0,0],[20,10]],"radius":3,"style":"stones","seed":5,
                "blocks":[{"id":4,"data":0}]},
               {"kind":"tree","id":"t","x":10,"z":12,"species":"birch","height":22,"seed":9},
               {"kind":"boulder","id":"b","x":-8,"z":4,"form":"cairn","size":4,"seed":11},
@@ -44,7 +44,7 @@ public sealed class DressingScopeTests
             """));
 
         await Assert.That(props.Count).IsEqualTo(4);
-        await Assert.That(((StrokeProp)props[0]).Style).IsEqualTo(PathStyle.Stones);
+        await Assert.That(((StrokeProp)props[0]).Style).IsEqualTo(StrokeStyle.Stones);
         await Assert.That(((TreeProp)props[1]).Style.Species).IsEqualTo("birch");
         await Assert.That(((BoulderProp)props[2]).Style.Form).IsEqualTo(BoulderForm.Cairn);
         await Assert.That(((FloraProp)props[3]).Spec.Coverage).IsEqualTo(0.8);

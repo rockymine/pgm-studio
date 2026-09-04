@@ -502,7 +502,7 @@ public sealed class SketchSeatsEndpoint(MapRepository repo, MapArtifactStore art
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
         var kind = Query<string?>("kind", isRequired: false) is { Length: > 0 } asked ? asked : "tree";
-        if (PlacedProp.RouteStandoffOf(kind) is not { } standoff)
+        if (PlacedProp.PavingStandoffOf(kind) is not { } standoff)
         {
             await Refusals.WriteAsync(HttpContext, 422, "no such prop kind",
                 [new Finding(RequestRules.NoSuchSubject,

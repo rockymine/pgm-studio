@@ -125,8 +125,8 @@ public static class WorldReadCatalog
             "A transect answers exactly the line asked for and nothing either side of it — a barrier two "
             + "cells off the stated points is invisible to it, which is what `beside` is for."),
 
-        new("route", null,
-            "A drawn route walked end to end, down its own centreline rather than between its points: per "
+        new("stroke", null,
+            "A drawn stroke walked end to end, down its own centreline rather than between its points: per "
             + "block the ground, whether the paving reaches it, what it is made of and the step from the "
             + "block before, then the worst step, the material runs and every stretch the paving does not "
             + "reach. The read for a road a player has to cross, which `walk` cannot answer because that "

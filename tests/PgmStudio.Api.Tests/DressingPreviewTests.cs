@@ -274,7 +274,7 @@ public sealed class DressingPreviewTests
         var species = DressingPreview.SpeciesCards(TerrainTheme.Default);
 
         await Assert.That(styles.Select(card => card.Key))
-            .IsEquivalentTo(Enum.GetValues<PathStyle>().Select(style => style.ToString().ToLowerInvariant()));
+            .IsEquivalentTo(Enum.GetValues<StrokeStyle>().Select(style => style.ToString().ToLowerInvariant()));
         await Assert.That(forms.Count).IsEqualTo(4);
         await Assert.That(species.Select(card => card.Key)).IsEquivalentTo(DressingPalette.Species.Select(row => row.Name));
 

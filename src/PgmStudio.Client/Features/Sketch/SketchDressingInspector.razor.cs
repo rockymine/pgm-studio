@@ -19,7 +19,7 @@ namespace PgmStudio.Client.Features.Sketch;
 /// and the active tool's <em>starting</em> knobs when none is, so the next thing placed can be aimed before it
 /// is placed rather than corrected after.</para>
 ///
-/// <para>Every picker is drawn by the pass itself (<c>/api/terrain/path-styles</c>, <c>/boulder-forms</c>,
+/// <para>Every picker is drawn by the pass itself (<c>/api/terrain/stroke-styles</c>, <c>/boulder-forms</c>,
 /// <c>/species</c>) rather than described in words or icons. A path's six styles differ in ways no label
 /// captures — where the gaps fall, how the edge wanders — and a picker that could offer a look the export does
 /// not produce is worse than no picker.</para>
@@ -51,7 +51,7 @@ public partial class SketchDressingInspector
     /// a prop on its own has no document behind it.</summary>
     private JsonObject? styleRegistry;
     private string previewedFor = "";
-    private IReadOnlyList<PropOptionDto> pathStyles = [];
+    private IReadOnlyList<PropOptionDto> strokeStyles = [];
     private IReadOnlyList<PropOptionDto> waterForms = [];
     private IReadOnlyList<PropOptionDto> boulderForms = [];
     private IReadOnlyList<PropOptionDto> species = [];
@@ -135,7 +135,7 @@ public partial class SketchDressingInspector
         // with something the painter has no colour for.
         if (blocks.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) blocks = await Library.BlocksAsync();
         if (styles.Count == 0 && kind is PropKinds.Stroke or PropKinds.Boulder or PropKinds.Water) styles = await Library.ListAsync<StyleDto>(LibraryKinds.Styles);
-        if (kind == PropKinds.Stroke && pathStyles.Count == 0) pathStyles = await Library.PathStylesAsync(Spec(PropFields.Pave));
+        if (kind == PropKinds.Stroke && strokeStyles.Count == 0) strokeStyles = await Library.StrokeStylesAsync(Spec(PropFields.Pave));
         if (kind == PropKinds.Water && waterForms.Count == 0) waterForms = await Library.WaterFormsAsync();
         if (kind == PropKinds.House && shells.Count == 0) shells = await Library.ListAsync<RoomStyleSummary>(LibraryKinds.Houses);
         if (RecipeKind is { } recipeKind && recipesFor != recipeKind.Slug)
@@ -341,7 +341,7 @@ public partial class SketchDressingInspector
         if (editingSelection) await Handle.InvokeVoidAsync("updateProp", patch.ToJsonString());
         else await Handle.InvokeVoidAsync("setPropSettings", kind, patch.ToJsonString());
         // The shape cards are drawn in the prop's own material, so they are stale the moment it changes.
-        if (field == PropFields.Pave) pathStyles = await Library.PathStylesAsync(Spec(field));
+        if (field == PropFields.Pave) strokeStyles = await Library.StrokeStylesAsync(Spec(field));
         if (field == PropFields.Rock) boulderForms = await Library.BoulderFormsAsync(Spec(field));
         await RefreshPreview();
     }
@@ -372,7 +372,7 @@ public partial class SketchDressingInspector
     private static readonly IReadOnlyDictionary<string, (string Icon, string Title, string Blurb)> KindInfo =
         new Dictionary<string, (string, string, string)>
         {
-            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it a route and trees and boulders will keep clear of it."),
+            [PropKinds.Stroke] = ("spline", "Stroke", "A band of surface along a line you draw. It swaps the ground it crosses rather than building on it — a road, a worn trail, a smear of dirt or a painted forest floor, depending on the brush and what it lays. Mark it as claiming its ground and trees, boulders and buildings will keep clear of it."),
             [PropKinds.Water] = ("waves", "Water", "A channel of water. It cuts a bed into the ground and fills it to a level line — the one prop that takes terrain away rather than standing on it. Only existing ground is cut, and it is mirrored across the map's symmetry."),
             [PropKinds.Flora] = ("flower", "Cover", "Grass, fern and flowers over the soil inside the area you drew. Masked by the paint beneath — nothing grows on a plaza's quartz."),
             [PropKinds.Tree] = ("trees", "Tree", "One tree, standing where you put it. Mirrored across the map's symmetry, so both teams get the same cover."),
@@ -421,7 +421,7 @@ public static class PropFields
 
     /// <summary>Whether a stroke is a way through rather than paint. It is what a tree's and a boulder's
     /// standoff is measured to, and the style says nothing about it.</summary>
-    public const string Route = "route";
+    public const string ClaimsGround = "claimsGround";
     /// <summary>What a path is paved with — a full terrain material, not a block list.</summary>
     public const string Pave = "pave";
     public const string Depth = "depth";

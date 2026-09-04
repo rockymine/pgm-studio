@@ -13,7 +13,7 @@
  */
 
 import { BUILDING_COLORS } from "./primitive-style.js";
-import { pathRing, pathCenterline } from "../geometry/path.js";
+import { strokeRing, strokeCenterline } from "../geometry/stroke.js";
 import { isMarker, isRect, MAX_FOOTPRINT, propAnchor, propReach, rectFootprint, rectPlan, wingCorners }
   from "../dressing/dressing-doc.js";
 import polygonClipping from "../vendor/polygon-clipping.js";
@@ -59,7 +59,7 @@ export function paintDressing(painter, props, { selectedId = null, mirrorPoint =
     // The line an author dragged, over the band it implies — a path and a water channel are edited as their
     // route, so the route has to stay visible inside its own band.
     if ((prop.kind === "stroke" || prop.kind === "water") && (prop.points?.length ?? 0) >= 2) {
-      const curve = pathCenterline(prop.points);
+      const curve = strokeCenterline(prop.points);
       const runs = [];
       for (let i = 1; i < curve.length; i++)
         runs.push({ x1: curve[i - 1][0], z1: curve[i - 1][1], x2: curve[i][0], z2: curve[i][1] });
@@ -85,7 +85,7 @@ export function paintDressingPreview(painter, kind, points, radius) {
     if (rect.length >= 3) painter.ring(rect, style);
     return;
   }
-  const ring = (kind === "stroke" || kind === "water") ? pathRing({ points, radius }) : [...points, points[0]];
+  const ring = (kind === "stroke" || kind === "water") ? strokeRing({ points, radius }) : [...points, points[0]];
   if (ring.length >= 3) painter.ring(ring.slice(0, -1), style);
 }
 
@@ -108,7 +108,7 @@ function footprints(prop, image, mirrorPoint, styles) {
     return [disc(ax, az, propReach(prop, styles))];
   }
   if (prop.kind === "stroke" || prop.kind === "water") {
-    const ring = pathRing(prop);
+    const ring = strokeRing(prop);
     return [ring.length ? ring.slice(0, -1).map(([x, z]) => mirror(x, z)) : []];
   }
   // A rectangle is stored as two opposite corners, so each wing is opened into four before being mirrored —

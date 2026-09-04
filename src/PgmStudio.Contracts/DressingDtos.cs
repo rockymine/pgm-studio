@@ -32,7 +32,7 @@ public sealed record DressingPreviewDto(string Plan, string Section, DressingCou
 /// finish, which is a different question from how it will look on the map.</param>
 public sealed record PropPreviewRequest(string PropJson, string? ThemeJson);
 
-/// <summary>One option a prop's picker offers, drawn rather than described (GET /api/terrain/path-styles,
+/// <summary>One option a prop's picker offers, drawn rather than described (GET /api/terrain/stroke-styles,
 /// /boulder-forms, /species). <paramref name="Key"/> is the value the prop stores, <paramref name="Label"/>
 /// what an author reads, and <paramref name="Svg"/> the same algorithm the export runs, at card size — so a
 /// picker can never offer a look the pass does not produce.

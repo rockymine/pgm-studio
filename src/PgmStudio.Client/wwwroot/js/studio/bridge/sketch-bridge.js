@@ -37,7 +37,7 @@ function dimLabel(s) {
   if (s.type === "circle")    return `r=${s.radius}`;
   // A path reads as how wide it is, not how many points it took to draw — the width is the knob an author
   // reaches for, and the point count is already visible as handles on the canvas.
-  if (s.type === "path")      return `${(s.radius ?? 0) * 2} wide`;
+  if (s.type === "polyline")      return `${(s.radius ?? 0) * 2} wide`;
   return `${s.vertices?.length ?? 0} v`;
 }
 
@@ -358,7 +358,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       id: s.id, type: s.type, operation: s.operation, override: !!s.override, dim: dimLabel(s),
       baseHeight: clampHeight(s.base_height), floor: clampFloor(s.floor),
       heightMode: s.height_mode ?? "", skirt: s.skirt ?? 0, reliefScope: s.relief_scope ?? "",
-      radius: s.radius ?? 0, pathEdge: s.path_edge ?? "", pathSeed: s.path_seed ?? 0,
+      radius: s.radius ?? 0, strokeEdge: s.stroke_edge ?? "", strokeSeed: s.stroke_seed ?? 0,
     }));
     const isl = groups.map(i => ({ id: i.id, name: i.name, mirrors: i.mirrors, shapeIds: i.shapeIds }));
     fire("OnLayout", JSON.stringify({ groups: isl, shapes }));
@@ -845,12 +845,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
     // The band a path stands for: its half-width, how its edges are drawn, and the seed a rough edge wanders
     // by. All three are stored on the shape and the ring is derived, so each lands as a reshape.
-    setPathBand(id, radius, edge, seed) {
+    setStrokeBand(id, radius, edge, seed) {
       const s = canvas.getShape(id);
-      if (s?.type !== "path") return;
+      if (s?.type !== "polyline") return;
       if (radius !== null && radius !== undefined) s.radius = Math.max(1, Math.round(radius));
-      if (edge) s.path_edge = edge;
-      if (seed !== null && seed !== undefined) s.path_seed = Math.max(0, Math.round(seed));
+      if (edge) s.stroke_edge = edge;
+      if (seed !== null && seed !== undefined) s.stroke_seed = Math.max(0, Math.round(seed));
       canvas.updateShape(s);
       recompute(); pushLayout(); dropIsoMesh(); markDirty();
     },
@@ -1146,7 +1146,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   // document is not an edit of the one that was open.
   const MUTATORS = [
     "setMode", "setCenter", "setBbox",
-    "setHeight", "setVertexHeight", "applySlope", "setPathBand", "setHeightMode", "setSkirt", "setReliefScope",
+    "setHeight", "setVertexHeight", "applySlope", "setStrokeBand", "setHeightMode", "setSkirt", "setReliefScope",
     "rotateSelected", "deleteShape", "promoteShape", "toggleOp", "toggleOverride", "toggleMirrors",
     "renameGroup",
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",

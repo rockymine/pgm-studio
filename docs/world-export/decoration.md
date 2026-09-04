@@ -315,12 +315,13 @@ centerline segment takes the stroke's material, **replacing the surface finish b
 no cell. It is a finish laid over ground that already exists, so it can run over a slope without becoming a
 ramp, and a bridge across a void stays the draw phase's job.
 
-**A stroke says whether it is a route, and the style does not say it.** The five styles below shape the
-*band* — that is a brush, and a brush says nothing about whether players read the result as a way through. A
-gravel tongue over a crag and a road between two spawns can be the same brush at the same radius. So the
-document carries one more word, `route`, and it is **off by default**: a route claims the cells it covers and
-paint claims none. Everything below about claims and standoffs is a route's; a painted forest floor is ground,
-and things stand on ground.
+**A stroke says whether it claims its ground, and the style does not say it.** The five styles below shape
+the *band* — that is a brush, and a brush says nothing about whether the paving is a thing on the board or a
+finish on the ground. A gravel tongue over a crag and a road between two spawns can be the same brush at the
+same radius. So the document carries one more word, `claimsGround`, and it is **off by default**: a claiming
+stroke holds the cells it covers and paint holds none. Everything below about claims and standoffs is a
+claiming stroke's; a painted forest floor is ground, and things stand on ground. The word is about holding
+ground rather than about walking on it — a protected verge, a crop bed's margin and a road all declare it.
 
 Why the default falls that way is a measurement. `DR-ROAD`'s distances are reasoned about a road — a canopy
 closing over one stops it reading as a road through trees — and are meaningless for a smear of dirt; asked of
@@ -345,7 +346,7 @@ offending cell and the rule id in the drop report, so `GET /api/rules?rule=DR-RO
 cited. Everything else — cover, water, buildings — states zero and may run right up to the pavement.
 
 The single solid band is the boring case; the imperfect paths are the point, and all five of them are the same
-distance field with one extra gate (`Geom.PathStroke`):
+distance field with one extra gate (`Geom.StrokeFill`):
 
 - **Solid** — `dist ≤ R`, a clean utility road.
 - **Worn** — and a per-cell dice below a coverage threshold: gravel scattered thin, a trail rather than a road.
@@ -370,7 +371,7 @@ at all — worn and stepping stones gate cells, not a boundary — so they had t
 Placing the stroke in the pass instead costs nothing and gets them back, because the pass was already writing
 cells one at a time.
 
-The **outline** still exists, in `Geom.PathBand`, and does a different job: it is what the canvas strokes to
+The **outline** still exists, in `Geom.StrokeOutline`, and does a different job: it is what the canvas strokes to
 show where a route runs. The two deliberately differ — an outline cannot draw a gap — so the preview shows
 the corridor and the fill decides what within it is paved.
 
@@ -559,7 +560,7 @@ reach, and falls back to the mass without one.
 ## 7. Water — channels (`DR-WA`)
 
 A channel begins exactly where the §4 stroke does — a dragged centerline and a radius, the same swept-disc
-band (`Geom.WaterBed` reuses `PathBand.Centerline` and `Polyline`'s distance field). What makes water its own
+band (`Geom.WaterBed` reuses `Centerline.Of` and `Polyline`'s distance field). What makes water its own
 tool is that it **cannot drape on the surface** the way gravel can: laid on a slope it reads as blue paint.
 Water has to sit in a **carved bed** and fill to a **level plane**, so water is the one prop that takes the
 ground *out* rather than standing on it.
@@ -942,7 +943,7 @@ and lands in the same realize seam.
 | Concept | Reuses | Net-new | Rule family |
 |---|---|---|---|
 | Ground cover | `PatternNoise`; `SurfaceTop`; the `TerrainProfile` column read | the overlay pass, gated by a drawn outline — one `SetBlock` above the surface | `DR-FL` |
-| Strokes | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `PathStroke`'s six gates; `PathBand` + its `geometry/path.js` twin for the drawn outline | `DR-PA` |
+| Strokes | `CatmullRom`; `Ribbon`; `Polyline`'s distance field; the lasso's own press-trace-release | `StrokeFill`'s six gates; `StrokeOutline` + its `geometry/stroke.js` twin for the drawn outline | `DR-PA` |
 | Boulders | `SurfaceTop`; the squared-distance masks the objective stampers fill by | `Blob`; `BoulderShapes` | `DR-SC` |
 | Trees | the boulder's seating; `CatmullRom` for the limb splines | `TreeSkeleton`; `TreeCrown`; `SweptVolume`; the species rows | `DR-TR` |
 | Water | the §4 path stroke's band (channels); the §5 boulder blob + FBM edge (ponds); the §3 flora overlay (reeds) | `WaterBed` + `Decorator.PlaceWater` — the carve-and-level bed (shipped); depth shading, the shoreline band, ponds (G169) | `DR-WA` |
@@ -985,8 +986,8 @@ there:
   and leaf-cluster centres. No block ever appears in either.
 - `TreeTemplate` and `CanopyProfiles` — the other tree: a trunk under a canopy whose profile is a radius per
   course. It is a sibling of the grower rather than a mode of it, because the two build different shapes.
-- `PathStroke` — which cells a stroke paves, one gate per style; `PathBand` — the outline the canvas draws
-  it as, and the one C# side of the `geometry/path.js` parity pair; `WaterBed` — the same swept-disc band read
+- `StrokeFill` — which cells a stroke paves, one gate per style; `StrokeOutline` — the outline the canvas draws
+  it as, and the one C# side of the `geometry/stroke.js` parity pair; `WaterBed` — the same swept-disc band read
   as a carve, a bed depth per cell (deepest on the line, one at the shore) for the three channel forms.
 - `OrbitScatter` — which cell of an orbit is its representative, the answer §2's fan is built on.
 - `BlueNoise` — even, non-touching scatter sites. Nothing in the shipped stage places by it any more, since

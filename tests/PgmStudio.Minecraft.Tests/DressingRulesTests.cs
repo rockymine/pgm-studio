@@ -52,7 +52,7 @@ public sealed class DressingRulesTests
         [
             new StrokeProp
             {
-                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, Route = true,
+                Id = "p", Points = [[4, 20], [35, 20]], Radius = 2, Seed = 5, ClaimsGround = true,
                 Pave = new Painting.SolidMaterial(Palette.Blocks.Gravel),
             },
             new TreeProp { Id = "t", X = 20, Z = 23, Seed = 5, Style = new TreeStyle { Species = "oak", Height = 14 } },

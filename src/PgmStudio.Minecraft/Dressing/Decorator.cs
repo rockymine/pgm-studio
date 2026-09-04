@@ -204,13 +204,13 @@ public static class Decorator
         }
         // The ways the author drew, image by image, kept for the buildings below: a road is a way through the
         // board and a building may end one but not cross it (DR-CROSS). Paint is not a way, so only a stroke
-        // marked a route is here.
+        // that claims its ground is here.
         var roads = new List<(string Id, IReadOnlyList<(int X, int Z)> Cells)>();
         foreach (var prop in context.Props.OfType<StrokeProp>())
         {
             var result = PlaceStroke(world, context, prop, claims.On(prop.Layer));
             Cover(result, "stroke", prop.Id);
-            if (prop.Route)
+            if (prop.ClaimsGround)
                 foreach (var image in result.Images.Where(cells => cells.Count > 0))
                     roads.Add((prop.Id, image));
             placed = placed with { PathCells = placed.PathCells + result.Count };
@@ -278,7 +278,7 @@ public static class Decorator
     /// column it crosses, which is why it can run over a slope without becoming a ramp and why a bridge is
     /// still the draw phase's job.
     ///
-    /// <para>Only a <see cref="StrokeProp.Route"/> claims what it covers. A claim is what later props keep
+    /// <para>Only a <see cref="StrokeProp.ClaimsGround"/> claims what it covers. A claim is what later props keep
     /// clear of, and paint is ground rather than a thing standing on it — so a painted forest floor is
     /// planted over and a road is not.</para></summary>
     private static Placed PlaceStroke(VoxelWorld world, DressingContext context, StrokeProp path, GroundClaims.Storey claims)
@@ -286,7 +286,7 @@ public static class Decorator
         var ground = context.GroundFor(path);
         if (path.Points.Count < 2) return Placed.None;
         var images = new List<List<(int X, int Z)>>();
-        var stroke = PathStroke.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed).ToList();
+        var stroke = StrokeFill.Cells(path.Points, path.Radius, path.Style, path.Coverage, path.Seed).ToList();
 
         for (var k = 0; k < context.Symmetry.Order; k++)
         {
@@ -319,7 +319,7 @@ public static class Decorator
             var (id, data) = path.Pave.Resolve(new BucketContext(x, top - 1, z, TerrainBucket.Surface, 0)
                 { Sample = context.Symmetry.Canonical(x, z) });
             world.SetBlock(x, top - 1, z, id, data);
-            if (path.Route) claims.Claim(x, z, ClaimKind.Route, path.Id);
+            if (path.ClaimsGround) claims.Claim(x, z, ClaimKind.Paving, path.Id);
             cells.Add((x, z));
         }
         images.Add(cells);
@@ -536,7 +536,7 @@ public static class Decorator
     /// earlier building holds is refused rather than raised through whatever got there first: two authored
     /// rectangles that overlap are two buildings colliding, and a building is no more owed the ground under
     /// an earlier one than a tree is owed the ground under a building. The one claim it does not check is
-    /// <see cref="ClaimKind.Route"/> — strokes are laid first and a road is meant to run to a porch, so a house
+    /// <see cref="ClaimKind.Paving"/> — strokes are laid first and a road is meant to run to a porch, so a house
     /// at the end of the pavement stands and the road ends at its wall (the author's ruling). A house the road
     /// runs <em>past</em> is a different fault and is refused by <see cref="RouteCrossing"/>.</para>
     ///
@@ -798,7 +798,7 @@ public static class Decorator
     private static (int X, int Z)? FirstOverlap(IEnumerable<(int X, int Z)> cells, GroundClaims.Storey claims)
     {
         foreach (var (x, z) in cells)
-            if (claims.HoldsOtherThan(x, z, ClaimKind.Route)) return (x, z);
+            if (claims.HoldsOtherThan(x, z, ClaimKind.Paving)) return (x, z);
         return null;
     }
 
@@ -1262,7 +1262,7 @@ public static class Decorator
                     $"rests on ({ground.X}, {ground.Z}), {Claimant(claims.At(ground.X, ground.Z))}");
                 return false;
             }
-            if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Route, routeStandoff) is { } road)
+            if (routeStandoff > 0 && claims.NearerThan(ground.X, ground.Z, ClaimKind.Paving, routeStandoff) is { } road)
             {
                 decline = Declined(DressingRules.RoadStandoff, id, kind,
                     $"rests on ({ground.X}, {ground.Z}), nearer than {routeStandoff} blocks to the road "
@@ -1306,7 +1306,7 @@ public static class Decorator
         foreach (var (stepX, stepZ) in directions)
             for (var by = 1; by <= standoff + 1; by++)
             {
-                if (claims.NearerThan(rests.X + stepX * by, rests.Z + stepZ * by, ClaimKind.Route, standoff) is not null)
+                if (claims.NearerThan(rests.X + stepX * by, rests.Z + stepZ * by, ClaimKind.Paving, standoff) is not null)
                     continue;
                 if (best is null || by < best.Value.By) best = (stepX, stepZ, by);
                 break;
@@ -1338,7 +1338,7 @@ public static class Decorator
         : held.Kind switch
         {
             ClaimKind.Water => $"claimed by the channel '{held.Owner}'",
-            ClaimKind.Route => $"claimed by the route '{held.Owner}'",
+            ClaimKind.Paving => $"claimed by the paving '{held.Owner}'",
             ClaimKind.Structure => $"claimed by the building '{held.Owner}'",
             _ => $"claimed by the prop '{held.Owner}'",
         };

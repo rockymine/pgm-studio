@@ -34,8 +34,8 @@ const MIN_SPAN           = 1;   // blocks — an outline is never scaled thinner
 // The shapes an author edits point by point. A path joins them because it is stored as the line it was
 // drawn as — dragging one of its points moves the line, and the band follows. Its line is **open**, so the
 // wrap-around edge every closed ring has does not exist for it; `closedVertices` is what says so.
-const vertexEdited = (shape) => shape?.type === "polygon" || shape?.type === "lasso" || shape?.type === "path";
-const closedVertices = (shape) => shape?.type !== "path";
+const vertexEdited = (shape) => shape?.type === "polygon" || shape?.type === "lasso" || shape?.type === "polyline";
+const closedVertices = (shape) => shape?.type !== "polyline";
 
 function distToSegment(px, py, ax, ay, bx, by) {
   const dx = bx - ax, dy = by - ay;

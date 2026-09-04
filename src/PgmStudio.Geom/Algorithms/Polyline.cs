@@ -4,7 +4,7 @@ namespace PgmStudio.Geom.Algorithms;
 /// far along the line that point is as a fraction of the whole, and the same in absolute length. A band that
 /// tapers reads <see cref="Along"/>; stones spaced down a track read <see cref="Arc"/>; everything reads
 /// <see cref="Distance"/>.</summary>
-public readonly record struct PathHit(double Distance, double Along, double Arc);
+public readonly record struct PolylineHit(double Distance, double Along, double Arc);
 
 /// <summary>
 /// Distance from a point to a polyline — the primitive a stroke of any width is filled by. A path is not the
@@ -20,9 +20,9 @@ public static class Polyline
     /// <summary>The nearest point on <paramref name="centerline"/> to (<paramref name="x"/>,
     /// <paramref name="z"/>). Each point is <c>[x, z]</c>. A centerline of fewer than two points has no
     /// segments, so everything is infinitely far from it.</summary>
-    public static PathHit Nearest(IReadOnlyList<double[]> centerline, double x, double z)
+    public static PolylineHit Nearest(IReadOnlyList<double[]> centerline, double x, double z)
     {
-        if (centerline.Count < 2) return new PathHit(double.MaxValue, 0, 0);
+        if (centerline.Count < 2) return new PolylineHit(double.MaxValue, 0, 0);
 
         double best = double.MaxValue, bestArc = 0, walked = 0, total = 0;
         for (var i = 0; i < centerline.Count - 1; i++)
@@ -41,7 +41,7 @@ public static class Polyline
             walked += segment;
             total += segment;
         }
-        return new PathHit(best, total > 1e-12 ? bestArc / total : 0, bestArc);
+        return new PolylineHit(best, total > 1e-12 ? bestArc / total : 0, bestArc);
     }
 
     /// <summary>The total length of a polyline — what a caller spaces things along.</summary>
@@ -57,14 +57,14 @@ public static class Polyline
     /// own bounding box rather than the caller's world. <paramref name="radiusAt"/> may widen the radius per
     /// cell — a rough or tapered edge is that function, not a different traversal.</summary>
     public static IEnumerable<(int X, int Z)> Band(
-        IReadOnlyList<double[]> centerline, double radius, Func<int, int, PathHit, double>? radiusAt = null)
+        IReadOnlyList<double[]> centerline, double radius, Func<int, int, PolylineHit, double>? radiusAt = null)
         => Hits(centerline, radius, radiusAt).Select(found => (found.X, found.Z));
 
     /// <summary>As <see cref="Band"/>, but each cell keeps the hit that admitted it. A caller that gates cells
     /// <em>inside</em> the band — a worn surface, stones spaced down the arc — needs the same measurement the
     /// traversal already took, and computing it twice is the whole cost of the scan done again.</summary>
-    public static IEnumerable<(int X, int Z, PathHit Hit)> Hits(
-        IReadOnlyList<double[]> centerline, double radius, Func<int, int, PathHit, double>? radiusAt = null)
+    public static IEnumerable<(int X, int Z, PolylineHit Hit)> Hits(
+        IReadOnlyList<double[]> centerline, double radius, Func<int, int, PolylineHit, double>? radiusAt = null)
     {
         if (centerline.Count < 2 || radius <= 0) yield break;
 

@@ -88,7 +88,7 @@ public sealed class DressingJsonTests
     public async Task A_nested_materials_kind_also_reads_out_of_order()
     {
         var doc = DressingJson.Deserialize(
-            """{"props":[{"kind":"path","id":"p1","seed":1,"points":[[0,0],[1,1]],"pave":{"id":13,"data":0,"kind":"solid"}}]}""");
+            """{"props":[{"kind":"stroke","id":"p1","seed":1,"points":[[0,0],[1,1]],"pave":{"id":13,"data":0,"kind":"solid"}}]}""");
         await Assert.That(((StrokeProp)doc.Props[0]).Pave).IsEqualTo((TerrainMaterial)new SolidMaterial(13));
     }
 
@@ -220,7 +220,7 @@ public sealed class DressingJsonTests
     {
         var ex = Assert.Throws<DressingParseException>(() =>
             DressingJson.Deserialize(
-                """{"props":[{"kind":"path","id":"d9","seed":1,"points":[[0,0],[1,1]],"radius":"wide"}]}"""));
+                """{"props":[{"kind":"stroke","id":"d9","seed":1,"points":[[0,0],[1,1]],"radius":"wide"}]}"""));
 
         await Assert.That(ex.Subject).Contains("d9");
         await Assert.That(ex.Field).IsEqualTo("radius");
@@ -238,7 +238,7 @@ public sealed class DressingJsonTests
               {"kind":"tree","id":"t1","seed":1,"x":0,"z":0},
               {"kind":"tree","id":"t2","seed":2,"x":1,"z":1},
               {"kind":"boulder","id":"b1","seed":3,"x":2,"z":2},
-              {"kind":"path","id":"p1","seed":4,"points":[[0,0],[1,1]]},
+              {"kind":"stroke","id":"p1","seed":4,"points":[[0,0],[1,1]]},
               {"kind":"flora","id":"f1","seed":5,"points":[[0,0],[1,0],[1,1]]},
               {"kind":"wtaer","id":"bad1","seed":6,"points":[[0,0],[1,1]]}
             ]}
@@ -269,7 +269,7 @@ public sealed class DressingJsonTests
     public async Task DeserializeProp_names_the_field_rather_than_returning_null()
     {
         var ex = Assert.Throws<DressingParseException>(() =>
-            DressingJson.DeserializeProp("""{"kind":"path","id":"p1","seed":1,"points":[[0,0],[1,1]],"radius":"wide"}"""));
+            DressingJson.DeserializeProp("""{"kind":"stroke","id":"p1","seed":1,"points":[[0,0],[1,1]],"radius":"wide"}"""));
         await Assert.That(ex.Field).IsEqualTo("radius");
     }
 

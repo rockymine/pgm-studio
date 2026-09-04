@@ -16,14 +16,14 @@ public sealed class GroundClaimsTests
         // a building that stamped over pavement owns its cells as a building even though the road got there
         // first and stayed in the record everywhere else.
         var claims = new GroundClaims().On(null);
-        claims.Claim(5, 5, ClaimKind.Route, "road");
+        claims.Claim(5, 5, ClaimKind.Paving, "road");
         claims.Claim(5, 5, ClaimKind.Structure, "house");
 
         await Assert.That(claims.Holds(5, 5)).IsTrue();
-        await Assert.That(claims.HoldsOtherThan(5, 5, ClaimKind.Route)).IsFalse();
+        await Assert.That(claims.HoldsOtherThan(5, 5, ClaimKind.Paving)).IsFalse();
         await Assert.That(claims.HoldsOtherThan(5, 5, ClaimKind.Structure)).IsTrue();
         // And the record names which one, so a prop refused here can say what holds the ground.
-        await Assert.That(claims.At(5, 5)).IsEqualTo(((ClaimKind, string)?)(ClaimKind.Route, "road"));
+        await Assert.That(claims.At(5, 5)).IsEqualTo(((ClaimKind, string)?)(ClaimKind.Paving, "road"));
         await Assert.That(claims.At(6, 6)).IsNull();
     }
 
@@ -33,13 +33,13 @@ public sealed class GroundClaimsTests
         // "Three blocks off the road" means a cell three away stands and a cell two away does not — the
         // boundary belongs to the prop, so the query is strictly-nearer-than.
         var claims = new GroundClaims().On(null);
-        claims.Claim(10, 10, ClaimKind.Route, "road");
+        claims.Claim(10, 10, ClaimKind.Paving, "road");
 
-        await Assert.That(claims.NearerThan(12, 10, ClaimKind.Route, 3)).IsEqualTo(((int, int)?)(10, 10));
-        await Assert.That(claims.NearerThan(13, 10, ClaimKind.Route, 3)).IsNull();
+        await Assert.That(claims.NearerThan(12, 10, ClaimKind.Paving, 3)).IsEqualTo(((int, int)?)(10, 10));
+        await Assert.That(claims.NearerThan(13, 10, ClaimKind.Paving, 3)).IsNull();
         // Chebyshev: the diagonal neighbour is as near as the straight one.
-        await Assert.That(claims.NearerThan(12, 12, ClaimKind.Route, 3)).IsNotNull();
-        await Assert.That(claims.NearerThan(13, 13, ClaimKind.Route, 3)).IsNull();
+        await Assert.That(claims.NearerThan(12, 12, ClaimKind.Paving, 3)).IsNotNull();
+        await Assert.That(claims.NearerThan(13, 13, ClaimKind.Paving, 3)).IsNull();
     }
 
     [Test]
@@ -51,7 +51,7 @@ public sealed class GroundClaimsTests
         claims.Claim(10, 10, ClaimKind.Water, "channel");
         claims.Claim(11, 10, ClaimKind.Scatter, "rock");
 
-        await Assert.That(claims.NearerThan(12, 10, ClaimKind.Route, 3)).IsNull();
+        await Assert.That(claims.NearerThan(12, 10, ClaimKind.Paving, 3)).IsNull();
     }
 
     [Test]

@@ -217,7 +217,7 @@ public sealed class PropPreviewEndpoint : Endpoint<PropPreviewRequest, DressingP
 }
 
 /// <summary>The three pickers a prop inspector offers, each drawn by the pass rather than described: GET
-/// /api/terrain/path-styles, /api/terrain/boulder-forms, /api/terrain/species. Every card is the real
+/// /api/terrain/stroke-styles, /api/terrain/boulder-forms, /api/terrain/species. Every card is the real
 /// algorithm at card size, so a picker can never offer a look the export does not produce.
 /// <para>Each takes the theme as a query parameter for the same reason the preview takes it in its body — a
 /// gravel path on grass and the same path on sand are different pictures.</para></summary>
@@ -237,10 +237,10 @@ internal static class PropOptionEndpoints
     }
 }
 
-/// <summary>GET /api/terrain/path-styles — the five ways a stroke paves the ground it crosses, each drawn.</summary>
+/// <summary>GET /api/terrain/stroke-styles — the five ways a stroke paves the ground it crosses, each drawn.</summary>
 public sealed class StrokeStyleCardsEndpoint : EndpointWithoutRequest<List<PropOptionDto>>
 {
-    public override void Configure() { Get("/terrain/path-styles"); AllowAnonymous(); }
+    public override void Configure() { Get("/terrain/stroke-styles"); AllowAnonymous(); }
 
     public override Task HandleAsync(CancellationToken ct)
     {

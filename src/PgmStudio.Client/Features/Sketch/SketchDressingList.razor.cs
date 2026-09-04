@@ -52,7 +52,7 @@ public partial class SketchDressingList
         {
             "tree" => new Row(id, "trees", Species(prop), Cell(prop)),
             "boulder" => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
-            "stroke" => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "route") ? "route" : "paint")}", Span(prop)),
+            "stroke" => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "claims" : "paint")}", Span(prop)),
             "water" => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
             "flora" => new Row(id, "flower", "ground cover", Span(prop)),
             "house" => new Row(id, "house", "building", Footprint(prop)),

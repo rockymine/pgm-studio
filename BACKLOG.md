@@ -267,7 +267,21 @@ what is gathered here is the parked and dormant slices of the same surface.
   studio plants none. Let a boulder seat on a bed the water claims and write through the water, keeping the
   claim for everything else; `docs/world-export/decoration.md` §5 and §7.
 
-### Path
+### Polyline and stroke
+
+- [ ] **C63 — The client spells the six prop kinds a second time, and nothing checks the two agree.**
+  `PlacedProp` is `[JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]` with six `[JsonDerivedType]`
+  entries, and the backend reads the word list off those attributes by reflection
+  (`DressingJson.KindsOf<T>()`), so there is one copy of the words below `Api`. `PropKinds` in
+  `Client/Features/Sketch/SketchDressingInspector.razor.cs` is a second copy, hand-written because a Razor
+  markup lambda cannot hold a string literal — and a kind renamed on one side compiles green on both while
+  the picker writes a word the reader refuses. `MarkKinds` and the material kinds are the same shape. Pin all
+  three with a test that reads the derived-type discriminators and asserts the client's constants are exactly
+  that set. `docs/client/component-vocabulary.md` gains the row.
+
+  *The rename of `kind: "path"` to `"stroke"` landed on the backend alone for one commit and nothing failed:
+  `PropKinds.Stroke` had already said `"stroke"` while every spec still posted `"path"`, and a silent alias
+  in `DressingJson` covered the gap.*
 
 - [ ] **TS85 — `anchor_heights` on a path is accepted and ignored without a word.**
   `SketchRasterizer.HeightFn` builds the per-vertex TIN only for `polygon` and `lasso`; every other kind falls

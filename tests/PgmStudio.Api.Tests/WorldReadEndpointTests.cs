@@ -278,7 +278,7 @@ public sealed class WorldReadEndpointTests
         using var client = ApiTestFactory.Shared.CreateClient();
         var slug = await FinishedAsync(client);
 
-        var missing = await client.GetAsync($"/api/map/{slug}/route?id=nowhere");
+        var missing = await client.GetAsync($"/api/map/{slug}/stroke?id=nowhere");
         await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.UnprocessableContent);
         await Assert.That(await missing.Content.ReadAsStringAsync()).Contains("no stroke");
     }
