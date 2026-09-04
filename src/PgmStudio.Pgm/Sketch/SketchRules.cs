@@ -1,4 +1,4 @@
-﻿using PgmStudio.Vocabulary;
+using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>The sketch document's own rule ids — what a layout is refused for, and what it is told about a
@@ -214,11 +214,11 @@ public static class SketchRules
     public const string StackOutOfOrder = "SK20";
 
     /// <summary>A bend that could not pull every point it inserted. A coast is drawn by resampling an
-    /// outline's long edges and pulling each inserted point <b>into the land</b>, and a point with land on
-    /// neither side — an arm of ground narrower than twice the wander — stays on the edge it was cut from.
-    /// The outline is still drawn and every other point moves; what is lost is that those stretches come out
-    /// as straight as the plan drew them.</summary>
-    /// <remarks>Lower the `wander` until it fits the narrowest ground the outline runs through, or raise the `step` so no point is cut on that stretch at all. A coast quietly straighter than the one that was asked for is what this exists to prevent, so the count is the answer's rather than a fault in the document.</remarks>
+    /// outline's long edges and pulling each inserted point to the side the bend asks for, and a point whose
+    /// two offsets both land on the wrong side — a neck or a notch narrower than twice the wander — stays on
+    /// the edge it was cut from. The outline is still drawn and every other point moves; what is lost is that
+    /// those stretches come out as straight as the plan drew them.</summary>
+    /// <remarks>Lower the `wander` until it fits the narrowest ground the outline runs through, raise the `step` so no point is cut on that stretch at all, or ask for the other `side`. A coast quietly straighter than the one that was asked for is what this exists to prevent, so the count is the answer's rather than a fault in the document.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string BendHeldBack = "SK21";
 }

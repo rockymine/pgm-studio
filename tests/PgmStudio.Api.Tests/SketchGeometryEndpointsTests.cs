@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -226,10 +226,10 @@ public sealed class SketchGeometryEndpointsTests
         return Math.Abs(twice) / 2;
     }
 
-    /// <summary>The two rules a bend is safe under, over the wire: the outline's own vertices are all still
-    /// there, and the ground only ever got smaller.</summary>
+    /// <summary>The rule a bend is safe under, over the wire — the outline's own vertices are all still
+    /// there — and the side a caller gets without asking, which is the bloat that reads as land.</summary>
     [Test]
-    public async Task A_bend_keeps_every_vertex_and_only_ever_takes_land_away()
+    public async Task A_bend_keeps_every_vertex_and_bloats_the_outline_by_default()
     {
         using var client = await RingAsync();
         var before = await ShapeAsync(client, "coast");
@@ -242,13 +242,37 @@ public sealed class SketchGeometryEndpointsTests
         await Assert.That(drew.GetProperty("vertices").GetInt32()).IsGreaterThan(4);
 
         var after = await ShapeAsync(client, "coast");
-        await Assert.That(Area(after.GetProperty("vertices"))).IsLessThan(Area(before.GetProperty("vertices")));
+        await Assert.That(Area(after.GetProperty("vertices")))
+            .IsGreaterThan(Area(before.GetProperty("vertices")));
         await Assert.That(after.GetProperty("controls").EnumerateObject().Any()).IsTrue();
 
         foreach (var corner in new[] { (0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0) })
             await Assert.That(after.GetProperty("vertices").EnumerateArray()
                 .Any(v => v[0].GetDouble() == corner.Item1 && v[1].GetDouble() == corner.Item2))
                 .IsTrue().Because($"({corner.Item1}, {corner.Item2}) is the outline's own and may not move");
+    }
+
+    /// <summary>The side is the caller's, and asking for the other one takes back exactly what the first
+    /// gave: the reach at a point is the wander's and only its sign is the side's.</summary>
+    [Test]
+    public async Task The_side_a_bend_states_is_the_side_it_takes()
+    {
+        using var client = await RingAsync();
+        var plan = Area((await ShapeAsync(client, "coast")).GetProperty("vertices"));
+
+        (await client.PostAsync($"{Sketch}/shapes/coast/bend",
+            Body("""{"wander":3,"step":10,"seed":5,"side":"in"}"""))).EnsureSuccessStatusCode();
+        var inward = Area((await ShapeAsync(client, "coast")).GetProperty("vertices"));
+
+        (await client.PatchAsync($"{Sketch}/shapes/coast",
+            Body("""{"vertices":[[0,0],[100,0],[100,100],[0,100]],"controls":null}"""))).EnsureSuccessStatusCode();
+        (await client.PostAsync($"{Sketch}/shapes/coast/bend",
+            Body("""{"wander":3,"step":10,"seed":5,"side":"out"}"""))).EnsureSuccessStatusCode();
+        var outward = Area((await ShapeAsync(client, "coast")).GetProperty("vertices"));
+
+        await Assert.That(inward).IsLessThan(plan);
+        await Assert.That(outward).IsGreaterThan(plan);
+        await Assert.That(outward - plan).IsEqualTo(plan - inward).Within(0.5);
     }
 
     /// <summary>A bend of nought is not a bend: both numbers are asked for, and stating neither is refused
@@ -277,7 +301,8 @@ public sealed class SketchGeometryEndpointsTests
     }
 
     /// <summary>A wander that folds the outline across its own far side is refused, not clamped — and the
-    /// shape is left exactly as it was.</summary>
+    /// shape is left exactly as it was. A convex ring folds on the inward side, where the two walls of the
+    /// square move toward each other; outward from one there is always room.</summary>
     [Test]
     public async Task A_fold_is_refused_and_the_outline_is_untouched()
     {
@@ -285,7 +310,7 @@ public sealed class SketchGeometryEndpointsTests
         var before = await ShapeAsync(client, "coast");
 
         var refused = await client.PostAsync($"{Sketch}/shapes/coast/bend",
-            Body("""{"wander":90,"step":6,"seed":2}"""));
+            Body("""{"wander":90,"step":6,"seed":2,"side":"in"}"""));
         await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
         await Assert.That((await refused.Content.ReadFromJsonAsync<JsonElement>())
             .GetProperty("findings")[0].GetProperty("field").GetString()).IsEqualTo("wander");
@@ -300,6 +325,130 @@ public sealed class SketchGeometryEndpointsTests
     {
         using var client = await RingAsync();
         var missing = await client.PostAsync($"{Sketch}/shapes/nobody/bend", Body("""{"wander":3,"step":10}"""));
+        await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    // ── the outline, one point at a time ─────────────────────────────────────────────
+
+    private static (double X, double Z)[] Ring(JsonElement shape) =>
+        [.. shape.GetProperty("vertices").EnumerateArray().Select(v => (v[0].GetDouble(), v[1].GetDouble()))];
+
+    /// <summary>What a hand does in the browser and what a whole-ring transform cannot: one corner is pulled
+    /// and every other point is exactly where it was drawn. A board's shapes abut, so the points that did not
+    /// move are the whole of what keeps two of them flush.</summary>
+    [Test]
+    public async Task Moving_one_vertex_leaves_every_other_where_it_was()
+    {
+        using var client = await RingAsync();
+        var before = Ring(await ShapeAsync(client, "coast"));
+
+        var moved = await client.PatchAsync($"{Sketch}/shapes/coast/vertices/0",
+            Body("""{"x":-25,"z":-15}"""));
+        await Assert.That(moved.IsSuccessStatusCode).IsTrue().Because(await moved.Content.ReadAsStringAsync());
+        var wrote = await moved.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(wrote.GetProperty("index").GetInt32()).IsEqualTo(0);
+        await Assert.That(wrote.GetProperty("vertices").GetInt32()).IsEqualTo(4);
+
+        var after = Ring(await ShapeAsync(client, "coast"));
+        await Assert.That(after[0]).IsEqualTo((-25.0, -15.0));
+        await Assert.That(after[1..]).IsEquivalentTo(before[1..]);
+    }
+
+    /// <summary>Adding a point with no <c>x</c>/<c>z</c> puts it at the midpoint of the edge it follows —
+    /// the anchor a hand reaches for when it wants a new corner half way along a wall — and the answer says
+    /// where it landed, which is the address the move route then takes.</summary>
+    [Test]
+    public async Task A_vertex_added_with_no_point_lands_on_the_midpoint_of_its_edge()
+    {
+        using var client = await RingAsync();
+
+        var added = await client.PostAsync($"{Sketch}/shapes/coast/vertices", Body("""{"after":1}"""));
+        await Assert.That(added.IsSuccessStatusCode).IsTrue().Because(await added.Content.ReadAsStringAsync());
+        var wrote = await added.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(wrote.GetProperty("index").GetInt32()).IsEqualTo(2);
+        await Assert.That(wrote.GetProperty("vertices").GetInt32()).IsEqualTo(5);
+
+        var after = Ring(await ShapeAsync(client, "coast"));
+        await Assert.That(after[2]).IsEqualTo((100.0, 50.0));
+
+        var pulled = await client.PatchAsync($"{Sketch}/shapes/coast/vertices/2", Body("""{"x":140,"z":50}"""));
+        pulled.EnsureSuccessStatusCode();
+        await Assert.That(Ring(await ShapeAsync(client, "coast"))[2]).IsEqualTo((140.0, 50.0));
+    }
+
+    /// <summary>A point taken out leaves the outline shorter and every other point where it was, and the ring
+    /// is refused below three since two points draw no ground.</summary>
+    [Test]
+    public async Task A_vertex_is_taken_out_and_the_last_three_are_kept()
+    {
+        using var client = await RingAsync();
+
+        var dropped = await client.DeleteAsync($"{Sketch}/shapes/coast/vertices/1");
+        dropped.EnsureSuccessStatusCode();
+        var after = Ring(await ShapeAsync(client, "coast"));
+        await Assert.That(after.Length).IsEqualTo(3);
+        await Assert.That(after).IsEquivalentTo([(0.0, 0.0), (100.0, 100.0), (0.0, 100.0)]);
+
+        var refused = await client.DeleteAsync($"{Sketch}/shapes/coast/vertices/1");
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That((await refused.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("findings")[0].GetProperty("field").GetString()).IsEqualTo("index");
+    }
+
+    /// <summary>An index the outline does not carry is refused with the range it does carry, since a caller
+    /// reading a stale copy of the shape needs to know how long it is now.</summary>
+    [Test]
+    public async Task An_index_the_outline_does_not_carry_is_refused_with_its_range()
+    {
+        using var client = await RingAsync();
+        var refused = await client.PatchAsync($"{Sketch}/shapes/coast/vertices/9", Body("""{"x":0,"z":0}"""));
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("index");
+        await Assert.That(finding.GetProperty("message").GetString()).Contains("numbered 0 to 3");
+    }
+
+    /// <summary>A move that folds the outline across its own far side is refused, not clamped, and the shape
+    /// is left exactly as it was.</summary>
+    [Test]
+    public async Task A_move_that_folds_the_outline_is_refused()
+    {
+        using var client = await RingAsync();
+        var before = Ring(await ShapeAsync(client, "coast"));
+
+        var refused = await client.PatchAsync($"{Sketch}/shapes/coast/vertices/0",
+            Body("""{"x":150,"z":50}"""));
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+
+        await Assert.That(Ring(await ShapeAsync(client, "coast"))).IsEquivalentTo(before);
+    }
+
+    /// <summary>The plan compiles a room's rectangle and a recompile redraws it, so its points are the
+    /// compiler's rather than a caller's.</summary>
+    [Test]
+    public async Task A_role_shapes_vertices_are_the_compilers()
+    {
+        using var client = await RingAsync();
+        (await client.PatchAsync($"{Sketch}/shapes/coast", Body("""{"height_mode":"flat"}"""))).EnsureSuccessStatusCode();
+
+        var drawn = await client.PostAsync($"{Sketch}/layers/layer0/shapes?group=i", Body("""
+            {"id":"hall","type":"polygon","role":"room","vertices":[[0,0],[10,0],[10,10],[0,10]]}
+            """));
+        drawn.EnsureSuccessStatusCode();
+
+        var refused = await client.PatchAsync($"{Sketch}/shapes/hall/vertices/0", Body("""{"x":1,"z":1}"""));
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That((await refused.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("findings")[0].GetProperty("field").GetString()).IsEqualTo("role");
+    }
+
+    /// <summary>A vertex edit on an id that names nothing is a 404, the same as every other shape route.</summary>
+    [Test]
+    public async Task A_vertex_edit_on_an_id_that_names_nothing_is_a_404()
+    {
+        using var client = await RingAsync();
+        var missing = await client.PatchAsync($"{Sketch}/shapes/nobody/vertices/0", Body("""{"x":0,"z":0}"""));
         await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 }

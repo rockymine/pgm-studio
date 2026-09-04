@@ -2,6 +2,7 @@ using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
@@ -351,15 +352,149 @@ public sealed class SketchShapeDeleteEndpoint(MapRepository repo, MapArtifactSto
     }
 }
 
-/// <summary>What a bend is asked for: how far a point may be pulled in, how often to cut along an edge, and
-/// which coast.</summary>
-/// <param name="Wander">How far, in blocks, an inserted point may be pulled into the land. The whole of what
+/// <summary>Where one vertex goes.</summary>
+/// <param name="X">The point's x, in blocks.</param>
+/// <param name="Z">The point's z, in blocks.</param>
+public sealed record VertexAt(double X, double Z);
+
+/// <summary>Where a new vertex is added, and where it lands.</summary>
+/// <param name="After">The vertex the new one follows. The last vertex's edge closes the ring, so stating it
+/// adds a point on the closing edge.</param>
+/// <param name="X">The point's x. Absent puts it at the midpoint of that edge — the anchor a hand reaches for
+/// when it wants a new corner half way along a wall.</param>
+/// <param name="Z">The point's z. Absent puts it at the midpoint of that edge.</param>
+public sealed record VertexInsert(int After, double? X, double? Z);
+
+/// <summary>PATCH /api/map/{slug}/sketch/shapes/{shapeId}/vertices/{index} — move one point of one outline.
+///
+/// <para><b>Every other vertex stays exactly where it was drawn.</b> That is the whole of the call: a board's
+/// shapes abut, and an edit that drags a ring's other points opens ground between two that were flush, which
+/// is what a whole-ring transform does and what a hand pulling one corner does not.</para>
+///
+/// <para>Refused where the shape carries a <c>role</c> — the plan compiles a room's rectangle and a recompile
+/// redraws it — where it states no <c>vertices</c> (a rectangle or a circle states its bounds), where the
+/// index names no point, and where the move folds the outline across its own far side.</para></summary>
+public sealed class SketchVertexMoveEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<OutlineDto>
+{
+    public override void Configure()
+    {
+        Patch("/map/{slug}/sketch/shapes/{shapeId}/vertices/{index}"); AllowAnonymous();
+        Description(b => b.Accepts<VertexAt>("application/json")
+                          .Produces<OutlineDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("shapeId")!;
+        var index = Route<int>("index");
+        var vertices = 0;
+        var outcome = await SketchGeometryWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            (layoutJson, stated) =>
+            {
+                if (stated.Deserialize<VertexAt>(SketchLayout.Json) is not { } asked)
+                    return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                        "a vertex move states `x` and `z`, the point the vertex goes to.", Field: "x"));
+
+                var edit = SketchGeometryEdit.MoveVertex(layoutJson, id, index, asked.X, asked.Z);
+                vertices = Count(edit, id);
+                return edit;
+            }, needsBody: true);
+
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        await Send.OkAsync(new OutlineDto(outcome.Id, index, vertices), ct);
+    }
+
+    internal static int Count(GeometryEdit edit, string shapeId) =>
+        edit.Layout is { } drawn
+            ? SketchLayout.Stated(drawn)?.Layers?.SelectMany(layer => layer.Shapes)
+                .FirstOrDefault(shape => shape.Id == shapeId)?.Vertices?.Length ?? 0
+            : 0;
+}
+
+/// <summary>POST /api/map/{slug}/sketch/shapes/{shapeId}/vertices — add one point to one outline, after the
+/// vertex <c>after</c> names. Stating no <c>x</c>/<c>z</c> puts it at the midpoint of that edge, which is a
+/// new corner half way along a wall with nothing else moved; the answer carries the index it landed at, which
+/// is the address the move route then takes.</summary>
+public sealed class SketchVertexAddEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<OutlineDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/shapes/{shapeId}/vertices"); AllowAnonymous();
+        Description(b => b.Accepts<VertexInsert>("application/json")
+                          .Produces<OutlineDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("shapeId")!;
+        int index = 0, vertices = 0;
+        var outcome = await SketchGeometryWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            (layoutJson, stated) =>
+            {
+                if (stated.Deserialize<VertexInsert>(SketchLayout.Json) is not { } asked)
+                    return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                        "adding a vertex states `after`, the vertex the new one follows. `x` and `z` are "
+                        + "where it lands, and leaving them off puts it at the midpoint of that edge.",
+                        Field: "after"));
+
+                var edit = SketchGeometryEdit.InsertVertex(layoutJson, id, asked.After, asked.X, asked.Z,
+                                                           out index);
+                vertices = SketchVertexMoveEndpoint.Count(edit, id);
+                return edit;
+            }, needsBody: true);
+
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        await Send.OkAsync(new OutlineDto(outcome.Id, index, vertices), ct);
+    }
+}
+
+/// <summary>DELETE /api/map/{slug}/sketch/shapes/{shapeId}/vertices/{index} — take one point out of one
+/// outline, leaving every other where it was drawn. Refused where the outline is down to its last three,
+/// since two points draw no ground, and where dropping the point folds the ring.</summary>
+public sealed class SketchVertexDeleteEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<OutlineDto>
+{
+    public override void Configure()
+    {
+        Delete("/map/{slug}/sketch/shapes/{shapeId}/vertices/{index}"); AllowAnonymous();
+        Description(b => b.Produces<OutlineDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("shapeId")!;
+        var index = Route<int>("index");
+        var vertices = 0;
+        var outcome = await SketchGeometryWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            (layoutJson, _) =>
+            {
+                var edit = SketchGeometryEdit.RemoveVertex(layoutJson, id, index);
+                vertices = SketchVertexMoveEndpoint.Count(edit, id);
+                return edit;
+            }, needsBody: false);
+
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        await Send.OkAsync(new OutlineDto(outcome.Id, index, vertices), ct);
+    }
+}
+
+/// <summary>What a bend is asked for: how far a point may be pulled off its edge, which way, how often to cut
+/// along an edge, and which coast.</summary>
+/// <param name="Wander">How far, in blocks, an inserted point may be pulled off its edge. The whole of what
 /// makes an outline organic, and the one number a bend is refused over.</param>
 /// <param name="Step">How often to cut along an edge, in blocks. An edge with room for fewer than two cuts
 /// is left straight, so a neck and a short face come out as the plan drew them.</param>
 /// <param name="Seed">Which coast. The same seed draws the same one, so a spec re-driven is re-driven.</param>
 /// <param name="Tension">How long the Bézier handles are, as a fraction of their own edge. Absent is 0.22.</param>
-public sealed record BendRequest(double Wander, double Step, uint Seed, double? Tension);
+/// <param name="Side">Which way the cut points move — <c>out</c> of the ring, <c>in</c> to it, or
+/// <c>both</c>, wandering across the line the plan drew. Absent is <c>out</c>, the slight bloat that reads as
+/// land; <c>in</c> is what a board whose shapes abut on a measured strait asks for.</param>
+public sealed record BendRequest(double Wander, double Step, uint Seed, double? Tension, BendSide? Side);
 
 /// <summary>POST /api/map/{slug}/sketch/shapes/{shapeId}/bend — redraw one outline as a coast.
 ///
@@ -367,15 +502,16 @@ public sealed record BendRequest(double Wander, double Step, uint Seed, double? 
 /// coast. Redrawing the ring by hand states the coast twice — once in the plan and once in the sketch, free
 /// to disagree — so the bend is taken over whatever the compile produced instead.</para>
 ///
-/// <para><b>The outline's own vertices never move, and no point ever moves outward.</b> A vertex moved
-/// outward can cross the mirror line, close the strait a capture board is measured on, or leave the plan's
-/// own footprint; so only the points between them move, and only into the land. The coast can lose a few
-/// blocks and can never gain one.</para>
+/// <para><b>The outline's own vertices never move</b>, so a corner stays where the plan put it and the neck a
+/// spur hangs off keeps its width. Which way the cut points move is <c>side</c>'s: <c>out</c> bloats the
+/// outline slightly and is what makes a compiled rectangle read as land, <c>in</c> keeps the plan's footprint
+/// where shapes abut on a measured strait, and <c>both</c> wanders across the line the plan drew. Moving one
+/// named point instead is the vertex routes' job.</para>
 ///
 /// <para>Refused where the shape carries a <c>role</c> — a room's rectangle is what a stamper seats a
 /// building on — where it states no <c>vertices</c> to resample, and where the wander would fold the outline
-/// across its own far side. A point with land on neither side stays where it was cut and is counted in
-/// <c>held</c>, which rides back as <c>SK21</c>.</para></summary>
+/// across its own far side. A point with no room on the side asked for stays where it was cut and is counted
+/// in <c>held</c>, which rides back as <c>SK21</c>.</para></summary>
 public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore artifacts)
     : EndpointWithoutRequest<BentDto>
 {
@@ -398,11 +534,11 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
                 if (asked is not { Wander: > 0, Step: > 0 })
                     return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                         "a bend states `wander` and `step`, both greater than nought: how far a point may be "
-                        + "pulled into the land, and how often to cut along an edge.", Field: "wander"));
+                        + "pulled off its edge, and how often to cut along an edge.", Field: "wander"));
 
                 var edit = SketchGeometryEdit.BendShape(
                     layoutJson, id, asked.Wander, asked.Step, asked.Seed, asked.Tension ?? DefaultTension,
-                    out held);
+                    asked.Side ?? BendSide.Out, out held);
                 if (edit.Layout is { } drawn)
                     vertices = SketchLayout.Stated(drawn)?.Layers?.SelectMany(layer => layer.Shapes)
                         .FirstOrDefault(shape => shape.Id == id)?.Vertices?.Length ?? 0;
@@ -413,8 +549,8 @@ public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore
         if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
         if (held > 0)
             Complaints.Add(HttpContext, [new Finding(SketchRules.BendHeldBack,
-                $"{held} of the points cut into '{id}' had land on neither side and stayed on the edge they "
-                + "were cut from, so those stretches come out as straight as the plan drew them",
+                $"{held} of the points cut into '{id}' had no room on the side asked for and stayed on the "
+                + "edge they were cut from, so those stretches come out as straight as the plan drew them",
                 Severity.Complaint, Subjects: [id])]);
         await Send.OkAsync(new BentDto(outcome.Id, vertices, held), ct);
     }

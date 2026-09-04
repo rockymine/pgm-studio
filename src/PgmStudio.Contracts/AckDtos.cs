@@ -58,9 +58,17 @@ public sealed record SketchFinishedDto(string Slug, string ConfigureUrl);
 public sealed record SketchFromPlanDto(IReadOnlyList<string> Orphaned);
 
 /// <summary>What a bend drew: the shape it redrew, how many vertices the outline now carries, and how many
-/// of the points it cut had land on neither side and stayed on the edge they were cut from.</summary>
+/// of the points it cut had no room on the side asked for and stayed on the edge they were cut from.</summary>
 /// <param name="Id">The shape that was redrawn.</param>
 /// <param name="Vertices">How many vertices the drawn outline carries, against the ones the plan gave it.</param>
-/// <param name="Held">Inserted points with no room to move inward, which come out as straight as the plan
-/// drew them. Nought is the coast that was asked for; anything else rides back as <c>SK21</c> too.</param>
+/// <param name="Held">Inserted points with no room on the side asked for, which come out as straight as the
+/// plan drew them. Nought is the coast that was asked for; anything else rides back as <c>SK21</c> too.</param>
 public sealed record BentDto(string Id, int Vertices, int Held);
+
+/// <summary>What a per-vertex edit left: the shape, the point it addressed, and how long the outline now is.
+/// The index is the address the next edit takes, which is why an insert answers where the new point
+/// landed.</summary>
+/// <param name="Id">The shape whose outline was edited.</param>
+/// <param name="Index">The vertex the edit addressed — for an insert, where the new point landed.</param>
+/// <param name="Vertices">How many vertices the outline carries after the edit.</param>
+public sealed record OutlineDto(string Id, int Index, int Vertices);

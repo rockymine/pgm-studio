@@ -1420,7 +1420,10 @@ in the same two registers.
 | `DELETE /map/{slug}/sketch/layers/{layerId}/groups/{groupId}` | `{id}` — ungroup. The shapes stay on the layer and are drawn where they were drawn; what goes with the group is the orbit fan and the relief keyed under its id | 409 · 404 the id names no group |
 | `GET /map/{slug}/sketch/shapes/{shapeId}` | one `SketchShape`, wherever on the stack it is drawn — a shape id is unique across the whole document, so it is the address wherever it lives | 404 the id names no shape |
 | `PATCH /map/{slug}/sketch/shapes/{shapeId}` | `{id}` — change one shape without restating the board. A stated field replaces what the shape carried and **a stated `null` takes the field off**, so the one call both writes a height and clears a relief scope. `id` is the address and is kept whatever the body says | 400 `the edit cannot be made` `RQ1` on `role`, `intentRef` or `height_authored` · 400 `malformed body` `RQ1` · 409 · 404 the id names no shape |
-| `POST /map/{slug}/sketch/shapes/{shapeId}/bend` | `{id, vertices, held}` — redraw one outline as a **coast**: resampled along its long edges every `step` blocks, each inserted point pulled into the land by up to `wander`, and Bézier handles fitted over the result. Body `{wander, step, seed, tension?}`. **The outline's own vertices never move and no point ever moves outward** — a vertex moved outward can close the strait a capture board is measured on or leave the plan's own footprint — so the coast can lose a few blocks and never gain one. Inward is decided by asking the ring rather than by reading a winding, so it is right for either winding and for a concave stretch. `held` counts the points that had land on neither side and stayed where they were cut, which rides back as `SK21` | 400 `the edit cannot be made` `RQ1` — a `role` shape (a room's rectangle is not a coast), no `vertices` to resample, a wander that folds the outline across its own far side, or a `wander`/`step` of nought · 409 · 404 the id names no shape |
+| `POST /map/{slug}/sketch/shapes/{shapeId}/bend` | `{id, vertices, held}` — redraw one outline as a **coast**: resampled along its long edges every `step` blocks, each inserted point pulled off its edge by up to `wander`, and Bézier handles fitted over the result. Body `{wander, step, seed, tension?, side?}`. **The outline's own vertices never move**, so a corner stays where the plan put it and the neck a spur hangs off keeps its width. `side` is `out` (the default — the slight bloat that reads as land), `in` (keeps the plan's footprint, for a board whose shapes abut on a measured strait) or `both` (wanders across the line the plan drew). The side is decided by asking the ring rather than by reading a winding, so it is right for either winding and for a concave stretch. `held` counts the points that had no room on the side asked for and stayed where they were cut, which rides back as `SK21` | 400 `the edit cannot be made` `RQ1` — a `role` shape (a room's rectangle is not a coast), no `vertices` to resample, a wander that folds the outline across its own far side, or a `wander`/`step` of nought · 409 · 404 the id names no shape |
+| `PATCH /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — move one point of one outline. Body `{x, z}`. **Every other vertex stays exactly where it was drawn**, which is the whole of the call: a board's shapes abut, and an edit that drags a ring's other points opens ground between two that were flush | 400 `the edit cannot be made` `RQ1` — a `role` shape, no `vertices` to address, an index the outline does not carry (the message states the range), or a move that folds the ring · 409 · 404 the id names no shape |
+| `POST /map/{slug}/sketch/shapes/{shapeId}/vertices` | `{id, index, vertices}` — add one point after the vertex `after` names, and answer where it landed. Body `{after, x?, z?}`; stating no point puts it at the **midpoint of that edge**, which is a new corner half way along a wall with nothing else moved. The last vertex's edge closes the ring | 400 as above · 409 · 404 the id names no shape |
+| `DELETE /map/{slug}/sketch/shapes/{shapeId}/vertices/{index}` | `{id, index, vertices}` — take one point out, leaving every other where it was drawn | 400 `the edit cannot be made` `RQ1` — as above, plus an outline down to its last three, since two points draw no ground · 409 · 404 the id names no shape |
 | `DELETE /map/{slug}/sketch/shapes/{shapeId}` | `{id}` — rub one shape out, and take it out of every group that listed it | 409 · 404 the id names no shape |
 | `GET /map/{slug}/sketch/props` | `{props[], styles{}}` — every placement the map carries and the recipes they name, typed as `PlacedProp` so the six kinds, their knobs and their styles are in the published schema. The recipes ride with the placements because a placement naming a key nobody can resolve is not readable on its own | 400 `unreadable dressing` `DR-DOC` · 404 |
 | `POST /map/{slug}/sketch/props` | `{id}` — place one prop, without sending the board it stands on. A body stating a free id keeps it; one stating none, or one already taken, is minted `{kind}-{n}`. The placement goes on the end, since the pass runs in placement order and an addition has not been placed before anything | 400 `malformed prop` `RQ1` (the message names every kind) · 400 `invalid style or theme` `HS*`/`PT*` · 409 stale `If-Match` · 404 |
@@ -1511,6 +1514,58 @@ A map that already came from a plan needs only the last two — the layout is al
 /api/map/{slug}/sketch` returns it to be edited and put back. Note the difference between the two write paths:
 the plain `PUT` replaces the blob, so a document that omits `themes` deletes them, while
 `.../sketch/from-plan` merges the finish onto fresh geometry.
+
+### Reshaping ground the plan compiled
+
+A plan compiles to a staircase of rectangles. That is the board's *arrangement* — which ground is where, at
+what height, next to what — and it is not the board's *shape*. Turning the one into the other is the work this
+tool exists for, and there are two ways to do it that do not involve redrawing the ring by hand.
+
+**One point at a time is the primary one, and it is what a hand does.** `PATCH
+.../sketch/shapes/{id}/vertices/{index}` moves the vertex it names and nothing else; `POST
+.../sketch/shapes/{id}/vertices` adds one after the vertex `after` names, at the midpoint of that edge when
+the body states no `x`/`z`, and answers the index it landed at; `DELETE .../vertices/{index}` takes one out.
+Every other point of the outline is exactly where it was drawn after each of the three. That is the whole
+property: a board's shapes abut, and an edit that drags a ring's other points opens ground between two that
+were flush — which is what happens when a whole-ring transform is used to pull one corner.
+
+The loop an agent runs is therefore: read the shape, pick the point, move it, read it back. A new corner half
+way along a wall is two calls — add at the midpoint, then move where the answer says it landed.
+
+```
+GET    /api/map/{slug}/sketch/shapes/garth-14
+POST   /api/map/{slug}/sketch/shapes/garth-14/vertices          {"after": 1}
+                                                             →  {"id":"garth-14","index":2,"vertices":5}
+PATCH  /api/map/{slug}/sketch/shapes/garth-14/vertices/2        {"x": 92, "z": -70}
+```
+
+Three things are refused, and all three for the same reason — the edit would leave a shape nothing can build
+from. A `role` shape is the plan's own room rectangle, which a recompile redraws and a stamper seats a
+building on. A rectangle or a circle states its bounds rather than an outline and has no points to address. And
+a move, an insert or a delete that folds the ring across its own far side is refused rather than clamped,
+because a folded outline rasterizes as ground with a hole nobody drew. An index the outline does not carry is
+refused with the range it does, since a caller acting on a stale copy needs to know how long the ring is now.
+
+**The bend is the second way, and it is a roughener rather than a resizer.** `POST .../shapes/{id}/bend`
+resamples the outline's long edges every `step` blocks and pulls each inserted point off its edge by up to
+`wander`, then fits Bézier handles over the result. The outline's own vertices never move, so a corner stays
+where the plan put it and the neck a spur hangs off keeps its width. `side` says which way the cut points go:
+`out` — the default — bloats the outline slightly, which is what makes a compiled rectangle read as land;
+`in` keeps the plan's footprint, which is what a board whose shapes abut on a measured strait asks for; `both`
+wanders across the line the plan drew, with the reach falling to nothing where the side turns over.
+
+**Which of the two to reach for is not a preference.** A bend moves every cut point on the ring at once by a
+formula, so it is right where the whole edge should read rougher and wrong where one place should be
+different from the others. Pulling a bay, widening one flank, cutting a notch a lane runs through — those are
+one point each, and doing them with a bend produces a board that is uniformly wobbly and locally unchanged.
+
+The scale a hand actually works at is worth stating, because it is larger than a bend's. `rockymine-map-experiment`
+is the reference: its four ground shapes are the plan's four rectangles reshaped by hand, from 4 vertices each
+to 6, 9, 10 and 11, and **every one of them grew** — 3850 → 3920, 5500 → 6351, 3325 → 3962, 1575 → 1774, which
+is +1,758 blocks² or +12.3% over the compile. Of the 36 drawn vertices, 19 sit outside the rectangle they came
+from, by 2 to 20 blocks, 7 sit inside it by 4 to 8, and 10 stay on the edge. The document carries **no Bézier
+handles at all**. A board reshaped that far outward, that unevenly, is not reachable by any whole-ring
+transform, and it is reachable one point at a time.
 
 ### Gauging the result
 

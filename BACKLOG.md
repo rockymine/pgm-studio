@@ -458,20 +458,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   a disconnected island made of paint. Nothing before that read mentioned it, and every spec now clamps and
   folds each stroke by hand to avoid both cases.*
 
-- [ ] **TS83 — Eight props on four mapgen boards stand on coast the old bend invented.** `TS30` moved the
-  bend into the studio, where a point may only be pulled **inward**; the driver's own copy read the shoelace
-  sign backwards and pulled every point outward by the same amount, so each bent board grew past the plan's
-  own footprint. Re-driven against the correct coast, four of the five bend boards decline exactly two props,
-  each standing on the growth. The boards build, export and play; what is wanted is each prop moved inside
-  the drawn coast, which `06-claims.txt` says where there is room for. The worlds under `maps/` were built
-  against the old coast and are unaffected until re-driven. The work is in `pgm-studio-mapgen`, and it is
-  filed here because the bend that moved them is the studio's.
-
-  *`opus5-alderfen` placed 106, declined `steading-e`/`steading-w` · `opus5-blockrealm` 38, `tree-4`/`tree-5`
-  · `opus5-quiverstone` 44, `birch-1`/`dwelling-e` · `fable-mossgill` 38, `tree-10`/`tree-3` ·
-  `opus5-lodestar` 30, none. On `opus5-alderfen`'s rings: `garth-14` is 9750 compiled, 11033 under the old
-  bend, 8467 under the studio's.*
-
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
@@ -892,6 +878,16 @@ set that reads a surface as somewhere a player can stand rather than as any colu
   is worth removing rather than tolerating.
 
 ## The remainder: work no concept above has claimed
+
+- [ ] **RP66 — `POST /map/from-documents` faults on a body that omits `layout`.** `layout` and `intent` are
+  the two non-nullable `JsonElement` fields of `MapFromDocumentsRequest`, and an absent one deserializes to
+  the default struct, so `MapFromDocuments.LoadAsync` line 60 calls `GetRawText()` on it and throws. The
+  caller gets 500 `RQ2` — *the fault is its own rather than the document's* — which is the opposite of true.
+  Refuse it beside the name check already above that line: `RQ1`, `field: "layout"`, naming the two documents
+  a load needs. `docs/refusals.md` gains the row.
+
+  *`POST /api/map/from-documents` with `{"slug":"x","name":"x","plan":{…},"intent":{…}}` and no `layout`:
+  `System.InvalidOperationException` at `JsonElement.GetRawText()`, `MapFromDocuments.cs:60`.*
 
 - [ ] **WE13 — The catalogue map is not a map, and may not be wanted at all.** `tools/library-map.cs` emits a
   grid of 37 unconnected plots and `GET /map/{slug}/export` refuses it 409 `EX1` — *3 spawn/objective point(s)

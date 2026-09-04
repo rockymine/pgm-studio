@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json.Nodes;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
@@ -180,19 +180,19 @@ public static class SketchGeometryEdit
     }
 
     /// <summary>The shape at <paramref name="shapeId"/> redrawn as a coast: its outline resampled along the
-    /// long edges, each inserted point pulled into the land, and Bézier handles fitted over the result.
+    /// long edges, each inserted point pulled off its edge, and Bézier handles fitted over the result.
     ///
-    /// <para>Only the points <em>between</em> the outline's own vertices move, and only inward — the two
-    /// rules that make a bend safe on a board that has been measured, since a vertex moved outward can close
-    /// the strait a capture board is judged on or leave the plan's own footprint. A shape carrying a
-    /// <c>role</c> is refused: a room's rectangle is what a stamper seats a building on, not a coast. So is
-    /// one with no <c>vertices</c> — a rectangle or a circle states its outline as bounds and has none to
-    /// resample — and one whose drawn ring would fold over itself.</para>
+    /// <para>Only the points <em>between</em> the outline's own vertices move, so a corner stays where the
+    /// plan put it. Which way they move is <paramref name="side"/>'s. A shape carrying a <c>role</c> is
+    /// refused: a room's rectangle is what a stamper seats a building on, not a coast. So is one with no
+    /// <c>vertices</c> — a rectangle or a circle states its outline as bounds and has none to resample — and
+    /// one whose drawn ring would fold over itself.</para>
     ///
-    /// <para><paramref name="held"/> answers how many inserted points had land on neither side and stayed
-    /// where they were cut, which is <c>SK21</c>.</para></summary>
+    /// <para><paramref name="held"/> answers how many inserted points had no room on the side asked for and
+    /// stayed where they were cut, which is <c>SK21</c>.</para></summary>
     public static GeometryEdit BendShape(
-        string? layoutJson, string shapeId, double wander, double step, uint seed, double tension, out int held)
+        string? layoutJson, string shapeId, double wander, double step, uint seed, double tension,
+        BendSide side, out int held)
     {
         held = 0;
         var root = Root(layoutJson);
@@ -213,7 +213,7 @@ public static class SketchGeometryEdit
                 Field: "vertices", Subjects: [shapeId]));
 
         var ring = stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) }).ToList();
-        if (RingBend.Draw(ring, wander, step, seed, tension) is not { } coast)
+        if (RingBend.Draw(ring, wander, step, seed, tension, side: side) is not { } coast)
             return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
                 $"a wander of {wander} over a step of {step} folds '{shapeId}' across its own far side, which "
                 + "would build ground with a hole nobody drew. Lower the wander, or raise the step so the "
@@ -230,6 +230,143 @@ public static class SketchGeometryEdit
                 ["out"] = new JsonArray(JsonValue.Create(handle.Value.Out[0]), JsonValue.Create(handle.Value.Out[1])),
             })));
         return new(root.ToJsonString(), shapeId);
+    }
+
+    /// <summary>The shape at <paramref name="shapeId"/> with the one vertex at <paramref name="index"/>
+    /// moved to <c>(x, z)</c>. Every other vertex stays exactly where it was drawn, which is the whole point
+    /// of the call: a board's shapes abut, and an edit that drags a ring's other points opens ground between
+    /// two that were flush.</summary>
+    public static GeometryEdit MoveVertex(string? layoutJson, string shapeId, int index, double x, double z)
+    {
+        var root = Root(layoutJson);
+        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
+        if (Range(shapeId, index, vertices.Count) is { } outOfRange) return outOfRange;
+
+        var ring = Ring(vertices);
+        ring[index] = [x, z];
+        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "moving");
+
+        vertices[index] = Point(x, z);
+        Recontrol(shape, index, vertices.Count, shift: null);
+        return new(root.ToJsonString(), shapeId);
+    }
+
+    /// <summary>The shape at <paramref name="shapeId"/> with one vertex added after <paramref name="after"/>,
+    /// at <c>(x, z)</c> where the caller states a point and at the midpoint of that edge where it does not —
+    /// the anchor a hand reaches for when it wants a new corner half way along a wall. The new vertex's index
+    /// rides back in <paramref name="index"/>.</summary>
+    public static GeometryEdit InsertVertex(
+        string? layoutJson, string shapeId, int after, double? x, double? z, out int index)
+    {
+        index = -1;
+        var root = Root(layoutJson);
+        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
+        if (Range(shapeId, after, vertices.Count) is { } outOfRange) return outOfRange;
+
+        var ring = Ring(vertices);
+        var next = ring[(after + 1) % ring.Count];
+        var at = index = after + 1;
+        double px = x ?? (ring[after][0] + next[0]) / 2, pz = z ?? (ring[after][1] + next[1]) / 2;
+
+        ring.Insert(at, [px, pz]);
+        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "adding a vertex to");
+
+        vertices.Insert(at, Point(px, pz));
+        Recontrol(shape, at, vertices.Count, shift: from => from >= at ? from + 1 : from);
+        return new(root.ToJsonString(), shapeId);
+    }
+
+    /// <summary>The shape at <paramref name="shapeId"/> without the vertex at <paramref name="index"/>.
+    /// Refused where the outline is down to its last three, since two points draw no ground.</summary>
+    public static GeometryEdit RemoveVertex(string? layoutJson, string shapeId, int index)
+    {
+        var root = Root(layoutJson);
+        if (Outline(Layers(root), shapeId, out var shape, out var vertices) is { } refused) return refused;
+        if (Range(shapeId, index, vertices.Count) is { } outOfRange) return outOfRange;
+
+        if (vertices.Count <= 3)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' is drawn with three vertices and two points draw no ground. Rub the shape out "
+                + "with DELETE, or move a vertex instead of taking one away",
+                Field: "index", Subjects: [shapeId]));
+
+        var ring = Ring(vertices);
+        ring.RemoveAt(index);
+        if (Polygon.SelfIntersects(ring)) return Folded(shapeId, "taking a vertex out of");
+
+        vertices.RemoveAt(index);
+        Recontrol(shape, index % vertices.Count, vertices.Count, shift: from =>
+            from == index ? null : from > index ? from - 1 : from);
+        return new(root.ToJsonString(), shapeId);
+    }
+
+    /// <summary>The vertex list of a shape that can take a per-vertex edit, or the finding that refuses it: a
+    /// <c>role</c> shape is the plan's own rectangle and is the compiler's to draw, and a rectangle or a
+    /// circle states its bounds rather than an outline.</summary>
+    private static GeometryEdit? Outline(
+        JsonArray layers, string shapeId, out JsonObject shape, out JsonArray vertices)
+    {
+        shape = null!;
+        vertices = null!;
+        if (ShapeAt(layers, shapeId) is not { } found) return GeometryEdit.Missing;
+        shape = found;
+
+        if (Text(found["role"]) is { Length: > 0 } role)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' is the plan's own {role} rectangle, which a stamper seats a building on and "
+                + "which a plan recompile redraws. Edit the room in the plan instead",
+                Field: "role", Subjects: [shapeId]));
+
+        if (found["vertices"] is not JsonArray stated || stated.Count < 3)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' states no outline to edit — a vertex edit addresses a polygon's own points, and "
+                + "a rectangle or a circle states its bounds instead. Draw it as a polygon first, or state "
+                + "the vertices with a patch",
+                Field: "vertices", Subjects: [shapeId]));
+
+        vertices = stated;
+        return null;
+    }
+
+    private static GeometryEdit? Range(string shapeId, int index, int count) =>
+        index >= 0 && index < count ? null
+            : GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' is drawn with {count} vertices, numbered 0 to {count - 1}, and there is none at "
+                + $"{index}. Read the shape to see the outline the edit addresses",
+                Field: "index", Subjects: [shapeId]));
+
+    private static GeometryEdit Folded(string shapeId, string verb) =>
+        GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+            $"{verb} '{shapeId}' there folds the outline across its own far side, which would build ground "
+            + "with a hole nobody drew. Put the point on the same side of the ring as the wall it belongs to",
+            Field: "index", Subjects: [shapeId]));
+
+    private static List<double[]> Ring(JsonArray vertices) =>
+        [.. vertices.Select(point => new[] { Number(point?[0]), Number(point?[1]) })];
+
+    private static JsonNode Point(double x, double z) =>
+        new JsonArray(JsonValue.Create(x), JsonValue.Create(z));
+
+    /// <summary>The shape's handle map re-keyed by <paramref name="shift"/> — an index it answers null for
+    /// loses its handles — and then cleared at <paramref name="touched"/> and that index's two neighbours in
+    /// a ring of <paramref name="count"/>. A handle is an absolute point fitted to a vertex and its two
+    /// edges, so a vertex that has moved, arrived or gone leaves all three of them stale.</summary>
+    private static void Recontrol(JsonObject shape, int touched, int count, Func<int, int?>? shift)
+    {
+        if (shape["controls"] is not JsonObject controls || count < 1) return;
+
+        var next = new JsonObject();
+        foreach (var (key, value) in controls.ToList())
+        {
+            if (!int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var at)) continue;
+            if ((shift is null ? at : shift(at)) is { } to)
+                next[to.ToString(CultureInfo.InvariantCulture)] = value?.DeepClone();
+        }
+        foreach (var stale in new[] { (touched - 1 + count) % count, touched % count, (touched + 1) % count })
+            next.Remove(stale.ToString(CultureInfo.InvariantCulture));
+
+        if (next.Count == 0) shape.Remove("controls");
+        else shape["controls"] = next;
     }
 
     private static double Number(JsonNode? node) =>

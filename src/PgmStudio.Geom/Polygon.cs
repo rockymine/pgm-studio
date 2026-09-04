@@ -20,4 +20,32 @@ public static class Polygon
         }
         return inside;
     }
+
+    /// <summary>Whether the closed polyline <paramref name="ring"/> crosses itself. Every pair of
+    /// non-adjacent edges, which is a few thousand tests on the rings a plan compiles to and is the whole of
+    /// what makes an edited outline safe to store — a ring folded over its own far side rasterizes as ground
+    /// with a hole nobody drew.
+    ///
+    /// <para>Touching is not crossing: two edges that share an endpoint or meet at one collinear point pass,
+    /// and only a proper crossing fails, so an outline drawn back onto one of its own vertices is kept.</para></summary>
+    public static bool SelfIntersects(IReadOnlyList<IReadOnlyList<double>> ring)
+    {
+        var n = ring.Count;
+        for (var i = 0; i < n; i++)
+            for (var j = i + 2; j < n; j++)
+            {
+                if (i == 0 && j == n - 1) continue;                  // the closing edge meets the first
+                if (SegmentsCross(ring[i], ring[(i + 1) % n], ring[j], ring[(j + 1) % n])) return true;
+            }
+        return false;
+    }
+
+    /// <summary>Whether segments <c>a→b</c> and <c>c→d</c> properly cross — each straddles the other's line.
+    /// A shared or collinear endpoint reads as no crossing.</summary>
+    public static bool SegmentsCross(
+        IReadOnlyList<double> a, IReadOnlyList<double> b, IReadOnlyList<double> c, IReadOnlyList<double> d) =>
+        Side(a, b, c) * Side(a, b, d) < 0 && Side(c, d, a) * Side(c, d, b) < 0;
+
+    private static double Side(IReadOnlyList<double> p, IReadOnlyList<double> q, IReadOnlyList<double> r) =>
+        Math.Sign((q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0]));
 }

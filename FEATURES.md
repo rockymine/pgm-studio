@@ -6858,18 +6858,35 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
-- **A compiled outline is bent into a coast, and the two rules that make it safe are the code's (`TS30`).**
+- **A compiled outline is bent into a coast, and the side is the author's (`TS30`, `TS84`).**
   `POST /map/{slug}/sketch/shapes/{shapeId}/bend` resamples an outline every `step` blocks and pulls each
-  inserted point into the land by up to `wander`, then fits Bézier handles. **The outline's own vertices
-  never move and no point ever moves outward** — a vertex moved outward can close the strait a capture board
-  is measured on or leave the plan's own footprint. Inward is decided by offering each point both
-  perpendiculars and taking whichever lands inside the original ring, so it is right for a ring wound either
-  way and for a concave stretch: a shoelace sign is what gets this wrong, and the driver's own copy grew a
-  100×100 square to 11,201 for both windings. Refused for a `role` shape, for one with no `vertices`, and
-  for a wander that folds the outline across its far side; a point with land on neither side is held and
-  counted as `SK21`. Measured on `opus5-tiefkreuz`: 12 vertices to 34, area 6976 → 6720, all twelve plan
-  vertices present. (`Geom/RingBend`, `Pgm/Sketch/SketchGeometryEdit.BendShape`,
+  inserted point off its edge by up to `wander`, then fits Bézier handles. **The outline's own vertices never
+  move**, so a corner stays where the plan put it and the neck a spur hangs off keeps its width. `side` is
+  `out` — the default, the slight bloat that makes a compiled rectangle read as land — `in`, which keeps the
+  plan's footprint where shapes abut on a measured strait, or `both`, wandering across the line the plan drew
+  with the reach falling to nothing where the side turns over. The side is decided by offering each point both
+  perpendiculars and taking the one that lands where it was asked to, so it is right for a ring wound either
+  way and for a concave stretch: a shoelace sign is what gets this wrong. Refused for a `role` shape, for one
+  with no `vertices`, and for a wander that folds the outline across its far side; a point with no room on the
+  side asked for is held and counted as `SK21`. Measured on `opus5-alderfen`'s `garth-14`: 4 vertices to 34,
+  area 9750 → 11,033 out, 8,467 in, the two exact mirrors of one another.
+  (`Geom/RingBend`, `Geom/Polygon.SelfIntersects`, `Pgm/Sketch/SketchGeometryEdit.BendShape`,
   `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`, `docs/refusals.md`)
+- **An outline is edited one point at a time, and nothing else moves (`TS84`).**
+  `PATCH /map/{slug}/sketch/shapes/{id}/vertices/{index}` moves one vertex, `POST …/vertices` adds one after
+  the vertex `after` names — at the midpoint of that edge when the body states no `x`/`z`, which is a new
+  corner half way along a wall — and `DELETE …/vertices/{index}` takes one out. **Every other point of the
+  outline is exactly where it was drawn after each of the three**, which is what keeps two abutting shapes
+  flush and is the operation a hand performs in the browser; a whole-ring transform cannot express it. Each
+  answers `{id, index, vertices}`, so an insert says the address the next move takes. The handles at the
+  touched vertex and its two neighbours are dropped and the rest re-keyed, since a handle is an absolute point
+  fitted to a vertex and its two edges. Refused for a `role` shape, for one with no `vertices`, for an index
+  the outline does not carry (the message states the range), for an outline down to its last three, and for an
+  edit that folds the ring. `rockymine-map-experiment` is the scale this reaches: its four ground shapes are
+  the plan's four rectangles at 4 vertices each redrawn to 6, 9, 10 and 11, every one grown, +1,758 blocks²
+  (+12.3%) over the compile, 19 of 36 vertices outside the rectangle they came from by 2–20 blocks, and no
+  Bézier handles anywhere. (`Pgm/Sketch/SketchGeometryEdit.MoveVertex`/`InsertVertex`/`RemoveVertex`,
+  `Api/Endpoints/SketchGeometryEndpoints`, `Contracts/AckDtos.OutlineDto`, `docs/tools/sketch.md`)
 - **A compiled shape's id is an address that survives the plan growing (`TS82`).** The compiler minted `s0`,
   `s1`, `s2` down the emission order, so inserting one piece renumbered every shape after it and every theme,
   relief scope and bend a spec had keyed on one named a different shape — silently, since the board stores
