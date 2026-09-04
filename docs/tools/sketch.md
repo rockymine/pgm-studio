@@ -1529,15 +1529,24 @@ Every other point of the outline is exactly where it was drawn after each of the
 property: a board's shapes abut, and an edit that drags a ring's other points opens ground between two that
 were flush — which is what happens when a whole-ring transform is used to pull one corner.
 
-The loop an agent runs is therefore: read the shape, pick the point, move it, read it back. A new corner half
-way along a wall is two calls — add at the midpoint, then move where the answer says it landed.
+The loop an agent runs is: read the outline, pick the edge the new corner belongs to, state where it goes.
+`after` and `x`/`z` in one call is the form to reach for, because it is atomic — a point that would fold the
+ring leaves the outline untouched, where splitting first and moving second leaves the midpoint behind.
+Omitting `x`/`z` is the other case, and it is the midpoint anchor: a corner half way along a wall, placed
+before it is decided where it goes.
 
 ```
-GET    /api/map/{slug}/sketch/shapes/garth-14
-POST   /api/map/{slug}/sketch/shapes/garth-14/vertices          {"after": 1}
-                                                             →  {"id":"garth-14","index":2,"vertices":5}
-PATCH  /api/map/{slug}/sketch/shapes/garth-14/vertices/2        {"x": 92, "z": -70}
+GET    /api/map/{slug}/sketch/shapes/island-12
+       →  {"vertices":[[-100,-60],[100,-60],[100,60],[-100,60]], …}
+POST   /api/map/{slug}/sketch/shapes/island-12/vertices   {"after": 0, "x": -40, "z": -84}
+       →  {"id":"island-12","index":1,"vertices":5}
+PATCH  /api/map/{slug}/sketch/shapes/island-12/vertices/1 {"x": -44, "z": -80}
+       →  {"id":"island-12","index":1,"vertices":5}
 ```
+
+Nine such calls take a one-piece plan's compiled rectangle — `island-12`, 4 vertices, 24,000 blocks² — to a
+12-point outline of 28,084, **+17%**, with all four of the compile's own corners still exactly where the plan
+put them. That is the whole workflow: a small plan for the arrangement, and the shape drawn on top of it.
 
 Three things are refused, and all three for the same reason — the edit would leave a shape nothing can build
 from. A `role` shape is the plan's own room rectangle, which a recompile redraws and a stamper seats a
