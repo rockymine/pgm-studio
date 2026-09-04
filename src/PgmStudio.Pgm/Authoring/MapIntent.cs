@@ -56,7 +56,7 @@ public sealed record MapIntent
     public List<CoreIntent>? Cores { get; init; }
 
     /// <summary>What this map is played as, derived from the objective modules it carries — the one rule,
-    /// <see cref="Domain.Gamemodes.From"/>, which a parsed <see cref="Domain.MapModel"/> answers the same way.
+    /// <see cref="PgmStudio.Domain.Gamemodes.From"/>, which a parsed <c>MapModel</c> answers the same way.
     /// It is a set because CTW, DTM and DTC coexist, and it is what the <c>&lt;gamemode&gt;</c> elements and
     /// the observer platform's own board are both written from, so the map and the sign in it cannot
     /// disagree.</summary>

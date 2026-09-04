@@ -318,7 +318,7 @@ public static class HouseStyleValidation
             Field: "doorHead.form"));
     }
 
-    /// <summary>HS10 — a stilt storey standing on a floor. Reads a stilt storey the way <see cref="HS6"/> does,
+    /// <summary>HS10 — a stilt storey standing on a floor. Reads a stilt storey the way <see cref="HouseStyleRules.DoorWithoutWall"/> does,
     /// so the two cannot disagree about what one is: a ground storey whose wall is air for the whole of the
     /// doorway's courses. Where that storey stands on a plate of anything but air, the ground the stilts were
     /// raised over is covered by it.</summary>
