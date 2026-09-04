@@ -315,6 +315,32 @@ placement takes it — so what is left is each surface reading and writing the l
   objective stands on a lower floor only by writing the intent by hand. Under `TS45` a placement takes the
   active layer, and what is left is the six write paths and the field on each inspector.
 
+- [ ] **WE78 — A plain layer's paint runs to the bedrock course, and eats the layer under it in silence.**
+  `TerrainPainter.Paint` gives a `prop` layer its own floor from `BuiltTerrain.FloorByLayer` (`WE56`), so a
+  made thing is painted over its own span. A **plain** stacked layer is not: its bands run from the bedrock
+  course whatever its `base_y`, and the only thing keeping a pass off the layer below is the stone-only
+  invariant — it writes over `(1, 0)` and nothing else. So a viaduct over a street repaints the street's
+  whole column wherever the ground theme fills in plain stone, and the cure is a value in a *different*
+  theme. Nothing says so: the store answers 200, the export gate answers OPEN, and `themes/census` counts
+  the surface and is right. Either bound a plain layer's bands to its own span, or complain where a layer
+  stands over one whose resolved `fill` is `(1, 0)` — a document-level read, since the themes and the stack
+  are both in the layout. `docs/world-export/terrain-painting.md` states the bedrock-course rule and changes
+  with it.
+
+  *`opus5-tiefkreuz` build 1, `GET …/column?at=0,66`: `y 42..39 Iron Block` the viaduct rail, `y 29..27
+  Stone Bricks` the street lid, and `y 26..1 Iron Block` — twenty-six courses of city painted as rail. The
+  isometric drew a grey board and only `column` found it.*
+
+- [ ] **WE79 — A `stroke` ignores the layer every other prop kind honours.** `PlacedProp.Layer` is on the
+  abstract prop and `DR-LAYER` refuses one naming a layer with no ground, and both reach a `stroke` in the
+  schema; neither reaches its seating, which takes the column's top surface. So a street laid under a
+  viaduct paves the viaduct's ballast. Route the stroke's seating through `DressingContext.GroundFor` the
+  way the other five kinds are. `docs/world-export/decoration.md` § what a stroke rests on changes with it.
+
+  *`opus5-tiefkreuz`: one avenue from the head house to the station had to be drawn as two strokes stopping
+  at the viaduct's faces, `(0,104)`–`(0,78)` and `(0,60)`–`(0,42)`. `opus5-interchange` measured the same
+  thing on lane markings — `"layer": "under"` came back at y25.*
+
 - [ ] **B144 — Settle how height and paint resolve an overlap, and warn where they disagree.** Height takes the
   **taller** add-shape (`MergeCell`); paint takes the **smallest-area** shape (`ShapeScopeOwners`, "the most
   specific scope"). The documented way to give a tier an organic edge is to let the tier below run *under* it —
