@@ -6,7 +6,7 @@ namespace PgmStudio.Minecraft.Stamping;
 /// Stamps the observer/default-spawn platform (docs/world-export/sketch-world-export.md §2b): a solid 6×6
 /// bedrock platform with four identical inward-facing "info boards" at the edge centres. Each board is a
 /// 1-tall × 2-wide bedrock wall with a 2-sign pair on its inner face; viewed from the centre, the left sign
-/// is the map name (<c>=== / [CTW] / {name} (bold) / ===</c>) and the right sign the authors
+/// is the map name (<c>=== / [{gamemodes}] / {name} (bold) / ===</c>) and the right sign the authors
 /// (<c>made by (italic) / {authors}</c>). Anchored on the integer corner <c>(anchorX, anchorZ)</c>; the
 /// bedrock floor sits at <c>floorY</c> (the observer stands on top), 6 wide → world
 /// <c>anchorX-3 .. anchorX+2</c>.
@@ -53,7 +53,15 @@ public static class ObserverPlatformStamper
         return highest == int.MinValue ? wantedY : highest + 1;
     }
 
-    public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY, string mapName, IReadOnlyList<string> authors)
+    /// <param name="gamemodes">What the map is played as, in the order the map declares them — the same set
+    /// the <c>&lt;gamemode&gt;</c> element carries, since both are read off the objectives. Two or three are
+    /// written as one label (<c>[CTW/DTM]</c>), because a map that carries a wool and a monument is played as
+    /// both. Empty leaves the line off: a board with nothing to win has no mode to name, and a made-up one
+    /// would be the first thing every player reads.</param>
+    /// <param name="authors">Who made it. Empty leaves the authors board's sign off entirely rather than
+    /// standing a heading over nothing — <c>EX6</c> is where that is said out loud.</param>
+    public static void Stamp(VoxelWorld world, int anchorX, int anchorZ, int floorY, string mapName,
+                             IReadOnlyList<string> authors, IReadOnlyList<string> gamemodes)
     {
         var x0 = anchorX - 3;
         var z0 = anchorZ - 3;
@@ -63,7 +71,7 @@ public static class ObserverPlatformStamper
         for (var lz = 0; lz < Size; lz++)
             world.SetBlock(x0 + lx, floorY, z0 + lz, Blocks.Bedrock);
 
-        var nameLines = MapNameSign(mapName);
+        var nameLines = MapNameSign(mapName, gamemodes);
         var authorLines = AuthorsSign(authors);
 
         foreach (var b in Boards)
@@ -71,22 +79,28 @@ public static class ObserverPlatformStamper
             world.SetBlock(x0 + b.BedA.Lx, floorY + 1, z0 + b.BedA.Lz, Blocks.Bedrock);
             world.SetBlock(x0 + b.BedB.Lx, floorY + 1, z0 + b.BedB.Lz, Blocks.Bedrock);
             SignBuilder.PlaceWallSign(world, x0 + b.MapName.Lx, floorY + 1, z0 + b.MapName.Lz, b.Facing, nameLines);
-            SignBuilder.PlaceWallSign(world, x0 + b.Authors.Lx, floorY + 1, z0 + b.Authors.Lz, b.Facing, authorLines);
+            if (authorLines is not null)
+                SignBuilder.PlaceWallSign(world, x0 + b.Authors.Lx, floorY + 1, z0 + b.Authors.Lz, b.Facing, authorLines);
         }
     }
 
-    private static IReadOnlyList<SignLine> MapNameSign(string mapName) =>
-    [
-        new SignLine("==="),
-        new SignLine("[CTW]"),
-        new SignLine(mapName, Bold: true),
-        new SignLine("==="),
-    ];
-
-    private static IReadOnlyList<SignLine> AuthorsSign(IReadOnlyList<string> authors)
+    private static IReadOnlyList<SignLine> MapNameSign(string mapName, IReadOnlyList<string> gamemodes)
     {
+        var lines = new List<SignLine> { new("===") };
+        if (gamemodes.Count > 0)
+            lines.Add(new SignLine($"[{string.Join("/", gamemodes.Select(mode => mode.ToUpperInvariant()))}]"));
+        lines.Add(new SignLine(mapName, Bold: true));
+        lines.Add(new SignLine("==="));
+        return lines;
+    }
+
+    /// <summary>The authors board, or null where the map names nobody: a heading over three blank lines is
+    /// worse than no sign, and the studio has no name of its own to write there.</summary>
+    private static IReadOnlyList<SignLine>? AuthorsSign(IReadOnlyList<string> authors)
+    {
+        if (authors.All(string.IsNullOrWhiteSpace)) return null;
         var lines = new List<SignLine> { new("made by", Italic: true) };
-        foreach (var a in authors.Take(3)) lines.Add(new SignLine(a));
+        foreach (var a in authors.Where(name => !string.IsNullOrWhiteSpace(name)).Take(3)) lines.Add(new SignLine(a));
         return lines;
     }
 }

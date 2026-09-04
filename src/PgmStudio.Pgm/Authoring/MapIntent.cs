@@ -55,6 +55,14 @@ public sealed record MapIntent
     /// Null/empty leaves them untouched.</summary>
     public List<CoreIntent>? Cores { get; init; }
 
+    /// <summary>What this map is played as, derived from the objective modules it carries — the one rule,
+    /// <see cref="Domain.Gamemodes.From"/>, which a parsed <see cref="Domain.MapModel"/> answers the same way.
+    /// It is a set because CTW, DTM and DTC coexist, and it is what the <c>&lt;gamemode&gt;</c> elements and
+    /// the observer platform's own board are both written from, so the map and the sign in it cannot
+    /// disagree.</summary>
+    public IReadOnlyList<string> Gamemodes => Domain.Gamemodes.From(
+        Wools is { Count: > 0 }, Destroyables is { Count: > 0 }, Cores is { Count: > 0 });
+
     /// <summary>Map identity: name + authors/contributors. Version (1.0.0) and proto (1.5.0) are fixed; the
     /// gamemode and the objective text are auto-derived from which objective modules the intent carries
     /// (<see cref="MetaGenerator"/>), not authored.</summary>

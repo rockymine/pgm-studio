@@ -136,7 +136,7 @@ Each board's two signs are **split by role** — viewed from the centre, the **l
 - **Left sign:**
   ```
   ===
-  [CTW]
+  [{gamemodes}]
   {map name}   (bold)
   ===
   ```
@@ -150,6 +150,14 @@ Each board's two signs are **split by role** — viewed from the centre, the **l
 
 All four boards are identical; the stamper computes each board's left/right sign placement + facing from which
 edge it sits on.
+
+**Both signs say what the map says, and neither invents anything.** The label is the map's own gamemode set —
+`MapIntent.Gamemodes`, the one rule (`Gamemodes.From`) the `<gamemode>` elements are also written from — joined
+with `/` where a board carries more than one, so a map with a wool and a monument reads `[CTW/DTM]` and a map
+with only cores reads `[DTC]`. A board with nothing to win leaves the line out rather than naming a mode it
+does not have. The authors sign is **left off entirely** when the map names nobody: a heading over three blank
+lines reads as a map whose author is called nothing, and the studio has no name of its own to put there. That
+silence is `EX6`, a complaint, so the omission is stated rather than merely visible.
 
 (Spawn cube has **no chests**.)
 

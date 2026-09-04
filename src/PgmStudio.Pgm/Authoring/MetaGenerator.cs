@@ -44,10 +44,7 @@ public static class MetaGenerator
     // never several ids joined into one element PGM cannot parse; a map with none of the three (no meta-only
     // board should reach export, but nothing here assumes it can't) gets no elements at all — matching the
     // 68 of 150 corpus maps that declare no <gamemode> rather than a wrong one.
-    private static List<string> DeclaredGamemode(MapIntent intent) => [.. Gamemodes.From(
-        intent.Wools is { Count: > 0 },
-        intent.Destroyables is { Count: > 0 },
-        intent.Cores is { Count: > 0 })];
+    private static List<string> DeclaredGamemode(MapIntent intent) => [.. intent.Gamemodes];
 
     // Corpus objectives are short imperative lines, one clause per objective kind the board actually
     // carries, joined rather than assumed — "Capture the wool!" and "Destroy the enemy's monument!" are

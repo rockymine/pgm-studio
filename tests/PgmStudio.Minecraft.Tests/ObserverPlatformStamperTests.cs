@@ -16,7 +16,7 @@ public sealed class ObserverPlatformStamperTests
     public async Task Solid_floor_and_four_boards_with_eight_signs()
     {
         var w = new VoxelWorld();
-        ObserverPlatformStamper.Stamp(w, 0, 0, 90, "Outback", ["alice", "bob"]);
+        ObserverPlatformStamper.Stamp(w, 0, 0, 90, "Outback", ["alice", "bob"], ["ctw"]);
 
         // Solid floor: every 6×6 cell at y=90 is bedrock.
         await Assert.That(w.GetBlock(-3, 90, -3)).IsEqualTo((Blocks.Bedrock, 0));
@@ -56,6 +56,76 @@ public sealed class ObserverPlatformStamperTests
         {
             Directory.Delete(dir, recursive: true);
         }
+    }
+
+    /// <summary><b>The board names what the map is played as</b>, out of the same set the <c>&lt;gamemode&gt;</c>
+    /// elements are written from — so a map with a monument does not greet every player with the label of a
+    /// mode it does not have. Two modes are one label, because a map carrying a wool and a monument is played
+    /// as both.</summary>
+    [Test]
+    [Arguments(new[] { "ctw" }, "[CTW]")]
+    [Arguments(new[] { "dtm" }, "[DTM]")]
+    [Arguments(new[] { "dtm", "dtc" }, "[DTM/DTC]")]
+    [Arguments(new[] { "ctw", "dtm", "dtc" }, "[CTW/DTM/DTC]")]
+    public async Task The_map_sign_names_the_modes_the_map_carries(string[] modes, string label)
+    {
+        var world = new VoxelWorld();
+        ObserverPlatformStamper.Stamp(world, 0, 0, 90, "Outback", ["alice"], modes);
+
+        var lines = await SignLinesAt(world, -1, 91, -2);
+        await Assert.That(lines[1]).Contains(label);
+        await Assert.That(lines[2]).Contains("Outback");
+    }
+
+    /// <summary>A board with nothing to win names no mode rather than inventing one: the line is left out and
+    /// the name moves up into it.</summary>
+    [Test]
+    public async Task A_map_with_no_objective_names_no_mode()
+    {
+        var world = new VoxelWorld();
+        ObserverPlatformStamper.Stamp(world, 0, 0, 90, "Outback", ["alice"], []);
+
+        var lines = await SignLinesAt(world, -1, 91, -2);
+        await Assert.That(lines[1]).Contains("Outback");
+        await Assert.That(string.Join("", lines)).DoesNotContain("[");
+    }
+
+    /// <summary>And a map naming nobody gets no authors board at all. A heading over three blank lines is
+    /// what every agent-built board carried, and it reads as a map whose author is called nothing; the studio
+    /// has no name of its own to write there, so it writes none and says so (<c>EX6</c>).</summary>
+    [Test]
+    public async Task A_map_naming_no_author_gets_no_authors_sign()
+    {
+        var world = new VoxelWorld();
+        ObserverPlatformStamper.Stamp(world, 0, 0, 90, "Outback", [], ["ctw"]);
+
+        // The map-name sign still stands on every board; the authors cell beside it is empty.
+        await Assert.That(world.GetBlock(-1, 91, -2).Id).IsEqualTo(Blocks.WallSign);
+        await Assert.That(world.GetBlock(0, 91, -2).Id).IsEqualTo(Blocks.Air);
+    }
+
+    /// <summary>The lines of the sign at one cell, read back out of the written region the way a server would.
+    /// </summary>
+    private static async Task<string[]> SignLinesAt(VoxelWorld world, int x, int y, int z)
+    {
+        var dir = Path.Combine(Path.GetTempPath(), "obs_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            AnvilRegionWriter.Write(world, dir);
+            foreach (var mca in Directory.GetFiles(dir, "*.mca"))
+                foreach (var chunk in AnvilRegion.ReadChunks(mca))
+                    if (chunk.Level.Get<NbtList>("TileEntities") is { } te)
+                        foreach (var tile in te.OfType<NbtCompound>())
+                        {
+                            if (tile.Get<NbtString>("id")?.Value != "Sign") continue;
+                            if (tile.Get<NbtInt>("x")!.Value != x || tile.Get<NbtInt>("y")!.Value != y
+                                || tile.Get<NbtInt>("z")!.Value != z) continue;
+                            return [.. Enumerable.Range(1, 4).Select(i => tile.Get<NbtString>($"Text{i}")!.Value)];
+                        }
+            await Assert.That(false).IsTrue().Because($"no sign at ({x}, {y}, {z})");
+            return [];
+        }
+        finally { Directory.Delete(dir, recursive: true); }
     }
 
     /// <summary>

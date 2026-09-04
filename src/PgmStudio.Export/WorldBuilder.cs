@@ -419,8 +419,17 @@ public static class WorldBuilder
                     $"the observer platform is stated at y{statedFloor} and the board builds up to y{platformFloor - 1} "
                     + $"over ({ox}, {oz}), so it stands at y{platformFloor} instead",
                     Severity.Complaint, Subjects: ["observer"]));
-            var authorNames = intent.Meta?.Authors.Select(a => a.Name).ToList() ?? [];
-            ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "", authorNames);
+            // The board reads what the map is: the same gamemode set the <gamemode> elements are written from,
+            // so the sign every player lands on and the document PGM parses cannot say different things.
+            var authorNames = intent.Meta?.Authors.Select(a => a.Name).Where(name => !string.IsNullOrWhiteSpace(name))
+                                    .ToList() ?? [];
+            if (authorNames.Count == 0)
+                built.Add(new Finding(MapExportComposer.ExportRules.NoAuthor,
+                    "the map names no author, so the observer platform's authors board is left off — "
+                    + "state meta.authors",
+                    Severity.Complaint, Field: "meta.authors", Subjects: ["observer"]));
+            ObserverPlatformStamper.Stamp(world, ox, oz, platformFloor, intent.Meta?.Name ?? "",
+                                          authorNames, intent.Gamemodes);
             (spawnX, spawnY, spawnZ) = (ox, platformFloor + 1, oz);
             resolvedObserver = new ObserverIntent { Point = new Pt(ox, platformFloor + 1, oz), Yaw = obs.Yaw };
         }

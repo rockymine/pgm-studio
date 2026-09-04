@@ -5237,6 +5237,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   bedrock at `z = -11` where the image had a four-course deck over void at `z = 10`, cell by cell, 19 columns
   of it. Reading the floor on a tie makes the merge commutative, so the answer is the board's rather than the
   list's, and a deck drawn over ground leaves that ground reaching what it reached before.
+- **The observer board names the map's own gamemode, and nobody it cannot name (WE85).** The label was the
+  literal `[CTW]` on every board of every map — `opus5-scarrow-delph` and `opus5-quiverstone` greet every
+  player with it while their own `map.xml` declares `<gamemode>dtm`, and 51 of the 74 boards under
+  `pgm-studio-mapgen/specs` are mislabelled that way. It now reads `MapIntent.Gamemodes`, the same
+  `Gamemodes.From` the `<gamemode>` elements are written from, joined for a map that carries more than one
+  (`[CTW/DTM]`) and left off for a board with nothing to win. The authors sign is left off entirely where the
+  map names nobody, rather than stamping `made by` over three blank lines as 69 of those 74 did, and `EX6`
+  says so. `MetaGenerator` reads the same member, so the sign and the document cannot drift.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

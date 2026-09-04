@@ -188,6 +188,12 @@ public static class MapExportComposer
         /// <remarks>State <c>observerY</c> above whatever the board's centre carries — a bridge, a keep or a made thing. The platform is a solid floor rather than a marker, so leaving it where it was asked for would write bedrock through that build and stand the observers inside it. The derived height clears the built world on its own; this fires on a height that was stated.</remarks>
         [Rule(RuleCategory.Unsatisfiable, RuleConcern.Intent, RuleConcern.World)]
         public const string ObserverSeated = "EX5";
+
+        /// <summary>The map names nobody who made it, so the observer platform's authors board has a heading and
+        /// nothing under it.</summary>
+        /// <remarks>Name the authors in <c>meta.authors</c>. The board is the first thing every player who joins reads and it is the only place a map says who built it — the studio will not invent a name, so the sign is left off rather than stamped blank.</remarks>
+        [Rule(RuleCategory.Unsatisfiable, RuleConcern.Intent, RuleConcern.World)]
+        public const string NoAuthor = "EX6";
     }
 
     // ── EX2 · EX3 · EX4 — is this a map, and is it the map its author stated? ──────────────────────────────
