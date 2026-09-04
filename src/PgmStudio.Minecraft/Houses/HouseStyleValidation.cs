@@ -81,6 +81,15 @@ public static class HouseStyleRules
     /// <remarks>Give the building the courses its porch needs, or take the porch off it. A canopy wants the doorway's height, two courses of clearance over it, and its own rise — which is the porch's depth and overhang at the roof's pitch — so a shallower porch, a flatter porch roof or a shorter door all buy what a taller wall buys.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.Structure)]
     public const string PorchHeadroom = "HS8";
+
+    /// <summary>Beams over a wall that is carrying nothing. A beam end is the <em>end of a floor timber</em>,
+    /// left long the way a log building leaves them — so the course it comes out of has to be that timber,
+    /// which is a laid log running along the wall. Over a course of brick or clay the ends are eight logs
+    /// sticking out of masonry with nothing behind them, which is not a detail but a mistake about how the
+    /// building is put together.</summary>
+    /// <remarks>Lay the storey's top course in a `laidLog` — the same log the beams are cut from — or take the beams off. A laid log takes the axis the wall is going, so the course shows bark and the ends at the corners show the sawn face, which is the whole of what the detail is.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Style, RuleConcern.Structure, RuleConcern.Material)]
+    public const string BeamsWithoutTimber = "HS9";
 }
 
 /// <summary>
@@ -119,6 +128,8 @@ public static class HouseStyleValidation
         CheckDoorHasWall(style, findings);
         CheckFooting(style.Foundation, findings);
         CheckPorchHeadroom(style, findings);
+        CheckBeamsHaveTimber(style, findings);
+        CheckFrameTimber(style, findings);
         return findings;
     }
 
@@ -177,6 +188,62 @@ public static class HouseStyleValidation
                 $"beams.block ({beams.Block}) is not a log. A beam is the end of a floor timber and docks "
                 + "against the posts; a log is what one is cut from.",
                 Field: "beams.block"));
+    }
+
+    /// <summary>HS9 — beams over a wall carrying no timber. The ends are the ends of a floor beam, so a wall
+    /// with no laid-log course anywhere in it has nothing for them to be the ends <em>of</em>.</summary>
+    private static void CheckBeamsHaveTimber(HouseStyle style, List<Finding> findings)
+    {
+        // Beams are laid at a storey seam, so a building of one storey never lays any and the word on it is
+        // inert rather than wrong.
+        if (!style.Beams.Any || style.Levels.Count < 2) return;
+        if (WallParts(style).Any(part => part.Stack.Bands.Any(band => band.Material is LaidLogMaterial))) return;
+
+        findings.Add(new Finding(HouseStyleRules.BeamsWithoutTimber,
+            $"the building lays beams of {BlockMaterials.Of(style.Beams.Block, style.Beams.Data)} and no "
+            + "course of any of its walls is a laid log, so the ends run out of masonry with no timber behind "
+            + "them. Lay the storey's top course in a laidLog of the same material, or drop the beams.",
+            Field: "beams"));
+    }
+
+    /// <summary>Every wall a style states: the building's own and each storey's, since a storey with no wall
+    /// of its own falls back to the building's.</summary>
+    private static IEnumerable<RoomPart> WallParts(HouseStyle style)
+    {
+        yield return style.Wall;
+        foreach (var storey in style.Storeys)
+            if (storey.Wall is { } wall) yield return wall;
+    }
+
+    /// <summary>The timbers of one frame: the corner post, the beam ends that dock against it and the laid-log
+    /// course they are the ends of. A frame in two woods is a frame nobody cut.</summary>
+    private static void CheckFrameTimber(HouseStyle style, List<Finding> findings)
+    {
+        if (!style.Beams.Any || style.Levels.Count < 2) return;
+        var beam = BlockMaterials.Of(style.Beams.Block, style.Beams.Data);
+
+        foreach (var (where, id, data) in Timbers(style))
+            if (BlockMaterials.Of(id, data) != beam)
+                findings.Add(new Finding(HouseStyleRules.PartMaterial,
+                    $"beams are {beam} and {where} is {BlockMaterials.Of(id, data)}. A post, the beam ends "
+                    + "docking against it and the course they are the ends of are one frame, so they are cut "
+                    + "from one wood.",
+                    Field: where));
+    }
+
+    /// <summary>The blocks a frame is made of besides the beams: every post the style names, and every
+    /// laid-log course a wall carries. Only logs are asked — a post of stone is a pier, not a timber, and the
+    /// question of what a frame is cut from does not arise.</summary>
+    private static IEnumerable<(string Where, int Id, int Data)> Timbers(HouseStyle style)
+    {
+        if (style.Post is SolidMaterial post && BlockFamilies.IsLog(post.Id))
+            yield return ("post", post.Id, post.Data);
+        for (var at = 0; at < style.Storeys.Count; at++)
+            if (style.Storeys[at].Post is SolidMaterial storeyPost && BlockFamilies.IsLog(storeyPost.Id))
+                yield return ($"storeys[{at}].post", storeyPost.Id, storeyPost.Data);
+        foreach (var part in WallParts(style))
+            foreach (var band in part.Stack.Bands)
+                if (band.Material is LaidLogMaterial laid) yield return ("the wall's laid log", laid.Id, laid.Data);
     }
 
     /// <summary>Every pair of blocks that has to read as one line: a door head's stair and the slab that fills

@@ -729,8 +729,10 @@ public static class HousePresets
     /// left over and a square leaves none.</para>
     ///
     /// <para>The storeys narrow as they rise, in weight rather than in plan: stone at the bottom, boarding above
-    /// it, and smooth sandstone at the top where the wall carries least. The beam ends run out at each seam, so
-    /// the building shows its floors from outside.</para>
+    /// it, and smooth sandstone at the top where the wall carries least. It shows its floors from outside by
+    /// changing material at each seam and not by beam ends: a beam end is the end of a floor timber and none of
+    /// these walls is carrying one, so eight log ends running out of masonry would be a detail about a way of
+    /// building this house is not built (<c>HS9</c>).</para>
     /// </summary>
     public static House Counting => new("counting house", new HouseStyle
     {
@@ -746,7 +748,6 @@ public static class HousePresets
         },
 
         Post = SpruceLog,
-        Beams = new BeamStyle { Block = Blocks.Log, Data = Spruce, Reach = 1 },
         Storeys =
         [
             new Storey

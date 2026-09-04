@@ -5272,6 +5272,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   seated clear of its doorway (which is what keeps the way out walkable, and why it is not seated under the
   eave, where on a tower it would ride the wall up), so on a three-course wall its ridge tops out over the
   house's own roof and reads as two buildings.
+- **A beam end is the end of a timber, and now has to have one (WE89).** A beam style ran eight log ends out
+  past the corners at every storey seam whatever the wall was made of, so `opus5-mootgate`'s townhouse shows
+  spruce ends emerging from a course of stone brick — at (11, 19, 62) and (19, 19, 62), a claim about a way of
+  building the building does not honour. `HS9` asks for a laid-log course somewhere in the walls before the
+  ends may be laid, and only where the building has a seam to lay them at. `HS4` gains the other half: the
+  post, the ends docking against it and the course they are the ends of are one frame and one wood —
+  `opus5-scarrow-delph`'s stilt houses stand spruce posts (17:1) under oak ends and an oak laid-log course
+  (17:0). The shipped `counting house` failed its own rule and has lost its beams; it shows its floors by
+  changing material at each seam, which it already did.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

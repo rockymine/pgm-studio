@@ -489,4 +489,74 @@ public sealed class HouseStyleValidationTests
         var findings = HouseStyleValidation.Check(Porched(3, 2, 3) with { Porch = null });
         await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PorchHeadroom)).IsFalse();
     }
+
+    // ── a beam with nothing behind it, and a frame in two woods (HS9, HS4) ────────────────────────────
+
+    private static readonly TerrainMaterial Masonry = new SolidMaterial(98, 0);
+
+    private static HouseStyle Framed(TerrainMaterial wall, int postWood, int beamWood, int? laidWood = null) => new()
+    {
+        Wall = new RoomPart(new BandStack(laidWood is { } laid
+            ? [new Band(wall, 2), new Band(new LaidLogMaterial(Blocks.Log, laid), 1)]
+            : [new Band(wall, 3)]), 3),
+        Storeys = [new Storey { Clear = 3 }, new Storey { Clear = 3 }],
+        Post = new SolidMaterial(Blocks.Log, postWood),
+        Beams = new BeamStyle { Block = Blocks.Log, Data = beamWood, Reach = 1 },
+    };
+
+    /// <summary>The corpus fault: `opus5-mootgate`'s townhouse lays spruce beam ends at each storey seam over
+    /// a wall of cobble and stone brick. A beam end is the end of a floor timber; over masonry it is eight
+    /// logs sticking out of a wall that is carrying nothing.</summary>
+    [Test]
+    public async Task Beams_over_a_wall_with_no_laid_log_are_HS9()
+    {
+        var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1));
+
+        var beams = findings.Single(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber);
+        await Assert.That(beams.Field).IsEqualTo("beams");
+        await Assert.That(beams.Message).Contains("laid log");
+    }
+
+    /// <summary>A wall carrying one says nothing — `opus5-scarrow-delph`'s stilt houses are that building, and
+    /// they are what the detail looks like done right.</summary>
+    [Test]
+    public async Task Beams_over_a_wall_that_carries_a_laid_log_say_nothing()
+    {
+        var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 1, laidWood: 1));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsFalse();
+    }
+
+    /// <summary>And a building of one storey never lays a beam, so the word on it is inert rather than
+    /// wrong.</summary>
+    [Test]
+    public async Task Beams_on_a_single_storey_building_are_not_asked()
+    {
+        var single = Framed(Masonry, postWood: 1, beamWood: 1) with { Storeys = [new Storey { Clear = 3 }] };
+        var findings = HouseStyleValidation.Check(single);
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.BeamsWithoutTimber)).IsFalse();
+    }
+
+    /// <summary>The other half, and the other corpus fault: `opus5-scarrow-delph`'s stilt houses stand spruce
+    /// posts under oak beams over an oak laid-log course. A post, the ends docking against it and the course
+    /// they are the ends of are one frame, so they are cut from one wood — the same rule a door head's stair
+    /// and its slab fill answer to.</summary>
+    [Test]
+    public async Task A_frame_cut_from_two_woods_is_HS4()
+    {
+        // spruce post (17:1), oak beams and oak laid log (17:0) — exactly the corpus pair.
+        var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 1, beamWood: 0, laidWood: 0));
+
+        var frame = findings.Single(finding => finding.Rule == HouseStyleRules.PartMaterial
+                                            && finding.Field == "post");
+        await Assert.That(frame.Message).Contains("oak");
+        await Assert.That(frame.Message).Contains("spruce");
+    }
+
+    /// <summary>One wood throughout says nothing.</summary>
+    [Test]
+    public async Task A_frame_cut_from_one_wood_says_nothing()
+    {
+        var findings = HouseStyleValidation.Check(Framed(Masonry, postWood: 0, beamWood: 0, laidWood: 0));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PartMaterial)).IsFalse();
+    }
 }

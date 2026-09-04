@@ -877,6 +877,16 @@ blocks and only bark shows. At a corner it stands upright, since no lying log ca
 once. Keeping the course and the ends apart is what lets a beam run in one material and its ends in another,
 and lets a building have either without the other.
 
+**But not the ends without the course.** A beam end is the end of *that timber*, so a building laying ends
+over a wall with no laid log anywhere in it is showing the ends of a floor beam it has not got: eight logs
+running out of masonry, which is not a detail but a claim about how the building is put together that the
+building does not honour. `HS9` names it, asked only where the building has a storey seam — a building of one
+storey lays no beams, so the word on it is inert rather than wrong. And the three timbers of a frame — the
+corner post, the ends docking against it, the course they are the ends of — are one frame and so **one wood**,
+which is `HS4`'s rule, the same one a door head's stair and its slab fill answer to. `opus5-scarrow-delph`'s
+stilt houses are the pair done half right: an oak laid-log course under oak beam ends, standing on spruce
+posts.
+
 The ends are **the one thing a house writes outside its own footprint**. Everything else a style lays falls
 inside the walls plus the roof's overhang, which is what makes a shell safe to stamp onto finished terrain — so
 these are asked for rather than assumed, and a style naming none leaves the ring around the building exactly as
