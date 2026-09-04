@@ -1,4 +1,4 @@
-using PgmStudio.Domain;
+﻿using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Authoring;
 using PgmStudio.Pgm.Sketch;
@@ -123,26 +123,44 @@ public static class PlanCompiler
 
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 
+    /// <summary>What a compiled terrain shape answers to: the component it belongs to, named by its
+    /// ordinally first piece, and the surface it stands at — <c>bahnhof-30</c>. A surface whose pieces fall
+    /// into several disjoint patches numbers the ones after the first.
+    ///
+    /// <para>Derived from the plan's own names rather than from the emission order, because the id is an
+    /// <b>address</b>: a theme, a relief scope and a bend are all keyed on it, and a positional id makes
+    /// every one of them name a different shape the moment a piece is inserted anywhere earlier. A piece
+    /// belongs to exactly one component, so the anchor is unique; ordinal rather than declared order, so
+    /// moving a piece up the file does not rename what it anchors.</para></summary>
+    private static string TerrainShapeId(string anchor, int surface, int ring) =>
+        ring == 0 ? $"{anchor}-{surface}" : $"{anchor}-{surface}-{ring + 1}";
+
+    /// <summary>What a buffer's subtract answers to — <c>channel-cut</c>, and numbered past the first where
+    /// the buffer breaks into several rings around the terrain it is clipped to.</summary>
+    private static string CutShapeId(string buffer, int ring) =>
+        ring == 0 ? $"{buffer}-cut" : $"{buffer}-cut-{ring + 1}";
+
     private static SketchLayout BuildLayout(PlanModel plan, ContactGraph d)
     {
         var shapes = new List<SketchShape>();
         var islandShapes = new List<(bool Mirrors, string ShapeId)>();
-        var shapeIndex = 0;
 
         foreach (var component in d.Components)
         {
             var pieces = component.Select(id => d.Piece(id)!.Value).ToList();
             if (pieces.Select(p => p.Mirrors).Distinct().Count() > 1)
                 throw new InvalidOperationException($"component [{string.Join(", ", component)}] mixes mirrored and non-mirrored pieces");
+            var anchor = component.OrderBy(id => id, StringComparer.Ordinal).First();
             // one shape per distinct surface within the component (a stepped island → stacked plateaus); a
             // surface whose pieces fall into several disjoint patches (connected only through pieces of a
             // different surface) emits one shape per patch, so no patch is dropped.
             foreach (var group in pieces.GroupBy(p => p.Surface).OrderBy(g => g.Key))
             {
                 var rects = group.Select(p => (p.Rect.MinX, p.Rect.MinZ, p.Rect.MaxX, p.Rect.MaxZ)).ToList();
+                var patch = 0;
                 foreach (var ring in RectilinearUnion.Outlines(rects))
                 {
-                    var id = $"s{shapeIndex++}";
+                    var id = TerrainShapeId(anchor, group.Key, patch++);
                     shapes.Add(new SketchShape
                     {
                         Id = id,
@@ -164,9 +182,10 @@ public static class PlanCompiler
         foreach (var buffer in plan.Pieces.Where(p => p.Role == PlanRoles.Buffer))
         {
             var rect = ContactGraph.ToBlock(buffer.Rect, d.Cell);
+            var patch = 0;
             foreach (var ring in RectilinearUnion.Difference([(rect.MinX, rect.MinZ, rect.MaxX, rect.MaxZ)], terrain))
             {
-                var id = $"s{shapeIndex++}";
+                var id = CutShapeId(buffer.Id, patch++);
                 shapes.Add(new SketchShape
                 {
                     Id = id,

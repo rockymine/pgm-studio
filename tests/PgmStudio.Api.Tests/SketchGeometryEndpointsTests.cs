@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
@@ -198,5 +198,108 @@ public sealed class SketchGeometryEndpointsTests
         await Assert.That(span.IsSuccessStatusCode).IsTrue();
         await Assert.That(span.Headers.TryGetValues("Pgm-Warnings", out var warnings)).IsTrue();
         await Assert.That(string.Join(" ", warnings!)).Contains("SK20");
+    }
+
+    // ── the bend: a compiled outline redrawn as a coast ──────────────────────────────
+
+    /// <summary>A polygon on the board's own layer, so the bend has an outline to resample.</summary>
+    private static async Task<HttpClient> RingAsync()
+    {
+        var client = await SketchBoard.FreshAsync();
+        var drawn = await client.PostAsync($"{Sketch}/layers/layer0/shapes?group=i", Body("""
+            {"id":"coast","type":"polygon","operation":"add","base_height":12,
+             "vertices":[[0,0],[100,0],[100,100],[0,100]]}
+            """));
+        drawn.EnsureSuccessStatusCode();
+        return client;
+    }
+
+    private static double Area(JsonElement vertices)
+    {
+        double twice = 0;
+        var ring = vertices.EnumerateArray().Select(v => (v[0].GetDouble(), v[1].GetDouble())).ToList();
+        for (var i = 0; i < ring.Count; i++)
+        {
+            var next = ring[(i + 1) % ring.Count];
+            twice += ring[i].Item1 * next.Item2 - next.Item1 * ring[i].Item2;
+        }
+        return Math.Abs(twice) / 2;
+    }
+
+    /// <summary>The two rules a bend is safe under, over the wire: the outline's own vertices are all still
+    /// there, and the ground only ever got smaller.</summary>
+    [Test]
+    public async Task A_bend_keeps_every_vertex_and_only_ever_takes_land_away()
+    {
+        using var client = await RingAsync();
+        var before = await ShapeAsync(client, "coast");
+
+        var bent = await client.PostAsync($"{Sketch}/shapes/coast/bend",
+            Body("""{"wander":3,"step":10,"seed":5}"""));
+        await Assert.That(bent.IsSuccessStatusCode).IsTrue().Because(await bent.Content.ReadAsStringAsync());
+        var drew = await bent.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(drew.GetProperty("held").GetInt32()).IsEqualTo(0);
+        await Assert.That(drew.GetProperty("vertices").GetInt32()).IsGreaterThan(4);
+
+        var after = await ShapeAsync(client, "coast");
+        await Assert.That(Area(after.GetProperty("vertices"))).IsLessThan(Area(before.GetProperty("vertices")));
+        await Assert.That(after.GetProperty("controls").EnumerateObject().Any()).IsTrue();
+
+        foreach (var corner in new[] { (0.0, 0.0), (100.0, 0.0), (100.0, 100.0), (0.0, 100.0) })
+            await Assert.That(after.GetProperty("vertices").EnumerateArray()
+                .Any(v => v[0].GetDouble() == corner.Item1 && v[1].GetDouble() == corner.Item2))
+                .IsTrue().Because($"({corner.Item1}, {corner.Item2}) is the outline's own and may not move");
+    }
+
+    /// <summary>A bend of nought is not a bend: both numbers are asked for, and stating neither is refused
+    /// rather than answered with the outline unchanged.</summary>
+    [Test]
+    public async Task A_wander_of_nought_is_refused()
+    {
+        using var client = await RingAsync();
+        var refused = await client.PostAsync($"{Sketch}/shapes/coast/bend", Body("""{"wander":0,"step":10}"""));
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("wander");
+    }
+
+    /// <summary>A rectangle states its bounds rather than an outline, so there is nothing to resample.</summary>
+    [Test]
+    public async Task A_shape_with_no_outline_is_refused()
+    {
+        using var client = await RingAsync();
+        var refused = await client.PostAsync($"{Sketch}/shapes/s1/bend", Body("""{"wander":3,"step":10}"""));
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var finding = (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo("vertices");
+    }
+
+    /// <summary>A wander that folds the outline across its own far side is refused, not clamped — and the
+    /// shape is left exactly as it was.</summary>
+    [Test]
+    public async Task A_fold_is_refused_and_the_outline_is_untouched()
+    {
+        using var client = await RingAsync();
+        var before = await ShapeAsync(client, "coast");
+
+        var refused = await client.PostAsync($"{Sketch}/shapes/coast/bend",
+            Body("""{"wander":90,"step":6,"seed":2}"""));
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        await Assert.That((await refused.Content.ReadFromJsonAsync<JsonElement>())
+            .GetProperty("findings")[0].GetProperty("field").GetString()).IsEqualTo("wander");
+
+        var after = await ShapeAsync(client, "coast");
+        await Assert.That(after.GetProperty("vertices").GetArrayLength())
+            .IsEqualTo(before.GetProperty("vertices").GetArrayLength());
+    }
+
+    [Test]
+    public async Task Bending_an_id_that_names_nothing_is_a_404()
+    {
+        using var client = await RingAsync();
+        var missing = await client.PostAsync($"{Sketch}/shapes/nobody/bend", Body("""{"wander":3,"step":10}"""));
+        await Assert.That(missing.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
     }
 }

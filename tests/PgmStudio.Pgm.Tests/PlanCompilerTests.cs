@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using PgmStudio.Pgm.Plan;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
@@ -388,5 +388,64 @@ public sealed class PlanCompilerTests
         await Assert.That(cells.Contains((7, 2))).IsTrue();       // lane block under the buffer — kept
         await Assert.That(cells.Contains((2, 2))).IsTrue();       // lane block clear of it — kept
         await Assert.That(cells.Contains((12, 2))).IsFalse();     // past the lane's end — void either way
+    }
+
+    // ── a compiled shape's id is an address, so it survives a plan that grows ────────
+
+    /// <summary>Two islands and a buffer, so the compile emits a terrain shape per island, a second at a
+    /// second surface, and a subtract for the buffer.</summary>
+    private const string Islands = """
+        { "plan":2, "globals":{"symmetry":"rot_180","cell":4,"surface":9},
+          "pieces":[ {"id":"lane","role":"lane","rect":[1,5,2,6]},
+                     {"id":"wr","role":"wool-room","rect":[-3,5,2,2]},
+                     {"id":"shelf","role":"piece","rect":[8,5,3,3],"surface":13},
+                     {"id":"gap","role":"buffer","rect":[-9,-9,3,3]} ],
+          "placements":{ "spawns":[ {"piece":"lane","at":[5,25],"facing":"front"} ],
+                         "wools":[ {"piece":"wr","at":[5,5]} ] } }
+        """;
+
+    private static IReadOnlyList<string> Terrain(PlanModel plan) =>
+        [.. SketchLayout.Stack(PlanCompiler.Compile(plan).Layout)[0].Shapes
+            .Where(shape => shape.Role is null).Select(shape => shape.Id)];
+
+    /// <summary>A shape answers to the component's first piece and the surface it stands at, and a buffer's
+    /// subtract to the buffer. Nothing in the id comes from where the shape happened to be emitted.</summary>
+    [Test]
+    public async Task A_compiled_shape_is_named_for_its_piece_and_its_surface()
+    {
+        var ids = Terrain(Plan(Islands));
+        await Assert.That(ids).Contains("shelf-13");
+        await Assert.That(ids).Contains("gap-cut");
+        await Assert.That(ids.Any(id => id.StartsWith("s") && id[1..].All(char.IsDigit))).IsFalse();
+    }
+
+    /// <summary><b>The property the id exists for.</b> A theme, a relief scope and a bend are all keyed on a
+    /// shape id, so inserting a piece must not hand every key a different shape. Only the new island's own
+    /// shape appears; every id the plan already had is still the same shape.</summary>
+    [Test]
+    public async Task Inserting_a_piece_leaves_every_other_shapes_id_alone()
+    {
+        var before = Terrain(Plan(Islands));
+        const string lane = "{\"id\":\"lane\",\"role\":\"lane\",\"rect\":[1,5,2,6]}";
+        var grown = Islands.Replace(
+            lane, "{\"id\":\"aaa-islet\",\"role\":\"piece\",\"rect\":[-20,-20,2,2],\"surface\":6}, " + lane);
+
+        var after = Terrain(Plan(grown));
+        await Assert.That(after.Except(before)).IsEquivalentTo(new[] { "aaa-islet-6" });
+        await Assert.That(before.Except(after)).IsEmpty();
+    }
+
+    /// <summary>A surface breaking into disjoint patches numbers the ones past the first, so growing a
+    /// second patch never renames the one that was there.</summary>
+    [Test]
+    public async Task A_second_patch_at_one_surface_is_numbered_and_the_first_is_not()
+    {
+        const string shelf = "{\"id\":\"shelf\",\"role\":\"piece\",\"rect\":[8,5,3,3],\"surface\":13}";
+        var split = Islands.Replace(
+            shelf, shelf + ", {\"id\":\"shelf-far\",\"role\":\"piece\",\"rect\":[16,5,3,3],\"surface\":13}");
+
+        var ids = Terrain(Plan(split));
+        await Assert.That(ids).Contains("shelf-13");
+        await Assert.That(ids.Count(id => id.StartsWith("shelf"))).IsEqualTo(2);
     }
 }

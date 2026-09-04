@@ -331,6 +331,18 @@ shapes over whatever no generating piece covers. Islands are mirror groups: ever
 everything on-axis in `neutral`. The framing box is the extent of every terrain shape fanned across the orbit,
 one cell proud.
 
+**A compiled shape is named for the plan, not for where it was emitted.** Its id is its component's
+ordinally first piece and the surface it stands at — `bahnhof-30`, `carpark-24` — with the patches past the
+first at one surface numbered (`carpark-24-2`), and a buffer's subtract under the buffer's own name
+(`gap-cut`). A piece belongs to exactly one component, so the anchor is unique, and it is ordinal rather than
+declared order so moving a piece up the file renames nothing.
+
+The id is an **address**: a theme, a relief scope, a bend and a `PATCH /sketch/shapes/{shapeId}` are all
+keyed on it. A positional id makes every one of them name a different shape the moment a piece is inserted
+anywhere earlier in the plan, which is silent — the board stores, the export gate opens, and the paint is
+simply on something else. The ids also make the board legible: `ruediger.plan.json` compiles to `hub-t2-7`
+through `hub-t6-16`, which says two components at ten surfaces without opening the file.
+
 **The strait the compile hands over is measured again once the board is drawn.** `CT12` judges the direct
 crossing between the two team islands of a two-team wool board, and it takes that reading over the plan's
 rectangles — before a shape exists. A finish is free to move it: a shape drawn across the gap bridges it, a
@@ -746,8 +758,9 @@ elevation steps in ones, not the twos the stepper defaults to), two `G2` (five-b
 35-block hop). None of them stopped a good map being
 built, which is the difference between the lint table and the refusals above.
 
-Reading the trio together shows exactly where this tool stops. The compile emitted the twenty-one polygons
-`s0`–`s20` and the four structural rectangles `spawn-red`, `spawn-blue`, `wool-red-red` and `wool-blue-blue`;
+Reading the trio together shows exactly where this tool stops. The compile emitted twenty-one polygons —
+`hub-t2-7` through `hub-t2-14` and `hub-t6-9` through `hub-t6-16`, two components across ten surfaces — and
+the four structural rectangles `spawn-red`, `spawn-blue`, `wool-red-red` and `wool-blue-blue`;
 everything else in `ruediger.layout.json` was added afterwards in the Sketch tool — one carved shape with a
 sketch-minted id, Bézier controls on five outlines, and a theme named on seventeen of the twenty-six shapes.
 The tiers are the plan's. The curves, the carve and the paint are not, and no plan can state them.

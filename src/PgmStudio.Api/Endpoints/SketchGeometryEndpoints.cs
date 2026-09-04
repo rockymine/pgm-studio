@@ -1,9 +1,12 @@
+using System.Text.Json;
 using FastEndpoints;
 using PgmStudio.Api.Services;
+using PgmStudio.Domain;
 using PgmStudio.Contracts;
 using PgmStudio.Data.Map;
 using PgmStudio.Data.Schema;
 using PgmStudio.Pgm.Sketch;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -346,4 +349,77 @@ public sealed class SketchShapeDeleteEndpoint(MapRepository repo, MapArtifactSto
         if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
         await Send.OkAsync(new PartWrittenDto(outcome.Id), ct);
     }
+}
+
+/// <summary>What a bend is asked for: how far a point may be pulled in, how often to cut along an edge, and
+/// which coast.</summary>
+/// <param name="Wander">How far, in blocks, an inserted point may be pulled into the land. The whole of what
+/// makes an outline organic, and the one number a bend is refused over.</param>
+/// <param name="Step">How often to cut along an edge, in blocks. An edge with room for fewer than two cuts
+/// is left straight, so a neck and a short face come out as the plan drew them.</param>
+/// <param name="Seed">Which coast. The same seed draws the same one, so a spec re-driven is re-driven.</param>
+/// <param name="Tension">How long the Bézier handles are, as a fraction of their own edge. Absent is 0.22.</param>
+public sealed record BendRequest(double Wander, double Step, uint Seed, double? Tension);
+
+/// <summary>POST /api/map/{slug}/sketch/shapes/{shapeId}/bend — redraw one outline as a coast.
+///
+/// <para>The compiler emits a staircase of the plan's rectangles, which is the board's shape and not its
+/// coast. Redrawing the ring by hand states the coast twice — once in the plan and once in the sketch, free
+/// to disagree — so the bend is taken over whatever the compile produced instead.</para>
+///
+/// <para><b>The outline's own vertices never move, and no point ever moves outward.</b> A vertex moved
+/// outward can cross the mirror line, close the strait a capture board is measured on, or leave the plan's
+/// own footprint; so only the points between them move, and only into the land. The coast can lose a few
+/// blocks and can never gain one.</para>
+///
+/// <para>Refused where the shape carries a <c>role</c> — a room's rectangle is what a stamper seats a
+/// building on — where it states no <c>vertices</c> to resample, and where the wander would fold the outline
+/// across its own far side. A point with land on neither side stays where it was cut and is counted in
+/// <c>held</c>, which rides back as <c>SK21</c>.</para></summary>
+public sealed class SketchShapeBendEndpoint(MapRepository repo, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<BentDto>
+{
+    public override void Configure()
+    {
+        Post("/map/{slug}/sketch/shapes/{shapeId}/bend"); AllowAnonymous();
+        Description(b => b.Accepts<BendRequest>("application/json")
+                          .Produces<BentDto>(200, "application/json").Refuses(400, 404, 409));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        var id = Route<string>("shapeId")!;
+        var held = 0;
+        var vertices = 0;
+        var outcome = await SketchGeometryWrite.RunAsync(repo, artifacts, HttpContext, ct,
+            (layoutJson, stated) =>
+            {
+                var asked = stated.Deserialize<BendRequest>(SketchLayout.Json);
+                if (asked is not { Wander: > 0, Step: > 0 })
+                    return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                        "a bend states `wander` and `step`, both greater than nought: how far a point may be "
+                        + "pulled into the land, and how often to cut along an edge.", Field: "wander"));
+
+                var edit = SketchGeometryEdit.BendShape(
+                    layoutJson, id, asked.Wander, asked.Step, asked.Seed, asked.Tension ?? DefaultTension,
+                    out held);
+                if (edit.Layout is { } drawn)
+                    vertices = SketchLayout.Stated(drawn)?.Layers?.SelectMany(layer => layer.Shapes)
+                        .FirstOrDefault(shape => shape.Id == id)?.Vertices?.Length ?? 0;
+                return edit;
+            }, needsBody: true);
+
+        if (outcome.IsAnswered) return;
+        if (outcome.IsMissing) { await Refusals.NotFoundAsync(HttpContext, "shape", ct, id); return; }
+        if (held > 0)
+            Complaints.Add(HttpContext, [new Finding(SketchRules.BendHeldBack,
+                $"{held} of the points cut into '{id}' had land on neither side and stayed on the edge they "
+                + "were cut from, so those stretches come out as straight as the plan drew them",
+                Severity.Complaint, Subjects: [id])]);
+        await Send.OkAsync(new BentDto(outcome.Id, vertices, held), ct);
+    }
+
+    /// <summary>The handle length a coast reads well at, as a fraction of its own edge — measured over the
+    /// seven boards in the corpus that bend one.</summary>
+    private const double DefaultTension = 0.22;
 }

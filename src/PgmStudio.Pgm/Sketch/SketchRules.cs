@@ -212,4 +212,13 @@ public static class SketchRules
     /// <remarks>Order the layers by the height their ground starts at, or correct the `base_y` of the one that is out of place. The list order is what a reader and the strip walk; `base_y` is what the world is built from.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string StackOutOfOrder = "SK20";
+
+    /// <summary>A bend that could not pull every point it inserted. A coast is drawn by resampling an
+    /// outline's long edges and pulling each inserted point <b>into the land</b>, and a point with land on
+    /// neither side — an arm of ground narrower than twice the wander — stays on the edge it was cut from.
+    /// The outline is still drawn and every other point moves; what is lost is that those stretches come out
+    /// as straight as the plan drew them.</summary>
+    /// <remarks>Lower the `wander` until it fits the narrowest ground the outline runs through, or raise the `step` so no point is cut on that stretch at all. A coast quietly straighter than the one that was asked for is what this exists to prevent, so the count is the answer's rather than a fault in the document.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
+    public const string BendHeldBack = "SK21";
 }

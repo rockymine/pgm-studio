@@ -80,7 +80,8 @@ shapes.
 plan.** The layout's tiers are not a layout-only technique: `ruediger.plan.json` states them as
 `PlanPiece.Surface` on cell-grid rectangles, thirty-one pieces standing at ten heights from 7 to 16 over a
 base of 9, and `PlanCompiler` turns each distinct surface within a component into its own shape. The proof is
-the file itself — the compile emits the twenty-one polygons `s0`–`s20` and the four structural rectangles
+the file itself — the compile emits twenty-one polygons named for their component and surface, `hub-t2-7`
+through `hub-t6-16`, and the four structural rectangles
 `spawn-red`, `spawn-blue`, `wool-red-red` and `wool-blue-blue`, which is twenty-five of the layout's
 twenty-six shapes, and its bbox −70..70 × −130..130 is the one the layout carries. So the mechanism transfers
 exactly, and an author writing a `*.plan.json` can state a stepped board directly: the map's western

@@ -230,11 +230,12 @@ client holding its own account of a shape the server publishes — and the third
 class rather than an instance of it.
 
 **`PlanCompiler` fuses by surface height and drops every identity in the plan.** One `GroupBy(p => p.Surface)`
-followed by a rectilinear union produces `s0`, `s1`, `s2` — so a piece name cannot address anything
-downstream, a wall's seam has no two pieces left to sit between, and a coast has to be restated beside the
-plan that already described it. Fusing is deliberate — a compiled layout is a layout, not a copy of the plan
-— so what rides on it is the seam a wall needs and the addressing four of `drive.py`'s seventeen finish keys
-exist to work around — `themeByHeight`, `themeById` and both `shapeProps` maps. `B213` · `TS30` · `B107`.
+followed by a rectilinear union fuses several pieces into one shape, so a wall's seam has no two pieces left
+to sit between. Fusing is deliberate — a compiled layout is a layout, not a copy of the plan — and two of the
+three things that rode on it have since been paid: a shape is named for its component's first piece and the
+surface it stands at rather than for where it was emitted (`TS82`, `FEATURES.md`), so a piece name does
+address what it produced; and a coast is bent by the studio rather than restated beside the plan (`TS30`).
+What is left is the seam itself. `B213` · `B107`.
 
 **A convention is measured and nothing complains.** Four entries in one section each name a predicate, a
 corpus number and the document that would carry the rule, and none of them is a gate: a building walled in
@@ -331,9 +332,9 @@ this population until the building's one model turned them from three reaches in
 document, a route or a solver that already answers, and a surface that never asks.
 
 **A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`, `S56`,
-`S34`, `TS51`, `TS63`, `TS30`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE52`. Three left it by shipping —
-`B221` and `B258`, the library's pictures, and `WE34`, the seat read — which is the population behaving as
-intended: a roadmap entry is drained by being built, not by being triaged again.
+`S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE52`. Four left it by shipping —
+`B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
+population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.
 
 **Relocating the roadmap to the ideas files was tried and refused.** Seventeen of the eighteen entries named
 on the previous reading are still on the board; only `B21` left, and it left by withdrawal rather than by

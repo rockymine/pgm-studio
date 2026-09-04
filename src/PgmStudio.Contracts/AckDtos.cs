@@ -56,3 +56,11 @@ public sealed record SketchFinishedDto(string Slug, string ConfigureUrl);
 /// <param name="Orphaned">The islands whose terrain had nowhere to land on the new board, by id. Empty
 /// unless <c>?force=true</c> accepted the loss, since otherwise the write is refused rather than made.</param>
 public sealed record SketchFromPlanDto(IReadOnlyList<string> Orphaned);
+
+/// <summary>What a bend drew: the shape it redrew, how many vertices the outline now carries, and how many
+/// of the points it cut had land on neither side and stayed on the edge they were cut from.</summary>
+/// <param name="Id">The shape that was redrawn.</param>
+/// <param name="Vertices">How many vertices the drawn outline carries, against the ones the plan gave it.</param>
+/// <param name="Held">Inserted points with no room to move inward, which come out as straight as the plan
+/// drew them. Nought is the coast that was asked for; anything else rides back as <c>SK21</c> too.</param>
+public sealed record BentDto(string Id, int Vertices, int Held);

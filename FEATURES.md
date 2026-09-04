@@ -6858,6 +6858,27 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A compiled outline is bent into a coast, and the two rules that make it safe are the code's (`TS30`).**
+  `POST /map/{slug}/sketch/shapes/{shapeId}/bend` resamples an outline every `step` blocks and pulls each
+  inserted point into the land by up to `wander`, then fits Bézier handles. **The outline's own vertices
+  never move and no point ever moves outward** — a vertex moved outward can close the strait a capture board
+  is measured on or leave the plan's own footprint. Inward is decided by offering each point both
+  perpendiculars and taking whichever lands inside the original ring, so it is right for a ring wound either
+  way and for a concave stretch: a shoelace sign is what gets this wrong, and the driver's own copy grew a
+  100×100 square to 11,201 for both windings. Refused for a `role` shape, for one with no `vertices`, and
+  for a wander that folds the outline across its far side; a point with land on neither side is held and
+  counted as `SK21`. Measured on `opus5-tiefkreuz`: 12 vertices to 34, area 6976 → 6720, all twelve plan
+  vertices present. (`Geom/RingBend`, `Pgm/Sketch/SketchGeometryEdit.BendShape`,
+  `Api/Endpoints/SketchGeometryEndpoints`, `docs/tools/sketch.md`, `docs/refusals.md`)
+- **A compiled shape's id is an address that survives the plan growing (`TS82`).** The compiler minted `s0`,
+  `s1`, `s2` down the emission order, so inserting one piece renumbered every shape after it and every theme,
+  relief scope and bend a spec had keyed on one named a different shape — silently, since the board stores
+  and the export gate opens. A shape is now named for its component's ordinally first piece and the surface
+  it stands at (`bahnhof-30`, `carpark-24-2`), and a buffer's subtract for the buffer (`gap-cut`). The ids
+  also make a board legible: `ruediger.plan.json` compiles to `hub-t2-7` through `hub-t6-16`, which says two
+  components at ten surfaces without opening the file. Behaviour-preserving across the corpus — `opus5-quatrefoil`,
+  the fourteen-key board, re-drives to a byte-identical theme census, and `opus5-scarrow-delph` to its
+  committed three numbers. (`Pgm/Plan/PlanCompiler`, `docs/tools/plan.md`, `docs/tools/capabilities.md`)
 - **A relief the merge replaces is named, not dropped (`SK1`).** `PUT .../sketch/from-plan` carries the
   stored relief onto fresh geometry, which is what the route is for — a compiled layout carries none, because
   a plan cannot express one. A caller that compiled, patched a relief onto the result and posted it lost that

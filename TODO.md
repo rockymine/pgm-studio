@@ -107,25 +107,6 @@ mirror clean and the traversability whole on every board named below.
   they build the world and hold `Built.Provenance`. Wants `--provenance <path>` on the reads that take a
   region directory, so a sidecar kept beside the documents can be pointed at.
 
-- [ ] **TS30 — Teach an author to deform a compiled shape, rather than to restate its coast.** The compiler
-  emits a staircase of the plan's rectangles, and **a sketch outline disagreeing with the plan outline is the
-  point** (author): the plan is a rough model, and the coast is the sketch's to state. What is missing is not
-  a way to keep them in step but a way to *move* — `opus5-ravensmere` redrew its ring by hand and
-  `opus5-thornfell` bent the compiled ring in forty-two lines of Python, both because nothing in the tool or
-  the API says how a compiled polygon is made organic. `PgmStudio.Geom.RingRounding` fits the Catmull-Rom
-  handles the driver re-derived and has no caller in `src`, only a test.
-
-  **Extremely cautious about a *stated* bow at compile** (author) — that would put the coast back in the plan.
-  The wanted thing is a sketch-side operation an author or an agent reaches for on a shape that is already
-  there, and two rules keep it safe: the plan's own vertices never move, and nothing ever moves outward.
-
-  `PATCH /map/{slug}/sketch/shapes/{shapeId}` now restates a shape's `vertices` and `controls` without the
-  board around it, so what remains is the operation itself: a route that bends a ring the studio already
-  carries, over `RingRounding`, refusing a bend that moves a plan vertex or moves any vertex outward.
-
-  *`opus5-thornfell`: 36 compiled vertices → 99 drawn, strait measured at **26–28 blocks** over 23 transects
-  against a plan stating a flat 30. A vertex moved outward would have closed it.*
-
 - [ ] **B171 — Document how a wool approach attaches to a hub, in the shapes endpoint's terms.** An agent
   placing one **reads `GET /shapes/catalog`** for the valid base shapes and how each attaches, and authors from
   that; it does not run the generator (author). Reach rather than capability, and upstream of `PL13`: a dock

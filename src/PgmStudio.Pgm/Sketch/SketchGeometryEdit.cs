@@ -1,5 +1,7 @@
+﻿using System.Globalization;
 using System.Text.Json.Nodes;
 using PgmStudio.Domain;
+using PgmStudio.Geom;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Sketch;
@@ -176,6 +178,62 @@ public static class SketchGeometryEdit
         shape["id"] = shapeId;
         return new(root.ToJsonString(), shapeId);
     }
+
+    /// <summary>The shape at <paramref name="shapeId"/> redrawn as a coast: its outline resampled along the
+    /// long edges, each inserted point pulled into the land, and Bézier handles fitted over the result.
+    ///
+    /// <para>Only the points <em>between</em> the outline's own vertices move, and only inward — the two
+    /// rules that make a bend safe on a board that has been measured, since a vertex moved outward can close
+    /// the strait a capture board is judged on or leave the plan's own footprint. A shape carrying a
+    /// <c>role</c> is refused: a room's rectangle is what a stamper seats a building on, not a coast. So is
+    /// one with no <c>vertices</c> — a rectangle or a circle states its outline as bounds and has none to
+    /// resample — and one whose drawn ring would fold over itself.</para>
+    ///
+    /// <para><paramref name="held"/> answers how many inserted points had land on neither side and stayed
+    /// where they were cut, which is <c>SK21</c>.</para></summary>
+    public static GeometryEdit BendShape(
+        string? layoutJson, string shapeId, double wander, double step, uint seed, double tension, out int held)
+    {
+        held = 0;
+        var root = Root(layoutJson);
+        var layers = Layers(root);
+        if (ShapeAt(layers, shapeId) is not { } shape) return GeometryEdit.Missing;
+
+        if (Text(shape["role"]) is { Length: > 0 } role)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' is the plan's own {role} rectangle, which a stamper seats a building on — it is "
+                + "not a coast and bending it would move the ground a room stands on",
+                Field: "role", Subjects: [shapeId]));
+
+        if (shape["vertices"] is not JsonArray stated || stated.Count < 3)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"'{shapeId}' states no outline to bend — a bend resamples the edges between a polygon's own "
+                + "vertices, and a rectangle or a circle states its bounds instead. Draw it as a polygon "
+                + "first, or state the vertices with a patch",
+                Field: "vertices", Subjects: [shapeId]));
+
+        var ring = stated.Select(point => new[] { Number(point?[0]), Number(point?[1]) }).ToList();
+        if (RingBend.Draw(ring, wander, step, seed, tension) is not { } coast)
+            return GeometryEdit.Refused(new Finding(RequestRules.Unreadable,
+                $"a wander of {wander} over a step of {step} folds '{shapeId}' across its own far side, which "
+                + "would build ground with a hole nobody drew. Lower the wander, or raise the step so the "
+                + "narrowest ground the outline runs through takes no cut",
+                Field: "wander", Subjects: [shapeId]));
+
+        held = coast.Held;
+        shape["vertices"] = new JsonArray([.. coast.Ring.Select(point =>
+            (JsonNode)new JsonArray(JsonValue.Create(point[0]), JsonValue.Create(point[1])))]);
+        shape["controls"] = new JsonObject(coast.Controls.Select(handle =>
+            KeyValuePair.Create(handle.Key.ToString(CultureInfo.InvariantCulture), (JsonNode?)new JsonObject
+            {
+                ["in"] = new JsonArray(JsonValue.Create(handle.Value.In[0]), JsonValue.Create(handle.Value.In[1])),
+                ["out"] = new JsonArray(JsonValue.Create(handle.Value.Out[0]), JsonValue.Create(handle.Value.Out[1])),
+            })));
+        return new(root.ToJsonString(), shapeId);
+    }
+
+    private static double Number(JsonNode? node) =>
+        node is JsonValue value && value.TryGetValue<double>(out var at) ? at : 0;
 
     /// <summary>The layout without that shape, and without it in any group that listed it — a list naming a
     /// shape the layout does not carry is what <c>SK3</c> reports, and rubbing a shape out is no reason to
