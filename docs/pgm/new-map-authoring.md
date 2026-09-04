@@ -168,7 +168,9 @@ A region that contains another names it; nothing is duplicated by value, which i
 captures, and the ownership falls out of it — so the two can never disagree, because there is only one of them.
 
 **A monument's `location` is what the build produced, not what it was asked for — on a sketch-originated
-map.** The block a wool is won on is one of the blocks the capturing team's own spawn structure *stamps*, so
+map, and `PG3` is open to change that.** The author's ruling is that a monument is a standalone stamp, tied
+to the spawn for simplicity, and may stand anywhere near the capturing team's spawn so long as it is
+discoverable (`docs/gameplay/approaches.md`). Until that lands, the build's own location wins: The block a wool is won on is one of the blocks the capturing team's own spawn structure *stamps*, so
 `WorldBuilder` fills every monument's location from the air cell that stamp left and an authored one is
 replaced. Three paths take a location — `POST /map/{slug}/wools/{woolId}/monuments`,
 `PATCH …/monuments/{monumentId}` and `PUT /map/{slug}/intent` — and every read answers it, which is why the

@@ -27,6 +27,21 @@ intent (`docs/pgm/new-map-authoring.md`; backend + every page-order step are lan
 `FEATURES.md`). **Leave the existing Edit editor untouched** — a separate surface, not a refit. Only
 the focus-integration polish remains.
 
+- [ ] **PG3 — An authored monument location is discarded, and the author has ruled that it should not be.**
+  `WorldBuilder` fills every wool's `Monuments` from `monLoc` — the air cell the capturing team's spawn
+  structure stamped — so a stated location is replaced unconditionally (`OB25` now says so). The ruling is in
+  `docs/gameplay/approaches.md`: a monument is a **standalone stamp**, tied to the spawn for simplicity, and
+  an author may put it anywhere **near that team's spawn** so long as it is **discoverable**. So: honour a
+  stated location, derive only where none is stated, and have the spawn stamper leave no monument block for a
+  wool whose monument stands elsewhere. Two gates follow, both on the built world beside `OB17`: a monument
+  further from its capturing team's spawn than the author's distance allows, and one with no line onto it —
+  a player carrying a wool must not search. `OB25` retires when the honouring lands; the distance is a number
+  the author still owes, and the corpus is where to read what real maps do.
+
+  *Reproduced on `probe-mootgate`: `POST /wools/red/monuments` at `(-8, 16, -48)` reads back from the map
+  document and the intent, and `GET /xml` writes `<block id="red-blue-monument">-20,16,-80</block>` — inside
+  blue's spawn room.*
+
 - [ ] **N08 — Monument Y via side-view + per-side focus.** The side-view (`SliceView`) already sets Y on
   **spawn** and **wool-spawn** (`SpawnStep`/`WoolSpawnStep`, `FEATURES.md`); the open slice is the rest:
   (a) wire the side-view into **`WoolMonumentsStep`** so a monument's Y is editable, not read-only

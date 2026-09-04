@@ -102,6 +102,14 @@ better one, and it should be a choice rather than what happens when nobody decid
 grow across that ground and under a floating monument, while the two-block grass that hides a footstep does
 not. The rule and its mechanism are `docs/world-export/decoration.md` §3.1.
 
+**[author]** A wool's monument may stand anywhere near the spawn, and a monument is a **standalone stamp**.
+It is tied to the capturing team's spawn structure for simplicity, not because it belongs inside one — an
+author who wants the wool carried to a stone in the market square, a shrine on the concourse or a plinth on
+the green is authoring something legitimate. Two conditions bound it, and they are the whole of the rule:
+the monument stands **near that team's spawn**, and it is **discoverable** — a player carrying a wool must
+not have to search for where to put it. A monument far from the spawn, or hidden inside a structure a player
+has to find, is the failure this exists to prevent.
+
 **[author]** A **defence wall** is a CTW device. It is bedrock, it is pre-built, and it exists to slow an
 attack down and give the defence a prepared line to hold — which is why it is authored on the interface
 between two pieces rather than derived, and why nothing generated ever asks for one (`mapgen-review.md` MG21).
