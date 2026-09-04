@@ -3,6 +3,8 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 
+using PgmStudio.Pgm.Sketch;
+
 namespace PgmStudio.Api.Tests;
 
 /// <summary>
@@ -198,6 +200,56 @@ public sealed class SketchGeometryEndpointsTests
         await Assert.That(span.IsSuccessStatusCode).IsTrue();
         await Assert.That(span.Headers.TryGetValues("Pgm-Warnings", out var warnings)).IsTrue();
         await Assert.That(string.Join(" ", warnings!)).Contains("SK20");
+    }
+
+    // ── what a write reads, and what it leaves for a read ────────────────────────────
+
+    /// <summary>A write takes the sketch gate's <b>document</b> reading. The seven rules read off the
+    /// rasterized spans walk every column of the board's extent, so answering them on every moved vertex
+    /// costs a whole rasterize per edit; the write names them instead and a read asks for them.
+    ///
+    /// <para>The two headers are deliberately not one. <c>Pgm-Warnings</c> means <em>these were found</em>
+    /// and its absence means <em>nothing was</em>, which is what makes it readable at all — so a rule that
+    /// was never asked rides on its own key.</para></summary>
+    [Test]
+    public async Task A_write_says_which_rules_it_did_not_walk_the_ground_for()
+    {
+        using var client = await RingAsync();
+
+        var moved = await client.PatchAsync($"{Sketch}/shapes/coast/vertices/0", Body("""{"x":-4,"z":-4}"""));
+        moved.EnsureSuccessStatusCode();
+
+        await Assert.That(moved.Headers.TryGetValues("Pgm-Unwalked", out var unwalked)).IsTrue()
+            .Because("a write that did not walk the ground says so");
+        var named = string.Join(" ", unwalked!).Split(' ');
+        await Assert.That(named.Order(StringComparer.Ordinal))
+            .IsEquivalentTo(SketchLayoutCheck.GroundRules.Order(StringComparer.Ordinal));
+    }
+
+    /// <summary>And the rules a write leaves out are answered where it says they are. The stack below is
+    /// `SK9` — a roof drawn over a floor on one layer — which no write reports and `GET …/findings`
+    /// does.</summary>
+    [Test]
+    public async Task The_rules_a_write_leaves_out_are_answered_by_the_findings_read()
+    {
+        using var client = await SketchBoard.FreshAsync();
+        foreach (var shape in new[]
+                 {
+                     """{"id":"floor","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":-8,"max_z":8,"floor":0,"base_height":4}""",
+                     """{"id":"roof","type":"rectangle","operation":"add","min_x":-20,"max_x":20,"min_z":-8,"max_z":8,"floor":16,"base_height":6}""",
+                 })
+        {
+            var drawn = await client.PostAsync($"{Sketch}/layers/layer0/shapes?group=i", Body(shape));
+            drawn.EnsureSuccessStatusCode();
+            await Assert.That(drawn.Headers.TryGetValues("Pgm-Warnings", out var warned)
+                              && string.Join(" ", warned!).Contains("SK9")).IsFalse()
+                .Because("a write does not walk the ground, so it cannot have found SK9");
+        }
+
+        var findings = await client.GetFromJsonAsync<JsonElement>($"/api/map/{SketchBoard.Slug}/findings");
+        var rules = findings.GetProperty("findings").EnumerateArray()
+            .Select(finding => finding.GetProperty("rule").GetString()).ToList();
+        await Assert.That(rules).Contains("SK9");
     }
 
     // ── the bend: a compiled outline redrawn as a coast ──────────────────────────────

@@ -31,8 +31,36 @@ namespace PgmStudio.Pgm.Sketch;
 /// ground players go round and a board's walls are drawn to guard, so it may be redrawn but never papered
 /// over. An add that draws nothing there is the same rule's other half and only complains.</para>
 /// </summary>
+/// <summary>How deep a check reads. Seven of the sketch rules are read off the <b>rasterized spans</b> rather
+/// than off the document — what stacks over what, what a layer's slab drives into, what is standable and
+/// unreached — so answering them walks every column of the board's extent, which on a played-size board is
+/// seconds rather than milliseconds.
+///
+/// <para><see cref="Document"/> is the reading a write takes: everything a pass over the JSON can answer, and
+/// nothing that needs ground. <see cref="Ground"/> is both, and is what a read asking for the board's whole
+/// state takes — <c>GET /map/{slug}/findings</c> and the finish. A caller taking the shallower one is told
+/// which rules it did not run rather than left to read an absence.</para></summary>
+public enum LayoutReading
+{
+    /// <summary>Both readings. Every rule the gate has.</summary>
+    Ground,
+
+    /// <summary>The document alone. <see cref="SketchLayoutCheck.GroundRules"/> are not answered.</summary>
+    Document,
+}
+
 public static class SketchLayoutCheck
 {
+    /// <summary>The rules read off the rasterized spans, which a <see cref="LayoutReading.Document"/> check
+    /// does not answer. Stated here, beside the code that skips them, because it is what the answer names to
+    /// a caller who took the shallower reading.</summary>
+    public static readonly string[] GroundRules =
+    [
+        SketchRules.StackedInOneLayer, SketchRules.LayersOverlap, SketchRules.MassUnreached,
+        SketchRules.DrawnOverSubtraction, SketchRules.ReliefOverStatedTop,
+        SketchRules.PaintedByAnotherShape, SketchRules.SeatedOnNothing,
+    ];
+
     /// <summary>Every placement naming a recipe the document's registry has no entry for, as the placement's
     /// own id and the key it named.
     ///
@@ -83,7 +111,8 @@ public static class SketchLayoutCheck
 
     /// <summary>Read a layout as posted. A body that is not a layout at all is not this gate's to report —
     /// that is the request's own fault (<c>RQ1</c>), answered where the body is read.</summary>
-    public static Findings Check(string layoutJson) => Check(SketchLayout.Stated(layoutJson));
+    public static Findings Check(string layoutJson, LayoutReading reading = LayoutReading.Ground) =>
+        Check(SketchLayout.Stated(layoutJson), reading);
 
     /// <summary>
     /// Whether a board carries any finish at all — a theme registry, a relief, or props — and which of the
@@ -120,7 +149,7 @@ public static class SketchLayoutCheck
         && props.ValueKind == JsonValueKind.Array
         && props.GetArrayLength() > 0;
 
-    public static Findings Check(SketchLayout? layout)
+    public static Findings Check(SketchLayout? layout, LayoutReading reading = LayoutReading.Ground)
     {
         if (layout is null) return Findings.None;
 
@@ -131,22 +160,80 @@ public static class SketchLayoutCheck
 
         var findings = new List<Finding>();
 
-        // SK9 — a layer holds one span per column, so a second one drawn over the first is not in the world.
-        foreach (var (layerId, lost, kept) in SketchRasterizer.StackedInOneLayer(layout))
-            findings.Add(new Finding(SketchRules.StackedInOneLayer,
-                $"'{lost}' and '{kept}' stack over the same ground on layer '{layerId}', and a layer holds "
-                + $"one span per column — the world keeps '{kept}' and '{lost}' is not in it. Move '{kept}' "
-                + "to its own layer, or clamp walls around the lower shape rather than drawing over it",
-                Severity.Decline, Subjects: [lost, kept]));
+        // The seven read off the rasterized spans. Each walks every column of the board's extent, so they
+        // are the whole cost of a check and the whole of what a write's reading leaves out.
+        if (reading is LayoutReading.Ground)
+        {
+            // SK9 — a layer holds one span per column, so a second one drawn over the first is not in the world.
+            foreach (var (layerId, lost, kept) in SketchRasterizer.StackedInOneLayer(layout))
+                findings.Add(new Finding(SketchRules.StackedInOneLayer,
+                    $"'{lost}' and '{kept}' stack over the same ground on layer '{layerId}', and a layer holds "
+                    + $"one span per column — the world keeps '{kept}' and '{lost}' is not in it. Move '{kept}' "
+                    + "to its own layer, or clamp walls around the lower shape rather than drawing over it",
+                    Severity.Decline, Subjects: [lost, kept]));
 
-        // SK10 — the stack is what puts air between two slabs, so a pair whose spans meet builds as one mass.
-        foreach (var (lower, upper, courses, x, z, cells) in SketchRasterizer.OverlappingLayerSpans(layout))
-            findings.Add(new Finding(SketchRules.LayersOverlap,
-                $"layers '{lower}' and '{upper}' are driven {courses} block(s) into each other over {cells} "
-                + $"column(s) — deepest at ({x}, {z}) — so they build as one solid mass where they meet and "
-                + $"the gap between the two layers is not in the world there. Raise the base_y of '{upper}', "
-                + "or lower what stands on it",
-                Severity.Complaint, Subjects: [lower, upper]));
+            // SK10 — the stack is what puts air between two slabs, so a pair whose spans meet builds as one mass.
+            foreach (var (lower, upper, courses, x, z, cells) in SketchRasterizer.OverlappingLayerSpans(layout))
+                findings.Add(new Finding(SketchRules.LayersOverlap,
+                    $"layers '{lower}' and '{upper}' are driven {courses} block(s) into each other over {cells} "
+                    + $"column(s) — deepest at ({x}, {z}) — so they build as one solid mass where they meet and "
+                    + $"the gap between the two layers is not in the world there. Raise the base_y of '{upper}', "
+                    + "or lower what stands on it",
+                    Severity.Complaint, Subjects: [lower, upper]));
+
+            // SK16 — a made thing that asked for the ground and found none. The board builds where it was drawn.
+            foreach (var (thing, cells) in SketchRasterizer.SeatedOnNothing(layout))
+                findings.Add(new Finding(SketchRules.SeatedOnNothing,
+                    $"'{thing}' seats on the ground and none of its {cells} column(s) has any under it, so it "
+                    + "stands at the height it was drawn. Move it over ground, or take its `seat` off",
+                    Severity.Complaint, Subjects: [thing]));
+
+            // SK11 — ground with sky over it and no way onto it. Roofed ground is a room and stays silent.
+            foreach (var (places, x, z, y) in SketchRasterizer.DetachedMasses(layout))
+                findings.Add(new Finding(SketchRules.MassUnreached,
+                    $"{places} place(s) of standable ground around ({x}, {z}) @{y} have open sky over them and no "
+                    + "route onto them from the rest of the board — draw the way up, or leave it if a detached "
+                    + "group is what this is",
+                    Severity.Complaint));
+
+            // SK14 — a relief solves a surface over every column of its group, so an override add that does not
+            // stand out of that field builds to the field rather than to the top it stated.
+            foreach (var (shape, layerId, groupId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
+                findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
+                    $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and group "
+                    + $"'{groupId}' carries a relief that solves a surface through it — the world builds it to "
+                    + "whatever the relief says. Give it \"height_mode\": \"level\" with \"skirt\": 0 to hold "
+                    + "the top it states, or \"relief_scope\": \"exclude\" to keep its ground out of the solve",
+                    Severity.Complaint, Subjects: [shape]));
+
+            // SK15 — the taller add wins the column and the smaller one wins the paint, so where the smaller is
+            // also the shorter the world holds one shape's ground in another's material.
+            foreach (var (layerId, built, painted, builtTheme, paintedTheme, cells, x, z) in
+                     SketchRasterizer.PaintedByAnotherShape(layout))
+                findings.Add(new Finding(SketchRules.PaintedByAnotherShape,
+                    $"'{built}' builds {cells} column(s) on layer '{layerId}' that '{painted}' paints — from "
+                    + $"({x}, {z}). The taller shape wins the ground and the smaller wins the theme, so what "
+                    + $"stands there is '{built}' finished in '{paintedTheme}' rather than '{builtTheme}'. Cut "
+                    + $"'{painted}' out of '{built}'s footprint, or give the two one theme",
+                    Severity.Complaint, Subjects: [built, painted]));
+
+            // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
+            // lands: it draws nothing, or it puts the ground back.
+            foreach (var (add, addLayer, subtract, subtractLayer, survives, cells, x, z) in
+                     SketchRasterizer.AddsOverSubtracts(layout))
+                findings.Add(new Finding(SketchRules.DrawnOverSubtraction,
+                    survives
+                        ? $"'{add}' fills {cells} column(s) that '{subtract}' takes away — from ({x}, {z}) — so "
+                          + $"the negative space the board states there is ground in the world. "
+                          + (addLayer == subtractLayer
+                              ? "An override add beats a subtract on its own layer"
+                              : $"'{add}' is on layer '{addLayer}' and the subtract on '{subtractLayer}', and a "
+                                + "subtract reaches only the layer it is on")
+                        : $"'{add}' draws nothing over {cells} column(s) — from ({x}, {z}) — because '{subtract}' "
+                          + "takes them away, and a subtract beats every plain add on its layer whatever order "
+                          + "the two are written in. The shape is on the canvas and not in the world",
+                    survives ? Severity.Refusal : Severity.Complaint, Subjects: [add, subtract]));
+        }
 
         // SK20 — the list order and base_y disagree about which layer is on top. Read over the plain layers
         // only: a made thing's slices are a way of holding one sculpture, not a stack, and SK18's exemption
@@ -159,13 +246,6 @@ public static class SketchLayoutCheck
                 + "its base_y",
                 Severity.Complaint, Subjects: [lower, upper]));
 
-        // SK16 — a made thing that asked for the ground and found none. The board builds where it was drawn.
-        foreach (var (thing, cells) in SketchRasterizer.SeatedOnNothing(layout))
-            findings.Add(new Finding(SketchRules.SeatedOnNothing,
-                $"'{thing}' seats on the ground and none of its {cells} column(s) has any under it, so it "
-                + "stands at the height it was drawn. Move it over ground, or take its `seat` off",
-                Severity.Complaint, Subjects: [thing]));
-
         // SK19 — a placement naming a recipe the document does not state. A refusal rather than a complaint:
         // every read of the dressing refuses it anyway, so a document carrying one is one no world can be
         // built from. The save still stores it and says so, because a save that fails halfway through
@@ -175,52 +255,6 @@ public static class SketchLayoutCheck
                 $"placement '{subject}' names the recipe '{key}', which this document's dressing does not "
                 + "state — pull it into `dressing.styles` under that key, or name one the registry has",
                 Severity.Refusal, Field: "dressing", Subjects: [subject]));
-
-        // SK11 — ground with sky over it and no way onto it. Roofed ground is a room and stays silent.
-        foreach (var (places, x, z, y) in SketchRasterizer.DetachedMasses(layout))
-            findings.Add(new Finding(SketchRules.MassUnreached,
-                $"{places} place(s) of standable ground around ({x}, {z}) @{y} have open sky over them and no "
-                + "route onto them from the rest of the board — draw the way up, or leave it if a detached "
-                + "group is what this is",
-                Severity.Complaint));
-
-        // SK14 — a relief solves a surface over every column of its group, so an override add that does not
-        // stand out of that field builds to the field rather than to the top it stated.
-        foreach (var (shape, layerId, groupId, top) in SketchRasterizer.ReliefOverridesStatedTop(layout))
-            findings.Add(new Finding(SketchRules.ReliefOverStatedTop,
-                $"'{shape}' on layer '{layerId}' is an override add stating a top of y{top}, and group "
-                + $"'{groupId}' carries a relief that solves a surface through it — the world builds it to "
-                + "whatever the relief says. Give it \"height_mode\": \"level\" with \"skirt\": 0 to hold "
-                + "the top it states, or \"relief_scope\": \"exclude\" to keep its ground out of the solve",
-                Severity.Complaint, Subjects: [shape]));
-
-        // SK15 — the taller add wins the column and the smaller one wins the paint, so where the smaller is
-        // also the shorter the world holds one shape's ground in another's material.
-        foreach (var (layerId, built, painted, builtTheme, paintedTheme, cells, x, z) in
-                 SketchRasterizer.PaintedByAnotherShape(layout))
-            findings.Add(new Finding(SketchRules.PaintedByAnotherShape,
-                $"'{built}' builds {cells} column(s) on layer '{layerId}' that '{painted}' paints — from "
-                + $"({x}, {z}). The taller shape wins the ground and the smaller wins the theme, so what "
-                + $"stands there is '{built}' finished in '{paintedTheme}' rather than '{builtTheme}'. Cut "
-                + $"'{painted}' out of '{built}'s footprint, or give the two one theme",
-                Severity.Complaint, Subjects: [built, painted]));
-
-        // SK13 — a subtract states the board's negative space, and an add over one is silent either way it
-        // lands: it draws nothing, or it puts the ground back.
-        foreach (var (add, addLayer, subtract, subtractLayer, survives, cells, x, z) in
-                 SketchRasterizer.AddsOverSubtracts(layout))
-            findings.Add(new Finding(SketchRules.DrawnOverSubtraction,
-                survives
-                    ? $"'{add}' fills {cells} column(s) that '{subtract}' takes away — from ({x}, {z}) — so "
-                      + $"the negative space the board states there is ground in the world. "
-                      + (addLayer == subtractLayer
-                          ? "An override add beats a subtract on its own layer"
-                          : $"'{add}' is on layer '{addLayer}' and the subtract on '{subtractLayer}', and a "
-                            + "subtract reaches only the layer it is on")
-                    : $"'{add}' draws nothing over {cells} column(s) — from ({x}, {z}) — because '{subtract}' "
-                      + "takes them away, and a subtract beats every plain add on its layer whatever order "
-                      + "the two are written in. The shape is on the canvas and not in the world",
-                survives ? Severity.Refusal : Severity.Complaint, Subjects: [add, subtract]));
 
         var mode = layout.Setup?.MirrorMode ?? "rot_180";
         double centerX = layout.Setup?.Center?.Cx ?? 0, centerZ = layout.Setup?.Center?.Cz ?? 0;

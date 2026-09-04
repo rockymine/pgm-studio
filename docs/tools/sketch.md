@@ -1403,6 +1403,22 @@ says so on the way past.
 And two things are silently **dropped on load** rather than carried: a prop whose kind the client does not
 know, and a relief mark whose kind it cannot draw. A shape nothing can edit is worse than an absence.
 
+**A write reads the document; a read walks the ground.** Seven of the rules above — `SK9`, `SK10`, `SK11`,
+`SK13`, `SK14`, `SK15`, `SK16` — are answered off the **rasterized spans** rather than off the JSON: what
+stacks over what, what a layer's slab drives into, what is standable and unreached. Answering them walks every
+column of the board's extent, which on a played-size board is seconds. So a **partial write** — a shape, a
+vertex, a layer, a group, a prop, a theme — takes the document reading and leaves those seven for a read that
+asks: on `opus5-millrace` (274×268 columns, 312 shapes) that is **48 ms a moved vertex against 1,291 ms**, and
+the nine calls that reshape a compiled rectangle drop from twelve seconds to under one.
+
+What a write leaves out it **names**, on its own header. `Pgm-Unwalked: SK9 SK10 SK11 SK13 SK14 SK15 SK16` is
+on every partial write, and it is deliberately not folded into `Pgm-Warnings`: that key means *these were
+found* and its absence means *nothing was*, which is the one rule that makes it readable, so a rule that was
+never asked cannot ride there. `GET /map/{slug}/findings` walks the ground and answers all of them, and so
+does the **finish**, which is where a board carrying one is stopped. `SK2` is outside the split and answers
+under either reading — a board too large to realize is measured off the shapes' own boxes, and must refuse
+before anything walks a column of it.
+
 ## The API
 
 Every endpoint is anonymous and rooted at `/api`.

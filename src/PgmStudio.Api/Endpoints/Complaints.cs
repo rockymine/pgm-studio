@@ -50,6 +50,12 @@ internal static class Complaints
     /// once. It is what a caller reads where the body cannot hold a key, and a cheap read where it can.</summary>
     private const string Header = "Pgm-Warnings";
 
+    /// <summary>The header an answer names the rules it did not run under. Separate from
+    /// <see cref="Header"/> and never folded into it: <c>warnings</c> means <em>these were found</em> and its
+    /// absence means <em>nothing was</em>, which is the one rule that makes the key readable, so a rule that
+    /// was never asked cannot ride there.</summary>
+    private const string Unrun = "Pgm-Unwalked";
+
     /// <summary>The options the body was serialized with, so an injected key reads like the ones beside it.</summary>
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
 
@@ -72,6 +78,16 @@ internal static class Complaints
         if (carried.Count == 0 || http.Response.HasStarted) return;
         var rules = carried.Select(finding => finding.Rule).Distinct().Order(StringComparer.Ordinal);
         http.Response.Headers[Header] = $"{carried.Count} {string.Join(' ', rules)}";
+    }
+
+    /// <summary>Say which rules this answer did not run, and why a caller would ask elsewhere for them.
+    /// A write takes the document reading of the sketch gate — the seven rules read off the rasterized spans
+    /// walk every column of the board and are what makes a write cost seconds — so the answer names them and
+    /// the caller reads <c>GET /map/{slug}/findings</c> when it wants them.</summary>
+    public static void Unwalked(HttpContext http, IReadOnlyList<string> rules)
+    {
+        if (rules.Count == 0 || http.Response.HasStarted) return;
+        http.Response.Headers[Unrun] = string.Join(' ', rules);
     }
 
     /// <summary>

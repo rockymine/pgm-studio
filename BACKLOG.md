@@ -472,20 +472,6 @@ height. That is exactly what a made thing needs, and none of it has to be invent
 
 ### Shapes
 
-- [ ] **TS86 — Every partial write re-rasterizes the whole board, and one moved vertex costs 1.3 s.**
-  `SketchPartWrite.StoreAsync:34` runs `SketchLayoutCheck.Check(layout)` on each write, and seven of that
-  gate's rules (`SK9`–`SK11`, `SK13`–`SK16`) are read off the rasterized spans rather than off the document —
-  so moving one point of one shape rasterizes every column of the board. Every addressable write pays it:
-  a prop, a theme, a layer, a shape, a vertex. Split the check — the document-level rules (`SK3`–`SK5`,
-  `SK12`, `SK17`, `SK19`, `SK20`) are cheap and stay per write; the span-derived seven already have a place
-  that asks for them (`GET /map/{slug}/findings`, `POST …/sketch/finish`, and the sketch stage refuses on
-  none of them), so a partial write can answer without them and say so once in the header. `docs/tools/sketch.md`
-  § *The API* carries the claim that every 2xx rides the complaints.
-
-  *measured on a running studio: a 60×60 board with one shape takes **14 ms** a vertex `PATCH` and 131 ms to
-  rasterize; `opus5-millrace` at 274×268 takes **1,291 ms** a vertex `PATCH` and 5,371 ms to rasterize — the
-  write is 24% of a full rasterize on both. The nine calls in sketch.md's own worked example are 12 s.*
-
 - [ ] **TS31 — A shape drawing ground outside every island is silent.** A one-course add on a cell no region
   shape covers is the only add on that column, so it builds a speck of bedrock standing over the void; a shape
   drawn wholly on the mirrored half is outside the compiled polygon and becomes an island of its own. Both

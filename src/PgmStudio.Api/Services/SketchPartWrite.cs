@@ -29,9 +29,13 @@ public static class SketchPartWrite
         var findings = SketchMaterialGate.Check(layoutJson);
         if (findings.Count > 0) return new(null, id, findings);
 
+        // The document reading, not the ground one: the seven span-derived rules walk every column of the
+        // board's extent, and a write that moves one vertex would pay a whole rasterize for them. What is
+        // left out is named on the answer, and `GET /map/{slug}/findings` is where a caller asks for it.
         var layout = SketchLayout.Stated(layoutJson);
         Complaints.Unread(http, layoutJson, layout);
-        Complaints.Add(http, SketchLayoutCheck.Check(layout).AsComplaints());
+        Complaints.Add(http, SketchLayoutCheck.Check(layout, LayoutReading.Document).AsComplaints());
+        Complaints.Unwalked(http, SketchLayoutCheck.GroundRules);
 
         var written = await DocumentWrite.StoreAsync(artifacts, mapId, ArtifactKind.SketchLayoutJson,
             "sketch layout", Encoding.UTF8.GetBytes(layoutJson), Revisions.Expected(http), ct);

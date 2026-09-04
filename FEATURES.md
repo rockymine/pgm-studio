@@ -6872,6 +6872,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A write reads the document; a read walks the ground (`TS86`).** Seven of the sketch rules — `SK9`,
+  `SK10`, `SK11`, `SK13`–`SK16` — are answered off the rasterized spans rather than off the JSON, so
+  `SketchLayoutCheck.Check` ran a whole-board rasterize on every partial write: a shape, a vertex, a layer, a
+  group, a prop, a theme. `Check` now takes a `LayoutReading`; a write takes `Document` and a read takes
+  `Ground`, which is still the default so no caller loses a rule by omission. Measured on `opus5-millrace`
+  (274×268 columns, 312 shapes): a moved vertex **1,291 ms → 48 ms**, a whole-shape patch, a prop and a layer
+  write all **~1,300 ms → ~25 ms** — 27× on the route the per-vertex loop is built from, and the nine calls
+  in `sketch.md`'s own worked example drop from twelve seconds to under one. `SK2` stays outside the split
+  and refuses under either reading, being measured off the shapes' own boxes.
+
+  What a write leaves out it names, on `Pgm-Unwalked` — a second header rather than a fold into
+  `Pgm-Warnings`, because that key means *these were found* and its absence means *nothing was*, which is the
+  one rule that makes it readable. `GET /map/{slug}/findings` and the finish answer the seven, and the finish
+  is still where a board carrying one is stopped. (`Pgm/Sketch/SketchLayoutCheck`,
+  `Api/Services/SketchPartWrite`, `Api/Endpoints/Complaints.Unwalked`, `docs/tools/sketch.md`,
+  `docs/refusals.md`)
 - **A compiled outline is bent into a coast, and the side is the author's (`TS30`, `TS84`).**
   `POST /map/{slug}/sketch/shapes/{shapeId}/bend` resamples an outline every `step` blocks and pulls each
   inserted point off its edge by up to `wander`, then fits Bézier handles. **The outline's own vertices never

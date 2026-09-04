@@ -1,4 +1,4 @@
-﻿using PgmStudio.Domain;
+using PgmStudio.Domain;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Vocabulary;
 
@@ -222,6 +222,49 @@ public sealed class SketchLayoutCheckTests
         // says nothing rather than inventing a second answer for it.
         await Assert.That(SketchLayoutCheck.Check("this is not json")).IsEmpty();
         await Assert.That(SketchLayoutCheck.Check("""{"hello":"world"}""")).IsEmpty();
+    }
+
+    // ── the two readings ─────────────────────────────────────────────────────────────────────────────────
+
+    /// <summary>The document reading answers everything a pass over the JSON can and none of the seven read
+    /// off the rasterized spans, which is what makes a write cost milliseconds rather than a rasterize. The
+    /// same board under the ground reading answers both, so what the shallower one leaves out is exactly
+    /// <see cref="SketchLayoutCheck.GroundRules"/> and nothing else.</summary>
+    [Test]
+    public async Task The_document_reading_answers_every_rule_but_the_seven_read_off_the_ground()
+    {
+        // A stack the ground reading declines (SK9), and a kind the document reading alone already catches (SK3).
+        const string Nonsense =
+            """{"id":"nonsense","type":"trapezoid","operation":"add","min_x":0,"max_x":4,"min_z":0,"max_z":4}""";
+        var board = Layout(Gallery + "," + Roof + "," + Nonsense);
+
+        var ground = SketchLayoutCheck.Check(board).Select(finding => finding.Rule).ToHashSet(StringComparer.Ordinal);
+        var document = SketchLayoutCheck.Check(board, LayoutReading.Document)
+            .Select(finding => finding.Rule).ToHashSet(StringComparer.Ordinal);
+
+        await Assert.That(ground).Contains(SketchRules.StackedInOneLayer);
+        await Assert.That(ground).Contains(SketchRules.NamesNothing);
+        await Assert.That(document).Contains(SketchRules.NamesNothing);
+        await Assert.That(document).DoesNotContain(SketchRules.StackedInOneLayer)
+            .Because("SK9 is read off the spans, and the document reading walks no ground");
+        await Assert.That(document.Except(ground)).IsEmpty()
+            .Because("the shallower reading may not invent a rule the deeper one does not have");
+        await Assert.That(ground.Except(document).All(SketchLayoutCheck.GroundRules.Contains)).IsTrue()
+            .Because($"only the seven are left out, and this left out [{string.Join(", ", ground.Except(document))}]");
+    }
+
+    /// <summary>`SK2` is the one refusal and is measured off the shapes' own boxes rather than off any
+    /// ground, so it answers under either reading — a board too large to realize must be refused before
+    /// anything walks a column of it, which is the reason the cheap reading exists at all.</summary>
+    [Test]
+    public async Task A_board_past_the_ceiling_is_refused_under_either_reading()
+    {
+        var huge = Layout(
+            """{"id":"vast","type":"rectangle","operation":"add","min_x":-2000000,"max_x":2000000,"min_z":-2000,"max_z":2000}""");
+
+        foreach (var reading in Enum.GetValues<LayoutReading>())
+            await Assert.That(SketchLayoutCheck.Check(huge, reading).Select(finding => finding.Rule))
+                .Contains(SketchRules.BoardTooLarge).Because($"{reading} must still refuse a board this size");
     }
 
     // ── SK9: a layer holds one span per column ───────────────────────────────────────────────────────────

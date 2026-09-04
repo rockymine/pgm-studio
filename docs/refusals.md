@@ -291,6 +291,14 @@ XML document have nowhere to put a key. The zip still carries `region/dressing-r
 the cell and the prop for each; the header is what tells a caller that never unzips there is something in
 there to read, and on the XML route it is the only answer there is.
 
+**A rule that was never asked rides on its own key.** A partial write to the sketch — a shape, a vertex, a
+layer, a group, a prop, a theme — takes the sketch gate's *document* reading: seven of the `SK` rules (`SK9`,
+`SK10`, `SK11`, `SK13`–`SK16`) are read off the rasterized spans, and answering them walks every column of the
+board, so a write names them on `Pgm-Unwalked` instead and `GET /map/{slug}/findings` answers them on demand.
+It is a second header rather than a fold into `Pgm-Warnings` for the reason that key works at all: `warnings`
+means *these were found* and its absence means *nothing was*, so a rule nobody asked cannot appear there
+without making both readings of an absence ambiguous again.
+
 The header rides on a JSON success too, beside the key rather than instead of it. `POST …/sketch/columns`
 answers megabytes of column runs, and a caller deciding whether to look at the warnings should not have to
 parse the payload to find out there are none.
