@@ -290,33 +290,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
   *`opus5-siderite-bowl` compiles 422 on `PL15` today; `specs/*/​*.plan.json` states `"plan": 1` in 74 of 85.*
 
-- [ ] **TS87 — A vertex edit cannot be restated in a spec, so a reshaped board is a one-off.** The three
-  per-vertex routes are what reshapes a compiled rectangle into ground (`TS84`, `FEATURES.md`), and
-  `finish.json` has no key for them: a spec with a finish is compiled from its plan every run, so an outline
-  an agent shaped by hand is thrown away on the next drive and the board silently reverts to the plan's
-  staircase. `bendShapes` is the model the fix follows — an ordered list replayed after the store, against a
-  freshly compiled board, so replaying is idempotent per run. Add `editShapes: {"<shapeId>": [{"after": n,
-  "x":, "z":}, {"index": n, "x":, "z":}, {"remove": n}]}` to `tools/drive.py`, applied in the same pass as
-  `bendShapes` and before it, since a bend resamples whatever ring it is given. Filed here because the routes
-  are the studio's; the work is in `pgm-studio-mapgen`.
-
-  *`rockymine-map-experiment` is the shape of edit this has to carry: four rings from 4 vertices to 6, 9, 10
-  and 11, +1,758 blocks² over the compile. Nothing in `specs/` can state it today.*
-
-- [ ] **TS85 — `anchor_heights` on a path is accepted and ignored without a word.**
-  `SketchRasterizer.HeightFn` builds the per-vertex TIN only for `polygon` and `lasso`; every other kind falls
-  through to `base_height ?? 1`. A path stating a grade therefore stores at 200, keeps the field in the
-  document, and builds one uniform thickness — the author's numbers are nowhere in the world and nothing says
-  so. Raise it in `SketchLayoutCheck` as a complaint under `SK3`, whose subject is a document naming something
-  that is not there: a shape whose `type` is not `polygon` or `lasso` and which carries `anchor_heights`, and
-  a polygon whose array length does not match its vertex count, which is the same silence for the same reason.
-  `docs/tools/sketch.md` § *Shapes* already says the field belongs to those two kinds; the gate is what makes it
-  true. `S56` is the feature this stops standing in for.
-
-  *`POST …/sketch/layers/ground/shapes` with `{"type":"path","radius":3,"floor":0,"base_height":8,
-  "vertices":[[-60,0],[-20,10],[20,-10],[60,0]],"anchor_heights":[4,20,20,4]}` answers `200 {"id":"causeway"}`
-  with no `Pgm-Warnings` header, and `sketch/columns` reads the same span in every cell of the band.*
-
 - [ ] **S56 — A path's height varies along it.** The path primitive takes a uniform `base_height` over its
   whole band (`FEATURES.md`), so a causeway is one thickness end to end and a ramp cannot be drawn as the
   ramp it is. A polygon already solves the equivalent problem with `anchor_heights` index-aligned to its

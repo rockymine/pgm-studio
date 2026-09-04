@@ -221,4 +221,16 @@ public static class SketchRules
     /// <remarks>Lower the `wander` until it fits the narrowest ground the outline runs through, raise the `step` so no point is cut on that stretch at all, or ask for the other `side`. A coast quietly straighter than the one that was asked for is what this exists to prevent, so the count is the answer's rather than a fault in the document.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string BendHeldBack = "SK21";
+
+    /// <summary>A shape stating a height per vertex that its kind has no reader for, so the world builds one
+    /// uniform thickness and the author's numbers are nowhere in it. <c>anchor_heights</c> is interpolated
+    /// across a footprint as a TIN over the shape's own ring, which only a <b>polygon</b> or a <b>lasso</b>
+    /// has: a rectangle and a circle state bounds rather than vertices, and a polyline's vertices are its
+    /// centreline rather than its footprint — the band around them carries many more points, and a thickness
+    /// graded along one would have to interpolate along the arc instead. A polygon whose array is not the
+    /// length of its vertex list is the same silence for the same reason: the TIN cannot be built, so the
+    /// shape falls back to its <c>base_height</c>.</summary>
+    /// <remarks>Take `anchor_heights` off, or draw the shape as a polygon whose vertex count the array matches. A polyline that has to climb is several polylines today, each with its own `floor` and `base_height`; grading one along its arc is `S56`.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
+    public const string PerVertexHeightUnread = "SK22";
 }

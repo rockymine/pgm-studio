@@ -224,6 +224,47 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(SketchLayoutCheck.Check("""{"hello":"world"}""")).IsEmpty();
     }
 
+    // ── SK22: a height per vertex the kind has no reader for ─────────────────────────────────────────────
+
+    /// <summary>`anchor_heights` is interpolated across a footprint as a TIN over the shape's own ring, which
+    /// only a polygon and a lasso have. Every other kind falls back to its `base_height` and builds one
+    /// thickness the whole way, and without this the author's stated grade is simply nowhere in the world.
+    /// A polyline is the case that matters: its vertices are a centreline rather than a footprint.</summary>
+    [Test]
+    [Arguments("polyline", "radius\": 3")]
+    [Arguments("rectangle", "min_x\": 0, \"max_x\": 40, \"min_z\": 0, \"max_z\": 40")]
+    public async Task A_kind_that_cannot_read_a_height_per_vertex_says_so(string kind, string bounds)
+    {
+        var shape = $$"""{"id":"graded","type":"{{kind}}","operation":"add","{{bounds}},"vertices":[[0,0],[20,10],[40,0]],"anchor_heights":[4,20,4]}""";
+        var findings = SketchLayoutCheck.Check(Layout(shape))
+            .Where(finding => finding.Rule == SketchRules.PerVertexHeightUnread).ToList();
+
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(findings[0].Field).EndsWith("anchor_heights");
+        await Assert.That(findings[0].Message).Contains(kind);
+    }
+
+    /// <summary>And a polygon whose array is not the length of its ring is the same silence for the same
+    /// reason — the TIN is built one height to one vertex, so a mismatch cannot be built at all and the
+    /// shape falls back to its `base_height`.</summary>
+    [Test]
+    public async Task A_polygon_whose_heights_do_not_match_its_vertices_says_so()
+    {
+        const string Mismatched =
+            """{"id":"shelf","type":"polygon","operation":"add","vertices":[[0,0],[40,0],[40,40],[0,40]],"anchor_heights":[4,20]}""";
+        const string Lined =
+            """{"id":"good","type":"polygon","operation":"add","vertices":[[80,80],[120,80],[120,120],[80,120]],"anchor_heights":[4,9,9,4]}""";
+
+        var findings = SketchLayoutCheck.Check(Layout(Mismatched + "," + Lined))
+            .Where(finding => finding.Rule == SketchRules.PerVertexHeightUnread).ToList();
+
+        await Assert.That(findings.Count).IsEqualTo(1)
+            .Because("only the mismatched one is unread; the ring that lines up is built as stated");
+        await Assert.That(findings[0].SubjectIds).Contains("shelf");
+        await Assert.That(findings[0].Message).Contains("2 anchor height(s) against 4 vertices");
+    }
+
     // ── the two readings ─────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>The document reading answers everything a pass over the JSON can and none of the seven read

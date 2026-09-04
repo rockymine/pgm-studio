@@ -6872,6 +6872,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A height per vertex the kind cannot read says so (`TS85`, `SK22`).** `anchor_heights` is interpolated
+  across a footprint as a TIN over the shape's own ring, which only a polygon and a lasso have — so a
+  rectangle, a circle or a polyline stating one stored at 200, built its `base_height` the whole way, kept
+  the field in the document, and said nothing. A polygon whose array is not the length of its ring was the
+  same silence for the same reason. Both are now `SK22`, a complaint on the write, read the same way
+  `SketchRasterizer.HeightFn` decides it so the gate and the build cannot disagree about which shapes vary.
+  (`Pgm/Sketch/SketchRules`, `SketchLayoutCheck`, `docs/tools/sketch.md`, `docs/refusals.md`)
+- **A spec states a vertex edit, so a reshaped board survives its next drive (`TS87`).** `finish.json` gains
+  `editShapes` — an ordered list of ops per shape, replayed after the store and **before** any bend, since a
+  bend resamples whatever ring it is given. `after` inserts a point on that edge (at its midpoint when no
+  `x`/`z` is stated), `index` moves the point there, `remove` drops it; an op naming none or two of the three
+  stops the run rather than guessing. Without it a spec compiled from its plan every run threw away every
+  hand-shaped outline and reverted the board to the plan's staircase. Verified on a one-piece plan: six ops in
+  order, the ring walking 4 → 5 → 6 → 7 → 7 → 8 → 7, the bend resampling to 44 vertices, and all four of the
+  compile's own corners unmoved. (`pgm-studio-mapgen/tools/drive.py`, `GENERATION-NOTES.md`,
+  `AUTHORING-BRIEF.md`, the `pgm-board` skill)
 - **The specs were re-keyed onto the ids `TS82` minted (`TS82`).** Renaming a compiled shape's id left every
   `themeById` and `shapePropsById` key in `pgm-studio-mapgen` naming nothing: **16 of 210 keys still named a
   shape**, so twenty boards re-drove with their per-shape themes and shape props silently absent. The bridge

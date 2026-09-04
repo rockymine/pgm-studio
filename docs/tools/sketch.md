@@ -152,8 +152,10 @@ thinner than one block and never floors below zero; a freshly drawn one starts a
 list to align to, and a polyline's vertices are its centreline rather than its footprint — the band around
 them carries many more points, and a thickness graded along one would have to interpolate *along the arc*
 instead of over a triangulation. So a polyline builds one uniform thickness end to end, which is why a
-causeway cannot yet be drawn as the ramp it is (`S56`). Stating `anchor_heights` on a polyline stores at 200
-and is ignored without a word (`TS85`).
+causeway cannot yet be drawn as the ramp it is (`S56`). Stating `anchor_heights` on one stores and builds
+flat, and `SK22` says so — as it does for a polygon whose array is not the length of its own ring, which is
+the same silence for the same reason: the TIN is built one height to one vertex, so a mismatch cannot be
+built at all.
 
 **That is what makes a tilted quad a stair.** The surface is sampled at each cell's centre and **floored**
 into the column, so a quad rising one course a cell builds a stair of single courses — 24 blocks of run for 24

@@ -285,6 +285,12 @@ public static class SketchLayoutCheck
                     Severity.Complaint, Field: where, Subjects: Ids(shape)));
             }
 
+            if (PerVertexHeightUnread(shape) is { } unread)
+                findings.Add(new Finding(SketchRules.PerVertexHeightUnread,
+                    $"{Named(shape)} {unread}, so the world builds it one thickness the whole way and the "
+                    + "stated heights are nowhere in it",
+                    Severity.Complaint, Field: $"{where}.anchor_heights", Subjects: Ids(shape)));
+
             if (Unbuildable(shape) is { } height)
                 findings.Add(new Finding(SketchRules.UnbuildableHeight,
                     $"{Named(shape)} {height}, and the world is {WorldHeight} blocks tall — the column is cut "
@@ -498,6 +504,22 @@ public static class SketchLayoutCheck
             Symmetry.Apply(box.MaxX, box.MinZ, axis, cx, cz), Symmetry.Apply(box.MaxX, box.MaxZ, axis, cx, cz),
         ];
         return (corners.Min(c => c.X), corners.Min(c => c.Z), corners.Max(c => c.X), corners.Max(c => c.Z));
+    }
+
+    /// <summary>Why a stated <c>anchor_heights</c> is not read, or null where it is — the TIN is built over
+    /// the shape's own ring, which only a polygon or a lasso has, and only where the array is the length of
+    /// that ring. Read the same way <c>SketchRasterizer.HeightFn</c> decides it, so the two cannot disagree
+    /// about which shapes vary.</summary>
+    private static string? PerVertexHeightUnread(SketchShape shape)
+    {
+        if (shape.AnchorHeights is not { Length: > 0 } stated) return null;
+        if (shape.Type is not (ShapeKinds.Polygon or ShapeKinds.Lasso))
+            return $"states {stated.Length} anchor height(s) and is a {shape.Type ?? "shape"}, whose ground "
+                 + "is not drawn from a vertex ring — only a polygon and a lasso carry one";
+        return shape.Vertices is { Length: >= 3 } vertices && vertices.Length == stated.Length
+            ? null
+            : $"states {stated.Length} anchor height(s) against {shape.Vertices?.Length ?? 0} vertices, and "
+            + "the two are interpolated one to one";
     }
 
     private static double Reach(SketchShape shape) => shape.Type == ShapeKinds.Polyline ? Math.Abs(shape.Radius ?? 0) : 0;
