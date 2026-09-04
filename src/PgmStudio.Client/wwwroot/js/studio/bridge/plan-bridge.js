@@ -140,6 +140,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     const placement = { piece: pieceId, at: seed.at, footprint: seed.footprint };
     if (role === "spawn") placement.facing = "front";
     list.push(placement);
+    // The cube the yard has room for, beside the door on the player's right. One is the seed; adding more and
+    // sliding them is the author's, so a piece that already carries iron is left alone.
+    if (Array.isArray(seed.iron) && !doc.placements.iron.some(m => m.piece === pieceId)) {
+      doc.placements.iron.push({ piece: pieceId, at: seed.iron });
+    }
     canvas.setDoc(doc);
     afterEdit();
   }

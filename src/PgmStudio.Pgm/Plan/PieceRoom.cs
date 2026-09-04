@@ -16,22 +16,25 @@ public readonly record struct DrawnRoom(double[] At, double[] Footprint, double[
 /// </summary>
 public static class PieceRoom
 {
-    /// <summary>The marker and footprint for a piece of this role, or null where the role carries no room or
-    /// the piece is too small to hold one at all (<c>WX2</c>).</summary>
-    /// <remarks>The footprint is <b>sized for a shell</b>: a plan states no room style
+    /// <summary>The marker and footprint for a piece of this role, or null where the role carries no room, the
+    /// piece is too small to hold one at all (<c>WX2</c>), or a stated building does not lie on the piece.
+    /// <paramref name="stated"/> is the building the placement already names; absent, the room is the one the
+    /// piece affords.</summary>
+    /// <remarks>The default footprint is <b>sized for a shell</b>: a plan states no room style
     /// (docs/world-export/structures.md §9), and a room that can carry a building is the one worth handing an
     /// author who has not said yet. Where the piece is too small for that, the room it can have is seeded
     /// anyway — a building that does not fit simply is not there, and the pad, chests and monuments a room is
     /// for need the same floor either way.</remarks>
-    public static DrawnRoom? ForPiece(BlockRect piece, string role, string facing)
+    public static DrawnRoom? ForPiece(BlockRect piece, string role, string facing, BlockRect? stated = null)
     {
         if (role != PlanRoles.Spawn && role != PlanRoles.WoolRoom) return null;
         RoomEdge? doorEdge = role == PlanRoles.Spawn ? RoomEdges.OfFacing(facing) : null;
 
         // The marker sits at the centre of the room the piece affords, not of the piece: the door's gap moves
         // the room off the piece's own middle, and a player arrives inside the building. Probing with the
-        // piece centre is what names that room before there is a marker to name it with.
-        var probe = RoomFrames.DefaultFootprint(piece, doorEdge, Centre(piece.MinX, piece.MaxX),
+        // piece centre is what names that room before there is a marker to name it with. A stated building is
+        // already the room, so it is its own probe and its own answer.
+        var probe = stated ?? RoomFrames.DefaultFootprint(piece, doorEdge, Centre(piece.MinX, piece.MaxX),
             Centre(piece.MinZ, piece.MaxZ), walled: true);
         var (markerX, markerZ) = RoomFrames.SameParity(
             Centre(probe.MinX, probe.MaxX) - piece.MinX, Centre(probe.MinZ, probe.MaxZ) - piece.MinZ);
@@ -39,9 +42,11 @@ public static class PieceRoom
         // The footprint the marker actually seats in. The parity nudge can move the marker half a block off
         // the room's middle, which the gap yields to, so the answer is resolved against the seeded marker
         // rather than against the probe it came from.
-        var footprint = RoomFrames.DefaultFootprint(
+        var footprint = stated ?? RoomFrames.DefaultFootprint(
             piece, doorEdge, piece.MinX + markerX, piece.MinZ + markerZ, walled: true);
         if (RoomFrames.FootprintTooSmall(footprint.Width, footprint.Depth, walled: false)) return null;
+        if (footprint.MinX < piece.MinX || footprint.MinZ < piece.MinZ
+            || footprint.MaxX > piece.MaxX || footprint.MaxZ > piece.MaxZ) return null;
 
         return new DrawnRoom(
             [markerX, markerZ],
@@ -50,10 +55,11 @@ public static class PieceRoom
     }
 
     /// <summary>The spawn's one iron marker, or null where the yard has no room for a cube. One is the seed;
-    /// adding more is the author's. It stands hard against the piece's outer edge — the door gap is the cube
-    /// plus its clear air exactly, so that is the only row along the door axis a cube fits in — and beside the
-    /// <b>door corridor</b>, the door's own opening projected out to that edge, so nobody walks out into it.
-    /// The low side of the corridor every time, which the author slides along.</summary>
+    /// adding more is the author's. It stands in the nearest row outside the door wall that <c>WX8</c> allows
+    /// — the building's own edge plus <see cref="RoomFrames.IronGap"/>, which on a default footprint is the
+    /// piece's outer edge exactly — and beside the <b>door corridor</b>, the door's own opening projected out
+    /// to that row, so nobody walks out into it. On the player's <b>right</b> as they leave, falling to their
+    /// left where the piece has no ground for a cube there.</summary>
     private static double[]? Iron(
         BlockRect piece, BlockRect footprint, RoomEdge door, double markerX, double markerZ)
     {
@@ -61,19 +67,29 @@ public static class PieceRoom
             piece.MinX + markerX, piece.MinZ + markerZ, [], door, out _);
         if (frame?.Doors is not [{ } opening, ..]) return null;
 
-        var alongX = door is RoomEdge.NegZ or RoomEdge.PosZ;
-        var outward = door is RoomEdge.NegZ or RoomEdge.NegX
-            ? (alongX ? piece.MinZ : piece.MinX)
-            : (alongX ? piece.MaxZ : piece.MaxX) - RoomFrames.IronSpan;
-        var aside = opening.Lo - RoomFrames.IronSpan;
-        var (cubeMinX, cubeMinZ) = alongX ? (aside, outward) : (outward, aside);
+        var alongX = door.AlongX();
+        var outward = door.Positive()
+            ? (alongX ? footprint.MaxZ : footprint.MaxX) + RoomFrames.IronGap
+            : (alongX ? footprint.MinZ : footprint.MinX) - RoomFrames.IronGap - RoomFrames.IronSpan;
 
-        double ironX = cubeMinX + RoomFrames.IronSpan / 2.0, ironZ = cubeMinZ + RoomFrames.IronSpan / 2.0;
-        var seated = RoomFrames.ResolveRoom(piece, footprint, shellBound: true,
-            piece.MinX + markerX, piece.MinZ + markerZ, [], door, [(ironX, ironZ)], out _);
-        return seated?.Iron is [{ Placeable: true }, ..]
-            ? [ironX - piece.MinX, ironZ - piece.MinZ]
-            : null;
+        // The corridor's two flanks, the player's right hand first. Walking out through a +z or a −x door puts
+        // their right on the low side of the wall's own axis, and through a −z or a +x door on the high side.
+        var right = opening.Lo + (door is RoomEdge.PosZ or RoomEdge.NegX
+            ? -RoomFrames.IronSpan
+            : opening.Width);
+        var left = opening.Lo + (door is RoomEdge.PosZ or RoomEdge.NegX
+            ? opening.Width
+            : -RoomFrames.IronSpan);
+
+        foreach (var aside in (int[])[right, left])
+        {
+            var (cubeMinX, cubeMinZ) = alongX ? (aside, outward) : (outward, aside);
+            double ironX = cubeMinX + RoomFrames.IronSpan / 2.0, ironZ = cubeMinZ + RoomFrames.IronSpan / 2.0;
+            var seated = RoomFrames.ResolveRoom(piece, footprint, shellBound: true,
+                piece.MinX + markerX, piece.MinZ + markerZ, [], door, [(ironX, ironZ)], out _);
+            if (seated?.Iron is [{ Placeable: true }, ..]) return [ironX - piece.MinX, ironZ - piece.MinZ];
+        }
+        return null;
     }
 
     private static double Centre(int lo, int hi) => (lo + hi) / 2.0;

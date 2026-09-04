@@ -82,9 +82,9 @@ public sealed class PieceRoomTests
     [Test]
     public async Task A_spawn_is_seeded_with_one_cube_beside_its_door_and_a_wool_room_with_none()
     {
-        // One cube is the seed; adding more is the author's. It stands hard against the piece's outer edge —
-        // the door gap is the cube plus its clear air exactly, so that is the only row it fits in — and clear
-        // of the door corridor, so nobody walks out into it.
+        // One cube is the seed; adding more is the author's. It stands in the nearest row outside the door
+        // wall WX8 allows, which on a default footprint is the piece's outer edge, and clear of the door
+        // corridor, so nobody walks out into it.
         var piece = new BlockRect(0, 0, 20, 20);
         var spawn = PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front")!.Value;
         await Assert.That(spawn.Iron).IsNotNull();
@@ -96,11 +96,70 @@ public sealed class PieceRoomTests
         var cube = room.Iron[0];
         await Assert.That(cube.Placeable).IsTrue();
         await Assert.That(cube.Size).IsEqualTo(RoomFrames.IronSpan);
-        // Clear of the door's own opening projected out to the piece edge.
-        await Assert.That(cube.MinX + cube.Size).IsLessThanOrEqualTo(room.Frame.Doors[0].Lo);
+        // Clear of the door's own opening projected out to that row.
+        await Assert.That(cube.MinX).IsGreaterThanOrEqualTo(room.Frame.Doors[0].Lo + room.Frame.Doors[0].Width);
 
         // A wool room names no door, so there is no yard in front of it and no iron.
         await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.WoolRoom, "front")!.Value.Iron).IsNull();
+    }
+
+    [Test]
+    [Arguments("front", 1, 0)]
+    [Arguments("back", -1, 0)]
+    [Arguments("left", 0, -1)]
+    [Arguments("right", 0, 1)]
+    public async Task The_cube_stands_on_the_hand_a_player_leaves_by(string facing, int rightX, int rightZ)
+    {
+        // Walking out of the door, the cube is on the player's right: leaving −z their right is +x, leaving
+        // +z it is −x, and the two side doors turn with them. The seed is where an author reaches first, so
+        // which hand it lands on is the whole of what it says.
+        var piece = new BlockRect(0, 0, 20, 20);
+        var door = RoomEdges.OfFacing(facing);
+        var seed = PieceRoom.ForPiece(piece, PlanRoles.Spawn, facing)!.Value;
+        var room = RoomFrames.ResolveRoom(piece, PlanMarkers.Footprint(piece, seed.Footprint), shellBound: true,
+            piece.MinX + seed.At[0], piece.MinZ + seed.At[1], [], door,
+            [(piece.MinX + seed.Iron![0], piece.MinZ + seed.Iron[1])], out _)!;
+        var (cube, opening) = (room.Iron[0], room.Frame.Doors[0]);
+        await Assert.That(cube.Placeable).IsTrue();
+
+        // The cube's own side of the corridor along the wall's axis, signed the way the player's right points.
+        var (cubeLo, cubeHi) = door.AlongX() ? (cube.MinX, cube.MinX + cube.Size) : (cube.MinZ, cube.MinZ + cube.Size);
+        var toRight = door.AlongX() ? rightX : rightZ;
+        await Assert.That(toRight > 0 ? cubeLo >= opening.Lo + opening.Width : cubeHi <= opening.Lo).IsTrue();
+    }
+
+    [Test]
+    public async Task A_stated_building_is_the_room_and_the_cube_stands_beside_its_door()
+    {
+        // A wide protection region holding a small hall: the footprint comes back verbatim, the marker centres
+        // in the hall rather than in the piece, and the cube seats against the hall's own door wall — WX8's
+        // standing room out from it, not out at the region's rim.
+        var piece = new BlockRect(0, 0, 20, 20);
+        var hall = new BlockRect(1, 1, 13, 13);
+        var seed = PieceRoom.ForPiece(piece, PlanRoles.Spawn, "back", hall)!.Value;
+        await Assert.That(seed.Footprint).IsEquivalentTo(new double[] { 1, 1, 12, 12 });
+        await Assert.That(seed.At).IsEquivalentTo(new double[] { 7, 7 });
+
+        var room = RoomFrames.ResolveRoom(piece, hall, shellBound: true,
+            piece.MinX + seed.At[0], piece.MinZ + seed.At[1], [], RoomEdge.PosZ,
+            [(piece.MinX + seed.Iron![0], piece.MinZ + seed.Iron[1])], out var refusal)!;
+        await Assert.That(refusal).IsNull();
+        await Assert.That(room.Iron[0].Placeable).IsTrue();
+        await Assert.That(room.Iron[0].MinZ).IsEqualTo(hall.MaxZ + RoomFrames.IronGap);
+        // Leaving a +z door the player's right is −x, so the cube is below the corridor.
+        await Assert.That(room.Iron[0].MinX + room.Iron[0].Size).IsLessThanOrEqualTo(room.Frame.Doors[0].Lo);
+    }
+
+    [Test]
+    public async Task A_stated_building_that_leaves_the_piece_is_not_seeded()
+    {
+        // The answer is a rectangle the export would build, so one reaching outside the ground it stands on is
+        // no answer at all — the same WX2 refusal a room too small to hold a pad gets.
+        var piece = new BlockRect(0, 0, 20, 20);
+        await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front", new BlockRect(14, 1, 26, 13)))
+            .IsNull();
+        await Assert.That(PieceRoom.ForPiece(piece, PlanRoles.Spawn, "front", new BlockRect(1, 1, 4, 4)))
+            .IsNull();
     }
 
     [Test]

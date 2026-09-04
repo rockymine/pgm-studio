@@ -474,16 +474,22 @@ public sealed class PlanFeasibilityEndpoint : EndpointWithoutRequest<Feasibility
 }
 
 /// <summary>
-/// POST /api/plan/room?piece=&lt;id&gt; — the contents a freshly drawn <c>spawn</c> or <c>wool-room</c> piece
-/// carries: the marker the room is built around, and the footprint the building stands on. The request body is
-/// a plan wire document; the named piece is read out of it and answered with piece-relative block offsets the
-/// editor stores straight onto the placement.
+/// POST /api/plan/room?piece=&lt;id&gt; — the contents a <c>spawn</c> or <c>wool-room</c> piece carries: the
+/// marker the room is built around, the footprint the building stands on, and the spawn's iron cube. The
+/// request body is a plan wire document; the named piece is read out of it and answered with piece-relative
+/// block offsets the editor stores straight onto the placement.
+///
+/// <para>The answer is for the piece <b>as the document states it</b>: a placement already on that piece
+/// supplies the facing its door opens through and the building it stands on, so an author who has stated a
+/// small hall in a wide protection region is told where that hall's iron goes rather than where a default
+/// one's would have. A piece with no placement yet takes the drawing defaults — a front door and the room the
+/// piece affords.</para>
 ///
 /// <para>The numbers are <see cref="PieceRoom"/>'s, which are <see cref="RoomFrames.DefaultFootprint"/>'s, so
 /// the rectangle the author is handed and the one the export would have defaulted to are one number rather
-/// than two free to disagree. A piece whose role carries no room, or which is too small to raise a shell on,
-/// is answered 404 — there is nothing to seed and a rectangle its own export would refuse is worse than
-/// none.</para>
+/// than two free to disagree. A piece whose role carries no room, which is too small to raise a shell on, or
+/// whose stated building does not lie on it, is answered 404 — there is nothing to seed and a rectangle its
+/// own export would refuse is worse than none.</para>
 /// </summary>
 public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
 {
@@ -516,12 +522,21 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
             return;
         }
 
-        if (d.Piece(pieceId) is not { } piece
-            || PieceRoom.ForPiece(piece.Rect, piece.Role, "front") is not { } seed)
+        if (d.Piece(pieceId) is not { } piece)
         {
             await Send.NotFoundAsync(ct);
             return;
         }
-        await Send.OkAsync(new DrawnRoomDto(seed.At, seed.Footprint), ct);
+
+        var spawn = plan.Placements.Spawns.FirstOrDefault(s => s.Piece == pieceId);
+        var wool = plan.Placements.Wools.FirstOrDefault(w => w.Piece == pieceId);
+        var stated = PlanMarkers.Footprint(piece.Rect, spawn?.Footprint ?? wool?.Footprint);
+
+        if (PieceRoom.ForPiece(piece.Rect, piece.Role, spawn?.Facing ?? "front", stated) is not { } seed)
+        {
+            await Send.NotFoundAsync(ct);
+            return;
+        }
+        await Send.OkAsync(new DrawnRoomDto(seed.At, seed.Footprint, seed.Iron), ct);
     }
 }

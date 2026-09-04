@@ -5186,8 +5186,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Iron is one size and the room never yields to it (B177).** A cube is `IronSpan` blocks square whatever its
   marker's parity, keeps at least `IronGap` blocks of standing room to the shell, and seats where the marker
   puts it or resolves unplaceable — the parity ladder and the shell's yield are both gone. A drawn spawn is
-  seeded with one, hard against the piece's outer edge and clear of the door corridor; adding more and sliding
-  them is the author's.
+  seeded with one, clear of the door corridor; adding more and sliding them is the author's.
+- **The seeded cube stands on the hand a player leaves by (TN12).** `PieceRoom` seats a spawn's iron in the
+  nearest row outside the door wall `WX8` allows — the building's own edge plus `IronGap`, which on a default
+  footprint is the piece's outer edge exactly — and on the player's **right** as they walk out, falling to
+  their left only where the piece has no ground for a cube there. `POST /plan/room` answers for the piece as
+  the document states it, reading the placement's `facing` and `footprint` rather than assuming a front door
+  on the room the piece affords, and returns that cube alongside the marker and the footprint; the editor
+  writes it onto an `iron` placement as the piece is drawn. A stated hall inside a wide protection region is
+  therefore answered with the cube that belongs beside *its* door, which is the whole of what makes shrinking
+  a building inside its region an edit an author can finish.
 - **A drawn role piece states its own room (B178 · TN11).** A `spawn` or `wool-room` placement carries a
   **`footprint`** — `[x, z, w, h]` in blocks from the piece's minimum corner, fanned per orbit image — and the
   room resolver takes it instead of insetting the piece, so a wide protection region can hold a small hall.
