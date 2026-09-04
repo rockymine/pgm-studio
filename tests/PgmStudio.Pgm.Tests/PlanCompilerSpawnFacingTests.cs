@@ -3,10 +3,11 @@ using PgmStudio.Pgm.Plan;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// A spawn's yaw decides which wall its door is cut through (review.md MG4). The compiler no longer fans the
-/// authored facing blindly: on a piece whose stated door wall opens onto the void, the door is redirected to
-/// a wall that actually opens onto more board. The redirect is resolved once on the authored (team-0) piece
-/// and fanned exactly like the authored facing, so it reflects and rotates correctly with the orbit.
+/// Where a spawn's player looks. The compiler does not fan the authored facing blindly: one aimed over the
+/// void is turned onto the board the piece actually meets, and where it meets it on two sides that is the
+/// corner between them. The redirect is resolved once on the authored (team-0) piece and fanned exactly like
+/// the authored facing, so it reflects and rotates correctly with the orbit. The doors are a separate
+/// question — <see cref="PieceDoorsTests"/> — and a facing that names no wall is exactly why.
 /// </summary>
 public sealed class PlanCompilerSpawnFacingTests
 {
@@ -83,6 +84,63 @@ public sealed class PlanCompilerSpawnFacingTests
         }
         """;
         await Assert.That(RedYaw(p)).IsEqualTo(180d);   // "front" on team-0, unmirrored
+    }
+
+    [Test]
+    [Arguments("front-right", 225d)]
+    [Arguments("back-right", 315d)]
+    [Arguments("back-left", 45d)]
+    [Arguments("front-left", 135d)]
+    public async Task A_diagonal_facing_carries_a_45_degree_yaw(string facing, double yaw)
+    {
+        // A corner hall's player looks between its two exits, which is not a multiple of 90 and is why no
+        // door can be read back off a yaw. The piece is open on both the walls each diagonal leans into, so
+        // nothing is redirected and the authored word survives as the angle it names.
+        var open = $$"""
+        {
+          "plan": 2,
+          "globals": { "cell": 1, "symmetry": "rot_180" },
+          "pieces": [
+            { "id": "west",  "role": "piece", "rect": [0, 10, 10, 10] },
+            { "id": "east",  "role": "piece", "rect": [20, 10, 10, 10] },
+            { "id": "north", "role": "piece", "rect": [10, 0, 10, 10] },
+            { "id": "south", "role": "piece", "rect": [10, 20, 10, 10] },
+            { "id": "sp",    "role": "spawn", "rect": [10, 10, 10, 10] }
+          ],
+          "placements": { "spawns": [ { "piece": "sp", "at": [5, 5], "facing": "{{facing}}" } ] }
+        }
+        """;
+        await Assert.That(RedYaw(open)).IsEqualTo(yaw);
+    }
+
+    [Test]
+    public async Task A_facing_over_the_void_is_turned_onto_the_corner_where_two_walls_open()
+    {
+        // The piece meets the board on its east and south walls and nowhere else, and the player was aimed
+        // north over the drop. Neither open wall is more the board than the other, so they are summed: the
+        // player is turned onto the corner between the two doors they can actually leave by.
+        var corner = """
+        {
+          "plan": 2,
+          "globals": { "cell": 1, "symmetry": "rot_180" },
+          "pieces": [
+            { "id": "sp",    "role": "spawn", "rect": [0, 0, 20, 20] },
+            { "id": "east",  "role": "piece", "rect": [20, 0, 10, 20] },
+            { "id": "south", "role": "piece", "rect": [0, 20, 20, 10] }
+          ],
+          "placements": { "spawns": [ { "piece": "sp", "at": [10, 10], "facing": "front" } ] }
+        }
+        """;
+        await Assert.That(RedYaw(corner)).IsEqualTo(315d);   // +x and +z summed — "back-right"
+    }
+
+    [Test]
+    public async Task The_doors_the_compiler_derives_travel_on_the_intent()
+    {
+        // The exporter never re-derives a door from the yaw: a diagonal yaw names no wall, so the walls the
+        // compiler cut are stated, in the order it cut them.
+        var (_, intent) = PlanCompiler.Compile(PlanModel.Parse(Plan("front"))!);
+        await Assert.That(intent.Spawns.Single(s => s.Team == "red").Doors).IsEquivalentTo(new[] { "-x" });
     }
 
     [Test]

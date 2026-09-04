@@ -711,10 +711,10 @@ public static class WorldBuilder
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(w.Spawn.X, w.Spawn.Z);
             var frame = RoomFrames.Resolve(
                 ground, StatedFootprint(w.Footprint), shellBound, markerX, markerZ,
-                [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], null, out _);
+                [.. w.Entries.Select(e => (e.MinX, e.MinZ, e.MaxX, e.MaxZ))], [], out _);
             if (frame is not null) return frame;
         }
-        return DefaultFrame(w.Spawn.X, w.Spawn.Z, null, shellBound);
+        return DefaultFrame(w.Spawn.X, w.Spawn.Z, [], shellBound);
     }
 
     /// <inheritdoc cref="WoolFrame"/>
@@ -723,16 +723,30 @@ public static class WorldBuilder
     /// stamps for it.</remarks>
     public static ResolvedRoom SpawnRoom(SpawnIntent s, bool shellBound)
     {
-        var doorEdge = PositionSnap.FacingFromYaw(s.Yaw);
+        var doorEdges = SpawnDoors(s);
         if (Ground(s.Protection) is { } ground)
         {
             var (markerX, markerZ) = PositionSnap.SnapHalfXZ(s.Point.X, s.Point.Z);
             var room = RoomFrames.ResolveRoom(
-                ground, StatedFootprint(s.Footprint), shellBound, markerX, markerZ, [], doorEdge,
+                ground, StatedFootprint(s.Footprint), shellBound, markerX, markerZ, [], doorEdges,
                 [.. s.Iron.Select(iron => PositionSnap.SnapHalfXZ(iron.X, iron.Z))], out _);
             if (room is not null) return room;
         }
-        return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdge, shellBound), []);
+        return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdges, shellBound), []);
+    }
+
+    /// <summary>The walls a spawn hall opens through: the ones the intent names, in the order it names them.
+    /// A hand-authored intent names none and gets the wall its yaw leans into — a yaw is one angle and a
+    /// board is not obliged to have put a door there, so it answers one door rather than a door per
+    /// wall.</summary>
+    private static IReadOnlyList<RoomEdge> SpawnDoors(SpawnIntent s)
+    {
+        var named = s.Doors.Select(RoomEdges.OfWord).OfType<RoomEdge>().ToList();
+        if (named.Count > 0) return named;
+        var yaw = ((s.Yaw % 360) + 360) % 360 * Math.PI / 180;
+        return RoomEdges.Nearest(
+            ((int)Math.Round(-Math.Sin(yaw)), (int)Math.Round(Math.Cos(yaw))), RoomEdges.All)
+            is { } edge ? [edge] : [];
     }
 
     /// <summary>The ground a room stands on: what the region encloses, as one block rect, or null where the
@@ -752,11 +766,12 @@ public static class WorldBuilder
     // original 8×8 shell, with a door per wall for a wool cage or the single yaw door for a spawn. Also the
     // fallback when an authored piece refuses to frame (the validator gates plan exports, so reaching that
     // fallback means a hand-edited intent — stamping the default beats failing the export).
-    private static RoomFrame DefaultFrame(double x, double z, RoomEdge? spawnDoorEdge, bool shellBound)
+    private static RoomFrame DefaultFrame(
+        double x, double z, IReadOnlyList<RoomEdge> spawnDoorEdges, bool shellBound)
     {
         var (anchorX, anchorZ) = PositionSnap.SnapXZ(x, z);
         int minX = anchorX - 5, minZ = anchorZ - 5, maxX = anchorX + 5, maxZ = anchorZ + 5;
-        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdge is null
+        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdges.Count == 0
             ?
             [
                 (minX, minZ, maxX, minZ), (minX, maxZ, maxX, maxZ),
@@ -767,7 +782,7 @@ public static class WorldBuilder
         // has always resolved to, so the shell is its own one-block inset and no door gap is taken out of it.
         return RoomFrames.Resolve(new BlockRect(minX, minZ, maxX, maxZ),
             new BlockRect(minX + 1, minZ + 1, maxX - 1, maxZ - 1), shellBound,
-            anchorX, anchorZ, entries, spawnDoorEdge, out _)!;
+            anchorX, anchorZ, entries, spawnDoorEdges, out _)!;
     }
 
     /// <summary>The teams that capture a wool: its authored monument teams, or — when none were authored

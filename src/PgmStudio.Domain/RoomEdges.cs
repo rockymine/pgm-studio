@@ -16,16 +16,38 @@ public enum RoomEdge { NegZ, PosZ, NegX, PosX }
 /// </summary>
 public static class RoomEdges
 {
-    /// <summary>The edge a spawn's door stands on, from the facing word a plan states it with. The words are
-    /// relative to the piece's own front, which is <c>−z</c>: <c>front</c> (or anything unrecognised),
-    /// <c>back</c>, <c>left</c>, <c>right</c>.</summary>
-    public static RoomEdge OfFacing(string? facing) => facing switch
+    /// <summary>The four walls in the reading order an author meets them, which is what breaks a tie nothing
+    /// else settles.</summary>
+    public static readonly RoomEdge[] All = [RoomEdge.NegZ, RoomEdge.PosZ, RoomEdge.NegX, RoomEdge.PosX];
+
+    /// <summary>How far a direction leans into a wall: the dot product of the step with the wall's outward
+    /// face, so a player looking straight at it scores highest and one looking along it scores nothing.</summary>
+    public static int Lean(this RoomEdge edge, (int Dx, int Dz) direction)
     {
-        "back" => RoomEdge.PosZ,
-        "left" => RoomEdge.NegX,
-        "right" => RoomEdge.PosX,
-        _ => RoomEdge.NegZ,
-    };
+        var (ox, oz) = edge.Outward();
+        return direction.Dx * ox + direction.Dz * oz;
+    }
+
+    /// <summary>The edge a direction points most nearly at, out of the ones offered. A player looking at one
+    /// wall gets that wall; a player looking diagonally gets whichever of the two corner walls is offered,
+    /// and the first of them where both are. Null where nothing is offered — a room with no door has no
+    /// nearest one, and inventing an edge for it is what puts a cube against a blank wall.
+    ///
+    /// <para>The measure is the dot product of the step with each edge's <see cref="Outward"/>: the wall the
+    /// direction leans into most. Ties keep the caller's order, which is the order the doors were cut in, so
+    /// the answer is the same on every orbit image.</para></summary>
+    public static RoomEdge? Nearest((int Dx, int Dz) direction, IReadOnlyList<RoomEdge> edges)
+    {
+        RoomEdge? best = null;
+        var bestLean = int.MinValue;
+        foreach (var edge in edges)
+        {
+            var lean = edge.Lean(direction);
+            if (lean <= bestLean) continue;
+            (best, bestLean) = (edge, lean);
+        }
+        return best;
+    }
 
     /// <summary>The edge's own name, for a document that has to carry which side a door is on.</summary>
     public static string Word(this RoomEdge edge) => edge switch

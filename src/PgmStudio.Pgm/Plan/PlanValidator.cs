@@ -353,7 +353,7 @@ public static class PlanValidator
     {
         foreach (var w in plan.Placements.Wools)
         {
-            var frame = ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, null,
+            var frame = ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, [],
                 out var findings);
             foreach (var finding in findings) yield return finding;
             _ = frame;
@@ -361,7 +361,7 @@ public static class PlanValidator
         foreach (var s in plan.Placements.Spawns)
         {
             var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
-                RoomEdges.OfFacing(s.Facing), out var findings);
+                PieceDoors.ForSpawn(d, s.Piece, s.Facing), out var findings);
             foreach (var finding in findings) yield return finding;
             if (room is null) continue;
 
@@ -381,7 +381,7 @@ public static class PlanValidator
     // (without) when the piece is plain or missing.
     private static ResolvedRoom? ResolveFrame(
         PlanModel plan, ContactGraph d, string kind, string pieceId, string role, double[] at,
-        double[]? footprint, RoomEdge? spawnDoorEdge, out List<Finding> findings)
+        double[]? footprint, IReadOnlyList<RoomEdge> spawnDoorEdges, out List<Finding> findings)
     {
         findings = [];
         var piece = d.Piece(pieceId);
@@ -389,20 +389,21 @@ public static class PlanValidator
 
         var rect = piece.Value.Rect;
         var (markerX, markerZ) = PlanMarkers.Block(rect, at);
-        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = spawnDoorEdge is null
-            ? [.. PlanCompiler.WoolEntrySegments(d, pieceId)
-                .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ))]
-            : [];
-        List<(double X, double Z)> ironMarkers = spawnDoorEdge is null
+        var isSpawn = role == PlanRoles.Spawn;
+        List<(double MinX, double MinZ, double MaxX, double MaxZ)> entries = isSpawn
             ? []
-            : [.. plan.Placements.Iron.Where(ir => ir.Piece == pieceId)
-                .Select(ir => PlanMarkers.Block(rect, ir.At))];
+            : [.. PlanCompiler.WoolEntrySegments(d, pieceId)
+                .Select(seg => ((double)seg.MinX, (double)seg.MinZ, (double)seg.MaxX, (double)seg.MaxZ))];
+        List<(double X, double Z)> ironMarkers = isSpawn
+            ? [.. plan.Placements.Iron.Where(ir => ir.Piece == pieceId)
+                .Select(ir => PlanMarkers.Block(rect, ir.At))]
+            : [];
         // No shell, deliberately: a plan carries no room-style binding (structures.md §9), so the frame this
         // checks doors and entries against is the widest one any binding could leave — an interior with no
         // walls inset into it. A footprint that holds a room but not a shell is not refused anywhere; the
         // building simply does not stand on it.
         var room = RoomFrames.ResolveRoom(rect, PlanMarkers.Footprint(rect, footprint), shellBound: false,
-            markerX, markerZ, entries, spawnDoorEdge, ironMarkers, out var refusal);
+            markerX, markerZ, entries, spawnDoorEdges, ironMarkers, out var refusal);
         if (refusal is not null)
             findings.Add(refusal with
             {
@@ -707,12 +708,12 @@ public static class PlanValidator
     private static IEnumerable<Finding> LintWx4(PlanModel plan, ContactGraph d)
     {
         foreach (var w in plan.Placements.Wools)
-            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, null, out _)
+            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, [], out _)
                 is { Frame.Pad.Shifted: true })
                 yield return Lint(RoomFrameRules.PadClearance, $"wool pad on '{w.Piece}' shifted inward to keep wall clearance — the exported wool point moves with it", w.Piece);
         foreach (var s in plan.Placements.Spawns)
             if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
-                RoomEdges.OfFacing(s.Facing), out _) is { Frame.Pad.Shifted: true })
+                PieceDoors.ForSpawn(d, s.Piece, s.Facing), out _) is { Frame.Pad.Shifted: true })
                 yield return Lint(RoomFrameRules.PadClearance, $"spawn pad on '{s.Piece}' shifted inward to keep wall clearance — the exported spawn point moves with it", s.Piece);
     }
 
@@ -727,7 +728,7 @@ public static class PlanValidator
         foreach (var s in plan.Placements.Spawns)
         {
             var room = ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
-                RoomEdges.OfFacing(s.Facing), out _);
+                PieceDoors.ForSpawn(d, s.Piece, s.Facing), out _);
             if (room is null) continue;
             foreach (var iron in room.Iron.Where(i => !i.Placeable))
                 yield return Lint(RoomFrameRules.IronFit,
@@ -896,9 +897,9 @@ public static class PlanValidator
     // one WX1 defaults from the piece where it states none.
     private static IEnumerable<Finding> LintSt9(PlanModel plan, ContactGraph d)
     {
-        foreach (var (kind, pieceId, at, footprint, door) in RoleRooms(plan))
+        foreach (var (kind, pieceId, at, footprint, doors) in RoleRooms(plan, d))
         {
-            if (ResolveFrame(plan, d, kind, pieceId, RoleOf(kind), at, footprint, door, out _)
+            if (ResolveFrame(plan, d, kind, pieceId, RoleOf(kind), at, footprint, doors, out _)
                 is not { Frame: var frame }) continue;
             if (frame.Width <= FootprintCap && frame.Depth <= FootprintCap) continue;
             yield return Lint("ST9",
@@ -927,12 +928,12 @@ public static class PlanValidator
     }
 
     // The role-piece rooms a plan states, as the arguments ResolveFrame takes.
-    private static IEnumerable<(string Kind, string PieceId, double[] At, double[]? Footprint, RoomEdge? Door)>
-        RoleRooms(PlanModel plan)
+    private static IEnumerable<(string Kind, string PieceId, double[] At, double[]? Footprint,
+        IReadOnlyList<RoomEdge> Doors)> RoleRooms(PlanModel plan, ContactGraph d)
     {
-        foreach (var w in plan.Placements.Wools) yield return ("wool", w.Piece, w.At, w.Footprint, null);
+        foreach (var w in plan.Placements.Wools) yield return ("wool", w.Piece, w.At, w.Footprint, []);
         foreach (var s in plan.Placements.Spawns)
-            yield return ("spawn", s.Piece, s.At, s.Footprint, RoomEdges.OfFacing(s.Facing));
+            yield return ("spawn", s.Piece, s.At, s.Footprint, PieceDoors.ForSpawn(d, s.Piece, s.Facing));
     }
 
     private static string RoleOf(string kind) => kind == "spawn" ? PlanRoles.Spawn : PlanRoles.WoolRoom;
@@ -1216,10 +1217,10 @@ public static class PlanValidator
     {
         foreach (var s in plan.Placements.Spawns)
             if (ResolveFrame(plan, d, "spawn", s.Piece, PlanRoles.Spawn, s.At, s.Footprint,
-                RoomEdges.OfFacing(s.Facing), out _) is { } room)
+                PieceDoors.ForSpawn(d, s.Piece, s.Facing), out _) is { } room)
                 yield return ("spawn", s.Piece, Frame(room));
         foreach (var w in plan.Placements.Wools)
-            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, null, out _)
+            if (ResolveFrame(plan, d, "wool", w.Piece, PlanRoles.WoolRoom, w.At, w.Footprint, [], out _)
                 is { } room)
                 yield return ("wool room", w.Piece, Frame(room));
     }

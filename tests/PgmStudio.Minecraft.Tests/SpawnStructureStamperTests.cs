@@ -17,7 +17,7 @@ namespace PgmStudio.Minecraft.Tests;
 /// </summary>
 public sealed class SpawnStructureStamperTests
 {
-    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), shellBound: true, 0, 0, [], RoomEdge.NegZ, out _)!;
+    private static RoomFrame Baseline() => RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), new BlockRect(-4, -4, 4, 4), shellBound: true, 0, 0, [], [RoomEdge.NegZ], out _)!;
 
     [Test]
     public async Task One_wool_places_a_single_monument_at_a_door_wall_corner()
@@ -96,7 +96,7 @@ public sealed class SpawnStructureStamperTests
     public async Task Minimum_room_seats_six_and_truncates_beyond_capacity()
     {
         // The 8×8-piece minimum: 4×4 interior, 2-wide door → 4 corners + 2 back-wall mids = 6 seats.
-        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, shellBound: true, 4, 4, [], RoomEdge.NegZ, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(0, 0, 8, 8), footprint: null, shellBound: true, 4, 4, [], [RoomEdge.NegZ], out _)!;
         var w = new VoxelWorld();
         var placed = SpawnStructureStamper.Stamp(w, new SpawnStructure
         { Frame = frame, FloorY = 64, TeamColor = 11, CapturedWools = ["red", "green", "yellow", "orange", "cyan", "purple", "lime"] }).Monuments;
@@ -113,7 +113,7 @@ public sealed class SpawnStructureStamperTests
         // A 5×5 footprint holds a pad and its seats but not walls, so the frame resolves with none and the
         // bound style raises nothing. What a room is for is still stamped, on the footprint's own corners.
         var frame = RoomFrames.Resolve(new BlockRect(0, 0, 5, 5), new BlockRect(0, 0, 5, 5), shellBound: true,
-            2, 2, [], RoomEdge.NegZ, out _)!;
+            2, 2, [], [RoomEdge.NegZ], out _)!;
         await Assert.That(frame.Wall).IsEqualTo(0);
 
         var world = new VoxelWorld();

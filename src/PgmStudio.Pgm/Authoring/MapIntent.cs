@@ -349,12 +349,19 @@ public sealed record SpawnIntent
     [System.Text.Json.Serialization.JsonConverter(typeof(RectListJsonConverter))]
     public List<Rect> Protection { get; init; } = new();
 
-    /// <summary>Which way players face on arriving, in degrees.</summary>
+    /// <summary>Which way players face on arriving, in degrees. A hall opening on two walls faces the corner
+    /// between them, so this is not a multiple of 90 on every board and no door is derivable from it.</summary>
     public double Yaw { get; init; }
+
+    /// <summary>The walls the hall opens through, as edge words (<c>-z</c>, <c>+z</c>, <c>-x</c>, <c>+x</c>),
+    /// in the order they are cut — the door the team walks out of first. Where a piece meets the board on two
+    /// sides it earns two (docs/world-export/structures.md <c>WX6</c>). Empty on a hand-authored intent, which
+    /// leaves the room a door on the wall its yaw leans into.</summary>
+    public List<string> Doors { get; init; } = new();
 
     /// <summary>The building raised on the region — the footprint the shell is stamped on, which the plan
     /// states and the author resizes. Null leaves it to the default: the region inset by a block on every
-    /// side and by up to the door gap in front of the door (WX1).</summary>
+    /// side and by up to the door gap in front of each door (WX1).</summary>
     public Rect? Footprint { get; init; }
 
     /// <summary>Iron markers on the spawn's ground (fanned world points). Each resolves to a renewable iron

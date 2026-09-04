@@ -211,6 +211,8 @@ The plan compiles one-way into two downstream artifacts (§2.1), each with one c
 | `MapIntent` | The **intent** (`intent.json`): the concrete objectives — block coordinates, yaws, wool colours, monument wiring — read by the XML generator into `map.xml`. |
 | `PlanCompiler` | The **compiler**: `plan → (sketch, intent)`. |
 | `PlanVoids` | The compiler's first step: **declares the plan's negative space**, adding a `buffer` piece over every enclosed void a body encircles and no piece covers, so a ring's hole survives as void instead of taking the fill its union outline implies. Idempotent, and it adds only — an author may draw the buffers and need not. |
+| `PieceDoors` | **Which walls a role piece's room opens through**, read off the same abutment for both kinds: a wool cage takes one door per entry segment, a spawn hall the walls its piece meets more board on, widest first and at most two. The one place the question is answered, so the compiler, the seed endpoint and the validator cannot disagree about where a door is. |
+| `SpawnFacings` | The **eight directions a player can look on arriving** — the four walls and the four corners between them — as the words a plan states and the unit step each names. A direction only: the doors are `PieceDoors`', so a corner hall's player can look between its two exits and carry a 45° yaw. |
 
 ---
 

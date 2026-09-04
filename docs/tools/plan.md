@@ -205,9 +205,21 @@ Markers are grouped by kind under `placements`, and each carries an `id` unique 
 as `<kind>-<n>` in the order spawn, wool, iron, destroyable, core when absent), the `piece` it rides and its
 `at` offset.
 
-A **spawn** adds `facing` — `front` (−Z), `back` (+Z), `left` (−X) or `right` (+X), absolute board directions
-that are fanned per orbit image. The facing picks the wall the spawn room's door opens in, and is overridden
-at compile when it would open onto the void from a board-edge piece.
+A **spawn** adds `facing` — one of eight absolute board directions, fanned per orbit image: the four walls,
+`front` (−Z), `back` (+Z), `left` (−X), `right` (+X), and the four corners between them, `front-left`,
+`front-right`, `back-left`, `back-right`. It says **where the player looks and nothing else**; a diagonal
+carries a 45° yaw, which names no wall, and the room's doors are a separate derivation. It is overridden at
+compile when it would look out over the void from a board-edge piece — onto the wall the piece meets the
+board on, or onto the corner between them where it meets it on two.
+
+The **doors** are not stated. A spawn hall opens through the walls its piece abuts more board on — a land
+seam with a neighbour or a build-zone frontage — widest opening first, **at most two**: a corner spawn opens
+on both the ways out its team has, and a piece open on three sides is still a hall rather than a crossroads.
+Where two walls open equally wide the facing breaks the tie, so the door the player walks out of is the first
+one, which is where the chests, the monument slots and the iron cube go. A piece that abuts nothing opens on
+the wall its facing leans into. This is the same rule a wool cage's doors follow (`WX6`), differing only in
+the cap — a cage takes one door per entry, because every side an attacker can reach it from is a side they
+may come through.
 
 A **spawn** and a **wool** each state a `footprint`: the building on the piece, as `[x, z, w, h]` in blocks
 from the piece's minimum corner — the same corner the marker's `at` is measured from. The piece is the region

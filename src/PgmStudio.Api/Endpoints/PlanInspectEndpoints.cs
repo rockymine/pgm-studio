@@ -531,8 +531,10 @@ public sealed class PlanRoomEndpoint : EndpointWithoutRequest<DrawnRoomDto>
         var spawn = plan.Placements.Spawns.FirstOrDefault(s => s.Piece == pieceId);
         var wool = plan.Placements.Wools.FirstOrDefault(w => w.Piece == pieceId);
         var stated = PlanMarkers.Footprint(piece.Rect, spawn?.Footprint ?? wool?.Footprint);
+        var facing = spawn?.Facing ?? SpawnFacings.Front;
+        var doors = PieceDoors.ForSpawn(d, pieceId, facing);
 
-        if (PieceRoom.ForPiece(piece.Rect, piece.Role, spawn?.Facing ?? "front", stated) is not { } seed)
+        if (PieceRoom.ForPiece(piece.Rect, piece.Role, doors, facing, stated) is not { } seed)
         {
             await Send.NotFoundAsync(ct);
             return;

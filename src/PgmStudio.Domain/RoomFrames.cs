@@ -229,10 +229,10 @@ public static class RoomFrames
     public const int DefaultDoorGap = IronSpan + IronGap;
 
     /// <summary>The footprint a piece carries where none is stated (WX1): the piece inset by
-    /// <see cref="DefaultGap"/> on every side, and by up to <see cref="DefaultDoorGap"/> on the side the door
-    /// opens through. A 20×20 spawn piece facing −z opens as an 18×14 room with five blocks of ground in
-    /// front of its door — a cube and the standing room it keeps, without the room giving up an edge for
-    /// it.
+    /// <see cref="DefaultGap"/> on every side, and by up to <see cref="DefaultDoorGap"/> on each side a door
+    /// opens through. A 20×20 spawn piece with one door on −z opens as an 18×14 room with five blocks of
+    /// ground in front of it — a cube and the standing room it keeps, without the room giving up an edge for
+    /// it; a corner spawn opening on two sides keeps that ground in front of both.
     ///
     /// <para><b>The door's gap yields to the marker.</b> A marker is where a player arrives and the pad is
     /// derived from it, so a default that pushed the room off its own marker would move the spawn point
@@ -241,11 +241,11 @@ public static class RoomFrames
     /// small to give the door its ground still gives the room its ring, and a footprint under the minimum is
     /// <c>WX2</c>'s to report about the room rather than about a default.</para></summary>
     public static BlockRect DefaultFootprint(
-        BlockRect piece, RoomEdge? doorEdge, double markerX, double markerZ, bool walled)
+        BlockRect piece, IReadOnlyList<RoomEdge> doorEdges, double markerX, double markerZ, bool walled)
     {
         BlockRect With(int doorGap)
         {
-            int Gap(RoomEdge side) => doorEdge == side ? doorGap : DefaultGap;
+            int Gap(RoomEdge side) => doorEdges.Contains(side) ? doorGap : DefaultGap;
             return new BlockRect(
                 piece.MinX + Gap(RoomEdge.NegX), piece.MinZ + Gap(RoomEdge.NegZ),
                 piece.MaxX - Gap(RoomEdge.PosX), piece.MaxZ - Gap(RoomEdge.PosZ));
@@ -299,16 +299,17 @@ public static class RoomFrames
         BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
-        RoomEdge? spawnDoorEdge,
+        IReadOnlyList<RoomEdge> spawnDoorEdges,
         out Finding? refusal)
         => ResolveRoom(piece, footprint, shellBound, markerX, markerZ,
-            entries, spawnDoorEdge, [], out refusal)?.Frame;
+            entries, spawnDoorEdges, [], out refusal)?.Frame;
 
     /// <summary>
     /// Resolve a room from its piece rect, its marker, its entry interfaces, and the piece's iron markers
     /// (WX1–WX9). <paramref name="entries"/> are degenerate rects on the piece boundary (a seam or
-    /// build-zone interface segment; zero-thickness on the seam axis); pass a
-    /// <paramref name="spawnDoorEdge"/> instead for a spawn room's single yaw-derived door.
+    /// build-zone interface segment; zero-thickness on the seam axis); pass
+    /// <paramref name="spawnDoorEdges"/> instead for a spawn room, whose doors are named as whole walls
+    /// rather than cut from a segment.
     /// <paramref name="ironMarkers"/> resolve to cubes standing clear of the shell in the ring around it
     /// (WX8), or to unplaceable markers (WX9). Null with a <paramref name="refusal"/> naming the
     /// <see cref="RoomFrameRules"/> id that refused — the same finding the validator reports.
@@ -329,20 +330,21 @@ public static class RoomFrames
     /// <param name="markerX">The spawn or wool point's x, in absolute blocks — where the pad centres (WX3–WX5).</param>
     /// <param name="markerZ">The same point's z.</param>
     /// <param name="entries">Degenerate rects on the piece boundary, one door cut per distinct edge (WX6).</param>
-    /// <param name="spawnDoorEdge">A spawn room's single yaw-derived door, in place of <paramref name="entries"/>.</param>
+    /// <param name="spawnDoorEdges">A spawn room's doors, one per named wall, in place of
+    /// <paramref name="entries"/>. Empty leaves the room to <paramref name="entries"/> as a wool cage does.</param>
     /// <param name="ironMarkers">The piece's iron markers, resolved in input order (WX8/WX9).</param>
     /// <param name="refusal">The <see cref="RoomFrameRules"/> finding that refused, where the result is null.</param>
     public static ResolvedRoom? ResolveRoom(
         BlockRect piece, BlockRect? footprint, bool shellBound,
         double markerX, double markerZ,
         IReadOnlyList<(double MinX, double MinZ, double MaxX, double MaxZ)> entries,
-        RoomEdge? spawnDoorEdge,
+        IReadOnlyList<RoomEdge> spawnDoorEdges,
         IReadOnlyList<(double X, double Z)> ironMarkers,
         out Finding? refusal)
     {
         refusal = null;
         int pieceMinX = piece.MinX, pieceMinZ = piece.MinZ, pieceMaxX = piece.MaxX, pieceMaxZ = piece.MaxZ;
-        var room = footprint ?? DefaultFootprint(piece, spawnDoorEdge, markerX, markerZ, shellBound);
+        var room = footprint ?? DefaultFootprint(piece, spawnDoorEdges, markerX, markerZ, shellBound);
         int minX = room.MinX, minZ = room.MinZ, maxX = room.MaxX, maxZ = room.MaxZ;
         // A shell stands where one is bound and the footprint can carry it. A room too small for walls is not
         // a refusal: its pad, chests and monuments are what a room is, and they need the same floor either
@@ -394,15 +396,21 @@ public static class RoomFrames
         }
 
         List<RoomDoor> doors;
-        if (spawnDoorEdge is { } doorEdge)
+        if (spawnDoorEdges.Count > 0)
         {
-            var alongX = doorEdge.AlongX();
-            var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
-            var width = DoorWidth(interiorAcross);
-            var lo = alongX
-                ? minX + (maxX - minX - width) / 2
-                : minZ + (maxZ - minZ - width) / 2;
-            doors = [new RoomDoor(doorEdge, lo, width)];
+            // A named wall centres its door on itself: the wall is the whole opening's context, where a wool
+            // cage's is the segment its neighbour abuts along.
+            doors = [];
+            foreach (var doorEdge in spawnDoorEdges.Distinct())
+            {
+                var alongX = doorEdge.AlongX();
+                var interiorAcross = (alongX ? maxX - minX : maxZ - minZ) - 2 * wall;
+                var width = DoorWidth(interiorAcross);
+                var lo = alongX
+                    ? minX + (maxX - minX - width) / 2
+                    : minZ + (maxZ - minZ - width) / 2;
+                doors.Add(new RoomDoor(doorEdge, lo, width));
+            }
         }
         else
         {

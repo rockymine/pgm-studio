@@ -1,5 +1,6 @@
 using PgmStudio.Domain;
 using PgmStudio.Geom;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Plan;
 
@@ -16,8 +17,11 @@ public readonly record struct DrawnRoom(double[] At, double[] Footprint, double[
 /// </summary>
 public static class PieceRoom
 {
-    /// <summary>The marker and footprint for a piece of this role, or null where the role carries no room, the
-    /// piece is too small to hold one at all (<c>WX2</c>), or a stated building does not lie on the piece.
+    /// <summary>The marker, footprint and iron for a piece of this role, or null where the role carries no
+    /// room, the piece is too small to hold one at all (<c>WX2</c>), or a stated building does not lie on the
+    /// piece. <paramref name="doorEdges"/> are the walls the room opens through — <see cref="PieceDoors"/>'s
+    /// answer for the piece, ignored on a wool cage, whose doors are cut from its entry segments instead.
+    /// <paramref name="facing"/> is which way the player looks, which picks the door the cube stands beside.
     /// <paramref name="stated"/> is the building the placement already names; absent, the room is the one the
     /// piece affords.</summary>
     /// <remarks>The default footprint is <b>sized for a shell</b>: a plan states no room style
@@ -25,16 +29,18 @@ public static class PieceRoom
     /// author who has not said yet. Where the piece is too small for that, the room it can have is seeded
     /// anyway — a building that does not fit simply is not there, and the pad, chests and monuments a room is
     /// for need the same floor either way.</remarks>
-    public static DrawnRoom? ForPiece(BlockRect piece, string role, string facing, BlockRect? stated = null)
+    public static DrawnRoom? ForPiece(
+        BlockRect piece, string role, IReadOnlyList<RoomEdge> doorEdges, string facing,
+        BlockRect? stated = null)
     {
         if (role != PlanRoles.Spawn && role != PlanRoles.WoolRoom) return null;
-        RoomEdge? doorEdge = role == PlanRoles.Spawn ? RoomEdges.OfFacing(facing) : null;
+        IReadOnlyList<RoomEdge> doors = role == PlanRoles.Spawn ? doorEdges : [];
 
         // The marker sits at the centre of the room the piece affords, not of the piece: the door's gap moves
         // the room off the piece's own middle, and a player arrives inside the building. Probing with the
         // piece centre is what names that room before there is a marker to name it with. A stated building is
         // already the room, so it is its own probe and its own answer.
-        var probe = stated ?? RoomFrames.DefaultFootprint(piece, doorEdge, Centre(piece.MinX, piece.MaxX),
+        var probe = stated ?? RoomFrames.DefaultFootprint(piece, doors, Centre(piece.MinX, piece.MaxX),
             Centre(piece.MinZ, piece.MaxZ), walled: true);
         var (markerX, markerZ) = RoomFrames.SameParity(
             Centre(probe.MinX, probe.MaxX) - piece.MinX, Centre(probe.MinZ, probe.MaxZ) - piece.MinZ);
@@ -43,7 +49,7 @@ public static class PieceRoom
         // the room's middle, which the gap yields to, so the answer is resolved against the seeded marker
         // rather than against the probe it came from.
         var footprint = stated ?? RoomFrames.DefaultFootprint(
-            piece, doorEdge, piece.MinX + markerX, piece.MinZ + markerZ, walled: true);
+            piece, doors, piece.MinX + markerX, piece.MinZ + markerZ, walled: true);
         if (RoomFrames.FootprintTooSmall(footprint.Width, footprint.Depth, walled: false)) return null;
         if (footprint.MinX < piece.MinX || footprint.MinZ < piece.MinZ
             || footprint.MaxX > piece.MaxX || footprint.MaxZ > piece.MaxZ) return null;
@@ -51,21 +57,25 @@ public static class PieceRoom
         return new DrawnRoom(
             [markerX, markerZ],
             [footprint.MinX - piece.MinX, footprint.MinZ - piece.MinZ, footprint.Width, footprint.Depth],
-            doorEdge is { } door ? Iron(piece, footprint, door, markerX, markerZ) : null);
+            doors.Count > 0 ? Iron(piece, footprint, doors, facing, markerX, markerZ) : null);
     }
 
     /// <summary>The spawn's one iron marker, or null where the yard has no room for a cube. One is the seed;
-    /// adding more is the author's. It stands in the nearest row outside the door wall that <c>WX8</c> allows
-    /// — the building's own edge plus <see cref="RoomFrames.IronGap"/>, which on a default footprint is the
-    /// piece's outer edge exactly — and beside the <b>door corridor</b>, the door's own opening projected out
-    /// to that row, so nobody walks out into it. On the player's <b>right</b> as they leave, falling to their
-    /// left where the piece has no ground for a cube there.</summary>
+    /// adding more is the author's. It stands beside <b>the door the player walks out of</b> — the one their
+    /// facing leans into most, which on a hall opening on two walls is the near one rather than the one behind
+    /// them — in the nearest row outside that wall that <c>WX8</c> allows: the building's own edge plus
+    /// <see cref="RoomFrames.IronGap"/>, which on a default footprint is the piece's outer edge exactly. It
+    /// keeps clear of the <b>door corridor</b>, that opening projected out to the row, so nobody walks out
+    /// into it, and stands on the player's <b>right</b> as they leave, falling to their left where the piece
+    /// has no ground for a cube there.</summary>
     private static double[]? Iron(
-        BlockRect piece, BlockRect footprint, RoomEdge door, double markerX, double markerZ)
+        BlockRect piece, BlockRect footprint, IReadOnlyList<RoomEdge> doors, string facing,
+        double markerX, double markerZ)
     {
         var frame = RoomFrames.Resolve(piece, footprint, shellBound: true,
-            piece.MinX + markerX, piece.MinZ + markerZ, [], door, out _);
-        if (frame?.Doors is not [{ } opening, ..]) return null;
+            piece.MinX + markerX, piece.MinZ + markerZ, [], doors, out _);
+        if (frame is null || RoomEdges.Nearest(SpawnFacings.Direction(facing), doors) is not { } door) return null;
+        if (frame.Doors.FirstOrDefault(cut => cut.Edge == door) is not { Width: > 0 } opening) return null;
 
         var alongX = door.AlongX();
         var outward = door.Positive()
@@ -86,7 +96,7 @@ public static class PieceRoom
             var (cubeMinX, cubeMinZ) = alongX ? (aside, outward) : (outward, aside);
             double ironX = cubeMinX + RoomFrames.IronSpan / 2.0, ironZ = cubeMinZ + RoomFrames.IronSpan / 2.0;
             var seated = RoomFrames.ResolveRoom(piece, footprint, shellBound: true,
-                piece.MinX + markerX, piece.MinZ + markerZ, [], door, [(ironX, ironZ)], out _);
+                piece.MinX + markerX, piece.MinZ + markerZ, [], doors, [(ironX, ironZ)], out _);
             if (seated?.Iron is [{ Placeable: true }, ..]) return [ironX - piece.MinX, ironZ - piece.MinZ];
         }
         return null;

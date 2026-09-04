@@ -438,8 +438,8 @@ public sealed class PlanPlacements
 }
 
 /// <summary>A spawn on <see cref="Piece"/> at piece-relative block offset <see cref="At"/>, facing
-/// <see cref="Facing"/> — absolute board directions (<c>front</c>=−z, <c>back</c>=+z, <c>left</c>=−x,
-/// <c>right</c>=+x), fanned per orbit image. The offset
+/// <see cref="Facing"/> — one of <see cref="SpawnFacings"/>' eight absolute board directions, fanned per
+/// orbit image. The offset
 /// is in blocks on a half-block lattice (0.5 steps) so a marker can sit at a block centre; whole
 /// integers (the common case) round-trip verbatim.</summary>
 public sealed class SpawnPlacement : IPlanMarker
@@ -455,10 +455,14 @@ public sealed class SpawnPlacement : IPlanMarker
     /// is half-block, so a marker can sit on a block grid line or at a block centre.</summary>
     [JsonPropertyName("at")]     public double[] At { get; set; } = [0, 0];
 
-    /// <summary>Which way the player faces on arriving, in absolute board directions: <c>front</c> is −z,
-    /// <c>back</c> +z, <c>left</c> −x, <c>right</c> +x. It is fanned per orbit image, so the authored unit's
-    /// word is turned rather than repeated.</summary>
-    [JsonPropertyName("facing")] public string Facing { get; set; } = "front";
+    /// <summary>Which way the player faces on arriving, in absolute board directions: the four walls
+    /// (<c>front</c> is −z, <c>back</c> +z, <c>left</c> −x, <c>right</c> +x) and the four corners between them
+    /// (<c>front-left</c> … <c>back-right</c>). It is fanned per orbit image, so the authored unit's word is
+    /// turned rather than repeated, and it names a <b>direction only</b> — the hall's doors are cut where its
+    /// piece abuts more board, so a player standing in a corner hall can look at the corner between its two
+    /// exits.</summary>
+    [WordSet(typeof(SpawnFacings))]
+    [JsonPropertyName("facing")] public string Facing { get; set; } = SpawnFacings.Front;
 
     /// <summary>The building on the piece, as an <c>[x, z, w, h]</c> rect in blocks from the piece's minimum
     /// corner — the room the shell is stamped on, where the piece itself is only the region holding it.

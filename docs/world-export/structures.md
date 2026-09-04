@@ -45,8 +45,8 @@ reach. What stays here is the part a docstring has no room for: the negotiation 
 
 Every wool cage and spawn room is stamped from one resolved **`RoomFrame`**: the shell footprint,
 the interior, the pad, and the doors, derived by `RoomFrames.Resolve` from three authored inputs —
-the **region**, the **marker**, and the **entry interfaces** (a spawn substitutes its yaw-derived
-door edge). The world builder and the plan editor's structure preview consume the same frame
+the **region**, the **marker**, and the **entry interfaces** (a spawn substitutes the walls its piece
+meets the board on). The world builder and the plan editor's structure preview consume the same frame
 (`WorldBuilder.WoolFrame`/`SpawnRoom`), so the drawn box and the stamped shell cannot disagree —
 the OB8 discipline the destroyable/core boxes established.
 
@@ -58,7 +58,9 @@ building is the intent's other rect (`Footprint`, capped by `ST9`), the region i
 by `ST10`), and an intent that states no region at all falls back to the marker-anchored default
 frame, the one a 10×10 piece would resolve to. The wool room's fanned entry interfaces ride beside
 it (`WoolIntent.Entries` — terrain↔room land seams plus build-zone frontline edges, as degenerate
-rects on the region's boundary); a cage with none keeps a door per wall.
+rects on the region's boundary); a cage with none keeps a door per wall. A spawn's walls ride the same way
+(`SpawnIntent.Doors`, edge words in the order they were cut), so nothing downstream re-derives a door from a
+yaw — a hall opening on two walls faces the corner between them and its yaw names no wall at all.
 
 Two authoring facts frame the rules. The plan format is generic over scale: `PlanGlobals.Cell` is
 any blocks-per-cell value (default 5), so a room piece has no fixed block size and every minimum
@@ -75,7 +77,7 @@ rounding it away.
   blocks from the piece's minimum corner, which the editor writes when the piece is drawn
   (docs/tools/plan.md). Where it states none the piece is
   inset by **one block** on every side — the ring of clean floor a piece promises — and by up to **five** on
-  the side the door opens through, which is an iron cube plus the standing room it holds to the wall.
+  each side a door opens through, which is an iron cube plus the standing room it holds to the wall.
   A 20×20 spawn piece facing −z therefore opens as an **18×14** room with somewhere for its iron to stand,
   rather than as an 18×18 room the cube has to make the shell shrink for. A wool room takes the plain
   inset: its entries come from whichever sides abut it, so it has no one side to keep clear, and no iron.
@@ -142,8 +144,15 @@ marker is never freely placeable.
   zone** — players bridge in through the build region, so that interface carries a door and the ST1
   entrance redstone line exactly as a land seam does. Doors are never centred one per wall: a long
   room with four centred doors would open two of them into the bedrock ring. A room with **neither**
-  interface is genuinely unreachable and is refused at validation. The spawn cube keeps its single
-  yaw-derived door (the yaw already fans per orbit image).
+  interface is genuinely unreachable and is refused at validation.
+
+  **A spawn hall reads the same abutment and takes at most two of it.** Its doors are named as whole walls
+  rather than cut from a segment — the sides its piece meets more board on, widest opening first, capped at
+  `PieceDoors.SpawnMax` — so a corner spawn opens on both the ways out its team actually has and a piece
+  fenced in on three sides is still a hall rather than a crossroads. The tie between two equally wide walls
+  falls to the facing, so the door the player walks out of is `Doors[0]` — the one the chests, the monument
+  slots and the iron cube all read. A piece that meets nothing at all opens on the wall its facing leans
+  into, which is the one door it can still be given.
 
 - **WX7** *Door width follows the door wall — one rule for both kinds.* An **odd** interior wall
   centres an odd **3-wide** door — never 1-wide, and wider odd doors (5) are a later decision,
