@@ -304,9 +304,16 @@ disagree about which shapes a document holds, nor about what to call the layer h
 
 **A layer is a slab, and that is the whole of what makes stacking work.** One layer holds exactly one span per
 column — a `(Top, Floor)` pair — and where two adds contest a cell the taller replaces the shorter *outright,
-floor included*. So two shapes drawn over one another on a single layer do not stack: the lower one is simply
-not in the world, and the gate says so by name (`SK9`, below). A stack is a stack **of layers**, and `base_y`
-is what puts one span above another.
+floor included*; **at one height the deeper column wins**, so a deck drawn over the ground it crosses leaves
+that ground reaching whatever it reached before. So two shapes drawn over one another on a single layer do not
+stack: the lower one is simply not in the world, and the gate says so by name (`SK9`, below). A stack is a
+stack **of layers**, and `base_y` is what puts one span above another.
+
+Reading the floor on a tie is what makes the merge **commutative**, and that matters because a mirrored board
+does not merge its two halves in the same order: the authored half contests two authored shapes, the image
+half contests an image against ground already merged. Left to the list order the two faces of one seam came
+out differently — a viaduct and the island it lands on, both topping out at the same course, gave solid
+ground to bedrock on one face and a four-course deck over void on the other, cell by cell.
 
 The consequence is a drawing rule. **A roofed gallery is walls clamped around a tucked-in floor, on two
 layers** — four wall shapes leaving a channel, the floor shape claiming that channel, and the roof on the

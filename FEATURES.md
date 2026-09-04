@@ -5229,6 +5229,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shape's own top. It is a **shape** word about paint and says nothing about walking — `kind: "made"` is the
   *layer* word that takes a thing out of the walks and out of the ground everything rests on — so a stair
   tread, a rail, a stilt or a kerb states one and stays terrain a player is measured over.
+- **Two masses meeting at one height keep the deeper column (TS89).** A layer holds one span per cell and the
+  taller add wins it floor and all — but a strict `>` left a tie to whichever shape the merge saw first, and a
+  mirrored board does not merge its halves in the same order: the authored half contests two authored shapes,
+  the image half contests an image against ground already merged. On `opus5-lindenkreuz` the viaduct and the
+  island it lands on both top out at y20, and the two faces of that seam came out complementary — solid to
+  bedrock at `z = -11` where the image had a four-course deck over void at `z = 10`, cell by cell, 19 columns
+  of it. Reading the floor on a tie makes the merge commutative, so the answer is the board's rather than the
+  list's, and a deck drawn over ground leaves that ground reaching what it reached before.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

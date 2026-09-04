@@ -1079,10 +1079,21 @@ public static class SketchRasterizer
         return result;
     }
 
-    // Taller surface wins where add shapes overlap (carrying that surface's floor).
+    // Taller surface wins where add shapes overlap (carrying that surface's floor), and at one height the
+    // DEEPER column wins. Two masses meeting at the same top is the ordinary case — a deck drawn over the
+    // ground it crosses, a pad laid on the plateau it sits on — and a strict `>` leaves it to whichever shape
+    // the merge happened to see first, which is not the same shape on the two halves of a mirrored board: the
+    // primary half compares an authored shape against another authored shape, the mirrored half compares an
+    // image against what is already there. Lindenkreuz's viaduct and the island it lands on both top out at
+    // y20, and the seam came out solid to bedrock on one face and a four-course deck over void on the other,
+    // cell by cell. Reading the floor makes the merge commutative, so the answer is the board's and not the
+    // list's.
     private static void MergeCell(Dictionary<(int, int), (int Top, int Floor)> d, (int, int) k, (int Top, int Floor) v)
     {
-        if (d.TryGetValue(k, out var ex)) { if (v.Top > ex.Top) d[k] = v; }
+        if (d.TryGetValue(k, out var ex))
+        {
+            if (v.Top > ex.Top || (v.Top == ex.Top && v.Floor < ex.Floor)) d[k] = v;
+        }
         else d[k] = v;
     }
 

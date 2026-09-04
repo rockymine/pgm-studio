@@ -27,6 +27,44 @@ public sealed class SketchRasterizerTests
         await Assert.That(cells.Contains((4, 4))).IsFalse();
     }
 
+    /// <summary><b>Two masses meeting at one height keep the deeper column.</b> A deck drawn over the ground
+    /// it crosses tops out where that ground does, and which of the two the cell takes its floor from decided
+    /// whether the column reached bedrock or hung over void. Read off the list order it was not the same
+    /// answer on the two halves of a mirrored board — the primary half compares two authored shapes, the
+    /// mirrored half compares an image against what is already there — so a seam came out solid on one face
+    /// and a deck over void on the other. The merge reads the floor, which makes it commutative.</summary>
+    [Test]
+    public async Task A_deck_and_the_ground_it_crosses_at_one_height_mirror_alike()
+    {
+        // Lindenkreuz's seam in miniature: an island drawn on the -z half from bedrock to y20, and a viaduct
+        // deck spanning the middle at the same top over a floor of 16. Where they overlap the column is the
+        // island's — and the same on the image, which is the whole point.
+        var columns = SketchRasterizer.RasterizeColumns("""
+        {"setup":{"mirror_mode":"rot_180","center":{"cx":0,"cz":0}},
+         "layers":[{"id":"ground","base_y":0,"layout":{"shapes":[
+           {"id":"island","type":"rectangle","operation":"add","min_x":-6,"max_x":6,"min_z":-6,"max_z":-1,
+            "floor":0,"base_height":20},
+           {"id":"deck","type":"rectangle","operation":"add","min_x":-2,"max_x":2,"min_z":-2,"max_z":2,
+            "floor":16,"base_height":4}],
+          "groups":[{"id":"g","name":"G","mirrors":true,"shapeIds":["island","deck"]}]}}]}
+        """);
+
+        var floorAt = new Dictionary<(int X, int Z), int>();
+        foreach (var segment in columns)
+            floorAt[(segment.X, segment.Z)] = Math.Min(floorAt.GetValueOrDefault((segment.X, segment.Z), int.MaxValue),
+                                                       segment.YFloor);
+
+        // The seam row the island and the deck share, and its rot_180 image.
+        foreach (var x in (int[])[-2, -1, 0, 1, 2])
+        {
+            await Assert.That(floorAt[(x, -2)]).IsEqualTo(0).Because($"the island reaches bedrock at ({x}, -2)");
+            await Assert.That(floorAt[(-1 - x, 1)]).IsEqualTo(0).Because($"and at its image ({-1 - x}, 1)");
+        }
+
+        // Away from the island the deck is still a deck: a floor of 16 over void.
+        await Assert.That(floorAt[(0, 0)]).IsEqualTo(16);
+    }
+
     [Test]
     public async Task An_override_add_standing_in_ground_keeps_the_ground_under_its_floor()
     {
