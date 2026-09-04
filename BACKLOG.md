@@ -269,6 +269,27 @@ what is gathered here is the parked and dormant slices of the same surface.
 
 ### Polyline and stroke
 
+- [ ] **TS88 — 54 finish keys across 12 specs still name a shape no compile produces.** `TS82` renamed the
+  compiler's minted ids and 143 keys were re-keyed from each spec's own committed layout, which pairs the
+  compiled shapes positionally and exactly (`FEATURES.md`). Twelve specs did not pair and were left alone
+  rather than guessed at: `haiku-wharf`, `opus5-sandcaster` and `opus5-hollowmarch` have layouts whose shapes
+  no longer line up with their plan at all, `firnline` and `sunspit` carry no layout to map by, and
+  `opus5-cairnmeadow`, `opus5-elderwold`, `opus5-hoarstone`, `opus5-sandcaster-ii`, `opus5-slipway`,
+  `sonnet-compass` and `haiku-chancel` pair some and not others. Re-key each by hand from the run's own line —
+  `drive.py` prints the key, and the ids the compile emitted beside it. The work is in `pgm-studio-mapgen`.
+
+  *`opus5-slipway`'s `s2` is `(0, 16, 114, 56)` in its layout and the compile's `back-band-22` is
+  `(0, 16, 100, 56)`: 14 blocks wider than any bend accounts for, so the plan moved under the layout.*
+
+- [ ] **TN20 — 74 of 85 specs carry a version 1 plan and cannot be compiled.** `PL15` refuses them: *this
+  plan states version 1; this build reads version 2 — marker offsets are blocks from the piece corner, and
+  version 1 stated them in cells*. So most of `specs/` cannot be driven at all, and a board there is a record
+  of a world rather than a thing that rebuilds. The migration is mechanical — a placement's `at` is multiplied
+  by `globals.cell` and the version bumped — but it moves every marker on 74 boards, so it wants the author's
+  word before it is run rather than after. The work is in `pgm-studio-mapgen`.
+
+  *`opus5-siderite-bowl` compiles 422 on `PL15` today; `specs/*/​*.plan.json` states `"plan": 1` in 74 of 85.*
+
 - [ ] **TS87 — A vertex edit cannot be restated in a spec, so a reshaped board is a one-off.** The three
   per-vertex routes are what reshapes a compiled rectangle into ground (`TS84`, `FEATURES.md`), and
   `finish.json` has no key for them: a spec with a finish is compiled from its plan every run, so an outline

@@ -6872,6 +6872,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **The specs were re-keyed onto the ids `TS82` minted (`TS82`).** Renaming a compiled shape's id left every
+  `themeById` and `shapePropsById` key in `pgm-studio-mapgen` naming nothing: **16 of 210 keys still named a
+  shape**, so twenty boards re-drove with their per-shape themes and shape props silently absent. The bridge
+  is each spec's own committed layout — the drive's output from its last run under the old ids — whose
+  compiled ground shapes are the same shapes in the same order a fresh compile names differently, so the two
+  pair positionally and the pairing is *asserted* rather than assumed: every pair's bounding box must agree,
+  within a bent shape's own stated wander and exactly otherwise. 143 keys across 17 specs re-keyed, taking the
+  corpus to **156 of 210 live**; the twelve specs that did not pair were left alone and are `TS88`.
 - **A write reads the document; a read walks the ground (`TS86`).** Seven of the sketch rules — `SK9`,
   `SK10`, `SK11`, `SK13`–`SK16` — are answered off the rasterized spans rather than off the JSON, so
   `SketchLayoutCheck.Check` ran a whole-board rasterize on every partial write: a shape, a vertex, a layer, a
