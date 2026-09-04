@@ -539,8 +539,19 @@ existing contract rather than new debt.
 **`repairable` is parsed, stored and written**, defaulting to PGM's own `true` so an imported map reads as the
 map it is. What the studio *authors* is the other question and the other answer: a generated destroyable is
 written `repairable="false"` (`ObjectiveDefaults.Repairable`, the author's ruling), because a monument rebuilt
-as fast as it is broken is not a goal. Only one corpus map states it — `alpine_mining_ii`, which states it
-alongside `mode-changes="true"` — the rest leave the ladder to do the work.
+as fast as it is broken is not a goal. Only one corpus map states it — `alpine_mining_ii`.
+
+**But the corpus's own answer to repair is `<item-remove>`, not `repairable`**, and it is near-unanimous: 309
+of the 313 DTM/DTC maps carry one, **202 list obsidian**, and 190 list every material their objectives ever
+are. `ItemDestroyMatchModule` cancels the `ItemSpawnEvent`, so a matched block never becomes an item anyone
+can pick up — which is upstream of both repair rules and is the **only** lever that reaches a core, since a
+core has no `repairable` and a block placed back into its casing passes every check `CoreMatchModule` makes.
+
+It has to name the **ladder** as well as the starting block: an objective that becomes a gold block at 15m and
+glass at 20m drops those from then on. `alpine_mining_ii` removes obsidian, beacon and coal block — its start
+material and both of its rungs — and states `repairable="false"` besides. A generated map now writes the same
+list, derived from its own objectives and its own modes (`CtwStandards.ObjectiveDrops`), so the three cannot
+drift apart.
 
 **`completion` is the exception — it is parsed, stored and written**, defaulting to `1.0`. It is semantically
 load-bearing (it changes when the goal completes) and far more common than a raw grep suggests. It is also a

@@ -5325,8 +5325,11 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   A generated map now carries the corpus's modal ladder — gold block at 15m, glass at 20m, measured over the
   314 DTM/DTC maps of the two corpora — plus `mode-changes="true"` on every goal, which is the half that makes
   a ladder do anything (PGM affects an objective by no mode unless it says so), plus `repairable="false"` on
-  every destroyable. `OB26` names a destroy map missing either half; `repairable` now round-trips, defaulting
-  to PGM's `true` so an imported map still reads as the map it is.
+  every destroyable — and, the corpus's own answer and the only lever that reaches a core, **every material an
+  objective ever is goes into `<item-remove>`**: the block it starts as and every rung of its ladder, so the
+  drop never becomes an item anyone can pick up (309 of the 313 corpus maps carry one, 202 list obsidian, 190
+  list the whole ladder). `OB26` names a destroy map missing either half of the ladder; `repairable` now
+  round-trips, defaulting to PGM's `true` so an imported map still reads as the map it is.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

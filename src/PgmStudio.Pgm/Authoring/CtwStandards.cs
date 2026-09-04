@@ -101,7 +101,44 @@ public static class CtwStandards
             var drops = surfaceBlockIds.Where(SurfaceDrops.ContainsKey).SelectMany(id => SurfaceDrops[id]);
             m.ItemRemove = m.ItemRemove.Concat(drops).Distinct().ToList();
         }
+        m.ItemRemove = m.ItemRemove.Concat(ObjectiveDrops(m)).Distinct().ToList();
         if (!m.Includes.Contains(KillRewardInclude)) m.Includes.Insert(0, KillRewardInclude);
         m.HungerDepletion = "off";
+    }
+
+    /// <summary>Every material a destroy objective <b>ever is</b> — what each monument and core starts as, and
+    /// what every rung of the mode ladder turns it into — so none of it survives being broken as an item.
+    ///
+    /// <para><b>This is what stops a monument being rebuilt, and it is the only thing that can stop a core
+    /// being plugged.</b> Breaking obsidian with the diamond pick a destroy kit hands out drops obsidian, and
+    /// PGM lets the owning team place it back (<c>repairable</c> defaults true); a core has no
+    /// <c>repairable</c> at all, and a block put back into its casing passes every check PGM makes. Cancelling
+    /// the item at its spawn is upstream of both: the block never becomes something anyone can pick up.</para>
+    ///
+    /// <para>The corpus is near-unanimous. 309 of the 313 DTM/DTC maps in <c>CommunityMaps</c> and
+    /// <c>PublicMaps</c> carry an <c>&lt;item-remove&gt;</c>, 202 of them list obsidian, and 190 list every
+    /// material their objectives ever are — the ladder's included, which is why this reads the modes and not
+    /// just the starting block. <c>alpine_mining_ii</c> removes obsidian, beacon and coal block and states
+    /// <c>repairable="false"</c> besides.</para></summary>
+    private static IEnumerable<string> ObjectiveDrops(MapXml m)
+    {
+        foreach (var destroyable in m.Destroyables)
+            foreach (var material in destroyable.Materials.Split([';', ','], StringSplitOptions.RemoveEmptyEntries))
+                if (Named(material) is { } name) yield return name;
+
+        // A core states no material when it is obsidian, which is what CoreModule falls back to.
+        foreach (var core in m.Cores)
+            yield return Named(core.Material) ?? "obsidian";
+
+        foreach (var mode in m.Modes)
+            if (Named(mode.Material) is { } name) yield return name;
+    }
+
+    /// <summary>A match pattern as the item name it removes: the block, without the data nibble a
+    /// <c>&lt;item&gt;</c> does not need to name a dropped stack. Empty and whitespace answer null.</summary>
+    private static string? Named(string material)
+    {
+        var name = material.Split(':')[0].Trim();
+        return name.Length > 0 ? name : null;
     }
 }

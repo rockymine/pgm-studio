@@ -177,4 +177,60 @@ public sealed class CtwStandardsTests
         var reparsed = Serializer.ToDict(MapParser.ParseXmlString(xml));
         await Assert.That(((List<object?>)reparsed["kits"]!).Count).IsEqualTo(1);
     }
+
+    // ── what a destroy objective drops (PG4) ─────────────────────────────────────────────────────────
+
+    /// <summary><b>The obsidian an attacker's pick drops is what the defending team rebuilds with.</b> PGM
+    /// lets the owner repair a destroyable unless the map says otherwise, and a core cannot say otherwise at
+    /// all — it has no `repairable`, and a block put back into its casing passes every check. Cancelling the
+    /// item where it spawns is upstream of both, and it is what 202 of the 313 corpus DTM/DTC maps do.
+    /// <para>The ladder counts too: an objective that becomes a gold block and then glass drops those, so all
+    /// three are removed. `alpine_mining_ii` removes obsidian, beacon and coal block for exactly this
+    /// reason.</para></summary>
+    [Test]
+    public async Task Every_material_an_objective_ever_is_is_removed_as_a_drop()
+    {
+        var m = MapWithKit();
+        m.Destroyables = [new Destroyable { Id = "d", Name = "Monument", Owner = "red", Materials = "obsidian" }];
+        m.Cores = [new Core { Id = "c", Owner = "blue" }];          // no material stated: obsidian
+        m.Modes =
+        [
+            new ObjectiveMode { Id = "mode-gold-block", After = "15m", Material = "gold block" },
+            new ObjectiveMode { Id = "mode-glass", After = "20m", Material = "glass" },
+        ];
+
+        CtwStandards.Apply(m);
+
+        await Assert.That(m.ItemRemove).Contains("obsidian");        // what both objectives start as
+        await Assert.That(m.ItemRemove).Contains("gold block");      // and what the ladder turns them into
+        await Assert.That(m.ItemRemove).Contains("glass");
+        await Assert.That(m.ItemRemove).Contains("leather helmet");  // the armour is still there
+        await Assert.That(m.ItemRemove.Count).IsEqualTo(m.ItemRemove.Distinct().Count());
+    }
+
+    /// <summary>A material is named without its data nibble, because an <c>&lt;item&gt;</c> removes a dropped
+    /// stack and a stack does not carry the pattern the objective matched on.</summary>
+    [Test]
+    public async Task A_materials_data_nibble_is_not_carried_into_the_drop()
+    {
+        var m = MapWithKit();
+        m.Destroyables = [new Destroyable { Id = "d", Name = "M", Owner = "red", Materials = "stained clay:4" }];
+
+        CtwStandards.Apply(m);
+
+        await Assert.That(m.ItemRemove).Contains("stained clay");
+        await Assert.That(m.ItemRemove).DoesNotContain("stained clay:4");
+    }
+
+    /// <summary>And a map with nothing to break removes nothing extra. A wool is carried rather than broken,
+    /// so a CTW map's obsidian — if it has any — is terrain like any other.</summary>
+    [Test]
+    public async Task A_map_with_no_destroy_objective_removes_no_objective_drop()
+    {
+        var m = MapWithKit();
+
+        CtwStandards.Apply(m);
+
+        await Assert.That(m.ItemRemove).DoesNotContain("obsidian");
+    }
 }
