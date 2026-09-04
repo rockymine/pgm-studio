@@ -787,6 +787,12 @@ public static class HouseStamper
         }
     }
 
+    /// <summary>The least a porch may leave the walls to stand on, across the wall the deck is taken off: two
+    /// walls and two blocks of inside. The author's number, and the same one <c>DR-SIZE</c> holds a whole
+    /// footprint to at 5 — a porch taken out of a 5-block span leaves a house, and one taken out of a 4-block
+    /// span leaves a wall with a roof over it. Below three there is no inside at all.</summary>
+    public const int LeastBodyAcross = 4;
+
     /// <summary>Where a ladder stands: against the <b>door wall</b>, one cell along from an interior corner.
     ///
     /// <para>The door wall rather than any wall, because that is the least contested cell in a room. A wool
@@ -826,8 +832,8 @@ public static class HouseStamper
 
     /// <summary>The footprint split into what the walls keep and what the porch takes, or the whole of it and
     /// no deck. <b>The porch is the part that gives way</b>: it is trimmed to whatever the room can spare
-    /// beyond the three blocks that hold two walls and an inside, and where the room can spare nothing there
-    /// is no porch. A style asked for a building and a porch, and half a building is neither.</summary>
+    /// beyond <see cref="LeastBodyAcross"/>, and where the room can spare nothing there is no porch. A style
+    /// asked for a building and a porch, and half a building is neither.</summary>
     private static (BuildingPlan Body, BuildingPlan? Deck) SplitPorch(BuildingPlan ground, PorchStyle? porch, RoomEdge front)
     {
         if (porch is null || porch.Depth <= 0) return (ground, null);
@@ -835,7 +841,7 @@ public static class HouseStamper
         // cells out of a shape rather than moving one side of a rectangle in.
         if (ground.Wings.Count > 1) return (ground, null);
         var across = front.AlongX() ? ground.Depth : ground.Width;
-        var depth = Math.Min(porch.Depth, across - 3);
+        var depth = Math.Min(porch.Depth, across - LeastBodyAcross);
         if (depth <= 0) return (ground, null);
 
         var inset = Math.Max(0, porch.Inset);

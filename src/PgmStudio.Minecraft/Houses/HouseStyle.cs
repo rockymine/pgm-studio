@@ -668,6 +668,32 @@ public static class HouseHeights
         return WritesOverTheWall(style) ? peak : style.HighestWallCourse;
     }
 
+    /// <summary>How many courses a porch's canopy climbs, from the lowest course it writes to the highest, or
+    /// nought for a style with no porch.
+    ///
+    /// <para>It is the deck's roof read as the roof it is — the same <see cref="RoofField"/> the stamper
+    /// seats, over the strip the walls gave up, falling toward the wall the deck was taken off. The rise is
+    /// measured over what the canopy <b>writes</b> rather than over the whole field: the house roofs its own
+    /// footprint, so the overhang on the body's side is skipped and the canopy's highest written course is the
+    /// first cell outside the walls. Counting the whole field would reserve a course the canopy never
+    /// stands.</para></summary>
+    public static int PorchCanopyRise(this HouseStyle style)
+    {
+        if (style.Porch is not { Depth: > 0 } porch) return 0;
+        var overhang = Math.Max(0, style.Roof.Overhang);
+        var depth = Math.Max(1, porch.Depth);
+        // The deck lies at z 0..depth-1 with the body beyond it; the field adds the overhang on both sides,
+        // and the outward one is the only one written.
+        var field = new RoofField(porch.Roof, 0, 0, LongEnough, depth - 1, overhang, 0,
+                                  Math.Max(1, style.Roof.Pitch), RoomEdge.NegZ, style.Roof.InHalves);
+        var written = Enumerable.Range(-overhang, depth + overhang).Select(z => field.Crown(0, z)).ToList();
+        return written.Max() - written.Min();
+    }
+
+    /// <summary>A span the canopy's rise is never measured over: a form's rise follows the <em>shorter</em> of
+    /// the two, which for a deck is its depth, so the other only has to be longer than any porch is deep.</summary>
+    private const int LongEnough = 64;
+
     /// <summary>Whether anything at all is laid above the wall top: the roof's own two materials, and — under
     /// a sloped roof, which leaves a triangle of wall to close — the gable face, which is the style's own
     /// where it names one and the top storey's last course carried up where it does not. All three air is a

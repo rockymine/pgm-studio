@@ -53,6 +53,13 @@ public static class ObserverPlatformStamper
         return highest == int.MinValue ? wantedY : highest + 1;
     }
 
+    /// <summary>Stamps the platform and its four boards at <paramref name="anchorX"/>/<paramref name="anchorZ"/>,
+    /// floor course at <paramref name="floorY"/>, named <paramref name="mapName"/>.</summary>
+    /// <param name="world">The world the platform is written into.</param>
+    /// <param name="anchorX">The integer corner the 6×6 is anchored on, X.</param>
+    /// <param name="anchorZ">The same corner's Z.</param>
+    /// <param name="floorY">The bedrock floor course; the observer stands one above it.</param>
+    /// <param name="mapName">What the boards call the map.</param>
     /// <param name="gamemodes">What the map is played as, in the order the map declares them — the same set
     /// the <c>&lt;gamemode&gt;</c> element carries, since both are read off the objectives. Two or three are
     /// written as one label (<c>[CTW/DTM]</c>), because a map that carries a wool and a monument is played as

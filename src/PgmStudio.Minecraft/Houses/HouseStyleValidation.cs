@@ -67,6 +67,20 @@ public static class HouseStyleRules
     /// <remarks>Drop the footing, or give the plate the depth that earns one: two or three courses, which is the foundation a footing is the foot of. It is a complaint rather than a refusal because the building stands either way — what it costs is how the building looks.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.World)]
     public const string ShallowFooting = "HS7";
+
+    /// <summary>A porch whose canopy climbs past the wall it is attached to. A canopy is seated by its own
+    /// <em>lowest</em> course clearing the doorway it fronts — which is what keeps the way out of that door
+    /// walkable, and is the reason it is not seated under the eave, where on a tower it would ride the wall up
+    /// and leave a colonnade open to the sky — and its ridge then follows by however far the form happens to
+    /// rise. On a low building that puts the ridge over the eave, and a canopy standing above the roof it is
+    /// attached to reads as two buildings.
+    ///
+    /// <para>Read off the style alone: wall courses, doorway height, porch depth, roof form and pitch. A
+    /// complaint rather than a refusal — the porch is built either way, and the four numbers that fix it are
+    /// all the author's.</para></summary>
+    /// <remarks>Give the building the courses its porch needs, or take the porch off it. A canopy wants the doorway's height, two courses of clearance over it, and its own rise — which is the porch's depth and overhang at the roof's pitch — so a shallower porch, a flatter porch roof or a shorter door all buy what a taller wall buys.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Style, RuleConcern.Structure)]
+    public const string PorchHeadroom = "HS8";
 }
 
 /// <summary>
@@ -104,8 +118,32 @@ public static class HouseStyleValidation
         CheckOres(style, findings);
         CheckDoorHasWall(style, findings);
         CheckFooting(style.Foundation, findings);
+        CheckPorchHeadroom(style, findings);
         return findings;
     }
+
+    /// <summary>HS8 — a porch whose canopy climbs past the wall it is attached to. The canopy is seated by its
+    /// own lowest course clearing the doorway (which is what keeps the way out of the door walkable), and its
+    /// ridge then follows by the form's own rise; a wall shorter than the doorway plus that clearance plus
+    /// that rise is a wall the canopy tops out above.</summary>
+    private static void CheckPorchHeadroom(HouseStyle style, List<Finding> findings)
+    {
+        if (style.Porch is not { Depth: > 0 } porch) return;
+        var rise = style.PorchCanopyRise();
+        var needed = style.Doorway.Height + PorchClearance + rise;
+        if (style.WallCourses >= needed) return;
+
+        findings.Add(new Finding(HouseStyleRules.PorchHeadroom,
+            $"the porch fronts a {style.Doorway.Height}-course doorway and its {porch.Depth}-deep canopy "
+            + $"climbs {rise} course(s) over it, so it tops out {needed - style.WallCourses} course(s) above a "
+            + $"wall of {style.WallCourses}. Shorten the porch, flatten its roof, lower the door, or raise the "
+            + "wall.",
+            Severity.Complaint, Field: "porch"));
+    }
+
+    /// <summary>The air between a doorway's top course and the canopy over it, in courses — what the stamper
+    /// seats a canopy by, and therefore what a wall has to reach for the canopy to stand under its eave.</summary>
+    private const int PorchClearance = 2;
 
     // ── a block named for a geometric role, never checked to be that kind of block ────────────────────────
 

@@ -595,8 +595,13 @@ footprint; the walls stand `Depth` blocks back from one wall of it; and the stri
 carrying posts, a rail and its own canopy. `Inset` pulls the deck in from each end of that wall, which makes
 the porch a feature of the front rather than the front itself.
 
-**The porch is the part that gives way.** It is trimmed to whatever the room can spare beyond the three blocks
-that hold two walls and an inside, and where the room can spare nothing there is no porch at all.
+**The porch is the part that gives way.** It is trimmed to whatever the room can spare beyond
+`HouseStamper.LeastBodyAcross` — **four** blocks, two walls and two blocks of inside — and where the room can
+spare nothing there is no porch at all. Four rather than three, because three is a wall, one block of inside
+and a wall, which is a building nobody enters: `opus5-mootgate`'s market stalls are 5×5 with a two-deep porch,
+and at three they came out with an interior one block deep. It is `DR-SIZE`'s number seen from the other side —
+that rule holds a whole footprint to five and this holds what a porch leaves of one to four, so a porch cannot
+take a building under the floor its own footprint had to clear.
 
 Two details make it a porch rather than a hole in a wall. The doorway is **carried onto the wall's new line**,
 so a frame's entry contract survives the wall moving; and the rail **breaks exactly where that doorway crosses
@@ -612,6 +617,16 @@ a five-course wall puts its eave about where a porch wants its roof anyway. On a
 is a `RoomPart` extent and its last course repeats, so a building twenty-four courses tall is an ordinary
 style, and a canopy chasing that eave rides the wall the whole way up — a colonnade of posts with a roof at the
 top and the doorway it fronts left open to the sky twenty courses below.
+
+**What it costs is at the other end, and it is named rather than fixed.** On a building too short for both, the
+canopy clears the door and its ridge then stands *above* the eave of the house it is attached to, which reads
+as two buildings — `opus5-mootgate`'s stall again, a three-course wall under a canopy topping out one course
+over the house's own ridge. `HS8` says so off the style alone: a porch wants the doorway's height, two courses
+of clearance over it and its own rise, and the rise is the depth and overhang the canopy actually writes at
+the roof's pitch — the body roofs its own footprint, so the overhang on that side is never laid and counting it
+would reserve a course the canopy never stands. It is a complaint, because the four numbers that buy those
+courses — wall, door, depth, pitch — are all the author's, and seating the canopy anywhere else would cost the
+walk out of the door.
 
 ### 7.4 Windows are cut, and chosen as a block
 

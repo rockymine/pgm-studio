@@ -5263,6 +5263,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   same table that answers what a block is cut from, so nothing has to be stated twice; a verge whose material
   has no slab — a laid log — keeps the body's, since a gap in the rake is worse than one course of the wrong
   wood.
+- **A porch may not take a building under the size its own footprint had to clear (WE88).** The split reserved
+  three blocks — two walls and one course of inside — so `opus5-mootgate`'s 5×5 market stalls, which clear
+  `DR-SIZE` at five, came out as a wall, a one-block interior and a wall with a deck in front: a building
+  nobody enters, and silently, because `DR-SIZE` measures the footprint *before* the porch takes its strip.
+  The floor is now `LeastBodyAcross` = 4, which is that same rule seen from the other side. And a porch whose
+  canopy climbs past the wall it is attached to is `HS8`, a complaint off the style alone — the canopy is
+  seated clear of its doorway (which is what keeps the way out walkable, and why it is not seated under the
+  eave, where on a tower it would ride the wall up), so on a three-course wall its ridge tops out over the
+  house's own roof and reads as two buildings.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

@@ -444,4 +444,49 @@ public sealed class HouseStyleValidationTests
         await Assert.That(BlockFamilies.IsSoil(3)).IsTrue();     // Dirt / Podzol
         await Assert.That(BlockFamilies.IsSoil(Blocks.Cobblestone)).IsFalse();
     }
+
+    // ── a porch the wall it is attached to cannot carry (HS8) ─────────────────────────────────────────
+
+    private static HouseStyle Porched(int wallCourses, int porchDepth, int doorHeight) => new()
+    {
+        Wall = RoomPart.Of(new SolidMaterial(Blocks.Cobblestone), wallCourses),
+        Storeys = [new Storey { Clear = wallCourses }],
+        Roof = new RoofStyle { Form = RoofForm.Shed, Pitch = 1, Overhang = 1 },
+        Porch = new PorchStyle { Depth = porchDepth, Roof = RoofForm.Shed },
+        Doorway = new Doorway { Width = 2, Height = doorHeight },
+    };
+
+    /// <summary>The corpus fault: `opus5-mootgate`'s market stall — a three-course wall, a three-course door
+    /// and a two-deep porch. The canopy is seated clear of the door and its ridge follows the form up, so it
+    /// tops out above the eave of the house it is attached to and reads as a second building.</summary>
+    [Test]
+    public async Task A_canopy_that_climbs_past_its_own_wall_is_HS8()
+    {
+        var findings = HouseStyleValidation.Check(Porched(wallCourses: 3, porchDepth: 2, doorHeight: 3));
+
+        var porch = findings.Single(finding => finding.Rule == HouseStyleRules.PorchHeadroom);
+        await Assert.That(porch.Severity).IsEqualTo(Severity.Complaint);   // the porch is built either way
+        await Assert.That(porch.Field).IsEqualTo("porch");
+        await Assert.That(porch.Message).Contains("4 course(s) above");    // 3 + 2 + 2 wanted against 3
+    }
+
+    /// <summary>And a wall with the courses for it says nothing. The three numbers that buy them are all the
+    /// author's, so each is proved to buy what the rule claims.</summary>
+    [Test]
+    [Arguments(7, 2, 3)]     // the wall raised to what the canopy wants
+    [Arguments(6, 1, 3)]     // a shallower porch: one course of rise instead of two, so one course less wall
+    [Arguments(5, 2, 1)]     // a lower door: two courses off the door is two courses off the wall
+    public async Task A_wall_with_the_courses_its_porch_needs_says_nothing(int wall, int depth, int door)
+    {
+        var findings = HouseStyleValidation.Check(Porched(wall, depth, door));
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PorchHeadroom)).IsFalse();
+    }
+
+    /// <summary>A style with no porch is never asked.</summary>
+    [Test]
+    public async Task A_style_with_no_porch_is_not_HS8()
+    {
+        var findings = HouseStyleValidation.Check(Porched(3, 2, 3) with { Porch = null });
+        await Assert.That(findings.Any(finding => finding.Rule == HouseStyleRules.PorchHeadroom)).IsFalse();
+    }
 }

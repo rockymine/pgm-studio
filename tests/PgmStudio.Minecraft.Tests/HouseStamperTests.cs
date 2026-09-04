@@ -521,13 +521,21 @@ public sealed class HouseStamperTests
         await Assert.That(world.GetBlock(6, FloorY + 1, 0).Id).IsEqualTo(Blocks.Air);
     }
 
+    /// <summary>A style asked for a building and a porch; half a building is neither, so the porch is trimmed
+    /// to what the room can spare — and where the room can spare nothing, there is no porch. What it may spare
+    /// down to is <see cref="HouseStamper.LeastBodyAcross"/>: two walls and two blocks of inside, which is the
+    /// same floor `DR-SIZE` holds a whole footprint to. Left at three the porch could take a 5×5 house down to
+    /// a wall, an inside one block deep, and a wall — a building nobody enters.</summary>
     [Test]
     public async Task A_porch_gives_way_to_the_room_behind_it_rather_than_the_other_way_round()
     {
-        // A style asked for a building and a porch; half a building is neither, so the porch is trimmed to
-        // what the room can spare — and where the room can spare nothing, there is no porch.
+        // 11 wide, 9 deep, porch on the -z wall: the deck is trimmed to 5 and the walls keep 4 — z 5 and z 8
+        // are the two walls, z 6 and z 7 the inside between them.
         var deep = House(11, 9, new HouseStyle { Porch = new PorchStyle { Depth = 8 } });
-        await Assert.That(deep.GetBlock(1, FloorY + 3, 6).Id).IsNotEqualTo(Blocks.Air);    // walls kept 3 blocks
+        await Assert.That(deep.GetBlock(1, FloorY + 3, 5).Id).IsNotEqualTo(Blocks.Air);    // the front wall
+        await Assert.That(deep.GetBlock(1, FloorY + 3, 8).Id).IsNotEqualTo(Blocks.Air);    // and the back one
+        await Assert.That(deep.GetBlock(1, FloorY + 3, 6).Id).IsEqualTo(Blocks.Air);       // two blocks of inside
+        await Assert.That(deep.GetBlock(1, FloorY + 3, 7).Id).IsEqualTo(Blocks.Air);
 
         var narrow = House(9, 3, new HouseStyle
         {

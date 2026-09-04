@@ -220,6 +220,11 @@ And the building rules, which the dressing document and the room library are bot
 | `HS1` | a block named for a geometric role is not that kind of block |
 | `HS2` | a doorway does not clear the least height a door may |
 | `HS3` | a roof's materials are wrong for its pitch or its family |
+| `HS4` | a part built of two blocks is built of two materials |
+| `HS5` | an ore is used as a building material |
+| `HS6` | a door is cut through a wall that is not there |
+| `HS7` | a footing rings a plate one course deep — a complaint |
+| `HS8` | a porch's canopy climbs past the wall it is attached to — a complaint |
 
 ## How a gate is called
 
