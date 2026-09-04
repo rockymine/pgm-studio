@@ -218,14 +218,7 @@ public partial class SketchReliefInspector
     private Task SetGrainScale(double value) => SetGrain(GrainFields.Scale, JsonValue.Create((int)Math.Max(1, value)));
     private Task SetGrainSeed(double value) => SetGrain(GrainFields.Seed, JsonValue.Create((int)Math.Max(0, value)));
 
-    // ── what the step strands, and what the ground is meant to be ──────────────
-    /// <summary>Whether the block step's stair repair is asked for. Worth asking for whenever the step is
-    /// more than one, since that is the setting that turns a riser into a wall.</summary>
-    private bool HasStairs => relief?[ReliefFields.Stairs] is { } node && bool.TryParse(node.ToString(), out var on) && on;
-
-    private Task ToggleStairs(ChangeEventArgs e)
-        => SetRelief(ReliefFields.Stairs, JsonValue.Create(e.Value is true));
-
+    // ── what the ground is meant to be ─────────────────────────────────────────
     /// <summary>The word the group states about what kind of ground it is meant to be, or empty for one
     /// stating none. It shapes nothing — the readback measures the solved surface against it.</summary>
     private string Landform => relief?[ReliefFields.Landform]?.ToString() ?? "";
@@ -356,7 +349,6 @@ public static class ReliefFields
     public const string Base = "base";
     public const string Reach = "reach";
     public const string Step = "step";
-    public const string Stairs = "stairs";
     public const string Landform = "landform";
     public const string Grain = "grain";
     public const string Marks = "marks";

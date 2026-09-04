@@ -654,8 +654,8 @@ group's shapes the solve actually covers is not stated here but on the shapes th
 The group's own settings are what every mark is measured against: `base` (the level the field falls back to
 where nothing is stated), `reach` (how far a mark's influence travels before the field returns to `base` —
 zero is unlimited, and a finite value is what keeps a landform local on a large group), `step` (the
-block quantum the finished surface snaps to), `stairs` (cut a way up out of ground the step stranded — offered
-whenever the step is more than one, since that is what turns a riser into a wall), `landform` (what kind of
+block quantum the finished surface snaps to — a step of two is the one setting here that can break a map, and
+there is deliberately nothing that repairs it), `landform` (what kind of
 ground this is meant to be — one of `plain`, `rolling`, `hills`, `mountain` — which the readback measures
 the solved surface against) and `grain` (a wobble applied after the solve: amplitude, feature scale, seed).
 A word outside those four is a `SK3` complaint on the stored document: `RL1` judges a group only against a
@@ -695,7 +695,7 @@ all six, and solves to a surface running 7 to 16:
 ```json
 { "relief": {
   "i1": {
-    "base": 9, "reach": 14, "step": 1, "stairs": true, "landform": "rolling",
+    "base": 9, "reach": 14, "step": 1, "landform": "rolling",
     "grain": { "amplitude": 1.2, "scale": 12, "seed": 1 },
     "marks": [
       { "id": "r1", "kind": "point", "at": [-30, -10], "h": 15, "r": 5 },

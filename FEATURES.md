@@ -5245,6 +5245,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`[CTW/DTM]`) and left off for a board with nothing to win. The authors sign is left off entirely where the
   map names nobody, rather than stamping `made by` over three blank lines as 69 of those 74 did, and `EX6`
   says so. `MetaGenerator` reads the same member, so the sign and the document cannot drift.
+- **The stair repair is gone, and a relief that strands ground says so instead (WE86).** A `stairs` switch cut
+  one flight per stranded place through its cheapest riser, which restored connectivity *by measurement* and
+  hid the fault it was measuring: a board broken in six by its own two-block step read as one place again. What
+  it wrote was a single line of cells re-levelled with no regard for the ground beside it — on
+  `opus5-scarrow-delph`, an eight-long one-wide ramp standing seventeen blocks proud of the terrain either side
+  (`z = 45, x = 0..7`) and a second at `x = 6, z = 47..70`. A map that needs a stair cut into it is a map whose
+  relief is wrong: the switch, `StairRepair`, `ReliefSpec.Stairs`, the document word and the inspector's
+  checkbox are all deleted, and the walk is what says so — `EX1` where the board is no longer one place, and
+  the steepness tiers for everything short of that.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

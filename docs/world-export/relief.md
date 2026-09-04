@@ -208,13 +208,15 @@ can genuinely break a map rather than merely make it harder. Measured on the boa
 a surface that was one connected piece of walkable ground into **six** separate places, the largest holding
 49.8%: every terrace riser is now a two-block wall, and the map is in halves.
 
-The repair is a **stair**, and it ships with the step (`StairRepair`). It cuts one stair per stranded place
-through that place's **cheapest** riser — the smallest intervention that reconnects — which restores full
-connectivity while moving under eight cells and the walkable share only from 86.9% to 87.3%: visually almost
-nothing, which is exactly why the failure has to be caught by measurement rather than by eye. A stair that would
-run out of footprint is **refused rather than half-cut**, since a riser with a partial cut in it is the same map
-with a scar. The repair is a switch on the group (`stairs`) and is worth asking for whenever the step is more
-than one.
+**There is no repair for it, and there is deliberately none.** A `stairs` switch used to cut one flight per
+stranded place through that place's cheapest riser, which restored connectivity by measurement and hid the
+fault from the author: a board that had been broken in six by its own step read as connected, and what a stair
+actually wrote was a single line of cells re-levelled without regard for the ground beside it — on
+`opus5-scarrow-delph` an eight-long, one-wide ramp standing seventeen blocks proud of the terrain either side
+of it, at `z = 45, x = 0..7`, and a second at `x = 6, z = 47..70`. A repair that invents terrain to paper over
+a relief the author wrote is the wrong shape of answer twice over. **A map that needs a stair cut into it is a
+map whose relief is wrong**, and the reading that says so is the walk: `EX1` where the board is no longer one
+place, and the steepness tiers below for everything short of that.
 
 ## 5. Steepness is how terrain decides where players go
 
@@ -623,7 +625,7 @@ the gentler of the two, and by a margin that is now a choice rather than a limit
 
 The solver reads a footprint mask and produces a height grid, and knows nothing about maps, so it sits in the
 dependency-free leaf beside the other pure algorithms: **`PgmStudio.Geom.Relief`** — `Footprint`, `Marks`,
-`ReliefSpec`, the red-black Gauss-Seidel `ReliefSolver`, the marching-squares `Contours`, and `StairRepair`.
+`ReliefSpec`, the red-black Gauss-Seidel `ReliefSolver`, and the marching-squares `Contours`.
 Classification is not pure geometry — a cliff is a corpus rule about play — so the step histogram, the
 reachable-place flood, the scarp qualification and the ford/detour measures live in
 **`PgmStudio.Analysis.Playability.ReliefReadback`**, where the other derivations that read a surface already are.
@@ -650,7 +652,6 @@ unit it is solved over (§11) and because a plan recompile replaces every shape 
   "base": 8,
   "reach": 26,
   "step": 1,
-  "stairs": true,
   "grain": { "amplitude": 1.3, "scale": 17, "seed": 21 },
   "marks": [
     { "id": "r1", "kind": "point", "at": [-6, -6], "h": 19, "r": 26 },

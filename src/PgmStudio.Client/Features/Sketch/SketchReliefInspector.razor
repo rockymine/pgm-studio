@@ -196,19 +196,6 @@
       </Field>
       <p class="section-desc">A step of two reads as deliberate terracing — and it is the one knob here that
         can break a map, because every riser becomes a two-block wall.</p>
-      @* The repair for exactly the failure the line above names. Offered whenever the step can strand
-         ground, which is whenever it is more than one. *@
-      @if (ReliefNum(ReliefFields.Step, 1) > 1)
-      {
-        <Field Label="Cut stairs">
-          <label class="ctrl-row" style="cursor:pointer">
-            <input type="checkbox" class="control-input control-input--hidden" checked="@HasStairs"
-                   @onchange="ToggleStairs" />
-            <span class="plan-readout">@(HasStairs ? "stranded ground gets a way up" : "a riser is a wall")</span>
-          </label>
-        </Field>
-      }
-
       <Field Label="Meant to be">
         <LabelHint>(what kind of ground this is)</LabelHint>
         <ChildContent>

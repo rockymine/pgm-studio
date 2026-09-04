@@ -108,18 +108,7 @@ public static class ReliefSolver
             var index = footprint.Index(x, z);
             blocks[index] = (int)Math.Round((field[index] - spec.Base) / step) * step + baseBlock;
         }
-        var solved = new HeightField(footprint, field, blocks);
-        if (!spec.Stairs) return solved;
-
-        // Last, because it reads the finished blocks: a stair is cut against the surface the step produced,
-        // and cutting one before the step would be repairing ground that has not been broken yet.
-        //
-        // And then folded AGAIN. The repair decides things by walking the map — which place is largest, which
-        // riser is cheapest, which way a stair runs — and a walk has a direction a half-turn does not
-        // preserve. Left unfolded it hands one team a stair the other does not have, which is the exact
-        // unfairness the fold on the solved surface exists to prevent, arriving one pass later.
-        var repaired = StairRepair.Repair(solved);
-        return spec.FoldMode is null ? repaired : repaired.WithBlocks(FoldBlocks(footprint, repaired.Blocks, spec));
+        return new HeightField(footprint, field, blocks);
     }
 
     /// <summary>The coordinate a cell's grain is drawn from and the cell its solved height is copied from:

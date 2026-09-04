@@ -28,10 +28,6 @@ public sealed class SketchReliefJson
     /// <summary>The block quantum the finished surface snaps to.</summary>
     [JsonPropertyName("step")] public int Step { get; set; } = 1;
 
-    /// <summary>Whether to cut a way up out of ground the block step stranded. Worth asking for whenever the
-    /// step is more than one, since that is what turns a riser into a wall.</summary>
-    [JsonPropertyName("stairs")] public bool Stairs { get; set; }
-
     /// <summary>What kind of ground this is meant to be — one of <see cref="Landform"/>'s four words, or
     /// absent for a group that states nothing. It is read back against the surface the marks actually
     /// solved (<c>RL1</c>), so it is a claim the studio can check rather than a label.</summary>
@@ -55,7 +51,6 @@ public sealed class SketchReliefJson
         Base = Base,
         Reach = Reach,
         Step = Math.Max(1, Step),
-        Stairs = Stairs,
         Grain = Grain?.Amplitude ?? 0,
         GrainScale = Math.Max(1, Grain?.Scale ?? 9),
         Seed = Grain?.Seed ?? 1,

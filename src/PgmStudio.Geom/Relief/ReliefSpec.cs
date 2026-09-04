@@ -64,14 +64,6 @@ public sealed record ReliefSpec
     /// that can break a map, because every riser becomes a two-block wall.</summary>
     public int Step { get; init; } = 1;
 
-    /// <summary>Whether to cut a way up out of ground the block step stranded (<see cref="StairRepair"/>).
-    /// Terracing turns every riser into a wall — at a two-block step a hillside becomes a flight of separate
-    /// terraces, and nothing about the surface says so — and a stair per stranded place gives the ground back
-    /// while leaving the terracing an author asked for almost untouched. Off by default: a stair is a hole in
-    /// the terracing, and cutting one nobody asked for into a mesa's face would be the same wrong answer from
-    /// the other direction.</summary>
-    public bool Stairs { get; init; }
-
     /// <summary>The symmetry the grain is sampled through and the solved field folded across, when the relief
     /// covers a whole mirrored map. Mirroring the marks alone is not enough: the relaxation agrees with its
     /// own image only to within its tolerance, and a tolerance is what rounding turns into a whole block.</summary>
