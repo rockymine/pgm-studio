@@ -458,6 +458,20 @@ height. That is exactly what a made thing needs, and none of it has to be invent
   a disconnected island made of paint. Nothing before that read mentioned it, and every spec now clamps and
   folds each stroke by hand to avoid both cases.*
 
+- [ ] **TS83 — Eight props on four mapgen boards stand on coast the old bend invented.** `TS30` moved the
+  bend into the studio, where a point may only be pulled **inward**; the driver's own copy read the shoelace
+  sign backwards and pulled every point outward by the same amount, so each bent board grew past the plan's
+  own footprint. Re-driven against the correct coast, four of the five bend boards decline exactly two props,
+  each standing on the growth. The boards build, export and play; what is wanted is each prop moved inside
+  the drawn coast, which `06-claims.txt` says where there is room for. The worlds under `maps/` were built
+  against the old coast and are unaffected until re-driven. The work is in `pgm-studio-mapgen`, and it is
+  filed here because the bend that moved them is the studio's.
+
+  *`opus5-alderfen` placed 106, declined `steading-e`/`steading-w` · `opus5-blockrealm` 38, `tree-4`/`tree-5`
+  · `opus5-quiverstone` 44, `birch-1`/`dwelling-e` · `fable-mossgill` 38, `tree-10`/`tree-3` ·
+  `opus5-lodestar` 30, none. On `opus5-alderfen`'s rings: `garth-14` is 9750 compiled, 11033 under the old
+  bend, 8467 under the studio's.*
+
 - [ ] **S59 — Per-vertex height is the headline feature and is found by accident.** The path is: select a
   polygon, read the one conditional sentence in the inspector, click a vertex on the canvas without moving it,
   then type into a field that appears in the panel. On the canvas a vertex handle looks exactly like a drag
