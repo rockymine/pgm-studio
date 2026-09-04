@@ -142,6 +142,19 @@ public static class DressingRules
     /// and over it a viewer sees a piece of the prop standing in the air.</summary>
     public const int ClipSevered = 8;
 
+    /// <summary>Water standing against a hole in its own basin. A pool fills the bed it carves, and the hollow
+    /// it sits in is very often dug by something else — a relief mark, a shape's own floor — so where that
+    /// hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as
+    /// the water is, running alongside it, with the water standing against open air and nothing said.
+    ///
+    /// <para>Air is a fault only where there is ground to hold water back. A pool reaching the board's own
+    /// edge meets the void, and a wall of water at the world's rim is what a coast is — so a neighbour with no
+    /// terrain column at all is passed over, and only a column the board <b>drew</b> and then left open
+    /// counts. That is the author's ruling and the whole of the test.</para></summary>
+    /// <remarks>Widen the pool onto the ground that was dug for it, or stop digging it there. The finding names the first open column, so the two shapes — the hollow and the water that fills it — can be compared where they part company. A complaint: the world is built and the water is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
+    public const string DryEdge = "DR-DRY";
+
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;
     /// over half of the body inside something already standing is not the prop the author placed, whether or

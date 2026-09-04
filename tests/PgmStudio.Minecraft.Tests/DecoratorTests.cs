@@ -775,6 +775,53 @@ public sealed class DecoratorTests
         await Assert.That(world.GetBlock(20, 7, 34).Id).IsEqualTo(Blocks.Grass);             // clear of the channel + its beach
     }
 
+    /// <summary><b>A hollow dug wider than the pool that fills it leaves a dry trench beside the water.</b>
+    /// The bed a pool carves and the hollow it sits in are two statements about one lake — the second is
+    /// usually a relief mark — and where the hollow reaches further the extra is excavated and holds nothing.
+    /// `opus5-scarrow-delph`'s tarn is that lake: its relief `pan` digs z -8..7 to y4 and the water prop fills
+    /// z -7..6, so both end rows are four courses of air with the water standing against them.</summary>
+    [Test]
+    public async Task Water_standing_against_a_dug_column_that_holds_none_is_named()
+    {
+        // A plateau with a two-block-wide slot cut across it, one course deeper than the pool's own bed, and
+        // a pool that fills only part of the slot's length.
+        var (world, top) = Plateau();
+        for (var x = 0; x < 40; x++)
+        for (var z = 24; z <= 25; z++)
+        {
+            for (var y = 4; y < 8; y++) world.SetBlock(x, y, z, Blocks.Air);
+            top[(x, z)] = 5;                                  // the slot's own floor, well under the pool
+        }
+
+        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "tarn", Points = [[4, 20], [35, 20]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        var dry = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.DryEdge);
+        await Assert.That(dry).IsNotNull();
+        await Assert.That(dry!.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(dry.Message).Contains("tarn");
+    }
+
+    /// <summary>And a pool that meets the board's own edge says nothing: a wall of water at the world's rim is
+    /// what a coast is, and the neighbour there has no terrain column at all. The author's ruling, and the
+    /// whole of what separates the two cases.</summary>
+    [Test]
+    public async Task Water_reaching_the_boards_edge_is_not_named()
+    {
+        // The plateau runs 0..39; the channel is drawn straight off its z = 0 side into the void.
+        var (world, top) = Plateau();
+        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "inlet", Points = [[20, -6], [20, 14]], Radius = 4, Depth = 3, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.DryEdge)).IsFalse();
+    }
+
     [Test]
     public async Task A_channels_bank_is_a_material_the_shallows_and_the_beach_share()
     {

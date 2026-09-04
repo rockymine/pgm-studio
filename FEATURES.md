@@ -5288,6 +5288,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   flat across the mire it stands in, and the shipped `townside on stilts` preset did the same. `HS10` names
   it, a complaint — the building is not wrong, the ground under it is floored — and the preset now states its
   plate as air, which is what leaves the terrain showing between the posts.
+- **Water standing against a hole in its own basin says so (WE91).** The bed a pool carves and the hollow it
+  sits in are two statements about one lake, and nothing reconciled them: on `opus5-scarrow-delph` the relief
+  mark `pan` digs z −8…7 to y4 while the `tarn` prop fills z −7…6, so the lake's two end rows are four courses
+  of open air with the water standing against them for its whole 70-block length — silently. `DR-DRY` reads
+  the water line's own course at each wet cell's four neighbours and names air there, **except** where the
+  neighbour has no terrain column at all: a pool reaching the board's edge meets the void, and a wall of water
+  at the world's rim is what a coast is (the author's ruling, and the whole of the rule's judgement).
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

@@ -197,7 +197,7 @@ public static class Decorator
 
         foreach (var prop in context.Props.OfType<WaterProp>())
         {
-            var result = PlaceWater(world, context, prop, claims.On(prop.Layer));
+            var result = PlaceWater(world, context, prop, claims.On(prop.Layer), declined);
             Cover(result, "water", prop.Id);
             placed = placed with { WaterCells = placed.WaterCells + result.Count };
             propIndex++;
@@ -339,7 +339,8 @@ public static class Decorator
     /// there before. Stated (<see cref="WaterProp.Level"/>), the fill reaches that Y whatever the column beneath
     /// is doing, which is the only way a basin dug out in the sketch holds water: there is no surface up at the
     /// line for a derived one to find. The footprint bounds it either way.</para></summary>
-    private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water, GroundClaims.Storey claims)
+    private static Placed PlaceWater(VoxelWorld world, DressingContext context, WaterProp water,
+                                     GroundClaims.Storey claims, List<Finding> declined)
     {
         var ground = context.GroundFor(water);
         var pool = water.Shape == WaterShape.Pool;
@@ -362,6 +363,7 @@ public static class Decorator
         // it wets are remembered so the beach, which comes after, never lays sand over open water where the two
         // overlap across the symmetry fan.
         var images = new List<List<(int X, int Z)>>();
+        var wet = new List<(int X, int Z, int Line)>();
         for (var image = 0; image < context.Symmetry.Order; image++)
         {
             // Added before the channel is walked and kept even where it finds nothing, so the list index is
@@ -413,6 +415,7 @@ public static class Decorator
                 { var (id, data) = Bank(x, bedFloor, z); world.SetBlock(x, bedFloor, z, id, data); }
                 if (!fillOnly) claims.Claim(x, z, ClaimKind.Water, water.Id);
                 covered.Add((x, z));
+                if (line >= 1 && world.GetBlock(x, line, z).Id == Blocks.StationaryWater) wet.Add((x, z, line));
             }
         }
 
@@ -432,8 +435,52 @@ public static class Decorator
                 claims.Claim(x, z, ClaimKind.Water, water.Id);
                 if (image < images.Count) images[image].Add((x, z));   // the bank is the channel's, too
             }
+
+        DryEdge(world, ground, wet, water, declined);
         return new Placed(images.Sum(cells => cells.Count), images);
     }
+
+    /// <summary>DR-DRY — water standing against a hole in its own basin.
+    ///
+    /// <para>A pool fills the bed it carves. The hollow it sits in was very often dug by something else — a
+    /// relief mark, a shape's own floor — and the two are separate statements about one lake, so where the
+    /// hollow reaches further than the bed does the extra is excavated and never filled: a trench as deep as
+    /// the water is, running alongside it, with the water standing against open air.</para>
+    ///
+    /// <para><b>Air is only a fault where there is ground to hold water back.</b> A pool that reaches the
+    /// board's own edge meets the void, and a wall of water at the world's rim is what a coast is — so a
+    /// neighbour with no terrain column at all is passed over, and only a neighbour the board <em>drew</em>
+    /// and then left open counts (the author's ruling).</para></summary>
+    private static void DryEdge(
+        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> ground,
+        List<(int X, int Z, int Line)> wet, WaterProp water, List<Finding> declined)
+    {
+        var against = 0;
+        (int X, int Y, int Z)? first = null;
+        var seen = new HashSet<(int X, int Z)>();
+
+        foreach (var (x, z, line) in wet)
+            foreach (var (dx, dz) in Sides)
+            {
+                var (nx, nz) = (x + dx, z + dz);
+                if (!ground.ContainsKey((nx, nz))) continue;             // the void: a coast, not a fault
+                if (world.GetBlock(nx, line, nz).Id != Blocks.Air) continue;
+                if (!seen.Add((nx, nz))) continue;
+                against++;
+                first ??= (nx, line, nz);
+            }
+
+        if (against == 0) return;
+        declined.Add(new Finding(DressingRules.DryEdge,
+            $"water '{water.Id}' stands against {against} open column(s) of drawn ground — first at "
+            + $"({first!.Value.X}, {first.Value.Y}, {first.Value.Z}), where the basin is dug to the water's "
+            + "own depth and holds none. The hollow and the pool that fills it are two statements about one "
+            + "lake; where the hollow reaches further, the difference is a dry trench beside the water. Widen "
+            + "the pool onto the ground that was dug for it, or stop digging it there.",
+            Severity.Complaint, Subjects: [water.Id]));
+    }
+
+    private static readonly (int Dx, int Dz)[] Sides = [(1, 0), (-1, 0), (0, 1), (0, -1)];
 
     // ── flora (DR-FL) ───────────────────────────────────────────────────────────
     /// <summary>Grow cover inside a drawn area. One block per cell, in the air above the surface, and only

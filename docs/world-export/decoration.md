@@ -647,6 +647,16 @@ pass rather than depending on it: the bed is negative terrain laid straight into
 channel works on the flat layouts the sketch tool builds today and will read as a cut valley once that pass
 gives a layout its heights.
 
+**Water standing against a hole is `DR-DRY`.** The bed a pool carves is the pool's own statement about the
+lake; the hollow it sits in is very often somebody else's — a relief mark, a shape's floor — and where that
+hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as the
+water is, running alongside it. `opus5-scarrow-delph`'s tarn is the case. Its relief mark `pan` digs
+z −8…7 down to y4 and the water prop fills z −7…6, so both end rows stand four courses of open air against the
+water for the lake's whole length, and nothing said so. The test is the water line's own course at each of a
+wet cell's four neighbours: air there is a fault, **unless the neighbour has no terrain column at all**. That
+exception is the whole of the rule's judgement and it is the author's — a pool reaching the board's own edge
+meets the void, and a wall of water at the world's rim is what a coast is.
+
 **Still to come (`G169`).** The reads that take a channel from "a filled cut" to "water that looks like
 water," and the closed form: **depth shading** warped off-centre so one bank runs deeper than the other; an
 **irregular shoreline** whose width wanders to zero in places; a **voronoi-patterned** bed and shore (sand,
