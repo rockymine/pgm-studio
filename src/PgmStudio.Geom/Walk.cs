@@ -1,4 +1,4 @@
-namespace PgmStudio.Geom;
+﻿namespace PgmStudio.Geom;
 
 /// <summary>The ground one walk runs over, at whichever fidelity the caller has.
 ///
@@ -434,12 +434,18 @@ public static class Walk
     /// is the whole point of a board that offers a way round. Empty where the two ends do not connect.</para>
     /// </summary>
     public static HashSet<WalkPlace> Corridor(WalkPlace from, WalkPlace to, WalkGround ground,
-        int slack)
+        int slack) => Corridor(Field(from, ground), Field(to, ground), to, slack);
+
+    /// <summary>The same ribbon over two fields the caller already holds. A field costs a solve plus a
+    /// measured route to every reachable place, and a caller asking about many pairs of the same waypoints —
+    /// a coverage read walks every pair — asks for each waypoint's field once per pair it appears in. Taking
+    /// the fields as arguments is what lets it be asked once per waypoint instead.</summary>
+    public static HashSet<WalkPlace> Corridor(
+        IReadOnlyDictionary<WalkPlace, WalkCost> outward,
+        IReadOnlyDictionary<WalkPlace, WalkCost> homeward, WalkPlace to, int slack)
     {
         var ribbon = new HashSet<WalkPlace>();
-        var outward = Field(from, ground);
         if (!outward.TryGetValue(to, out var direct)) return ribbon;
-        var homeward = Field(to, ground);
 
         var budget = direct.Distance + Math.Max(0, slack);
         foreach (var (place, near) in outward)

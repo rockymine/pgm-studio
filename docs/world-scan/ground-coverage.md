@@ -78,7 +78,14 @@ band cannot make, because it only measures along one line.
 
 The classes come off `Analysis/Playability/GroundCoverage.Read`, the corridors off `Walk.Corridor` over
 `Traversability.Ground`'s navigable set, and the picture off the measure's own grid through
-`Export/CoverageRender` — one derivation for the numbers, the JSON and the image. The endpoint carries the
+`Export/CoverageRender` — one derivation for the numbers, the JSON and the image.
+
+**A field per waypoint, not per pair.** A corridor is `d(from,cell) + d(cell,to) <= d(from,to) + slack`
+over two distance fields, and a field costs a solve plus a measured route to every place it reaches — so
+the read asks `Walk.Field` once for each waypoint and takes the pairs as set operations over what it
+already holds. A board of *N* waypoints walks *N(N−1)/2* pairs, and asking per pair is *N(N−1)* fields
+where *N* answer all of them: Tiefkreuz's seven waypoints and twenty-one journeys took **23.5s** that way
+and take **8.6s** this way, with every class count identical. The endpoint carries the
 traffic grid beside the classes, one base-36 digit per cell, with `journeys` and `busiest` so a caller can
 scale it without walking the grid.
 

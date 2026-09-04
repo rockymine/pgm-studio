@@ -1,4 +1,4 @@
-using PgmStudio.Analysis.Scan;
+﻿using PgmStudio.Analysis.Scan;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 
@@ -132,13 +132,18 @@ public static class GroundCoverage
         // A corridor and not a fattened line. One shortest path must commit to one side of a hole, so the
         // other side reads unused however many players take it — and going round a hole is the single most
         // valuable thing a shape does. The ribbon carries both, and carries them in proportion.
+        //
+        // One field per waypoint, not one per pair. A field is a solve plus a measured route to every place
+        // it reaches, and the pair walk asks for each waypoint's field once for every pair it appears in —
+        // so a board of N waypoints paid for N(N-1) fields where N answer every pair between them.
         var routeCells = new HashSet<(int X, int Z)>();
         var traffic = new Dictionary<(int X, int Z), int>();
         var journeys = 0;
+        var fields = origins.Select(origin => Walk.Field(origin, walked)).ToList();
         for (var i = 0; i < origins.Count; i++)
             for (var j = i + 1; j < origins.Count; j++)
             {
-                var ribbon = Walk.Corridor(origins[i], origins[j], walked, Walk.Detour);
+                var ribbon = Walk.Corridor(fields[i], fields[j], origins[j], Walk.Detour);
                 if (ribbon.Count == 0) continue;
                 journeys++;
                 // A ribbon carries places; two storeys of one column both covered is one cell covered once,

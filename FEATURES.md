@@ -739,6 +739,16 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A coverage read asks for each waypoint's field once, not once per pair.** A corridor is
+  `d(from,cell) + d(cell,to) <= d(from,to) + slack` over two distance fields, and a field is a solve plus a
+  measured route to every place it reaches. `GroundCoverage.Read` walks every pair of waypoints and asked
+  `Walk.Field` inside the pair loop, so a board of *N* waypoints paid for *N(N−1)* fields where *N* answer
+  every pair between them. It now takes one field per waypoint and the pairs are set operations over them,
+  through a `Walk.Corridor` overload that takes the two fields it is given. Measured on `opus5-tiefkreuz`
+  (seven waypoints, twenty-one journeys): **23.5s → 8.6s**, and the class counts on all three boards of the
+  agent run reproduce exactly — mootgate 6.7% dead, scarrow-delph 20.8%, tiefkreuz 10.7%. A full
+  `tools/drive.py` run of that board, which reads coverage twice, goes from **1m 42s to 1m 6s**.
+  (`Geom/Walk.Corridor`, `Analysis/Playability/GroundCoverage`, `docs/world-scan/ground-coverage.md`)
 - **Every marker states the structure it builds, the wool included (`G76`).** The plan inspector offered a
   destroyable's design and a core's casing and nothing at all for a wool, whose `color` was in the document
   model and reachable only by hand-editing the JSON. It offers the sixteen dyes now, with *auto* as a word
