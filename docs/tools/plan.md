@@ -221,6 +221,12 @@ the wall its facing leans into. This is the same rule a wool cage's doors follow
 the cap — a cage takes one door per entry, because every side an attacker can reach it from is a side they
 may come through.
 
+The walls are derived once, on the authored unit, and then **turned onto each orbit image** the way the yaw
+beside them is: a door is a direction, so the wall an authored hall opens on names a different wall on every
+other image, and the words the intent carries are that image's own. A cage says the same thing in a different
+shape — its openings ride as the entry rectangles themselves, which the orbit transform maps without anything
+having to name a side.
+
 A **spawn** and a **wool** each state a `footprint`: the building on the piece, as `[x, z, w, h]` in blocks
 from the piece's minimum corner — the same corner the marker's `at` is measured from. The piece is the region
 holding the room and the bounds every marker on it is held to; the footprint is the room itself, so a wide

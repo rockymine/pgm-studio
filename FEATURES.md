@@ -5247,6 +5247,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   overhangs whatever is beside it: one surface read per objective now serves both the box and the plate. On
   `opus5-tiefkreuz` the old reading put an unbreakable 5×5 sheet fifteen blocks *over* the monument, half
   plugging the light well, and left the monument with no plate at all.
+- **A spawn hall's doors are turned onto their own orbit image (TN15).** Every other field the compile fans
+  turned with the orbit — the point, the protection region, the footprint, the iron, the yaw — and the door
+  words did not: they were derived once on the authored piece and written unchanged onto every image, and
+  `WorldBuilder.SpawnDoors` reads them as they stand. On a four-team board that opened three of the four halls
+  on the walls the *first* team's hall faced: `opus5-quatrefoil` gave yellow both its doors over the void.
+  `FanDoors` reads a wall the way `FanYaw` reads a facing — fan the marker and the marker one step along the
+  wall's outward normal, and the step between the images names the wall — so the order is kept and `Doors[0]`
+  is still the wall the chests, the monument slots and the iron cube are measured from. A wool cage never had
+  the fault: its openings ride as entry rectangles, which the orbit maps without naming a side.
 - **The building is drawn and dragged on the canvas (TN11, canvas half).** A stated footprint appears inside its piece as a
   dashed rectangle — the region and the building visible at once — and wears the transform box every authoring
   surface uses: move it, resize it by its grips, a block at a time rather than a cell at a time. Every drag is

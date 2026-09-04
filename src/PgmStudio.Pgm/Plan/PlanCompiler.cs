@@ -276,9 +276,11 @@ public static class PlanCompiler
                             })]
                         : [],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
-                    // Stated in the authored unit's own frame, exactly as the layout's door words are: the
-                    // stamper reads them through the same orbit transform the region went through.
-                    Doors = [.. doors.Select(RoomEdges.Word)],
+                    // A door is a direction, and it is fanned the way the yaw beside it is: the region, the
+                    // footprint and the iron all turn with the orbit, so a side stated in the authored unit's
+                    // frame is the wrong side on every image but the first. The stamper reads these words as
+                    // they stand (WorldBuilder.SpawnDoors), so this is where the turn has to happen.
+                    Doors = [.. FanDoors(d, doors, bx, bz, k).Select(RoomEdges.Word)],
                 });
                 if (piece.Value.Role == PlanRoles.Spawn)
                 {
@@ -671,6 +673,26 @@ public static class PlanCompiler
     }
 
     // The k-th orbit image's yaw: fan the facing as a direction (image of point+dir minus image of point).
+    /// <summary>The walls a room opens through, turned onto orbit image <paramref name="k"/>. Read the way
+    /// <see cref="FanYaw"/> reads a facing: fan the marker and the marker one step along the wall's outward
+    /// normal, and the step between the two images names the wall that normal now points at. Order is kept,
+    /// because <c>Doors[0]</c> is the wall a room's monument slots and its shed's rise are measured from.</summary>
+    private static List<RoomEdge> FanDoors(
+        ContactGraph d, IReadOnlyList<RoomEdge> doors, double x, double z, int k)
+    {
+        if (k == 0 || doors.Count == 0) return [.. doors];
+        var origin = d.FanPoint(x, z, k);
+        var turned = new List<RoomEdge>(doors.Count);
+        foreach (var door in doors)
+        {
+            var (ox, oz) = door.Outward();
+            var stepped = d.FanPoint(x + ox, z + oz, k);
+            var step = ((int)Math.Round(stepped.X - origin.X), (int)Math.Round(stepped.Z - origin.Z));
+            if (RoomEdges.Nearest(step, RoomEdges.All) is { } edge && !turned.Contains(edge)) turned.Add(edge);
+        }
+        return turned;
+    }
+
     private static double FanYaw(ContactGraph d, double x, double z, int dx, int dz, int k)
     {
         var p = d.FanPoint(x, z, k);
