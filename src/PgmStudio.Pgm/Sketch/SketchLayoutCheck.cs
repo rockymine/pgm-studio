@@ -513,10 +513,11 @@ public static class SketchLayoutCheck
     private static string? PerVertexHeightUnread(SketchShape shape)
     {
         if (shape.AnchorHeights is not { Length: > 0 } stated) return null;
-        if (shape.Type is not (ShapeKinds.Polygon or ShapeKinds.Lasso))
-            return $"states {stated.Length} anchor height(s) and is a {shape.Type ?? "shape"}, whose ground "
-                 + "is not drawn from a vertex ring — only a polygon and a lasso carry one";
-        return shape.Vertices is { Length: >= 3 } vertices && vertices.Length == stated.Length
+        var least = shape.Type is ShapeKinds.Polyline ? 2 : 3;
+        if (shape.Type is not (ShapeKinds.Polygon or ShapeKinds.Lasso or ShapeKinds.Polyline))
+            return $"states {stated.Length} anchor height(s) and is a {shape.Type ?? "shape"}, which states "
+                 + "its bounds rather than the points a height is stated at";
+        return shape.Vertices is { } vertices && vertices.Length >= least && vertices.Length == stated.Length
             ? null
             : $"states {stated.Length} anchor height(s) against {shape.Vertices?.Length ?? 0} vertices, and "
             + "the two are interpolated one to one";

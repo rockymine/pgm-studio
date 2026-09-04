@@ -1131,10 +1131,15 @@ public static class SketchRasterizer
         }
     }
 
-    // The thickness sampler for a shape: a per-vertex TIN (polygon/lasso with matching anchor_heights),
+    // The thickness sampler for a shape: a per-vertex reading where anchor_heights lines up with the vertices,
     // else the uniform base_height (default 1). The result is a thickness above the floor, not an absolute
-    // top. The TIN is over the straight vertex polygon — points in a Bézier fringe fall back to the nearest
-    // vertex inside Interpolate.
+    // top.
+    //
+    // A closed ring and an open line read the same statement differently, because their vertices mean
+    // different things. A polygon or lasso encloses its own footprint, so the heights interpolate over a TIN
+    // of it — points in a Bézier fringe fall back to the nearest vertex inside Interpolate. A polyline's
+    // vertices are its centreline and enclose nothing, so every cell of the band around it is somewhere
+    // ALONG the line and the heights interpolate over the arc instead.
     private static Func<double, double, double> HeightFn(SketchShape s)
     {
         if ((s.Type == ShapeKinds.Polygon || s.Type == ShapeKinds.Lasso) && s.Vertices is { Length: >= 3 } verts
@@ -1144,6 +1149,16 @@ public static class SketchRasterizer
             var tris = Triangulation.EarClip(poly);
             return (x, z) => Triangulation.Interpolate(poly, ah, tris, x, z);
         }
+
+        if (s.Type == ShapeKinds.Polyline && s.Vertices is { Length: >= 2 } line
+            && s.AnchorHeights is { } graded && graded.Length == line.Length)
+        {
+            // The same curve the band was offset from, so the arc a cell is read at is the arc it stands on.
+            var centerline = Centerline.Of([.. line.Select(v => new[] { v[0], v[1] })]);
+            if (ArcProfile.Of(centerline, graded) is { } profile)
+                return (x, z) => profile.At(Geom.Algorithms.Polyline.Nearest(centerline, x, z).Arc);
+        }
+
         double bh = s.BaseHeight ?? 1;
         return (_, _) => bh;
     }

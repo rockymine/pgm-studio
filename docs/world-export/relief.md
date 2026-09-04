@@ -397,8 +397,8 @@ through, a straight line climbs 14 blocks and tops out at y21 where the routed l
 y7. **Grading** cuts and fills a corridor so its surface never steps more than one block along its length; on
 the same board terraced at a three-block step, the drawn line's worst step is 3 and grading takes it to 1. Both
 work, and both decide where the author's road goes, which is the tool overruling the person. Terrain a route
-*emits* is the draw phase's path primitive and the erected modes instead, and a path whose own height varies
-along its length is `S56`.
+*emits* is the draw phase's polyline shape and the erected modes instead, and a polyline whose own height
+varies along its length states `anchor_heights` one to one with its drawn points (`docs/tools/sketch.md`).
 
 **Water** is the half that is genuinely wrong on a relief, because it has to obey the ground rather than sit on
 it, and this is `S46` — designed and measured here, not built. Steepest descent from a source stops at the first
@@ -856,9 +856,6 @@ established (§8).
 **Water does not read the relief** (`S46`). §9 is the design and the measurements; the dressing stage's channel
 still assumes a flat plane, and what it needs is depression-filled routing, a bed floor forced non-increasing
 downstream, and per-pool water levels in place of one lowest-surface line.
-
-**A path's height does not vary along it** (`S56`). The path primitive takes one `base_height` over its whole
-band, so a causeway is one thickness end to end and a ramp cannot be drawn as the ramp it is.
 
 **A budget for pressure** (`S47`). §12 supplies the numbers, on the right surface: a terrain-only reading of 105
 maps. What is still missing is the shape of the rule — a median is not a target, and a map at the 25th

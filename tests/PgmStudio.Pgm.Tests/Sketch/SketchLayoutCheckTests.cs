@@ -226,13 +226,12 @@ public sealed class SketchLayoutCheckTests
 
     // ── SK22: a height per vertex the kind has no reader for ─────────────────────────────────────────────
 
-    /// <summary>`anchor_heights` is interpolated across a footprint as a TIN over the shape's own ring, which
-    /// only a polygon and a lasso have. Every other kind falls back to its `base_height` and builds one
-    /// thickness the whole way, and without this the author's stated grade is simply nowhere in the world.
-    /// A polyline is the case that matters: its vertices are a centreline rather than a footprint.</summary>
+    /// <summary>`anchor_heights` is stated at a shape's own points, and a rectangle and a circle have none —
+    /// they state bounds. Such a shape falls back to its `base_height` and builds one thickness the whole way,
+    /// and without this the author's stated grade is simply nowhere in the world.</summary>
     [Test]
-    [Arguments("polyline", "radius\": 3")]
     [Arguments("rectangle", "min_x\": 0, \"max_x\": 40, \"min_z\": 0, \"max_z\": 40")]
+    [Arguments("circle", "center_x\": 0, \"center_z\": 0, \"radius\": 20")]
     public async Task A_kind_that_cannot_read_a_height_per_vertex_says_so(string kind, string bounds)
     {
         var shape = $$"""{"id":"graded","type":"{{kind}}","operation":"add","{{bounds}},"vertices":[[0,0],[20,10],[40,0]],"anchor_heights":[4,20,4]}""";
@@ -245,24 +244,30 @@ public sealed class SketchLayoutCheckTests
         await Assert.That(findings[0].Message).Contains(kind);
     }
 
-    /// <summary>And a polygon whose array is not the length of its ring is the same silence for the same
-    /// reason — the TIN is built one height to one vertex, so a mismatch cannot be built at all and the
-    /// shape falls back to its `base_height`.</summary>
+    /// <summary>And a shape whose array is not the length of its own point list is the same silence for the
+    /// same reason under either frame — the reading is one height to one point, so a mismatch cannot be built
+    /// and the shape falls back to its `base_height`. A polygon and a polyline both, since both state points;
+    /// the two that line up are built as stated and say nothing.</summary>
     [Test]
-    public async Task A_polygon_whose_heights_do_not_match_its_vertices_says_so()
+    public async Task A_shape_whose_heights_do_not_match_its_points_says_so()
     {
         const string Mismatched =
             """{"id":"shelf","type":"polygon","operation":"add","vertices":[[0,0],[40,0],[40,40],[0,40]],"anchor_heights":[4,20]}""";
+        const string Short =
+            """{"id":"causeway","type":"polyline","operation":"add","radius":3,"vertices":[[-60,0],[0,0],[60,0]],"anchor_heights":[4,20]}""";
         const string Lined =
             """{"id":"good","type":"polygon","operation":"add","vertices":[[80,80],[120,80],[120,120],[80,120]],"anchor_heights":[4,9,9,4]}""";
+        const string Graded =
+            """{"id":"ramp","type":"polyline","operation":"add","radius":3,"vertices":[[-60,60],[0,60],[60,60]],"anchor_heights":[4,20,4]}""";
 
-        var findings = SketchLayoutCheck.Check(Layout(Mismatched + "," + Lined))
+        var findings = SketchLayoutCheck.Check(Layout(string.Join(",", Mismatched, Short, Lined, Graded)))
             .Where(finding => finding.Rule == SketchRules.PerVertexHeightUnread).ToList();
 
-        await Assert.That(findings.Count).IsEqualTo(1)
-            .Because("only the mismatched one is unread; the ring that lines up is built as stated");
-        await Assert.That(findings[0].SubjectIds).Contains("shelf");
-        await Assert.That(findings[0].Message).Contains("2 anchor height(s) against 4 vertices");
+        await Assert.That(findings.Select(finding => finding.SubjectIds![0]).Order(StringComparer.Ordinal))
+            .IsEquivalentTo(new[] { "causeway", "shelf" })
+            .Because("the ring and the line that line up are built as stated");
+        await Assert.That(findings.Single(finding => finding.SubjectIds![0] == "shelf").Message)
+            .Contains("2 anchor height(s) against 4 vertices");
     }
 
     // ── the two readings ─────────────────────────────────────────────────────────────────────────────────

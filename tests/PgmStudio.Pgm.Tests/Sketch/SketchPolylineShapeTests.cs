@@ -132,4 +132,56 @@ public sealed class SketchPolylineShapeTests
         await Assert.That(tops.Count).IsEqualTo(400);
         await Assert.That(tops.Values.Distinct().ToList()).IsEquivalentTo(new List<int> { 2 });
     }
+
+    /// <summary>A polyline states a thickness per drawn point and the world builds the ramp it is. A ring
+    /// interpolates a height per vertex over a TIN of its own footprint; an open line encloses nothing, so
+    /// the reading runs <b>along the arc</b> between the two drawn points bracketing each cell of the band.
+    ///
+    /// <para>The shape is what is asserted rather than the courses: the top rises from the first anchor to
+    /// the middle one and falls back, symmetrically, which is the ramp and is what a uniform
+    /// <c>base_height</c> could not be.</para></summary>
+    [Test]
+    public async Task A_polyline_grades_its_thickness_along_its_own_arc()
+    {
+        const string Graded = """
+        {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": { "groups": [], "shapes": [
+            { "id": "causeway", "type": "polyline", "operation": "add", "radius": 4, "floor": 0,
+              "base_height": 8, "vertices": [[-60, 0], [0, 0], [60, 0]],
+              "anchor_heights": [4, 20, 4] } ] } }]
+        }
+        """;
+
+        var tops = new Dictionary<int, int>();
+        foreach (var (x, z, _, top, _) in SketchRasterizer.RasterizeColumns(Graded))
+            if (z == 0) tops[x] = Math.Max(tops.GetValueOrDefault(x), top);
+
+        await Assert.That(tops[0]).IsGreaterThan(tops[-30]).Because("the middle anchor states 20");
+        await Assert.That(tops[-30]).IsGreaterThan(tops[-58]).Because("the arc grades between the two");
+        await Assert.That(tops[0]).IsGreaterThan(tops[30]);
+        await Assert.That(tops[30]).IsGreaterThan(tops[58]);
+        await Assert.That(tops[-30]).IsEqualTo(tops[30]).Because("the ramp is symmetric about its middle");
+        await Assert.That(tops[0] - tops[-58]).IsGreaterThanOrEqualTo(14)
+            .Because("the two ends state 4 and the middle states 20");
+    }
+
+    /// <summary>A polyline whose statement does not line up with its points builds one thickness the whole
+    /// way, which is `SK22`'s subject and is what the reading falls back to.</summary>
+    [Test]
+    public async Task A_polyline_whose_heights_do_not_line_up_builds_one_thickness()
+    {
+        const string Mismatched = """
+        {
+          "layers": [{ "id": "ground", "base_y": 0, "layout": { "groups": [], "shapes": [
+            { "id": "causeway", "type": "polyline", "operation": "add", "radius": 4, "floor": 0,
+              "base_height": 8, "vertices": [[-60, 0], [0, 0], [60, 0]],
+              "anchor_heights": [4, 20] } ] } }]
+        }
+        """;
+
+        var tops = SketchRasterizer.RasterizeColumns(Mismatched)
+            .Where(column => column.Z == 0).Select(column => column.YTop).Distinct().ToList();
+
+        await Assert.That(tops.Count).IsEqualTo(1).Because("every column is the shape's own base_height");
+    }
 }

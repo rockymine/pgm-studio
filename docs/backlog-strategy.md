@@ -331,7 +331,7 @@ this population until the building's one model turned them from three reaches in
 `TODO.md`. This is the population the studio's own shape produces, and every one of them is the same thing: a
 document, a route or a solver that already answers, and a surface that never asks.
 
-**A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`, `S56`,
+**A roadmap** — capabilities the studio does not have and nobody is blocked on: `S46`,
 `S34`, `TS51`, `TS63`, `G187`, `G164`, `B54`, `B9`, `B58`, `WE52`. Four left it by shipping —
 `B221` and `B258`, the library's pictures, `WE34`, the seat read, and `TS30`, the bend — which is the
 population behaving as intended: a roadmap entry is drained by being built, not by being triaged again.

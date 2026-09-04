@@ -290,23 +290,6 @@ what is gathered here is the parked and dormant slices of the same surface.
 
   *`opus5-siderite-bowl` compiles 422 on `PL15` today; `specs/*/​*.plan.json` states `"plan": 1` in 74 of 85.*
 
-- [ ] **S56 — A path's height varies along it.** The path primitive takes a uniform `base_height` over its
-  whole band (`FEATURES.md`), so a causeway is one thickness end to end and a ramp cannot be drawn as the
-  ramp it is. A polygon already solves the equivalent problem with `anchor_heights` index-aligned to its
-  vertices and TIN-interpolated across the footprint, but a path's footprint is not its vertices — the band
-  is derived from a smoothed centerline, so the interpolation runs **along the arc** rather than over a
-  triangulation: each band point knows how far along it sits (`PathHit.Along` already carries this for the
-  stroke), and the height is read between the two authored vertices that bracket it. That gives a graded road
-  that is authored, not inferred, which is the distinction that keeps it out of S46. The erected modes then
-  compose on top as they do for any other shape, so a sunk tilted path is a cutting and a raised one an
-  embankment.
-
-  *the workaround, built: `opus5-undercroft`'s two causeways are `line` **relief marks** with heights
-  `16/28/16` and a width, because a path could not be the ramp they are. That puts a road in the terrain
-  document, where it cannot be moved without re-solving the island.*
-
-### Biomes
-
 - [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
   to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is
   drawn — carrying a field of its own, so a corner of the board reads as desert against a map that is otherwise

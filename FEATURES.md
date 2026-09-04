@@ -6878,6 +6878,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A polyline grades its thickness along its own arc (`S56`).** A polyline took one `base_height` over its
+  whole band, so a causeway was one thickness end to end and a ramp could not be drawn as the ramp it is —
+  `opus5-undercroft`'s two causeways are `line` **relief marks** at `16/28/16` because of it, which puts a
+  road in the terrain document where it cannot move without re-solving the island. It now states
+  `anchor_heights` one to one with its drawn points, and the reading runs **along the arc**: a ring encloses
+  its footprint and interpolates over a TIN of it, an open line encloses nothing and every cell of its band is
+  somewhere along it. `Centerline.Anchors` states the one mapping — drawn point `k` is dense point
+  `k · SmoothSamples` in both branches of `Centerline.Of` — and `ArcProfile` reads between the two anchors
+  bracketing a place, that end's own value past either end since a band is cut square. Measured:
+  `[[-60,0],[0,0],[60,0]]` at `[4, 20, 4]` builds a bank rising 16 blocks to its middle and falling back,
+  symmetrically. (`Geom/Algorithms/Centerline`, `ArcProfile`, `Pgm/Sketch/SketchRasterizer.HeightFn`,
+  `docs/tools/sketch.md`, `docs/world-export/relief.md`)
 - **A height per vertex the kind cannot read says so (`TS85`, `SK22`).** `anchor_heights` is interpolated
   across a footprint as a TIN over the shape's own ring, which only a polygon and a lasso have — so a
   rectangle, a circle or a polyline stating one stored at 200, built its `base_height` the whole way, kept

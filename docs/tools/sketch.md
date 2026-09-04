@@ -148,14 +148,17 @@ column spans `[floor, floor + base_height]`. A polygon or lasso whose `anchor_he
 vertices varies that thickness per vertex, interpolated across the footprint as a TIN. A shape is never
 thinner than one block and never floors below zero; a freshly drawn one starts at height 9.
 
-**`anchor_heights` is a polygon and lasso field, and only those two.** A rectangle and a circle have no vertex
-list to align to, and a polyline's vertices are its centreline rather than its footprint — the band around
-them carries many more points, and a thickness graded along one would have to interpolate *along the arc*
-instead of over a triangulation. So a polyline builds one uniform thickness end to end, which is why a
-causeway cannot yet be drawn as the ramp it is (`S56`). Stating `anchor_heights` on one stores and builds
-flat, and `SK22` says so — as it does for a polygon whose array is not the length of its own ring, which is
-the same silence for the same reason: the TIN is built one height to one vertex, so a mismatch cannot be
-built at all.
+**`anchor_heights` is read by the three kinds that state points, and each reads it in its own frame.** A
+rectangle and a circle state bounds and have no points to align to, so a height per vertex on one is `SK22`.
+A **polygon** and a **lasso** enclose their own footprint, so the heights interpolate over a TIN of it. A
+**polyline** encloses nothing — its points are a centreline — so every cell of the band around it is somewhere
+*along* that line, and the heights interpolate over the **arc** between the two drawn points bracketing it.
+That is what makes a causeway the ramp it is: `"vertices": [[-60,0],[0,0],[60,0]]` with
+`"anchor_heights": [4, 20, 4]` builds a bank rising 16 blocks to its middle and falling back, symmetrically.
+Before the first drawn point and past the last it is that end's own value, a band being cut square at its
+ends. An array that is not the length of its own point list is `SK22` too, for the same reason under either
+frame: the reading is one height to one point, so a mismatch cannot be built and the shape falls back to its
+`base_height`.
 
 **That is what makes a tilted quad a stair.** The surface is sampled at each cell's centre and **floored**
 into the column, so a quad rising one course a cell builds a stair of single courses — 24 blocks of run for 24
