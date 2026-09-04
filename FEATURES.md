@@ -753,6 +753,12 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   docs (`model.md`, `vocabulary.md`, `evaluator.md`) follow. (C43)
 
 ## Backend / API (B)
+- **A load missing one of its two documents names it (`RP66`).** `POST /map/from-documents` reads the layout
+  and the intent as raw JSON, so a body omitting one arrived as a `default(JsonElement)` and the first reader
+  threw — the caller got `500 RQ2`, *the fault is the studio's rather than the document's*, which is the
+  opposite of true. Both are now refused before the name is looked for in the intent (which is itself one of
+  the readers that would have thrown): `400 no document given`, `RQ1`, naming the field. The plan stays
+  optional, a grid board having none. (`Api/Services/MapFromDocuments`, `docs/tools/flow.md`)
 - **A coverage read asks for each waypoint's field once, not once per pair.** A corridor is
   `d(from,cell) + d(cell,to) <= d(from,to) + slack` over two distance fields, and a field is a solve plus a
   measured route to every place it reaches. `GroundCoverage.Read` walks every pair of waypoints and asked

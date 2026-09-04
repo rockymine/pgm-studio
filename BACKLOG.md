@@ -900,16 +900,6 @@ set that reads a surface as somewhere a player can stand rather than as any colu
 
 ## The remainder: work no concept above has claimed
 
-- [ ] **RP66 — `POST /map/from-documents` faults on a body that omits `layout`.** `layout` and `intent` are
-  the two non-nullable `JsonElement` fields of `MapFromDocumentsRequest`, and an absent one deserializes to
-  the default struct, so `MapFromDocuments.LoadAsync` line 60 calls `GetRawText()` on it and throws. The
-  caller gets 500 `RQ2` — *the fault is its own rather than the document's* — which is the opposite of true.
-  Refuse it beside the name check already above that line: `RQ1`, `field: "layout"`, naming the two documents
-  a load needs. `docs/refusals.md` gains the row.
-
-  *`POST /api/map/from-documents` with `{"slug":"x","name":"x","plan":{…},"intent":{…}}` and no `layout`:
-  `System.InvalidOperationException` at `JsonElement.GetRawText()`, `MapFromDocuments.cs:60`.*
-
 - [ ] **WE13 — The catalogue map is not a map, and may not be wanted at all.** `tools/library-map.cs` emits a
   grid of 37 unconnected plots and `GET /map/{slug}/export` refuses it 409 `EX1` — *3 spawn/objective point(s)
   are not reachable from the rest*. **The ruling (author): a catalogue is not a map**, so `EX1` is asking it a

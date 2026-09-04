@@ -1,3 +1,4 @@
+using System.Text;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -175,6 +176,27 @@ public sealed class MapFromDocumentsTests
         await Assert.That(named).Contains("plan.celll");
         await Assert.That(named).Contains("layout.setupp");
         await Assert.That(named).Contains("intent.teamz");
+    }
+
+    /// <summary>The layout and the intent are the load, and both are read as raw JSON — so a body omitting
+    /// one arrives as a <c>default(JsonElement)</c> whose every reader throws. Refused as the request's own
+    /// fault, naming the document that is missing, rather than answered as the studio's (`RQ2`) which is the
+    /// opposite of true.</summary>
+    [Test]
+    [Arguments("layout", """{"slug":"nodoc","name":"nodoc","intent":{"meta":{"name":"nodoc"}}}""")]
+    [Arguments("intent", """{"slug":"nodoc","name":"nodoc","layout":{"layers":[]}}""")]
+    public async Task A_load_missing_one_of_its_two_documents_names_it(string field, string body)
+    {
+        using var client = await FreshAsync();
+        var refused = await client.PostAsync("/api/map/from-documents",
+            new StringContent(body, Encoding.UTF8, "application/json"));
+
+        await Assert.That(refused.StatusCode).IsEqualTo(HttpStatusCode.BadRequest);
+        var answer = await refused.Content.ReadFromJsonAsync<JsonElement>();
+        await Assert.That(answer.GetProperty("error").GetString()).IsEqualTo("no document given");
+        var finding = answer.GetProperty("findings")[0];
+        await Assert.That(finding.GetProperty("rule").GetString()).IsEqualTo("RQ1");
+        await Assert.That(finding.GetProperty("field").GetString()).IsEqualTo(field);
     }
 
     private static async Task<HttpClient> FreshAsync()

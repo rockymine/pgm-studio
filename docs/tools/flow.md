@@ -74,7 +74,7 @@ this folder takes a map; these are what a caller with no map reaches for first.
 |---|---|---|
 | `GET /maps[?stage=&q=]` | every stored map, newest touched first, each with its slug, name, stage and the artifacts it holds — the list a driver picks a slug out of | — |
 | `GET /maps/stage-counts` | how many maps sit at each stage, which is the dashboard's own read | — |
-| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 422 the layout carries no ground |
+| `POST /map/from-documents` | a whole map stored from a plan, a layout and an intent together, answering the slug it landed under — **the authoring call for a headless caller**, not only the import one, and the whole of it: the finish and the intent's projection run inside it. A map already at that slug is replaced. See *The three documents are the way in, and the way back in* below. All three documents answer `RQ3`, each path named with the member it was posted under | 400 `no document given` `RQ1` naming `layout` or `intent`, which are the load and are both required · 422 the layout carries no ground |
 
 ## The hand-offs
 
@@ -141,6 +141,12 @@ layout and an intent together and stores a whole map from them — the plan to r
 rasterized into geometry, the intent projected into the document — and answers the slug it landed under. A
 map already stored under that slug is **replaced**: the documents name one map, so loading them twice is a
 reload.
+
+**The layout and the intent are required; the plan is not.** A grid board has no plan — its plots are discs
+and crosses where a plan piece is a rectangle — so a layout emitter states none and the load takes two
+documents. A body omitting one of the two is `400 no document given` naming it, because both are read as raw
+JSON and an absent one would otherwise reach a reader that throws, answering the request's fault as the
+studio's.
 
 **It is the authoring call and not only the import one, and that is the distinction to get right.** A caller
 holding a layout and an intent — compiled from a plan, or written by hand — stores the whole map in this one

@@ -43,6 +43,17 @@ public static class MapFromDocuments
         MapRepository repo, MapReader reader, MapWriter writer, MapArtifactStore artifacts,
         WorldFeatureWriter features, PgmDb db, PlayerLookup players, CancellationToken ct)
     {
+        // The layout and the intent are the load, and both are read as raw JSON — so a body omitting one
+        // arrives as a `default(JsonElement)` whose every reader throws, and the fault would be answered as
+        // the studio's own (`RQ2`) when it is the request's. Asked before the name, which is looked for in
+        // the intent.
+        foreach (var (field, stated) in
+                 new[] { ("layout", request.Layout), ("intent", request.Intent) })
+            if (stated.ValueKind is JsonValueKind.Undefined)
+                return Refuse(400, "no document given", new Finding(RequestRules.Unreadable,
+                    $"the body states no `{field}` — a map is loaded from its layout and its intent together, "
+                    + "and a plan beside them where the board was drawn from one", Field: field));
+
         var name = request.Name;
         if (string.IsNullOrWhiteSpace(name)) name = StatedName(request.Intent);
         if (string.IsNullOrWhiteSpace(name))
