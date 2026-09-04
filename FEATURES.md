@@ -5310,6 +5310,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`edgesFromGround`) keeps the shape's surface and fill and takes the rim, the wall, `rimEdges` and
   `wallEnabled` from the map default, composed when the scope is read so the same paint on another board takes
   that board's edges. The mirror of `TP22`: a `material` says *made of*, this says *painted on*.
+- **A copied body's own block states are checked (WE94).** A copy is written block for block with the data it
+  was cut with, so a block whose data *is* a direction has to point at something the body holds. `DR-FACE`
+  names a vine side that reaches nothing — a curtain hanging on air, and, when the pair is opposite sides, the
+  vine-with-two-faces a player actually sees. `opus5-alderfen` gives all 374 of its vines a face-pair (5 or 10)
+  so the leaf's side is always among them; its build spec says so and gives the reason as the orbit turning no
+  vine data, which `BlockGeometry.Turned` has always done. A vine under another naming the same side is held by
+  it, so only the run reaching nothing is named — 2 to 5 faces per body on that board. Asked once per body.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

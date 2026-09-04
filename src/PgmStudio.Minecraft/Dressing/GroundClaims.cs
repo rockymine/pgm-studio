@@ -155,6 +155,19 @@ public static class DressingRules
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string DryEdge = "DR-DRY";
 
+    /// <summary>A block of a copied body naming a face it has nothing to cling to. A copied body is written
+    /// block for block with the data it was cut with — that is what makes it a copy — so a block whose data
+    /// <b>is</b> a direction has to point at something the body actually holds. A vine states every side it
+    /// clings to at once; a side naming air is a curtain hanging on nothing, and a pair of <em>opposite</em>
+    /// sides is that same fault seen from the front, as a vine with two faces in one block. A vine under
+    /// another naming the same side is held by it, which is how a curtain hangs past the leaf it started on.
+    ///
+    /// <para>Asked once per body rather than once per placement: a board draws the same tree thirty times and
+    /// the fault is in the recipe.</para></summary>
+    /// <remarks>State the one side the leaf is on. A vine's sides are turned with the body it belongs to when a prop is fanned round the orbit (`BlockGeometry.Turned`), so a single face survives a mirror or a quarter-turn and does not need a second bit to protect it.</remarks>
+    [Rule(RuleCategory.Malformed, RuleConcern.Feature, RuleConcern.Material)]
+    public const string UnheldFace = "DR-FACE";
+
     /// <summary>A body of water that dug a shaft rather than filled a hollow. Its line is one plane across the
     /// whole run — by default the lowest surface it crosses — and every bed column standing above that line is
     /// emptied down to it. <c>depth</c> bounds how far <b>below</b> the line the bed goes and nothing bounds

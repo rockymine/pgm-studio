@@ -755,6 +755,55 @@ public sealed class DecoratorTests
         await Assert.That(overRoad).IsEmpty();
     }
 
+    // ── a copied body's own block states (DR-FACE) ──────────────────────────────────────────────────
+
+    /// <summary>A little oak with one vine curtain, hung on the face the caller names.</summary>
+    private static TreeProp Vined(int vineData) => new()
+    {
+        Id = "fenoak", StyleKey = "fenoak-1", X = 20, Z = 20, Seed = 3,
+        Style = new TreeStyle
+        {
+            Form = TreeForm.Copied,
+            Body =
+            [
+                [0, 0, 0, Blocks.Log, 0], [0, 1, 0, Blocks.Log, 0], [0, 2, 0, Blocks.Log, 0],
+                [0, 3, 0, Blocks.Leaves, 0], [1, 3, 0, Blocks.Leaves, 0], [-1, 3, 0, Blocks.Leaves, 0],
+                [0, 3, 1, Blocks.Leaves, 0], [0, 3, -1, Blocks.Leaves, 0],
+                // The curtain hangs at (2, 3, 0), clinging to the leaf at (1, 3, 0) — its west side.
+                [2, 3, 0, Blocks.Vine, vineData], [2, 2, 0, Blocks.Vine, vineData],
+            ],
+        },
+    };
+
+    /// <summary><b>A vine's data is the set of sides it clings to, so a side naming air hangs on nothing.</b>
+    /// `opus5-alderfen` gives every one of its 374 vines a face-pair — 5 (north|south) or 10 (west|east) — so
+    /// that whichever side the leaf is on is always among them; the other names air, and what a player sees is
+    /// a vine with two faces in one block. The build spec says as much in its own docstring, and gives the
+    /// reason as the orbit turning no vine data, which `BlockGeometry.Turned` has always done.</summary>
+    [Test]
+    public async Task A_copied_body_naming_a_vine_face_with_nothing_behind_it_is_named()
+    {
+        var (world, top) = Plateau();
+        var report = Decorator.Decorate(world, Context(top, [Vined(vineData: 10)]));   // west|east
+
+        var face = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.UnheldFace);
+        await Assert.That(face).IsNotNull();
+        await Assert.That(face!.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(face.Message).Contains("fenoak-1");
+        await Assert.That(face.SubjectIds).Contains("fenoak-1");
+    }
+
+    /// <summary>The one face the leaf is actually on says nothing — which is the answer, and it survives the
+    /// orbit on its own.</summary>
+    [Test]
+    public async Task A_vine_naming_only_the_side_it_hangs_from_says_nothing()
+    {
+        var (world, top) = Plateau();
+        var report = Decorator.Decorate(world, Context(top, [Vined(vineData: 2)]));    // west alone
+
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.UnheldFace)).IsFalse();
+    }
+
     // ── water carves and fills ─────────────────────────────────────────────────────────────────────
     [Test]
     public async Task A_channel_cuts_a_bed_and_fills_it_with_water()

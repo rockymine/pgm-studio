@@ -504,6 +504,18 @@ by the knobs above. Wood is the one thing neither form decides for the other, wh
 row and why the grown tree's picker is six cards of the same tree in six colours — where the species
 picker's six cards must differ in shape, or they are one tree wearing six palettes.
 
+**A copied body's own block states are `DR-FACE`.** A copy is written block for block with the data it was
+cut with — that is what makes it a copy rather than a recipe — so a block whose data *is* a direction has to
+point at something the body actually holds. A vine states every side it clings to at once, so a side naming
+air is a curtain hanging on nothing, and a pair of *opposite* sides is that same fault seen from the front: a
+vine with two faces in one block. A vine under another naming the same side is held by it, which is how a
+curtain hangs past the leaf it started on, so only the run that reaches nothing is named. `opus5-alderfen`
+gives every one of its 374 vines a face-pair — 5 (north|south) or 10 (west|east) — so that whichever side the
+leaf is on is always among them, and its build spec gives the reason as the orbit turning no vine data of its
+own. It does: `BlockGeometry.Turned` maps each set bit through the image's transform and rebuilds the mask, so
+a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
+per body, since a board draws the same tree thirty times and the fault is in the recipe.
+
 **The third tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
 a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest
 log, which stands at the origin. The stamp writes it block for block: the foot lands on the ground the way a

@@ -195,6 +195,8 @@ public static class Decorator
                 $"prop '{stranded.Id}' rests on layer '{stranded.Layer}', which this board has no ground on",
                 Severity.Decline, Subjects: [stranded.Id]));
 
+        UnheldFaces(context, declined);
+
         foreach (var prop in context.Props.OfType<WaterProp>())
         {
             var result = PlaceWater(world, context, prop, claims.On(prop.Layer), declined);
@@ -513,6 +515,61 @@ public static class Decorator
     }
 
     private static readonly (int Dx, int Dz)[] Sides = [(1, 0), (-1, 0), (0, 1), (0, -1)];
+
+    /// <summary>DR-FACE — a block of a copied body naming a face it has nothing to cling to.
+    ///
+    /// <para>A copied body is written block for block with the data it was cut with, which is what makes it a
+    /// copy — so a block whose data <em>is</em> a direction has to point at something the body actually holds.
+    /// A vine states every side it clings to at once; a side naming air is a curtain hanging on nothing, and a
+    /// pair of opposite sides is that fault seen from the front as a vine with two faces in one block. A vine
+    /// under another vine naming the same side is held by it, which is how a curtain hangs past the leaf it
+    /// started on.</para>
+    ///
+    /// <para>Asked once per body rather than once per prop: a board draws the same tree thirty times and the
+    /// fault is in the recipe, not in where it was dropped.</para></summary>
+    private static void UnheldFaces(DressingContext context, List<Finding> declined)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var tree in context.Props.OfType<TreeProp>())
+        {
+            if (tree.Style.Form != TreeForm.Copied || !seen.Add(tree.StyleKey)) continue;
+            var body = tree.Style.BodyCells.ToDictionary(cell => (cell.X, cell.Y, cell.Z),
+                                                         cell => (cell.Id, cell.Data));
+
+            var unheld = 0;
+            (int X, int Y, int Z)? first = null;
+            foreach (var (x, y, z, id, data) in tree.Style.BodyCells)
+            {
+                if (id != Blocks.Vine) continue;
+                foreach (var (bit, dx, dz) in VineFaces)
+                {
+                    if ((data & bit) == 0) continue;
+                    if (body.ContainsKey((x + dx, y, z + dz))) continue;         // a block to cling to
+                    // Or the curtain above carrying it, which is how a vine hangs past the leaf it started
+                    // on: the run below the first block is held by the run above, face for face.
+                    if (body.TryGetValue((x, y + 1, z), out var over)
+                        && over.Id == Blocks.Vine && (over.Data & bit) != 0) continue;
+                    unheld++;
+                    first ??= (x, y, z);
+                }
+            }
+            if (unheld == 0) continue;
+
+            declined.Add(new Finding(DressingRules.UnheldFace,
+                $"the copied body '{tree.StyleKey}' names {unheld} vine face(s) with nothing behind them — "
+                + $"first at ({first!.Value.X}, {first.Value.Y}, {first.Value.Z}) — so those faces hang on air. "
+                + "A vine's data is the set of sides it clings to, and a side naming a cell the body does not "
+                + "hold is a curtain on nothing; naming a pair of opposite sides is that fault seen from the "
+                + "front, as a vine with two faces in one block. State the one side the leaf is on — the orbit "
+                + "turns a vine's sides with the body it belongs to, so a single face survives the fan.",
+                Severity.Complaint, Subjects: [tree.StyleKey]));
+        }
+    }
+
+    /// <summary>Which side of its own block each vine bit names, and the step to the block holding it up.
+    /// The same four <see cref="BlockGeometry"/> turns through the orbit.</summary>
+    private static readonly (int Bit, int Dx, int Dz)[] VineFaces =
+        [(1, 0, 1), (2, -1, 0), (4, 0, -1), (8, 1, 0)];
 
     // ── flora (DR-FL) ───────────────────────────────────────────────────────────
     /// <summary>Grow cover inside a drawn area. One block per cell, in the air above the surface, and only
