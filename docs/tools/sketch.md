@@ -166,6 +166,21 @@ it is simply part of the group's ground. And a path carries `path_edge`
 (`solid`, `rough`, `tapered`) with a `path_seed`, since a path is stored as the open centreline it was drawn
 as and its band is derived.
 
+**A path is the layout's other curve, and it is the one that does not have to be authored.** The drawn points
+are run through a centripetal Catmull-Rom spline at eight samples a segment *before* the band is offset to
+either side, so four clicked points become a twenty-five-point smooth centreline and the band around it reads
+as a flowing wall rather than a chain of chords. Nothing has to be stated for that: it is what the rasterizer
+does with every path. `path_edge` then decides what the two long edges do along it — `solid` holds one width
+the whole way, `rough` lets the width wander up to 45% either side (the two sides reading noise rows far
+apart, so the band does not merely breathe), `tapered` runs fat in the middle and thin at the ends. The ends
+are cut square, because a path in a map arrives somewhere. `opus5-millrace`'s canal walls are the worked
+example: `wall-s` is four points, `radius 1`, `path_edge: solid`, and it draws as a curve.
+
+The other curve is `controls` on a polygon or lasso ring — per-vertex Bézier handles, absolute coordinates,
+which is what a bend fits and what the *Reshaping ground the plan compiled* section below writes. The two are
+not alternatives: a ring is a closed outline of ground and takes handles, a path is an open stroke and takes a
+spline it did not ask for.
+
 A shape tagged with a `role` is not terrain at all. It is something the plan placed, projected in so it stays
 visible instead of dissolving into the fused group, and loaded as a locked render-only overlay: never
 hit-tested, never edited, skipped by the rasterizer, and merged back into the saved document unchanged.
