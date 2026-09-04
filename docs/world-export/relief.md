@@ -75,6 +75,17 @@ without one, marks alone decide the whole surface, so a shape carrying a single 
 everywhere and simply runs off its own edge — which is usually what a group's interior wants, and never what
 a lake wants.
 
+**An `area` mark states no radius, and its corners are what its ring is.** A point spreads over `r` and a line
+over `r` either side; an area pins every cell inside a drawn ring at one height and nothing softens the step
+where the ring stops, so a rectangular ring leaves a right angle in the ground at each of its four corners.
+What decides whether that reads as a bench or as a scar is the group's **reach**: the field decays toward the
+base over that many blocks outside the mark, and at `reach: 0` the marks decide the whole surface between them
+with no decay at all, so each mark meets its neighbour on a wall. That is the right answer for a quarry cut in
+benches and the wrong one for a hillside. `opus5-scarrow-delph` is the worked example of both — `camp-pad`,
+`pad-winder` and `pad-smithy` are rectangular pads at h 44 on a `reach: 0` group, and the square corners a
+reader finds at (−18, 107), (17, 107), (33, 101) and (−34, 101) are those rings, not plan pieces and not a
+fault.
+
 A mark is clipped to the footprint rather than confined to it, so one can be **placed past the edge** and only
 its overlap counts. That is not a tolerance, it is the way a hill at the corner of a map is authored: a summit
 whose centre sits off the board raises the ground toward the corner and stops there, leaving no back slope
