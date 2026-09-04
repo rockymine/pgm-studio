@@ -40,7 +40,7 @@ public static class RoomStylePreview
         // A whole-number marker in both axes: the pad is square, so a piece whose axes differ in parity is
         // refused outright where the marker is taken as the piece centre (WX3).
         return RoomFrames.Resolve(new BlockRect(0, 0, width, depth), footprint: null, shellBound: true,
-                width / 2, depth / 2, [(0, 0, width, 0)], null, out _)
+                width / 2, depth / 2, [(0, 0, width, 0)], [], out _)
             ?? throw new InvalidOperationException(
                 $"the {footprint} sample piece ({width}×{depth}) does not resolve to a shell");
     }

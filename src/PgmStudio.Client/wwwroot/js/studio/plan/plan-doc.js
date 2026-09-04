@@ -56,10 +56,17 @@ export function canonicalBoxKind(kind) { return BOX_KINDS.includes(kind) ? kind 
 /** True for a non-generating annotation role (buffer) — hatched, no terrain, not buildable. */
 export function isAnnotationRole(role) { return TECHNICAL_ROLES.includes(role); }
 
-// Marker facing cycles front → right → back → left on repeated clicks; the arrow points along an absolute
-// board direction per enum (front = −Z / up, back = +Z, left = −X, right = +X), fanned per orbit image.
-export const FACINGS = ["front", "right", "back", "left"];
-export const FACING_DIR = { front: [0, -1], right: [1, 0], back: [0, 1], left: [-1, 0] };
+// Marker facing cycles the compass clockwise on repeated clicks — eight of them, the four walls and the four
+// corners between them. The arrow points along an absolute board direction (front = −Z / up, back = +Z,
+// left = −X, right = +X), fanned per orbit image. A facing is a direction and never a door: the hall's doors
+// are cut where its piece abuts more board, so a corner spawn can look between its two exits.
+export const FACINGS = [
+  "front", "front-right", "right", "back-right", "back", "back-left", "left", "front-left",
+];
+export const FACING_DIR = {
+  "front": [0, -1], "front-right": [1, -1], "right": [1, 0], "back-right": [1, 1],
+  "back": [0, 1], "back-left": [-1, 1], "left": [-1, 0], "front-left": [-1, -1],
+};
 export function nextFacing(f) { const i = FACINGS.indexOf(f); return FACINGS[(i + 1) % FACINGS.length]; }
 
 /** A blank plan document (wire shape) with the schema defaults. */

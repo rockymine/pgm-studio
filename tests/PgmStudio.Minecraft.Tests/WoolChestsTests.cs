@@ -18,7 +18,7 @@ public sealed class WoolChestsTests
     public async Task Places_eight_chests_with_the_A_and_B_loadouts()
     {
         var world = new VoxelWorld();
-        var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, [(-5, -5, 5, -5)], null, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, [(-5, -5, 5, -5)], [], out _)!;
         WoolChests.Stamp(world, frame, floorY: 64);
 
         // Chest blocks at all four interior corners, bottom (y=65) + top (y=66).
@@ -73,7 +73,7 @@ public sealed class WoolChestsTests
         // south (data 3, PosZ); the two nearest the back wall (high Z) face north (data 2, NegZ). Neither
         // value ever points at the wall the corner actually sits against.
         var world = new VoxelWorld();
-        var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, [(-5, -5, 5, -5)], null, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, [(-5, -5, 5, -5)], [], out _)!;
         WoolChests.Stamp(world, frame, floorY: 64);
 
         await Assert.That(world.GetBlock(-3, 65, -3).Data).IsEqualTo(3);   // near-door corner (west) → south
@@ -88,7 +88,7 @@ public sealed class WoolChestsTests
         // Door on the NegX (west) wall: the entry axis is X, so facing follows X instead of Z — the two
         // corners nearest the door face east (data 5, PosX), the two nearest the far wall face west (data 4).
         var world = new VoxelWorld();
-        var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, [(-5, -5, -5, 5)], null, out _)!;
+        var frame = RoomFrames.Resolve(new BlockRect(-5, -5, 5, 5), footprint: null, shellBound: true, 0, 0, [(-5, -5, -5, 5)], [], out _)!;
         WoolChests.Stamp(world, frame, floorY: 64);
 
         await Assert.That(world.GetBlock(-3, 65, -3).Data).IsEqualTo(5);   // near-door corner (north) → east

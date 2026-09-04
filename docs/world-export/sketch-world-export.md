@@ -72,7 +72,8 @@ the 4-across minimum):
   default cage keeps a door per wall. The material is one of the four `Domain.DoorMaterials` choices — air,
   cobweb, stained glass, panes — and no more: the wool room's block rule is a whitelist, so a door it does
   not name cannot be broken (`structures.md` §7).
-- **Spawn cube:** a **single door, 4 tall** (layers 1–4) on the yaw-derived wall, **open (air)** — pinned
+- **Spawn cube:** a door **4 tall** (layers 1–4) on each wall the hall opens through — one, or two where its
+  piece meets the board on two sides (WX6) — **open (air)** — pinned
   there whatever the style says, since a player spawning in has to be able to walk straight out.
 
 Colour: the layer-4 strip + the 2×2 floor wool follow the **room colour** (wool cage: wool, **no stained clay**)

@@ -1791,7 +1791,7 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   door**, with the objective behind it. Nothing complained and nothing could — `SP8` reads plan-piece surfaces,
   all of them 14, so the seam it measures was flat. Seated, the pad and the ground ahead are both 19 and the
   resolved spawn point moves with them.*
-  (`Pgm/Sketch/SketchRasterizer.SeatOf`, `Pgm/Plan/PlanCompiler.WoolDoorEdges`, `Domain/RoomEdges.OfFacing`,
+  (`Pgm/Sketch/SketchRasterizer.SeatOf`, `Pgm/Plan/PieceDoors`,
   `docs/world-export/relief.md`, `PlanCompilerReliefTests.cs`, `SketchStructuralHeightCarryTests.cs`)
 
 - **A quarter-turn orbit carries its relief onto all four images (`WE75`).** A mirrored copy of a
@@ -5230,8 +5230,30 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
 - **Iron is one size and the room never yields to it (B177).** A cube is `IronSpan` blocks square whatever its
   marker's parity, keeps at least `IronGap` blocks of standing room to the shell, and seats where the marker
   puts it or resolves unplaceable — the parity ladder and the shell's yield are both gone. A drawn spawn is
-  seeded with one, hard against the piece's outer edge and clear of the door corridor; adding more and sliding
-  them is the author's.
+  seeded with one, clear of the door corridor; adding more and sliding them is the author's.
+- **A spawn hall opens where its piece meets the board, and a player can look between two exits (TN13).**
+  A room's doors are derived from abutment for both kinds, in one place (`Pgm/Plan/PieceDoors`): a wool cage
+  takes one per entry segment, a spawn hall the walls its piece meets more board on — widest opening first,
+  **at most two**, so a corner spawn opens on both the ways out its team has and a piece open on three sides
+  is still a hall. `RoomFrames.Resolve`/`ResolveRoom` take that list where they took one nullable edge, and
+  `DefaultFootprint` keeps the door's ground in front of each. The doors ride the intent
+  (`SpawnIntent.Doors`) rather than being re-derived from the yaw downstream, which is what makes the second
+  half possible: `facing` is now **eight** directions, the four walls and the four corners between them
+  (`Vocabulary/SpawnFacings`), naming where the player looks and never a door. A diagonal carries a 45° yaw
+  and `FanYaw` turns it through the orbit unchanged, so a corner hall's team faces the middle of the board;
+  a facing aimed over the void is turned onto the corner the piece's two open walls sum to. The tie between
+  two equally wide walls falls to the facing, so `Doors[0]` is the door the player walks out of — the one
+  the chests, the monument slots and the iron cube read.
+
+- **The seeded cube stands on the hand a player leaves by (TN12).** `PieceRoom` seats a spawn's iron in the
+  nearest row outside the door wall `WX8` allows — the building's own edge plus `IronGap`, which on a default
+  footprint is the piece's outer edge exactly — and on the player's **right** as they walk out, falling to
+  their left only where the piece has no ground for a cube there. `POST /plan/room` answers for the piece as
+  the document states it, reading the placement's `facing` and `footprint` rather than assuming a front door
+  on the room the piece affords, and returns that cube alongside the marker and the footprint; the editor
+  writes it onto an `iron` placement as the piece is drawn. A stated hall inside a wide protection region is
+  therefore answered with the cube that belongs beside *its* door, which is the whole of what makes shrinking
+  a building inside its region an edit an author can finish.
 - **A drawn role piece states its own room (B178 · TN11).** A `spawn` or `wool-room` placement carries a
   **`footprint`** — `[x, z, w, h]` in blocks from the piece's minimum corner, fanned per orbit image — and the
   room resolver takes it instead of insetting the piece, so a wide protection region can hold a small hall.

@@ -567,16 +567,18 @@ seams support and nothing asks for, the word the model uses for a seam — and t
 piece's own geometry rather than about what is stamped on it: what a spawn's ray faces, what a wall seals,
 and what a `subtract` takes away.
 
-- [ ] **TN12 — Cycling a spawn's facing leaves the room it seeded pointing the old way.** The editor asks
-  `POST /api/plan/room` once, when the piece is drawn, and writes the answer's `at` and `footprint` onto a new
-  placement (`plan-bridge.js:128` `seedRoom`). Cycling the facing afterwards — a re-click on a selected spawn
-  (`plan-canvas.js:1053`) or the rail's Cycle facing button (`plan-bridge.js:441` `cycleFacing`) — rewrites
-  `facing` alone, so the stored footprint keeps the door apron on the side the room no longer opens on. The
-  endpoint reads the stated facing now, so re-asking it answers correctly; what is missing is the ask. Re-seed
-  on a facing change, leaving a footprint the author has since moved alone.
+- [ ] **TN14 — Cycling a spawn's facing leaves the iron it seeded on the old hand.** The editor asks
+  `POST /api/plan/room` once, when the piece is drawn, and writes the answer's `at`, `footprint` and `iron`
+  onto new placements (`plan-bridge.js:128` `seedRoom`). Cycling the facing afterwards — a re-click on a
+  selected spawn (`canvas/plan-canvas.js:1053`) or the rail's Cycle facing button (`plan-bridge.js:446`
+  `cycleFacing`) — rewrites `facing` alone, so the cube keeps the side it was seeded on. Re-ask on a facing
+  change and move the seeded cube, leaving one the author has since slid alone.
 
-  *the door gap is `RoomFrames.DefaultFootprint`'s inset in front of the door, so a `front` seed on a `back`
-  spawn puts the apron at the room's `−z` edge and the door at its `+z` one.*
+  *the door walls do not move with the facing, so the footprint does not go stale; the facing breaks the tie
+  between two equally wide walls, `Doors[0]` is what the cube is seated beside, and the cube stands on the
+  player's right as they walk out. On quatrefoil's two-door `spawn` piece the answer's `iron` is
+  `[3.5, 16.5]` for `back`, `left`, `back-right`, `front-left` and `back-left` and `[16.5, 10.5]` for
+  `front`, `right` and `front-right`, at an unmoved `footprint` of `[1, 1, 12, 12]`.*
 
 - [ ] **B213 — Stop fusing the two pieces a wall sits between, and lock the seam in the sketch.** A wall's
   rect is fixed at compile from the interface its two plan pieces share, and nothing afterwards holds that

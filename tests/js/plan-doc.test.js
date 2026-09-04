@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 
 import {
-  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing,
+  emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, nextFacing, FACINGS, FACING_DIR,
   rectCellsToBlocks, cellOfWorld, rectFromCells, rectContainsCell,
   pieceAtCell, zoneAtCell, markerCell, attachMarker, snapHalf, allMarkers,
   contentBounds, viewBounds, pieceMirrorImages, zoneMirrorImages, markerMirrorImages, ROLES, ROLE_COLORS,
@@ -106,10 +106,23 @@ test("uniqueId suffixes on collision", () => {
   assert.equal(uniqueId(["lane", "lane-2"], "lane"), "lane-3");
 });
 
-test("nextFacing cycles front → right → back → left → front", () => {
-  assert.equal(nextFacing("front"), "right");
-  assert.equal(nextFacing("right"), "back");
-  assert.equal(nextFacing("left"), "front");
+test("nextFacing walks the compass clockwise through all eight, wall and corner alternating", () => {
+  assert.equal(nextFacing("front"), "front-right");
+  assert.equal(nextFacing("front-right"), "right");
+  assert.equal(nextFacing("back-right"), "back");
+  assert.equal(nextFacing("front-left"), "front");
+
+  // Eight clicks return the marker to where it started, and every step turns 45° clockwise.
+  let facing = "front";
+  for (let turn = 0; turn < FACINGS.length; turn++) {
+    const [dx, dz] = FACING_DIR[facing];
+    const [nx, nz] = FACING_DIR[nextFacing(facing)];
+    // A clockwise turn in the board's frame (x right, z down) has a negative 2-D cross product, and the two
+    // steps never point the same way.
+    assert.ok(dx * nz - dz * nx > 0, `${facing} does not turn clockwise`);
+    facing = nextFacing(facing);
+  }
+  assert.equal(facing, "front");
 });
 
 // ── pick priority (markers paint above pieces) ────────────────────────────────

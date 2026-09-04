@@ -105,22 +105,6 @@ public static class PlanCompiler
         });
     }
 
-    /// <summary>Which sides of a wool room its entries stand on. A room's entries are the land seams and
-    /// frontline edges <see cref="WoolEntrySegments"/> reports, each a degenerate rect on one of the room's
-    /// four boundary lines, so the side is which line it lies on.</summary>
-    private static List<RoomEdge> WoolDoorEdges(ContactGraph d, string pieceId, BlockRect room)
-    {
-        var edges = new List<RoomEdge>();
-        foreach (var seg in WoolEntrySegments(d, pieceId))
-        {
-            if (seg.MinX == seg.MaxX && seg.MinX == room.MinX) edges.Add(RoomEdge.NegX);
-            else if (seg.MinX == seg.MaxX && seg.MinX == room.MaxX) edges.Add(RoomEdge.PosX);
-            else if (seg.MinZ == seg.MaxZ && seg.MinZ == room.MinZ) edges.Add(RoomEdge.NegZ);
-            else if (seg.MinZ == seg.MaxZ && seg.MinZ == room.MaxZ) edges.Add(RoomEdge.PosZ);
-        }
-        return edges;
-    }
-
     // ── layout: unioned shapes + mirror islands + framing ───────────────────────────────────────────────
 
     /// <summary>What a compiled terrain shape answers to: the component it belongs to, named by its
@@ -261,7 +245,8 @@ public static class PlanCompiler
                 var piece = d.Piece(s.Piece);
                 if (piece is null) continue;
                 var (bx, bz) = PlanMarkers.Block(piece.Value.Rect, s.At);
-                var (fx, fz) = BoardFacing(d, piece.Value, FacingDir(s.Facing));
+                var (fx, fz) = BoardFacing(d, piece.Value, SpawnFacings.Direction(s.Facing));
+                var doors = PieceDoors.ForSpawn(d, s.Piece, s.Facing);
                 var (px, pz) = d.FanPoint(bx, bz, k);
                 var prot = d.FanRect(piece.Value.Rect, k);
                 spawns.Add(new SpawnIntent
@@ -291,11 +276,14 @@ public static class PlanCompiler
                             })]
                         : [],
                     Yaw = FanYaw(d, bx, bz, fx, fz, k),
+                    // Stated in the authored unit's own frame, exactly as the layout's door words are: the
+                    // stamper reads them through the same orbit transform the region went through.
+                    Doors = [.. doors.Select(RoomEdges.Word)],
                 });
                 if (piece.Value.Role == PlanRoles.Spawn)
                 {
                     AppendStructuralShape(layout, $"spawn-{teams[k].Id}", StructuralRoles.Spawn, teams[k].Id,
-                        teams[k].Color, prot, piece.Value.Surface, k, [RoomEdges.OfFacing(s.Facing)]);
+                        teams[k].Color, prot, piece.Value.Surface, k, doors);
                     AppendBuildingShape(layout, $"spawn-{teams[k].Id}", teams[k].Color,
                         FanFootprint(d, piece.Value.Rect, s.Footprint, k));
                 }
@@ -342,7 +330,7 @@ public static class PlanCompiler
                 {
                     AppendStructuralShape(layout, $"wool-{teams[k].Id}-{color}", StructuralRoles.WoolRoom,
                         $"{teams[k].Id}:{color}", color, room, piece.Value.Surface, k,
-                        WoolDoorEdges(d, w.Piece, piece.Value.Rect));
+                        PieceDoors.ForWoolRoom(d, w.Piece, piece.Value.Rect));
                     AppendBuildingShape(layout, $"wool-{teams[k].Id}-{color}", color,
                         FanFootprint(d, piece.Value.Rect, w.Footprint, k));
                 }
@@ -648,20 +636,6 @@ public static class PlanCompiler
         return (x, z, piece.Value.Surface);
     }
 
-    // The facing unit direction on the authored unit: absolute board directions (front = −z, back = +z,
-    // left = −x, right = +x), the fixed reading the editor renders. Each orbit image fans this vector.
-    private static (int Dx, int Dz) FacingDir(string facing) => facing switch
-    {
-        "back"  => (0, 1),
-        "left"  => (-1, 0),
-        "right" => (1, 0),
-        _ => (0, -1),                                                     // "front"
-    };
-
-    // FacingDir's four directions, in the reading order an author sees them — reused below to pick a
-    // fallback deterministically when the stated one has to be overridden.
-    private static readonly (int Dx, int Dz)[] FacingOrder = [(0, -1), (0, 1), (-1, 0), (1, 0)];
-
     // The direction a spawn's door actually opens: the authored facing, unless it points through a wall
     // that opens onto the void — a piece on the edge of the board whose door would be its only exit over
     // the drop. Resolved once on the authored (team-0) piece, in the piece's own local frame, so the result
@@ -681,38 +655,19 @@ public static class PlanCompiler
 
     private static (int Dx, int Dz) BoardFacing(ContactGraph d, DerivedPiece piece, (int Dx, int Dz) authored)
     {
-        var open = OpenSides(d, piece);
-        if (open.Count == 0 || open.Contains(authored)) return authored;
-        foreach (var side in FacingOrder)
-            if (open.Contains(side)) return side;
-        return authored;
-    }
+        var open = PieceDoors.OpenSides(d, piece);
+        if (open.Count == 0 || open.Keys.Any(side => side.Lean(authored) > 0)) return authored;
 
-    // The piece's four cardinal sides that open onto more board rather than the void: a land or narrow
-    // interface with another piece, or a build-zone frontage — the same two things a wool room's own entries
-    // count (WoolEntrySegments). A side earns its direction from where the opening's segment actually lies
-    // on the piece's own rect, not from which piece is "bigger", so an opening on a piece's north edge marks
-    // north open regardless of what is across it.
-    private static HashSet<(int Dx, int Dz)> OpenSides(ContactGraph d, DerivedPiece piece)
-    {
-        var open = new HashSet<(int Dx, int Dz)>();
-        void Mark(int x1, int z1, int x2, int z2)
+        // Nothing the player was aimed at opens, so aim them at what does: the open sides summed, which is
+        // one wall where one opens and the corner between them where two do. Sides that open opposite each
+        // other cancel and leave the authored word, since neither is more the board than the other.
+        var (dx, dz) = (0, 0);
+        foreach (var side in open.Keys)
         {
-            if (x1 == piece.Rect.MinX && x2 == piece.Rect.MinX) open.Add((-1, 0));
-            else if (x1 == piece.Rect.MaxX && x2 == piece.Rect.MaxX) open.Add((1, 0));
-            else if (z1 == piece.Rect.MinZ && z2 == piece.Rect.MinZ) open.Add((0, -1));
-            else if (z1 == piece.Rect.MaxZ && z2 == piece.Rect.MaxZ) open.Add((0, 1));
+            var (ox, oz) = side.Outward();
+            (dx, dz) = (dx + ox, dz + oz);
         }
-        foreach (var c in d.LandInterfaces.Where(c => c.A == piece.Id || c.B == piece.Id))
-        {
-            var other = d.Piece(c.A == piece.Id ? c.B : c.A);
-            if (other is null) continue;
-            var (x1, z1, x2, z2) = ContactGraph.BorderSegment(piece.Rect, other.Value.Rect);
-            Mark(x1, z1, x2, z2);
-        }
-        foreach (var edge in d.FrontlineEdges.Where(e => e.Piece == piece.Id))
-            Mark(edge.X1, edge.Z1, edge.X2, edge.Z2);
-        return open;
+        return (dx, dz) == (0, 0) ? authored : (Math.Sign(dx), Math.Sign(dz));
     }
 
     // The k-th orbit image's yaw: fan the facing as a direction (image of point+dir minus image of point).

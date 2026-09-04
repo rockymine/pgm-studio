@@ -707,10 +707,11 @@ disagree with the one that runs.
 
 ## Facing semantics [expert]
 
-Marker `facing` is **absolute board directions** — front = −z, back = +z, left = −x, right = +x
-on the authored unit, fanned per orbit image. (The editor always meant this; the compiler briefly
-interpreted "front" as toward-the-centre, which mis-yawed four seeds and mis-measured one iron —
-both corrected.)
+Marker `facing` is **absolute board directions** on the authored unit, fanned per orbit image: the four walls
+— front = −z, back = +z, left = −x, right = +x — and the four corners between them, `front-left`,
+`front-right`, `back-left`, `back-right`, which carry 45° yaws. It names a direction only. The wall a spawn's
+door opens in is derived from where its piece abuts the board (`WX6`), so a player in a corner hall looks
+between its two exits rather than at one of them.
 
 ## Amendments (post-freeze)
 

@@ -171,7 +171,7 @@ dangerous kind.
 | `C51` | 28 selects, the plan tool 7 | **30**, the plan tool **10** | `grep -rc "<select" src/PgmStudio.Client --include=*.razor` |
 | `B261` | 422 hand-maintained lines in `ThemeVocabulary.cs` | **542** | `wc -l src/PgmStudio.Client/Components/Terrain/ThemeVocabulary.cs` |
 | `A8` | the generator is 85 files, 11.5k lines | **90 files, 13,385 lines** | `find src/PgmStudio.Pgm/{Compose,Evaluate,Shapes,Derive,Plan} -name '*.cs'` |
-| `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites — `WorldBuilder:662` is a seventh in the entry's own scope; `RoomStylePreview:41` and `PieceRoom.cs:60,72` are three the entry does not discuss; `DressingScope` is at `:218,220` | `grep -rn "shellBound: true" src --include=*.cs` |
+| `WE70` | six callers hardcode `true`; `DressingScope:216,218` | **ten** sites — `WorldBuilder:662` is a seventh in the entry's own scope; `RoomStylePreview:41` and `PieceRoom.cs:66,88` are three the entry does not discuss; `DressingScope` is at `:218,220` | `grep -rn "shellBound: true" src --include=*.cs` |
 | `C62` | `components.css:989–1004`; the grep "hits only that CSS" | **985–1001**; the grep hits **202**, and a fourth site is `editor.css:756` | `grep -rn "map-author-" src/ tests/` |
 | `TE2` | `ObjectivePhase.razor.cs:201`, `:211`; `.razor:56` | **`:204`**, **`:212`**; **`:55`** | `grep -n DyeColors src/PgmStudio.Client/Features/Edit/ObjectivePhase.razor.cs` |
 | `RP59` | every authored board takes six calls, because the one-call path reads as a re-import | `drive.py:582` stores through **`POST /map/from-documents`**, one call, under a stated slug | `grep -n 'call("P' /media/sf_repos/pgm-studio-mapgen/tools/drive.py` |

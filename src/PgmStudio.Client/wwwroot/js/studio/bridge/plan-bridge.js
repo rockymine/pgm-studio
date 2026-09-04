@@ -14,7 +14,7 @@
 import { PlanCanvas } from "../canvas/plan-canvas.js";
 import {
   emptyDoc, normalizeDoc, fromJson, toJson, uniqueId, toggleWall, defaultReference, ROLES, BOX_KINDS,
-  viewBounds, markerList, MARKER_KINDS, boxMembers,
+  viewBounds, markerList, MARKER_KINDS, boxMembers, nextFacing,
 } from "../plan/plan-doc.js";
 import { parseOverlays } from "../plan/plan-inspect.js";
 import { fireTo } from "./fire.js";
@@ -140,6 +140,11 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
     const placement = { piece: pieceId, at: seed.at, footprint: seed.footprint };
     if (role === "spawn") placement.facing = "front";
     list.push(placement);
+    // The cube the yard has room for, beside the door on the player's right. One is the seed; adding more and
+    // sliding them is the author's, so a piece that already carries iron is left alone.
+    if (Array.isArray(seed.iron) && !doc.placements.iron.some(m => m.piece === pieceId)) {
+      doc.placements.iron.push({ piece: pieceId, at: seed.iron });
+    }
     canvas.setDoc(doc);
     afterEdit();
   }
@@ -438,7 +443,7 @@ export async function mount(svgEl, wrapEl, cursorEl, dotnetRef) {
       else { const m = boxMembers(doc, b).map(p => p.id); if (m.length) b.members = m; }
       canvas.setDoc(doc); canvas.select({ kind: "box", id }); afterEdit();
     },
-    cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; const o = ["front", "right", "back", "left"]; m.facing = o[(o.indexOf(m.facing) + 1) % 4]; canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); afterEdit(); },
+    cycleFacing(index) { const m = doc.placements.spawns[index]; if (!m) return; m.facing = nextFacing(m.facing); canvas.setDoc(doc); canvas.select({ kind: "marker", markerKind: "spawn", index }); afterEdit(); },
 
     // Set one structure field on an objective marker — the casing knobs on a core, the design and material
     // on a destroyable. A null value REMOVES the key, which is what keeps a marker the author never varied
