@@ -126,9 +126,14 @@ public static class DressingRules
     /// a piece floating beside it. The finding carries how many blocks are in the world, how many the wall
     /// blocked, how many are cut off from the prop's own footing, and the first cell it was stopped at.</para>
     ///
-    /// <para>The threshold is <see cref="ClipSevered"/> blocks cut off, not a share of the prop: a share
-    /// tracks how much of the thing is missing, which is the boulder's answer and not this one.</para></summary>
-    /// <remarks>Move the prop clear of what it is reaching into, or make it smaller. The ground a building holds is one block past what it stamps (`DR-CLAIM`), and that is a seat rule rather than a size rule — it keeps a stem out of a wall and says nothing about a crown eight blocks wide, so a big prop needs the distance its own reach asks for and not the distance the seat allows. Measured against a wall taller than the tree: a 20-course grown oak severs a limb at every clearance out to 8 blocks, while an 8-course one severs nothing past 2. The prop is left in the world exactly as the clip left it, floating piece included; this is a complaint, not a decline.</remarks>
+    /// <para><b>And being buried is the same fault from underneath.</b> A prop seats on the <em>lowest</em>
+    /// column its feet stand over, which is what lets it sit into a slope — and on a stepped landform that
+    /// column is the bottom of a step, so the body is written into ground that stands over it and almost none
+    /// of it lands. What survives is whatever cleared the surface, and that remnant rests on real ground, so
+    /// nothing is severed and the count above stays nought however much was lost. The share is the reading
+    /// that sees it: past <see cref="ClipBlockedShare"/> of the prop inside something already standing, the
+    /// thing in the world is not the thing that was asked for.</para></summary>
+    /// <remarks>Move the prop clear of what it is reaching into, or make it smaller. The ground a building holds is one block past what it stamps (`DR-CLAIM`), and that is a seat rule rather than a size rule — it keeps a stem out of a wall and says nothing about a crown eight blocks wide, so a big prop needs the distance its own reach asks for and not the distance the seat allows. Measured against a wall taller than the tree: a 20-course grown oak severs a limb at every clearance out to 8 blocks, while an 8-course one severs nothing past 2. A prop reported as buried rather than severed is standing on ground that steps under it — move it onto one step or the other, since a seat is taken on the lowest column its feet cover. The prop is left in the world exactly as the clip left it, floating piece included; this is a complaint, not a decline.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain)]
     public const string PropCut = "DR-CUT";
 
@@ -136,6 +141,12 @@ public static class DressingRules
     /// <see cref="PropCut"/> is raised. Under it what came away is a leaf or two and reads as foliage; at it
     /// and over it a viewer sees a piece of the prop standing in the air.</summary>
     public const int ClipSevered = 8;
+
+    /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
+    /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;
+    /// over half of the body inside something already standing is not the prop the author placed, whether or
+    /// not anything came away from its feet.</summary>
+    public const double ClipBlockedShare = 0.5;
 }
 
 /// <summary>Why a cell is kept clear of everything the dressing pass places — the answer a decline names, so

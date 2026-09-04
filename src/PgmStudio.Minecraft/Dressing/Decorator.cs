@@ -1123,7 +1123,7 @@ public static class Decorator
         }
 
         var covered = new List<List<(int X, int Z)>>();
-        var worst = (Severed: 0, Blocked: 0, Landed: 0, At: default((int X, int Y, int Z)?));
+        var worst = (Severed: 0, Blocked: 0, Landed: 0, Wanted: 0, At: default((int X, int Y, int Z)?));
         foreach (var (anchor, turned, baseY) in images)
         {
             var cells = new HashSet<(int X, int Z)>();
@@ -1148,17 +1148,26 @@ public static class Decorator
             covered.Add([.. cells]);
 
             var (blocked, severed) = Cost(world, wanted, landed);
-            if (severed > worst.Severed) worst = (severed, blocked, landed.Count, stoppedAt);
+            // Worst by what came away first, then by how much never landed: the two arms below read the same
+            // image, and an orbit's images clip alike, so this only decides which one the finding names.
+            if (severed > worst.Severed || (severed == worst.Severed && blocked > worst.Blocked))
+                worst = (severed, blocked, landed.Count, wanted.Count, stoppedAt);
         }
 
-        if (worst.Severed >= DressingRules.ClipSevered)
+        var buried = worst.Wanted > 0 && worst.Blocked > worst.Wanted * DressingRules.ClipBlockedShare;
+        if (worst.Severed >= DressingRules.ClipSevered || buried)
             declined.Add(new Finding(DressingRules.PropCut,
-                $"{kind} '{id}' seats clear of what it then reaches into: {worst.Blocked} of its blocks are "
-                + $"inside something already standing and were not written, and that cut {worst.Severed} more "
-                + $"off its own footing, which stand in the air. {worst.Landed} block(s) are in the world"
+                $"{kind} '{id}' seats clear of what it then reaches into: {worst.Blocked} of its "
+                + $"{worst.Wanted} blocks are inside something already standing and were not written, and that "
+                + $"cut {worst.Severed} more off its own footing, which stand in the air. {worst.Landed} "
+                + "block(s) are in the world"
                 + (worst.At is { } at ? $"; first stopped at ({at.X}, {at.Y}, {at.Z})" : "")
-                + ". A prop seats on its feet and is written wherever it meets air, so standing clear of a "
-                + "wall is not the same as fitting beside one — move it further off, or make it smaller",
+                + (buried
+                    ? ". Over half of it is buried, so what stands there is not the prop that was placed — a "
+                      + "prop seats on the lowest column its feet cover, which on stepped ground is the bottom "
+                      + "of a step, so move it onto one step or the other"
+                    : ". A prop seats on its feet and is written wherever it meets air, so standing clear of a "
+                      + "wall is not the same as fitting beside one — move it further off, or make it smaller"),
                 Severity.Complaint, Subjects: [id]));
 
         return new Placed(images.Count, covered);

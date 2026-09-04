@@ -5236,6 +5236,14 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the mirror, and 161 of 351 shapes with their material on one half and nowhere on the other: one team's road
   and train in colour, the other's finished as ordinary ground. Both grains now travel with the image, and the
   pair is held by a test each.
+- **A prop the ground swallowed says so (WE84).** `DR-CUT` was raised off what the clip *severed* from a
+  prop's own feet, which is blind to the case that matters most: a prop seats on the lowest column its feet
+  cover, so on a stepped landform its body is written into ground standing over it, almost nothing lands, and
+  the remnant that does rests on real ground — nothing severed, nothing said. On `opus5-quiverstone` three of
+  six trees came out that way, one of them a 20-cell pancake of leaves at a single Y with no trunk anywhere
+  under it. The rule gains a second arm on the share the ground *blocked* (`ClipBlockedShare`, over half): a
+  third is a rock against a wall and stays silent, over half is a prop that is not there. Measured, a grown
+  oak on a column nine courses below its neighbours puts 8 of 137 blocks in the world and severs none.
 - **A theme that cannot show itself on the shape it was scoped to says so (WE81).** A theme picks its bucket
   per column by whether that column is an edge, so a shape with no interior column is rim and wall the whole
   way and its surface, its fill and whatever pattern they carry are nowhere on it. `SK23` names it, grouped

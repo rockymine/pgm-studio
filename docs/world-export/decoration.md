@@ -205,9 +205,22 @@ truncation measure, and it is the boulder's answer rather than this one. Against
 | grown oak, height 32 | 8 | 23 | 43 | raised |
 | erratic, size 4–10 | 2 | 51–1,060 | 0 | — |
 
-The height-20 row at eight blocks' clearance is the whole case for the rule: **429 of its 430 blocks are in
+The height-20 row at eight blocks' clearance is the whole case for that arm: **429 of its 430 blocks are in
 the world** and a limb is floating. No measure of how much landed can see that, which is why the finding is
 raised off what was severed and reports both numbers.
+
+**Buried is the third state, and it is the first one read from underneath.** A prop seats on the *lowest*
+column its feet cover — the rule that lets it sit into a slope rather than perch on its high corner — so on a
+stepped landform a trunk standing a course under its neighbours has its whole body written into ground that
+stands over it. Almost nothing lands, and what does is whatever cleared the surface: a pancake of leaves lying
+on a mesa with no trunk under it. That remnant rests on real ground, so **nothing is severed** and the count
+above stays nought however much of the tree went missing. Measured on a column nine courses below its
+neighbours, a grown oak of height 10 puts **8 of its 137 blocks in the world**, blocks 129 and severs none.
+
+So the rule has a second arm, and it is a share after all — not of what landed but of what the ground
+blocked. Past `DressingRules.ClipBlockedShare` of the body inside something already standing, what stands
+there is not the prop that was placed. A third is a rock against a wall and stays silent; over half is a prop
+the ground swallowed. The two arms share one finding, which names which reading raised it.
 
 A prop is left exactly as the clip left it, floating piece included. This is a complaint: the author moves
 the prop or makes it smaller, and neither is a decision the pass can take for them.

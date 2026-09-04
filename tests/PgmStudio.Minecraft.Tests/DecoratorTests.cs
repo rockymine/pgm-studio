@@ -527,6 +527,68 @@ public sealed class DecoratorTests
 
     /// <summary>A plate with a wall standing on it `gap` blocks east of the origin, taller than anything these
     /// tests place, so the obstruction is the wall rather than the top of it.</summary>
+    /// <summary><b>The same rule from underneath: a prop buried by the ground it seats on.</b> A prop seats on
+    /// the lowest column its feet cover, which is what lets it sit into a slope — and where that column is a
+    /// step below its neighbours the body is written into ground standing over it and almost none of it lands.
+    /// What does land rests on real ground, so nothing is severed and the severing count stays nought however
+    /// much of the tree went missing: measured here, 129 of 137 blocks blocked, 0 severed, 8 in the world — a
+    /// pancake of leaves lying on a mesa. The share is the reading that sees it.</summary>
+    [Test]
+    public async Task A_tree_seated_a_step_below_its_neighbours_and_buried_by_them_is_named()
+    {
+        var (world, top) = Sunken(rise: 9);
+        var report = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "oak", X = -1, Z = 0, Seed = 7,
+                            Style = new TreeStyle { Form = TreeForm.Grown, Wood = "oak", Height = 10 } }]));
+
+        var cut = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.PropCut);
+        await Assert.That(cut).IsNotNull();
+        await Assert.That(cut!.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(cut.Message).Contains("oak");
+        await Assert.That(cut.Message).Contains("buried");
+        await Assert.That(report.Trees).IsEqualTo(1);                     // it is in the world, as it fell
+    }
+
+    /// <summary>And a tree beside a step it merely stands over says nothing: being clipped is not the fault,
+    /// and the same tree a block back from a nine-course rise keeps enough of itself to read as a tree.
+    /// </summary>
+    [Test]
+    public async Task A_tree_beside_a_step_it_stands_over_says_nothing()
+    {
+        var (world, top) = Stepped(rise: 9);
+        var report = Decorator.Decorate(world, Context(top,
+            [new TreeProp { Id = "oak", X = -1, Z = 0, Seed = 7,
+                            Style = new TreeStyle { Form = TreeForm.Grown, Wood = "oak", Height = 10 } }]));
+
+        await Assert.That(report.Trees).IsEqualTo(1);
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.PropCut)).IsFalse();
+    }
+
+    // One column at (-1, 0) standing `rise` courses below everything around it — the shape a stepped mesa
+    // leaves under a trunk that seats on the bottom of a step.
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> Top) Sunken(int rise)
+        => Terrain((x, z) => x == -1 && z == 0 ? 7 : 7 + rise);
+
+    // Ground that steps up by `rise` at x = 0: the half at x < 0 stands at y 8, the half from x = 0 up stands
+    // `rise` higher.
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> Top) Stepped(int rise)
+        => Terrain((x, z) => x >= 0 ? 7 + rise : 7);
+
+    private static (VoxelWorld World, Dictionary<(int X, int Z), int> Top) Terrain(Func<int, int, int> heightAt)
+    {
+        var world = new VoxelWorld();
+        var top = new Dictionary<(int X, int Z), int>();
+        for (var z = -40; z < 40; z++)
+        for (var x = -40; x < 40; x++)
+        {
+            var height = heightAt(x, z);
+            for (var y = 0; y < height; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, height, z, Blocks.Grass);
+            top[(x, z)] = height + 1;
+        }
+        return (world, top);
+    }
+
     private static (VoxelWorld World, Dictionary<(int X, int Z), int> Top) Wall(int gap)
     {
         var world = new VoxelWorld();
