@@ -57,7 +57,7 @@ public sealed class HouseStamperTests
     [Arguments(7, 13)]   // deeper than wide — and the logs turn with it
     public async Task A_roof_laid_in_logs_lies_along_its_ridge(int width, int depth)
     {
-        const int Spruce = 1, AlongX = 4, AlongZ = 8;
+        const int AlongX = 4, AlongZ = 8;
         var style = new HouseStyle
         {
             // The corner post is an upright oak log by default and the shell is what is under test, so it goes
@@ -349,6 +349,69 @@ public sealed class HouseStamperTests
         await Assert.That(world.GetBlock(0, FloorY + 2, 4).Id).IsEqualTo(Blocks.QuartzBlock);   // the wall's top
         await Assert.That(world.GetBlock(0, FloorY + 4, 4).Id).IsEqualTo(Blocks.QuartzBlock);   // the gable
         await Assert.That(world.GetBlock(0, FloorY + 4, 4).Id).IsNotEqualTo(Blocks.Obsidian);
+    }
+
+    private const int Spruce = 1, DarkOak = 5;
+
+    // Every block of the rake — the roof's outer ring along the overhang at x = -1, which on a shed climbs
+    // with the slope, so the cubes and the half courses between them all stand in this one column plane.
+    private static List<(int Id, int Data)> Rake(VoxelWorld world) =>
+        [.. from z in Enumerable.Range(-1, 12)
+            from y in Enumerable.Range(FloorY, 24)
+            let block = world.GetBlock(-1, y, z)
+            where block.Id != Blocks.Air
+            select block];
+
+    /// <summary><b>A half course is cut from whatever that column is cut from.</b> A roof stepping in halves
+    /// alternates a cube and a slab up the slope, and the trim along its rake is only on the cubes if the slab
+    /// is written from the body — so a dark oak verge over a spruce roof comes out dark oak, spruce, dark oak,
+    /// spruce all the way up, which reads as neither material. `opus5-scarrow-delph`'s `winder` is that roof.
+    /// </summary>
+    [Test]
+    public async Task A_stepped_roofs_verge_carries_its_own_slab()
+    {
+        // Spruce body stepping in a spruce slab, dark oak verge — the material pair the corpus board used.
+        var world = House(13, 9, new HouseStyle
+        {
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Shed, Slab = Blocks.WoodenSlab, SlabData = Spruce, RidgeCap = false,
+                Body = new SolidMaterial(Blocks.Planks, Spruce),
+                Verge = new SolidMaterial(Blocks.Planks, DarkOak),
+            },
+        });
+
+        // The rake: the roof's outer ring along the overhang at x = -1, climbing with the shed. Every block
+        // in it — cube and half course alike — is dark oak; before, the half courses were the body's spruce.
+        var rake = Rake(world);
+
+        await Assert.That(rake.Count).IsGreaterThan(2).Because("the rake has cubes and half courses in it");
+        foreach (var (id, data) in rake)
+            await Assert.That(BlockMaterials.Of(id, data)).IsEqualTo("dark oak");
+        await Assert.That(rake.Any(block => BlockFamilies.IsSlab(block.Id))).IsTrue()
+            .Because("a stepped roof puts a half course in every rake column");
+    }
+
+    /// <summary>And a verge with no slab of its own keeps the body's, because no slab is cut from a log. The
+    /// alternative would be a gap in the rake, which is worse than a course of the wrong wood.</summary>
+    [Test]
+    public async Task A_verge_with_no_slab_of_its_own_keeps_the_bodys()
+    {
+        var world = House(13, 9, new HouseStyle
+        {
+            Roof = new RoofStyle
+            {
+                Form = RoofForm.Shed, Slab = Blocks.WoodenSlab, SlabData = Spruce, RidgeCap = false,
+                Body = new SolidMaterial(Blocks.Planks, Spruce),
+                Verge = new SolidMaterial(Blocks.Log, Spruce),          // a bare log: no slab is cut from one
+            },
+        });
+
+        var slabs = Rake(world).Where(block => BlockFamilies.IsSlab(block.Id)).ToList();
+
+        await Assert.That(slabs.Count).IsGreaterThan(0);
+        foreach (var (id, data) in slabs)
+            await Assert.That((id, data)).IsEqualTo((Blocks.WoodenSlab, Spruce));
     }
 
     [Test]

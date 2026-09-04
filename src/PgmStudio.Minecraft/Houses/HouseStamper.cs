@@ -163,6 +163,15 @@ public static class HouseStamper
             Put(x, y, z, material, ring, depth);
         }
 
+        /// <summary>The slab a rim column's half course is cut from: the block that column's own material
+        /// resolves to, read back through <see cref="BlockMaterials.SlabOf"/>. Null where that material has no
+        /// slab, which leaves the body's — a laid log has none, and no slab is cut from a log.</summary>
+        (int Id, int Data)? RimSlab(TerrainMaterial material, int x, int y, int z)
+        {
+            var (id, data) = material.Resolve(new BucketContext(x, y, z, TerrainBucket.Fill, 0, color));
+            return BlockMaterials.SlabOf(id, data);
+        }
+
         // ── the foundation ────────────────────────────────────────────────────────────────────────────
         // The plate claims downward from the course players stand on and the footing rings it one block proud
         // — both over the ground the house was given, not over what its walls kept, so a porch stands on the
@@ -537,8 +546,16 @@ public static class HouseStamper
             var from = Math.Max(field.Underside(x, z), lowest);
             for (var y = from; y <= (slab ? crown - 1 : crown); y++)
                 Put(x, y, z, material, ring, run: ridgeRun);
+            // <b>A half course is cut from whatever that column is cut from.</b> The cubes under it already
+            // take the verge on the roof's own rim, so writing the body's slab over them breaks the trim on
+            // every other course and the rake reads as two materials alternating up the slope. Where the rim's
+            // material has no slab of its own — a laid log, a block outside the material table — the body's
+            // stands, which is the only answer left.
+            var course = slab && !ReferenceEquals(material, style.Roof.Body)
+                ? RimSlab(material, x, crown, z) ?? (slabBlock, style.Roof.SlabData & 0x7)
+                : (slabBlock, style.Roof.SlabData & 0x7);
             if (slab && crown >= lowest && crown is > 0 and < VoxelWorld.MaxHeight)
-                world.SetBlock(x, crown, z, slabBlock, style.Roof.SlabData & 0x7);
+                world.SetBlock(x, crown, z, course.Item1, course.Item2);
 
             // The course the walls under this column have to stop below. The wall pass runs after every roof
             // volume is laid and deliberately outranks it, so without this the eave courses the roof has just

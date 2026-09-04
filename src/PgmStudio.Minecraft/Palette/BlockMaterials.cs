@@ -36,6 +36,20 @@ public static class BlockMaterials
     public static bool Same(int id, int data, int otherId, int otherData) =>
         Of(id, data) == Of(otherId, otherData);
 
+    // material → its single slab, read off the same table Of reads. A material with none — a log, mossy
+    // cobblestone, anything outside the table — has no entry and answers null.
+    private static readonly Dictionary<string, (int Id, int Data)> SlabNamed =
+        Named.Where(entry => BlockFamilies.IsSlab(entry.Key.Id))
+             .GroupBy(entry => entry.Value)
+             .ToDictionary(group => group.Key, group => group.First().Key);
+
+    /// <summary>The single slab cut from the same material as <paramref name="id"/>:<paramref name="data"/>,
+    /// or null where that material has none. What a course continuing a whole block by halves is made of: a
+    /// dark oak verge steps in a dark oak slab, and a laid log steps in nothing because no slab is cut from a
+    /// log. Read off <see cref="Of"/>'s own table, so the two cannot disagree about what a material is.</summary>
+    public static (int Id, int Data)? SlabOf(int id, int data) =>
+        SlabNamed.TryGetValue(Of(id, data), out var slab) ? slab : null;
+
     private static Dictionary<(int, int), string> Build()
     {
         var table = new Dictionary<(int, int), string>();

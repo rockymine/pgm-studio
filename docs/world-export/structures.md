@@ -394,6 +394,14 @@ material: a sandstone slab under a brick roof builds alternating courses of two 
 neither. Body and verge may be the same block, which is a whole brick roof, or they may differ, which is how a
 dark oak verge trims one; what neither may be is a **bare** log or a ground material.
 
+**And a half course is cut from whatever the column it caps is cut from**, which on the roof's outer ring is
+the verge. Written from `roofSlab` everywhere, the trim along a stepped rake lands on the cubes and not on the
+slabs between them, so a dark oak verge over a spruce roof reads dark oak, spruce, dark oak, spruce all the way
+up the slope. The rim's own slab is read off the material table — `BlockMaterials.SlabOf`, the same table that
+answers what a block is *cut from* — so the two cannot disagree about what dark oak is. A verge whose material
+has no slab keeps the body's, since a gap in the rake is worse than a course of the wrong wood; that is the
+laid log's case, and `HS3` already refuses `roofSlab` over a log **body** for the same reason.
+
 **A laid log is a roof material, and the difference is the axis.** A log's data nibble is which way it lies, so
 a log named as a solid has none: every one of them stands upright and shows a sawn face out at the slope, which
 is the fault the ban was written for. A `laidLog` takes the axis the surface it is on is going, and for a roof

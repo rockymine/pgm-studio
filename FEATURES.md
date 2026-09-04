@@ -5254,6 +5254,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   relief is wrong: the switch, `StairRepair`, `ReliefSpec.Stairs`, the document word and the inspector's
   checkbox are all deleted, and the walk is what says so — `EX1` where the board is no longer one place, and
   the steepness tiers for everything short of that.
+- **A stepped roof's verge carries its own slab (WE87).** A roof rising by halves alternates a cube and a slab
+  up the slope, and the slab course was written from `roofSlab` at every cell — including the roof's own outer
+  ring, where the cubes take the verge. So the trim landed on the cubes and not on the half courses between
+  them, and a dark oak verge over a spruce roof came out dark oak, spruce, dark oak, spruce all the way up the
+  rake: `opus5-scarrow-delph`'s `winder` at (22, 94), unbroken 5:5 on the whole-block courses and 126:1 on
+  every half. The rim's slab is derived from its own material through `BlockMaterials.SlabOf`, read off the
+  same table that answers what a block is cut from, so nothing has to be stated twice; a verge whose material
+  has no slab — a laid log — keeps the body's, since a gap in the rake is worse than one course of the wrong
+  wood.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map
