@@ -310,6 +310,76 @@ public sealed class TerrainThemeScopeTests
         await Assert.That(findings.Count).IsEqualTo(0);
     }
 
+    // ── paint laid over ground rather than being it (TP23) ────────────────────────────────────────
+
+    /// <summary>A theme with a distinctive block in every bucket, so which bucket answered is readable.</summary>
+    private static JsonElement Everywhere(int rim, int wall, int surface, int fill, bool edgesFromGround = false) =>
+        JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(new TerrainTheme
+        {
+            Rim = new TopBand(new SolidMaterial(rim), Depth: 1),
+            Wall = new SolidMaterial(wall),
+            Surface = new TopBand(new SolidMaterial(surface), Depth: 1),
+            Fill = new SolidMaterial(fill),
+            EdgesFromGround = edgesFromGround,
+        }));
+
+    private static int BucketId(TerrainTheme theme, TerrainBucket bucket) =>
+        theme.MaterialFor(bucket).Resolve(new BucketContext(0, 0, 0, bucket, 0)).Id;
+
+    /// <summary><b>A stroke keeps its own top and leaves the landmass's edge alone.</b> A theme is a whole
+    /// column, which is right for a theme that <em>is</em> the ground and wrong for one laid over it: scoped
+    /// to a road marking or a worn patch it repaints the rim and runs its own material the whole height of the
+    /// exposed wall, which on `opus5-quatrefoil` put five courses of a stroke's dirt down the map's own face
+    /// at (44, 19) against two on the ground inside it.</summary>
+    [Test]
+    public async Task A_theme_whose_edges_are_the_grounds_keeps_its_surface_and_takes_the_rest()
+    {
+        var themes = new Dictionary<string, JsonElement>
+        {
+            ["moor"] = Everywhere(rim: 10, wall: 11, surface: 12, fill: 13),
+            ["stroke"] = Everywhere(rim: 20, wall: 21, surface: 22, fill: 23, edgesFromGround: true),
+        };
+        var at = TerrainThemeScope.ThemeAt(Layout(themes, "moor",
+            Rect("ground", 0, 0, 20, 20, "moor"),
+            Rect("brake", 4, 4, 8, 8, "stroke")));
+
+        var paint = at("ground", 5, 5);
+        await Assert.That(BucketId(paint, TerrainBucket.Surface)).IsEqualTo(22).Because("the stroke's own top");
+        await Assert.That(BucketId(paint, TerrainBucket.Fill)).IsEqualTo(23).Because("and its own fill");
+        await Assert.That(BucketId(paint, TerrainBucket.Rim)).IsEqualTo(10).Because("the landmass's edge");
+        await Assert.That(BucketId(paint, TerrainBucket.Wall)).IsEqualTo(11).Because("and the landmass's face");
+    }
+
+    /// <summary>Unset, a theme is the whole column it always was — the word is opt-in, and a board that states
+    /// none paints exactly as it did.</summary>
+    [Test]
+    public async Task A_theme_that_does_not_say_so_still_owns_its_whole_column()
+    {
+        var themes = new Dictionary<string, JsonElement>
+        {
+            ["moor"] = Everywhere(rim: 10, wall: 11, surface: 12, fill: 13),
+            ["stroke"] = Everywhere(rim: 20, wall: 21, surface: 22, fill: 23),
+        };
+        var at = TerrainThemeScope.ThemeAt(Layout(themes, "moor",
+            Rect("ground", 0, 0, 20, 20, "moor"),
+            Rect("brake", 4, 4, 8, 8, "stroke")));
+
+        var paint = at("ground", 5, 5);
+        foreach (var (bucket, id) in new[]
+                 { (TerrainBucket.Rim, 20), (TerrainBucket.Wall, 21),
+                   (TerrainBucket.Surface, 22), (TerrainBucket.Fill, 23) })
+            await Assert.That(BucketId(paint, bucket)).IsEqualTo(id);
+    }
+
+    /// <summary>The word survives the round trip, since a theme is stored as the record graph.</summary>
+    [Test]
+    public async Task The_word_round_trips_through_the_theme_json()
+    {
+        var read = TerrainThemeJson.Deserialize(
+            TerrainThemeJson.Serialize(TerrainTheme.Default with { EdgesFromGround = true }));
+        await Assert.That(read.EdgesFromGround).IsTrue();
+    }
+
     // ── the orbit carries what a shape says, not only where it is ─────────────────────────────────
 
     /// <summary>A mirroring group, so every shape stands on the board once per orbit image.</summary>

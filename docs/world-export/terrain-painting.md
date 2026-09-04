@@ -7,8 +7,8 @@ surface, fill — through whichever theme applies; unthemed, every bucket stays 
 It reads the terrain the world builder already placed and rewrites its surface — no new geometry, only
 materials.
 
-**Status: the whole model — TP1–TP22, including scoped per-shape theming (TP10) and a shape's own material
-(TP22) — is built and shipped.**
+**Status: the whole model — TP1–TP23, including scoped per-shape theming (TP10), a shape's own material
+(TP22) and paint laid over ground rather than being it (TP23) — is built and shipped.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `WorldBuilder.Build`;
 the four-stage architecture of §5 is in place. A theme is resolved **per cell** through `TerrainThemeScope` (a
 sketch shape's own theme, else the map default); themes are authored in the Sketch tool's **Theme** phase and
@@ -290,6 +290,23 @@ surface off, which leaves `TerrainPainter.Resolve` a single band from the shape'
 rather than four equal ones is what makes a depth-axis stack read its depth from the shape's own top instead
 of restarting at every bucket boundary. The bedrock rule stays the board's, because what a thing is made of
 does not decide where the world's floor is.
+
+**And the other end of the same question: a theme may say its edges are the ground's** (TP23,
+`edgesFromGround`). A theme is a whole column, which is right for a theme that *is* the ground and wrong for
+paint laid **over** it — a road marking, a worn patch, a stroke. Scoped to a shape lying on a landmass, such a
+theme takes that landmass's top course and its face with it: a stroke reaching the board's edge repaints the
+rim and runs its own material down the whole exposed wall, which is the map's own face restated in paint and
+taller the deeper the drop. Measured on `opus5-quatrefoil`, the `brake` stroke at the void edge (44, 19) stands
+five courses of its dirt against two on the ground three cells inside it, and at
+`opus5-lindenkreuz` the car park's white bay lines are a stone column three deep under a single white cap,
+striping the cut face wherever the ground is opened.
+
+With the word set the shape keeps its `surface` and its `fill` and takes every **geometry-chosen** bucket —
+the rim, the wall, `rimEdges`, `wallEnabled` — from the map default, composed as `TerrainTheme.OverGround` at
+the moment the scope is read. Composed then rather than stored composed, because the same paint scoped onto a
+board with a different default has to take that board's edges. It is the mirror of TP22: a `material` says
+*this shape is made of that* and owns every bucket; `edgesFromGround` says *this is paint on ground* and owns
+only the two the geometry does not choose.
 
 **It says nothing about walking, and that is the point.** `kind: "made"` is a *layer* word and it takes the
 whole layer out of the ground everything rests on, out of the reachability walk and out of the stacking rules
@@ -710,4 +727,5 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP19** | `WallFrameMaterial` inks the top and bottom `Thickness` courses and the corners of the shape the wall wraps, filling the panel between. `Angle` is how sharp a turn (TP18) has to be to be inked, and the same number sets how far the ink wraps round each corner, because the measured turn ramps to a vertex rather than switching on at it. A circle reaches no usable threshold, so it has no corners and the frame falls back to its two courses — a layer stack, which is the right answer for a shape with nothing to pick out. A wall too short to hold two courses is all edge. |
 | **TP20** | `LogCheckerMaterial` lays a checkerboard with **one** log and varies how it is turned rather than what it is made of: upright on one square, on its side on the next, so a single block reads as a woven board. Its own material rather than a checker over two solids, because the two squares are one block and two orientations and a log's data nibble *is* its axis. **A log on its side lies along the wall, never across it** — the axis decides which two faces are the sawn ends — so it takes the wall's own run (`BucketContext.PerimeterRun`, the third perimeter fact beside the arc and the turn); at a corner no lying log shows bark to both faces, so it stands. `LaidLogMaterial` is that pattern with one of its two squares taken away: the beam course running through the masonry everywhere. |
 | **TP21** | A pattern samples the cell **folded into the board's primary image**, not the cell itself. Every pattern is a function of position, so on a mirrored board a cell and its image sample two different places and resolve to two different blocks — a floor that does not match across the map and a middle that is not symmetric with itself. The painter fills `BucketContext.Sample` with the cell put through `OrbitScatter.Canonical`, the one member of a symmetry orbit that stands for all of them, so every image resolves alike and a cell on the axis folds to itself. The fold is of the plane only — no symmetry mode turns the vertical — so a risen pattern (TP15) samples the folded column at its own height. The cell being painted is untouched: a context with no orbit to fold into (a style swatch, a house course, a freeform board) samples its own cell. A team tint does not fold, since `TeamData` is a fact about the cell and each side keeps its colour. The same point is handed to a path's pave and a water prop's bank; a boulder needs none, being built in its own local frame and turned into place. |
+| **TP23** | A theme may say **its edges are the ground's** (`edgesFromGround`). A theme is a whole column — bedrock, fill, wall, rim, surface — which is the right shape for a theme that *is* the ground and the wrong one for paint laid **over** it: a road marking, a worn patch, a stroke. Scoped to a shape lying on a landmass, such a theme takes that landmass's own top course and its face with it, so a stroke reaching the board's edge repaints the rim and runs its own material the whole height of the exposed wall — the map's own face restated in paint, and taller the deeper the drop. With the word set the shape keeps its `surface` and its `fill` and takes every **geometry-chosen** bucket from the map default: the rim, the wall, `rimEdges` and `wallEnabled`, resolved as `TerrainTheme.OverGround` at the moment the scope is read rather than stored composed, since the same paint on a board with another default takes that board's edges. Bedrock is the ground's for `TP22`'s reason: what paint a cell wears does not decide where the world's floor is. Unset — the default — a theme owns its whole column exactly as before. |
 | **TP22** | A shape may state a **`material`** in place of a theme: one `TerrainMaterial` painted over its whole span, with no rim, no wall and no surface depth. A theme chooses its bucket per column by whether that column is an edge, so on a shape with no interior column — a stilt, a kerb, a tread, a rail — only the rim and the wall ever paint and the theme's own surface is nowhere on it; `material` is the statement for a thing that is *made of* something rather than ground with a top and a face. It reaches the painter as `TerrainTheme.OfMaterial` — the material in `fill`, the three geometry-chosen buckets off — which leaves one band over the shape's span, so a depth-axis stack reads from the shape's own top. It is a **shape** word about paint and says nothing about walking: `kind: "made"` is the *layer* word that takes a thing out of the walks and out of the ground everything rests on, and a stair needs the paint without the exile. A theme scoped to a shape it cannot show on is `SK23`, grouped per layer and theme; stating both is `SK24`. |

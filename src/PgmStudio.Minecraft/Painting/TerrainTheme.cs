@@ -281,6 +281,19 @@ public sealed record TerrainTheme
     /// <summary>The required base (TP12): every block no enabled bucket claimed. Stone.</summary>
     public TerrainMaterial Fill { get; init; } = new SolidMaterial(Blocks.Stone);
 
+    /// <summary><b>Whether the rim and the wall are the ground's rather than this theme's</b> (TP23). A theme
+    /// is a whole column, which is right for a theme that <em>is</em> the ground and wrong for one laid
+    /// <em>over</em> it: a road marking, a paint stroke, a worn patch. Scoped to a shape lying on a landmass,
+    /// such a theme takes the landmass's own top courses and its face with it — so a stroke reaching the
+    /// board's edge repaints the rim and runs its material the whole height of the exposed wall, which is the
+    /// map's own face restated in paint.
+    ///
+    /// <para>Set, the shape keeps its <see cref="Surface"/> and its <see cref="Fill"/> and takes every
+    /// geometry-chosen bucket — the rim, the wall, which edges count and whether the wall paints at all — from
+    /// the ground under it, resolved as <see cref="OverGround"/>. The paint then reads as paint: it finishes
+    /// the top of the column and leaves the landmass's edge alone.</para></summary>
+    public bool EdgesFromGround { get; init; }
+
     /// <summary>Unthemed ground: stone in every bucket. What a map paints where no theme reaches, and what a
     /// bucket a theme leaves unbound resolves to.</summary>
     public static TerrainTheme Default { get; } = new();
@@ -302,6 +315,19 @@ public sealed record TerrainTheme
         Rim = new TopBand(material, Depth: 1, Enabled: false),
         Surface = new TopBand(material, Depth: 1, Enabled: false),
     };
+
+    /// <summary>A theme laid <b>over</b> ground rather than being it (TP23): <paramref name="paint"/>'s surface
+    /// and fill on <paramref name="ground"/>'s edges. The rim, the wall, which edges count and whether the wall
+    /// paints at all are the landmass's, because they are what the landmass looks like where it stops — and a
+    /// stroke drawn across it is not what it is made of. Bedrock is the ground's for the reason
+    /// <see cref="OfMaterial"/>'s is: what paint a cell wears does not decide where the world's floor is.
+    ///
+    /// <para>A paint theme that states no <see cref="EdgesFromGround"/> is returned unchanged, so the two
+    /// grains stay one call.</para></summary>
+    public static TerrainTheme OverGround(TerrainTheme paint, TerrainTheme ground) =>
+        paint.EdgesFromGround
+            ? ground with { Surface = paint.Surface, Fill = paint.Fill, EdgesFromGround = true }
+            : paint;
 
     /// <summary>The material a bucket resolves through (bedrock is fixed, never themeable).</summary>
     public TerrainMaterial MaterialFor(TerrainBucket bucket) => bucket switch

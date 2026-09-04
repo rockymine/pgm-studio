@@ -5301,6 +5301,15 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   built as a straight-sided five-course shaft: grass at y16 on every side, water at y11, no shore anywhere
   (x −39, z 17–23). The same shape had to be talked out of `tallow-weirgate` by hand. `DR-BANK` measures the
   tallest bank the carve cut against the depth that was stated and names the cell and its two courses.
+- **Paint may be laid over ground instead of being it (WE93).** A theme is a whole column, which is right for
+  ground and wrong for a stroke: scoped to a shape lying on a landmass it took the landmass's own top course
+  and its face with it. On `opus5-quatrefoil` the `brake` stroke at the void edge (44, 19) runs five courses of
+  its own dirt down the map's face against two on the ground three cells inside it; on `opus5-lindenkreuz` the
+  car park's bay lines are a three-deep stone column under one white cap, striping the cut face wherever the
+  ground is opened — because a `line` theme's fill is stone and a theme owns its fill. `TP23`
+  (`edgesFromGround`) keeps the shape's surface and fill and takes the rim, the wall, `rimEdges` and
+  `wallEnabled` from the map default, composed when the scope is read so the same paint on another board takes
+  that board's edges. The mirror of `TP22`: a `material` says *made of*, this says *painted on*.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

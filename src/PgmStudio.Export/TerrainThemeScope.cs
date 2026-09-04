@@ -16,7 +16,10 @@ namespace PgmStudio.Export;
 ///
 /// <para>A shape's <c>material</c> arrives here as the theme it means (<see cref="TerrainTheme.OfMaterial"/>),
 /// so the painter has one input and not two: what a shape is made of and what paints the ground it is part of
-/// are the same answer at two grains, and only this class knows which grain a cell was stated at.</para>
+/// are the same answer at two grains, and only this class knows which grain a cell was stated at. A theme
+/// stating <c>edgesFromGround</c> is a third: paint laid <em>over</em> a landmass rather than the landmass
+/// itself, so it keeps its surface and its fill and takes the rim and the wall from the map default
+/// (<see cref="TerrainTheme.OverGround"/>, TP23).</para>
 /// <para>Theming lives on the sketch geometry, not the plan: the scope is the shape, rasterised fresh at export,
 /// so reshaping a shape moves its paint with it. The sibling of <see cref="TeamTerritory"/> for team ownership.</para>
 /// </summary>
@@ -55,9 +58,14 @@ public static class TerrainThemeScope
 
         if (shapeTheme.Count == 0) return (_, _, _) => mapDefault;
 
+        // A theme saying its edges are the ground's is composed against the map default, which is the board's
+        // own answer to what its landmass looks like where it stops (TP23). Composed here rather than stored
+        // composed, because the same paint scoped onto a board with a different default takes that board's.
         var cellToShape = SketchRasterizer.ShapeThemeOwners(layoutJson);
         return (layer, x, z) => cellToShape.TryGetValue((layer, x, z), out var shapeId)
-            && shapeTheme.TryGetValue((layer, shapeId), out var theme) ? theme : mapDefault;
+            && shapeTheme.TryGetValue((layer, shapeId), out var theme)
+                ? TerrainTheme.OverGround(theme, mapDefault)
+                : mapDefault;
     }
 
     /// <summary>SK23 — every themed shape whose theme cannot show itself on it, because the shape has no
