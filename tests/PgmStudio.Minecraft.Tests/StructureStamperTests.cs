@@ -126,7 +126,7 @@ public sealed class StructureStamperTests
         for (var y = 0; y <= 20; y++)
             w.SetBlock(x, y, z, Blocks.Stone);               // ordinary terrain for the plate to be cut into
 
-        StructureStamper.StampPlatform(w, surf, minX: 8, minZ: 8, maxX: 12, maxZ: 12);
+        StructureStamper.StampPlatform(w, groundTop: 21, minX: 8, minZ: 8, maxX: 12, maxZ: 12);
         StructureStamper.StampDefenseChest(w, surf, minX: 8, minZ: 8, maxX: 12, maxZ: 12);
 
         await Assert.That(w.GetBlock(8, 21 - 1 - StructureStamper.PlatformDepth, 8).Id).IsEqualTo(Blocks.Bedrock);
@@ -206,8 +206,7 @@ public sealed class StructureStamperTests
     public async Task Platform_is_a_5x5_bedrock_plate_three_courses_beneath_the_ground()
     {
         var w = new VoxelWorld();
-        var surf = FlatSurface(-10, -10, 10, 10, top: 20);   // ground surface (solid) block at y=19
-        StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+        StructureStamper.StampPlatform(w, groundTop: 20, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
 
         // Three courses below the ground's own top block (19 - 3 = 16), full 5×5 footprint.
         for (var x = -2; x <= 2; x++)
@@ -247,7 +246,7 @@ public sealed class StructureStamperTests
         var surf = FlatSurface(-10, -10, 10, 10, top: 20);
 
         var plateOnly = new VoxelWorld();
-        StructureStamper.StampPlatform(plateOnly, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+        StructureStamper.StampPlatform(plateOnly, groundTop: 20, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
         await Assert.That(plateOnly.GetBlock(0, 16, 0).Id).IsEqualTo(Blocks.Bedrock);
         await Assert.That(plateOnly.GetBlock(0, 20, 0).Id).IsEqualTo(Blocks.Air)
             .Because("a core takes this stamp's opposite number and no plate");
@@ -263,8 +262,7 @@ public sealed class StructureStamperTests
     public async Task Platform_noops_when_the_terrain_is_too_shallow_to_bury_a_course_under()
     {
         var w = new VoxelWorld();
-        var surf = FlatSurface(-10, -10, 10, 10, top: 3);   // ground surface at y=2 — nothing to bury under
-        StructureStamper.StampPlatform(w, surf, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
+        StructureStamper.StampPlatform(w, groundTop: 3, minX: -2, minZ: -2, maxX: 2, maxZ: 2);
 
         await Assert.That(w.GetBlock(0, 0, 0).Id).IsEqualTo(Blocks.Air);
         await Assert.That(w.IsEmpty).IsTrue();      // no plate means no chest either

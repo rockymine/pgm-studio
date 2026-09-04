@@ -317,4 +317,74 @@ public sealed class DestroyableWorldTests
         await Assert.That(reparsed.Destroyables.All(d => d.IsObjective)).IsTrue();
         await Assert.That(reparsed.Gamemodes).Contains(Gamemodes.Dtm);
     }
+    // ── the plate under a goal, and the ground it is measured from ─────────────────────────────────
+
+    /// <summary>Two pieces eighteen courses apart, the goal standing on the low one two blocks from the seam,
+    /// so its plate's fixed 5×5 reaches onto the high one. The plate is a square the goal did not choose, and
+    /// a plate resolving its own depth over that square takes the tallest column in it — which on
+    /// <c>opus5-tiefkreuz</c> put a 5×5 sheet of bedrock at y26 over a monument at y11 and left the monument
+    /// with no plate at all.</summary>
+    private const string Shelf = """
+        {
+          "plan": 2,
+          "meta": { "name": "Shelf Probe" },
+          "globals": { "cell": 5, "symmetry": "rot_180", "surface": 9, "headroom": 24 },
+          "pieces": [
+            { "id": "low",  "role": "piece", "rect": [2, -2, 5, 4], "surface": 12 },
+            { "id": "high", "role": "piece", "rect": [1, -2, 2, 4], "surface": 30 }
+          ],
+          "placements": {
+            "destroyables": [ { "piece": "low", "at": [6, 15], "style": "pillar-3" } ]
+          }
+        }
+        """;
+
+    [Test]
+    public async Task The_plate_is_buried_under_the_ground_the_goal_stands_on_and_not_under_the_tallest_column_it_spans()
+    {
+        var built = Built(Shelf);
+        var world = built.World;
+        var goals = built.ResolvedIntent.Destroyables!;
+        await Assert.That(goals.Count).IsEqualTo(2).Because("rot_180 gives the authored marker two images");
+        var spanned = 0;
+
+        foreach (var goal in goals)
+        {
+            var box = goal.Box!.Value;
+            var groundTop = box.MinY - goal.Float;                       // the surface the goal resolved on
+            var plateY = groundTop - 1 - StructureStamper.PlatformDepth;
+            var (minX, minZ, maxX, maxZ) = ObjectiveFootprint.Centred(
+                box.MinX, box.MinZ, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
+
+            // The board this claim needs: the goal on the low shelf and the plate's own square reaching the
+            // high one. Read over the whole column, because the shelf that lifted the plate stands well above
+            // the goal — a read stopping at the goal's own floor is exactly the read that cannot see it.
+            var tallest = groundTop;
+            for (var x = minX; x <= maxX; x++)
+            for (var z = minZ; z <= maxZ; z++)
+                tallest = Math.Max(tallest, Top(world, x, z, VoxelWorld.MaxHeight - 1) + 1);
+            if (tallest >= groundTop + 18) spanned++;
+
+            for (var x = minX; x <= maxX; x++)
+            for (var z = minZ; z <= maxZ; z++)
+                await Assert.That(world.GetBlock(x, plateY, z).Id).IsEqualTo(Blocks.Bedrock)
+                    .Because("the plate is one course, at the goal's own depth, over its whole square");
+
+            await Assert.That(plateY).IsLessThan(box.MinY)
+                .Because("a plate is buried under its goal, never over it");
+            await Assert.That(world.GetBlock(box.MinX, tallest - 1 - StructureStamper.PlatformDepth, box.MinZ).Id)
+                .IsNotEqualTo(Blocks.Bedrock)
+                .Because("the tallest column the square spans is not the ground this goal stands on");
+        }
+
+        await Assert.That(spanned).IsEqualTo(goals.Count)
+            .Because("both images stand two blocks from the seam, which is what makes the two readings differ");
+    }
+
+    private static int Top(VoxelWorld world, int x, int z, int ymax)
+    {
+        for (var y = ymax; y >= 0; y--)
+            if (world.GetBlock(x, y, z).Id != Blocks.Air) return y;
+        return -1;
+    }
 }

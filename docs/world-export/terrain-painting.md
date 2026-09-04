@@ -7,7 +7,8 @@ surface, fill — through whichever theme applies; unthemed, every bucket stays 
 It reads the terrain the world builder already placed and rewrites its surface — no new geometry, only
 materials.
 
-**Status: the whole model — TP1–TP21, including scoped per-shape theming (TP10) — is built and shipped.**
+**Status: the whole model — TP1–TP22, including scoped per-shape theming (TP10) and a shape's own material
+(TP22) — is built and shipped.**
 `TerrainPainter` (`PgmStudio.Minecraft`) paints every sketch export, wired last into `WorldBuilder.Build`;
 the four-stage architecture of §5 is in place. A theme is resolved **per cell** through `TerrainThemeScope` (a
 sketch shape's own theme, else the map default); themes are authored in the Sketch tool's **Theme** phase and
@@ -271,6 +272,45 @@ andesite and their polished forms, so a lower layer finishing a course in one of
 id still reads as stone; a guard testing the id alone counts it as unpainted ground and the pass above paints
 straight through it. A plinth in polished diorite under a red prop comes back red. The read compares the pair
 — `(id, data)` against `(Stone, 0)` — which is what the write beside it has always compared.
+
+### 3.2 What a shape is made of, as against what paints the ground it is part of
+
+A theme is a recipe for **ground**, and which of its buckets a block takes is decided per column by whether
+that column is an edge (TP1–TP5). That is the right question for terrain and the wrong one for an object. A
+shape every one of whose columns touches the void — a two-block stilt under a canopy, a one-block kerb, a
+stair tread, a rail — is an edge column at every cell under every `rimEdges` setting there is, so the rim and
+the wall are the only buckets that ever paint it and the surface and the fill are unreachable. A stilt themed
+like the platform it stands on comes out one course of the rim material over the wall material, and the
+checker, the noise or the band stack the theme was chosen for cannot appear on it at any size.
+
+**So a shape may state a `material` instead of a `theme`** (TP22): one `TerrainMaterial` — a solid, a pattern,
+a band stack, anything a bucket takes — painted over the shape's whole span. It arrives at the painter as the
+theme it means, `TerrainTheme.OfMaterial`: that material in the fill bucket with the rim, the wall and the
+surface off, which leaves `TerrainPainter.Resolve` a single band from the shape's floor to its top. One band
+rather than four equal ones is what makes a depth-axis stack read its depth from the shape's own top instead
+of restarting at every bucket boundary. The bedrock rule stays the board's, because what a thing is made of
+does not decide where the world's floor is.
+
+**It says nothing about walking, and that is the point.** `kind: "made"` is a *layer* word and it takes the
+whole layer out of the ground everything rests on, out of the reachability walk and out of the stacking rules
+— right for a train or a statue, wrong for a stair, which is the way onto a storey. `material` is a *shape*
+word about paint alone: a stair tread stating one is still terrain, still walked, still stacked on, and still
+the ground a room or a goal seats against. The two are independent and a shape may carry either, both or
+neither.
+
+**A theme that cannot show itself is a complaint, not a refusal** (`SK23`). The board builds and what it
+builds is the rim over the wall, which may be exactly what was wanted; what is worth saying is that the rest
+of the theme is not in the world. It is reported once per layer and theme rather than once per shape, because
+the decision that answers it is one — turn that theme's rim off, or say what those shapes are made of — and a
+board drawn out of small pieces has hundreds of them. `opus5-slipway` raises 1,760 shapes' worth as eleven
+lines. It is judged only where the theme's **rim paints**: with the rim off the top course falls to the
+surface (TP12) and the theme shows exactly as written, which is the honest way to paint thin ground. Boards
+drawn as terrain raise none of it — `opus5-mootgate`, `opus5-alderfen`, `fable-millrace-revamp` and
+`opus5-quatrefoil` are silent — and boards drawn as objects out of themed shapes raise it everywhere.
+
+**Stating both is refused** (`SK24`). The two answer one question at two grains; the build takes the material,
+being the narrower statement, and a theme nothing reads is the silence the sketch gate exists to end.
+
 
 ## 4. The cases — and the tests they drive
 
@@ -668,3 +708,4 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP19** | `WallFrameMaterial` inks the top and bottom `Thickness` courses and the corners of the shape the wall wraps, filling the panel between. `Angle` is how sharp a turn (TP18) has to be to be inked, and the same number sets how far the ink wraps round each corner, because the measured turn ramps to a vertex rather than switching on at it. A circle reaches no usable threshold, so it has no corners and the frame falls back to its two courses — a layer stack, which is the right answer for a shape with nothing to pick out. A wall too short to hold two courses is all edge. |
 | **TP20** | `LogCheckerMaterial` lays a checkerboard with **one** log and varies how it is turned rather than what it is made of: upright on one square, on its side on the next, so a single block reads as a woven board. Its own material rather than a checker over two solids, because the two squares are one block and two orientations and a log's data nibble *is* its axis. **A log on its side lies along the wall, never across it** — the axis decides which two faces are the sawn ends — so it takes the wall's own run (`BucketContext.PerimeterRun`, the third perimeter fact beside the arc and the turn); at a corner no lying log shows bark to both faces, so it stands. `LaidLogMaterial` is that pattern with one of its two squares taken away: the beam course running through the masonry everywhere. |
 | **TP21** | A pattern samples the cell **folded into the board's primary image**, not the cell itself. Every pattern is a function of position, so on a mirrored board a cell and its image sample two different places and resolve to two different blocks — a floor that does not match across the map and a middle that is not symmetric with itself. The painter fills `BucketContext.Sample` with the cell put through `OrbitScatter.Canonical`, the one member of a symmetry orbit that stands for all of them, so every image resolves alike and a cell on the axis folds to itself. The fold is of the plane only — no symmetry mode turns the vertical — so a risen pattern (TP15) samples the folded column at its own height. The cell being painted is untouched: a context with no orbit to fold into (a style swatch, a house course, a freeform board) samples its own cell. A team tint does not fold, since `TeamData` is a fact about the cell and each side keeps its colour. The same point is handed to a path's pave and a water prop's bank; a boulder needs none, being built in its own local frame and turned into place. |
+| **TP22** | A shape may state a **`material`** in place of a theme: one `TerrainMaterial` painted over its whole span, with no rim, no wall and no surface depth. A theme chooses its bucket per column by whether that column is an edge, so on a shape with no interior column — a stilt, a kerb, a tread, a rail — only the rim and the wall ever paint and the theme's own surface is nowhere on it; `material` is the statement for a thing that is *made of* something rather than ground with a top and a face. It reaches the painter as `TerrainTheme.OfMaterial` — the material in `fill`, the three geometry-chosen buckets off — which leaves one band over the shape's span, so a depth-axis stack reads from the shape's own top. It is a **shape** word about paint and says nothing about walking: `kind: "made"` is the *layer* word that takes a thing out of the walks and out of the ground everything rests on, and a stair needs the paint without the exile. A theme scoped to a shape it cannot show on is `SK23`, grouped per layer and theme; stating both is `SK24`. |

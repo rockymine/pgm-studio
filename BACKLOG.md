@@ -374,7 +374,10 @@ placement takes it — so what is left is each surface reading and writing the l
 ### A made thing is a third kind, and it is drawn out of layers
 
 - [ ] **WE77 — `WX11` measures a structure's plinth from the highest terrain its footprint touches, and the
-  stamper seats it on the lowest.** `MapExportComposer.CheckStructureSites` takes
+  stamper seats it on the lowest.** The same maximum-over-a-footprint reading put a goal's bedrock plate above
+  the goal it protects, and `WE82` settled that half by handing the stamper the ground the goal resolved on
+  rather than letting it read one; this is the other half, and the check is what reads wrong now.
+  `MapExportComposer.CheckStructureSites` takes
   `floor = cells.Select(surface).Max()` and reports `floor - beside` as the face a foundation fills; a house
   prop seats on the **lowest** column of its own footprint one course down and carves the terrain standing
   over that floor away (`docs/world-export/structures.md` §6). So a footprint that clips one tall authored

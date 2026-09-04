@@ -111,6 +111,21 @@ the wall a road runs through a gate of has to keep its own columns and not a ver
 the marked shape's own footprint rather than what survives the layer's set algebra, and it travels through the
 symmetry fan with its group, so a marked shape on a mirrored group keeps its images clear too.
 
+**A shape says what paints it at one of two grains, and never both.** `theme` names the layout's registry
+and is ground: five buckets whose choice is made per column by whether that column is an edge — a rim on the
+lip, a wall down the riser, a surface over the middle. `material` states one `TerrainMaterial` and is what
+the shape is **made of**: painted over its whole span, no rim, no wall, no surface depth. Which to reach for
+follows from the shape rather than from taste. Ground with a middle to it takes a theme; a thing with no
+middle — a two-block stilt, a one-block kerb, a stair tread, a rail — takes a material, because every one of
+its columns is an edge and a theme scoped to it can only ever paint its rim over its wall (`SK23`). A shape
+stating both is refused (`SK24`). `docs/world-export/terrain-painting.md` §3.2 carries the mechanism.
+
+**`material` is about paint and says nothing about walking.** The word that takes a thing out of the walks is
+`kind: "made"`, and it is a **layer's**, not a shape's: it takes the whole layer out of the ground everything
+rests on, out of the reachability walk and out of the stacking rules. That is right for a train, a statue or a
+balloon and wrong for a stair, which is the way onto a storey and has to stay ground a player is measured
+over. The two are independent — a stair tread states a material and no kind, a train's slice states both.
+
 **A subtract is a hole, not a dip.** It takes the whole column out at every cell its outline covers, so its
 own height is not read — a one-block-tall subtract carves exactly as deep as a hundred-block one. That is the
 difference from relief, and it is the whole of it: relief moves a surface, a subtract removes it.
@@ -1244,6 +1259,22 @@ tool now reads the status and says **Not saved** with the server's own sentence 
 The same rule is why the 3-D preview stays true. It draws what the board builds — the subtract wins, the add
 it beats draws nothing, and that absence is exactly what the author needs to see — rather than going dark on
 a document the rasterizer can answer for perfectly well. The set algebra never fails; only the gate did.
+
+**It complains where a theme cannot show itself on the shape it was scoped to.** A theme picks its bucket per
+column by whether that column is an edge, and a shape with no interior column — every one of its cells having
+ground missing on at least one of its eight sides — is an edge everywhere under every `rimEdges` setting. So
+the rim paints its top and the wall paints the rest, and the surface, the fill and whatever pattern they carry
+are nowhere on it: a two-block stilt themed like the platform it stands on is a course of the rim material
+over the wall material and nothing else. `SK23` names it, **grouped per layer and theme** rather than per
+shape, because the decision that answers it is one — turn that theme's rim off, or say what those shapes are
+made of with `material` — and a board drawn out of small pieces raises hundreds. Only where the theme's rim
+actually paints: with it off the top falls to the surface and the theme shows as written, which is the honest
+way to paint thin ground. It is one of the readings taken off the **rasterized spans**, so a partial write
+names it among the rules it did not walk.
+
+**And it refuses a shape that says twice what paints it.** `theme` and `material` answer one question at two
+grains; a shape carrying both builds with the material, being the narrower statement, and the theme is read by
+nothing. `SK24` is a refusal — the world is fine and it is the document that says two things.
 
 **Two silences an override add can meet, and both are named.** An override add is what a made thing is drawn
 as — a wall, a flight of stairs, a crop bed, a stepped mound — and it states two things at once: the column is

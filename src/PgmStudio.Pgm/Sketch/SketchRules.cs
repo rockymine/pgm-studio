@@ -233,4 +233,23 @@ public static class SketchRules
     /// <remarks>Take `anchor_heights` off, or draw the shape as a polygon whose vertex count the array matches. A polyline that has to climb is several polylines today, each with its own `floor` and `base_height`; grading one along its arc is `S56`.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
     public const string PerVertexHeightUnread = "SK22";
+
+    /// <summary>A theme scoped to a shape that has no interior column, so the only buckets that ever paint it
+    /// are the rim and the wall and the theme's own surface is nowhere on the board. A theme is a recipe for
+    /// <b>ground</b>: which of its five buckets a block takes is decided per column by whether that column is
+    /// an edge, and every column of a shape whose whole footprint touches the void is an edge under every
+    /// <c>rimEdges</c> setting there is. So a two-block stilt, a one-block kerb or a stair tread themed like
+    /// the platform it stands on comes out one course of the rim material over the wall material — the
+    /// checker, the noise or the band stack the theme was chosen for cannot appear at any size.</summary>
+    /// <remarks>State what the shape is made of instead: `material` paints one material over the shape's whole span, which is what an object wants (TP22). Keep the theme and turn its `rim.enabled` off if the shape is ground that simply has no middle — the top then falls to the surface bucket, which is the paint that was asked for.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain, RuleConcern.World)]
+    public const string ThemeShowsOnlyItsEdge = "SK23";
+
+    /// <summary>A shape stating both a <c>theme</c> and a <c>material</c>. The two answer one question — what
+    /// paints this shape — at two grains, and a document holding both says nothing about which was meant: the
+    /// build takes the material, because it is the narrower statement, and the theme the author also wrote is
+    /// read by nothing.</summary>
+    /// <remarks>Take one off. `theme` is for ground, whose top, face and body are three different materials chosen per column; `material` is for a thing that is made of something, painted over its whole span.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string PaintStatedTwice = "SK24";
 }

@@ -587,4 +587,24 @@ public sealed class SketchShape
     /// default. The scope is the shape, so a reshape moves the paint.</summary>
     [JsonPropertyName("theme")]      public string? Theme { get; set; }
 
+    // What the shape is MADE OF, as against what paints the ground it is part of (TP22). A theme is a
+    // five-bucket recipe for terrain and its buckets are chosen per column by whether that column is an edge,
+    // which is the right question for ground and the wrong one for an object: on a shape with no interior
+    // column only the rim and the wall ever paint, so a two-block stilt themed like its platform comes out a
+    // course of the rim material over the wall material and the theme's own surface is nowhere on it.
+    /// <summary>One material this shape is made of, in place of a theme's buckets — a road, a rail, a stilt,
+    /// a stair tread, a kerb: something drawn as terrain, walked on and stacked on like terrain, that is
+    /// nonetheless one thing rather than ground with a top and a face. Stated as a
+    /// <c>TerrainMaterial</c> — the same shape a theme's buckets take, so a solid, a pattern or a band stack
+    /// all fit — and painted over the shape's whole span with no rim, no wall and no surface depth.
+    ///
+    /// <para><b>It is not <c>kind: "made"</c>, and the two are independent.</b> A made layer is out of the
+    /// walks, out of the stacking rules and out of the ground everything rests on — right for a train or a
+    /// statue, wrong for a stair, which is the way onto a storey and has to stay walkable. This says only
+    /// what the shape is made of.</para>
+    ///
+    /// <para>A shape stating both this and a <see cref="Theme"/> is refused (<c>SK24</c>): the two answer the
+    /// same question and a document that states both says nothing about which was meant.</para></summary>
+    [JsonPropertyName("material")]   public JsonElement? Material { get; set; }
+
 }

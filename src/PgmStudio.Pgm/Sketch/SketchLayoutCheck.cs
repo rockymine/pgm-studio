@@ -31,7 +31,7 @@ namespace PgmStudio.Pgm.Sketch;
 /// ground players go round and a board's walls are drawn to guard, so it may be redrawn but never papered
 /// over. An add that draws nothing there is the same rule's other half and only complains.</para>
 /// </summary>
-/// <summary>How deep a check reads. Seven of the sketch rules are read off the <b>rasterized spans</b> rather
+/// <summary>How deep a check reads. Eight of the sketch rules are read off the <b>rasterized spans</b> rather
 /// than off the document — what stacks over what, what a layer's slab drives into, what is standable and
 /// unreached — so answering them walks every column of the board's extent, which on a played-size board is
 /// seconds rather than milliseconds.
@@ -59,6 +59,10 @@ public static class SketchLayoutCheck
         SketchRules.StackedInOneLayer, SketchRules.LayersOverlap, SketchRules.MassUnreached,
         SketchRules.DrawnOverSubtraction, SketchRules.ReliefOverStatedTop,
         SketchRules.PaintedByAnotherShape, SketchRules.SeatedOnNothing,
+        // Raised by the theme gate rather than here, because it needs the theme registry as well as the
+        // ground; named here because this is the list a caller taking the shallower reading is handed, and a
+        // rule left unwalked is unwalked whichever gate owns it.
+        SketchRules.ThemeShowsOnlyItsEdge,
     ];
 
     /// <summary>Every placement naming a recipe the document's registry has no entry for, as the placement's
@@ -160,7 +164,7 @@ public static class SketchLayoutCheck
 
         var findings = new List<Finding>();
 
-        // The seven read off the rasterized spans. Each walks every column of the board's extent, so they
+        // The ones read off the rasterized spans. Each walks every column of the board's extent, so they
         // are the whole cost of a check and the whole of what a write's reading leaves out.
         if (reading is LayoutReading.Ground)
         {
@@ -296,6 +300,17 @@ public static class SketchLayoutCheck
                     $"{Named(shape)} {height}, and the world is {WorldHeight} blocks tall — the column is cut "
                     + "to fit rather than built as stated",
                     Severity.Complaint, Field: where, Subjects: Ids(shape)));
+
+            // SK24 — a shape saying what paints it twice. A refusal rather than a complaint: the build has a
+            // defined answer (the material, the narrower of the two), so the world is fine and the document is
+            // the thing that is wrong, and a theme nothing reads is exactly the silence the rest of this class
+            // exists to end.
+            if (shape.Theme is not null && shape.Material is not null)
+                findings.Add(new Finding(SketchRules.PaintStatedTwice,
+                    $"{Named(shape)} states both a theme ('{shape.Theme}') and a material, which answer the "
+                    + "same question — the material is what the build paints it with and the theme is read by "
+                    + "nothing",
+                    Severity.Refusal, Field: $"{where}.material", Subjects: Ids(shape)));
 
         }
 

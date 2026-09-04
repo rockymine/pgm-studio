@@ -113,14 +113,21 @@ public static class StructureStamper
     /// defence chest stands.</summary>
     public const int PlatformDepth = 3;
 
-    /// <summary>Bury a one-block-thick bedrock plate under a footprint, <see cref="PlatformDepth"/> courses
-    /// beneath the ground's own surface block: the goal's foundation stands on ordinary terrain and this sits
-    /// below it, so a tunnel dug up from beneath meets unbreakable rock before it reaches daylight and the
-    /// ground the goal stands on cannot be mined out from under it. One course is deliberately the whole of
-    /// the plate — a thicker slab reads as a wall grown out of the floor rather than a plate under it.
-    /// Footprint is inclusive on every side; sampling the whole footprint rather than a single anchor column
-    /// is what keeps the plate level and survives the symmetry orbit the same way every other structure here
-    /// does. No-ops where the terrain is too shallow to bury the plate under.
+    /// <summary>Bury a one-block-thick bedrock plate <see cref="PlatformDepth"/> courses beneath
+    /// <paramref name="groundTop"/>, the surface block of the ground the goal it protects is standing on: the
+    /// goal's foundation stands on ordinary terrain and this sits below it, so a tunnel dug up from beneath
+    /// meets unbreakable rock before it reaches daylight and the ground the goal stands on cannot be mined
+    /// out from under it. One course is deliberately the whole of the plate — a thicker slab reads as a wall
+    /// grown out of the floor rather than a plate under it. Footprint is inclusive on every side. No-ops
+    /// where the terrain is too shallow to bury the plate under.
+    ///
+    /// <para><b>The ground is the caller's, and it is the goal's own.</b> The plate is a fixed
+    /// <see cref="PlatformSize"/> square that the goal did not choose, so it routinely overhangs whatever the
+    /// goal stands on — the lip of a platform, a stair beside it, the street over a sunken hall — and a plate
+    /// resolving its own height over that footprint takes the highest column in it and buries itself under
+    /// something else entirely. Reading the depth off the goal's own floor is what keeps the two from
+    /// answering different questions about one place: there is one surface read per objective, and both the
+    /// box and the plate are measured from it.</para>
     ///
     /// <para><b>A destroyable stands over one and a core does not</b> (the author's ruling). A destroyable is
     /// broken from above and nothing under it is play; a core is won by digging under it until the lava
@@ -128,10 +135,8 @@ public static class StructureStamper
     /// the dig at the plate's depth would make a core's <c>float</c>/<c>leak</c> pair asking for a deeper dig
     /// a pair the terrain silently refuses.</para></summary>
     public static void StampPlatform(
-        VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-        int minX, int minZ, int maxX, int maxZ)
+        VoxelWorld world, int groundTop, int minX, int minZ, int maxX, int maxZ)
     {
-        var groundTop = PositionSnap.SurfaceYOver(surfaceTop, minX, minZ, maxX, maxZ, 1);
         var plateY = groundTop - 1 - PlatformDepth;   // PlatformDepth courses below the ground's top block
         if (plateY < 0) return;
         for (var x = minX; x <= maxX; x++)

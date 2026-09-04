@@ -20,10 +20,13 @@ namespace PgmStudio.Api.Services;
 /// reference, so the style entering the studio here is the style the export stamps.</para>
 ///
 /// <para><b>The themes</b> answer for what their own materials cannot do at the depth a bucket claims
-/// (<c>PT*</c>). Neither half is read anywhere else before the world is built.</para></summary>
+/// (<c>PT*</c>), and — where the caller is paying for the ground anyway — for what a theme cannot do on the
+/// shape it was scoped to (<c>SK23</c>), which is the one theme question that needs the board rasterized and
+/// so rides the same <see cref="LayoutReading"/> the sketch check is taking at the same call site. Neither
+/// half is read anywhere else before the world is built.</para></summary>
 public static class SketchMaterialGate
 {
-    public static Findings Check(string layoutJson)
+    public static Findings Check(string layoutJson, LayoutReading reading = LayoutReading.Ground)
     {
         // A layout the room-style shape does not parse against is not this gate's business — the blob is
         // authoring-source JSON of arbitrary shape, and only a well-formed roomStyles snapshot is checked, the
@@ -43,6 +46,11 @@ public static class SketchMaterialGate
         findings.AddRange(RoomStyleScope.Check(styles.Wool, "roomStyles.cage"));
         findings.AddRange(RoomStyleScope.Check(styles.Spawn, "roomStyles.spawn"));
         findings.AddRange(Themes(layoutJson));
+        findings.AddRange(Materials(layoutJson));
+        // SK23 walks every column of the board's extent to ask which of a shape's are edges, so it is a
+        // ground rule and a partial write skips it exactly as it skips the sketch check's own — and says so
+        // through `SketchLayoutCheck.GroundRules`, which names it.
+        if (reading == LayoutReading.Ground) findings.AddRange(TerrainThemeScope.Check(layoutJson));
         return findings;
     }
 
@@ -54,6 +62,26 @@ public static class SketchMaterialGate
         var findings = new List<Finding>();
         foreach (var (id, theme) in TerrainThemeScope.ThemesOf(layoutJson))
             findings.AddRange(TerrainThemeValidation.Check(theme).Under($"themes.{id}"));
+        return findings;
+    }
+
+    /// <summary>Every shape stating what it is <b>made of</b>, against the same rules a theme's buckets answer
+    /// — because a shape's material is a theme with one bucket (<see cref="TerrainTheme.OfMaterial"/>) and it
+    /// is checked as the one it is. The depth rule is the one that bites here and does not on ground: a
+    /// material claims the shape's <em>whole span</em>, so a block that only surfaces ground — grass, podzol,
+    /// a path — would be written into every course of it (<c>PT1</c>), which a theme's one-course surface
+    /// bucket never does.</summary>
+    private static Findings Materials(string layoutJson)
+    {
+        var layout = SketchLayout.Parse(layoutJson);
+        if (layout is null) return Findings.None;
+        var findings = new List<Finding>();
+        foreach (var layer in SketchLayout.Stack(layout))
+            foreach (var shape in layer.Shapes)
+                if (TerrainThemeScope.MaterialOf(shape) is { } material)
+                    findings.AddRange(TerrainThemeValidation
+                        .Check(TerrainTheme.OfMaterial(material, TerrainTheme.Default))
+                        .Under($"layers.{layer.Id}.shapes.{shape.Id}.material"));
         return findings;
     }
 

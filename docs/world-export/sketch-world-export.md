@@ -90,7 +90,10 @@ Each of the **4 interior corners** holds **2 chests stacked** (bottom + top). A 
 ### 2c. The goal's buried plate, and the chest under it
 
 Every destroyable stands over a **one-block-thick 5×5 bedrock plate**, buried **three courses** beneath the
-ground's own surface block and centred on the goal's anchor. Its job is a shaft: the goal's foundation is
+surface block of the ground the goal resolved on, and centred on the goal's anchor. The depth follows the
+goal's own box rather than the plate's square, because the square is fixed and reaches whatever is beside the
+goal: a plate reading its own footprint takes the tallest column in it and lands under the street over a
+sunken hall instead of under the monument in it. Its job is a shaft: the goal's foundation is
 ordinary terrain, so without the plate a tunnel driven up from below reaches daylight under the monument and
 the ground it stands on is mined out from under it. One course is the whole of the plate — a thicker slab
 reads as a wall grown out of the floor rather than as a plate under it — and the span is fixed rather than

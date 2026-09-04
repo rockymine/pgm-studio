@@ -593,9 +593,15 @@ public static class WorldBuilder
 
             // A buried bedrock plate under the goal, so the monument cannot be undermined from below and the
             // ground under it cannot be mined away, and the defence chest set into the ground beside it.
+            //
+            // The plate is buried under the ground THE GOAL resolved on — the box's own floor less the float
+            // that lifted it — and not under whatever is highest in the plate's own 5×5. The square is fixed
+            // and the goal did not choose it, so on a goal near a lip it overhangs ground that is not the
+            // goal's, and a plate reading that square takes its tallest column: one read per objective, used
+            // by both, is what stops the two from disagreeing about which ground this goal stands on.
             var (platformMinX, platformMinZ, platformMaxX, platformMaxZ) =
                 ObjectiveFootprint.Centred(ax, az, StructureStamper.PlatformSize, StructureStamper.PlatformSize);
-            StructureStamper.StampPlatform(world, terrain.SurfaceFor(b.Layer), platformMinX, platformMinZ, platformMaxX, platformMaxZ);
+            StructureStamper.StampPlatform(world, box.MinY - b.Float, platformMinX, platformMinZ, platformMaxX, platformMaxZ);
             StructureStamper.StampDefenseChest(world, terrain.SurfaceFor(b.Layer), platformMinX, platformMinZ, platformMaxX, platformMaxZ);
             provenance.ClaimRect(platformMinX, platformMinZ, platformMaxX, platformMaxZ, ProvenancePass.Structure, owner);
 

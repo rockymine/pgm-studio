@@ -285,6 +285,24 @@ public sealed record TerrainTheme
     /// bucket a theme leaves unbound resolves to.</summary>
     public static TerrainTheme Default { get; } = new();
 
+    /// <summary>The theme a shape stating one <b>material</b> paints with (TP22): that material in the fill
+    /// bucket with the rim, the wall and the surface all off, which is the whole of what "this is made of
+    /// that" means. <see cref="TerrainPainter.Resolve"/> then leaves a single fill band over the shape's
+    /// entire span, so a road, a rail, a stilt or a stair tread comes out one material top to bottom and a
+    /// depth-axis pattern reads its depth from the shape's own top rather than restarting at every band.
+    ///
+    /// <para>The bedrock rule is <paramref name="ground"/>'s and not the material's: what a thing is made of
+    /// does not decide where the world's floor is, and a shape drawn on the compiled ground still stands over
+    /// the board's own bedrock course.</para></summary>
+    public static TerrainTheme OfMaterial(TerrainMaterial material, TerrainTheme ground) => new()
+    {
+        Bedrock = ground.Bedrock,
+        Fill = material,
+        Wall = material, WallEnabled = false,
+        Rim = new TopBand(material, Depth: 1, Enabled: false),
+        Surface = new TopBand(material, Depth: 1, Enabled: false),
+    };
+
     /// <summary>The material a bucket resolves through (bedrock is fixed, never themeable).</summary>
     public TerrainMaterial MaterialFor(TerrainBucket bucket) => bucket switch
     {

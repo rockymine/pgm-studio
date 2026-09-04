@@ -270,6 +270,39 @@ public sealed class SketchLayoutCheckTests
             .Contains("2 anchor height(s) against 4 vertices");
     }
 
+    // ── SK24: a shape saying twice what paints it ────────────────────────────────────────────────────────
+
+    /// <summary>A theme is a recipe for ground and a material is what a thing is made of; both on one shape
+    /// answer the same question, and the build takes the material, so the theme the author also wrote is read
+    /// by nothing. A refusal, because the world is fine and it is the document that says two things.</summary>
+    [Test]
+    public async Task A_shape_stating_both_a_theme_and_a_material_is_refused()
+    {
+        const string Both =
+            """{"id":"kerb","type":"rectangle","operation":"add","min_x":0,"min_z":0,"max_x":8,"max_z":8,"theme":"stadt","material":{"kind":"solid","id":45,"data":0}}""";
+        var findings = SketchLayoutCheck.Check(Layout(Both))
+            .Where(finding => finding.Rule == SketchRules.PaintStatedTwice).ToList();
+
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].Severity).IsEqualTo(Severity.Refusal);
+        await Assert.That(findings[0].Field).EndsWith("material");
+        await Assert.That(findings[0].SubjectIds![0]).IsEqualTo("kerb");
+        await Assert.That(findings[0].Message).Contains("stadt");
+    }
+
+    /// <summary>And either one alone is silent — the rule is about stating both, not about either.</summary>
+    [Test]
+    public async Task One_of_the_two_alone_says_nothing()
+    {
+        const string Themed =
+            """{"id":"ground","type":"rectangle","operation":"add","min_x":0,"min_z":0,"max_x":8,"max_z":8,"theme":"stadt"}""";
+        const string Made =
+            """{"id":"rail","type":"rectangle","operation":"add","min_x":20,"min_z":20,"max_x":24,"max_z":24,"material":{"kind":"solid","id":42,"data":0}}""";
+
+        await Assert.That(SketchLayoutCheck.Check(Layout(string.Join(",", Themed, Made)))
+            .Count(finding => finding.Rule == SketchRules.PaintStatedTwice)).IsEqualTo(0);
+    }
+
     // ── the two readings ─────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>The document reading answers everything a pass over the JSON can and none of the seven read

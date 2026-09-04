@@ -266,20 +266,22 @@ public static class SketchRasterizer
                     if (group.Id is { } groupId) groupOfShape[(layer.Id!, shapeId)] = groupId;
 
         var owners = new Dictionary<(int X, int Z), string>();
-        foreach (var ((layer, x, z), shapeId) in ShapeScopeOwners(layoutJson, shape => shape.Id))
+        foreach (var ((layer, x, z), shapeId) in ShapeScopeOwners(layoutJson, _ => true))
             if (groupOfShape.TryGetValue((layer, shapeId), out var groupId)) owners[(x, z)] = groupId;
         return owners;
     }
 
-    /// <summary>Maps every cell a <em>themed</em> shape covers, on the layer that covers it, to that shape's
-    /// id — the scope <c>TerrainThemeScope</c> resolves a cell's paint through.</summary>
+    /// <summary>Maps every cell a <em>painted</em> shape covers, on the layer that covers it, to that shape's
+    /// id — the scope <c>TerrainThemeScope</c> resolves a cell's paint through. A shape is painted when it
+    /// states a theme or a material: the two are one question — what covers this cell — answered at two
+    /// grains, so they resolve an overlap through one traversal and by one rule.</summary>
     public static Dictionary<(string Layer, int X, int Z), string> ShapeThemeOwners(string layoutJson)
-        => ShapeScopeOwners(layoutJson, shape => shape.Theme);
+        => ShapeScopeOwners(layoutJson, shape => shape.Theme is not null || shape.Material is not null);
 
     /// <summary>Maps every cell a scoped shape covers, keyed by the layer it covers it on, to that shape's
     /// id — the primary footprint plus each
     /// mirroring group's orbit copies (which keep the shape id), the smallest-area shape winning an overlap
-    /// (the most specific scope). <paramref name="scopeOf"/> says which annotation makes a shape a scope, so
+    /// (the most specific scope). <paramref name="isScope"/> says which annotation makes a shape a scope, so
     /// paint and planting resolve through one traversal rather than two that could disagree about which shape
     /// owns a contested cell — and each caller keeps its own rule for what counts, since what makes a shape a
     /// paint scope and what makes it a planting one are not the same question. Only add shapes the predicate
@@ -287,7 +289,7 @@ public static class SketchRasterizer
     /// terrain of their own. Void cells that no surface stands on are harmless: a consumer only reads owners
     /// where a column is solid.</summary>
     public static Dictionary<(string Layer, int X, int Z), string> ShapeScopeOwners(
-        string layoutJson, Func<SketchShape, string?> scopeOf)
+        string layoutJson, Func<SketchShape, bool> isScope)
     {
         var state = SketchLayout.Parse(layoutJson);
         var cx = state?.Setup?.Center?.Cx ?? 0;
@@ -300,7 +302,7 @@ public static class SketchRasterizer
 
         void Claim(SketchShape s)
         {
-            if (scopeOf(s) is null || s.Operation == "subtract" || s.Role is not null) return;
+            if (!isScope(s) || s.Operation == "subtract" || s.Role is not null) return;
             var cells = RasterShape(s).Select(c => (layerId, c.X, c.Z)).ToList();
             long area = cells.Count;
             foreach (var cell in cells)

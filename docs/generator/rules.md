@@ -669,9 +669,14 @@ disagree with the one that runs.
   cell size. Evidence: the teaching seed `tools/seeds/teaching/build-region-examples.plan.json`, whose
   markers are what a plan of that shape exports.
 - **ST6 [author; amendment 2026-08-31]** *Destroyable platform*: a **5×5, one-block-thick bedrock
-  plate**, seated `StructureStamper.PlatformDepth` (**3**) courses beneath the ground's own surface block
-  under each **destroyable** — never thicker, which would read as a wall grown out of the floor rather
-  than a plate under it. It stops the goal being undermined from below and the ground under it being
+  plate**, seated `StructureStamper.PlatformDepth` (**3**) courses beneath the surface block of the ground
+  **the goal itself resolved on**, under each **destroyable** — never thicker, which would read as a wall
+  grown out of the floor rather than a plate under it. The depth is measured from the goal's own box and not
+  from the plate's square: the 5×5 is fixed and the goal did not choose it, so on a goal near a lip it
+  overhangs ground that is not the goal's, and a plate taking the tallest column of its own square buries
+  itself under something else — on `opus5-tiefkreuz` a sheet of bedrock fifteen blocks *over* the monument it
+  was meant to sit under, with no plate beneath the monument at all. One surface read per objective, used by
+  both the box and the plate. It stops the goal being undermined from below and the ground under it being
   mined out from under it. **A core takes no plate**: a core is won by digging under it until its lava
   leaks, so bedrock at a fixed depth is a floor laid across the objective's own rules, and a
   `float`/`leak` pair asking to dig deeper than the plate would be one the terrain silently refuses.

@@ -26,12 +26,13 @@ public static class SketchPartWrite
         HttpContext http, MapArtifactStore artifacts, long mapId, string layoutJson, string id,
         CancellationToken ct)
     {
-        var findings = SketchMaterialGate.Check(layoutJson);
+        // The document reading, not the ground one: the span-derived rules walk every column of the board's
+        // extent, and a write that moves one vertex would pay a whole rasterize for them. Both gates take the
+        // same word, so neither can be reading a different board from the other. What is left out is named on
+        // the answer, and `GET /map/{slug}/findings` is where a caller asks for it.
+        var findings = SketchMaterialGate.Check(layoutJson, LayoutReading.Document);
         if (findings.Count > 0) return new(null, id, findings);
 
-        // The document reading, not the ground one: the seven span-derived rules walk every column of the
-        // board's extent, and a write that moves one vertex would pay a whole rasterize for them. What is
-        // left out is named on the answer, and `GET /map/{slug}/findings` is where a caller asks for it.
         var layout = SketchLayout.Stated(layoutJson);
         Complaints.Unread(http, layoutJson, layout);
         Complaints.Add(http, SketchLayoutCheck.Check(layout, LayoutReading.Document).AsComplaints());

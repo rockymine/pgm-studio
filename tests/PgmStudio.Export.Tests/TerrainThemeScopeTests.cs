@@ -4,6 +4,7 @@ using PgmStudio.Minecraft;
 using PgmStudio.Pgm.Sketch;
 using PgmStudio.Minecraft.Stamping;
 using PgmStudio.Minecraft.Painting;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Export.Tests;
 
@@ -165,5 +166,159 @@ public sealed class TerrainThemeScopeTests
 
         await Assert.That(terrain.World.GetBlock(4, lowerTop - 1, 4).Id).IsEqualTo(200);
         await Assert.That(terrain.World.GetBlock(4, upperTop - 1, 4).Id).IsEqualTo(300);
+    }
+    // ── a shape's own material (TP22) ──────────────────────────────────────────────────────────────
+
+    private static JsonElement Material(int id) =>
+        JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(new SolidMaterial(id)));
+
+    private static SketchShape Made(string id, double minX, double minZ, double maxX, double maxZ, int material)
+        => new()
+        {
+            Id = id, Type = "rectangle", Operation = "add",
+            MinX = minX, MinZ = minZ, MaxX = maxX, MaxZ = maxZ, Material = Material(material),
+        };
+
+    /// <summary>A shape stating a material is one material in every bucket, so whichever band a block lands in
+    /// it resolves to the same thing — which is what "this is made of that" means and what a theme cannot say
+    /// about a shape too small to have an interior.</summary>
+    [Test]
+    public async Task A_shape_stating_a_material_paints_that_material_in_every_bucket()
+    {
+        var at = TerrainThemeScope.ThemeAt(Layout(
+            new Dictionary<string, JsonElement> { ["map"] = Fill(100) }, "map",
+            Made("rail", 0, 0, 2, 2, 42)));
+        var theme = at("ground", 1, 1);
+
+        TerrainBucket[] buckets = [TerrainBucket.Fill, TerrainBucket.Wall, TerrainBucket.Surface, TerrainBucket.Rim];
+        foreach (var bucket in buckets)
+            await Assert.That(theme.MaterialFor(bucket).Resolve(new BucketContext(0, 0, 0, bucket, 0)).Id)
+                .IsEqualTo(42);
+
+        // And the three buckets that choose themselves by geometry are off, which is what leaves one band.
+        await Assert.That(theme.Rim.Enabled).IsFalse();
+        await Assert.That(theme.Surface.Enabled).IsFalse();
+        await Assert.That(theme.WallEnabled).IsFalse();
+    }
+
+    /// <summary>The whole point: on a shape every one of whose columns is an edge, a theme paints its rim over
+    /// its wall and never its surface, and a material paints itself. The column is resolved through the
+    /// painter's own band split, so this is what the world holds and not what the theme record says.</summary>
+    [Test]
+    public async Task A_material_covers_the_span_a_theme_would_have_split_into_rim_and_wall()
+    {
+        var themes = new Dictionary<string, JsonElement>
+        {
+            ["map"] = Fill(100),
+            ["kerbed"] = JsonSerializer.Deserialize<JsonElement>(TerrainThemeJson.Serialize(TerrainTheme.Default with
+            {
+                RimEdges = RimEdges.Void,
+                Rim = new TopBand(new SolidMaterial(7), Depth: 1),
+                Wall = new SolidMaterial(8),
+                Surface = TerrainTheme.Default.Surface with { Material = new SolidMaterial(9) },
+                Fill = new SolidMaterial(9),
+            })),
+        };
+        var at = TerrainThemeScope.ThemeAt(Layout(themes, "map",
+            Rect("stilt", 0, 0, 2, 2, "kerbed"),
+            Made("post", 10, 10, 12, 12, 42)));
+
+        // One two-by-two column standing free: every side is void, so it is a rim column under any rimEdges.
+        var column = new ColumnProfile(SurfaceTop: 6, Base: 1, VoidEdge: true, OpenEdge: true, ClosedEdge: true,
+                                       VoidDrop: 1, TerrainDrop: -1);
+        var themed = TerrainPainter.ColumnBlocks(0, 0, column, at("ground", 1, 1)).Select(b => b.Id).ToList();
+        var made = TerrainPainter.ColumnBlocks(10, 10, column, at("ground", 11, 11)).Select(b => b.Id).ToList();
+
+        await Assert.That(themed[0]).IsEqualTo(7).Because("the theme's rim caps the column");
+        await Assert.That(themed.Skip(1).Distinct().ToList()).IsEquivalentTo(new List<int> { 8 })
+            .Because("everything under the rim is the wall, and the theme's surface is nowhere on it");
+        await Assert.That(made.Distinct().ToList()).IsEquivalentTo(new List<int> { 42 })
+            .Because("a material is the whole span, top to bottom");
+    }
+    // ── SK23: a theme scoped to a shape it cannot show on ──────────────────────────────────────────
+
+    /// <summary>A theme with a rim that paints, which is the default and the only case SK23 judges.</summary>
+    private static JsonElement Kerbed() => JsonSerializer.Deserialize<JsonElement>(
+        TerrainThemeJson.Serialize(TerrainTheme.Default with { Rim = new TopBand(new SolidMaterial(7), Depth: 1) }));
+
+    private static JsonElement Unkerbed() => JsonSerializer.Deserialize<JsonElement>(
+        TerrainThemeJson.Serialize(TerrainTheme.Default with
+        {
+            Rim = new TopBand(new SolidMaterial(7), Depth: 1, Enabled: false),
+        }));
+
+    [Test]
+    public async Task A_theme_on_a_shape_with_no_interior_column_is_SK23()
+    {
+        var findings = TerrainThemeScope.Check(Layout(
+            new Dictionary<string, JsonElement> { ["kerb"] = Kerbed() }, null,
+            Rect("stilt", 0, 0, 1, 1, "kerb")));
+
+        await Assert.That(findings.Count).IsEqualTo(1);
+        await Assert.That(findings[0].Rule).IsEqualTo(SketchRules.ThemeShowsOnlyItsEdge);
+        await Assert.That(findings[0].Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(findings[0].Subjects!).Contains("stilt");
+    }
+
+    /// <summary>One finding per layer and theme, not per shape: a board drawn out of small pieces has
+    /// hundreds of them and the decision that answers all of them is one.</summary>
+    [Test]
+    public async Task Every_shape_a_theme_cannot_show_on_is_one_finding_for_the_theme()
+    {
+        var findings = TerrainThemeScope.Check(Layout(
+            new Dictionary<string, JsonElement> { ["kerb"] = Kerbed(), ["other"] = Kerbed() }, null,
+            Rect("a", 0, 0, 1, 1, "kerb"),
+            Rect("b", 4, 0, 5, 1, "kerb"),
+            Rect("c", 8, 0, 9, 1, "kerb"),
+            Rect("d", 12, 0, 13, 1, "other")));
+
+        await Assert.That(findings.Count).IsEqualTo(2).Because("two themes, one finding each");
+        var kerb = findings.Single(f => f.Message.Contains("'kerb'"));
+        await Assert.That(kerb.Message).Contains("3 shape(s)");
+        await Assert.That(kerb.Subjects!.Order(StringComparer.Ordinal))
+            .IsEquivalentTo(new[] { "a", "b", "c" });
+    }
+
+    [Test]
+    public async Task A_theme_on_ground_with_a_middle_is_not_SK23()
+    {
+        var findings = TerrainThemeScope.Check(Layout(
+            new Dictionary<string, JsonElement> { ["kerb"] = Kerbed() }, null,
+            Rect("field", 0, 0, 8, 8, "kerb")));
+        await Assert.That(findings.Count).IsEqualTo(0);
+    }
+
+    /// <summary>With the rim off the top course falls to the surface (TP12), so the theme shows exactly as it
+    /// was written — which is the honest way to paint thin ground and not a fault.</summary>
+    [Test]
+    public async Task A_theme_that_paints_no_rim_is_not_SK23_however_thin_the_shape()
+    {
+        var findings = TerrainThemeScope.Check(Layout(
+            new Dictionary<string, JsonElement> { ["plain"] = Unkerbed() }, null,
+            Rect("stilt", 0, 0, 1, 1, "plain")));
+        await Assert.That(findings.Count).IsEqualTo(0);
+    }
+
+    /// <summary>The answer SK23 exists to point at: state what the shape is made of and there is one bucket,
+    /// so there is nothing the geometry can hide.</summary>
+    [Test]
+    public async Task A_material_on_the_same_shape_is_not_SK23()
+    {
+        var findings = TerrainThemeScope.Check(Layout(
+            new Dictionary<string, JsonElement> { ["kerb"] = Kerbed() }, null,
+            Made("stilt", 0, 0, 1, 1, 42)));
+        await Assert.That(findings.Count).IsEqualTo(0);
+    }
+
+    /// <summary>The footprint an interior is judged against is the layer's: the same two-block shape has a
+    /// middle when it stands inside ground that shares its layer, and none when it stands alone.</summary>
+    [Test]
+    public async Task The_interior_is_read_against_the_layer_and_not_the_shape()
+    {
+        var findings = TerrainThemeScope.Check(Layout(
+            new Dictionary<string, JsonElement> { ["kerb"] = Kerbed() }, null,
+            Rect("plaza", -6, -6, 8, 8, null),
+            Rect("inlay", 0, 0, 1, 1, "kerb")));
+        await Assert.That(findings.Count).IsEqualTo(0);
     }
 }

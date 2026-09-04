@@ -5222,6 +5222,24 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   target the half-scale original could never be. Pgm 722 + Api 76 + Geom 66 + 148 JS green. (G123)
 
 ## Sketch world-folder export (P9) — a playable `.mca` world for sketch-originated maps
+- **A shape says what it is made of, not only what paints the ground it is part of (WE80).** A shape may carry
+  a `material` — one `TerrainMaterial`, any kind a theme's bucket takes — in place of a `theme`, painted over
+  its whole span with no rim, no wall and no surface depth (`TP22`). It reaches the painter as the theme it
+  means, `TerrainTheme.OfMaterial`, so the band split needs no new case and a depth-axis stack reads from the
+  shape's own top. It is a **shape** word about paint and says nothing about walking — `kind: "made"` is the
+  *layer* word that takes a thing out of the walks and out of the ground everything rests on — so a stair
+  tread, a rail, a stilt or a kerb states one and stays terrain a player is measured over.
+- **A theme that cannot show itself on the shape it was scoped to says so (WE81).** A theme picks its bucket
+  per column by whether that column is an edge, so a shape with no interior column is rim and wall the whole
+  way and its surface, its fill and whatever pattern they carry are nowhere on it. `SK23` names it, grouped
+  per layer and theme — `opus5-slipway`'s 1,760 such shapes are eleven lines — and only where the theme's rim
+  paints. Boards drawn as terrain raise none of it; boards drawn as objects out of themed shapes raise it
+  everywhere. A shape stating both a theme and a material is `SK24`, a refusal.
+- **A goal's bedrock plate is buried under the ground the goal stands on (WE82).** `StampPlatform` takes that
+  ground rather than resolving one over its own fixed 5×5, which is a square the goal did not choose and which
+  overhangs whatever is beside it: one surface read per objective now serves both the box and the plate. On
+  `opus5-tiefkreuz` the old reading put an unbreakable 5×5 sheet fifteen blocks *over* the monument, half
+  plugging the light well, and left the monument with no plate at all.
 - **The building is drawn and dragged on the canvas (TN11, canvas half).** A stated footprint appears inside its piece as a
   dashed rectangle — the region and the building visible at once — and wears the transform box every authoring
   surface uses: move it, resize it by its grips, a block at a time rather than a cell at a time. Every drag is
