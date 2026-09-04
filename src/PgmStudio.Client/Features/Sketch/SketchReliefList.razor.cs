@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
@@ -69,12 +71,12 @@ public partial class SketchReliefList
         var id = mark.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
         return kind switch
         {
-            "point" => new Row(id, "dot", $"spot at {Heights(mark)}", Cell(mark)),
-            "line" => new Row(id, "spline", $"ridgeline at {Heights(mark)}", Span(mark, "points")),
-            "area" => new Row(id, "pentagon", $"bench at {Heights(mark)}", Span(mark, "ring")),
-            "scarp" => new Row(id, "triangle", $"scarp {Drop(mark)}", Span(mark, "points")),
-            "rim" => new Row(id, "square-dashed", $"rim at {Heights(mark)}", "outline"),
-            "push" => new Row(id, "arrows-up-from-line", $"push {Lift(mark)}", Span(mark, "ring")),
+            MarkKinds.Point => new Row(id, "dot", $"spot at {Heights(mark)}", Cell(mark)),
+            MarkKinds.Line => new Row(id, "spline", $"ridgeline at {Heights(mark)}", Span(mark, "points")),
+            MarkKinds.Area => new Row(id, "pentagon", $"bench at {Heights(mark)}", Span(mark, "ring")),
+            MarkKinds.Scarp => new Row(id, "triangle", $"scarp {Drop(mark)}", Span(mark, "points")),
+            MarkKinds.Rim => new Row(id, "square-dashed", $"rim at {Heights(mark)}", "outline"),
+            MarkKinds.Push => new Row(id, "arrows-up-from-line", $"push {Lift(mark)}", Span(mark, "ring")),
             _ => new Row(id, "shapes", kind, ""),
         };
     }

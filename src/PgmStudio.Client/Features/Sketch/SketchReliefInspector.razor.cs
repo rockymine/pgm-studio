@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
 
@@ -315,24 +316,6 @@ public partial class SketchReliefInspector
 
     private (string Icon, string Title, string Blurb) Info
         => KindInfo.TryGetValue(kind, out var info) ? info : ("shapes", "Relief", "");
-}
-
-/// <summary>The mark kinds, as constants. Two reasons rather than one: a Razor markup lambda cannot contain a
-/// string literal at all, and naming the wire kinds once means the form and the model cannot drift apart over
-/// a typo that would silently write a mark nothing solves.</summary>
-public static class MarkKinds
-{
-    public const string Point = "point";
-    public const string Line = "line";
-    public const string Area = "area";
-    public const string Scarp = "scarp";
-    public const string Rim = "rim";
-
-    /// <summary>A push is not a mark — it lifts the solved surface rather than pinning it — but it is placed,
-    /// selected and edited through the same pipeline, so the phase needs one word for it alongside the rest.
-    /// The client adds this when it hands a push out; the stored form carries no kind, because the array a
-    /// push sits in already says what it is.</summary>
-    public const string Push = "push";
 }
 
 /// <summary>A mark's own fields (see <see cref="MarkKinds"/> for why these are constants).</summary>

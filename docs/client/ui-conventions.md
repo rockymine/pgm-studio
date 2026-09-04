@@ -66,6 +66,33 @@ with the bound style's own picture beside the control) and `HouseViews`.
 **Editor** — feature components that are not vocabulary but are shared by more than one tool: `WorldCanvas`,
 `RegionTree`, `SliceView`, `SmartSuggestion`, `BuildHeightSideview`.
 
+## The words a form writes, and where they are declared
+
+A Razor markup lambda cannot contain a string literal, so every wire word an inspector writes has to be a
+constant somewhere. Where that somewhere is decides whether the form and the reader can drift apart.
+
+**A kind is declared in `PgmStudio.Vocabulary` and taken from there by everyone who spells it.** `ShapeKinds`
+(rectangle, circle, polygon, lasso, polyline), `PropKinds` (stroke, water, flora, tree, boulder, house) and
+`MarkKinds` (point, line, area, scarp, rim) are the three the client writes. `Client` reaches `Vocabulary`
+through `Contracts`, so the picker takes the same constant the reader does: `PlacedProp`'s
+`[JsonDerivedType]` attributes name `PropKinds`, the sketch gate judges against `ShapeKinds.All`, and
+`ReliefMarkJson.ToMark` switches on `MarkKinds`. There is one list, not two that agree.
+
+**A field name stays the client's.** `PropFields`, `MarkFields`, `SpecFields`, `PushFields`, `ReliefFields`
+and `GrainFields` name the JSON keys a form writes into a document the client holds as a `JsonObject`. They
+have one consumer and are that consumer's constants, which is the rule `WordSet` states: a word set with only
+one party spelling it is not vocabulary.
+
+**`MarkKinds.Push` is the exception that proves where the line is.** A push is placed and edited through the
+relief phase like a mark, so the canvas needs a word for it, but the stored form carries no kind — the array a
+push sits in already says what it is. It sits in `MarkKinds` beside its siblings and outside `MarkKinds.All`,
+which is the set the reader answers for.
+
+**What a shared constant cannot check is whether a word still has a reader**, and that is what
+`KindVocabularyTests` is for: every prop kind must name a derived type and answer the pass's order question,
+every shape kind must rasterize to ground, and every mark kind must read as a mark. Adding a word to a set
+without teaching a reader fails there rather than in a board that quietly lost a shape.
+
 ## The API rules
 
 **Param-first, with a slot escape hatch.** A component takes typed params for the common case and a

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Vocabulary;
@@ -69,7 +69,7 @@ public static class SketchLayoutCheck
 
     /// <summary>The shape kinds the rasterizer draws (<c>SketchRasterizer.RingOf</c>). Anything else rings
     /// empty, which is the same board as a shape that was never drawn.</summary>
-    private static readonly string[] Kinds = ["rectangle", "circle", "polygon", "lasso", "polyline"];
+    private static readonly string[] Kinds = ShapeKinds.All;
 
     /// <summary>The symmetry modes <see cref="Symmetry"/> knows. An unknown one is not refused there — it
     /// answers order 2 and the identity transform — so a board asking for one is built unmirrored.</summary>
@@ -415,16 +415,16 @@ public static class SketchLayoutCheck
     // Why a shape of a known kind still draws nothing, or null where it draws something.
     private static string? Empty(SketchShape shape) => shape.Type switch
     {
-        "polygon" or "lasso" => shape.Vertices is not { Length: >= 3 }
+        ShapeKinds.Polygon or ShapeKinds.Lasso => shape.Vertices is not { Length: >= 3 }
             ? $"is a {shape.Type} with {shape.Vertices?.Length ?? 0} vertices, under the three that enclose ground"
             : Area(shape.Vertices) > 0
                 ? null
                 : $"is a {shape.Type} of {shape.Vertices.Length} vertices enclosing no area — every point is on one line",
-        "circle" => shape.Radius > 0 ? null : $"is a circle of radius {shape.Radius ?? 0:0.##}",
-        "polyline" => shape.Radius > 0
+        ShapeKinds.Circle => shape.Radius > 0 ? null : $"is a circle of radius {shape.Radius ?? 0:0.##}",
+        ShapeKinds.Polyline => shape.Radius > 0
             ? shape.Vertices is { Length: >= 2 } ? null : $"is a path of {shape.Vertices?.Length ?? 0} points"
             : $"is a path of width {shape.Radius ?? 0:0.##}",
-        "rectangle" => (shape.MaxX ?? 0) - (shape.MinX ?? 0) != 0 && (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) != 0
+        ShapeKinds.Rectangle => (shape.MaxX ?? 0) - (shape.MinX ?? 0) != 0 && (shape.MaxZ ?? 0) - (shape.MinZ ?? 0) != 0
             ? null
             : "is a rectangle with no area",
         _ => null,
@@ -443,10 +443,10 @@ public static class SketchLayoutCheck
     // The ground a shape covers, before the orbit fans it — its own outline's bounding box.
     private static (double MinX, double MinZ, double MaxX, double MaxZ)? Bounds(SketchShape shape) => shape.Type switch
     {
-        "rectangle" => (Math.Min(shape.MinX ?? 0, shape.MaxX ?? 0), Math.Min(shape.MinZ ?? 0, shape.MaxZ ?? 0),
+        ShapeKinds.Rectangle => (Math.Min(shape.MinX ?? 0, shape.MaxX ?? 0), Math.Min(shape.MinZ ?? 0, shape.MaxZ ?? 0),
                         Math.Max(shape.MinX ?? 0, shape.MaxX ?? 0), Math.Max(shape.MinZ ?? 0, shape.MaxZ ?? 0)),
-        "circle" => Around(shape.CenterX ?? 0, shape.CenterZ ?? 0, Math.Abs(shape.Radius ?? 0)),
-        "polygon" or "lasso" or "polyline" => shape.Vertices is { Length: > 0 } vertices
+        ShapeKinds.Circle => Around(shape.CenterX ?? 0, shape.CenterZ ?? 0, Math.Abs(shape.Radius ?? 0)),
+        ShapeKinds.Polygon or ShapeKinds.Lasso or ShapeKinds.Polyline => shape.Vertices is { Length: > 0 } vertices
             ? (vertices.Min(v => v[0]) - Reach(shape), vertices.Min(v => v[1]) - Reach(shape),
                vertices.Max(v => v[0]) + Reach(shape), vertices.Max(v => v[1]) + Reach(shape))
             : null,
@@ -466,7 +466,7 @@ public static class SketchLayoutCheck
         return (corners.Min(c => c.X), corners.Min(c => c.Z), corners.Max(c => c.X), corners.Max(c => c.Z));
     }
 
-    private static double Reach(SketchShape shape) => shape.Type == "polyline" ? Math.Abs(shape.Radius ?? 0) : 0;
+    private static double Reach(SketchShape shape) => shape.Type == ShapeKinds.Polyline ? Math.Abs(shape.Radius ?? 0) : 0;
 
     private static (double, double, double, double) Around(double x, double z, double radius)
         => (x - radius, z - radius, x + radius, z + radius);

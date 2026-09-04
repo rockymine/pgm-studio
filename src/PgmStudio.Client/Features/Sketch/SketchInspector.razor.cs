@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Client.Features.Sketch;
 
 public partial class SketchInspector
@@ -44,12 +46,12 @@ public partial class SketchInspector
 
     private static string TypeIcon(string t) => t switch
     {
-        "rectangle" => "rectangle-horizontal",
-        "circle"    => "circle",
-        "polygon"   => "pentagon",
-        "lasso"     => "lasso",
-        "polyline"  => "spline",
-        _           => "square",
+        ShapeKinds.Rectangle => "rectangle-horizontal",
+        ShapeKinds.Circle    => "circle",
+        ShapeKinds.Polygon   => "pentagon",
+        ShapeKinds.Lasso     => "lasso",
+        ShapeKinds.Polyline  => "spline",
+        _                    => "square",
     };
 
     // How a path's two long sides are drawn. Its finish — gravel, a cell fabric, any pattern at all — is a

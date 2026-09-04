@@ -146,11 +146,11 @@ public sealed class ReliefMarkJson
     /// mark is dropped rather than allowed to place terrain nobody asked for.</summary>
     public Mark? ToMark() => Kind switch
     {
-        "point" when At is { Length: >= 2 } at => new PointMark(at[0], at[1], FirstHeight, Radius),
-        "line" when Points is { Length: >= 2 } => new LineMark(Points, Heights ?? [0], Radius),
-        "area" when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight),
-        "rim" => new RimMark(FirstHeight, Depth),
-        "scarp" when Points is { Length: >= 2 } points => new ScarpMark(points, High, Low, Face, Band),
+        MarkKinds.Point when At is { Length: >= 2 } at => new PointMark(at[0], at[1], FirstHeight, Radius),
+        MarkKinds.Line when Points is { Length: >= 2 } => new LineMark(Points, Heights ?? [0], Radius),
+        MarkKinds.Area when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight),
+        MarkKinds.Rim => new RimMark(FirstHeight, Depth),
+        MarkKinds.Scarp when Points is { Length: >= 2 } points => new ScarpMark(points, High, Low, Face, Band),
         _ => null,
     };
 }

@@ -25,12 +25,12 @@ namespace PgmStudio.Minecraft.Dressing;
 /// one, which is the same contract the layout itself has had all along.</para>
 /// </summary>
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
-[JsonDerivedType(typeof(StrokeProp), "stroke")]
-[JsonDerivedType(typeof(WaterProp), "water")]
-[JsonDerivedType(typeof(TreeProp), "tree")]
-[JsonDerivedType(typeof(BoulderProp), "boulder")]
-[JsonDerivedType(typeof(FloraProp), "flora")]
-[JsonDerivedType(typeof(HouseProp), "house")]
+[JsonDerivedType(typeof(StrokeProp), PropKinds.Stroke)]
+[JsonDerivedType(typeof(WaterProp), PropKinds.Water)]
+[JsonDerivedType(typeof(TreeProp), PropKinds.Tree)]
+[JsonDerivedType(typeof(BoulderProp), PropKinds.Boulder)]
+[JsonDerivedType(typeof(FloraProp), PropKinds.Flora)]
+[JsonDerivedType(typeof(HouseProp), PropKinds.House)]
 public abstract record PlacedProp
 {
     /// <summary>Stable id, so a canvas can select, move and delete one prop among many.</summary>
@@ -71,7 +71,7 @@ public abstract record PlacedProp
     public static string? KindOf(PlacedProp prop) =>
         Prototypes.FirstOrDefault(pair => pair.Value.GetType() == prop.GetType()).Key;
 
-    /// <summary>The standoff a named kind keeps from a route, or null where no such kind is named. The number
+    /// <summary>The standoff a named kind keeps from claimed paving, or null where no such kind is named. The number
     /// lives on the kind's own type (<see cref="RouteStandoff"/>) and is read off an empty one of it, so
     /// there is no second table of standoffs to disagree with the rule.</summary>
     public static int? PavingStandoffOf(string kind) =>

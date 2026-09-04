@@ -157,6 +157,20 @@ Add an entry here the moment a task ships (it leaves `TODO.md`). Board rules: `C
   real category. See `docs/pgm/region-data-flow.md`. (E10)
 
 ## Canvas & shared UI (C)
+- **A kind is one list, and every word in it has a reader (`C63`).** The client hand-spelled the prop kinds
+  and the mark kinds a second time — a Razor markup lambda cannot hold a string literal — and nothing checked
+  the two copies agreed, so a kind renamed on one side compiled green on both while the picker wrote a word
+  the reader refused. `ShapeKinds`, `PropKinds` and `MarkKinds` are now word sets in `PgmStudio.Vocabulary`,
+  the lowest project all of them reach: `PlacedProp`'s `[JsonDerivedType]` attributes name `PropKinds`, the
+  sketch gate judges against `ShapeKinds.All`, `SketchRasterizer` and `SketchLayoutCheck` switch on it, and
+  `ReliefMarkJson.ToMark` switches on `MarkKinds` — so the picker takes the same constant the reader does.
+  `MarkKinds.Push` sits beside its siblings and outside `All`, being the one word the canvas alone writes.
+  What a shared constant cannot check is whether a word still has a reader, so `KindVocabularyTests` asks the
+  readers: every prop kind names a derived type and answers the pass's order, every shape kind rasterizes to
+  ground, every mark kind reads as a mark. All four fail with the offending word named. The drift this closes
+  was live: `SK3`'s published sentence still offered "rectangle, circle, polygon, lasso or path" after the
+  kind had been renamed. (`Vocabulary/ShapeKinds`, `PropKinds`, `MarkKinds`, `Api.Tests/KindVocabularyTests`,
+  `docs/client/ui-conventions.md`)
 - **A button that is working says so, and one that cannot act says why (`B79`, `TN6`, `C46`).** Three controls
   failed the same way from three directions, so the fix is one: `Button` gains `Busy`/`BusyLabel`, which
   disables the control **and** swaps the label, because each half alone is its own bug — undisabled, a second

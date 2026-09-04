@@ -2,6 +2,7 @@ using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Relief;
+using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Pgm.Sketch;
 
@@ -1136,7 +1137,7 @@ public static class SketchRasterizer
     // vertex inside Interpolate.
     private static Func<double, double, double> HeightFn(SketchShape s)
     {
-        if ((s.Type == "polygon" || s.Type == "lasso") && s.Vertices is { Length: >= 3 } verts
+        if ((s.Type == ShapeKinds.Polygon || s.Type == ShapeKinds.Lasso) && s.Vertices is { Length: >= 3 } verts
             && s.AnchorHeights is { } ah && ah.Length == verts.Length)
         {
             var poly = verts.Select(v => new[] { v[0], v[1] }).ToList();
@@ -1149,12 +1150,12 @@ public static class SketchRasterizer
 
     private static List<double[]> RingOf(SketchShape s) => s.Type switch
     {
-        "rectangle" => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
-        "circle"    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),
-        "polygon" or "lasso" => PolygonRing(s.Vertices, s.Controls),
+        ShapeKinds.Rectangle => [[s.MinX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MinZ ?? 0], [s.MaxX ?? 0, s.MaxZ ?? 0], [s.MinX ?? 0, s.MaxZ ?? 0]],
+        ShapeKinds.Circle    => CircleRing(s.CenterX ?? 0, s.CenterZ ?? 0, s.Radius ?? 0),
+        ShapeKinds.Polygon or ShapeKinds.Lasso => PolygonRing(s.Vertices, s.Controls),
         // A path arrives as a centerline and a half-width; the band around it is the ring, so nothing below
         // this point learns a shape that is not a ring.
-        "polyline" => StrokeOutline.Ring(s.Vertices ?? [], s.Radius ?? 0, ParseStrokeEdge(s.StrokeEdge), s.StrokeSeed ?? 0),
+        ShapeKinds.Polyline => StrokeOutline.Ring(s.Vertices ?? [], s.Radius ?? 0, ParseStrokeEdge(s.StrokeEdge), s.StrokeSeed ?? 0),
         _ => [],
     };
 

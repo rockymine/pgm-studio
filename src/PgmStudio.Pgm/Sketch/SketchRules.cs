@@ -33,7 +33,7 @@ public static class SketchRules
     /// nobody has, a group listing a shape id the layout does not carry, a relief keyed to a group that
     /// does not exist. A complaint rather than a refusal: the board still builds, and it builds without
     /// whatever the name was for, which is the thing worth saying out loud.</summary>
-    /// <remarks>Correct the name the finding's <c>field</c> points at. A shape kind is one of rectangle, circle, polygon, lasso or path; a mirror mode is one of none, mirror_x, mirror_z, mirror_d1, mirror_d2, rot_90 or rot_180 — an unknown one leaves the board unmirrored rather than refusing, so half the map quietly goes missing.</remarks>
+    /// <remarks>Correct the name the finding's <c>field</c> points at. A shape kind is one of rectangle, circle, polygon, lasso or polyline; a mirror mode is one of none, mirror_x, mirror_z, mirror_d1, mirror_d2, rot_90 or rot_180 — an unknown one leaves the board unmirrored rather than refusing, so half the map quietly goes missing.</remarks>
     [Rule(RuleCategory.Unknown, RuleConcern.Plan, RuleConcern.Terrain, RuleConcern.Theme)]
     public const string NamesNothing = "SK3";
 

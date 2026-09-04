@@ -2,6 +2,8 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+using PgmStudio.Vocabulary;
+
 namespace PgmStudio.Client.Features.Sketch;
 
 /// <summary>
@@ -50,12 +52,12 @@ public partial class SketchDressingList
         var id = prop.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
         return kind switch
         {
-            "tree" => new Row(id, "trees", Species(prop), Cell(prop)),
-            "boulder" => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
-            "stroke" => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "claims" : "paint")}", Span(prop)),
-            "water" => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
-            "flora" => new Row(id, "flower", "ground cover", Span(prop)),
-            "house" => new Row(id, "house", "building", Footprint(prop)),
+            PropKinds.Tree => new Row(id, "trees", Species(prop), Cell(prop)),
+            PropKinds.Boulder => new Row(id, "mountain", $"{Field(prop, "form", "round")} boulder", Cell(prop)),
+            PropKinds.Stroke => new Row(id, "spline", $"{Field(prop, "style", "solid")} {(Bool(prop, "claimsGround") ? "claims" : "paint")}", Span(prop)),
+            PropKinds.Water => new Row(id, "waves", $"{Field(prop, "form", "canal")} channel", Span(prop)),
+            PropKinds.Flora => new Row(id, "flower", "ground cover", Span(prop)),
+            PropKinds.House => new Row(id, "house", "building", Footprint(prop)),
             _ => new Row(id, "shapes", kind, ""),
         };
     }

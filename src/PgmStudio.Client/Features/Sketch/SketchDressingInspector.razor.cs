@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Vocabulary;
 using PgmStudio.Client.Components;
 using PgmStudio.Contracts;
 
@@ -393,19 +394,6 @@ public partial class SketchDressingInspector
                 : info;
         }
     }
-}
-
-/// <summary>The prop field names, as constants. Two reasons rather than one: a Razor markup lambda cannot
-/// contain a string literal at all, and naming the wire fields once means the form and the model cannot drift
-/// apart over a typo that would silently write a field nothing reads.</summary>
-public static class PropKinds
-{
-    public const string Stroke = "stroke";
-    public const string Water = "water";
-    public const string Flora = "flora";
-    public const string Tree = "tree";
-    public const string Boulder = "boulder";
-    public const string House = "house";
 }
 
 /// <summary>A prop's own fields (see <see cref="PropKinds"/> for why these are constants).</summary>
