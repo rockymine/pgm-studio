@@ -144,9 +144,16 @@ which is what puts a floor inside a tower, a lid on a shaft and a walkway across
 layer.
 
 Height is two numbers. `floor` is where the shape's base sits and `base_height` is its thickness, so the
-column spans `[floor, floor + base_height]`. A polygon whose `anchor_heights` line up with its vertices varies
-that thickness per vertex, interpolated across the footprint as a TIN. A shape is never thinner than one block
-and never floors below zero; a freshly drawn one starts at height 9.
+column spans `[floor, floor + base_height]`. A polygon or lasso whose `anchor_heights` line up with its
+vertices varies that thickness per vertex, interpolated across the footprint as a TIN. A shape is never
+thinner than one block and never floors below zero; a freshly drawn one starts at height 9.
+
+**`anchor_heights` is a polygon and lasso field, and only those two.** A rectangle and a circle have no vertex
+list to align to, and a path's vertices are its centreline rather than its footprint — the band around them
+carries many more points, and a thickness graded along a path would have to interpolate *along the arc*
+instead of over a triangulation. So a path builds one uniform thickness end to end, which is why a causeway
+cannot yet be drawn as the ramp it is (`S56`). Stating `anchor_heights` on a path stores at 200 and is
+ignored without a word (`TS85`).
 
 **That is what makes a tilted quad a stair.** The surface is sampled at each cell's centre and **floored**
 into the column, so a quad rising one course a cell builds a stair of single courses — 24 blocks of run for 24
