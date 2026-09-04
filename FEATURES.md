@@ -5229,6 +5229,13 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   shape's own top. It is a **shape** word about paint and says nothing about walking — `kind: "made"` is the
   *layer* word that takes a thing out of the walks and out of the ground everything rests on — so a stair
   tread, a rail, a stilt or a kerb states one and stays terrain a player is measured over.
+- **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
+  and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
+  material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map
+  default. On `opus5-tiefkreuz` that left 52,295 blocks of stated material on the drawn half against 10,168 on
+  the mirror, and 161 of 351 shapes with their material on one half and nowhere on the other: one team's road
+  and train in colour, the other's finished as ordinary ground. Both grains now travel with the image, and the
+  pair is held by a test each.
 - **A theme that cannot show itself on the shape it was scoped to says so (WE81).** A theme picks its bucket
   per column by whether that column is an edge, so a shape with no interior column is rim and wall the whole
   way and its surface, its fill and whatever pattern they carry are nowhere on it. `SK23` names it, grouped

@@ -1277,6 +1277,10 @@ public static class SketchRasterizer
         return ((int)Math.Floor(x), (int)Math.Floor(z));
     }
 
+    /// <summary>One shape's image under <paramref name="axis"/>. What a shape <b>says</b> travels with the
+    /// image beside its geometry: an image whose paint is dropped is ground the map default finishes, and both
+    /// grains of paint — the <c>theme</c> and the <c>material</c> — have to survive, since a scope resolver
+    /// asks whether a shape states either.</summary>
     private static SketchShape MirrorShape(SketchShape s, string axis, double cx, double cz)
     {
         // Polygon/lasso: transform vertices + Bézier handles in place, keeping anchor_heights index-aligned
@@ -1301,6 +1305,7 @@ public static class SketchRasterizer
                 Id = s.Id, Type = s.Type, Operation = s.Operation, Override = s.Override,
                 Vertices = nv, Controls = nc, AnchorHeights = s.AnchorHeights, BaseHeight = s.BaseHeight, Floor = s.Floor,
                 HeightMode = s.HeightMode, Skirt = s.Skirt, ReliefScope = s.ReliefScope, Theme = s.Theme,
+                Material = s.Material,
             };
         }
         // Rectangle/circle/path: flatten the transformed footprint to a polygon (uniform height carried). A
@@ -1312,6 +1317,7 @@ public static class SketchRasterizer
             Id = s.Id, Type = "polygon", Operation = s.Operation, Override = s.Override,
             Vertices = ring, BaseHeight = s.BaseHeight, Floor = s.Floor,
             HeightMode = s.HeightMode, Skirt = s.Skirt, ReliefScope = s.ReliefScope, Theme = s.Theme,
+            Material = s.Material,
         };
     }
 

@@ -310,6 +310,46 @@ public sealed class TerrainThemeScopeTests
         await Assert.That(findings.Count).IsEqualTo(0);
     }
 
+    // ── the orbit carries what a shape says, not only where it is ─────────────────────────────────
+
+    /// <summary>A mirroring group, so every shape stands on the board once per orbit image.</summary>
+    private static string Fanned(Dictionary<string, JsonElement>? themes, string? mapTheme,
+                                 params SketchShape[] shapes) =>
+        new SketchLayout
+        {
+            Setup = new SketchSetup { MirrorMode = "rot_180", Center = new SketchCenter { Cx = 0, Cz = 0 } },
+            Themes = themes,
+            MapTheme = mapTheme,
+            Layers = [SketchLayer.Ground(shapes.ToList(),
+                [new SketchGroup { Id = "team", Mirrors = true, ShapeIds = shapes.Select(s => s.Id).ToList() }])],
+        }.ToJson();
+
+    /// <summary>An orbit image is painted by the shape that drew it, so a road drawn on one half is a road on
+    /// the other. What decides that is whether the image still <em>states</em> a material: a scope resolver
+    /// asks the shape, so an image that dropped the word is ground the map default finishes.</summary>
+    [Test]
+    public async Task A_mirrored_image_of_a_material_shape_keeps_that_material()
+    {
+        var at = TerrainThemeScope.ThemeAt(Fanned(
+            new Dictionary<string, JsonElement> { ["map"] = Fill(100) }, "map",
+            Made("road", 4, 4, 8, 8, 42)));
+
+        await Assert.That(FillId(at("ground", 5, 5))).IsEqualTo(42).Because("the drawn half");
+        await Assert.That(FillId(at("ground", -6, -6))).IsEqualTo(42).Because("its rot_180 image");
+    }
+
+    /// <summary>The same for the other grain, so the two are not allowed to drift apart again.</summary>
+    [Test]
+    public async Task A_mirrored_image_of_a_themed_shape_keeps_that_theme()
+    {
+        var at = TerrainThemeScope.ThemeAt(Fanned(
+            new Dictionary<string, JsonElement> { ["map"] = Fill(100), ["road"] = Fill(42) }, "map",
+            Rect("road", 4, 4, 8, 8, "road")));
+
+        await Assert.That(FillId(at("ground", 5, 5))).IsEqualTo(42);
+        await Assert.That(FillId(at("ground", -6, -6))).IsEqualTo(42);
+    }
+
     /// <summary>The footprint an interior is judged against is the layer's: the same two-block shape has a
     /// middle when it stands inside ground that shares its layer, and none when it stands alone.</summary>
     [Test]

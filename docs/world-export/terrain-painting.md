@@ -538,7 +538,9 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
   registry** (`themes`, `themeId → theme JSON`) and the **map default** (`mapTheme`), and a shape carries the
   id of the theme it takes (`shape.theme`). At export `TerrainThemeScope` walks the rasterizer's own shape
   footprints — the primary plus every orbit copy, since a mirrored image keeps its shape id — and hands the
-  painter a per-cell `themeAt(x, z)` instead of one theme; because the band resolver and the materials already
+  painter a per-cell `themeAt(x, z)` instead of one theme; an image carries **what its shape states** as well
+  as where it stands, both grains of it, because the resolver asks a shape whether it states a `theme` or a
+  `material` and an image that answers neither is ground the map default finishes; because the band resolver and the materials already
   run per column against one theme-agnostic `ColumnProfile`, the per-cell lookup needs no new geometry. A
   layout that themes nothing resolves to a constant map default and allocates nothing per cell.
 
