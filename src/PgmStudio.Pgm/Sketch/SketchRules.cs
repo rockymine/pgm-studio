@@ -6,12 +6,11 @@ namespace PgmStudio.Pgm.Sketch;
 /// here, the way every gate family's are.</summary>
 public static class SketchRules
 {
-    /// <summary>A recompile fused the board differently, so a group the author had drawn relief onto no
-    /// longer exists to carry it.</summary>
-    /// <remarks>Group identity is derived from the geometry, so a recompile that re-fuses the board produces
-    /// a different group rather than moving the old one — the relief has nowhere correct to land. Retry with
-    /// <c>?force=true</c> to accept the loss and proceed, or redraw the plan so the same landmass survives the
-    /// compile.</remarks>
+    /// <summary>A relief the recompile does not keep. Either a group the author had drawn relief onto no
+    /// longer exists to carry it, because the board fused differently — or the merge carried the stored
+    /// relief over one the posted body states for the same group, so the board builds the terrain it already
+    /// had.</summary>
+    /// <remarks>Group identity is derived from the geometry, so a recompile that re-fuses the board produces a different group rather than moving the old one — the relief has nowhere correct to land, and that half is a refusal: retry with `?force=true` to accept the loss, or redraw the plan so the same landmass survives the compile. A posted relief losing to the stored one is a complaint instead: the merge is what carries hand-authored terrain across a recompile, so write the new relief to `PUT /map/{slug}/sketch/relief/{groupId}`, or replace the whole layout with `PUT /map/{slug}/sketch`.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Plan, RuleConcern.Terrain)]
     public const string ReliefOrphaned = "SK1";
 

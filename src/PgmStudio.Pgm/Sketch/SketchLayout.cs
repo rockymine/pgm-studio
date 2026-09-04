@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
 
@@ -161,6 +161,29 @@ public sealed class SketchLayout
 
         target["relief"] = JsonNode.Parse(JsonSerializer.Serialize(kept, Json));
         return target.ToJsonString(Json);
+    }
+
+    /// <summary>The group ids whose relief the posted body states and the carry replaces with a different
+    /// stored one — what a caller loses to <see cref="CarryRelief"/> and has no other way to notice.
+    ///
+    /// <para>The carry is right: a relief is hand work a plan cannot express, and a freshly compiled layout
+    /// carries none, so the stored one is the only one there is. A body that <em>does</em> state one is a
+    /// caller that compiled, patched a relief onto the result and posted it — which is the road this route
+    /// documents — and for that caller the stored relief silently wins. Naming the groups is what turns that
+    /// into something to act on.</para></summary>
+    public static IReadOnlyList<string> ReliefReplaced(string compiledJson, string? storedJson)
+    {
+        var posted = Parse(compiledJson)?.Relief;
+        if (posted is not { Count: > 0 }) return [];
+        var stored = string.IsNullOrWhiteSpace(storedJson) ? null : Parse(storedJson);
+        if (stored?.Relief is not { Count: > 0 } kept) return [];
+
+        var groups = new HashSet<string>(GroupIds(Parse(compiledJson)));
+        return posted.Keys
+            .Where(id => groups.Contains(id) && kept.TryGetValue(id, out var held)
+                         && JsonSerializer.Serialize(held, Json) != JsonSerializer.Serialize(posted[id], Json))
+            .OrderBy(id => id, StringComparer.Ordinal)
+            .ToList();
     }
 
     /// <summary>A freshly compiled layout with every author-stated structural height carried onto it —

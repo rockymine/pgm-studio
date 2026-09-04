@@ -220,6 +220,17 @@ public sealed class SketchFromPlanEndpoint(MapRepository repo, MapArtifactStore 
         // held, so a field named here is one the caller wrote and can correct.
         Complaints.Unread(HttpContext, compiled, SketchLayout.Stated(compiled));
 
+        // A relief in the posted body loses to the stored one, which is what the carry is for — and is a
+        // silence for the caller that compiled, patched a relief on and posted the result, since that is the
+        // road this route documents. Named rather than dropped.
+        foreach (var group in SketchLayout.ReliefReplaced(compiled, storedJson))
+            Complaints.Add(HttpContext, [new Finding(SketchRules.ReliefOrphaned,
+                $"the relief posted for group '{group}' is not the one stored, and a merge carries the "
+                + "stored one — the terrain this board builds is the terrain it already had. Write the new "
+                + $"one to PUT /map/{map.Slug}/sketch/relief/{group}, or replace the whole layout with "
+                + "PUT /map/{slug}/sketch",
+                Severity.Complaint, Field: $"relief.{group}", Subjects: [group])]);
+
         var merged = SketchLayout.CarryStructuralHeight(
             SketchLayout.CarryRelief(SketchLayout.CarryFinish(compiled, storedJson), storedJson), storedJson);
 

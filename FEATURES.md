@@ -6848,6 +6848,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A relief the merge replaces is named, not dropped (`SK1`).** `PUT .../sketch/from-plan` carries the
+  stored relief onto fresh geometry, which is what the route is for — a compiled layout carries none, because
+  a plan cannot express one. A caller that compiled, patched a relief onto the result and posted it lost that
+  relief in silence, and the two reads of it disagreed while both were right: `relief/read` measures the
+  request body and reports the new numbers, the render builds the stored document and draws the old ground.
+  Each group whose posted relief is not the stored one now rides back as an `SK1` complaint on the 200,
+  naming the group and the route that writes it. `SK1` is therefore both registers: a refusal for terrain the
+  recompile has no group for, a complaint for terrain the merge overrode.
+  (`Pgm/Sketch/SketchLayout.ReliefReplaced`, `Api/Endpoints/SketchEndpoints`, `docs/tools/sketch.md`,
+  `docs/refusals.md`)
 - **A landform outside the four words is reported rather than read as silence (`SK3`).** `landform` publishes
   its four words as an enum and nothing enforced them: `RL1` measures a group's solved ground against the word
   it states and skips a relief that states none, so `quarry`, `Hills` and `HILLS` were each stored, published

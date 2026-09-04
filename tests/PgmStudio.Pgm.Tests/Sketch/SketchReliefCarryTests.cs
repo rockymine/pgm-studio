@@ -1,4 +1,4 @@
-using PgmStudio.Pgm.Sketch;
+﻿using PgmStudio.Pgm.Sketch;
 
 namespace PgmStudio.Pgm.Tests.Sketch;
 
@@ -87,5 +87,37 @@ public sealed class SketchReliefCarryTests
 
         await Assert.That(state!.MapTheme).IsEqualTo("grass");
         await Assert.That(state.Relief!.ContainsKey("i1")).IsTrue();
+    }
+
+    /// <summary>The carry is right and it is silent, so what a caller loses has to be nameable: a body that
+    /// states a relief for a group the map already holds one for builds the stored terrain, and the two reads
+    /// disagree — <c>relief/read</c> measures the body and the render builds the document.</summary>
+    [Test]
+    public async Task A_posted_relief_the_carry_replaces_is_named()
+    {
+        var replaced = SketchLayout.ReliefReplaced(
+            Layout("i1", """{ "i1": { "base": 14 } }"""),
+            Layout("i1", """{ "i1": { "base": 6 } }"""));
+
+        await Assert.That(replaced).IsEquivalentTo(new[] { "i1" });
+    }
+
+    [Test]
+    public async Task A_posted_relief_the_carry_agrees_with_is_not_named()
+    {
+        var same = SketchLayout.ReliefReplaced(
+            Layout("i1", """{ "i1": { "base": 6 } }"""),
+            Layout("i1", """{ "i1": { "base": 6 } }"""));
+
+        await Assert.That(same).IsEmpty();
+    }
+
+    /// <summary>Nothing is lost where the body states none — which is every compiled layout, since a plan
+    /// cannot express a relief.</summary>
+    [Test]
+    public async Task A_body_stating_no_relief_loses_nothing()
+    {
+        await Assert.That(SketchLayout.ReliefReplaced(Layout("i1"), Layout("i1", """{ "i1": { "base": 6 } }""")))
+            .IsEmpty();
     }
 }
