@@ -5295,6 +5295,12 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   the water line's own course at each wet cell's four neighbours and names air there, **except** where the
   neighbour has no terrain column at all: a pool reaching the board's edge meets the void, and a wall of water
   at the world's rim is what a coast is (the author's ruling, and the whole of the rule's judgement).
+- **A pool drawn across a slope says it dug a pit (WE92).** A body of water fills to one plane, by default the
+  lowest surface it crosses, and every bed column standing over that line is emptied down to it — so `depth`
+  bounds the bed and nothing at all bounded the bank. `opus5-mootgate`'s mere is two deep by its own word and
+  built as a straight-sided five-course shaft: grass at y16 on every side, water at y11, no shore anywhere
+  (x −39, z 17–23). The same shape had to be talked out of `tallow-weirgate` by hand. `DR-BANK` measures the
+  tallest bank the carve cut against the depth that was stated and names the cell and its two courses.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

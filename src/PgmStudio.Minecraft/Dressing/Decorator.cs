@@ -364,6 +364,9 @@ public static class Decorator
         // overlap across the symmetry fan.
         var images = new List<List<(int X, int Z)>>();
         var wet = new List<(int X, int Z, int Line)>();
+        // The tallest bank the carve cut, and where. A cut is bounded below by the bed floor and above by the
+        // column's own surface, and nothing bounds how far above the water line that surface stands.
+        var cutWall = (Courses: 0, At: default((int X, int Z)?), Line: 0);
         for (var image = 0; image < context.Symmetry.Order; image++)
         {
             // Added before the channel is walked and kept even where it finds nothing, so the list index is
@@ -416,6 +419,8 @@ public static class Decorator
                 if (!fillOnly) claims.Claim(x, z, ClaimKind.Water, water.Id);
                 covered.Add((x, z));
                 if (line >= 1 && world.GetBlock(x, line, z).Id == Blocks.StationaryWater) wet.Add((x, z, line));
+                if (!fillOnly && surfaceSolid - line > cutWall.Courses)
+                    cutWall = (surfaceSolid - line, (x, z), line);
             }
         }
 
@@ -437,7 +442,34 @@ public static class Decorator
             }
 
         DryEdge(world, ground, wet, water, declined);
+        SteepBank(cutWall, water, declined);
         return new Placed(images.Sum(cells => cells.Count), images);
+    }
+
+    /// <summary>DR-BANK — a pool that dug a shaft rather than filled a hollow.
+    ///
+    /// <para>The water line is one plane across the whole run, and a bed column whose own surface stands above
+    /// it is emptied from just over the bed floor up to that surface. <see cref="WaterProp.Depth"/> bounds how
+    /// far <em>below</em> the line the bed goes and nothing at all bounds how far <b>above</b> it the carve
+    /// reaches — so a body of water drawn across sloping ground comes out as a straight-sided pit as deep as
+    /// the ground falls, whatever depth was asked for.</para>
+    ///
+    /// <para>Measured against the pool's own depth, because that is the number the author stated: a bank taller
+    /// than the water is deep is ground taken out rather than water put in.</para></summary>
+    private static void SteepBank(
+        (int Courses, (int X, int Z)? At, int Line) cut, WaterProp water, List<Finding> declined)
+    {
+        var stated = Math.Max(1, (int)Math.Round(water.Depth));
+        if (cut.At is not { } at || cut.Courses <= stated) return;
+
+        declined.Add(new Finding(DressingRules.SteepBank,
+            $"water '{water.Id}' is {stated} deep and its carve cut {cut.Courses} course(s) of ground away "
+            + $"above its own line — a straight-sided wall from y{cut.Line + 1} to y{cut.Line + cut.Courses} "
+            + $"at ({at.X}, {at.Z}). The line is the lowest surface the body crosses and every column over it "
+            + "is emptied down to it, so a pool drawn across a slope digs a pit as deep as the ground falls. "
+            + "Draw it inside ground that is already level, or state a `level` and let it fill the hollow "
+            + "there is.",
+            Severity.Complaint, Subjects: [water.Id]));
     }
 
     /// <summary>DR-DRY — water standing against a hole in its own basin.

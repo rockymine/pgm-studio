@@ -822,6 +822,53 @@ public sealed class DecoratorTests
         await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.DryEdge)).IsFalse();
     }
 
+    /// <summary><b>A pond drawn across a slope digs a pit as deep as the ground falls.</b> The water line is
+    /// one plane — by default the lowest surface the body crosses — and every bed column standing above it is
+    /// emptied down to it, so the depth the author stated bounds the bed and nothing bounds the bank.
+    /// `opus5-mootgate`'s mere is that pond: two deep by its own word, and a five-course vertical wall from
+    /// the grass at y16 down to the water at y11, all the way round.</summary>
+    [Test]
+    public async Task A_pool_that_cut_a_bank_taller_than_its_own_depth_is_named()
+    {
+        // Ground that steps up five courses across the pool's own footprint, which is what a relief mark
+        // leaves under a pond drawn onto a slope.
+        var (world, top) = Plateau();
+        for (var x = 20; x < 40; x++)
+        for (var z = 0; z < 40; z++)
+        {
+            for (var y = 8; y < 13; y++) world.SetBlock(x, y, z, Blocks.Stone);
+            world.SetBlock(x, 12, z, Blocks.Grass);
+            top[(x, z)] = 13;
+        }
+
+        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "mere", Points = [[12, 20], [28, 20]], Radius = 4, Depth = 2, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        var bank = report.Declines.SingleOrDefault(finding => finding.Rule == DressingRules.SteepBank);
+        await Assert.That(bank).IsNotNull();
+        await Assert.That(bank!.Severity).IsEqualTo(Severity.Complaint);
+        await Assert.That(bank.Message).Contains("mere");
+        await Assert.That(bank.Message).Contains("2 deep");
+    }
+
+    /// <summary>And a body drawn on level ground says nothing: the carve then reaches nothing above its own
+    /// line, which is what "fill the hollow that is there" looks like.</summary>
+    [Test]
+    public async Task A_pool_on_level_ground_is_not_named()
+    {
+        var (world, top) = Plateau();
+        var report = Decorator.Decorate(world, Context(top, [new WaterProp
+        {
+            Id = "mere", Points = [[12, 20], [28, 20]], Radius = 4, Depth = 2, Seed = 5, Shore = 0,
+            Bank = new SolidMaterial(Blocks.Sand),
+        }]));
+
+        await Assert.That(report.Declines.Any(finding => finding.Rule == DressingRules.SteepBank)).IsFalse();
+    }
+
     [Test]
     public async Task A_channels_bank_is_a_material_the_shallows_and_the_beach_share()
     {

@@ -155,6 +155,17 @@ public static class DressingRules
     [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
     public const string DryEdge = "DR-DRY";
 
+    /// <summary>A body of water that dug a shaft rather than filled a hollow. Its line is one plane across the
+    /// whole run — by default the lowest surface it crosses — and every bed column standing above that line is
+    /// emptied down to it. <c>depth</c> bounds how far <b>below</b> the line the bed goes and nothing bounds
+    /// how far above it the carve reaches, so a pond drawn across a slope comes out as a straight-sided pit as
+    /// deep as the ground falls, whatever depth was asked for. Measured against the author's own stated depth,
+    /// because that is the number they said: a bank taller than the water is deep is ground taken out rather
+    /// than water put in.</summary>
+    /// <remarks>Draw the body inside ground that is already level — the finding names the wall's own cell and its two courses, which is where to read the fall — or state a `level` and let the water fill the hollow that is there instead of making one. A complaint: the world is built and the water is in it.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Feature, RuleConcern.Terrain, RuleConcern.World)]
+    public const string SteepBank = "DR-BANK";
+
     /// <summary>How much of a prop the clip has to block before <see cref="PropCut"/> is raised on the share
     /// alone. A rock tucked against a wall is flattened along it and measures about a third, which is a rock;
     /// over half of the body inside something already standing is not the prop the author placed, whether or

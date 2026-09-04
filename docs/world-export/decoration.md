@@ -647,6 +647,15 @@ pass rather than depending on it: the bed is negative terrain laid straight into
 channel works on the flat layouts the sketch tool builds today and will read as a cut valley once that pass
 gives a layout its heights.
 
+**A pool drawn across a slope digs a pit, and that is `DR-BANK`.** The derived line is the lowest surface the
+body crosses, so every bed column standing above it is emptied down to it — and while `depth` says how far
+*under* the line the bed goes, nothing says how far *over* it the carve may reach. `opus5-mootgate`'s mere is
+two deep by its own word and came out as a five-course vertical wall: grass at y16 on every side, water at y11,
+no shore at all. The finding measures the tallest bank the carve cut against the depth that was stated, and
+names the cell and the two courses, because a wall is read by standing at the bottom of it. The answers are to
+draw the body inside ground that is already level, or to state a `level` and let the water fill the hollow
+there is instead of making one.
+
 **Water standing against a hole is `DR-DRY`.** The bed a pool carves is the pool's own statement about the
 lake; the hollow it sits in is very often somebody else's — a relief mark, a shape's floor — and where that
 hollow reaches further than the bed does, the extra is excavated and never filled: a trench as deep as the
