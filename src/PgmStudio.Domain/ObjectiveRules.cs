@@ -89,4 +89,19 @@ public static class ObjectiveRules
     /// <remarks>Nothing to fix in the document: on a sketch-originated map a monument's `location` is what the build **produced**, not what it was asked for. Read it back off the exported intent rather than stating it.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Objective, RuleConcern.World)]
     public const string MonumentDerived = "OB25";
+
+    /// <summary>A destroy map with no way to end. A monument or a core is obsidian because obsidian reads as
+    /// a goal — opaque, slow, unmistakable — and that same slowness is what lets the defending team hold one
+    /// for the whole match: the attacker's pick is what drops the obsidian the defender rebuilds with, and
+    /// PGM lets the owner repair unless the map says otherwise. A core cannot even say otherwise, since it
+    /// has no <c>repairable</c> and a block put back into its casing passes every check PGM makes.
+    ///
+    /// <para>The map's own answer is a <b>mode ladder</b>: at a stated time every opted-in objective's blocks
+    /// become a softer material, so a raid that could not finish at minute ten finishes at minute twenty. It
+    /// takes two halves and this fires when either is missing — no <c>&lt;modes&gt;</c> at all, or a ladder
+    /// no objective opted into, which is the same map. 173 of the 314 DTM/DTC maps in the two corpora declare
+    /// one, and 171 of those opt in.</para></summary>
+    /// <remarks>Give the map a `modes` ladder, and make sure each destroyable and core carries `mode-changes="true"` or names the modes it takes. The corpus's own answer is two rungs — gold block at 15m and glass at 20m — which is what the studio writes when a map states nothing. A complaint: the map compiles, builds and loads, and how long a match may run is the author's.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Objective, RuleConcern.Intent)]
+    public const string NoModeLadder = "OB26";
 }

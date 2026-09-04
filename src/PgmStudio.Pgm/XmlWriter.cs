@@ -350,6 +350,8 @@ public static partial class XmlWriter
             // 0.8%, not 80%.
             if (d.Completion is { } c) Set(e, "completion", $"{C(c * 100)}%");
             if (!d.Show) Set(e, "show", "false");
+            // Written only when it turns PGM's own default off, so a document says what it changes.
+            if (!d.Repairable) Set(e, "repairable", "false");
             if (d.ModeChanges) Set(e, "mode-changes", "true");
             if (d.Modes is { Count: > 0 } modes) Set(e, "modes", string.Join(" ", modes));
 

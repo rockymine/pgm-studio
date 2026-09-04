@@ -41,6 +41,10 @@ public static class CoreGenerator
                 // read back as an unowned core.
                 ["owner"] = IntentNaming.TeamId(c.Owner),
                 ["region"] = regionId,
+                // The opt-in the ladder needs: PGM affects a core by no mode unless it says so. A core has no
+                // `repairable` of its own — the casing may be plugged back by anyone and PGM has no lever
+                // against it — so this is the whole of the pressure on a core.
+                ["mode_changes"] = true,
             };
             if (c.Name.Length > 0) entry["name"] = c.Name;
             if (c.Leak != Domain.ObjectiveDefaults.CoreLeak) entry["leak"] = (long)c.Leak;

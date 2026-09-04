@@ -22,6 +22,35 @@ public static class ObjectiveDefaults
     /// <see cref="MaxFloat"/> is the other end.</summary>
     public const int DestroyableFloat = 4;
 
+    /// <summary>Whether a <b>studio-authored</b> destroyable lets the defending team put a broken block back.
+    /// PGM's own default is true and <see cref="MapModel"/> mirrors it, because an imported map has to read
+    /// as the map it is; this is the other question — what the studio writes when it authors one — and the
+    /// answer is no (author). Obsidian dropped by the attacker is obsidian the defender can pick up and
+    /// re-place, and a monument that can be rebuilt as fast as it is broken is not a goal.
+    ///
+    /// <para>A core has no equivalent: PGM cancels only the owner <em>breaking</em> its own casing, and a
+    /// block placed back into the casing passes every check it has. On a core the <see cref="Modes"/> ladder
+    /// is the whole of the pressure.</para></summary>
+    public const bool Repairable = false;
+
+    // ── the mode ladder (DTM + DTC) ─────────────────────────────────────────────────────────────────────
+    // What every objective is made of at the start is what makes it a goal — obsidian, opaque and slow. What
+    // makes a match END is that it stops being obsidian. PGM's <modes> swap an objective's material at a
+    // stated time, and the corpus is near-unanimous that a destroy map needs them: of the 314 DTM/DTC maps
+    // in CommunityMaps + PublicMaps, 173 declare <modes>, and 171 of those have an objective opted in.
+    //
+    // The ladder below is the corpus's modal answer. Of the maps whose first mode is the commonest pair,
+    // gold block at 15m (63 of 118 gold-block firsts), the commonest second is glass at 20m (18 of 57).
+
+    /// <summary>The material an objective becomes first, and when. Gold block is the corpus's answer by a
+    /// wide margin — soft enough to break in a raid, still obviously a monument.</summary>
+    public const string FirstMode = "gold block";
+    public const string FirstModeAfter = "15m";
+
+    /// <summary>And what it becomes after that: glass, which ends a match rather than prolonging it.</summary>
+    public const string SecondMode = "glass";
+    public const string SecondModeAfter = "20m";
+
     // ── core (DTC) ─────────────────────────────────────────────────────────────────────────────────────
 
     /// <summary>The lava's own footprint, in blocks — <b>what an author states</b>, and one of the three

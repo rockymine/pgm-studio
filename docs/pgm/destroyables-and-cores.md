@@ -488,9 +488,23 @@ structure than a human wrote.
 
 ## 6. Modes
 
-77 of the 150 corpus maps declare `<modes>`. Modes are almost entirely declarative — they change an objective's
-material at a match time — so there is no world or structure impact, and the work is parse, store, write, and a
-feature-id registry alongside regions and filters so `modes="a b"` resolves.
+**A mode ladder is what makes a destroy map end**, and it is not decoration. A monument or a core is obsidian
+because obsidian reads as a goal — opaque, slow, unmistakable — and that same slowness is what lets the
+defending team hold one for a whole match: PGM lets the **owner repair** unless the map says otherwise
+(`DestroyableModule` parses `repairable` with `.orTrue()`), and the obsidian an attacker's diamond pick drops
+is exactly what they repair with. A core cannot even say otherwise: it has no `repairable`, and `CoreMatchModule`
+cancels only the owner *breaking* its own casing — a block placed back into the casing region passes every
+check it makes. So on a core the ladder is the whole of the pressure.
+
+Measured over the 314 DTM/DTC maps of `CommunityMaps` and `PublicMaps`: **173 declare `<modes>`**, and **171 of
+those have an objective opted in**. The modal ladder is two rungs — of the 118 maps whose first mode is a gold
+block, 63 fire it at 15m, and of the 57 whose first is `gold block @ 15m`, 18 follow with `glass @ 20m`. That
+pair is what the studio writes when a map states none (`ObjectiveModes.Default`), and `OB26` names a destroy
+map that has no ladder or whose ladder nothing takes.
+
+Modes are otherwise declarative — they change an objective's material at a match time — so there is no world
+or structure impact, and the read side is parse, store, write, and a feature-id registry alongside regions and
+filters so `modes="a b"` resolves.
 
 ```xml
 <modes>
@@ -501,6 +515,11 @@ feature-id registry alongside regions and filters so `modes="a b"` resolves.
 
 **OB9 — mode membership is a tri-state, not a list.** `modes="a b"` is a specific set; `mode-changes="true"`
 means *all* modes (PGM models this as a null set, not an enumerated one); neither attribute means *no* modes.
+**Declaring the ladder is therefore only half of it** — an objective that says nothing takes nothing, and a
+map with a `<modes>` block none of its goals opted into plays exactly like a map with none. That is the half
+worth checking, because it looks right: 163 corpus maps state the opt-in on the *containing* `<destroyables>`
+or `<cores>` element and let PGM's `InheritingElement` push it down to each child, which is invisible to any
+reader that only looks at the leaf. The studio writes `mode-changes="true"` on every goal it emits.
 Combining both is an error PGM raises and so does the studio. It persists as a `mode_changes` boolean plus a
 nullable id list, so the XML round-trips exactly.
 
@@ -512,10 +531,16 @@ The studio generates on parse so the reference is always resolvable.
 ## 7. Deliberately unsupported
 
 The corpus long tail is single-digit and none of it affects geometry, validity, or generation: `sparks` (7),
-`show-progress` (12), `show-sidebar` (6), `show-effects` (6), `required` (6), `repairable`,
+`show-progress` (12), `show-sidebar` (6), `show-effects` (6), `required` (6),
 `scoreboard-filter` (84 — display only), and the shared `ProximityMetric`/`ShowOptions` surface.
 `ShowOptions`/`ProximityMetric` are already dropped on wools, so dropping them here is consistent with the
 existing contract rather than new debt.
+
+**`repairable` is parsed, stored and written**, defaulting to PGM's own `true` so an imported map reads as the
+map it is. What the studio *authors* is the other question and the other answer: a generated destroyable is
+written `repairable="false"` (`ObjectiveDefaults.Repairable`, the author's ruling), because a monument rebuilt
+as fast as it is broken is not a goal. Only one corpus map states it — `alpine_mining_ii`, which states it
+alongside `mode-changes="true"` — the rest leave the ladder to do the work.
 
 **`completion` is the exception — it is parsed, stored and written**, defaulting to `1.0`. It is semantically
 load-bearing (it changes when the goal completes) and far more common than a raw grep suggests. It is also a

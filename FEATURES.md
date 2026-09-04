@@ -5317,6 +5317,16 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   so the leaf's side is always among them; its build spec says so and gives the reason as the orbit turning no
   vine data, which `BlockGeometry.Turned` has always done. A vine under another naming the same side is held by
   it, so only the run reaching nothing is named — 2 to 5 faces per body on that board. Asked once per body.
+- **A destroy map is written with the ladder that lets it end (PG4).** Every DTM and DTC board the studio has
+  built put obsidian monuments and obsidian-cased cores on the map and stopped there — no `<modes>`, and
+  `repairable` left at PGM's own default of true. So the defending team could rebuild a monument with the
+  obsidian the attacker's pick had just dropped, for as long as the match ran, and a core could be plugged by
+  anyone: PGM gives a core no `repairable` at all and cancels only the owner *breaking* its own casing.
+  A generated map now carries the corpus's modal ladder — gold block at 15m, glass at 20m, measured over the
+  314 DTM/DTC maps of the two corpora — plus `mode-changes="true"` on every goal, which is the half that makes
+  a ladder do anything (PGM affects an objective by no mode unless it says so), plus `repairable="false"` on
+  every destroyable. `OB26` names a destroy map missing either half; `repairable` now round-trips, defaulting
+  to PGM's `true` so an imported map still reads as the map it is.
 - **An orbit image carries what its shape is made of (WE83).** `MirrorShape` rebuilds a shape field by field,
   and the `material` word (`WE80`) was not among the fields it carried — so every mirrored image of a
   material-stated shape answered the scope resolver's question with neither grain of paint and fell to the map

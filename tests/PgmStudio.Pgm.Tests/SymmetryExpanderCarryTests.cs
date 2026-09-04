@@ -52,6 +52,7 @@ public sealed class SymmetryExpanderCarryTests
             Owner = "red-team", Anchor = new Pt(40, 12, 40), Lava = 3, LavaHeight = 3,
             OpenTop = true, Float = 6, Leak = 9, Box = new BlockBox(37, 18, 37, 43, 21, 43),
         }],
+        Modes = [new ModeIntent("15m", "gold block")],
         IslandTeams = new Dictionary<string, string> { ["1"] = "red-team" },
         Structures = new StructureIntent { IronCubes = [new IronCube(4, 4, true)] },
     };

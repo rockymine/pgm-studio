@@ -257,7 +257,48 @@ public static class MapExportComposer
                         Field: field));
             }
 
+        findings.AddRange(ModeLadder(doc));
         return findings;
+    }
+
+    /// <summary><b><c>OB26</c> — a destroy map with no way to end.</b> A monument or a core is obsidian
+    /// because obsidian reads as a goal, and that same slowness is what lets the defending team hold one for
+    /// the whole match. The map's own answer is the mode ladder, and it takes two halves: a
+    /// <c>&lt;modes&gt;</c> block, and each objective saying it takes them. Either half alone is the same map
+    /// as neither, so both are asked here — off the finished document, which is the only reading that sees
+    /// what was actually written rather than what an intent meant.
+    ///
+    /// <para>Asked of destroyables and cores alone. A wool is <em>carried</em> rather than broken, so a mode
+    /// has nothing to do to it and a CTW map needs no ladder however long it runs.</para>
+    ///
+    /// <para>A <b>complaint</b>, on <c>PL3</c>'s precedent: the map compiles, builds and loads, and how long a
+    /// match may run is the author's. The generator writes the ladder on every destroy map it makes, so the
+    /// only way to reach this is to have said no on purpose or by hand — and a refusal there would block an
+    /// author who meant it.</para></summary>
+    private static IEnumerable<Finding> ModeLadder(Dict doc)
+    {
+        var goals = Entries(doc, "destroyables").Concat(Entries(doc, "cores")).ToList();
+        if (goals.Count == 0) yield break;
+
+        if (Entries(doc, "modes").Count == 0)
+        {
+            yield return new Finding(ObjectiveRules.NoModeLadder,
+                $"the map has {goals.Count} destroy objective(s) and no mode ladder, so they stay obsidian for "
+                + "the whole match — and the obsidian an attacker drops is what the defending team rebuilds "
+                + "with. Declare `modes`",
+                Severity.Complaint, Field: "modes");
+            yield break;
+        }
+
+        var deaf = goals.Count(goal => goal is Dict d
+                                    && d.GetValueOrDefault("mode_changes") is not true
+                                    && d.GetValueOrDefault("modes") is null);
+        if (deaf > 0)
+            yield return new Finding(ObjectiveRules.NoModeLadder,
+                $"the map declares a mode ladder and {deaf} of its {goals.Count} destroy objective(s) take no "
+                + "mode, so the ladder does nothing to them — PGM affects an objective by no mode unless it "
+                + "says so. Give each one `mode-changes` or name the modes it takes",
+                Severity.Complaint, Field: "modes");
     }
 
     /// <summary>One of the document's top-level lists, or an empty one. A key that is absent and a key holding

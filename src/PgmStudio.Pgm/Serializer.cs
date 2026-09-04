@@ -238,6 +238,7 @@ public static class Serializer
             r["show"] = false;
             r["phantom"] = d.Phantom.ToString().ToLowerInvariant();
         }
+        if (!d.Repairable) r["repairable"] = false;
         if (d.ModeChanges) r["mode_changes"] = true;
         if (d.Modes is { Count: > 0 }) r["modes"] = d.Modes.ToList<object?>();
         return r;

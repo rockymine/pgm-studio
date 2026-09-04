@@ -585,6 +585,9 @@ public sealed partial class MapParser
                 Materials = NonEmpty(d.Get("materials"), d.Get("material")),
                 Completion = ParsePercent(d.GetOrNull("completion")),
                 Show = d.Bool("show", true),
+                // PGM's own default (DestroyableModule: `parseBool("repairable").orTrue()`), so an imported
+                // map reads as the map it is.
+                Repairable = d.Bool("repairable", true),
                 ModeChanges = modeChanges,
                 Modes = modes,
             });

@@ -110,6 +110,14 @@ public sealed class Destroyable
     public bool ModeChanges;            // true = every mode applies; mutually exclusive with Modes
     public List<string>? Modes;         // an explicit mode set; null = none (or all, when ModeChanges)
 
+    /// <summary>Whether the owning team may put a broken block back. <b>PGM's default is true</b> and this
+    /// mirrors it, so an imported map reads as the map it is; what the studio <em>authors</em> is
+    /// <see cref="ObjectiveDefaults.Repairable"/>'s answer, which is not the same question.
+    /// <para>A core has no such attribute at all — PGM cancels only the owner <em>breaking</em> its own
+    /// casing, and a block placed back into the casing region passes every check — so on a core the mode
+    /// ladder is the only pressure there is.</para></summary>
+    public bool Repairable = true;
+
     /// <summary>
     /// Whether this is a goal at all. The test is exact and semantic rather than heuristic: <b>a goal
     /// players cannot see is not a goal</b>. Authors reach for the destroyable element to script the world

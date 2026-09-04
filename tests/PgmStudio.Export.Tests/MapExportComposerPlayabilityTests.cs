@@ -22,13 +22,25 @@ using Dict = Dictionary<string, object?>;
 /// </summary>
 public sealed class MapExportComposerPlayabilityTests
 {
+    /// <summary>A document with the lists named, each entry an id and nothing else — plus, where it carries a
+    /// destroy objective, the mode ladder and the opt-in a generated map always writes, so these tests read
+    /// what the generator makes rather than a shape it never emits. <c>OB26</c>'s own tests build the
+    /// ladderless case explicitly.</summary>
     private static Dict Doc(params (string Key, int Count)[] lists)
     {
         var doc = new Dict { ["name"] = "m", ["version"] = "1.0.0", ["gamemode"] = new List<object?>() };
         foreach (var (key, count) in lists)
-            doc[key] = Enumerable.Range(0, count).Select(i => (object?)new Dict { ["id"] = $"{key}-{i}" }).ToList();
+            doc[key] = Enumerable.Range(0, count).Select(i => (object?)new Dict
+            {
+                ["id"] = $"{key}-{i}",
+                ["mode_changes"] = key is "destroyables" or "cores" ? true : null,
+            }).ToList();
+        if (doc.ContainsKey("destroyables") || doc.ContainsKey("cores")) doc["modes"] = Ladder();
         return doc;
     }
+
+    private static List<object?> Ladder() =>
+        [new Dict { ["id"] = "mode-gold-block", ["after"] = "15m", ["material"] = "gold block" }];
 
     private static MapIntent Intent(int spawns = 0, int destroyables = 0) => new()
     {
@@ -129,5 +141,48 @@ public sealed class MapExportComposerPlayabilityTests
         await Assert.That(result.Refusal!.Status).IsEqualTo(409);
         await Assert.That(result.Refusal!.Error).IsEqualTo("not a playable map");
         await Assert.That(result.Refusal!.Findings.Single().Rule).IsEqualTo("EX2");
+    }
+
+    // ── OB26: a destroy map with no way to end ────────────────────────────────────────────────────────
+
+    /// <summary><b>A monument that stays obsidian is a monument the defending team can hold.</b> PGM lets the
+    /// owner repair unless the map says otherwise, and the obsidian an attacker's pick drops is what they
+    /// repair with; a core cannot even say otherwise, having no <c>repairable</c> at all. The map's answer is
+    /// the mode ladder, and a destroy map with none does not end.</summary>
+    [Test]
+    public async Task A_destroy_map_with_no_mode_ladder_is_OB26()
+    {
+        var doc = Doc(("spawns", 2), ("destroyables", 2), ("teams", 2));
+        doc.Remove("modes");
+
+        var findings = MapExportComposer.Playable(Intent(spawns: 2, destroyables: 2), doc);
+        var ladder = findings.Single(finding => finding.Rule == ObjectiveRules.NoModeLadder);
+        await Assert.That(ladder.Message).Contains("no mode ladder");
+    }
+
+    /// <summary>The other half, and the one a document can get wrong while looking right: PGM affects an
+    /// objective by <em>no</em> mode unless the objective says so, so a ladder nothing opts into is the same
+    /// map as no ladder. 171 of the 173 mode-carrying corpus maps opt in; the two that do not are the
+    /// case.</summary>
+    [Test]
+    public async Task A_ladder_no_objective_takes_is_OB26()
+    {
+        var doc = Doc(("spawns", 2), ("cores", 2), ("teams", 2));
+        foreach (var core in doc["cores"] as List<object?> ?? []) ((Dict)core!).Remove("mode_changes");
+
+        var findings = MapExportComposer.Playable(Intent(spawns: 2), doc);
+        var ladder = findings.Single(finding => finding.Rule == ObjectiveRules.NoModeLadder);
+        await Assert.That(ladder.Message).Contains("2 of its 2");
+    }
+
+    /// <summary>And a CTW map is never asked. A wool is carried rather than broken, so a mode has nothing to
+    /// do to it however long the match runs.</summary>
+    [Test]
+    public async Task A_wool_map_needs_no_ladder()
+    {
+        var doc = Doc(("spawns", 2), ("wools", 2), ("teams", 2));
+
+        await Assert.That(MapExportComposer.Playable(Intent(spawns: 2), doc)
+                                           .Any(f => f.Rule == ObjectiveRules.NoModeLadder)).IsFalse();
     }
 }

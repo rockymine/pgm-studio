@@ -35,6 +35,12 @@ public static class DestroyableGenerator
                 ["owner"] = IntentNaming.TeamId(b.Owner),
                 ["region"] = regionId,
                 ["materials"] = b.Materials,
+                // Both halves of what makes the goal finishable. `mode-changes` is the opt-in without which
+                // the ladder <modes> declares does nothing to this objective (PGM defaults the set empty);
+                // `repairable` is the author's ruling that the obsidian an attacker drops must not be the
+                // obsidian a defender rebuilds with.
+                ["mode_changes"] = true,
+                ["repairable"] = b.Repairable,
             });
         }
     }

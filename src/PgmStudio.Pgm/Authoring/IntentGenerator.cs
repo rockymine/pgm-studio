@@ -18,6 +18,9 @@ public static class IntentGenerator
         MetaGenerator.Apply(doc, intent);
         TeamsGenerator.Apply(doc, intent);
         WoolGenerator.Apply(doc, intent);
+        // Before the two goals it acts on, so a reader of the document meets the ladder and then what climbs
+        // it — and because the objective generators write the opt-in that makes it do anything.
+        ModesGenerator.Apply(doc, intent);
         DestroyableGenerator.Apply(doc, intent);
         CoreGenerator.Apply(doc, intent);
         // Water lanes before build: a lane is geometry the build slice must not see, and emitting it first

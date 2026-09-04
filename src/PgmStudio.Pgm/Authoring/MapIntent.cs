@@ -55,6 +55,15 @@ public sealed record MapIntent
     /// Null/empty leaves them untouched.</summary>
     public List<CoreIntent>? Cores { get; init; }
 
+    /// <summary><b>When each objective stops being what it is made of.</b> A destroy map whose monuments and
+    /// cores stay obsidian for the whole match is a map that does not end: the material is what makes a goal
+    /// a goal, and the ladder is what makes it winnable. Null takes
+    /// <see cref="ObjectiveModes.Default"/> on a map that carries a destroyable or a core, which is the
+    /// corpus's own answer; an empty list is an author saying they want none, and is left alone.
+    ///
+    /// <para>Map-level, so it does not fan: a mode is a clock, and both teams play the same one.</para></summary>
+    public List<ModeIntent>? Modes { get; init; }
+
     /// <summary>What this map is played as, derived from the objective modules it carries — the one rule,
     /// <see cref="PgmStudio.Domain.Gamemodes.From"/>, which a parsed <c>MapModel</c> answers the same way.
     /// It is a set because CTW, DTM and DTC coexist, and it is what the <c>&lt;gamemode&gt;</c> elements and
@@ -488,6 +497,11 @@ public sealed record DestroyableIntent
     /// <summary>A PGM material match — the goal is these blocks, not the region that holds them.</summary>
     public string Materials { get; init; } = ObjectiveDefaults.Materials;
 
+    /// <summary>Whether the defending team may put a broken block back. Off by the studio's own ruling
+    /// (<see cref="ObjectiveDefaults.Repairable"/>): obsidian the attacker drops is obsidian the defender
+    /// picks up, and a monument rebuilt as fast as it is broken is not a goal.</summary>
+    public bool Repairable { get; init; } = ObjectiveDefaults.Repairable;
+
     /// <summary>The marker column. The structure is centred on it and floats above the terrain, so no Y is
     /// authored.</summary>
     public Pt Anchor { get; init; }
@@ -575,6 +589,44 @@ public sealed record CoreIntent
     /// <summary>How many blocks players must dig into the terrain under the core before its lava can leak.
     /// Zero when breaching the casing is enough on its own.</summary>
     public int DigDepth => ObjectiveDefaults.DigDepth(Leak, Float);
+}
+
+/// <summary>
+/// One rung of the mode ladder: what every opted-in objective becomes, and when.
+///
+/// <para>It is a whole-map statement rather than a per-objective one. A mode is a clock — both teams play the
+/// same one, and a map whose red monument softened five minutes before blue's would be two matches.</para>
+/// </summary>
+/// <param name="After">When it fires, as a PGM duration (<c>15m</c>, <c>1h</c>). Required by PGM.</param>
+/// <param name="Material">What every opted-in objective becomes: a block name, optionally <c>:data</c>.</param>
+/// <param name="Name">What the boss bar and the announcement call it. Empty lets PGM name it off the
+/// material, which is what most of the corpus does.</param>
+public readonly record struct ModeIntent(string After, string Material, string Name = "");
+
+/// <summary>
+/// The ladder a destroy map takes when it states none of its own — the corpus's modal answer, measured over
+/// the 314 DTM/DTC maps of <c>CommunityMaps</c> and <c>PublicMaps</c>: obsidian to
+/// <see cref="ObjectiveDefaults.FirstMode"/>, then to <see cref="ObjectiveDefaults.SecondMode"/>.
+/// </summary>
+public static class ObjectiveModes
+{
+    /// <summary>Two rungs, which is what 100 of the 173 mode-carrying corpus maps have.</summary>
+    public static IReadOnlyList<ModeIntent> Default { get; } =
+    [
+        new(ObjectiveDefaults.FirstModeAfter, ObjectiveDefaults.FirstMode),
+        new(ObjectiveDefaults.SecondModeAfter, ObjectiveDefaults.SecondMode),
+    ];
+
+    /// <summary>The ladder a map actually gets: its own where it states one — an <b>empty</b> list included,
+    /// which is an author saying they want none — and the default where it states nothing at all and has an
+    /// objective for a mode to act on.</summary>
+    public static IReadOnlyList<ModeIntent> For(MapIntent intent) =>
+        intent.Modes ?? (HasDestroyGoal(intent) ? Default : []);
+
+    /// <summary>Whether the map carries anything a mode could change. A wool is captured rather than broken,
+    /// so a pure CTW map gets no ladder however long it runs.</summary>
+    public static bool HasDestroyGoal(MapIntent intent) =>
+        intent.Destroyables is { Count: > 0 } || intent.Cores is { Count: > 0 };
 }
 
 /// <summary>A world point (spawn location).</summary>

@@ -278,6 +278,7 @@ public static class Deserializer
         Materials = Str(d, "materials"),
         Completion = Val(d, "completion") is { } c ? AsDouble(c, 1.0) : null,
         Show = Val(d, "show") is not false,
+        Repairable = Val(d, "repairable") is not false,
         ModeChanges = Val(d, "mode_changes") is true,
         Modes = d.ContainsKey("modes") ? ListOf(d, "modes").Select(m => m as string ?? "").ToList() : null,
     };
