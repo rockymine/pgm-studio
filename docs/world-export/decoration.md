@@ -516,6 +516,15 @@ own. It does: `BlockGeometry.Turned` maps each set bit through the image's trans
 a single face survives a mirror or a quarter-turn without a second bit to protect it. The rule is asked once
 per body, since a board draws the same tree thirty times and the fault is in the recipe.
 
+**`copied` is doing three jobs, and only one of them is its own (`WE95`, `WE96`, `TL15`).** A `template` or
+a `grown` tree is built from two blocks — the species' log and its leaf — so anything else a real tree has
+(a vine on the crown, a bush at the foot) and anything that is not a tree at all has nowhere to go but a
+copied body, which is the one recipe carrying an arbitrary `[x, y, z, id, data]`. Measured over the 81 copied
+bodies in `pgm-studio-mapgen/specs`: 44 are genuinely cut from a world, logs and leaves only; 37 are
+hand-written, and 27 of those carry a block the generative forms cannot emit. Until a tree can state an
+understorey and a small built thing can be one, the word will keep being reached for by anything that needs a
+third block.
+
 **The third tree is copied, and it decides nothing about its own shape.** A `TreeForm.Copied` recipe carries
 a `body` — every block of a tree an author built, as `[x, y, z, id, data]` offsets from its foot, the lowest
 log, which stands at the origin. The stamp writes it block for block: the foot lands on the ground the way a

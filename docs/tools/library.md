@@ -357,7 +357,14 @@ reads a world where every tree stands clear of every other, takes each connected
 carpentry — wooden slabs and stairs, fences, vines — that rests on something, and files it here as
 `<name>-r<row>-<n>`, rows by the z the trees stand at and numbered along x, so a re-run over the same world
 updates the same rows. A body hanging in the air is a fragment of a tree that broke and is reported rather
-than filed. The 74 trees of `pgm-studio-mapgen/showcase/tree-showcase` are the corpus it was written for.
+than filed. The 74 trees of `pgm-studio-mapgen/showcase/tree-showcase` are the corpus it was written for, and
+cutting them is the only way a `copied` row comes to exist: `LibrarySeed` puts down the six vanilla species,
+one grown conifer and four erratics, and knows nothing about any world.
+
+**Nothing yet enforces "cut out of a world" (`TL15`).** A body carries no record of where it came from, so the
+cutter's row and a hand-typed array are indistinguishable once stored — which is how boards came to file a
+dead-bush cluster, a log pile and a crate as `copied` trees. The two words those props actually wanted are
+`WE95` and `WE96`.
 
 **The card is the whole picture, and that is the point.** Six woods differ in colour and six species differ in
 *shape* — a notched cone is a spruce, a flat umbrella on a leaning trunk is an acacia — and neither reads off a
