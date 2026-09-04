@@ -281,15 +281,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   *`opus5-slipway`'s `s2` is `(0, 16, 114, 56)` in its layout and the compile's `back-band-22` is
   `(0, 16, 100, 56)`: 14 blocks wider than any bend accounts for, so the plan moved under the layout.*
 
-- [ ] **TN20 — 74 of 85 specs carry a version 1 plan and cannot be compiled.** `PL15` refuses them: *this
-  plan states version 1; this build reads version 2 — marker offsets are blocks from the piece corner, and
-  version 1 stated them in cells*. So most of `specs/` cannot be driven at all, and a board there is a record
-  of a world rather than a thing that rebuilds. The migration is mechanical — a placement's `at` is multiplied
-  by `globals.cell` and the version bumped — but it moves every marker on 74 boards, so it wants the author's
-  word before it is run rather than after. The work is in `pgm-studio-mapgen`.
-
-  *`opus5-siderite-bowl` compiles 422 on `PL15` today; `specs/*/​*.plan.json` states `"plan": 1` in 74 of 85.*
-
 - [ ] **WE52 — A drawn patch takes its own biome field.** The map states one field and every column answers
   to it. What an author wants beside that is a shape drawn in the Dressing phase — the way an area of cover is
   drawn — carrying a field of its own, so a corner of the board reads as desert against a map that is otherwise
