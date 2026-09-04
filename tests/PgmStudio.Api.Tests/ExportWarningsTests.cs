@@ -50,10 +50,23 @@ public sealed class ExportWarningsTests
         await Assert.That(finish.IsSuccessStatusCode).IsTrue().Because(await finish.Content.ReadAsStringAsync());
 
         var intent = await client.PutAsync($"/api/map/{slug}/intent",
-            new StringContent(compiled.GetProperty("intent").GetRawText(), Encoding.UTF8, "application/json"));
+            new StringContent(Authored(compiled.GetProperty("intent")), Encoding.UTF8, "application/json"));
         await Assert.That(intent.IsSuccessStatusCode).IsTrue().Because(await intent.Content.ReadAsStringAsync());
 
         return slug;
+    }
+
+    /// <summary>The compiled intent with an author on it. A map naming nobody is `EX6` — the observer
+    /// platform's authors board is left off rather than stamped blank — and this suite is about what the
+    /// <em>dressing</em> pass dropped, so the fixture states the one thing that would otherwise ride along in
+    /// the header beside it.</summary>
+    private static string Authored(JsonElement intent)
+    {
+        var node = JsonNode.Parse(intent.GetRawText())!.AsObject();
+        var meta = node["meta"]?.AsObject() ?? [];
+        meta["authors"] = new JsonArray(new JsonObject { ["name"] = "rockymine" });
+        node["meta"] = meta;
+        return node.ToJsonString();
     }
 
     private static string? Warnings(HttpResponseMessage resp) =>
@@ -114,7 +127,7 @@ public sealed class ExportWarningsTests
             new StringContent(compiled.GetProperty("layout").GetRawText(), Encoding.UTF8, "application/json"));
         await client.PostAsync($"/api/map/{slug}/sketch/finish", null);
         await client.PutAsync($"/api/map/{slug}/intent",
-            new StringContent(compiled.GetProperty("intent").GetRawText(), Encoding.UTF8, "application/json"));
+            new StringContent(Authored(compiled.GetProperty("intent")), Encoding.UTF8, "application/json"));
 
         var export = await client.GetAsync($"/api/map/{slug}/export");
         await Assert.That(export.IsSuccessStatusCode).IsTrue().Because(await export.Content.ReadAsStringAsync());
