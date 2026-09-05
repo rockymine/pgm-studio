@@ -1,6 +1,25 @@
 namespace PgmStudio.Geom.Relief;
 
 /// <summary>
+/// One cell a mark states a height for, and <b>how firmly</b>. A pin of full weight is a statement: this ground
+/// is at this height, and whatever an earlier mark said about the cell is replaced. A pin of less than full
+/// weight is an <em>approach</em> — the cell grades this far toward the height from whatever is already pinned
+/// there — which is what a mark's outer shoulder is, and what keeps two marks whose bands touch from meeting
+/// on a wall.
+///
+/// <para>Weight is the mark's own reading of how far into its shoulder the cell sits: 1 at the edge of the flat
+/// it guarantees, falling to 0 at the limit of its reach. So the ground runs from the mark's height at its
+/// tread out to the neighbour's at its rim, and neither mark has to know the other exists. Over ground nobody
+/// has claimed a shoulder states nothing at all and the cell is left to the relaxation, which is the only
+/// answer that keeps the grade going: planting it at the mark's own height would stop the ramp dead at
+/// whichever cell the earlier mark's band happened to end on.</para>
+///
+/// <para><b>Order still decides.</b> A mark can only grade into what was written before it, so the softening is
+/// the later mark's, the same way the winning of a contested cell always was.</para>
+/// </summary>
+public readonly record struct Pin((int X, int Z) Cell, double Height, double Weight = 1);
+
+/// <summary>
 /// What an author states about height: a placed mark holding a patch of the footprint at a chosen elevation.
 /// Every kind reduces to the same thing for the solver — a set of cells pinned to a value — which is what
 /// lets one field carry a summit, a ridgeline, a flat bench, a rim and a scarp at once.
@@ -13,7 +32,7 @@ namespace PgmStudio.Geom.Relief;
 public abstract record Mark
 {
     /// <summary>The cells this mark pins and the height it pins each to.</summary>
-    public abstract IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint);
+    public abstract IEnumerable<Pin> Pins(Footprint footprint);
 
     /// <summary>Whether the sculpting passes may move what this mark pinned. A mark states a height about
     /// the <em>ground</em>, and a push composes over ground — that is the whole difference between the two
@@ -28,7 +47,7 @@ public abstract record Mark
 /// which is the whole reason the radius exists.</summary>
 public sealed record PointMark(double X, double Z, double Height, double Radius = 2) : Mark
 {
-    public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
+    public override IEnumerable<Pin> Pins(Footprint footprint)
     {
         var radius = Math.Max(0.5, Radius);
         for (var x = (int)(X - radius) - 1; x <= X + radius + 1; x++)
@@ -36,7 +55,7 @@ public sealed record PointMark(double X, double Z, double Height, double Radius 
             {
                 double dx = x + 0.5 - X, dz = z + 0.5 - Z;
                 if (dx * dx + dz * dz <= radius * radius && footprint.Inside(x, z))
-                    yield return ((x, z), Height);
+                    yield return new Pin((x, z), Height);
             }
     }
 }
@@ -75,11 +94,12 @@ public sealed record LineMark(
     /// since a mark states ground and ground that overhangs is not a height field.</summary>
     private double Fall => Batter <= 0 ? 0 : Math.Tan(Math.Clamp(Batter, 1, 89) * Math.PI / 180.0);
 
-    public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
+    public override IEnumerable<Pin> Pins(Footprint footprint)
     {
         if (Points.Length < 2) yield break;
         var flat = FlatTo;
         var fall = Fall;
+        var shoulder = Radius - flat;
         // A second pass is one at least this far away measured ALONG the line, which is what tells a
         // neighbouring winding from the far side of a bend in the pass the cell is already on.
         var apart = Math.Max(1, 2 * Radius);
@@ -90,7 +110,13 @@ public sealed record LineMark(
             if (distance > Radius) continue;
 
             var height = HeightAt(along);
-            if (distance <= flat) { yield return ((x, z), height); continue; }
+            if (distance <= flat) { yield return new Pin((x, z), height); continue; }
+
+            // How firmly the shoulder states its height: full at the tread's edge, nothing at the reach's, so
+            // where the band runs over ground another mark has already pinned the two grade into one another
+            // instead of meeting on a step. Nothing pinned there and the weight is spent on nothing — the
+            // shoulder lands at its own height, which is what the whole band always did.
+            var weight = shoulder <= 0 ? 1 : Math.Clamp((Radius - distance) / shoulder, 0, 1);
 
             // Out past the tread, and the band is still the mark's: what the tread changes is only what
             // happens where the line comes back past itself. With no second pass in reach the shoulder is
@@ -109,13 +135,13 @@ public sealed record LineMark(
             var second = Polyline.NearestPass(x + 0.5, z + 0.5, Points, along, apart);
             if (second is not { } other || distance + other.Distance > 2 * Radius
                 || !Polyline.Between(x + 0.5, z + 0.5, Points, along, other.Along))
-            { yield return ((x, z), height); continue; }
+            { yield return new Pin((x, z), height, weight); continue; }
 
             var otherHeight = HeightAt(other.Along);
             var here = Math.Max(0, distance - flat);
             var there = Math.Max(0, other.Distance - flat);
             var gap = here + there;
-            if (gap <= 0) { yield return ((x, z), height); continue; }
+            if (gap <= 0) { yield return new Pin((x, z), height, weight); continue; }
 
             // Read in the gap's own frame rather than from whichever pass is nearer, so every cell between
             // the two treads answers one function of one distance and the ramp is continuous across the
@@ -123,8 +149,11 @@ public sealed record LineMark(
             var high = Math.Max(height, otherHeight);
             var low = Math.Min(height, otherHeight);
             var fromHigh = height >= otherHeight ? here : there;
+            // A cell between two passes of this line is the line's own business and is stated outright: the
+            // ramp here is already the answer, and softening it into whatever lay under the band would let a
+            // mark drawn earlier reach up between two windings of a road.
             var slope = Math.Max(fall, (high - low) / gap);
-            yield return ((x, z), Math.Max(high - slope * fromHigh, low));
+            yield return new Pin((x, z), Math.Max(high - slope * fromHigh, low));
         }
     }
 
@@ -144,11 +173,11 @@ public sealed record LineMark(
 /// arrives at a genuinely flat surface rather than the rounded top an interpolation would give.</summary>
 public sealed record AreaMark(double[][] Ring, double Height) : Mark
 {
-    public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
+    public override IEnumerable<Pin> Pins(Footprint footprint)
     {
         if (Ring.Length < 3) yield break;
         foreach (var (x, z) in footprint.Land())
-            if (Polygon.PointInRing(x + 0.5, z + 0.5, Ring)) yield return ((x, z), Height);
+            if (Polygon.PointInRing(x + 0.5, z + 0.5, Ring)) yield return new Pin((x, z), Height);
     }
 }
 
@@ -158,10 +187,10 @@ public sealed record AreaMark(double[][] Ring, double Height) : Mark
 /// usually what a group's interior wants and never what a lake wants.</summary>
 public sealed record RimMark(double Height, int Depth = 1) : Mark
 {
-    public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
+    public override IEnumerable<Pin> Pins(Footprint footprint)
     {
         foreach (var (x, z) in footprint.Land())
-            if (RingDistance(footprint, x, z) <= Math.Max(1, Depth)) yield return ((x, z), Height);
+            if (RingDistance(footprint, x, z) <= Math.Max(1, Depth)) yield return new Pin((x, z), Height);
     }
 
     // A boundary cell is one step from the void, so the outermost ring answers 1 — the depth counts rings
@@ -196,7 +225,7 @@ public sealed record RimMark(double Height, int Depth = 1) : Mark
 public sealed record ScarpMark(double[][] Points, double High, double Low,
                                double FaceWidth = 2, double BandWidth = 5) : Mark
 {
-    public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
+    public override IEnumerable<Pin> Pins(Footprint footprint)
     {
         if (Points.Length < 2) yield break;
         var half = Math.Max(0.5, FaceWidth) / 2;
@@ -206,7 +235,7 @@ public sealed record ScarpMark(double[][] Points, double High, double Low,
             var (distance, _, side, atEnd) = Polyline.Nearest(x + 0.5, z + 0.5, Points);
             if (atEnd) continue;
             if (distance < half || distance > half + band) continue;
-            yield return ((x, z), side > 0 ? High : Low);
+            yield return new Pin((x, z), side > 0 ? High : Low);
         }
     }
 

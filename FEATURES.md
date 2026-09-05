@@ -6492,6 +6492,18 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   redrawn at `r0 24, turns 2` with `tread: 2, batter: 65` the board goes from 1,006 barrier cells and a largest
   face of 282 to 684 and 112, and the largest face left is no longer the quarry.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.0)
+- **A mark states some of its cells more firmly than others, so two bands that touch meet on a ramp
+  (`WE101`).** A pin now carries a **weight** (`Pin`): full over the flat a mark guarantees, falling to nothing
+  across its shoulder where it states a `tread`. A full-weight pin replaces what an earlier mark said, as it
+  always did; a lesser one grades that far toward its height from what is already there — so a seam between two
+  *different* marks is a ramp across the later one's shoulder, and neither mark has to know the other exists.
+  A shoulder over ground nobody has claimed states nothing and is left to the relaxation, which is the only
+  answer that keeps the grade going: planting it at the mark's own height stops the ramp dead at whichever cell
+  the earlier band happened to end on. The shoulder's width sets the grade and it is the author's — 22 blocks
+  across a 4-cell shoulder is 5.5 a cell, across 10 cells it is 2. Measured on `opus5-scarp-mask` at (14, −78),
+  where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
+  reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
+  (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
 - **The angle a mask paints by is a read (`WS60`).** `GET /map/{slug}/incline` answers how steeply the ground
   is inclined, cell by cell, as `text/plain` in the grid the heightmap already reads elevation in: a cell's
   glyph is the **tens** of its degrees, so `0` is under ten from level, `4` is forty to fifty and `8` is a

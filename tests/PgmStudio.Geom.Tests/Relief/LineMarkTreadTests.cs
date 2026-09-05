@@ -30,7 +30,7 @@ public sealed class LineMarkTreadTests
     private static Dictionary<(int X, int Z), double> Pinned(Footprint footprint, Mark mark)
     {
         var pins = new Dictionary<(int X, int Z), double>();
-        foreach (var (cell, height) in mark.Pins(footprint)) pins[cell] = height;
+        foreach (var (cell, height, _) in mark.Pins(footprint)) pins[cell] = height;
         return pins;
     }
 
@@ -84,42 +84,81 @@ public sealed class LineMarkTreadTests
         }
     }
 
-    /// <summary><b>A tread never shrinks the band a mark claims.</b> The tread says what happens where the
-    /// line comes back past itself and nothing else, so a line with no second pass pins its whole reach
-    /// exactly as it did before there was a tread at all. A mark that stopped claiming its band would hand
-    /// those cells back to whichever earlier mark had pinned them, and what shows through is that mark's
-    /// height standing beside this one's — a wall from somewhere else.</summary>
+    /// <summary><b>A tread pins its flat outright and states its shoulder softly.</b> The weight is what the
+    /// solver reads: full at the tread's edge so the road is the road, falling to nothing at the reach's so
+    /// the rim is whatever the ground beside it already was. Without a tread every cell is a statement, which
+    /// is what a ridgeline wants and what puts a wall round a road.</summary>
     [Test]
-    public async Task A_tread_never_shrinks_the_band_a_line_claims()
+    public async Task A_tread_states_its_flat_outright_and_its_shoulder_softly()
     {
         var footprint = Board();
         double[][] straight = [[30, 6], [30, 54]];
-        var whole = Pinned(footprint, new LineMark(straight, [20], 5));
-        var trod = Pinned(footprint, new LineMark(straight, [20], 5, 2));
 
+        var whole = new LineMark(straight, [20], 5).Pins(footprint).ToDictionary(pin => pin.Cell);
+        var trod = new LineMark(straight, [20], 5, 2).Pins(footprint).ToDictionary(pin => pin.Cell);
+
+        // The same cells are spoken for either way — the tread changes how firmly, not how far.
         await Assert.That(trod.Keys.Order()).IsEquivalentTo(whole.Keys.Order());
-        foreach (var cell in whole.Keys)
-            await Assert.That((cell, trod[cell])).IsEqualTo((cell, whole[cell]));
+        await Assert.That(whole.Values.All(pin => pin.Weight >= 1)).IsTrue();
+
+        await Assert.That(trod[(31, 30)].Weight).IsEqualTo(1);              // inside the tread
+        await Assert.That(trod[(33, 30)].Weight).IsBetween(0.01, 0.99);     // in the shoulder
+        await Assert.That(trod[(34, 30)].Weight).IsLessThan(trod[(33, 30)].Weight);
     }
 
-    /// <summary>The regression this cost a build to find: an earlier mark's pin showing through a later
-    /// mark's shoulder. A high line drawn first, a low one drawn over it with a tread — every cell the low
-    /// line's band covers must carry the low line's ground, or the high one stands beside the low one as a
-    /// wall nobody drew.</summary>
+    /// <summary>The regression this cost a build to find, stated as what must not happen: an earlier mark's
+    /// height standing unblended beside a later mark's ground. A high line drawn first, a low one drawn over
+    /// it with a tread — the shoulder must arrive at the high line's height gradually across its own width
+    /// rather than in one cell.</summary>
     [Test]
-    public async Task A_lines_shoulder_still_covers_what_an_earlier_mark_pinned()
+    public async Task A_lines_shoulder_grades_into_what_an_earlier_mark_pinned()
     {
         var footprint = Board();
-        var high = new LineMark([[30, 0], [30, 60]], [34], 18);
-        var low = new LineMark([[30, 20], [30, 40]], [12], 5, 2);
+        int Worst(double tread)
+        {
+            var field = ReliefSolver.Solve(footprint, new ReliefSpec
+            {
+                Base = 12, Reach = 0, Step = 1,
+                Marks = [new LineMark([[30, 0], [30, 60]], [34], 18),
+                         new LineMark([[30, 20], [30, 40]], [12], 6, tread)],
+            });
+            // Straight out from the low line, across its shoulder and on into the high line's ground.
+            var worst = 0;
+            for (var x = 30; x < 44; x++) worst = Math.Max(worst, Math.Abs(field.At(x + 1, 30) - field.At(x, 30)));
+            return worst;
+        }
 
-        var pins = new Dictionary<(int X, int Z), double>();
-        foreach (var (cell, height) in high.Pins(footprint)) pins[cell] = height;
-        foreach (var (cell, height) in low.Pins(footprint)) pins[cell] = height;
+        // Twenty-two blocks of difference. Stated flat to the band's edge it lands in one cell; graded over a
+        // four-cell shoulder it is a quarter of that a cell — the shoulder's width is what sets the grade,
+        // which is why a mark that needs a gentler one states a narrower tread or a longer reach.
+        await Assert.That(Worst(double.NaN)).IsEqualTo(22);
+        await Assert.That(Worst(2)).IsLessThanOrEqualTo(6);
+    }
 
-        // Four cells out from the low line is past its tread and inside its reach: the low line's, not the
-        // high line's, whatever order they were written in.
-        await Assert.That(pins[(34, 30)]).IsEqualTo(12);
+    /// <summary><b>Two marks whose bands touch meet on a ramp rather than on a step, and neither knows the
+    /// other exists.</b> A high line and a low one whose bands overlap: with no tread the seam is one cell
+    /// carrying the whole difference, and a tread on the later one grades it out across the shoulder's own
+    /// width. The narrower the tread, the wider the grade.</summary>
+    [Test]
+    public async Task A_seam_between_two_marks_grades_across_the_later_ones_shoulder()
+    {
+        var footprint = Board();
+        int Seam(double tread)
+        {
+            var field = ReliefSolver.Solve(footprint, new ReliefSpec
+            {
+                Base = 24, Reach = 0, Step = 1,
+                Marks = [new LineMark([[0, 12], [60, 12]], [33], 10),
+                         new LineMark([[0, 28], [60, 28]], [24], 10, tread)],
+            });
+            var worst = 0;
+            for (var z = 14; z < 34; z++) worst = Math.Max(worst, Math.Abs(field.At(30, z + 1) - field.At(30, z)));
+            return worst;
+        }
+
+        await Assert.That(Seam(double.NaN)).IsEqualTo(9);   // the whole difference, in one cell
+        await Assert.That(Seam(4)).IsLessThanOrEqualTo(2);
+        await Assert.That(Seam(2)).IsLessThanOrEqualTo(1);
     }
 
     /// <summary>A stated batter is a bench under a bank: the fall runs at the angle from the upper tread's

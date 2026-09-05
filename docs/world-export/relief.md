@@ -149,6 +149,22 @@ and flatten it, and it is load-bearing in a way worth stating: a rim written aft
 through both ends of the ridge where the two meet, which hands a router a free way around the high ground the
 ridge was placed to create. The rim is therefore written **first** (§15).
 
+**Winning is not all-or-nothing, because a mark states some of its cells more firmly than others.** A pin
+carries a **weight**: full over the flat a mark guarantees, and — where the mark states a `tread` — falling to
+nothing across the shoulder out to the limit of its reach. A full-weight pin replaces what an earlier mark
+said; a lesser one grades that far toward its height from what is already there. So two bands that touch meet
+on a ramp rather than on a step, and neither mark has to know the other exists. A shoulder over ground nobody
+has claimed states nothing at all and is left to the relaxation, which is the only answer that keeps the grade
+going: planting it at the mark's own height would stop the ramp dead at whichever cell the earlier mark's band
+happened to end on. Order still decides — a mark can only grade into what was written before it — so the
+softening is the later mark's, the same way the winning always was.
+
+The shoulder's **width** is what sets that grade, and it is the author's: a difference of twenty-two blocks
+across a four-cell shoulder is five and a half a cell, and across a ten-cell shoulder it is two. A mark that
+wants a gentler seam states a narrower tread or a longer reach. (`batter` governs the loft between two passes
+of one line, where the run is known when the mark is read; a seam's other side is another mark's, and how far
+away it is not known until the solver has both.)
+
 ### 2.1 A push is not a constraint
 
 Every mark above is a **constraint**: the ground here *is* twelve, and the solver honours it exactly.

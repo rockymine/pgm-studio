@@ -217,18 +217,6 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
-- [ ] **WE101 — Two marks whose bands touch meet on a wall, and the loft only knows about one line.**
-  `LineMark.Tread` grades between two passes of the *same* line (`WE100`). Between two *different* marks
-  nothing grades: the later one wins its cells outright and the seam is one cell wide, whatever the two heights
-  are. Generalise it — a mark's shoulder past its tread blends with what is already pinned next to it rather
-  than overwriting, which needs `Mark.Pins` to say which of its cells are tread and which are shoulder and the
-  solver to blend the second kind. `ReliefSolver.Solve`'s pin loop, `Marks.cs`; `docs/world-export/relief.md`
-  §2.0 and §2. Supersedes the half of `WE33` that is about the seam rather than about spacing.
-
-  *`opus5-scarp-mask` at (14, −78): `crest` (r 18, h 33) pins to z −79 and `terrace` (r 13, h 24) pins from
-  z −78, so the transect reads 33, 33, 33, then DROP −9 in one cell. 112 of the board's 684 barrier cells are
-  this one seam.*
-
 - [ ] **WE98 — A water prop's band stops at its radius, not at the bank.** A `water` prop fills its own
   stated band, so where the channel is narrower than the ground it runs through the top course faces air on
   both sides and the river reads as a trench with a stripe in it. The bank is a fact about the terrain and the
@@ -265,12 +253,12 @@ what is gathered here is the parked and dormant slices of the same surface.
   through the five fields the driver prints (`cells`, `low`, `high`, `relief`, `symErr`) of a response
   carrying twelve.*
 
-- [ ] **WE33 — Two flat marks with touching radii build two terraces and a step at the seam.** A mark pins
-  every cell in its radius exactly; the relaxation, which is what makes ground roll, owns only what is left
-  *between* marks. So two marks placed to describe one slope describe a wall instead, and the wall is reported
-  only as terrain — a `steps` bucket and a face, attributed to nothing. Have the relief read answer the worst
-  step between any two marks' pinned sets, naming the pair. The neighbouring case belongs with it: **a mark
-  placed wholly out of reach does nothing and raises no `SK3`.** `docs/world-export/relief.md`.
+- [ ] **WE33 — A seam between two marks is reported as terrain, attributed to nothing.** A `tread` grades one
+  out (`WE100`), but only where an author knew to state it: a seam still reads as a `steps` bucket and a face
+  with no mark's name on it, so the thing to fix and the thing reported are two hops apart. Have the relief
+  read answer the worst step between any two marks' pinned sets, naming the pair and the cell — which is also
+  the lint that tells an author a tread is wanted. The neighbouring case belongs with it: **a mark placed
+  wholly out of reach does nothing and raises no `SK3`.** `docs/world-export/relief.md`.
 
   *`opus5-tarnfell`: `shore-lo` at `y8` and `shore-hi` at `y14`, radii touching, transect
   `…7 7 7 7 [+5] 12 13 13…` — a five-course wall right round the lake. Pulled seven blocks apart:

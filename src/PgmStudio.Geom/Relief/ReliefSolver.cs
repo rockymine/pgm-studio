@@ -54,12 +54,24 @@ public static class ReliefSolver
         var pinned = new double[footprint.Cells];
         var isPinned = new bool[pinned.Length];
         var isRigid = new bool[pinned.Length];
+        // Marks resolve in order and a full-weight pin replaces what an earlier one said, which is what lets a
+        // bench be drawn over a slope and flatten it. A pin of less than full weight — a mark's outer shoulder
+        // — grades that far toward its height from what is already there instead, so two bands that touch meet
+        // on a ramp rather than on a step, and neither mark has to know the other exists.
+        //
+        // A shoulder over ground nobody has claimed states nothing at all and is left to the relaxation, which
+        // is the only answer that keeps the ramp going: pinning it at the mark's own height would stop the
+        // grade dead at whichever cell the earlier mark's band happened to end on.
         foreach (var mark in spec.Marks)
-            foreach (var (cell, height) in mark.Pins(footprint))
+            foreach (var (cell, height, weight) in mark.Pins(footprint))
             {
                 if (!footprint.Inside(cell.X, cell.Z)) continue;
                 var index = footprint.Index(cell.X, cell.Z);
-                pinned[index] = height; isPinned[index] = true; isRigid[index] = mark.Rigid;
+                if (weight < 1 && !isPinned[index]) continue;
+                pinned[index] = weight >= 1
+                    ? height
+                    : pinned[index] + (height - pinned[index]) * Math.Clamp(weight, 0, 1);
+                isPinned[index] = true; isRigid[index] = mark.Rigid;
             }
 
         var field = Diffuse(footprint, pinned, isPinned, spec, warmStart, sweeps, cascade);
