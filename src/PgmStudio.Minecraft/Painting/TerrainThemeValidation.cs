@@ -1,4 +1,4 @@
-using PgmStudio.Domain;
+﻿using PgmStudio.Domain;
 using PgmStudio.Minecraft.Palette;
 using PgmStudio.Vocabulary;
 
@@ -76,24 +76,27 @@ public static class TerrainThemeValidation
     {
         if (material is null) { yield return path; yield break; }
 
+        // Every list here is read through Members, which answers an empty one for a pattern that states
+        // no list at all. A document naming a pattern's member set under a name the model does not have —
+        // a cell's `materials` where it wants `palette` — deserializes the pattern with a null list, which
+        // is the very fault this walk exists to name; walking it directly threw instead, and took the
+        // whole store with it.
         IEnumerable<(TerrainMaterial? Material, string Path)> members = material switch
         {
-            LayeredMaterial layered => layered.Stack.Bands
-                .Select((band, at) => ((TerrainMaterial?)band.Material, $"{path}.stack[{at}]")),
-            VoronoiMaterial voronoi => voronoi.Bands
-                .Select((band, at) => ((TerrainMaterial?)band.Material, $"{path}.bands[{at}]")),
-            CellMaterial cell => cell.Palette
-                .Select((entry, at) => ((TerrainMaterial?)entry, $"{path}.palette[{at}]")),
-            NoiseMaterial noise => noise.Stops
-                .Select((stop, at) => ((TerrainMaterial?)stop, $"{path}.stops[{at}]")),
-            TurbulenceMaterial turbulence => turbulence.Stops
-                .Select((stop, at) => ((TerrainMaterial?)stop, $"{path}.stops[{at}]")),
-            ElectricMaterial electric => electric.Stops
-                .Select((stop, at) => ((TerrainMaterial?)stop, $"{path}.stops[{at}]")),
-            WallRunMaterial run => run.Runs
-                .Select((stripe, at) => ((TerrainMaterial?)stripe.Material, $"{path}.runs[{at}]")),
-            WallDiagonalMaterial diagonal => diagonal.Runs
-                .Select((stripe, at) => ((TerrainMaterial?)stripe.Material, $"{path}.runs[{at}]")),
+            LayeredMaterial layered => Members(layered.Stack?.Bands, $"{path}.stack",
+                                               band => (TerrainMaterial?)band.Material),
+            VoronoiMaterial voronoi => Members(voronoi.Bands, $"{path}.bands",
+                                               band => (TerrainMaterial?)band.Material),
+            CellMaterial cell => Members(cell.Palette, $"{path}.palette", entry => (TerrainMaterial?)entry),
+            NoiseMaterial noise => Members(noise.Stops, $"{path}.stops", stop => (TerrainMaterial?)stop),
+            TurbulenceMaterial turbulence => Members(turbulence.Stops, $"{path}.stops",
+                                                     stop => (TerrainMaterial?)stop),
+            ElectricMaterial electric => Members(electric.Stops, $"{path}.stops",
+                                                 stop => (TerrainMaterial?)stop),
+            WallRunMaterial run => Members(run.Runs, $"{path}.runs",
+                                           stripe => (TerrainMaterial?)stripe.Material),
+            WallDiagonalMaterial diagonal => Members(diagonal.Runs, $"{path}.runs",
+                                                     stripe => (TerrainMaterial?)stripe.Material),
             WallFrameMaterial frame => [(frame.Edge, $"{path}.edge"), (frame.Fill, $"{path}.fill")],
             CheckerMaterial checker => [(checker.Even, $"{path}.even"), (checker.Odd, $"{path}.odd")],
             _ => [],
@@ -104,6 +107,16 @@ public static class TerrainThemeValidation
                 yield return gap;
     }
 
+    /// <summary>A pattern's members with their paths, or the pattern's own path once where it states no
+    /// member list at all — a pattern that picks from nothing paints nothing, which is the same finding one
+    /// naming an empty member is.</summary>
+    private static IEnumerable<(TerrainMaterial? Material, string Path)> Members<T>(
+        IReadOnlyList<T>? list, string path, Func<T, TerrainMaterial?> of)
+    {
+        if (list is null) return [(null, path)];
+        return list.Select((entry, at) => (of(entry), $"{path}[{at}]"));
+    }
+
     /// <summary>Whether <paramref name="material"/> may fill <paramref name="depth"/> courses. A stack is read
     /// band by band, since a stack is what a depth is <em>for</em>; anything else is a pick, and a pick over
     /// more than one course writes one block into all of them.</summary>
@@ -112,7 +125,7 @@ public static class TerrainThemeValidation
         if (material is LayeredMaterial layered)
         {
             var course = 0;
-            foreach (var band in layered.Stack.Bands)
+            foreach (var band in layered.Stack?.Bands ?? [])
             {
                 // The top band at one course is the surface itself, which is the whole point of the stack.
                 var surfacing = Surfacing(band.Material).ToList();
