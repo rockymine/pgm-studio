@@ -79,6 +79,11 @@ public sealed record ReliefReadDto(IReadOnlyList<ReliefGroupReadDto> Groups);
 /// <param name="Landform">What kind of ground the surface measures as — the range over the square root of the
 /// group's cells, which is elevation for the board's own size. Answered whether or not the group stated
 /// one; where it stated a different word the response carries an <c>RL1</c> complaint.</param>
+/// <param name="Level">How much of the ground is inclined less than ten degrees, 0–1 — the flat a board is
+/// played on. An angle rather than a step: a surface graded everywhere is crossable end to end and has nowhere
+/// on it a player can stand still.</param>
+/// <param name="LargestField">How much of the ground the largest connected run of level ground holds, 0–1.
+/// Half a board level in two hundred patches is not half a board to stand on.</param>
 /// <param name="Seams">Where two of the group's marks meet on a step of more than one block, worst first —
 /// the reading that attributes a wall to the pair of statements that built it.</param>
 /// <param name="SilentMarks">Marks that pinned no cell at all, by id: placed off the group's ground, or over
@@ -100,6 +105,8 @@ public sealed record ReliefGroupReadDto(
     int SymmetryError,
     [property: WordSet(typeof(Landform))] string Landform = Vocabulary.Landform.Plain,
     double? Smoothing = null,
+    double Level = 1,
+    double LargestField = 1,
     IReadOnlyList<ReliefSeamDto>? Seams = null,
     IReadOnlyList<string>? SilentMarks = null);
 

@@ -745,6 +745,7 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
                 // A group with no barrier divides by nothing, and infinity is not a JSON number.
                 read.SymmetryError, read.Landform,
                 double.IsInfinity(read.Smoothing) ? null : read.Smoothing,
+                read.Level, read.LargestField,
                 [.. (reading?.Seams ?? []).Take(12)
                         .Select(seam => new ReliefSeamDto(seam.A, seam.B, seam.Step, seam.X, seam.Z, seam.Cells))],
                 reading?.Silent ?? []);

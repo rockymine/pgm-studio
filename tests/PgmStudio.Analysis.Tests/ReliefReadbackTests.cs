@@ -215,4 +215,58 @@ public sealed class ReliefReadbackTests
         await Assert.That(TierOf(read, "walk").Share).IsBetween(0, 1);
         await Assert.That(TierOf(read, "scramble").Share).IsGreaterThanOrEqualTo(TierOf(read, "walk").Share);
     }
+
+    // ── level ground, and RL2's twin (RL5) ──────────────────────────────────────────────────────────────
+
+    /// <summary>A flat board is all level ground, in one field. The floor every other reading here is taken
+    /// against.</summary>
+    [Test]
+    public async Task A_flat_board_is_level_end_to_end()
+    {
+        var read = ReliefReadback.Read(Field(40, 40, (_, _) => 12), null, 0, 0);
+        await Assert.That(read.Level).IsEqualTo(1).Within(0.001);
+        await Assert.That(read.LargestField).IsEqualTo(1).Within(0.001);
+    }
+
+    /// <summary><b>A uniform ramp is crossable end to end and has nowhere to stand.</b> Every step on it is a
+    /// block, so the walk tier answers one place with no ledge and the step histogram calls it perfect — and
+    /// not one cell of it is level. That gap is the whole reason the reading is an angle rather than a
+    /// step.</summary>
+    [Test]
+    public async Task A_ramp_walks_perfectly_and_is_level_nowhere()
+    {
+        var read = ReliefReadback.Read(Field(40, 40, (_, z) => 8 + z / 2), null, 0, 0);
+
+        await Assert.That(TierOf(read, "walk").Share).IsEqualTo(1).Within(0.001);
+        await Assert.That(TierOf(read, "walk").Places).IsEqualTo(1);
+        await Assert.That(TierOf(read, "walk").Ledges).IsEqualTo(0);
+        await Assert.That(read.Level).IsLessThan(0.05);
+
+        await Assert.That(ReliefReadback.Check(read, null, "ramp").Select(finding => finding.Rule))
+                    .Contains(ReliefRules.NowhereLevel);
+    }
+
+    /// <summary>And the same board with its middle third flattened says nothing: the fault is having nowhere
+    /// to stand, not having a slope.</summary>
+    [Test]
+    public async Task A_ramp_with_a_field_in_it_is_not_reported()
+    {
+        // Level from z 8 to 31 and climbing either side of it — more than a third of the board flat.
+        var read = ReliefReadback.Read(Field(40, 40, (_, z) => z < 8 ? 8 + z / 2 : z <= 31 ? 12 : 12 + (z - 31) / 2),
+                                       null, 0, 0);
+
+        await Assert.That(read.Level).IsGreaterThan(ReliefReadback.LevelEnough);
+        await Assert.That(ReliefReadback.Check(read, null, "dale").Select(finding => finding.Rule))
+                    .DoesNotContain(ReliefRules.NowhereLevel);
+    }
+
+    /// <summary>The largest field is a separate question from how much level ground there is, and it is the
+    /// one that says whether the flat is somewhere: a board chequered with level patches has plenty of level
+    /// ground and no field on it.</summary>
+    [Test]
+    public async Task Level_ground_scattered_in_patches_is_not_a_field()
+    {
+        var read = ReliefReadback.Read(Field(40, 40, (x, z) => 12 + (x / 3 + z / 3) % 2), null, 0, 0);
+        await Assert.That(read.LargestField).IsLessThan(read.Level);
+    }
 }

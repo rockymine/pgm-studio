@@ -80,7 +80,7 @@ public sealed class TerrainProfile
     /// 2, and 45 at 3, where it can no longer be told from a walkable ramp. An isolated one-block contour, the
     /// thing being suppressed, falls 27 → 14 → 9.5. Two is where the contour is already under any threshold an
     /// author would set and the face is still unmistakably a face.</para></summary>
-    public const int SlopeWindow = 2;
+    public const int SlopeWindow = SurfaceGradient.Window;
 
     /// <summary><b>floorAt</b> is where each column's bands start, for a pass over a made thing rather than over
     /// terrain. Absent, every column starts at the bedrock course, which is what ground is.
@@ -173,34 +173,19 @@ public sealed class TerrainProfile
         (dx, dz) => _facts.TryGetValue((x + dx, z + dz), out var n) && !n.IsStructure ? n.Top : self.Top,
         _slopeWindow);
 
-    /// <summary>How steeply a surface is inclined at one cell, given the tops around it — the one formula, so
-    /// a read-back and the painter cannot report different angles for the same ground.
-    /// <paramref name="topAt"/> answers the surface top at an offset from the cell, and answers the cell's own
-    /// top where there is nothing there: the void is not a slope.</summary>
+    /// <summary>How steeply a surface is inclined at one cell, given the tops around it —
+    /// <see cref="SurfaceGradient.Degrees(Func{int, int, int}, int)"/>, held in the leaf every reader of it
+    /// reaches so the paint, the read-back and the rule that measures how much of a board is level cannot
+    /// answer differently about the same ground.</summary>
     public static int SlopeAt(Func<int, int, int> topAt, int window = SlopeWindow)
-    {
-        var step = Math.Max(1, window);
-        int Top(int dx, int dz) => topAt(dx * step, dz * step);
-
-        var alongX = Top(-1, -1) + 2 * Top(-1, 0) + Top(-1, 1) - Top(1, -1) - 2 * Top(1, 0) - Top(1, 1);
-        var alongZ = Top(-1, -1) + 2 * Top(0, -1) + Top(1, -1) - Top(-1, 1) - 2 * Top(0, 1) - Top(1, 1);
-        if (alongX == 0 && alongZ == 0) return 0;
-        // The 1-2-1 weighting sums to 4 a side, and the two sides are 2*step apart, so 8*step is what turns
-        // the weighted difference back into blocks of rise per block of run.
-        var rise = Math.Sqrt((double)alongX * alongX + (double)alongZ * alongZ) / (8.0 * step);
-        return Math.Min(89, (int)Math.Round(Math.Atan(rise) * 180.0 / Math.PI));
-    }
+        => SurfaceGradient.Degrees(topAt, window);
 
     /// <summary>The same reading taken over a bare surface map, for a caller holding one and no world — a
     /// read-back of a board that has already been painted, where the stone test <see cref="TerrainProfile"/>
-    /// tells a structure by is no longer true of anything. A cell the surface does not carry reads as level
-    /// with the cell asked about.</summary>
+    /// tells a structure by is no longer true of anything.</summary>
     public static int SlopeAt(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int x, int z,
                               int window = SlopeWindow)
-    {
-        if (!surfaceTop.TryGetValue((x, z), out var self)) return 0;
-        return SlopeAt((dx, dz) => surfaceTop.TryGetValue((x + dx, z + dz), out var top) ? top : self, window);
-    }
+        => SurfaceGradient.Degrees(surfaceTop, x, z, window);
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau
     // boundary is seen from the terrain side). Ids are used only for equality, so any consistent numbering does.

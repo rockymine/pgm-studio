@@ -91,6 +91,21 @@ block or less. So the reading answers the *fault* and not the arrangement — tw
 they like as long as the ground between them arrives, and a `scarp`, which states a drop outright, is what a
 step the map is *for* is drawn with.
 
+**`RL5` is `RL2`'s twin, and it needs an angle where `RL2` needs a step.** `RL2` names ground whose every
+height change is a wall — the elevation is there and was never graded. The opposite fault is ground that is
+*all* transition: graded everywhere, and level nowhere. Nothing else reports it, because a surface graded end
+to end is walkable end to end — one connected place, no ledge, every step within a jump — and the step
+histogram calls it perfect. Only the inclination tells a field from a ramp, so the read answers `level`, how
+much of the island lies under ten degrees, and `largestField`, how much of it the biggest connected run of
+level ground holds. Half a board level in two hundred patches is not half a board to stand on.
+
+The bar is **thirty percent**, and it is measured rather than chosen: Corbel Scar reads 42.3%, Scarrow Delph's
+team island 34.0% and its neutral plain 49.4%, Scarp Mask 35.5% — against Thwaite Ghyll's 25.4%, the board
+authored with a tread on every mark, which reads as a bowl with nothing in it. Grain is not what separates
+them: taking Thwaite Ghyll's grain off moves it 25.9% → 25.4%, and taking its *treads* off moves it to 43.6%
+with 70 faces where it had none. A tread grades a mark's shoulder into its neighbour, so a tread on every mark
+builds a board of nothing but shoulders — which is what the rule is for.
+
 The same pass answers **`RL4`**: a mark that pinned no cell at all, placed off its group's footprint or over
 ground a shape took out of the solve. A mark is clipped to the footprint rather than confined to it, so one
 placed past an edge is legal and useful — a summit whose centre sits off the board raises the corner — and this

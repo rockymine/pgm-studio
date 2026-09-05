@@ -36,4 +36,13 @@ public static class ReliefRules
     /// <remarks>Move it onto the group's own ground, or delete it. A mark is clipped to the footprint rather than confined to it, so one placed past an edge is legal and useful — a summit whose centre sits off the board raises the corner — and this fires only where the overlap is empty.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string MarkPinsNothing = "RL4";
+
+    /// <summary>The elevation was graded everywhere and left nowhere to stand. <c>RL2</c>'s twin: where that
+    /// one names ground whose every height change is a wall, this names ground that is all transition — under
+    /// a third of it level, so a player crosses the whole board and can stop nowhere on it. It is an angle
+    /// rather than a step, and that is why nothing else reports it: a surface graded end to end is walkable
+    /// end to end, one connected place with no ledge, and the step histogram calls it perfect.</summary>
+    /// <remarks>Take the tread off the marks meant to be flat to their edge, or widen them. A tread grades a mark's shoulder into its neighbour, so a tread on every mark builds a board of nothing but shoulders — measured on `opus5-thwaite-ghyll`, whose five marks all carried one: 25.4% level and no face at all, against 43.6% level and 70 faces with the same marks and the treads taken off. A map is played on its flat ground, and a face is what decides where players go.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
+    public const string NowhereLevel = "RL5";
 }

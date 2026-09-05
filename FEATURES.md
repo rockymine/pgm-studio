@@ -6492,6 +6492,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   redrawn at `r0 24, turns 2` with `tread: 2, batter: 65` the board goes from 1,006 barrier cells and a largest
   face of 282 to 684 and 112, and the largest face left is no longer the quarry.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.1)
+- **`RL2` has a twin: graded everywhere, level nowhere (`WE102`).** `RL2` names ground whose every height
+  change is a wall. The opposite fault had no rule and no reading: ground that is all transition. Nothing
+  reported it because a surface graded end to end is *walkable* end to end — one connected place, no ledge,
+  every step within a jump — so the step histogram calls it perfect while there is nowhere on it a player can
+  stand still. Only an angle tells a field from a ramp, so the relief read answers `level` (the share under ten
+  degrees) and `largestField` (how much of it the biggest connected run holds), and **`RL5`** fires under 30%.
+  The bar is measured: Corbel Scar 42.3%, Scarrow Delph's team island 34.0% and its neutral plain 49.4%, Scarp
+  Mask 35.5%, against Thwaite Ghyll's 25.4%. And the cause is isolated rather than assumed — taking Thwaite
+  Ghyll's grain off moves it 25.9% → 25.4%, taking its **treads** off moves it to 43.6% with 70 faces where it
+  had none. The reading itself moved down to `PgmStudio.Geom.Algorithms.SurfaceGradient`, the leaf the painter,
+  the `incline` read and this rule all reach, so a paint that picks a material by angle and a rule that
+  measures how much of a board is level cannot answer differently about the same ground.
+  (`ReliefReadbackTests`, `docs/world-export/relief.md` §2.0)
 - **A seam names the two marks that built it (`WE33`).** A solved field reports a wall between two marks as
   terrain — a step, a face, a barrier cell — with no mark's name on any of it, and neither mark looking wrong
   on its own. `ReliefSolver.ReadMarks` walks the pinned ground carrying the id of whichever mark last claimed

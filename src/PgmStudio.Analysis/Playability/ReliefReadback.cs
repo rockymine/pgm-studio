@@ -79,7 +79,8 @@ public static class ReliefReadback
         IReadOnlyList<Face> Faces, int Cliffs,
         Fords AcrossX, Fords AcrossZ,
         int SymmetryError,
-        string Landform = Vocabulary.Landform.Plain, double Smoothing = 0);
+        string Landform = Vocabulary.Landform.Plain, double Smoothing = 0,
+        double Level = 1, double LargestField = 1);
 
     // ── what kind of ground this is, and whether it was smoothed ──────────────────────────────────────────
 
@@ -108,6 +109,12 @@ public static class ReliefReadback
     /// it and 7.85% of its steps are barriers.</summary>
     public const double Smoothed = 2.0;
     public const double Stepped = 1.0;
+
+    /// <summary>How much of a board has to be <b>level</b> before it has somewhere to stand. Measured on the
+    /// boards this repository has built: Corbel Scar 42.3%, Scarrow Delph's team island 34.0% and its neutral
+    /// plain 49.4%, Scarp Mask 35.5% — against Thwaite Ghyll's 25.4%, the one authored with a tread on every
+    /// mark and the one that reads as a bowl with nothing in it. Thirty is the gap between them.</summary>
+    public const double LevelEnough = 0.30;
 
     /// <summary>The landform an island of <paramref name="cells"/> cells and <paramref name="relief"/> blocks
     /// of range reads as. An island with no ground reads as a plain, since there is nothing in it to climb.</summary>
@@ -140,6 +147,7 @@ public static class ReliefReadback
             return new Result(0, 0, 0, 0, [], new Dictionary<string, int>(), [], 0,
                 new Fords(0, 0, 0, 0), new Fords(0, 0, 0, 0), 0);
 
+
         var low = land.Min(cell => field.At(cell.X, cell.Z));
         var high = land.Max(cell => field.At(cell.X, cell.Z));
 
@@ -167,11 +175,33 @@ public static class ReliefReadback
         foreach (var run in FaceRuns(field, land)) faces.Add(run);
         var cliffs = faces.Count(face => face.Cliff);
 
+        var (level, largestField) = LevelGround(field, land);
+
         return new Result(land.Count, low, high, high - low, tiers, steps, faces, cliffs,
             FordsAlong(field, footprint, alongX: true),
             FordsAlong(field, footprint, alongX: false),
             SymmetryError(field, foldMode, foldCentreX, foldCentreZ),
-            LandformOf(high - low, land.Count), SmoothingOf(steps));
+            LandformOf(high - low, land.Count), SmoothingOf(steps), level, largestField);
+    }
+
+    /// <summary>How much of the ground is <b>level</b> — inclined less than
+    /// <see cref="SurfaceGradient.Level"/> degrees — and how much of it the largest connected run of level
+    /// ground holds. A board is played on its flat, and the two numbers are not the same question: half a
+    /// board level in two hundred patches is not half a board to stand on.
+    ///
+    /// <para>An angle rather than a step, and that is the whole reason the measure is here at all. The step
+    /// histogram already answers whether ground can be <em>crossed</em>, and a surface graded everywhere
+    /// answers that perfectly — one connected place, every step walked — while having nowhere on it a player
+    /// can stand still. Only the inclination tells a field from a ramp.</para></summary>
+    private static (double Level, double LargestField) LevelGround(HeightField field, List<(int X, int Z)> land)
+    {
+        var tops = land.ToDictionary(cell => cell, cell => field.At(cell.X, cell.Z));
+        var flat = land.Where(cell => SurfaceGradient.Degrees(tops, cell.X, cell.Z) < SurfaceGradient.Level)
+                       .ToList();
+        if (flat.Count == 0) return (0, 0);
+
+        var largest = GridComponents.Label(flat, connectivity: 4).Max(run => run.Count);
+        return ((double)flat.Count / land.Count, (double)largest / land.Count);
     }
 
     /// <summary>What the measurement says about what the island claimed. Two complaints and never a refusal:
@@ -200,6 +230,19 @@ public static class ReliefReadback
                     : $"{read.Smoothing:0.0} scrambles for every barrier")
                 + $" — {read.Steps.GetValueOrDefault("barrier")} of its steps are taller than a player can "
                 + "scramble. The elevation is there and was never graded.",
+                Severity.Complaint, Subjects: [island]));
+
+        // RL2's twin, and the reason it needs an angle: the step histogram above calls a surface graded
+        // everywhere perfect — one place, no ledge, every step walked — while there is nowhere on it a player
+        // can stand still.
+        if (read.Cells > 0 && read.Level < LevelEnough)
+            findings.Add(new Finding(ReliefRules.NowhereLevel,
+                $"island '{island}' is {read.Level:P0} level ground, the largest run of it "
+                + $"{read.LargestField:P0} of the island"
+                + (read.Faces.Count == 0
+                    ? ", and it presents no face at all — it is a ramp end to end"
+                    : $", against {read.Faces.Count} face(s)")
+                + ". The elevation was graded everywhere and left nowhere to stand.",
                 Severity.Complaint, Subjects: [island]));
         return findings;
     }
