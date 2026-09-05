@@ -703,15 +703,27 @@ public sealed class TerrainPainterTests
 
     // ── the angle mask (TP24) ──────────────────────────────────────────────────────────────────────────
 
-    /// <summary>A board 15 wide: a level field at x 0..4, a ramp climbing one block a cell at x 5..9, and a
-    /// level shelf at x 10..14 ending in a six-block face. The three cases the mask exists to tell apart,
-    /// none of which any other column fact distinguishes.</summary>
+    /// <summary>A board 27 wide: a level field at x 0..8, a ramp climbing one block a cell at x 9..17, and a
+    /// level shelf at x 18..26. The two cases the mask exists to tell apart, neither of which any other column
+    /// fact distinguishes. Wide enough that the middle of each stretch is clear of the window either side.</summary>
     private static BuiltTerrain Hillside()
     {
         var columns = new List<ColumnSegment>();
-        for (var x = 0; x < 15; x++)
-        for (var z = 0; z < 11; z++)
-            columns.Add(Seg(x, z, 1, 10 + Math.Clamp(x - 4, 0, 5)));
+        for (var x = 0; x < 27; x++)
+        for (var z = 0; z < 15; z++)
+            columns.Add(Seg(x, z, 1, 10 + Math.Clamp(x - 8, 0, 9)));
+        return TerrainBuilder.Build(columns);
+    }
+
+    /// <summary>A staircase falling one block every <paramref name="tread"/> cells across a 33-wide board —
+    /// what a gentle grade actually is on ground quantised to whole blocks, and the shape a one-cell window
+    /// misreads.</summary>
+    private static BuiltTerrain Staircase(int tread)
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 33; x++)
+        for (var z = 0; z < 15; z++)
+            columns.Add(Seg(x, z, 1, 10 + x / tread));
         return TerrainBuilder.Build(columns);
     }
 
@@ -722,21 +734,82 @@ public sealed class TerrainPainterTests
         var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
 
         // Well inside the level field, and well inside the level shelf: no inclination at all.
-        foreach (var cell in new[] { (2, 5), (12, 5) })
+        foreach (var cell in new[] { (3, 7), (23, 7) })
         {
             await Assert.That(profile.TryGetColumn(cell, out var flat)).IsTrue();
             await Assert.That((cell, flat.Slope)).IsEqualTo((cell, 0));
         }
 
         // The middle of the ramp, where every neighbour in x is one block from the last.
-        await Assert.That(profile.TryGetColumn((7, 5), out var ramp)).IsTrue();
+        await Assert.That(profile.TryGetColumn((13, 7), out var ramp)).IsTrue();
         await Assert.That(ramp.Slope).IsEqualTo(45);
+    }
 
-        // Its two lips read half the gradient, which is what puts the transition on both sides of the break.
-        foreach (var cell in new[] { (4, 5), (9, 5) })
+    /// <summary><b>A sustained slope reads the same angle at every window</b>, which is what makes widening the
+    /// window free: it costs a real slope nothing and only suppresses the isolated step. One block every four
+    /// cells is 14 degrees whether it is read one cell either side or four.</summary>
+    [Test]
+    public async Task A_grade_reads_its_own_angle_whatever_the_window()
+    {
+        foreach (var window in new[] { 1, 2, 3, 4 })
         {
-            await Assert.That(profile.TryGetColumn(cell, out var lip)).IsTrue();
-            await Assert.That((cell, lip.Slope)).IsEqualTo((cell, 27));
+            var terrain = Staircase(tread: 4);
+            var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop, slopeWindow: window);
+            // Averaged over the middle of the board, away from its edges, the grade is 14 degrees.
+            var read = new List<int>();
+            for (var x = 8; x < 25; x++)
+            {
+                await Assert.That(profile.TryGetColumn((x, 7), out var cell)).IsTrue();
+                read.Add(cell.Slope);
+            }
+            // Within a degree: the per-cell answer is a whole number, and a window that does not divide the
+            // tread evenly alternates between the two it rounds to.
+            await Assert.That((window, Math.Abs(read.Average() - 14) <= 1)).IsEqualTo((window, true));
+        }
+    }
+
+    /// <summary><b>The window is what stops a gentle grade being painted as a flight of steps.</b> Read one
+    /// cell either side, a staircase is 27 degrees on each riser and nothing on each tread, so a mask cutting
+    /// anywhere between those two speckles the slope. Read two cells either side, every cell of it answers the
+    /// grade.</summary>
+    [Test]
+    public async Task A_one_cell_window_reads_the_stair_and_a_two_cell_window_reads_the_grade()
+    {
+        var terrain = Staircase(tread: 4);
+        int[] Read(int window)
+        {
+            var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop, slopeWindow: window);
+            var read = new List<int>();
+            for (var x = 8; x < 25; x++) { profile.TryGetColumn((x, 7), out var cell); read.Add(cell.Slope); }
+            return [.. read];
+        }
+
+        // One cell: the readings split into two populations, a riser one and a tread one.
+        var narrow = Read(1);
+        await Assert.That(narrow.Distinct().Order()).IsEquivalentTo(new[] { 0, 27 });
+
+        // Two cells: nothing reads above 20, so a mask cutting there paints the whole grade one material.
+        var wide = Read(2);
+        await Assert.That(wide.Max()).IsLessThan(20);
+    }
+
+    /// <summary>What the window costs, stated as the number that bounds it: a face softens as the window
+    /// widens, because the drop is spread over more cells. At two it is still unmistakably a face.</summary>
+    [Test]
+    public async Task A_face_stays_a_face_at_the_window_the_profile_reads_at()
+    {
+        // A six-block drop across the middle of an otherwise level board.
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 25; x++)
+        for (var z = 0; z < 15; z++)
+            columns.Add(Seg(x, z, 1, x < 12 ? 16 : 10));
+        var terrain = TerrainBuilder.Build(columns);
+
+        foreach (var (window, expected) in new[] { (1, 72), (2, 56), (3, 45) })
+        {
+            var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop, slopeWindow: window);
+            await Assert.That(profile.TryGetColumn((11, 7), out var lip)).IsTrue();
+            await Assert.That((window, lip.Slope)).IsEqualTo((window, expected));
         }
     }
 
@@ -747,7 +820,7 @@ public sealed class TerrainPainterTests
         // stops, so a neighbour off the footprint is read as level with the cell itself and the border of the
         // level field answers nought — the same as its middle.
         var profile = new TerrainProfile(Hillside().World, Hillside().SurfaceTop);
-        await Assert.That(profile.TryGetColumn((0, 5), out var border)).IsTrue();
+        await Assert.That(profile.TryGetColumn((0, 7), out var border)).IsTrue();
         await Assert.That(border.Slope).IsEqualTo(0);
     }
 
@@ -759,19 +832,17 @@ public sealed class TerrainPainterTests
         var terrain = Hillside();
         var mask = new LayeredMaterial(
             new BandStack([new Band(new SolidMaterial(Blocks.Grass), 20),
-                           new Band(new SolidMaterial(Blocks.Dirt, 1), 15),
-                           new Band(new SolidMaterial(Blocks.Cobblestone), 55)]),
+                           new Band(new SolidMaterial(Blocks.Dirt, 1), 25),
+                           new Band(new SolidMaterial(Blocks.Cobblestone), 45)]),
             BandAxis.Slope);
         var theme = TerrainTheme.Default with { Surface = new TopBand(mask), Rim = new TopBand(mask) };
 
         TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, theme);
 
-        // Field and shelf: meadow. Ramp: bare rock. The lips between them: the middle band.
-        await Assert.That(terrain.World.GetBlock(2, 9, 5).Id).IsEqualTo(Blocks.Grass);
-        await Assert.That(terrain.World.GetBlock(12, 14, 5).Id).IsEqualTo(Blocks.Grass);
-        await Assert.That(terrain.World.GetBlock(7, 12, 5).Id).IsEqualTo(Blocks.Cobblestone);
-        await Assert.That(terrain.World.GetBlock(4, 9, 5)).IsEqualTo((Blocks.Dirt, 1));
-        await Assert.That(terrain.World.GetBlock(9, 14, 5)).IsEqualTo((Blocks.Dirt, 1));
+        // Field and shelf: meadow. Ramp: bare rock.
+        await Assert.That(terrain.World.GetBlock(3, 9, 7).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(23, 18, 7).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(13, 14, 7).Id).IsEqualTo(Blocks.Cobblestone);
     }
 
     /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>

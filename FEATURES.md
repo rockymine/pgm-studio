@@ -6460,14 +6460,26 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   hill. It is the only thing in the model that tells a 45-degree hillside from a flat field: such a surface has
   no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. A neighbour off
   the footprint or carrying a structure reads as level with the cell itself, so a coastline is flat ground that
-  stops and a building's roof is not the terrain's gradient. Where the bands are cut is arithmetic: a one-block
-  contour reads 27 at its lip and a two-block step reads 45, so a first band ending at 28 ignores the relief
-  field's own `step: 1` quantum and one ending at 27 stripes the open moor with it. Only the depth axis
-  measures courses, so `PT1`'s depth walk recurses through a mask's bands instead of reading their degrees as
-  a burial. Measured on `opus5-scarp-mask`, Corbel Scar's ground with nothing changed but the theme: 86% of the
-  board grass and no other ground block, against 68% moor / 9% shoulder / 10% rock — the quarry, the terrace
-  benches and the river banks legible where before they were one green sheet.
+  stops and a building's roof is not the terrain's gradient. Only the depth axis measures courses, so `PT1`'s
+  depth walk recurses through a mask's bands instead of reading their degrees as a burial.
+  **The gradient is read two cells either side** (`TerrainProfile.SlopeWindow`), because a gentle slope on
+  ground quantised to whole blocks is a staircase and a one-cell window reads the stair rather than the grade —
+  27 degrees on each riser, nothing on each tread — so a uniform grade paints speckled and a lone contour
+  paints a stripe across an otherwise flat field. A sustained slope reads its own angle at every window, so
+  widening costs it nothing; what bounds it is the face, whose lip softens 72 → 56 → 45 over windows 1 → 2 → 3.
+  Measured on `opus5-scarp-mask`, Corbel Scar's ground with nothing changed but the theme: 86% of the board
+  grass and no other ground block, against 68% moor / 8% shoulder / 11% rock — the quarry, the terrace benches
+  and the river banks legible where before they were one green sheet.
   (`TerrainPainterTests`, `TerrainThemeValidationTests`, `docs/world-export/terrain-painting.md`)
+- **The angle a mask paints by is a read (`WS60`).** `GET /map/{slug}/incline` answers how steeply the ground
+  is inclined, cell by cell, as `text/plain` in the grid the heightmap already reads elevation in: a cell's
+  glyph is the **tens** of its degrees, so `0` is under ten from level, `4` is forty to fifty and `8` is a
+  face, and the number needs no key. Under the grid, how much ground stands in each ten degrees — which is the
+  only thing that says whether a cut lands where the author thinks it does, and where a board authored at
+  `step: 1` read one cell either side shows a quarter of itself spiked at 20–29 degrees with nothing at 30–39.
+  `?window=` reads the same board wider without rebuilding it. `column`'s header carries the same number for
+  one cell. Both go through `TerrainProfile.SlopeAt`, the painter's own formula, so a band that came out wrong
+  and the angle that chose it cannot disagree. (`docs/world-scan/read-backs.md`)
 - **A voronoi's bands stay their own type, and the reason is recorded on it (`B201`, answered by `B195`).**
   `VoronoiMaterial.Bands` carries the same `(material, depth)` pair a `Band` does, which read as a fourth copy
   of the rule. It is not one: a `BandStack` is read along an integer step and states only where its bands run

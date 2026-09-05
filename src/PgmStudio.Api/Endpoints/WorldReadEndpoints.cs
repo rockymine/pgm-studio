@@ -16,6 +16,7 @@ using PgmStudio.Analysis.Playability;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Minecraft.Dressing;
+using PgmStudio.Minecraft.Painting;
 
 namespace PgmStudio.Api.Endpoints;
 
@@ -341,25 +342,23 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
 
     protected override string? Text(BuiltRead read)
     {
-        var every = OptionalInt("every") is { } asked ? Math.Clamp(asked, 1, 8) : DefaultEvery(read.Built.Surface);
-        return HeightmapText.Render(read.Built.Surface, read.Built.Provenance, Markers(read.Map), every);
+        var every = OptionalInt("every") is { } asked
+            ? Math.Clamp(asked, 1, 8) : GridReads.DefaultEvery(read.Built.Surface);
+        return HeightmapText.Render(read.Built.Surface, read.Built.Provenance,
+                                    GridReads.Markers(read.Map), every);
     }
 
-    /// <summary>The smallest sample step that keeps the text grid within a hundred characters — the read is
-    /// meant for a terminal, and a board wider than one is unreadable at 1:1.</summary>
-    private static int DefaultEvery(IReadOnlyDictionary<(int X, int Z), int> surface)
-    {
-        if (surface.Count == 0) return 1;
-        var width = surface.Keys.Max(cell => cell.X) - surface.Keys.Min(cell => cell.X) + 1;
-        for (var every = 1; every < 8; every++)
-            if ((width + every - 1) / every <= 100) return every;
-        return 8;
-    }
+}
 
+/// <summary>What the two grid reads — the heightmap and the incline — share: the points they overprint and
+/// the sample step they fall back to. Written once because a board's spawns cannot be in one grid and not the
+/// other, and a step that keeps one readable keeps the other readable.</summary>
+internal static class GridReads
+{
     /// <summary>The map's own spawns and goals, as the single point each overprints — the same overlay
     /// extraction <see cref="TopDownRender.Overlays"/> draws as boxes, reduced to the box's own middle. Empty
     /// with no projected document, which is the reading with nothing to overprint rather than a fault.</summary>
-    private static IReadOnlyList<(string Kind, int X, int Z)> Markers(MapXml? map)
+    public static IReadOnlyList<(string Kind, int X, int Z)> Markers(MapXml? map)
     {
         if (map is null) return [];
         var markers = new List<(string Kind, int X, int Z)>();
@@ -374,6 +373,71 @@ internal sealed class HeightmapReadEndpoint(MapRepository repo, MapReader reader
             markers.Add((kind, (overlay.Box.MinX + overlay.Box.MaxX) / 2, (overlay.Box.MinZ + overlay.Box.MaxZ) / 2));
         }
         return markers;
+    }
+
+    /// <summary>The smallest sample step that keeps a text grid within a hundred characters — the read is
+    /// meant for a terminal, and a board wider than one is unreadable at 1:1.</summary>
+    public static int DefaultEvery(IReadOnlyDictionary<(int X, int Z), int> surface)
+    {
+        if (surface.Count == 0) return 1;
+        var width = surface.Keys.Max(cell => cell.X) - surface.Keys.Min(cell => cell.X) + 1;
+        for (var every = 1; every < 8; every++)
+            if ((width + every - 1) / every <= 100) return every;
+        return 8;
+    }
+}
+
+/// <summary>GET /api/map/{slug}/incline — how steeply the ground is inclined, cell by cell, as characters:
+/// the angle a slope band is picked by (TP24), in the grid the heightmap already reads elevation in.
+/// <c>text/plain</c> always, because the picture that would answer the same question is
+/// <c>render/surface</c> — what a mask <em>did</em> — and this is the number it did it on.</summary>
+internal sealed class InclineReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
+    : EndpointWithoutRequest
+{
+    public override void Configure()
+    {
+        Get("/map/{slug}/incline");
+        AllowAnonymous();
+        Summary(s => s.Summary = WorldReadCatalog.Sentence("incline"));
+        Description(b => b.PlainText().Refuses(404, 422).Reads(
+            new QueryWord("every", "Sample every Nth block, 1 to 8. Absent takes the smallest that keeps the "
+                + "grid at most 100 characters wide.", Min: 1, Max: 8),
+            new QueryWord("window", "How many cells either side the gradient is read over, 1 to 8. Absent "
+                + "reads at the 2 the painter reads at. A wider window suppresses an isolated one-block "
+                + "contour and softens a face; a sustained slope reads the same angle at any of them.",
+                Min: 1, Max: 8)));
+    }
+
+    public override async Task HandleAsync(CancellationToken ct)
+    {
+        if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
+
+        var read = await WorldReads.LoadAsync(map, reader, artifacts, ct);
+        if (read is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 404, "no world to read",
+                [new Vocabulary.Finding(RequestRules.NoSuchSubject,
+                    "this map has no stored sketch layout, so there is no world for the studio to build and "
+                    + "read back")], ct);
+            return;
+        }
+
+        var every = Query<int?>("every", isRequired: false) is { } asked
+            ? Math.Clamp(asked, 1, 8) : GridReads.DefaultEvery(read.Built.Surface);
+        var window = Query<int?>("window", isRequired: false) is { } wide
+            ? Math.Clamp(wide, 1, 8) : TerrainProfile.SlopeWindow;
+
+        var grid = InclineText.Render(read.Built.Surface, read.Built.Provenance,
+                                      GridReads.Markers(read.Map), every, window);
+        if (grid is null)
+        {
+            await Refusals.WriteAsync(HttpContext, 422, "nothing to grade",
+                [new Vocabulary.Finding(RequestRules.Conflict,
+                    "this world has no ground column, so it has no ground to take an angle from")], ct);
+            return;
+        }
+
+        await Send.StringAsync(grid, contentType: "text/plain; charset=utf-8", cancellation: ct);
     }
 }
 
@@ -539,6 +603,11 @@ internal sealed class MirrorReadEndpoint(MapRepository repo, MapReader reader, M
 /// <para>Text rather than JSON because it is read by a person or an agent rather than parsed, and because it
 /// is the one read a caller with no image reader can act on — the same reason the plan grid and the flow
 /// account answer as characters.</para>
+///
+/// <para>The header carries the terrain's <b>inclination</b> at the cell, in degrees from level — the same
+/// <see cref="TerrainProfile.Slope"/> an angle mask is read against (TP24), so what a theme's slope bands
+/// claim can be checked at a coordinate instead of inferred from the block that came out. Absent on a column
+/// the terrain surface does not cover.</para>
 /// </summary>
 internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, MapArtifactStore artifacts)
     : EndpointWithoutRequest
@@ -589,11 +658,19 @@ internal sealed class ColumnReadEndpoint(MapRepository repo, MapReader reader, M
         var stacks = ColumnReport.Render(
             PgmStudio.Minecraft.Anvil.AnvilRegion.FromWorld(read.Built.World), wanted);
 
+        var surface = read.Built.Surface;
+
         var written = new System.Text.StringBuilder();
         foreach (var cell in wanted)
         {
             var stack = stacks[cell];
-            written.AppendLine($"=== column ({cell.X}, {cell.Z}) — {stack.Count} solid block(s) ===");
+            // TerrainProfile.SlopeAt is the painter's own formula, so the angle here is the one a slope band
+            // was picked by (TP24) rather than a second reading of the same ground.
+            var incline = surface.ContainsKey(cell)
+                ? $", ground {TerrainProfile.SlopeAt(surface, cell.X, cell.Z)}° from level"
+                : "";
+            written.AppendLine(
+                $"=== column ({cell.X}, {cell.Z}) — {stack.Count} solid block(s){incline} ===");
             if (stack.Count == 0)
             {
                 written.AppendLine("  (void — no block recorded at any height)");

@@ -58,6 +58,18 @@ public static class WorldReadCatalog
             "The grid samples one block per cell, so a one-block lip inside a cell of four can hide; "
             + "`every=1` reads every block."),
 
+        new("incline", null,
+            "How steeply the ground is inclined, cell by cell, as characters — the angle a slope band is "
+            + "picked by (TP24). A cell's glyph is the TENS of its angle, so `0` is ground under ten degrees "
+            + "from level, `4` is forty to fifty and `8` is a face: the number needs no key, and a mask cut "
+            + "at 20 and 45 has its two boundaries visible on the page as the step from `1` to `2` and from "
+            + "`4` to `5`. Below the grid, how much ground stands in each ten degrees — which is the reading "
+            + "a cut is actually chosen on. `window` reads the gradient wider than the 2 cells the painter "
+            + "reads at.",
+            "It is the same formula the painter resolves against, so the two cannot disagree — but a wider "
+            + "`window` answers a different question from the one the paint was chosen by, and `every` above "
+            + "1 samples one block a cell like every other grid read."),
+
         new("render/surface", "--surface",
             "The paint, read as the tone families `TerrainPalette.Families` names — so a board can be checked "
             + "against the palette it was authored from, and a whole family taken where two members were "

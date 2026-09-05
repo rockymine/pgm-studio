@@ -24,8 +24,11 @@ namespace PgmStudio.Minecraft.Painting;
 /// ground, which is what the concept is reached for most of the time, the two readings coincide anyway. Nothing
 /// paints from it yet — the authored shape that spends it is `B199`/`B200`.</para>
 /// <para><b>Slope</b> — How steeply the surface is inclined here, in whole degrees from level, 0..89. Horn's
-/// 3×3 gradient over the neighbouring surface tops: level ground is 0, a ramp climbing one block a cell is
-/// 45, and the lip of a six-block face is 72. It is a fact about the <em>surface</em> and not about the column,
+/// 3×3 gradient over the surface tops <see cref="TerrainProfile.SlopeWindow"/> cells either side: level ground
+/// is 0, a ramp climbing one block a cell is 45, and the lip of a six-block face is 56. A sustained slope reads
+/// the same angle at any window; what the window decides is how much of an isolated one-block contour survives,
+/// which on ground quantised to whole blocks is the whole of the noise. It is a fact about the <em>surface</em>
+/// and not about the column,
 /// which is what a face's own blocks already have a bucket for — a 45° hillside has no exposed riser at all,
 /// so nothing but this tells it apart from a meadow. A neighbour off the footprint or carrying a structure is
 /// read as level with the cell itself, so a coastline and the ground beside a building are not steep by
@@ -63,13 +66,31 @@ public sealed class TerrainProfile
     private readonly Dictionary<(int, int), ColumnProfile> _columns = [];
 
     private readonly IReadOnlyDictionary<(int X, int Z), int>? _base;
+    private readonly int _slopeWindow;
+
+    /// <summary>How far either side of a column the gradient is measured, in cells (TP24). <b>Two, because a
+    /// gentle slope in a voxel world is a staircase.</b> A surface falling one block every four cells is four
+    /// flat treads and a one-block riser, and a window one cell wide reads each riser on its own — 27 degrees
+    /// on the riser, nothing on the treads — so a uniform gentle grade comes out speckled with whatever the
+    /// theme paints at 27. Widening the window reads the grade instead of the stair.
+    ///
+    /// <para>The arithmetic sets the number from both ends. A <em>sustained</em> slope reads its true angle at
+    /// every radius — one block per four cells is 14 degrees at 1, 2, 3 and 4 — so widening costs a real
+    /// slope nothing. What it costs is a face: the lip of a six-block drop reads 72 degrees at radius 1, 56 at
+    /// 2, and 45 at 3, where it can no longer be told from a walkable ramp. An isolated one-block contour, the
+    /// thing being suppressed, falls 27 → 14 → 9.5. Two is where the contour is already under any threshold an
+    /// author would set and the face is still unmistakably a face.</para></summary>
+    public const int SlopeWindow = 2;
 
     /// <summary><b>floorAt</b> is where each column's bands start, for a pass over a made thing rather than over
-    /// terrain. Absent, every column starts at the bedrock course, which is what ground is.</summary>
+    /// terrain. Absent, every column starts at the bedrock course, which is what ground is.
+    /// <b>slopeWindow</b> is how far either side the gradient is read (<see cref="SlopeWindow"/>).</summary>
     public TerrainProfile(VoxelWorld world, IReadOnlyDictionary<(int X, int Z), int> surfaceTop,
-                          IReadOnlyDictionary<(int X, int Z), int>? floorAt = null)
+                          IReadOnlyDictionary<(int X, int Z), int>? floorAt = null,
+                          int slopeWindow = SlopeWindow)
     {
         _base = floorAt;
+        _slopeWindow = Math.Max(1, slopeWindow);
         // A column is a structure (not paintable) when it has no stone to paint — its surface block is not
         // stone (a stamp's bedrock/wool/obsidian sits there or the column is a bare bedrock course).
         var structures = new HashSet<(int, int)>();
@@ -148,16 +169,37 @@ public sealed class TerrainProfile
     /// itself. The void is not a slope — a coastline is flat ground that stops — and a building's roof is not
     /// the terrain's gradient, which is the same exclusion <see cref="Classify"/>'s drop test makes.</para>
     /// </summary>
-    private int Slope(int x, int z, CellFacts self)
+    private int Slope(int x, int z, CellFacts self) => SlopeAt(
+        (dx, dz) => _facts.TryGetValue((x + dx, z + dz), out var n) && !n.IsStructure ? n.Top : self.Top,
+        _slopeWindow);
+
+    /// <summary>How steeply a surface is inclined at one cell, given the tops around it — the one formula, so
+    /// a read-back and the painter cannot report different angles for the same ground.
+    /// <paramref name="topAt"/> answers the surface top at an offset from the cell, and answers the cell's own
+    /// top where there is nothing there: the void is not a slope.</summary>
+    public static int SlopeAt(Func<int, int, int> topAt, int window = SlopeWindow)
     {
-        int Top(int dx, int dz)
-            => _facts.TryGetValue((x + dx, z + dz), out var n) && !n.IsStructure ? n.Top : self.Top;
+        var step = Math.Max(1, window);
+        int Top(int dx, int dz) => topAt(dx * step, dz * step);
 
         var alongX = Top(-1, -1) + 2 * Top(-1, 0) + Top(-1, 1) - Top(1, -1) - 2 * Top(1, 0) - Top(1, 1);
         var alongZ = Top(-1, -1) + 2 * Top(0, -1) + Top(1, -1) - Top(-1, 1) - 2 * Top(0, 1) - Top(1, 1);
         if (alongX == 0 && alongZ == 0) return 0;
-        var rise = Math.Sqrt((double)alongX * alongX + (double)alongZ * alongZ) / 8.0;
+        // The 1-2-1 weighting sums to 4 a side, and the two sides are 2*step apart, so 8*step is what turns
+        // the weighted difference back into blocks of rise per block of run.
+        var rise = Math.Sqrt((double)alongX * alongX + (double)alongZ * alongZ) / (8.0 * step);
         return Math.Min(89, (int)Math.Round(Math.Atan(rise) * 180.0 / Math.PI));
+    }
+
+    /// <summary>The same reading taken over a bare surface map, for a caller holding one and no world — a
+    /// read-back of a board that has already been painted, where the stone test <see cref="TerrainProfile"/>
+    /// tells a structure by is no longer true of anything. A cell the surface does not carry reads as level
+    /// with the cell asked about.</summary>
+    public static int SlopeAt(IReadOnlyDictionary<(int X, int Z), int> surfaceTop, int x, int z,
+                              int window = SlopeWindow)
+    {
+        if (!surfaceTop.TryGetValue((x, z), out var self)) return 0;
+        return SlopeAt((dx, dz) => surfaceTop.TryGetValue((x + dx, z + dz), out var top) ? top : self, window);
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau

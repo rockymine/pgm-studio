@@ -40,12 +40,13 @@ block, 1 to 16, default 4, clamped rather than refused.
 | `render/surface` | `--surface` | the paint, as the tone families `TerrainPalette.Families` names; `layer` draws one storey |
 | `render/traversability` | `--traversability-map` | the navigable components, with the spawns and goals on them |
 | `slopes` | — | the worst step to a neighbour per sampled cell, as JSON digit rows or, on `?format=text`, `.`/`:`/`#` — the tiers a walk is priced in. `faces` names the barrier runs worth checking, largest first |
+| `incline` | — | how steeply the ground is inclined per sampled cell, as `text/plain`: the glyph is the **tens of degrees**, so `0` is under ten from level, `4` is forty to fifty, `8` is a face. Below the grid, how much ground stands in each ten degrees. The angle a slope band is picked by (`TP24`), read through the painter's own formula. `window` widens the gradient from the 2 cells either side the painter reads at |
 | `editability` | — | which columns a player may edit and **what makes each one editable**, as JSON: digit rows over a bounding box, the four `EditZone` words, a colour each, the counts, and `findings`. The zones are `build_zone` · `ground` · `filtered` · `sealed`, read by following PGM's own resolution — the first region-filter application that does not abstain settles the column, and place and break are the separate scopes PGM makes them |
 | `render/structures` | `--structures` | the building census by block material, `minarea` the smallest counted (default 16); `layer` draws one storey |
 | `render/mirror` | `--mirror` | the board against its own symmetry; `mode` overrides the one the map states |
 | `render/walk` | — | what reaching each cell costs from `from`, with the route to `to` over the top. `field` = `blocks` · `distance` · `drops`, `aim` = `travel`\|`reach`\|`comfort`, `team` whose walk it is |
 | `walk` | — | the same journey as numbers rather than as a picture, as JSON: `{reachable, distance, blocks, drops, worstDrop, aim, cells, places, steps, rises, falls, worstStep, beside}`. `?from=x,z&to=x,z`, `aim` and `team` as above; `?beside=N` (0–6) adds every distinct thing recorded within `N` cells of the route |
-| `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated |
+| `column` | `--column` | one or more columns bedrock-to-sky, every block named, as `text/plain`. `?at=x,z`, repeated. The header also carries the terrain's inclination at the cell, so a slope band can be checked against the angle that chose it |
 | `transect` | — | a polyline walked block by block, as JSON: `{stations, rises, falls, worstStep, barriers, scrambles, drops, events, beside}`. `?points=x,z;x,z[;x,z…]`, `every` thins the stations, `beside` lists every claim within that many cells of the line; `?format=text` answers the same walk as a table |
 | `stroke` | — | a drawn stroke walked end to end down its own centreline: per block the ground, whether the paving reaches it, what it is made of and the step from the block before, then the worst step, the materials and every stretch the paving misses. `?id=` names the stroke, `image` which of the orbit's roads; `?format=text` answers the station table |
 | `themes/census` | — | every ground cell counted by the theme that paints it: cells and share per theme, its distinct surface materials, which theme borders which, and the board's whole palette count |
@@ -294,6 +295,17 @@ believes is symmetric actually is.
 shape: a cliff reads as a line of `#`, a ramp as a band of `.` running through it, and ground graded past
 what a player can scramble up reads as a page of `#` rather than one count with nowhere to check it. Its
 faces name the barrier runs worth walking to in-game, largest first.
+
+`incline` asks the other question about the same ground, and the two are not the same question. `slopes` is
+about a **step** — can a player cross it — and it is priced in the tiers a walk is priced in. `incline` is
+about an **angle**, and it is the one an angle mask paints by (`docs/world-export/terrain-painting.md` TP24):
+a cell's glyph is the tens of its degrees, so the number needs no key and a mask cut at 30 and 45 has both
+boundaries visible on the page as the step from `2` to `3` and from `4` to `5`. Under the grid it says how
+much ground stands in each ten degrees, which is what a cut is actually chosen on — a distribution with a
+spike in it is a board reporting its own quantum rather than its shape, and moving the cut to dodge the spike
+is treating the symptom. It reads the gradient two cells either side, the same as the painter; `window`
+widens that, which suppresses an isolated one-block contour further and softens a face, and leaves a
+sustained slope reading exactly the angle it did before.
 
 It asks that as **two** questions, and the picture separates them. The first is shape: a column is solid where
 its image is solid, at the same heights, taken through the build's own transform about the map's stated

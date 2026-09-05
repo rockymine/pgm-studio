@@ -190,8 +190,8 @@ one it took — a starship 2 against 4, a robot 5 against 16, a Rubik's cube, wh
 per column, 1 against 7. Read along `height` the same banding is one material on one layer. `from` is the
 world Y the first band starts at and defaults to 0.
 
-**The slope axis is an angle mask, and a thickness on it is a span of degrees.** A stack of grass at 20,
-coarse dirt at 15 and cobblestone at 55 is meadow up to 19°, coarse dirt from 20° to 34° and bare rock above
+**The slope axis is an angle mask, and a thickness on it is a span of degrees.** A stack of grass at 30,
+coarse dirt at 15 and cobblestone at 45 is meadow up to 29°, coarse dirt from 30° to 44° and bare rock above
 — read from `ColumnProfile.Slope`, which is Horn's 3×3 gradient over the neighbouring surface tops, so a ramp
 climbing one block a cell answers 45 exactly and level ground answers 0. It is a fact about the **surface**,
 carried by the whole column, so a face's fill and the block on top of it resolve to the same band and a
@@ -201,9 +201,24 @@ Nothing else in the model tells a 45° hillside from a flat field. The wall buck
 surface climbing one block a cell has no riser at all — its drop is one course, which the top course itself
 already claims — so every other axis paints the two alike. The void is deliberately not a slope: a neighbour
 off the footprint or carrying a structure reads as level with the cell itself, so a coastline is flat ground
-that stops and the ground beside a building does not take the building's roof for a gradient. A lip reads half
-the gradient of the break beside it, which puts the transition band on both sides of an edge rather than
-switching hard along one line of cells.
+that stops and the ground beside a building does not take the building's roof for a gradient.
+
+**The gradient is read two cells either side, because a gentle slope in a voxel world is a staircase.** Ground
+falling one block every four cells is four flat treads and a one-block riser, and a window one cell wide reads
+each riser on its own — 27° on the riser and nothing on the treads — so a uniform gentle grade comes out
+speckled with whatever the theme paints at 27, and an isolated contour in an otherwise flat field paints a
+stripe across it. The tell is in the distribution rather than in the picture: read one cell either side, a
+board authored at `step: 1` puts a quarter of its ground in a spike at 20–29° with almost nothing at 30–39,
+which is a board reporting its own quantum and not its shape.
+
+The width is set from both ends and the arithmetic decides it. A **sustained** slope reads its true angle at
+every window — one block per four cells is 14° at 1, 2, 3 and 4 — so widening costs a real slope nothing.
+What it costs is a face, whose drop is spread over more cells: the lip of a six-block drop reads 72° at one,
+56° at two and 45° at three, where it can no longer be told from a walkable ramp. The isolated one-block
+contour being suppressed falls 27° → 14° → 9.5° over the same range. Two is where the contour is already
+under any threshold an author would set and the face is still unmistakably a face; `TerrainProfile.SlopeWindow`
+is where it is written down, and `GET /map/{slug}/incline?window=` is where another can be tried without
+rebuilding a board.
 
 **Restricting rings to the top course needs no knob, because the axes compose.** A surface material that
 is a `depth` stack whose first band is one course thick and is *itself* an `inward` stack rings the top course
@@ -227,10 +242,15 @@ A slope mask, stored:
 
 ```json
 {"kind":"layered","axis":"slope","stack":{"ending":"repeat","bands":[
-   {"material":{"kind":"solid","id":2,"data":0},"thickness":20},
+   {"material":{"kind":"solid","id":2,"data":0},"thickness":30},
    {"material":{"kind":"solid","id":3,"data":1},"thickness":15},
-   {"material":{"kind":"solid","id":4,"data":0},"thickness":55}]}}
+   {"material":{"kind":"solid","id":4,"data":0},"thickness":45}]}}
 ```
+
+**Where the cuts go is read off the board rather than guessed.** `GET /map/{slug}/incline` answers how much
+ground stands in each ten degrees, which is the only thing that says whether a cut lands where the author
+thinks it does — and `?window=` answers the same board read wider, so the two decisions a mask needs are both
+made without an export.
 
 **What the schema carries on `layered` beyond the stack itself is three optional fields** — `axis`, `beyond`
 and, for the height axis, `from` on the stack. A theme naming no axis reads `depth` with no `beyond`, which is
@@ -760,4 +780,4 @@ gracefully rather than overlapping. Two rules are orthogonal to the depth stack 
 | **TP21** | A pattern samples the cell **folded into the board's primary image**, not the cell itself. Every pattern is a function of position, so on a mirrored board a cell and its image sample two different places and resolve to two different blocks — a floor that does not match across the map and a middle that is not symmetric with itself. The painter fills `BucketContext.Sample` with the cell put through `OrbitScatter.Canonical`, the one member of a symmetry orbit that stands for all of them, so every image resolves alike and a cell on the axis folds to itself. The fold is of the plane only — no symmetry mode turns the vertical — so a risen pattern (TP15) samples the folded column at its own height. The cell being painted is untouched: a context with no orbit to fold into (a style swatch, a house course, a freeform board) samples its own cell. A team tint does not fold, since `TeamData` is a fact about the cell and each side keeps its colour. The same point is handed to a path's pave and a water prop's bank; a boulder needs none, being built in its own local frame and turned into place. |
 | **TP23** | A theme may say **its edges are the ground's** (`edgesFromGround`). A theme is a whole column — bedrock, fill, wall, rim, surface — which is the right shape for a theme that *is* the ground and the wrong one for paint laid **over** it: a road marking, a worn patch, a stroke. Scoped to a shape lying on a landmass, such a theme takes that landmass's own top course and its face with it, so a stroke reaching the board's edge repaints the rim and runs its own material the whole height of the exposed wall — the map's own face restated in paint, and taller the deeper the drop. With the word set the shape keeps its `surface` and its `fill` and takes every **geometry-chosen** bucket from the map default: the rim, the wall, `rimEdges` and `wallEnabled`, resolved as `TerrainTheme.OverGround` at the moment the scope is read rather than stored composed, since the same paint on a board with another default takes that board's edges. Bedrock is the ground's for `TP22`'s reason: what paint a cell wears does not decide where the world's floor is. Unset — the default — a theme owns its whole column exactly as before. |
 | **TP22** | A shape may state a **`material`** in place of a theme: one `TerrainMaterial` painted over its whole span, with no rim, no wall and no surface depth. A theme chooses its bucket per column by whether that column is an edge, so on a shape with no interior column — a stilt, a kerb, a tread, a rail — only the rim and the wall ever paint and the theme's own surface is nowhere on it; `material` is the statement for a thing that is *made of* something rather than ground with a top and a face. It reaches the painter as `TerrainTheme.OfMaterial` — the material in `fill`, the three geometry-chosen buckets off — which leaves one band over the shape's span, so a depth-axis stack reads from the shape's own top. It is a **shape** word about paint and says nothing about walking: `kind: "made"` is the *layer* word that takes a thing out of the walks and out of the ground everything rests on, and a stair needs the paint without the exile. A theme scoped to a shape it cannot show on is `SK23`, grouped per layer and theme; stating both is `SK24`. |
-| **TP24** | Every paintable column carries how steeply its surface is inclined (`ColumnProfile.Slope`, `BucketContext.SlopeDegrees`): Horn's 3×3 gradient over the neighbouring surface tops, in whole degrees from level, 0–89. A ramp climbing one block a cell answers 45 exactly, level ground 0, and the lip of a break half the gradient beside it, so a transition band lands on both sides of an edge rather than along one line of cells. A neighbour off the footprint or carrying a structure reads as level with the cell itself — the void is not a slope, and a building's roof is not the terrain's gradient (TP6's exclusion, applied to the same walk). `BandAxis.Slope` reads it, which makes a band stack an **angle mask**: a thickness on that axis is a span of degrees, not a count of blocks. It is the only thing in the model that tells a 45° hillside from a flat field — such a surface has no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. The whole column takes the answer its surface gave, so a face's fill and the block on top of it resolve to the same band. |
+| **TP24** | Every paintable column carries how steeply its surface is inclined (`ColumnProfile.Slope`, `BucketContext.SlopeDegrees`): Horn's 3×3 gradient over the surface tops `TerrainProfile.SlopeWindow` cells either side, in whole degrees from level, 0–89. A ramp climbing one block a cell answers 45 exactly and level ground 0. A neighbour off the footprint or carrying a structure reads as level with the cell itself — the void is not a slope, and a building's roof is not the terrain's gradient (TP6's exclusion, applied to the same walk). `BandAxis.Slope` reads it, which makes a band stack an **angle mask**: a thickness on that axis is a span of degrees, not a count of blocks. It is the only thing in the model that tells a 45° hillside from a flat field — such a surface has no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. The whole column takes the answer its surface gave, so a face's fill and the block on top of it resolve to the same band. **The window is two** because a gentle slope on ground quantised to whole blocks is a staircase, and a one-cell window reads the stair rather than the grade: it answers 27° on each riser and 0 on each tread, so a uniform grade paints speckled and a lone contour paints a stripe. A sustained slope reads the same angle at any window, so widening costs it nothing; a face softens (a six-block drop reads 72° at one, 56° at two, 45° at three) and that is what bounds it. `GET /map/{slug}/incline` is the reading — the tens of degrees per cell, and how much ground stands in each ten — and `?window=` tries another without rebuilding. |
