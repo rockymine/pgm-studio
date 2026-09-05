@@ -6453,6 +6453,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   step rather than reseeding at it (author, 2026-08-15), so a staircase of plateaus takes one band set running
   over the treads and up the hill. `docs/world-export/terrain-painting.md` carries the axis table and a worked
   example. **The Theme phase's material editor does not offer it yet** — that is what is left of `B200`.
+- **A band stack reads the ground's inclination, which is the angle mask (`WE97`, `TP24`).** Every paintable
+  column carries `ColumnProfile.Slope` — Horn's 3x3 gradient over the neighbouring surface tops, in whole
+  degrees from level, 0-89 — and `BandAxis.Slope` reads it off `BucketContext.SlopeDegrees`, so a thickness on
+  that axis is a **span of degrees** and one stack finishes the meadow, the shoulder and the face of the same
+  hill. It is the only thing in the model that tells a 45-degree hillside from a flat field: such a surface has
+  no exposed riser, so the wall bucket never sees it and every other axis paints the two alike. A neighbour off
+  the footprint or carrying a structure reads as level with the cell itself, so a coastline is flat ground that
+  stops and a building's roof is not the terrain's gradient. Where the bands are cut is arithmetic: a one-block
+  contour reads 27 at its lip and a two-block step reads 45, so a first band ending at 28 ignores the relief
+  field's own `step: 1` quantum and one ending at 27 stripes the open moor with it. Only the depth axis
+  measures courses, so `PT1`'s depth walk recurses through a mask's bands instead of reading their degrees as
+  a burial. Measured on `opus5-scarp-mask`, Corbel Scar's ground with nothing changed but the theme: 86% of the
+  board grass and no other ground block, against 68% moor / 9% shoulder / 10% rock — the quarry, the terrace
+  benches and the river banks legible where before they were one green sheet.
+  (`TerrainPainterTests`, `TerrainThemeValidationTests`, `docs/world-export/terrain-painting.md`)
 - **A voronoi's bands stay their own type, and the reason is recorded on it (`B201`, answered by `B195`).**
   `VoronoiMaterial.Bands` carries the same `(material, depth)` pair a `Band` does, which read as a fourth copy
   of the rule. It is not one: a `BandStack` is read along an integer step and states only where its bands run

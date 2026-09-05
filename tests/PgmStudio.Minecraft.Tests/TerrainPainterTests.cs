@@ -701,6 +701,79 @@ public sealed class TerrainPainterTests
                     .IsEqualTo((Blocks.QuartzBlock, 0));
     }
 
+    // ── the angle mask (TP24) ──────────────────────────────────────────────────────────────────────────
+
+    /// <summary>A board 15 wide: a level field at x 0..4, a ramp climbing one block a cell at x 5..9, and a
+    /// level shelf at x 10..14 ending in a six-block face. The three cases the mask exists to tell apart,
+    /// none of which any other column fact distinguishes.</summary>
+    private static BuiltTerrain Hillside()
+    {
+        var columns = new List<ColumnSegment>();
+        for (var x = 0; x < 15; x++)
+        for (var z = 0; z < 11; z++)
+            columns.Add(Seg(x, z, 1, 10 + Math.Clamp(x - 4, 0, 5)));
+        return TerrainBuilder.Build(columns);
+    }
+
+    [Test]
+    public async Task A_ramp_climbing_one_block_a_cell_reads_forty_five_degrees_and_a_field_reads_nought()
+    {
+        var terrain = Hillside();
+        var profile = new TerrainProfile(terrain.World, terrain.SurfaceTop);
+
+        // Well inside the level field, and well inside the level shelf: no inclination at all.
+        foreach (var cell in new[] { (2, 5), (12, 5) })
+        {
+            await Assert.That(profile.TryGetColumn(cell, out var flat)).IsTrue();
+            await Assert.That((cell, flat.Slope)).IsEqualTo((cell, 0));
+        }
+
+        // The middle of the ramp, where every neighbour in x is one block from the last.
+        await Assert.That(profile.TryGetColumn((7, 5), out var ramp)).IsTrue();
+        await Assert.That(ramp.Slope).IsEqualTo(45);
+
+        // Its two lips read half the gradient, which is what puts the transition on both sides of the break.
+        foreach (var cell in new[] { (4, 5), (9, 5) })
+        {
+            await Assert.That(profile.TryGetColumn(cell, out var lip)).IsTrue();
+            await Assert.That((cell, lip.Slope)).IsEqualTo((cell, 27));
+        }
+    }
+
+    [Test]
+    public async Task The_void_is_not_a_slope()
+    {
+        // The board's own border falls five blocks to nothing on one side. A coastline is level ground that
+        // stops, so a neighbour off the footprint is read as level with the cell itself and the border of the
+        // level field answers nought — the same as its middle.
+        var profile = new TerrainProfile(Hillside().World, Hillside().SurfaceTop);
+        await Assert.That(profile.TryGetColumn((0, 5), out var border)).IsTrue();
+        await Assert.That(border.Slope).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task A_slope_stack_finishes_the_face_of_a_hill_differently_from_its_meadow()
+    {
+        // The angle mask: grass to 19 degrees, coarse dirt to 34, bare stone above. The wall bucket cannot
+        // draw this — a 45-degree ramp has no exposed riser, so every cell here is surface.
+        var terrain = Hillside();
+        var mask = new LayeredMaterial(
+            new BandStack([new Band(new SolidMaterial(Blocks.Grass), 20),
+                           new Band(new SolidMaterial(Blocks.Dirt, 1), 15),
+                           new Band(new SolidMaterial(Blocks.Cobblestone), 55)]),
+            BandAxis.Slope);
+        var theme = TerrainTheme.Default with { Surface = new TopBand(mask), Rim = new TopBand(mask) };
+
+        TerrainPainter.Paint(terrain.World, terrain.SurfaceTop, theme);
+
+        // Field and shelf: meadow. Ramp: bare rock. The lips between them: the middle band.
+        await Assert.That(terrain.World.GetBlock(2, 9, 5).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(12, 14, 5).Id).IsEqualTo(Blocks.Grass);
+        await Assert.That(terrain.World.GetBlock(7, 12, 5).Id).IsEqualTo(Blocks.Cobblestone);
+        await Assert.That(terrain.World.GetBlock(4, 9, 5)).IsEqualTo((Blocks.Dirt, 1));
+        await Assert.That(terrain.World.GetBlock(9, 14, 5)).IsEqualTo((Blocks.Dirt, 1));
+    }
+
     /// <summary>A ground-layer segment, for a test whose subject is the fill rather than the stack.</summary>
     private static ColumnSegment Seg(int x, int z, int floor, int top) => new(x, z, floor, top, "ground");
 }

@@ -34,8 +34,13 @@ public sealed class RimEdgesConverter() : JsonStringEnumConverter<RimEdges>(Json
 /// the edge itself, -1 off the footprint. The plan-direction axis, and the companion to <paramref
 /// name="PerimeterArc"/>: the arc says how far <em>round</em> the edge a cell sits and this how far in from it,
 /// so a band stack can be read along either. The walk crosses an elevation step, so on a staircase the count runs
-/// across the treads and up the hill rather than restarting on each.</para></summary>
-public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1)
+/// across the treads and up the hill rather than restarting on each.</para>
+/// <para><b>SlopeDegrees</b> — How steeply the surface is inclined over the cell, 0..89 degrees from level
+/// (<see cref="ColumnProfile.Slope"/>). The whole column carries the surface's angle, so a face's fill and its
+/// grass answer the same number and a stack read along it finishes a hillside top to bottom. Zero for every
+/// context built off something that is not terrain — a style swatch, a house course — which is level.</para>
+/// </summary>
+public readonly record struct BucketContext(int X, int Y, int Z, TerrainBucket Bucket, int DepthFromTop, int TeamData = -1, int PerimeterArc = -1, int HeightFromBottom = 0, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1, int SlopeDegrees = 0)
 {
     private readonly (int X, int Z)? sample;
 
@@ -86,6 +91,14 @@ public enum BandAxis
     /// pinned to the world and not to the column — which is what lets one span carry a stack of colours that
     /// lands at the same height in every column it covers, rather than a layer per colour.</summary>
     Height,
+
+    /// <summary>By how steeply the ground is inclined here — degrees from level, so the bands are an <b>angle
+    /// mask</b>: meadow to 20°, coarse dirt to 35°, bare rock above. Reads
+    /// <see cref="BucketContext.SlopeDegrees"/>, which is a fact about the surface rather than about the
+    /// column, so the thickness of a band is a span of degrees and the whole column takes the answer its
+    /// surface gave. What tells a 45° hillside from a flat field: neither has an exposed riser, so the wall
+    /// bucket never sees the difference and every other axis paints them alike.</summary>
+    Slope
 }
 
 /// <summary>Written as <c>"depth"</c>/<c>"inward"</c> rather than as a number, the way every other enum in a
@@ -151,7 +164,11 @@ public static class Materials
 /// that is meant to stop a few rings in and let the ground it sits on show. Under <see cref="BandEnding.Repeat"/>
 /// nothing is ever unclaimed and this is never reached.</para>
 /// <para><b>From</b> — Where a <see cref="BandAxis.Height"/> stack's first band sits, in world Y. Read on no
-/// other axis, and zero everywhere else.</para></summary>
+/// other axis, and zero everywhere else.</para>
+/// <para><b>On the <see cref="BandAxis.Slope"/> axis a thickness is a span of degrees</b>, not of blocks: a
+/// stack of grass at 20 then coarse dirt at 15 is meadow up to 19° and coarse dirt from 20° to 34°, with
+/// <see cref="Beyond"/> — or the last band under <see cref="BandEnding.Repeat"/> — taking every steeper
+/// cell.</para></summary>
 public sealed record LayeredMaterial(
     BandStack Stack,
     BandAxis Axis = BandAxis.Depth,
@@ -169,6 +186,7 @@ public sealed record LayeredMaterial(
         {
             BandAxis.Inward => ctx.Inset,
             BandAxis.Height => ctx.Y - From,
+            BandAxis.Slope => ctx.SlopeDegrees,
             _ => ctx.DepthFromTop,
         };
         // Off the footprint the inward axis has no answer, which is not the same as being past the last band:

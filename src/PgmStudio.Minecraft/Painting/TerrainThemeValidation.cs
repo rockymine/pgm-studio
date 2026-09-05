@@ -122,6 +122,16 @@ public static class TerrainThemeValidation
     /// more than one course writes one block into all of them.</summary>
     private static void CheckDepth(string bucket, TerrainMaterial material, int depth, List<Finding> findings)
     {
+        // Only the depth axis measures courses. A stack read inward, by world height or by inclination states
+        // its thicknesses in rings, in world Y or in degrees, so each of its bands covers the bucket's whole
+        // depth and is asked the same question the bucket was.
+        if (material is LayeredMaterial { Axis: not BandAxis.Depth } across)
+        {
+            foreach (var band in across.Stack?.Bands ?? []) CheckDepth(bucket, band.Material, depth, findings);
+            if (across.Beyond is { } beyond) CheckDepth(bucket, beyond, depth, findings);
+            return;
+        }
+
         if (material is LayeredMaterial layered)
         {
             var course = 0;

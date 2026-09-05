@@ -138,4 +138,26 @@ public sealed class TerrainThemeValidationTests
              new VoronoiBand(new SolidMaterial(Blocks.Cobblestone), 2)]);
         await Assert.That(TerrainThemeValidation.Check(TerrainTheme.Default with { Fill = voronoi })).IsEmpty();
     }
+
+    /// <summary>Only the depth axis measures courses. An angle mask's bands are spans of degrees, so a band
+    /// twenty wide carrying the standard grass-over-two-dirt stack is a one-course surface on every cell it
+    /// claims — reading its number as a depth would call the meadow twenty courses of grass.</summary>
+    [Test]
+    public async Task A_bands_number_is_only_a_depth_on_the_depth_axis()
+    {
+        var meadow = new LayeredMaterial(new BandStack(
+            [new Band(new SolidMaterial(Blocks.Grass), 1), new Band(new SolidMaterial(Blocks.Dirt), 2)]));
+        var mask = new LayeredMaterial(new BandStack(
+            [new Band(meadow, 20), new Band(new SolidMaterial(Blocks.Cobblestone), 70)]), BandAxis.Slope);
+
+        await Assert.That(TerrainThemeValidation.Check(Surfaced(mask))).IsEmpty();
+
+        // The recursion still names a band that genuinely buries its surfacing block: bare grass on the
+        // shallow side fills all three courses of the bucket, mask or no mask.
+        var bare = new LayeredMaterial(new BandStack(
+            [new Band(new SolidMaterial(Blocks.Grass), 20),
+             new Band(new SolidMaterial(Blocks.Cobblestone), 70)]), BandAxis.Slope);
+        await Assert.That(TerrainThemeValidation.Check(Surfaced(bare)).Single().Rule)
+                    .IsEqualTo(TerrainThemeRules.SurfaceBlockBuried);
+    }
 }

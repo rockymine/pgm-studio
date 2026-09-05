@@ -265,15 +265,21 @@ public static class BandAxes
     /// one span carries a stack of colours landing at the same height in every column it covers.</summary>
     public const string Height = "height";
 
-    /// <summary>The axes in the order the editor offers them: the reading every stack had before there was a
-    /// second one, then the two that were added to it.</summary>
-    public static readonly string[] All = [Depth, Inward, Height];
+    /// <summary>By how steeply the ground is inclined, in degrees from level — an angle mask, so one stack
+    /// puts meadow on the flat and bare rock on the face of the same hill. A band's number is a span of
+    /// degrees rather than a count of blocks.</summary>
+    public const string Slope = "slope";
+
+    /// <summary>The axes in the order the editor offers them: down the column, then the three facts about the
+    /// ground a stack can be read along instead.</summary>
+    public static readonly string[] All = [Depth, Inward, Height, Slope];
 
     /// <summary>What each reads along, in the words the picker offers it in.</summary>
     public static string Describe(string? axis) => Canonical(axis) switch
     {
         Inward => "In from the edge — rings round the shape",
         Height => "Up from a world height",
+        Slope => "By steepness — flat, sloping, sheer",
         _ => "Down the column from the top",
     };
 
@@ -281,6 +287,7 @@ public static class BandAxes
     public static string Extent(string? axis) => Canonical(axis) switch
     {
         Inward => "Rings",
+        Slope => "Degrees",
         _ => "Courses",
     };
 

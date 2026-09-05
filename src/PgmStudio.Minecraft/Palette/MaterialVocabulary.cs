@@ -35,6 +35,11 @@ public enum CellFact
     /// <summary>The cell's height above the bottom of its band. What shears a stripe onto the diagonal.</summary>
     Height,
 
+    /// <summary>How steeply the ground is inclined, in degrees from level. A material reading it is an angle
+    /// mask: it answers one thing on a meadow and another on the face of the same hill, and it says nothing at
+    /// all on ground that is flat everywhere.</summary>
+    Slope,
+
     /// <summary>The owning team's colour, where the cell belongs to one.</summary>
     Team,
 }
@@ -77,8 +82,11 @@ public static class MaterialVocabulary
         ("solid", "Solid block", "One block everywhere in the bucket.", []),
         ("layered", "Band stack",
             "An ordered run of materials, each claiming a thickness, read along a stated axis: down from the "
-          + "top of the bucket, or in from the landmass's edge. Reads inset only when its axis says inward.",
-            [CellFact.Depth, CellFact.Inset]),
+          + "top of the bucket, in from the landmass's edge, up from a stated world height, or by how steeply "
+          + "the ground is inclined. On the slope axis a thickness is a span of degrees rather than of blocks, "
+          + "which is how one stack puts meadow on the flat and bare rock on the face of the same hill. It "
+          + "reads only the fact its own axis names.",
+            [CellFact.Depth, CellFact.Inset, CellFact.Height, CellFact.Slope]),
         ("teamTint", "Team tint",
             "A colour-by-damage block — clay, wool, stained glass — stamped with the owning team's colour, "
           + "falling back to a neutral material where no team owns the cell.", [CellFact.Team]),

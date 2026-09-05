@@ -23,13 +23,21 @@ namespace PgmStudio.Minecraft.Painting;
 /// tread. That is the author's call, made so the reading stays available on ground that is not flat; on flat
 /// ground, which is what the concept is reached for most of the time, the two readings coincide anyway. Nothing
 /// paints from it yet — the authored shape that spends it is `B199`/`B200`.</para>
+/// <para><b>Slope</b> — How steeply the surface is inclined here, in whole degrees from level, 0..89. Horn's
+/// 3×3 gradient over the neighbouring surface tops: level ground is 0, a ramp climbing one block a cell is
+/// 45, and the lip of a six-block face is 72. It is a fact about the <em>surface</em> and not about the column,
+/// which is what a face's own blocks already have a bucket for — a 45° hillside has no exposed riser at all,
+/// so nothing but this tells it apart from a meadow. A neighbour off the footprint or carrying a structure is
+/// read as level with the cell itself, so a coastline and the ground beside a building are not steep by
+/// arithmetic.</para>
 /// <para><b>Base</b> — The lowest course the column's bands run from. Zero for terrain, whose bands start at the
 /// bedrock floor; a made thing's own floor where the column belongs to one, because a sculpture flying at y24 has
 /// no bedrock course and no fill reaching down to one — its span is what it is made of and the column under it is
 /// somebody else's.</para></summary>
 public readonly record struct ColumnProfile(
     int SurfaceTop, bool VoidEdge, bool OpenEdge, bool ClosedEdge, int VoidDrop, int TerrainDrop,
-    int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1, int Base = 0);
+    int PerimeterArc = -1, int PerimeterTurn = 0, int PerimeterRun = 0, int Inset = -1, int Base = 0,
+    int Slope = 0);
 
 /// <summary>
 /// The shared core of terrain painting (docs/world-export/terrain-painting.md §5, stage 1): classifies every
@@ -126,7 +134,30 @@ public sealed class TerrainProfile
             _perimeterTurn.GetValueOrDefault((x, z), 0),
             _perimeterRun.GetValueOrDefault((x, z), 0),
             _inset.GetValueOrDefault((x, z), -1),
-            _base?.GetValueOrDefault((x, z), 0) ?? 0);
+            _base?.GetValueOrDefault((x, z), 0) ?? 0,
+            Slope(x, z, self));
+    }
+
+    /// <summary>How steeply the surface is inclined at one cell, in whole degrees from level. Horn's 3×3
+    /// gradient — the two central differences taken with the 1-2-1 weighting that reads the diagonals at half
+    /// the weight of the orthogonals — so the answer is the inclination of the plane that best fits the nine
+    /// tops rather than the sharpest single step. A ramp climbing one block a cell answers 45 exactly; the lip
+    /// of a face answers half of it, which is the transition a mask wants to catch on both sides of an edge.
+    ///
+    /// <para>A neighbour that is off the footprint or carries a structure is read as level with the cell
+    /// itself. The void is not a slope — a coastline is flat ground that stops — and a building's roof is not
+    /// the terrain's gradient, which is the same exclusion <see cref="Classify"/>'s drop test makes.</para>
+    /// </summary>
+    private int Slope(int x, int z, CellFacts self)
+    {
+        int Top(int dx, int dz)
+            => _facts.TryGetValue((x + dx, z + dz), out var n) && !n.IsStructure ? n.Top : self.Top;
+
+        var alongX = Top(-1, -1) + 2 * Top(-1, 0) + Top(-1, 1) - Top(1, -1) - 2 * Top(1, 0) - Top(1, 1);
+        var alongZ = Top(-1, -1) + 2 * Top(0, -1) + Top(1, -1) - Top(-1, 1) - 2 * Top(0, 1) - Top(1, 1);
+        if (alongX == 0 && alongZ == 0) return 0;
+        var rise = Math.Sqrt((double)alongX * alongX + (double)alongZ * alongZ) / 8.0;
+        return Math.Min(89, (int)Math.Round(Math.Atan(rise) * 180.0 / Math.PI));
     }
 
     // 4-connected components of equal surface top over the whole footprint (structures included, so a plateau

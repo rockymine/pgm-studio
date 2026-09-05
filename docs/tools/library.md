@@ -98,17 +98,30 @@ and the one to read rather than guessing a field name off a kind's.
 { "kind": "solid", "id": 1, "data": 0 }
 ```
 
-**`layered` — a band stack read as depth from the top of the bucket.** Grass over two dirt; a wall's banded
-riser. Each band states its thickness in courses, and the stack states what it does where they run out: the
-bucket is the stack's whole space, so it `repeat`s and a band deeper than declared never falls through to
-nothing. The other ending, `handOver`, claims nothing past the last band and leaves whatever is under the
-stack showing — which is what a band *inside* a larger space wants, and is why the ending is stated rather
-than assumed.
+**`layered` — a band stack read along a stated `axis`.** Grass over two dirt; a wall's banded riser. Each band
+states its thickness, and the stack states what it does where they run out: where the bucket is the stack's
+whole space it `repeat`s and a band deeper than declared never falls through to nothing. The other ending,
+`handOver`, claims nothing past the last band and leaves whatever is under the stack showing — which is what a
+band *inside* a larger space wants, and is why the ending is stated rather than assumed; `beyond` says what
+shows there.
+
+The axis is what the thickness is measured in. `depth` (the default) is courses down from the top of the
+bucket; `inward` is steps in from the landmass's void-facing edge, so the bands are concentric rings; `height`
+is courses up from the stack's own `from` in world Y, so the banding is pinned to the world rather than to the
+column; `slope` is **degrees of inclination**, which makes the stack an angle mask — one band for the flat,
+another for the shoulder, another for the face of the same hill.
 
 ```json
 { "kind": "layered", "stack": { "ending": "repeat", "bands": [
   { "material": { "kind": "solid", "id": 2 }, "thickness": 1 },
   { "material": { "kind": "solid", "id": 3 }, "thickness": 2 } ] } }
+```
+
+```json
+{ "kind": "layered", "axis": "slope", "stack": { "ending": "repeat", "bands": [
+  { "material": { "kind": "solid", "id": 2 }, "thickness": 20 },
+  { "material": { "kind": "solid", "id": 3, "data": 1 }, "thickness": 15 },
+  { "material": { "kind": "solid", "id": 4 }, "thickness": 55 } ] } }
 ```
 
 **`teamTint` — the block tinted by the team that owns the cell**, on the same 0–15 damage scale wool uses, so

@@ -50,7 +50,7 @@ public sealed class MaterialVocabularyTests
 
         await Assert.That(axis.Required).IsFalse();
         await Assert.That(axis.Default).IsEqualTo("depth");
-        await Assert.That(axis.Choices).IsEquivalentTo(new[] { "depth", "inward", "height" });
+        await Assert.That(axis.Choices).IsEquivalentTo(new[] { "depth", "inward", "height", "slope" });
 
         // The height axis is the one with an origin, and the origin is optional like the axis itself: a stack
         // that names no `from` reads from y0, which is what every other axis already means by "the start".
@@ -71,7 +71,7 @@ public sealed class MaterialVocabularyTests
         await Assert.That(MaterialVocabulary.Of("wallRun")!.Value.Reads).IsEquivalentTo(new[] { CellFact.Arc });
         await Assert.That(MaterialVocabulary.Of("voronoi")!.Value.Reads).IsEquivalentTo(new[] { CellFact.Position });
         await Assert.That(MaterialVocabulary.Of("layered")!.Value.Reads)
-            .IsEquivalentTo(new[] { CellFact.Depth, CellFact.Inset });
+            .IsEquivalentTo(new[] { CellFact.Depth, CellFact.Inset, CellFact.Height, CellFact.Slope });
         await Assert.That(MaterialVocabulary.Of("solid")!.Value.Reads).IsEmpty();
     }
 
