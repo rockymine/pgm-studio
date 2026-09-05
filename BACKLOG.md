@@ -90,6 +90,26 @@ the focus-integration polish remains.
 The depth pass has shipped (`FEATURES.md` — select/drag, rotate, scale/squash, split, selection highlight);
 what is gathered here is the parked and dormant slices of the same surface.
 
+#### What a stacked shape is told about itself
+
+- [ ] **TS40 — `SK9` declines a wall standing on ground, because the pair walk does not read `override`.**
+  `SketchRasterizer.StackedInOneLayer` filters subtracts, `role` shapes and erected shapes out of the adds it
+  pairs, and nothing filters an override add — so a shape whose floor sits at the ground's top raises
+  `Severity.Decline` saying the ground is not in the world, when an override add standing in ground demonstrably
+  keeps it (`docs/tools/sketch.md`, *Shapes*). Skip an override add as the lost half of a pair; it is laid after
+  the ordinary pass and cannot be the shape that loses one. *Evidence: one plate `[0,8)` and one wall over it,
+  identical column `[0..0] | [1..13]` either way — `override` at floor 8 raises `1 SK9`, a plain add at floor 0
+  height 14 raises none. The first build of `pgm-studio-mapgen/specs/geometry-showcase` raised 88, all false.*
+
+- [ ] **TS41 — Decide whether the height sampler should floor rather than round.** `RasterShape` takes
+  `Math.Round` of the surface at the cell centre; `docs/tools/sketch.md` argued for `floor` and has been
+  corrected to describe the code. The two disagree on exactly the case the paragraph is about: a quad rising one
+  course a cell samples every cell on a half-integer, and round-half-to-even builds `7 9 9 11 11 13` — a flight
+  with a two-block rise in every other tread. Phasing the anchors half a step down fixes it per flight and is
+  now the documented rule, so nothing is blocked. **The blocking question is the author's**: flooring would make
+  the unphased statement build correctly and would move the top course of every sloped shape on every existing
+  board by up to one, which `--goldens` would have to be re-recorded for.
+
 #### Markers
 
 - [ ] **TS75 — A destroy goal has no sketch presence, and no plan raster draws it.** A destroyable and a core
