@@ -36,3 +36,14 @@ tools/*/out/
 # Python
 __pycache__/
 *.pyc
+
+# In-place edit temporaries. `sed -i` writes its output to a sibling `sedXXXXXX` and renames it over the
+# original; on the VirtualBox shared folder that rename intermittently fails with "Text file busy" and the
+# temporary is left behind, holding the file's pre-edit contents under a name nothing compiles. One reached
+# a commit that way — a MapImporter.cs from before its own refactor, invisible for seven weeks because it
+# carried no .cs extension — so the shape is ignored rather than watched for.
+sed??????
+*.orig
+*.rej
+*.bak
+*~
