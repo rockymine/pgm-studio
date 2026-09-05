@@ -56,7 +56,7 @@ public sealed class PushMarkTests
         ReliefSpec Spec(bool rigid) => new()
         {
             Base = 5,
-            Marks = [new RimMark(5), new AreaMark(pad, 9) { Rigid = rigid }],
+            Marks = [new RimMark(5), new AreaMark(pad, [9]) { Rigid = rigid }],
             Pushes = [new PushMark(Ring((12, 4), (28, 4), (28, 20), (12, 20)), Amount: 6, Falloff: 6)],
         };
 

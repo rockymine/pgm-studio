@@ -6492,6 +6492,20 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   redrawn at `r0 24, turns 2` with `tread: 2, batter: 65` the board goes from 1,006 barrier cells and a largest
   face of 282 to 684 and 112, and the largest face left is no longer the quarry.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.1)
+- **An area mark tilts, and its edge grades (`WE103`).** `AreaMark` carried one height, so every pad was
+  level whatever it was drawn as and a shelf could not be cut into a hillside at all. It now takes **one height
+  per ring vertex** — read over the ring's own ear-clipped triangulation, the same barycentric surface an
+  erected shape's `anchor_heights` already describe — so a bench falls along its length the way a line's does,
+  and four corners out of plane come out warped rather than averaged. It is a surface and not a gradient: two
+  cells at one x and different z answer differently. The gap was one step from the end — a held shape becomes
+  an `AreaMark` and `StatedTop` read the shape's own height function **at the ring's centroid**, computing the
+  surface and throwing it away. `StatedTops` reads it at every vertex; a shape stating one height still yields
+  one, because a flat pad wants a flat mark. **`bevel`** is how far inside the ring that height gives way to
+  the ground around it, carried as pin weight (`WE101`) — the `tread` of an area, stated from the rim inward
+  because that is where an area's edge is, and taken from a held shape's `skirt`. Measured on a hillside
+  falling 40 to 20: a level unbevelled pad seams against it at **6 blocks**, a tilted one at 2, and a tilted one
+  with `bevel: 5` at **none**, the marks overlapping exactly as much.
+  (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.2)
 - **`RL2` has a twin: graded everywhere, level nowhere (`WE102`).** `RL2` names ground whose every height
   change is a wall. The opposite fault had no rule and no reading: ground that is all transition. Nothing
   reported it because a surface graded end to end is *walkable* end to end — one connected place, no ledge,

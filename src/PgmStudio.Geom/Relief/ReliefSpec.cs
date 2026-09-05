@@ -26,9 +26,17 @@ namespace PgmStudio.Geom.Relief;
 public enum Participation { Inherit, Hold, Exclude }
 
 /// <summary>One shape of a group as the relief sees it: the ring it covers, how it takes part, and the
-/// height it holds when it is holding one.</summary>
+/// height it holds when it is holding one — <b>one for the whole ring, or one per vertex</b>, which is the
+/// difference between a level pad and a shelf that falls along its length. <see cref="Bevel"/> is how far
+/// inside the ring that height gives way to the ground around it, so a held shape can meet its neighbour on a
+/// grade instead of on a step.</summary>
 public sealed record ReliefShape(double[][] Ring, Participation Participation = Participation.Inherit,
-                                 double HeldHeight = 0);
+                                 double[]? HeldHeights = null, double Bevel = 0)
+{
+    /// <summary>The shape as the mark it becomes — the one reading of its heights, so the solve and the
+    /// excluded-shape stamp cannot interpolate the same ring differently.</summary>
+    public AreaMark Held() => new(Ring, HeldHeights ?? [0], Bevel);
+}
 
 /// <summary>The relief of one footprint: a base level, the marks stated on it, the shapes pushed or pulled
 /// out of it, and the finishing that turns a continuous surface into blocks.</summary>
@@ -95,7 +103,7 @@ public sealed record ReliefGroup(IReadOnlyList<ReliefShape> Shapes, ReliefSpec S
     {
         var marks = new List<Mark>(Spec.Marks);
         foreach (var shape in Shapes.Where(shape => shape.Participation == Participation.Hold))
-            marks.Add(new AreaMark(shape.Ring, shape.HeldHeight));
+            marks.Add(shape.Held());
         return marks;
     }
 
@@ -118,13 +126,19 @@ public sealed record ReliefGroup(IReadOnlyList<ReliefShape> Shapes, ReliefSpec S
             continuous[index] = blocks[index];
         }
         foreach (var shape in Shapes.Where(shape => shape.Participation == Participation.Exclude))
+        {
+            // The same surface the solve would have pinned, read through the mark rather than off the scalar
+            // it used to be: an excluded shape that tilts is stamped tilted.
+            var held = shape.Held();
             foreach (var (x, z) in whole.Land())
                 if (Polygon.PointInRing(x + 0.5, z + 0.5, shape.Ring))
                 {
                     var index = whole.Index(x, z);
-                    blocks[index] = (int)Math.Round(shape.HeldHeight);
-                    continuous[index] = shape.HeldHeight;
+                    var height = held.HeightAt(x + 0.5, z + 0.5);
+                    blocks[index] = (int)Math.Round(height);
+                    continuous[index] = height;
                 }
+        }
         return new HeightField(whole, continuous, blocks);
     }
 }

@@ -174,16 +174,72 @@ public sealed record LineMark(
     }
 }
 
-/// <summary>A bench, a mesa top or a sunken floor: every cell inside a ring held at one height, so the field
-/// arrives at a genuinely flat surface rather than the rounded top an interpolation would give.</summary>
-public sealed record AreaMark(double[][] Ring, double Height) : Mark
+/// <summary>A bench, a mesa top, a sunken floor or a shelf cut into a hillside: every cell inside a ring held
+/// at a stated height, so the field arrives at the surface the author drew rather than the rounded top an
+/// interpolation would give.
+///
+/// <para><b>One height per ring vertex, or one for the whole ring.</b> A single height is a level pad, which
+/// is what a floor wants. A height for each vertex is a <em>tilted</em> one, read over the ring's own
+/// triangulation — the same barycentric surface an erected shape's <c>anchor_heights</c> already describe — so
+/// a bench can fall along its length the way a <see cref="LineMark"/>'s can. Without it every pad is level
+/// whatever it was drawn as, and a shelf laid on a slope has to be dead flat or not exist.</para>
+///
+/// <para><b>Bevel</b> is how far inside the ring the pad's height gives way to the ground it is laid on, in
+/// cells. Unset, the pad is stated to its own outline and meets whatever is beside it on a step — which is
+/// right for a floor and wrong for ground. Stated, the cells within that far of the ring carry the pad's
+/// height at less than full weight, so the edge grades into what an earlier mark put there instead of ending
+/// on it. The <see cref="LineMark.Tread"/> of an area: a line says how much of its band is flat and an area
+/// says how much of its edge is not, because a line is measured out from the middle and an area in from its
+/// rim.</para></summary>
+public sealed record AreaMark(double[][] Ring, double[] Heights, double Bevel = 0) : Mark
 {
+    /// <summary>The ring closed back on its first point, for reading the distance to the boundary. Null where
+    /// no bevel was asked for, since nothing then needs the distance.</summary>
+    private double[][]? Closed => Bevel > 0 && Ring.Length >= 3 ? [.. Ring, Ring[0]] : null;
+
+    /// <summary>Whether the ring carries a height of its own at every vertex, which is what a tilt is.</summary>
+    private bool Tilted => Heights.Length > 1 && Heights.Length == Ring.Length;
+
+    /// <summary>The height stated at a point of the ring's interior: the one height a level pad carries, or
+    /// the triangulated surface a tilted one describes. Public because the excluded-shape stamp reads the same
+    /// surface and must not compute a second one.</summary>
+    public double HeightAt(double x, double z)
+    {
+        if (Heights.Length == 0) return 0;
+        if (!Tilted) return Heights[0];
+        return Triangulation.Interpolate(Ring, Heights, Triangulation.EarClip(Ring), x, z);
+    }
+
     public override IEnumerable<Pin> Pins(Footprint footprint)
     {
-        if (Ring.Length < 3) yield break;
+        if (Ring.Length < 3 || Heights.Length == 0) yield break;
+        // The triangulation is of the ring and not of the cell, so it is built once rather than per cell.
+        var tris = Tilted ? Triangulation.EarClip(Ring) : null;
+        var closed = Closed;
+
         foreach (var (x, z) in footprint.Land())
-            if (Polygon.PointInRing(x + 0.5, z + 0.5, Ring)) yield return new Pin((x, z), Height);
+        {
+            if (!Polygon.PointInRing(x + 0.5, z + 0.5, Ring)) continue;
+            var height = tris is null ? Heights[0]
+                       : Triangulation.Interpolate(Ring, Heights, tris, x + 0.5, z + 0.5);
+            var weight = 1.0;
+            if (closed is not null)
+            {
+                var (distance, _, _, _) = Polyline.Nearest(x + 0.5, z + 0.5, closed);
+                weight = Math.Clamp(distance / Bevel, 0, 1);
+            }
+            yield return new Pin((x, z), height, weight);
+        }
     }
+
+    /// <summary>Ring and heights by value — the generated equality compares the arrays by reference, and a
+    /// mark read back from JSON has to equal the one built in code.</summary>
+    public bool Equals(AreaMark? other)
+        => other is not null && Bevel.Equals(other.Bevel) && Id == other.Id && Rigid == other.Rigid
+        && Heights.SequenceEqual(other.Heights)
+        && Ring.Length == other.Ring.Length && Ring.Zip(other.Ring).All(p => p.First.SequenceEqual(p.Second));
+
+    public override int GetHashCode() => HashCode.Combine(Ring.Length, Heights.Length, Bevel, Id, Rigid);
 }
 
 /// <summary>The footprint's own outer rings held at one height — the statement that the land meets the void

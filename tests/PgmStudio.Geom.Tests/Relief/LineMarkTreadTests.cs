@@ -256,4 +256,77 @@ public sealed class LineMarkTreadTests
         await Assert.That(pins.TryGetValue((30, 29), out var atTurn)).IsTrue();
         await Assert.That(atTurn).IsBetween(13.9, 20.1);
     }
+
+    // ── an area that tilts, and an edge that grades (WE103) ─────────────────────────────────────────────
+
+    private static double[][] Pad => [[20, 22], [40, 22], [40, 38], [20, 38]];
+
+    /// <summary>A hillside falling 40 to 20 across the board — the ground a shelf has to be cut into.</summary>
+    private static ReliefSpec Hillside(params Mark[] more) => new()
+    {
+        Base = 20, Reach = 0, Step = 1,
+        Marks = [new LineMark([[4, 30], [56, 30]], [40, 20], 30) { Id = "hill" }, .. more],
+    };
+
+    private static int[] Across(ReliefSpec spec, int z = 30)
+    {
+        var field = ReliefSolver.Solve(Board(60), spec);
+        return [.. Enumerable.Range(0, 61).Select(x => field.At(x, z))];
+    }
+
+    /// <summary><b>One height a level pad, one per vertex a tilted one.</b> Without this every bench is dead
+    /// flat whatever it was drawn as, because the mark could carry only a number.</summary>
+    [Test]
+    public async Task An_area_with_a_height_per_vertex_tilts()
+    {
+        var level = Across(Hillside(new AreaMark(Pad, [28])));
+        var tilted = Across(Hillside(new AreaMark(Pad, [32, 24, 24, 32])));
+
+        // Across the pad the level one does not move and the tilted one falls the way it was drawn.
+        await Assert.That(level[24]).IsEqualTo(level[36]);
+        await Assert.That(tilted[24]).IsGreaterThan(tilted[36]);
+        await Assert.That(tilted[24] - tilted[36]).IsGreaterThanOrEqualTo(4);
+    }
+
+    /// <summary>And it is a <em>surface</em> rather than a ramp in one axis: four corners that do not lie in
+    /// one plane come out warped, read over the ring's own triangulation.</summary>
+    [Test]
+    public async Task A_tilted_area_states_a_surface_and_not_a_gradient()
+    {
+        var spec = Hillside(new AreaMark(Pad, [32, 24, 30, 38]));
+        // The same x, two z rows: a shape stating one height per corner cannot answer the same at both.
+        await Assert.That(Across(spec, 25)[30]).IsNotEqualTo(Across(spec, 35)[30]);
+    }
+
+    /// <summary><b>A bevel is what stops a pad ending on a wall.</b> The seam read is the measure: a pad
+    /// stated to its own outline meets the hillside on a step, and the same pad graded over its edge meets it
+    /// on a ramp — the marks unchanged and overlapping exactly as much.</summary>
+    [Test]
+    public async Task A_bevel_grades_a_pads_edge_into_the_ground_it_is_cut_into()
+    {
+        int Worst(double bevel)
+        {
+            var reading = ReliefSolver.ReadMarks(
+                Board(60), Hillside(new AreaMark(Pad, [32, 24, 24, 32], bevel) { Id = "shelf" }));
+            return reading.Seams.Where(seam => seam.A == "hill" || seam.B == "hill")
+                          .Select(seam => seam.Step).DefaultIfEmpty(0).Max();
+        }
+
+        await Assert.That(Worst(0)).IsGreaterThan(1);
+        await Assert.That(Worst(5)).IsEqualTo(0);
+    }
+
+    /// <summary>A pad with no bevel is still stated to its outline, which is what a floor wants — the edge is
+    /// the statement, and a room that graded into the ground would be a room on a slope.</summary>
+    [Test]
+    public async Task An_area_with_no_bevel_states_every_cell_of_itself_outright()
+    {
+        var pins = new AreaMark(Pad, [28]).Pins(Board(60)).ToList();
+        await Assert.That(pins.Count).IsGreaterThan(0);
+        await Assert.That(pins.All(pin => pin.Weight >= 1)).IsTrue();
+
+        var graded = new AreaMark(Pad, [28], 5).Pins(Board(60)).ToList();
+        await Assert.That(graded.Any(pin => pin.Weight < 1)).IsTrue();
+        await Assert.That(graded.Any(pin => pin.Weight >= 1)).IsTrue();     // the middle is still flat
+    }
 }

@@ -108,7 +108,7 @@ public sealed class ReliefSolverTests
         var field = ReliefSolver.Solve(footprint, new ReliefSpec
         {
             Base = 4,
-            Marks = [new AreaMark(bench, 12), new AreaMark(bench, 7)],
+            Marks = [new AreaMark(bench, [12]), new AreaMark(bench, [7])],
         });
 
         await Assert.That(field.At(15, 15)).IsEqualTo(7);

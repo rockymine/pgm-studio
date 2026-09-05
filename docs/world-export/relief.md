@@ -61,7 +61,7 @@ Five kinds cover the vocabulary, and the first four differ only in the shape of 
 |---|---|---|
 | `point` | a disc of a given radius (`r`) | a summit, a hollow, a spot height |
 | `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex and a `tread` of it held flat (§2.1) | a ridge, a valley floor, a shoulder falling as it runs, a road switching back down a hill |
-| `area` | every cell inside a ring | a bench, a mesa top, a sunken floor — a genuinely flat surface |
+| `area` | every cell inside a ring, at one height or one per vertex, with an optional graded `bevel` inside its edge (§2.2) | a bench, a mesa top, a sunken floor, a shelf cut into a hillside |
 | `rim` | the footprint's own outer rings | where the land meets the void |
 | `scarp` | a band either side of a drawn line, at two heights, with the face between them left free | a break of slope — the mark that decides where players can go (§5) |
 
@@ -164,9 +164,36 @@ can grade because the bands overlap by 3.6 before the batter starts; redrawn at 
 9.5, and a tread of 2 leaves 5.5 blocks of run for a 7-block fall — 52° left alone, or bench-and-bank at
 `batter: 65`, and a rim section that walks end to end at worst step 2 where it was a barrier.
 
-**An `area` mark states no radius, and its corners are what its ring is.** A point spreads over `r` and a line
-over `r` either side; an area pins every cell inside a drawn ring at one height and nothing softens the step
-where the ring stops, so a rectangular ring leaves a right angle in the ground at each of its four corners.
+### 2.2 A shelf that tilts, and an edge that grades
+
+**An area states one height for its whole ring, or one per vertex.** One is a level pad, which is what a floor
+wants. One per vertex is a *tilted* one, read over the ring's own ear-clipped triangulation — the same
+barycentric surface an erected shape's `anchor_heights` already describe — so a bench falls along its length
+the way a line's does, and four corners that do not lie in a plane come out warped rather than averaged. It is
+a **surface**, not a gradient: two cells at the same x and different z answer differently.
+
+This is what a shelf cut into a hillside needs, and until it existed the shelf came out dead flat whatever it
+was drawn as. The reason was one step from the end: a held shape becomes an `AreaMark`, and `StatedTop` read
+the shape's own height function **at the ring's centroid** because a mark could carry only a number. The
+surface was computed and thrown away. `StatedTops` now reads it at every vertex of the ring and hands the whole
+thing over; a shape stating a single height still yields a single height, because a flat pad wants a flat mark
+and not a triangulation of the same number.
+
+**`bevel` is how far inside the ring that height gives way to the ground around it.** Unset, the pad is stated
+to its own outline and meets whatever is beside it on a step — right for a floor, wrong for ground, and the
+reason a rectangular ring used to leave a right angle in the ground at each of its four corners. Stated, the
+cells within that far of the ring carry the pad's height at less than full weight (§2), so its edge grades into
+what an earlier mark put there. It is the **`tread` of an area**, and it is stated the other way round for a
+reason a name has to carry: a line says how much of its band is flat and an area how much of its edge is not,
+because a line is measured out from its middle and an area in from its rim. A held shape takes its `skirt` as
+its bevel, since a shape stating a skirt has already said its edge is an apron rather than a face.
+
+Measured on a hillside falling 40 to 20, with a pad drawn across it: level and unbevelled, the seam read names
+`hill | shelf` at **6 blocks**; tilted, 2; tilted with a bevel of 5, **no seam at all** — the marks unchanged
+and overlapping exactly as much.
+
+**A point spreads over `r` and a line
+over `r` either side; an area pins every cell inside its drawn ring.
 What decides whether that reads as a bench or as a scar is the group's **reach**: the field decays toward the
 base over that many blocks outside the mark, and at `reach: 0` the marks decide the whole surface between them
 with no decay at all, so each mark meets its neighbour on a wall. That is the right answer for a quarry cut in

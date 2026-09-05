@@ -625,7 +625,9 @@ public static class SketchRasterizer
                     case Participation.Hold:
                         owned.AddRange(covered);
                         var ring = RingOf(shape);
-                        if (ring.Count >= 3) held.Add(new AreaMark([.. ring], StatedTop(shape, ring)));
+                        if (ring.Count >= 3)
+                            held.Add(new AreaMark([.. ring], StatedTops(shape, ring), BevelOf(shape))
+                                     { Id = shape.Id ?? "" });
                         break;
                     default:
                         owned.AddRange(covered);
@@ -656,7 +658,7 @@ public static class SketchRasterizer
                 // Either way the mark is rigid: what it pins is a floor, and the sculpting passes may not
                 // tilt a floor.
                 if (shape.HeightAuthored == true)
-                    held.Add(new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true, Id = shape.Id ?? "" });
+                    held.Add(new AreaMark([.. ring], [StatedTop(shape, ring)]) { Rigid = true, Id = shape.Id ?? "" });
                 else seated.Add((shape, covered));
             }
 
@@ -681,8 +683,8 @@ public static class SketchRasterizer
                 {
                     var ring = RingOf(shape);
                     held.Add(SeatOf(shape, covered, field, footprint) is { } seat
-                        ? new AreaMark([.. ring], seat) { Rigid = true, Id = shape.Id ?? "" }
-                        : new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true, Id = shape.Id ?? "" });
+                        ? new AreaMark([.. ring], [seat]) { Rigid = true, Id = shape.Id ?? "" }
+                        : new AreaMark([.. ring], [StatedTop(shape, ring)]) { Rigid = true, Id = shape.Id ?? "" });
                 }
                 var reseated = stated.ToSpec(mirrorMode, cx, cz);
                 spec = reseated with { Marks = [.. reseated.Marks, .. held] };
@@ -1474,6 +1476,25 @@ public static class SketchRasterizer
     // it drew itself. One level, sampled at the ring's centre: holding is what a floor does, and a floor that
     // followed a per-vertex tilt would be the slope it was declared to replace. An EXCLUDED shape keeps its
     // own column instead, tilt and all, because it never enters the solve at all.
+    /// <summary>The height the shape states at <b>each vertex of its ring</b>, which is what a held shape's
+    /// mark is pinned to. A shape whose <c>anchor_heights</c> describe a surface keeps that surface: reading
+    /// it once at the ring's centre, which is all a scalar mark could carry, laid every bench level whatever
+    /// it was drawn as. One value where the shape states one height, since a flat pad wants a flat mark and
+    /// not a triangulation of the same number.</summary>
+    private static double[] StatedTops(SketchShape s, List<double[]> ring)
+    {
+        if (HeightFn(s) is var height && s.AnchorHeights is not { Length: > 1 })
+            return [StatedTop(s, ring)];
+        var floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));
+        return [.. ring.Select(point =>
+            floor + Math.Max(1, Math.Round(height(point[0], point[1]), MidpointRounding.AwayFromZero)))];
+    }
+
+    /// <summary>How far inside its ring a held shape grades into the ground around it. A shape stating a
+    /// <c>skirt</c> already says its edge is an apron rather than a face, and that is the same statement read
+    /// from the inside, so the one number serves both rather than the author writing it twice.</summary>
+    private static double BevelOf(SketchShape s) => Math.Max(0, s.Skirt ?? 0);
+
     private static int StatedTop(SketchShape s, List<double[]> ring)
     {
         var floor = Math.Max(0, (int)Math.Round(s.Floor ?? 0));

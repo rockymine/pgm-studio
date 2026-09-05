@@ -217,6 +217,19 @@ what is gathered here is the parked and dormant slices of the same surface.
   the two halves **9 blocks** apart. Belongs with S46, which lands both passes; the fold itself needs no new
   machinery — `ReliefSolver.FoldBlocks` is the shape of it.
 
+- [ ] **TL30 — A house style does not always equal itself after a JSON round trip.** `HouseStyleTests`'
+  round-trip assertions fail about one run in six, and which one fails varies:
+  `A_deck_survives_the_snapshot` and `A_style_the_writer_produced_reads_back` have each been seen. Both assert
+  `read == style` after `HouseStyleJson.Serialize`/`Deserialize`. A failure that moves between tests at a
+  steady rate and never inside one run is a **hash-order** dependence, not a serializer bug: .NET randomizes
+  the string hash seed per process, so an equality or a member walk that reaches a `Dictionary`/`HashSet`
+  enumeration order answers differently from run to run. Find the collection compared by enumeration rather
+  than by content — a record whose generated `Equals` walks a hashed member is the shape — and compare it by
+  content. `HouseStyleJson`, `HouseStyle` and the material records it nests.
+
+  *Reproduce: `dotnet run --no-build -c Release --project tests/PgmStudio.Minecraft.Tests` six times and count.
+  Present on `claude/relief-stacking-80ngwm` and on its checkpoint, so it predates that branch.*
+
 - [ ] **WE98 — A water prop's band stops at its radius, not at the bank.** A `water` prop fills its own
   stated band, so where the channel is narrower than the ground it runs through the top course faces air on
   both sides and the river reads as a trench with a stripe in it. The bank is a fact about the terrain and the

@@ -66,7 +66,7 @@ public sealed class ReliefGroupTests
         // has an outline. What separates them is whether the *height* travels: solved at two very different
         // heights, a held compound moves the land around it and an excluded one does not move it at all.
         ReliefGroup Group(Participation how, double height) => new(
-            [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, how, height)], Spec());
+            [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, how, [height])], Spec());
 
         int OutsideDifferences(Participation how)
         {
@@ -88,7 +88,7 @@ public sealed class ReliefGroupTests
         // somewhere, whichever way it is bound. What Hold buys is not a smaller step but a surrounding
         // surface that was solved knowing the pad is there.
         var held = new ReliefGroup(
-            [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, Participation.Hold, 14)],
+            [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, Participation.Hold, [14])],
             Spec()).Build();
 
         await Assert.That(held.Footprint.Land()
@@ -100,7 +100,7 @@ public sealed class ReliefGroupTests
     public async Task An_excluded_shape_is_not_solved_over()
     {
         var group = new ReliefGroup(
-            [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, Participation.Exclude, 12)],
+            [new ReliefShape(North), new ReliefShape(South), new ReliefShape(Compound, Participation.Exclude, [12])],
             Spec());
 
         var solved = group.Solve();

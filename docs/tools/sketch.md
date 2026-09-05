@@ -726,7 +726,8 @@ all six, and solves to a surface running 7 to 16:
       { "id": "r1", "kind": "point", "at": [-30, -10], "h": 15, "r": 5 },
       { "id": "r2", "kind": "line",  "points": [[-36, 6], [-20, 10], [-6, 6]],
         "h": [12, 14, 11], "r": 1.5 },
-      { "id": "r3", "kind": "area",  "ring": [[-38, -18], [-24, -18], [-24, -6], [-38, -6]], "h": 7 },
+      { "id": "r3", "kind": "area",  "ring": [[-38, -18], [-24, -18], [-24, -6], [-38, -6]],
+        "h": [9, 9, 6, 6], "bevel": 3 },
       { "id": "r4", "kind": "scarp", "points": [[2, -16], [2, 16]],
         "high": 14, "low": 8, "face": 2, "band": 5 },
       { "id": "r5", "kind": "rim",   "h": 9, "depth": 1 }

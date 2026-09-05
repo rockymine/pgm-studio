@@ -122,6 +122,13 @@ public sealed class ReliefMarkJson
     /// needs.</summary>
     [JsonPropertyName("batter")] public double Batter { get; set; }
 
+    /// <summary>How far inside an <c>area</c> mark's ring its height gives way to the ground around it, in
+    /// cells. Unset, the pad is stated to its own outline and meets whatever is beside it on a step — right
+    /// for a floor and wrong for ground. It is the <c>tread</c> of an area: a line says how much of its band
+    /// is flat and an area how much of its edge is not, because a line is measured out from the middle and an
+    /// area in from its rim.</summary>
+    [JsonPropertyName("bevel")]  public double Bevel { get; set; }
+
     /// <summary>A line's or scarp's course, as <c>[x, z]</c> pairs.</summary>
     [JsonPropertyName("points")] public double[][]? Points { get; set; }
 
@@ -161,7 +168,8 @@ public sealed class ReliefMarkJson
             new PointMark(at[0], at[1], FirstHeight, Radius) { Id = Named },
         MarkKinds.Line when Points is { Length: >= 2 } =>
             new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN, Batter) { Id = Named },
-        MarkKinds.Area when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight) { Id = Named },
+        MarkKinds.Area when Ring is { Length: >= 3 } ring =>
+            new AreaMark(ring, Heights ?? [0], Bevel) { Id = Named },
         MarkKinds.Rim => new RimMark(FirstHeight, Depth) { Id = Named },
         MarkKinds.Scarp when Points is { Length: >= 2 } points =>
             new ScarpMark(points, High, Low, Face, Band) { Id = Named },

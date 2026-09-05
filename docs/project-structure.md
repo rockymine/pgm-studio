@@ -108,11 +108,11 @@ is `Compose`". The prose around it cites the shape rather than the totals, for t
 | `Data` | 16 | 2,647 | `Map/` 5 · `Features/` 4 · `Theme/` 4 · `Schema/` 2 · `Plan/` 1 |
 | `Domain` | 26 | 2,832 | flat |
 | `Export` | 14 | 3,250 | flat |
-| `Geom` | 52 | 6,443 | `Algorithms/` 22 · `Render/` 6 · `Relief/` 5 · 19 at root |
+| `Geom` | 52 | 6,513 | `Algorithms/` 22 · `Render/` 6 · `Relief/` 5 · 19 at root |
 | `Import` | 4 | 471 | flat |
 | `Migrations` | 32 | 1,984 | `Migrations/` 31 · 1 at root |
 | `Minecraft` | 94 | 19,480 | `Stamping/` 16 · `Render/` 14 · `Anvil/` 13 · `Palette/` 13 · `Painting/` 12 · `Dressing/` 10 · `Houses/` 10 · `Views/` 4 · `Suggest/` 1 · 1 at root |
-| `Pgm` | 154 | 26,710 | `Compose/` 42 (nested) · `Authoring/` 23 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Plan/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
+| `Pgm` | 154 | 26,739 | `Compose/` 42 (nested) · `Authoring/` 23 · `Evaluate/` 21 (nested) · `Editing/` 11 · `Shapes/` 10 · `Sketch/` 10 · `Derive/` 9 · `Plan/` 9 · `Render/` 5 · `Detect/` 1 · 13 at root |
 | `Vocabulary` | 15 | 1,302 | flat |
 <!-- /census -->
 
