@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Vocabulary;
@@ -175,6 +175,26 @@ public static class SketchLayoutCheck
                     + $"one span per column — the world keeps '{kept}' and '{lost}' is not in it. Move '{kept}' "
                     + "to its own layer, or clamp walls around the lower shape rather than drawing over it",
                     Severity.Decline, Subjects: [lost, kept]));
+
+            // SK25 — the band is one ring and a ring is filled even-odd, so a stroke that laps itself
+            // cancels the lap and builds a hole where the two windings cross.
+            foreach (var (layerId, shape, x, z) in SketchRasterizer.StrokesLappingThemselves(layout))
+                findings.Add(new Finding(SketchRules.StrokeLapsItself,
+                    $"the band of '{shape}' on layer '{layerId}' crosses itself near ({x}, {z}) — a stroke is "
+                    + "offset either side of its centreline into one outline and an outline is filled "
+                    + "even-odd, so the lap cancels and builds as void. Draw the stroke as several, one per "
+                    + "part-turn, or widen the turn until the band clears itself",
+                    Severity.Complaint, Subjects: [shape]));
+
+            // SK26 — nothing says a shape is a flight, so the tilt is what is read: a climb whose end has
+            // nowhere to arrive is walkable at every tread and is not a way up anything.
+            foreach (var (layerId, shape, end, x, z, top, drop) in SketchRasterizer.FlightsEndingAtADrop(layout))
+                findings.Add(new Finding(SketchRules.FlightEndsAtADrop,
+                    $"'{shape}' on layer '{layerId}' climbs, and its {end} end arrives nowhere — from ({x}, "
+                    + $"{z}) at course {top} the ground falls {drop} within four cells and never comes back "
+                    + "within one. Put a landing there: a few cells of ground within one course of the last "
+                    + "tread, in the direction the flight runs",
+                    Severity.Complaint, Subjects: [shape]));
 
             // SK10 — the stack is what puts air between two slabs, so a pair whose spans meet builds as one mass.
             foreach (var (lower, upper, courses, x, z, cells) in SketchRasterizer.OverlappingLayerSpans(layout))

@@ -1,4 +1,4 @@
-using PgmStudio.Domain;
+﻿using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Pgm.Derive;
 using PgmStudio.Vocabulary;
@@ -883,14 +883,13 @@ public static class PlanValidator
         }
     }
 
-    /// <summary>The largest building a role piece may raise, in blocks square (the author's number). It is a
-    /// hall a player crosses; past it the room is a field with a roof.</summary>
-    public const int FootprintCap = 20;
+    /// <summary>The caps a role piece is read against, from the project that resolves the frame. Stated once
+    /// there: this lint reads a plan and <c>WX13</c> reads the room the intent actually builds, and two
+    /// numbers for one cap is two rules.</summary>
+    public const int FootprintCap = RoomFrames.FootprintCap;
 
-    /// <summary>The largest protection region a role piece may be, in blocks (the author's numbers), across
-    /// its short axis and along its long one. A region is the ground and the immunity together, so the long
-    /// axis affords a room its approach without handing a team a field it cannot be fought in.</summary>
-    public const int RegionCapAcross = 20, RegionCapAlong = 30;
+    /// <inheritdoc cref="FootprintCap"/>
+    public const int RegionCapAcross = RoomFrames.RegionCapAcross, RegionCapAlong = RoomFrames.RegionCapAlong;
 
     // ST9 — the building a role piece raises is at most 20×20 blocks. The footprint is what a player walks
     // into, so the cap is on the rectangle the shell actually stands on: the one the placement states, or the

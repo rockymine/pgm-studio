@@ -424,15 +424,21 @@ are already non-stone columns, so "consult the stamps" is just "read the finishe
    what the band above left. Output: an ordered list of `(yRange, bucket)` per column. One pure function,
    unit-tested per column against synthetic profiles.
 
-   **A column starts at its own base, and for ground that base is nought.** `ColumnProfile.Base` is the lowest
-   course a column's bands run from. Terrain runs from the bedrock floor, so the bedrock band is stated and the
-   fill reaches down to it. A made thing's column does not: a hull flying at y24 has no bedrock course and no
-   fill under it, and its span is what it is made of — the column beneath belongs to somebody else. So where a
-   base is stated the resolver emits no bedrock band and lets fill stop there, and `TerrainPainter.Paint`
-   takes the per-layer floors of every `made` layer from `BuiltTerrain.FloorByLayer` for exactly that. Without
-   it a made thing's fill band claims the whole column beneath it and only the stone-only invariant stops the
-   damage — which makes the *order* of the layer list load-bearing, a plinth painted after the colossus
-   standing on it coming out brass.
+   **A column starts at its own base, and a layer's base is its own floor.** `ColumnProfile.Base` is the
+   lowest course a column's bands run from, and `TerrainPainter.Paint` takes it for **every** layer from
+   `BuiltTerrain.FloorByLayer`. The bottom of a board states floor nought wherever it holds ground, so the
+   bedrock band is stated there and fill reaches down to it, exactly as before; a storey standing at y20, a
+   deck hung over a gorge and a hull flying at y24 each resolve their bands over their own span instead, and
+   where a base is stated the resolver emits no bedrock band and lets fill stop there.
+
+   **A layer's limit is its own shapes, and that is a different fact from what a block is made of.** Reading
+   the base only off `made` layers left every plain storey resolving from the bedrock course, so its fill band
+   claimed the twenty courses beneath it and the only thing between the two was the stone-only invariant —
+   which is about whether a block has been finished, not about whether this layer may address it. A ground
+   theme filling in plain stone therefore handed its whole column to whatever was drawn above: `y 42..39 Iron
+   Block` the viaduct rail, `y 29..27 Stone Bricks` the street lid, `y 26..1 Iron Block` — twenty-six courses
+   of city painted as rail, on a board where nothing refused anything. The invariant still does its job at a
+   seam; it is no longer the only thing doing it.
 
 4. **Materials — the painter (the pattern seam).** For each band, the bucket's `TerrainMaterial` resolves the
    actual block per `BucketContext` (`x/y/z`, bucket, depth-from-top, team nibble, perimeter arc) and writes it.

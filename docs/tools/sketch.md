@@ -175,23 +175,31 @@ ends. An array that is not the length of its own point list is `SK22` too, for t
 frame: the reading is one height to one point, so a mismatch cannot be built and the shape falls back to its
 `base_height`.
 
-**That is what makes a tilted quad a stair, and the anchors have to be phased for it.** The surface is
-sampled at each cell's **centre** and the thickness is `Math.Round` of what it reads — round-half-to-even, so
-a sample landing exactly on `.5` goes to the nearer even course. A quad stated to rise one course a cell
-therefore samples every cell on a half-integer and the courses come out as a beat of noughts and twos, which
-reads as a stair with a two-block rise in it and costs a placed block to climb: `anchor_heights [8, 20]` over
-twelve cells builds `7 9 9 11 11 13 13 15 15 17 17 18`.
+**That is what makes a tilted quad a stair.** The surface is sampled at each cell's **centre** and the
+thickness is `Math.Round` of what it reads, ties away from zero — so a quad rising one course a cell builds a
+stair of single courses, and a shallower one climbs a course at a time too. `anchor_heights [8, 20]` over
+twelve cells builds `8 9 10 11 12 13 14 15 16 17 18 18`; a 9-wide shape stated 1 on one side and 9 on the
+other builds nine treads of one. A flight is one shape at any gradient.
 
-**What fixes it is half a step on the anchors, and it costs one number.** State the line half a step below
-the run's first cell — `[8.52, 20.52]` for the same twelve — and every sample lands on a whole course:
-`8 9 10 11 12 13 14 15 16 17 18 19`, twelve treads of one. In general, for a flight of *n* cells running from
-top block *a* to top block *b*, the step is `(b − a) / (n − 1)` and the low anchor is `a + 1 − step/2`, plus a
-small positive bias so a tie resolves upward rather than to even. A flight is then one shape at any gradient,
-and the shallower ones climb a course at a time too — the gradient decides how often a one-block step falls,
-never how big it is, because a voxel column has no step smaller than one block.
+**Ties away from zero rather than to even, and gradient 1 is why.** A quad rising exactly one course a cell
+reads every cell centre on a half — the default round-half-to-even would send those alternately down and up
+and build `7 9 9 11 11 13`, a flight with a two-block rise in every other tread that no player walks. It is
+the only whole ramp that ties on every cell, measured over every rise from 3 to 16 cells of run, and it is
+the one an author states to mean forty-five degrees. The relief's held-shape read has always rounded this way
+(`StatedTop`) and says so; the two must not differ by a course over one sample.
 
-`pgm-studio-mapgen/specs/geometry-showcase/geometry.py` is that arithmetic written out, with the same
-reading run forward so a landing's height is stated from what the flight above it will build.
+**What a voxel column cannot do is a step smaller than one block.** The gradient decides how often a
+one-block step falls, never how big it is: a 1:2 ramp is the same sequence of one-block steps as a 1:1 stair
+with a flat cell between each pair. `slopes` reads a one-block rise as `. walked` and a two-block rise as
+`: scramble`, so the whole design space of a climb is where its steps fall.
+
+**And a flight has to arrive somewhere.** Nothing in the document says a shape is a flight, so nothing used to
+say where one ends: a quad that tops out level with the ground beside it for a single cell and then falls
+twenty-four is walkable at every tread and is not a way up anything. `SK26` reads the tilt and walks off both
+ends in the shape's own direction — a stroke's by its centreline's tangent, a polygon's by the steepest climb
+into each lip tread — and complains where the first cell off is not within one course. Give the end a landing:
+a few cells of ground at the last tread's own height, **in front of** the flight rather than beside it, since
+ground reachable only by turning at the lip is the plateau the flight was cut into.
 
 Four further fields matter once a group carries a relief. `height_mode` — `level`, `raise` or `sink` — makes
 a shape stand out of the solved field rather than be part of it: a mesa cut flat at an absolute height, a
@@ -214,12 +222,12 @@ at the ends. The ends are cut square, because a stroke in a map arrives somewher
 walls are the worked example: `wall-s` is four points, `radius 1`, `stroke_edge: solid`, and it draws as a
 curve.
 
-**A band that laps itself loses the lap.** The two offset edges are one ring and a ring is filled even-odd, so
-a centreline that winds back beside itself — a spiral, a hairpin tighter than the band is wide — cancels
-wherever the two windings cross, and the overlap comes back as void rather than as ground. What a coil is
-instead is one polyline per part-turn: two shapes contesting a column is the ordinary case, the taller add
-wins it, and the coil is continuous. `pgm-studio-mapgen`'s `geometry.spiral_arcs` is the worked example, and
-`maps/geometry-showcase` carries the spiral ramp it builds.
+**A band that laps itself loses the lap, and `SK25` says so.** The two offset edges are one ring and a ring is
+filled even-odd, so a centreline that winds back beside itself — a spiral, a hairpin tighter than the band is
+wide — cancels wherever the two windings cross, and the overlap comes back as void rather than as ground.
+What a coil is instead is one polyline per part-turn: two shapes contesting a column is the ordinary case, the
+taller add wins it, and the coil is continuous. `pgm-studio-mapgen`'s `geometry.spiral_arcs` is the worked
+example, and `maps/geometry-showcase` carries the spiral ramp it builds.
 
 The other curve is `controls` on a polygon or lasso ring — per-vertex Bézier handles, absolute coordinates,
 which is what a bend fits and what the *Reshaping ground the plan compiled* section below writes. The two are

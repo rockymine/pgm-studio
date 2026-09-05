@@ -1,4 +1,4 @@
-using PgmStudio.Vocabulary;
+﻿using PgmStudio.Vocabulary;
 namespace PgmStudio.Pgm.Sketch;
 
 /// <summary>The sketch document's own rule ids — what a layout is refused for, and what it is told about a
@@ -99,6 +99,23 @@ public static class SketchRules
     /// that was written by hand or by a tool that copied a record onto more than one group.</remarks>
     [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
     public const string GroupIdTwice = "SK12";
+
+    /// <summary>A polyline whose band crosses itself. The two offset edges are stored as one outline and an
+    /// outline is filled even-odd, so where a centreline winds back beside itself the two windings cancel and
+    /// the lap comes back as void: a spiral drawn as one stroke builds with a gap between every turn, and a
+    /// hairpin tighter than the band is wide builds with a hole in its elbow.</summary>
+    /// <remarks>Draw the stroke as several — one shape per part-turn, or one either side of the elbow, so no single band laps itself. Two shapes contesting a column is the ordinary case and the taller add wins it, so the pieces build as one continuous run. Widening the turn until the band clears itself is the other way, and states the same curve.</remarks>
+    [Rule(RuleCategory.Conflict, RuleConcern.Terrain)]
+    public const string StrokeLapsItself = "SK25";
+
+    /// <summary>A tilted shape whose climb ends at a drop. A flight is one shape at any gradient, so nothing
+    /// in the document says where it arrives — and a flight that tops out level with the ground beside it for
+    /// one cell and then falls is walkable by every measure taken of its treads and is not a way up anything.
+    /// Read at both ends, in the shape's own direction of slope: the high end wants somewhere to arrive and
+    /// the low end wants somewhere to step on from.</summary>
+    /// <remarks>Put a landing at the end that fails — ground within one course of the last tread, a few cells of it, in the direction the flight runs. A shape whose end abuts a plateau only across its side has not arrived: the cell in front of the last tread is still the drop the flight climbed.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Terrain)]
+    public const string FlightEndsAtADrop = "SK26";
 
     /// <summary>A mass of standable ground under open sky that no route reaches from the rest of the board.
     /// Ground under a roof is a room and says nothing; ground with sky over it and no way onto it is either a

@@ -7043,6 +7043,30 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   (`GET /map/{slug}/origin`). Spec: `docs/world-export/sketch-world-export.md`. (P9e, P9f, P9k)
 
 ## Sketch tool (M8) — draw shapes → islands → world geometry
+- **A flight arrives somewhere, and `SK26` says when it does not (`TS90`).** Nothing in a layout says a shape
+  is a flight — a stair, a ramp and a bank are all one polygon with a height per vertex — so nothing said where
+  one ends, and a quad that topped out level with the ground beside it for a single cell and then fell
+  twenty-four was walkable at every tread and was not a way up anything. The rule reads the tilt and walks off
+  both ends in the shape's own direction: a stroke's from its centreline's tangent, a polygon's from the
+  steepest climb into each lip tread, per tread rather than over the whole shape, so a curved ribbon is
+  followed round rather than across its chord. The first cell off the lip has to be within one course — ground
+  on the far side of a hole is not an arrival. Read across the whole stack, so a stair climbing to a rampart
+  walk on the layer above arrives on it.
+- **A stroke that laps itself is named rather than silently holed (`TS91`, `SK25`).** A band is offset either
+  side of its centreline into one outline and an outline is filled even-odd, so a spiral drawn as a single
+  polyline cancels wherever its windings cross and builds with a gap between every turn. The check tests the
+  ring the rasterizer itself offsets, so a band that clears itself says nothing, and the finding carries the
+  fix: one shape per part-turn, where two shapes contesting a column is the ordinary case and the taller wins.
+- **The height sampler ties away from zero, so a forty-five degree flight is one (`TS92`).** A quad rising
+  exactly one course a cell reads every cell centre on a half, and round-half-to-even sent them alternately
+  down and up: `anchor_heights [8, 20]` over twelve cells built `7 9 9 11 11 13`, a two-block rise in every
+  other tread. Measured over every whole ramp from 3 to 16 cells of run, gradient 1 was the only one that ties
+  on every cell — and it is the one an author states to mean forty-five degrees. The relief's held-shape read
+  already rounded this way and said the two must agree.
+- **`SK9` no longer declines a wall standing on ground (`TS93`).** The pair walk skipped subtracts, role shapes
+  and erected shapes and not override adds, so a shape whose floor sits at the ground's top raised a decline
+  saying the ground was gone — while an override add is laid after the ordinary pass and demonstrably keeps
+  it. One board raised 88, all false.
 - **A polyline grades its thickness along its own arc (`S56`).** A polyline took one `base_height` over its
   whole band, so a causeway was one thickness end to end and a ramp could not be drawn as the ramp it is —
   `opus5-undercroft`'s two causeways are `line` **relief marks** at `16/28/16` because of it, which puts a

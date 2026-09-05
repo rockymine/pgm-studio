@@ -169,6 +169,10 @@ public static class WorldBuilder
             resolvedWools.Add(w);   // monuments filled in below, once spawn cubes place them
         }
 
+        // What the build could not raise as authored, in build order. Declared here because the room loops
+        // below are the first to contribute: a region with no footprint stated IS the building it raises.
+        var built = new List<Finding>();
+
         // ── Spawn cubes + monuments; capture each monument's world air-cell coord ────────────────────
         // monLoc[(woolIndex, team)] = the air cell where that team places that wool.
         var monLoc = new Dictionary<(int Wool, string Team), Pt>();
@@ -178,6 +182,7 @@ public static class WorldBuilder
             var s = intent.Spawns[spawnIndex];
             var room = SpawnRoom(s, spawnStyle is not null);
             var frame = room.Frame;
+            if (OversizedRoom("spawn", s.Team, frame, s.Footprint is not null) is { } field) built.Add(field);
             var spawnGround = terrain.SurfaceFor(s.Layer);
             var fy = FrameFloor(frame, spawnGround, spawnStyle);
 
@@ -265,7 +270,7 @@ public static class WorldBuilder
         // What a goal could not be built as it was authored. Complaints, never refusals: the world is built
         // and the goal stands, in a material the author did not name or over the height players may build to,
         // and that is a thing the caller has to be told rather than a reason to stop.
-        var built = new List<Finding>();
+        // (declared before the room loops above, which contribute WX13.)
 
         // A wool monument's world position is the air cell the capturing team's spawn stamp produced, so an
         // authored one is replaced rather than honoured. The replacement is reported: a location three write
@@ -298,15 +303,15 @@ public static class WorldBuilder
         // The board's symmetry, read once and used twice: the painter folds every cell into the primary image
         // before a pattern samples it (TP21), and the dressing pass below fans each prop across the same orbit.
         var symmetry = DressingScope.SymmetryOf(layoutJson);
-        // A made thing is painted over its own span. Ground's bands run from the bedrock course whatever its
-        // floor, so only a prop layer hands its floors over; the painter takes what it is given and asks
-        // nothing about kinds.
-        var madeFloors = madeLayers
-            .Where(terrain.FloorByLayer.ContainsKey)
-            .ToDictionary(layer => layer, layer => terrain.FloorByLayer[layer]);
+        // EVERY layer is painted over its own span, made or not. A pass resolves its bands between a floor
+        // and a top, and handing it the bedrock course for a storey standing at y20 gives that storey's fill
+        // band the twenty courses beneath it — a lower layer's finished ground included. Nothing but the
+        // stone-only invariant stood between the two, and that invariant is about what a block IS rather than
+        // about which layer may address it: a ground theme filling in plain stone hands its whole column to
+        // whatever is drawn above. A layer's limit is its own shapes, so that is what it is given.
         TerrainPainter.Paint(world, terrain.SurfaceByLayer, TerrainThemeScope.ThemeAt(layoutJson),
                              TeamTerritory.DamageAt(terrain.SurfaceTop.Keys, intent), symmetry.Canonical,
-                             madeFloors);
+                             terrain.FloorByLayer);
 
         // ── Dressing — the terrain's life on top of its finish: flora over the soil, boulders bedded into
         // it, trees standing on it (docs/world-export/decoration.md). Runs after the painter because the one
@@ -769,6 +774,27 @@ public static class WorldBuilder
             if (room is not null) return room;
         }
         return new ResolvedRoom(DefaultFrame(s.Point.X, s.Point.Z, doorEdges, shellBound), []);
+    }
+
+    /// <summary>The complaint a resolved room raises when it is larger than a room (<c>WX13</c>), or null.
+    ///
+    /// <para>Asked here rather than of the plan, because here is where the frame exists. A region that states
+    /// no footprint of its own has one derived from it — the region inset a block on every side — so the
+    /// building does not overflow the region, it is the region, and an eighty-block spawn zone raises an
+    /// eighty-block hall with nothing anywhere saying so. The plan's own lint sees this only on a plan, and a
+    /// hand-authored intent never passes through one.</para></summary>
+    private static Finding? OversizedRoom(string kind, string owner, RoomFrame frame, bool footprintStated)
+    {
+        if (frame.Width <= RoomFrames.FootprintCap && frame.Depth <= RoomFrames.FootprintCap) return null;
+        var from = footprintStated ? "the footprint it states"
+                                   : "the protection region it stands in, which is what a room with no stated "
+                                     + "footprint is inset from";
+        return new Finding(RoomFrameRules.RoomIsAField,
+            $"the {kind} room for '{owner}' builds {frame.Width}×{frame.Depth} blocks — a room is at most "
+            + $"{RoomFrames.FootprintCap}×{RoomFrames.FootprintCap}, past which it is a field with a roof on "
+            + $"it. It takes that span from {from}. State a smaller `footprint` on the placement, or draw the "
+            + "region back",
+            Severity.Complaint, Subjects: [owner]);
     }
 
     /// <summary>The walls a spawn hall opens through: the ones the intent names, in the order it names them.

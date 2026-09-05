@@ -1,4 +1,4 @@
-using PgmStudio.Domain;
+﻿using PgmStudio.Domain;
 using PgmStudio.Geom;
 using PgmStudio.Geom.Algorithms;
 using PgmStudio.Geom.Relief;
@@ -17,6 +17,13 @@ namespace PgmStudio.Pgm.Sketch;
 /// <summary>Two shapes on one layer where the world holds only the upper: <paramref name="Lost"/> is the
 /// shape whose ground is not in the built board, <paramref name="Kept"/> the one that replaced it.</summary>
 public readonly record struct StackedShapes(string Layer, string Lost, string Kept);
+
+/// <summary>A polyline whose offset band crosses itself, with a cell the crossing covers.</summary>
+public readonly record struct LappedStroke(string Layer, string Shape, int X, int Z);
+
+/// <summary>A tilted shape whose climb ends at a drop: which end (<c>high</c> or <c>low</c>), the cell of the
+/// last tread the walk was taken from, the course it stands at and how far the ground beyond it falls.</summary>
+public readonly record struct FlightEnd(string Layer, string Shape, string End, int X, int Z, int Top, int Drop);
 
 /// <summary>Two layers driven into each other, the deepest they meet, and a column where they do.
 /// <see cref="Courses"/> is that depth in blocks and <see cref="Cells"/> counts every column the two contest,
@@ -794,6 +801,255 @@ public static class SketchRasterizer
         return found;
     }
 
+    /// <summary>Every polyline whose band laps itself. The band is offset either side of the centreline into
+    /// ONE ring and a ring is filled even-odd, so a winding that crosses its own neighbour cancels there and
+    /// the lap builds as void — which is why a spiral has to be drawn as several strokes rather than one.
+    /// Read off the ring the rasterizer itself offsets, so a band that clears itself says nothing.</summary>
+    public static List<LappedStroke> StrokesLappingThemselves(SketchLayout? state)
+    {
+        var found = new List<LappedStroke>();
+        foreach (var layer in ResolveLayers(state))
+            foreach (var shape in layer.Shapes)
+            {
+                if (shape.Type != ShapeKinds.Polyline || shape.Role is not null) continue;
+                var ring = RingOf(shape);
+                if (ring.Count < 6) continue;
+                if (SelfCrossing(ring) is not { } at) continue;
+                found.Add(new LappedStroke(layer.Id ?? "", shape.Id, (int)Math.Floor(at[0]), (int)Math.Floor(at[1])));
+            }
+        return found;
+    }
+
+    /// <summary>Where a closed ring first crosses itself, or null. Neighbouring edges share an endpoint and
+    /// are skipped; everything else is tested as a pair of segments.</summary>
+    private static double[]? SelfCrossing(List<double[]> ring)
+    {
+        var n = ring.Count;
+        for (var i = 0; i < n; i++)
+        {
+            var (a, b) = (ring[i], ring[(i + 1) % n]);
+            for (var j = i + 2; j < n; j++)
+            {
+                if (i == 0 && j == n - 1) continue;                 // the closing edge touches the first
+                var (c, d) = (ring[j], ring[(j + 1) % n]);
+                if (Crosses(a, b, c, d) is { } hit) return hit;
+            }
+        }
+        return null;
+    }
+
+    private static double[]? Crosses(double[] a, double[] b, double[] c, double[] d)
+    {
+        double rx = b[0] - a[0], rz = b[1] - a[1], sx = d[0] - c[0], sz = d[1] - c[1];
+        var denominator = rx * sz - rz * sx;
+        if (Math.Abs(denominator) < 1e-12) return null;             // parallel, or both degenerate
+        var t = ((c[0] - a[0]) * sz - (c[1] - a[1]) * sx) / denominator;
+        var u = ((c[0] - a[0]) * rz - (c[1] - a[1]) * rx) / denominator;
+        // Strictly inside both segments: a ring's own vertices touch by construction and are not a crossing.
+        if (t <= 1e-9 || t >= 1 - 1e-9 || u <= 1e-9 || u >= 1 - 1e-9) return null;
+        return [a[0] + t * rx, a[1] + t * rz];
+    }
+
+    /// <summary>How far the walk off a lip looks before giving up. It only ever needs to step over cells of
+    /// the flight itself — what it tests is the FIRST cell that is not one, because a cell a player falls
+    /// into is not made good by ground on the far side of it.</summary>
+    private const int ArrivalReach = 6;
+
+    /// <summary>Every tilted shape whose climb ends at a drop, at either end.
+    ///
+    /// <para>Nothing in the document says a shape is a flight — a stair, a ramp and a bank are all one polygon
+    /// with a height per vertex — so what is read here is the tilt itself: a shape whose built cells are not
+    /// all at one course has a high end and a low end, and the line between their two centroids is the
+    /// direction it runs. From every cell of an end, the walk steps that way up to
+    /// <see cref="ArrivalReach"/> cells and asks for ground within one course of the tread. An end where NO
+    /// cell finds any is a flight that arrives nowhere: level with the ground beside it for one cell, and then
+    /// the drop it just climbed.</para>
+    ///
+    /// <para>Read against the layer's own merged tops rather than the shape's raster, because what a flight
+    /// arrives on is whatever the layer holds there — the plateau it is cut into, the landing drawn beside it,
+    /// or nothing.</para></summary>
+    public static List<FlightEnd> FlightsEndingAtADrop(SketchLayout? state)
+    {
+        var found = new List<FlightEnd>();
+        // Read across the whole stack, not one layer. What a flight arrives on is whatever the board holds
+        // there at its own course — a rampart walk on the layer above the stair that climbs to it, a gallery
+        // floor under the deck it rises through — and a per-layer reading calls every one of those a drop.
+        var tops = TopsOfEveryLayer(state);
+        if (tops.Count == 0) return found;
+        foreach (var layer in ResolveLayers(state))
+        {
+            // A shape's raster is in its layer's own frame and the stack above is in the world's, so the
+            // flight is lifted onto the board before the two are compared.
+            var shift = (int)Math.Round(layer.BaseY);
+            foreach (var shape in layer.Shapes)
+            {
+                if (shape.Role is not null || shape.Operation == "subtract" || IsErected(shape)) continue;
+                if (shape.AnchorHeights is not { Length: > 1 } anchors) continue;
+                if (anchors.Max() - anchors.Min() < 2) continue;         // not a climb worth the name
+
+                var cells = RasterShape(shape)
+                    .Select(c => (c.X, c.Z, Top: c.Top + shift, c.Floor)).ToList();
+                if (cells.Count < 4) continue;
+                var (low, high) = (cells.Min(c => c.Top), cells.Max(c => c.Top));
+                if (high - low < 2) continue;
+
+                var mine = cells.ToDictionary(c => (c.X, c.Z), c => c.Top);
+                // A stroke says where it runs, so it is not inferred. Its ends are the two ends of its own
+                // centreline and the direction at each is that line's tangent — which a band's cells cannot
+                // give: a ribbon is level across its width and, on a coil, almost level along it too, so the
+                // steepest neighbour is noise and the walk leaves the ramp sideways.
+                var ends = EndsOfStroke(shape);
+                foreach (var (end, rising) in new[] { ("high", true), ("low", false) })
+                {
+                    if (ends is { } stroke)
+                    {
+                        var (at, along) = rising ? stroke.High : stroke.Low;
+                        var lipCells = cells
+                            .Where(c => Math.Abs(c.X + 0.5 - at.X) <= 2 && Math.Abs(c.Z + 0.5 - at.Z) <= 2)
+                            .Select(c => (Tread: c, Step: along)).ToList();
+                        if (lipCells.Count == 0) continue;
+                        if (Arrival(lipCells, mine, tops) is { } strokeMiss)
+                            found.Add(new FlightEnd(layer.Id ?? "", shape.Id, end,
+                                                    strokeMiss.X, strokeMiss.Z, strokeMiss.Top, strokeMiss.Drop));
+                        continue;
+                    }
+                    // The lip of an end: the treads at its extreme course that have no more flight in front
+                    // of them. A tread with another of its own shape ahead has not ended anywhere, and
+                    // walking from one lands on the flight rather than on what the flight arrives at.
+                    //
+                    // Where "ahead" points is read PER TREAD, from the shape's own surface: the direction a
+                    // player was walking as they reached that cell is the steepest climb into it from a
+                    // neighbour of the same shape. A curved ribbon has no single bearing — the line between
+                    // its two ends runs across the chord rather than along the ramp — so a global direction
+                    // walks a spiral off its own side and calls the ground beside it a drop.
+                    var edge = cells.Where(c => rising ? c.Top >= high - 1 : c.Top <= low + 1);
+                    var lip = new List<((int X, int Z, int Top, int Floor) Tread, (int X, int Z) Step)>();
+                    foreach (var tread in edge)
+                        if (Travel(tread, mine, rising) is { } step
+                            && !mine.ContainsKey((tread.X + step.X, tread.Z + step.Z)))
+                            lip.Add((tread, step));
+                    if (lip.Count == 0) continue;
+                    if (Arrival(lip, mine, tops) is { } miss)
+                        found.Add(new FlightEnd(layer.Id ?? "", shape.Id, end,
+                                                miss.X, miss.Z, miss.Top, miss.Drop));
+                }
+            }
+        }
+        return found;
+    }
+
+    /// <summary>The lip tread whose walk found the deepest drop, or null where any of them arrives on ground
+    /// within one course. One answer per end: a lip with a way off it somewhere is a flight that arrives, and
+    /// only a lip with none at all is the finding — a flight is not obliged to be steppable off along its
+    /// whole width, only to have somewhere a player who walked up it can stand.</summary>
+    private static (int X, int Z, int Top, int Drop)? Arrival(
+        List<((int X, int Z, int Top, int Floor) Tread, (int X, int Z) Step)> lip,
+        Dictionary<(int, int), int> own, Dictionary<(int, int), List<int>> tops)
+    {
+        (int X, int Z, int Top, int Drop)? worst = null;
+        foreach (var (tread, step) in lip)
+        {
+            var reached = false;
+            var fall = 0;
+            for (var k = 1; k <= ArrivalReach; k++)
+            {
+                var cell = (tread.X + step.X * k, tread.Z + step.Z * k);
+                if (own.ContainsKey(cell)) continue;                      // a cell of the flight itself
+                var here = tops.GetValueOrDefault(cell) ?? [0];
+                reached = here.Any(there => Math.Abs(there - tread.Top) <= 1);
+                if (!reached) fall = tread.Top - here.Max();
+                break;                                                    // the first cell off is the answer
+            }
+            if (reached) return null;                                     // this end has somewhere to go
+            if (worst is null || fall > worst.Value.Drop) worst = (tread.X, tread.Z, tread.Top, fall);
+        }
+        return worst;
+    }
+
+    /// <summary>Where a stroke's two ends are and which way it runs at each — the centreline's own endpoints
+    /// and tangents, taken off the same spline the band was offset from, so the walk follows the ramp rather
+    /// than the raster. Null for anything that is not a graded polyline.</summary>
+    private static (((double X, double Z) At, (int X, int Z) Along) High,
+                    ((double X, double Z) At, (int X, int Z) Along) Low)? EndsOfStroke(SketchShape s)
+    {
+        if (s.Type != ShapeKinds.Polyline || s.Vertices is not { Length: >= 2 } drawn) return null;
+        if (s.AnchorHeights is not { } anchors || anchors.Length != drawn.Length) return null;
+        var line = Centerline.Of([.. drawn.Select(v => new[] { v[0], v[1] })]);
+        if (line.Count < 2) return null;
+
+        var last = line.Count - 1;
+        var startsHigh = anchors[0] > anchors[^1];
+        // Outward at each end: away from the point beside it, so the walk continues off the stroke.
+        var atStart = (line[0][0], line[0][1]);
+        var atEnd   = (line[last][0], line[last][1]);
+        var outStart = Compass(line[0][0] - line[1][0], line[0][1] - line[1][1]);
+        var outEnd   = Compass(line[last][0] - line[last - 1][0], line[last][1] - line[last - 1][1]);
+        if (outStart is not { } fromStart || outEnd is not { } fromEnd) return null;
+        return startsHigh ? ((atStart, fromStart), (atEnd, fromEnd))
+                          : ((atEnd, fromEnd), (atStart, fromStart));
+    }
+
+    /// <summary>A vector as one of the eight steps a cell walk can take.</summary>
+    private static (int X, int Z)? Compass(double dx, double dz)
+    {
+        var length = Math.Sqrt(dx * dx + dz * dz);
+        if (length < 1e-6) return null;
+        var step = (Math.Abs(dx) / length < 0.383 ? 0 : Math.Sign(dx),
+                    Math.Abs(dz) / length < 0.383 ? 0 : Math.Sign(dz));
+        return step == (0, 0) ? null : step;
+    }
+
+    /// <summary>Which way a player was walking as they reached this tread, read off the shape's own surface:
+    /// of the eight neighbours belonging to the same shape, the one the climb into the tread is steepest
+    /// from. Continuing that way is walking on. Null where no neighbour of the shape is lower (for a high
+    /// end) or higher (for a low one), which is a tread at neither end of anything.</summary>
+    private static (int X, int Z)? Travel((int X, int Z, int Top, int Floor) tread,
+                                          Dictionary<(int, int), int> own, bool rising)
+    {
+        (int X, int Z)? best = null;
+        var steepest = 0.0;
+        for (var dx = -1; dx <= 1; dx++)
+        for (var dz = -1; dz <= 1; dz++)
+        {
+            if (dx == 0 && dz == 0) continue;
+            if (!own.TryGetValue((tread.X - dx, tread.Z - dz), out var behind)) continue;
+            // Per cell walked, not per neighbour: a diagonal step covers √2 cells for the same climb, so a
+            // flight running down an axis reads as running down that axis rather than cornering off it. That
+            // matters, because what a flight has to arrive on is what is in front of a player walking up it
+            // — ground reachable by turning at the lip is the plateau it was cut into, not a landing.
+            var climb = (rising ? tread.Top - behind : behind - tread.Top)
+                        / (dx != 0 && dz != 0 ? Math.Sqrt(2) : 1);
+            if (climb <= steepest) continue;
+            (steepest, best) = (climb, (dx, dz));
+        }
+        return best;
+    }
+
+    /// <summary>Every course the board stands at, cell by cell — one entry per layer that holds the cell,
+    /// each already shifted into world Y. A stacked column is several somewheres rather than one, so a walk
+    /// asking whether it can step off here has to be able to see all of them.</summary>
+    private static Dictionary<(int, int), List<int>> TopsOfEveryLayer(SketchLayout? state)
+    {
+        var tops = new Dictionary<(int, int), List<int>>();
+        foreach (var layer in ResolveLayers(state))
+        {
+            var shift = (int)Math.Round(layer.BaseY);
+            var here = new Dictionary<(int, int), int>();
+            foreach (var shape in layer.Shapes)
+            {
+                if (shape.Role is not null || shape.Operation == "subtract") continue;
+                foreach (var (x, z, top, _) in RasterShape(shape))
+                    if (!here.TryGetValue((x, z), out var held) || top > held) here[(x, z)] = top;
+            }
+            foreach (var (cell, top) in here)
+            {
+                if (!tops.TryGetValue(cell, out var stack)) tops[cell] = stack = [];
+                stack.Add(top + shift);
+            }
+        }
+        return tops;
+    }
+
     /// <summary>A shape whose ground the world does not hold, and the one that took its place: two adds on
     /// one layer covering a cell with spans that do not touch, where the taller replaces the shorter outright.
     /// One entry per pair, whatever the number of cells they contest.
@@ -812,6 +1068,13 @@ public static class SketchRasterizer
             var adds = layer.Shapes
                 .Where(shape => shape.Role is null && shape.Operation != "subtract" && !IsErected(shape))
                 .ToList();
+            // An override add cannot be the shape a pair loses. It is laid after the ordinary pass and
+            // overwrites the column it lands on, and where that column reaches its floor the result runs
+            // from the ground's own floor to the override's top — so a wall traced along a lip keeps the
+            // ground under it rather than replacing it. Reading one as the lower half of a stack reports a
+            // slab lost that is still in the world.
+            var kept = new HashSet<string>(adds.Where(shape => shape.Override).Select(shape => shape.Id),
+                                           StringComparer.Ordinal);
             if (adds.Count < 2) continue;
 
             var byCell = new Dictionary<(int, int), List<(string Id, int Floor, int Top)>>();
@@ -833,6 +1096,7 @@ public static class SketchRasterizer
                     // A span starting at or above another's top is a second deck: the taller replaces the
                     // shorter outright, floor included, so the lower one's ground is not in the world.
                     if (spans[j].Floor < spans[i].Top) continue;
+                    if (kept.Contains(spans[i].Id)) continue;
                     if (seen.Add((spans[i].Id, spans[j].Id)))
                         found.Add(new StackedShapes(layer.Id!, spans[i].Id, spans[j].Id));
                 }
@@ -1139,7 +1403,12 @@ public static class SketchRasterizer
         var height = HeightFn(s);
         foreach (var (x, z) in RasterRing(ring))
         {
-            int thickness = Math.Max(1, (int)Math.Round(height(x + 0.5, z + 0.5)));
+            // Away from zero, not to even. A cell's thickness is the surface read at its centre, and a
+            // quad rising exactly one course a cell reads every centre on a half — so the default
+            // round-half-to-even sends them alternately down and up and the flight comes out with a
+            // two-block rise in every other tread, which no player walks. Gradient 1 is the only whole
+            // ramp that ties on every cell, and it is the one an author states to mean forty-five degrees.
+            int thickness = Math.Max(1, (int)Math.Round(height(x + 0.5, z + 0.5), MidpointRounding.AwayFromZero));
             yield return (x, z, floor + thickness, floor);
         }
     }

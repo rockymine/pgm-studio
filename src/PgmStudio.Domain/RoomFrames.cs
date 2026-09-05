@@ -1,4 +1,4 @@
-using PgmStudio.Geom;
+﻿using PgmStudio.Geom;
 
 using PgmStudio.Vocabulary;
 
@@ -56,6 +56,15 @@ public static class RoomFrameRules
     /// <remarks>Draw the footprint back inside its piece, or enlarge the piece under it. The piece is the ground the room stands on and the region that protects it; the footprint is the building raised on that ground.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Plan, RuleConcern.Structure)]
     public const string FootprintOffPiece = "WX12";
+
+    /// <summary>The room a region raises is larger than a room. A shell's footprint is the region inset one
+    /// block on every side wherever the document states no footprint of its own, so an oversized region does
+    /// not overflow anything — it <em>is</em> the building, and the hall comes out as long as the region is.
+    /// Read off the resolved frame rather than off a plan piece, so a hand-authored intent meets the same cap
+    /// a compiled one does.</summary>
+    /// <remarks>State a `footprint` on the placement, or draw the region back. The region is the ground and the immunity; the footprint is the building raised on it, and where none is stated the one follows the other.</remarks>
+    [Rule(RuleCategory.Unplayable, RuleConcern.Structure, RuleConcern.Spawn)]
+    public const string RoomIsAField = "WX13";
 
     /// <summary>The marker's block-lattice parity differs between axes, and the pad is always square.</summary>
     /// <remarks>Move the marker half a block on one axis. The pad is square, so both axes must round the same way off the block lattice.</remarks>
@@ -201,6 +210,18 @@ public static class RoomFrames
     /// <para>It is what a room needs whether or not a building stands over it — the contents are the same
     /// either way and the walls are the whole difference. Spans are in blocks, never cells.</para></summary>
     public const int MinFootprintSpan = 4;
+
+    /// <summary>The largest building a role piece may raise, in blocks square (the author's number). It is a
+    /// hall a player crosses; past it the room is a field with a roof. The other end of
+    /// <see cref="MinFootprintSpan"/>, and it lives here for the same reason: the frame is resolved in this
+    /// project, and a cap stated where only the plan can reach it is a cap a hand-authored intent never
+    /// meets.</summary>
+    public const int FootprintCap = 20;
+
+    /// <summary>The largest protection region a role piece may be, in blocks, across its short axis and along
+    /// its long one. A region is the ground and the immunity together, so the long axis affords a room its
+    /// approach without handing a team a field it cannot be fought in.</summary>
+    public const int RegionCapAcross = 20, RegionCapAlong = 30;
 
     /// <summary>Clear floor kept between the pad and every wall (WX4).</summary>
     public const int PadWallClearance = 1;
