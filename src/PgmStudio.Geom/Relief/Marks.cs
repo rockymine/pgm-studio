@@ -44,17 +44,51 @@ public sealed record PointMark(double X, double Z, double Height, double Radius 
 /// <summary>A ridgeline, a valley floor or any drawn height line: a polyline held at a height, varying along
 /// its length when more than one height is given. <see cref="Radius"/> is how far either side of the
 /// centerline is held — the same quantity a <see cref="PointMark"/> states, reaching from a line instead of
-/// from a point — so one stroke is a knife edge or a broad shoulder and the band it writes is twice it.</summary>
-public sealed record LineMark(double[][] Points, double[] Heights, double Radius = 2) : Mark
+/// from a point — so one stroke is a knife edge or a broad shoulder and the band it writes is twice it.
+///
+/// <para><b>Tread</b> is how much of that band is <em>flat</em>, and it is what a line drawn as a road needs.
+/// A line that passes close to itself — a serpentine, a spiral haul road, a switchback — pins every cell to
+/// whichever pass is nearest, so two cells either side of the midline between two passes take heights a whole
+/// winding apart and the ground between them is a wall, however far apart the passes are drawn. Stating a
+/// tread narrower than the radius pins that much flat and <b>lofts</b> the rest: a cell out past the tread
+/// with a second pass of the same line in reach takes a straight ramp between the two treads' edges, so a
+/// serpentine comes out as flat road and graded batter rather than road and cliff. Unset, the tread is the
+/// whole radius and every cell in the band is flat, which is what a ridgeline wants.</para>
+///
+/// <para>The batter's angle is not a knob, because it is not free: the ramp has the run the drawing leaves
+/// it. Two passes <c>pitch</c> apart falling <c>drop</c> between them grade over <c>pitch − 2·tread</c>, so
+/// a road wide enough and a batter gentle enough are the same decision, taken when the line is drawn.</para>
+/// </summary>
+public sealed record LineMark(double[][] Points, double[] Heights, double Radius = 2, double Tread = double.NaN)
+    : Mark
 {
+    /// <summary>The flat half-width, which is the whole radius unless a narrower one is stated.</summary>
+    private double FlatTo => double.IsNaN(Tread) ? Radius : Math.Clamp(Tread, 0, Radius);
+
     public override IEnumerable<((int X, int Z) Cell, double Height)> Pins(Footprint footprint)
     {
         if (Points.Length < 2) yield break;
+        var flat = FlatTo;
+        // A second pass is one at least this far away measured ALONG the line, which is what tells a
+        // neighbouring winding from the far side of a bend in the pass the cell is already on.
+        var apart = Math.Max(1, 2 * Radius);
+
         foreach (var (x, z) in footprint.Land())
         {
             var (distance, along, _, _) = Polyline.Nearest(x + 0.5, z + 0.5, Points);
             if (distance > Radius) continue;
-            yield return ((x, z), HeightAt(along));
+            if (distance <= flat) { yield return ((x, z), HeightAt(along)); continue; }
+
+            // Out past the tread: ramp toward whichever other pass of the line is in reach, and leave the
+            // cell to the relaxation where there is none — a lone line's shoulder is the solver's to fill.
+            var second = Polyline.NearestPass(x + 0.5, z + 0.5, Points, along, apart);
+            if (second is not { } other || other.Distance > Radius) continue;
+
+            var here = Math.Max(0, distance - flat);
+            var there = Math.Max(0, other.Distance - flat);
+            var span = here + there;
+            var toward = span <= 0 ? 0 : here / span;
+            yield return ((x, z), HeightAt(along) + (HeightAt(other.Along) - HeightAt(along)) * toward);
         }
     }
 
@@ -216,6 +250,46 @@ public static class Polyline
             arc += Math.Sqrt(length2);
         }
         return (best, bestAlong, bestSide, atEnd);
+    }
+
+    /// <summary>The nearest point of the line on a <b>separated stretch</b> of it — the second pass, where a
+    /// line comes back past itself. <paramref name="notNear"/> is the fractional position to keep away from
+    /// and <paramref name="apart"/> how far, measured along the line in the same units its points are in, so
+    /// what counts as a different pass is a distance travelled rather than a distance across. That is the
+    /// distinction a bend defeats: the far side of a tight corner is close in plan and close along the line,
+    /// while the next winding of a spiral is close in plan and a whole turn away.
+    ///
+    /// <para>Null where the line never comes back — a straight ridge has one pass and nothing to ramp
+    /// toward.</para></summary>
+    public static (double Distance, double Along, int Side)? NearestPass(
+        double x, double z, double[][] points, double notNear, double apart)
+    {
+        double best = double.MaxValue, bestAlong = 0, arc = 0, total = 0;
+        var bestSide = 1;
+        var found = false;
+
+        for (var i = 0; i + 1 < points.Length; i++)
+            total += Math.Sqrt(Square(points[i + 1][0] - points[i][0]) + Square(points[i + 1][1] - points[i][1]));
+        if (total <= 0) return null;
+
+        for (var i = 0; i + 1 < points.Length; i++)
+        {
+            double ax = points[i][0], az = points[i][1], bx = points[i + 1][0], bz = points[i + 1][1];
+            double dx = bx - ax, dz = bz - az, length2 = dx * dx + dz * dz;
+            var t = length2 <= 0 ? 0 : Math.Clamp(((x - ax) * dx + (z - az) * dz) / length2, 0, 1);
+            var along = (arc + t * Math.Sqrt(length2)) / total;
+            arc += Math.Sqrt(length2);
+            if (Math.Abs(along - notNear) * total < apart) continue;
+
+            double px = ax + t * dx, pz = az + t * dz;
+            var distance = Math.Sqrt(Square(x - px) + Square(z - pz));
+            if (distance >= best) continue;
+            best = distance;
+            bestAlong = along;
+            bestSide = dx * (z - az) - dz * (x - ax) >= 0 ? 1 : -1;
+            found = true;
+        }
+        return found ? (best, bestAlong, bestSide) : null;
     }
 
     private static double Square(double value) => value * value;

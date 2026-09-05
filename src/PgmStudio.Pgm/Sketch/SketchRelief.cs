@@ -106,6 +106,15 @@ public sealed class ReliefMarkJson
     /// its name promised otherwise.</summary>
     [JsonPropertyName("width")]  public double Width { set => Radius = value; }
 
+    /// <summary>How much of a line's band is <b>flat</b>, in cells either side of the centerline. Unset it is
+    /// the whole reach, which is what a ridgeline wants. Narrower than the reach, the rest of the band is a
+    /// <b>loft</b>: where the line passes close to itself, a cell out past the tread takes a straight ramp
+    /// between the two treads' edges instead of snapping to whichever pass is nearer. That is what turns a
+    /// serpentine or a spiral haul road from flat road and vertical wall into flat road and graded batter.
+    /// The batter's angle is the drawing's, not a knob: two passes <c>pitch</c> apart falling <c>drop</c>
+    /// between them grade over <c>pitch − 2·tread</c>.</summary>
+    [JsonPropertyName("tread")]  public double? Tread { get; set; }
+
     /// <summary>A line's or scarp's course, as <c>[x, z]</c> pairs.</summary>
     [JsonPropertyName("points")] public double[][]? Points { get; set; }
 
@@ -142,7 +151,8 @@ public sealed class ReliefMarkJson
     public Mark? ToMark() => Kind switch
     {
         MarkKinds.Point when At is { Length: >= 2 } at => new PointMark(at[0], at[1], FirstHeight, Radius),
-        MarkKinds.Line when Points is { Length: >= 2 } => new LineMark(Points, Heights ?? [0], Radius),
+        MarkKinds.Line when Points is { Length: >= 2 } =>
+            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN),
         MarkKinds.Area when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight),
         MarkKinds.Rim => new RimMark(FirstHeight, Depth),
         MarkKinds.Scarp when Points is { Length: >= 2 } points => new ScarpMark(points, High, Low, Face, Band),

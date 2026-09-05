@@ -60,7 +60,7 @@ Five kinds cover the vocabulary, and the first four differ only in the shape of 
 | Mark | Pins | Says |
 |---|---|---|
 | `point` | a disc of a given radius (`r`) | a summit, a hollow, a spot height |
-| `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex | a ridge, a valley floor, a shoulder falling as it runs |
+| `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex and a `tread` of it held flat (§2.0) | a ridge, a valley floor, a shoulder falling as it runs, a road switching back down a hill |
 | `area` | every cell inside a ring | a bench, a mesa top, a sunken floor — a genuinely flat surface |
 | `rim` | the footprint's own outer rings | where the land meets the void |
 | `scarp` | a band either side of a drawn line, at two heights, with the face between them left free | a break of slope — the mark that decides where players can go (§5) |
@@ -74,6 +74,39 @@ one drawn stroke can be a ridge that descends. The rim is optional and it is wha
 without one, marks alone decide the whole surface, so a shape carrying a single high mark rises to that height
 everywhere and simply runs off its own edge — which is usually what a group's interior wants, and never what
 a lake wants.
+
+### 2.0 A line that comes back past itself, and the tread that keeps it from being a cliff
+
+A line pins every cell in its band to the height of whichever pass of the line is **nearest**, which is the
+right answer for a ridge and the wrong one for a road. Draw a serpentine, a switchback or a spiral haul road
+and the band laps itself: the cells either side of the midline between two passes belong to different passes,
+take heights a whole winding apart, and the ground between them is a vertical wall — however far apart the two
+passes were drawn, and with nothing in the document saying so. The partition is a Voronoi diagram of the line
+against itself, and a Voronoi boundary is a step.
+
+**`tread` is how much of the band is flat**, in cells either side of the centerline; unset it is the whole
+reach, which is what a ridgeline wants. Narrower than the reach, the rest of the band is **lofted**: a cell out
+past the tread with a second pass of the same line within reach takes a straight ramp between the two treads'
+edges rather than snapping to the nearer one. Flat road, graded batter, one mark. What counts as a *second*
+pass is distance travelled **along** the line rather than distance across it, because that is the only thing
+that tells a neighbouring winding from the far side of a bend: a hairpin's two limbs are close in plan and
+close along the line, and the next turn of a spiral is close in plan and a whole winding away.
+
+**The batter's angle is the drawing's, not a knob.** Two passes `pitch` apart falling `drop` between them grade
+over `pitch − 2·tread`, so the road's width and the bank's steepness are one decision, taken when the line is
+drawn:
+
+```
+angle = atan(drop / (pitch − 2·tread))
+```
+
+A spiral makes both terms readable off its own numbers — for `r0`, `r1` and `turns`, the pitch is
+`(r0 − r1) / turns` and the fall per turn is the whole drop over `turns` — so whether a benched quarry can have
+a walkable road *and* a bank that is not a cliff is arithmetic before it is a build. `opus5-scarp-mask`'s delph
+is the worked example: drawn at `r0 21, turns 2.5` its pitch is 6.4 against a 5.6-block fall, which no tread
+can grade because the bands overlap by 3.6 before the batter starts; redrawn at `r0 24, turns 2` the pitch is
+9.5, and a tread of 2 leaves 5.5 blocks of run for a 7-block fall — 52°, and a rim section that walks end to
+end at worst step 2 where it was a barrier.
 
 **An `area` mark states no radius, and its corners are what its ring is.** A point spreads over `r` and a line
 over `r` either side; an area pins every cell inside a drawn ring at one height and nothing softens the step

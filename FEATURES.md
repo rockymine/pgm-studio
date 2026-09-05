@@ -6471,6 +6471,21 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   grass and no other ground block, against 68% moor / 8% shoulder / 11% rock — the quarry, the terrace benches
   and the river banks legible where before they were one green sheet.
   (`TerrainPainterTests`, `TerrainThemeValidationTests`, `docs/world-export/terrain-painting.md`)
+- **A line mark states how much of its band is flat, and lofts the rest (`WE100`).** A line pins every cell to
+  the height of whichever pass of it is nearest, which is right for a ridge and wrong for a road: draw a
+  serpentine, a switchback or a spiral haul road and the band laps itself, so the cells either side of the
+  midline between two passes take heights a whole winding apart and the ground between them is a vertical wall
+  — a Voronoi partition of the line against itself, and a Voronoi boundary is a step. `LineMark.Tread` (`tread`
+  on the mark JSON) is the flat half-width; past it, a cell with a second pass in reach takes a straight ramp
+  between the two treads' edges instead of snapping to the nearer. A *second* pass is one separated by distance
+  travelled **along** the line, which is the only test that tells a neighbouring winding from the far side of a
+  bend. The batter's angle is the drawing's rather than a knob — `atan(drop / (pitch − 2·tread))` — so a road's
+  width and a bank's steepness are one decision taken when the line is drawn, and whether a benched quarry can
+  have both is arithmetic before it is a build. Measured on `opus5-scarp-mask`'s delph: drawn at `r0 21,
+  turns 2.5` the pitch is 6.4 against a 5.6-block fall and the bands overlap by 3.6 before any batter starts;
+  redrawn at `r0 24, turns 2` with `tread: 2` it grades at 52°, and the board goes from 1,006 barrier cells and
+  a largest face of 282 to 816 and 146, with the rim section walking end to end at worst step 2.
+  (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.0)
 - **The angle a mask paints by is a read (`WS60`).** `GET /map/{slug}/incline` answers how steeply the ground
   is inclined, cell by cell, as `text/plain` in the grid the heightmap already reads elevation in: a cell's
   glyph is the **tens** of its degrees, so `0` is under ten from level, `4` is forty to fifty and `8` is a
