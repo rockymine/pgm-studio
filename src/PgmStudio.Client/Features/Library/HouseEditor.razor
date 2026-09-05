@@ -31,11 +31,14 @@
     <HouseViews Preview="preview" View="@view" />
   </Preview>
   <Fields>
-    @* Read and refused is the header's to say — `note` carries it there — so what is left for this line is
-       the one thing the header cannot say: that there is nothing here YET. A failure worded into the space a
-       load has not filled is the failure wearing the loading state's clothes, and a cold client wears them
-       for seconds on the way to a house that reads perfectly well. *@
-    @if (draft is null && note is null) { <p class="section-desc">Reading the house…</p> }
+    @* No draft, no fields — a refused read nulls the draft and words the refusal into `note`, which the
+       header carries, so there is nothing for this space to draw. Branching on the draft alone is also what
+       lets every branch below dereference it.
+
+       Inside that, the one thing the header cannot say: that there is nothing here YET. A failure worded into
+       the space a load has not filled is the failure wearing the loading state's clothes, and a cold client
+       wears them for seconds on the way to a house that reads perfectly well. *@
+    @if (draft is null) { @if (note is null) { <p class="section-desc">Reading the house…</p> } }
     else if (selected == ComposedPart)
     {
       <p class="section-desc">A roof, a porch and a stack of storeys are each authored once in their own

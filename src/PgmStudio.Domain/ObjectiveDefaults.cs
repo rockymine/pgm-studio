@@ -23,14 +23,14 @@ public static class ObjectiveDefaults
     public const int DestroyableFloat = 4;
 
     /// <summary>Whether a <b>studio-authored</b> destroyable lets the defending team put a broken block back.
-    /// PGM's own default is true and <see cref="MapModel"/> mirrors it, because an imported map has to read
-    /// as the map it is; this is the other question — what the studio writes when it authors one — and the
-    /// answer is no (author). Obsidian dropped by the attacker is obsidian the defender can pick up and
+    /// PGM's own default is true and <see cref="Destroyable.Repairable"/> mirrors it, because an imported map
+    /// has to read as the map it is; this is the other question — what the studio writes when it authors one —
+    /// and the answer is no (author). Obsidian dropped by the attacker is obsidian the defender can pick up and
     /// re-place, and a monument that can be rebuilt as fast as it is broken is not a goal.
     ///
     /// <para>A core has no equivalent: PGM cancels only the owner <em>breaking</em> its own casing, and a
-    /// block placed back into the casing passes every check it has. On a core the <see cref="Modes"/> ladder
-    /// is the whole of the pressure.</para></summary>
+    /// block placed back into the casing passes every check it has. On a core the <see cref="FirstMode"/>
+    /// ladder is the whole of the pressure.</para></summary>
     public const bool Repairable = false;
 
     // ── the mode ladder (DTM + DTC) ─────────────────────────────────────────────────────────────────────

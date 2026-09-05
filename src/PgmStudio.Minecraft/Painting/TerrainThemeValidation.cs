@@ -82,10 +82,14 @@ public static class TerrainThemeValidation
                 .Select((band, at) => ((TerrainMaterial?)band.Material, $"{path}.stack[{at}]")),
             VoronoiMaterial voronoi => voronoi.Bands
                 .Select((band, at) => ((TerrainMaterial?)band.Material, $"{path}.bands[{at}]")),
-            CellMaterial cell => cell.Palette.Select((entry, at) => (entry, $"{path}.palette[{at}]")),
-            NoiseMaterial noise => noise.Stops.Select((stop, at) => (stop, $"{path}.stops[{at}]")),
-            TurbulenceMaterial turbulence => turbulence.Stops.Select((stop, at) => (stop, $"{path}.stops[{at}]")),
-            ElectricMaterial electric => electric.Stops.Select((stop, at) => (stop, $"{path}.stops[{at}]")),
+            CellMaterial cell => cell.Palette
+                .Select((entry, at) => ((TerrainMaterial?)entry, $"{path}.palette[{at}]")),
+            NoiseMaterial noise => noise.Stops
+                .Select((stop, at) => ((TerrainMaterial?)stop, $"{path}.stops[{at}]")),
+            TurbulenceMaterial turbulence => turbulence.Stops
+                .Select((stop, at) => ((TerrainMaterial?)stop, $"{path}.stops[{at}]")),
+            ElectricMaterial electric => electric.Stops
+                .Select((stop, at) => ((TerrainMaterial?)stop, $"{path}.stops[{at}]")),
             WallRunMaterial run => run.Runs
                 .Select((stripe, at) => ((TerrainMaterial?)stripe.Material, $"{path}.runs[{at}]")),
             WallDiagonalMaterial diagonal => diagonal.Runs

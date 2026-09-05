@@ -122,8 +122,8 @@ public static class SketchLayoutCheck
     /// Whether a board carries any finish at all — a theme registry, a relief, or props — and which of the
     /// three it does not, or null where it carries at least one.
     ///
-    /// <para>Asked at the <b>finish</b> rather than in <see cref="Check(SketchLayout?)"/>, because a board
-    /// mid-draw has every right to be bare and only finishing declares the drawing done. That is the same
+    /// <para>Asked at the <b>finish</b> rather than in <see cref="Check(SketchLayout?, LayoutReading)"/>,
+    /// because a board mid-draw has every right to be bare and only finishing declares the drawing done. That is the same
     /// reason <c>SK6</c> and <c>SK7</c> live at that stage: it is the last point where what a board does not
     /// have can still be said.</para>
     /// </summary>
