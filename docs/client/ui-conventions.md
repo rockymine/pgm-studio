@@ -119,6 +119,11 @@ site doing one without the other, and each half alone is its own fault: undisabl
 action twice; unlabelled, the control sits inert with no sign the first click landed. `FlowBar` forwards the
 pair as `NextBusy`/`NextBusyLabel`, since the last step's Next is a verb rather than a move.
 
+The swap is **keyed on `Busy`**, which is what lets a busy button carry an icon at all. It is *An icon cannot
+change in place* below, applied to the one control that changes its own content: keyed, the whole button is
+replaced rather than walked, so the `<i>` lucide has already detached goes with its parent instead of being
+removed on its own.
+
 **A label states what the control can do now, not what its subject is.** Where a button's word is read off one
 fact and its enabled-ness off another, the two contradict each other the moment they disagree — a label naming
 the map's next build over a control disabled by a compile that was refused. So the label follows whatever

@@ -8,17 +8,38 @@
 <Section Title="What it charges">
   @if (groups.Count == 0)
   {
-    <p class="section-desc">Nothing stated yet, so there is nothing to read. State a mark and press
-      <strong>Measure</strong>.</p>
+    <p class="section-desc">Nothing measured yet. Press <strong>Measure</strong>.</p>
   }
   else
   {
+    @* What the read complains about, above the numbers it complained from. A measurement that names a fault
+       and leaves the author to find it in the table is half a reading. *@
+    @if (complaints.Count > 0)
+    {
+      <div class="plan-lint-list">
+        @foreach (var complaint in complaints)
+        {
+          <div class="plan-lint-row plan-lint-row--static" @key="complaint">
+            <span class="plan-lint-dot plan-lint-dot--lint"></span>
+            @if (complaint.Rule.Length > 0) { <span class="plan-lint-chip">@complaint.Rule</span> }
+            <span class="plan-lint-msg">@complaint.Message</span>
+          </div>
+        }
+      </div>
+    }
+
     @foreach (var group in groups)
     {
       <div class="readback" @key="group.Id">
         <div class="readback-head">
           <span class="geo-label">@group.Id</span>
           <span class="list-tag">y @group.Low–@group.High · @group.Relief blocks of relief</span>
+        </div>
+
+        @* How much of it a player can stand still on. Every other reading here is a step, and a step cannot
+           tell a field from a ramp: ground graded end to end crosses perfectly and has nowhere to stop. *@
+        <div class="readback-head">
+          <span class="list-tag">@Pct(group.Level) level · largest field @Pct(group.LargestField)</span>
         </div>
 
         @* The three thresholds the game actually has. None is a fault and a good map is a mix, so these are
@@ -100,6 +121,35 @@
             {
               <text>Nothing wide enough to read as a cliff — these are banks.</text>
             }
+          </p>
+        }
+
+        @* The one reading that names statements rather than ground. A wall between two marks reads through
+           every row above as terrain, so this is where an author learns which two to go and change. *@
+        @if (group.Seams.Count > 0)
+        {
+          <table class="readback-table">
+            <thead>
+              <tr><th>Marks that meet on a step</th><th>Step</th><th>At</th><th>Cells</th></tr>
+            </thead>
+            <tbody>
+              @foreach (var seam in group.Seams)
+              {
+                <tr @key="seam">
+                  <td>@seam.A | @seam.B</td>
+                  <td>@seam.Step</td>
+                  <td>@seam.X, @seam.Z</td>
+                  <td>@seam.Cells</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        }
+
+        @if (group.SilentMarks.Count > 0)
+        {
+          <p class="section-desc">
+            Pinned nothing: <strong>@string.Join(", ", group.SilentMarks)</strong>.
           </p>
         }
       </div>

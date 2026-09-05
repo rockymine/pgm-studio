@@ -699,10 +699,15 @@ Five things are placed, and they divide into two kinds.
 | Tool | Kind | States |
 |---|---|---|
 | Spot height | `point` | a height at a place, over a radius |
-| Ridgeline | `line` | a traced line at one height, or one height per vertex, over a band either side |
-| Bench | `area` | a closed ring held at one height |
+| Ridgeline | `line` | a traced line at one height, or one height per vertex, over a band either side — and, where the line comes back past itself, how much of that band is flat (`tread`) and how steeply the rest falls (`batter`) |
+| Bench | `area` | a closed ring held at one height, or at one per ring corner, with an optional `bevel` grading its edge into the ground around it |
 | Scarp | `scarp` | a traced line with a shelf above and ground below — `high`, `low`, the `face` it drops over and the `band` either side for the land to arrive through. The `high` side is the +z hand of the drawn direction: south of a line traced west to east, north of one traced east to west |
 | Push | `push` | a closed ring lifted by an `amount`, with `falloff`, `roughness`, `crown` and a seed |
+
+Every one of those carries a **name**, edited at the top of the inspector, and it is the name every finding
+about the mark uses: a seam is reported as a pair of them and `RL4` names the one that pinned nothing. It is
+the document's own key, so the panel renames through the canvas rather than by patching, and a name another
+statement already carries is refused with a sentence rather than merging the two.
 
 The first four are **marks**, and a mark is a constraint: the ground here *is* twelve. Two marks over the same
 ground argue, and the solver settles it. A **push** is different in kind — it is applied to the solved surface
@@ -740,9 +745,10 @@ all six, and solves to a surface running 7 to 16:
   } } }
 ```
 
-Two shapes of `h` are both correct: a point, an area and a rim state one number, while a line may state one
-per vertex — `"h": 9` and `"h": [12, 14, 11]` are each what an author would write, and the format reads
-either. A push carries no `kind` on the wire, because the array it sits in says what it is; `amounts` states a
+Two shapes of `h` are both correct: a point and a rim state one number, while a **line** states one per
+vertex along its run and an **area** one per ring corner — `"h": 9` and `"h": [12, 14, 11]` are each what an
+author would write, and the format reads either. An area's heights tilt it only when there is one for every
+corner; any other count is read as the first, which is the same test the inspector shows the level form on. A push carries no `kind` on the wire, because the array it sits in says what it is; `amounts` states a
 lift per ring vertex and collapses back to the single `amount` when they all agree. And a mark that does not
 carry what its kind needs is **dropped rather than defaulted** — a point without `at`, a line or scarp under
 two points, an area or push under three ring vertices never reaches the solver.
@@ -752,7 +758,18 @@ lines per group, at a stated interval, from the build's own solver, so what is d
 will be built. The **readback** answers what the stated terrain *charges* a player: reachability at each of the
 three thresholds a player has (a jump, a placed block, building in earnest), places separated from ledges and
 each piece named with its cell count, its middle and its box, faces qualified as cliffs, crossings measured in
-both directions because a drop is free the way it falls, and the symmetry error. It is asked for rather than pushed, since it is a second solve's worth of measurement.
+both directions because a drop is free the way it falls, and the symmetry error. It is asked for rather than
+pushed, since it is a second solve's worth of measurement.
+
+Beside those it answers two things the surface alone cannot say, and the panel draws both. **`level` and
+`largestField`** are how much of the group lies under ten degrees and how much of it the biggest connected run
+of that holds — an angle rather than a step, because ground graded end to end crosses perfectly and has
+nowhere on it a player can stand still. **`seams`** name the pairs of marks whose ground meets on a step, worst
+first, each with the coordinate to stand at: every other reading describes the surface, and this one describes
+the two statements that built it. The complaints ride in the reply's own `warnings` key and are listed above
+the numbers they were drawn from — `RL1` where the group states a landform it does not measure as, `RL2` where
+its elevation was never graded, `RL3` on a seam taller than a scramble, `RL4` for a mark that pinned nothing
+and `RL5` where it was graded everywhere and left nowhere level to stand.
 
 `docs/world-export/relief.md` is this phase written out in full: the relaxation between the marks and why it
 is that rather than a weighting, what each knob costs measured on a room and on a whole map, how steepness

@@ -29,11 +29,23 @@ public partial class SketchReliefReadback
     private sealed record PartRow(int Cells, double Share, int CentroidX, int CentroidZ, bool Place);
     private sealed record FaceRow(int Width, int Drop);
     private sealed record Crossing(int Rows, int OnFoot, int WithBlock, int Descended);
+
+    /// <summary>Where two of the group's marks meet on a step, named. Every other row here describes the
+    /// surface; this one describes the two statements that built it, which is what an author can go and
+    /// change.</summary>
+    private sealed record SeamRow(string A, string B, int Step, int X, int Z, int Cells);
+
     private sealed record GroupRead(string Id, int Low, int High, int Relief, List<TierRow> Tiers,
         List<FaceRow> Faces, int FaceCount, int Cliffs, Crossing AcrossX, Crossing AcrossZ,
-        int SymmetryError, bool Symmetric);
+        int SymmetryError, bool Symmetric, double Level, double LargestField,
+        List<SeamRow> Seams, List<string> SilentMarks);
+
+    /// <summary>One complaint the read raised, by the rule that raised it. A reading that measures a fault
+    /// and does not say so leaves the author to spot it in the numbers.</summary>
+    private sealed record Complaint(string Rule, string Message);
 
     private List<GroupRead> groups = [];
+    private List<Complaint> complaints = [];
     private bool busy;
     private int readAt = -1;      // the revision the reading on screen describes
 
@@ -42,7 +54,9 @@ public partial class SketchReliefReadback
     protected override void OnParametersSet()
     {
         // A reading of terrain that has since moved is worse than none — it reads as current and is not.
-        if (Revision != readAt) groups = [];
+        if (Revision == readAt) return;
+        groups = [];
+        complaints = [];
     }
 
     private static string TierWord(string name) => name switch
@@ -62,10 +76,27 @@ public partial class SketchReliefReadback
         {
             var json = await Handle.InvokeAsync<string>("readRelief");
             groups = Parse(json);
+            complaints = Complaints(json);
             readAt = Revision;
         }
-        catch { groups = []; }
+        catch { groups = []; complaints = []; }
         finally { busy = false; }
+    }
+
+    /// <summary>The rules the read raised. They ride in the reply's own <c>warnings</c> key, which is where
+    /// every endpoint answers what did not stop the work — so the panel reads them from the same body it
+    /// reads the numbers from rather than asking twice.</summary>
+    private static List<Complaint> Complaints(string json)
+    {
+        var found = new List<Complaint>();
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            foreach (var warning in Array(doc.RootElement, "warnings"))
+                found.Add(new Complaint(Str(warning, "rule"), Str(warning, "message")));
+        }
+        catch (JsonException) { /* a reply the client cannot read shows nothing rather than throwing */ }
+        return found;
     }
 
     private static List<GroupRead> Parse(string json)
@@ -93,13 +124,23 @@ public partial class SketchReliefReadback
                 var faces = new List<FaceRow>();
                 foreach (var face in Array(group, "faces")) faces.Add(new FaceRow(Int(face, "width"), Int(face, "drop")));
 
+                var seams = new List<SeamRow>();
+                foreach (var seam in Array(group, "seams"))
+                    seams.Add(new SeamRow(Str(seam, "a"), Str(seam, "b"), Int(seam, "step"),
+                        Int(seam, "x"), Int(seam, "z"), Int(seam, "cells")));
+
+                var silent = new List<string>();
+                foreach (var mark in Array(group, "silentMarks"))
+                    if (mark.ValueKind == JsonValueKind.String) silent.Add(mark.GetString() ?? "");
+
                 var error = Int(group, "symmetryError");
                 read.Add(new GroupRead(Str(group, "group"), Int(group, "low"), Int(group, "high"),
                     Int(group, "relief"), tiers, faces, Int(group, "faceCount"), Int(group, "cliffs"),
                     CrossingOf(group, "acrossX"), CrossingOf(group, "acrossZ"), error,
                     // "Mirrors exactly" is only worth saying when a symmetry was declared at all; a group on
                     // a map with none is not symmetric, it is simply not being asked to be.
-                    Symmetric: error == 0 && group.TryGetProperty("symmetryError", out _)));
+                    Symmetric: error == 0 && group.TryGetProperty("symmetryError", out _),
+                    Dbl(group, "level"), Dbl(group, "largestField"), seams, silent));
             }
         }
         catch (JsonException) { /* a reply the client cannot read shows nothing rather than throwing */ }

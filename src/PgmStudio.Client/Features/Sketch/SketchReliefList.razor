@@ -25,12 +25,14 @@
         </div>
         @foreach (var row in group.Marks)
         {
+          @* The label is the mark's own name, because that is what a finding calls it — a seam names a pair
+             of them and RL4 names one that pinned nothing. What kind it is and how much it covers follow. *@
           <div class="geo-row @(row.Id == selectedId ? "geo-row--selected" : null)" @key="row.Id"
-               @onclick="() => Select(row.Id)">
+               @onclick="() => Select(row)">
             <span class="geo-indent"></span>
             <span class="geo-type-icon"><i data-lucide="@row.Icon"></i></span>
-            <span class="geo-label">@row.Label</span>
-            <span class="list-tag">@row.Where</span>
+            <span class="geo-label">@row.Id</span>
+            <span class="list-tag">@row.Label · @row.Where</span>
           </div>
         }
       }

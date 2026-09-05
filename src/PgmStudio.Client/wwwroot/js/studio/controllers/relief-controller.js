@@ -127,6 +127,18 @@ export class ReliefController {
     return updated;
   }
 
+  /** Rename the selection and follow it, since the id is what the selection is. Returns the complaint the
+   *  document refused with, or null. */
+  renameSelected(next) {
+    if (!this.#selectedId) return "nothing selected";
+    const refused = this.#doc.rename(this.#selectedId, next);
+    if (refused) return refused;
+    this.#selectedId = String(next).trim();
+    this.#callbacks.onSelected?.(this.#selectedId);
+    this.#callbacks.onChanged?.();
+    return null;
+  }
+
   /** Change a group's own relief settings — base, reach, step, grain, and the rim it carries. Not a mark:
    *  these are what the marks are stated against. */
   updateRelief(groupId, patch) {
@@ -419,7 +431,10 @@ export class ReliefController {
  * array it cannot mean — and the same goes for a ridgeline whose `h` has become one height per vertex.
  */
 function carryable(patch) {
-  const { points, ring, at, amounts, ...rest } = patch ?? {};
+  const { points, ring, at, amounts, id, ...rest } = patch ?? {};
   if (Array.isArray(rest.h)) delete rest.h;
+  // A null in a patch says "state this no longer", which is a fact about the mark being edited rather than a
+  // starting value for the next one — carried forward it would write the key back as an explicit null.
+  for (const [key, value] of Object.entries(rest)) if (value === null) delete rest[key];
   return rest;
 }

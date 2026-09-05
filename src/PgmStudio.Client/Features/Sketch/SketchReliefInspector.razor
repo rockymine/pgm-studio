@@ -28,6 +28,15 @@
       </DetailHeader>
       <p class="section-desc">@Info.Blurb</p>
 
+      @* The handle a finding names. A seam is reported as a pair of marks and RL4 names one that pinned
+         nothing, so the name in the readback and the name in this panel have to be the same word. *@
+      @if (editingSelection)
+      {
+        <Field Label="Name" Error="@nameError">
+          <input class="field-input" value="@MarkId" @onchange="Rename" />
+        </Field>
+      }
+
       @if (kind == MarkKinds.Point)
       {
         <Field Label="Height">
@@ -69,14 +78,71 @@
             <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
           }
         </div>
+
+        @* How much of the band is flat, and how the rest of it falls. Off, the whole band is held — which
+           is what a ridge wants. On, a line that comes back past itself grades between its own passes
+           instead of stepping between them. *@
+        <div class="section-header section-header--ruled"><h2 class="section-title">Across the band</h2></div>
+        <Field Label="Flat">
+          <label class="ctrl-row" style="cursor:pointer">
+            <input type="checkbox" class="control-input control-input--hidden" checked="@HasTread"
+                   @onchange="ToggleTread" />
+            <span class="plan-readout">
+              @(HasTread ? "flat to a tread, then graded" : "the whole band is flat")
+            </span>
+          </label>
+        </Field>
+        @if (HasTread)
+        {
+          <Field Label="Tread">
+            <LabelHint>(blocks flat either side)</LabelHint>
+            <ChildContent>
+              <NumberField Value="Tread" ValueChanged="SetTread" Min="0" Max="@Radius" Step="0.5" />
+            </ChildContent>
+          </Field>
+          <Field Label="Batter">
+            <LabelHint>(degrees; 0 lets the drawing decide)</LabelHint>
+            <ChildContent>
+              <NumberField Value="Batter" ValueChanged="SetBatter" Min="0" Max="89" />
+            </ChildContent>
+          </Field>
+          <p class="plan-readout">@TreadReadout</p>
+        }
       }
       else if (kind == MarkKinds.Area)
       {
-        <Field Label="Height">
-          <NumberField Value="Height(0)" ValueChanged="v => SetHeight(0, v)" />
+        @* A ring states one height or one per corner. One is a floor; one per corner is a shelf that can
+           be cut into a slope, which is the only way a pad follows ground it was drawn across. *@
+        @if (Tilted)
+        {
+          @for (var i = 0; i < HeightCount; i++)
+          {
+            var at = i;
+            <Field Label="@($"Corner {at + 1}")">
+              <NumberField Value="Height(at)" ValueChanged="v => SetHeight(at, v)" />
+            </Field>
+          }
+          <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
+        }
+        else
+        {
+          <Field Label="Height">
+            <NumberField Value="Height(0)" ValueChanged="v => SetHeight(0, v)" />
+          </Field>
+          @if (RingCount >= 3)
+          {
+            <Button Variant="ghost" OnClick="TiltArea">A height per corner</Button>
+          }
+        }
+        <Field Label="Bevel">
+          <LabelHint>(blocks in from the rim; 0 meets its neighbour on a step)</LabelHint>
+          <ChildContent>
+            <NumberField Value="Bevel" ValueChanged="SetBevel" Min="0" />
+          </ChildContent>
         </Field>
-        <p class="section-desc">The whole ring is held flat at this level — a bench, a floor, a plateau. It
-          pays for its flatness at its edge, however the land around it arrives.</p>
+        <p class="section-desc">Level and unbevelled is a floor. A height per corner tilts it; a bevel grades
+          its edge into whatever is beside it, which is what stops the four corners of a ring leaving four
+          right angles in the ground.</p>
       }
       else if (kind == MarkKinds.Scarp)
       {
@@ -245,6 +311,12 @@
       {
         <Field Label="Rim height">
           <NumberField Value="RimHeight" ValueChanged="SetRimHeight" />
+        </Field>
+        <Field Label="Rim depth">
+          <LabelHint>(rings in from the outline)</LabelHint>
+          <ChildContent>
+            <NumberField Value="RimDepth" ValueChanged="SetRimDepth" Min="1" />
+          </ChildContent>
         </Field>
       }
     </Section>

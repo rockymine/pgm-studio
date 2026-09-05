@@ -1002,6 +1002,18 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     },
     selectMark(id) { canvas.reliefTools?.select(id || null); },
     deleteMark() { if (canvas.reliefTools?.deleteSelected()) afterReliefChange(); },
+    /**
+     * Rename the selected mark. Its id is the name every finding calls it by — a seam is reported as a pair
+     * of them — so it is authored rather than minted, and a clash is refused with a sentence instead of
+     * silently making two marks one.
+     */
+    renameMark(next) {
+      const tools = canvas.reliefTools;
+      if (!tools) return "nothing selected";
+      const refused = tools.renameSelected(next);
+      if (!refused) afterReliefChange();
+      return refused;
+    },
     /** Patch the selected mark. `patchJson` is a partial mark; returns an error string on bad JSON, else null. */
     updateMark(patchJson) {
       let patch; try { patch = JSON.parse(patchJson); } catch (e) { return e?.message || "Invalid JSON"; }

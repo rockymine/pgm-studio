@@ -87,11 +87,18 @@ public partial class SketchReliefInspector
     }
 
     /// <summary>The tool's starting values, fetched when nothing is selected. Kept out of
-    /// <see cref="ReadState"/> because it is a round trip and the state push is not.</summary>
+    /// <see cref="ReadState"/> because it is a round trip and the state push is not.
+    ///
+    /// <para>The answer is discarded where the panel has moved on while it was in flight. A state push
+    /// carrying a selection lands synchronously and this does not, so an armed tool's defaults can come back
+    /// after a mark has been picked and replace the mark's own numbers with them — the panel then shows one
+    /// kind's fields under another kind's heading.</para></summary>
     private async Task LoadToolSettings()
     {
         if (Handle is null || string.IsNullOrEmpty(kind)) return;
-        var json = await Handle.InvokeAsync<string>("getMarkSettings", kind);
+        var asked = kind;
+        var json = await Handle.InvokeAsync<string>("getMarkSettings", asked);
+        if (editingSelection || kind != asked) return;
         try { mark = JsonNode.Parse(json) as JsonObject; } catch (JsonException) { mark = null; }
     }
 
@@ -107,6 +114,13 @@ public partial class SketchReliefInspector
         else await Handle.InvokeVoidAsync("setMarkSettings", kind, patch.ToJsonString());
     }
 
+    /// <summary>Stop stating a field. A null in the patch deletes the key rather than writing a JSON null,
+    /// so a document the editor saves carries the fields it states and nothing else.</summary>
+    private async Task Remove(params string[] fields)
+    {
+        foreach (var field in fields) await Set(field, null);
+    }
+
     private Task SetRadius(double value) => Set(MarkFields.Radius, JsonValue.Create(Math.Max(0, value)));
     private Task SetHigh(double value) => Set(MarkFields.High, JsonValue.Create(value));
     private Task SetLow(double value) => Set(MarkFields.Low, JsonValue.Create(value));
@@ -114,6 +128,91 @@ public partial class SketchReliefInspector
     private Task SetBand(double value) => Set(MarkFields.Band, JsonValue.Create(Math.Max(1, value)));
 
     private Task Delete() => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("deleteMark").AsTask();
+
+    // ── the name a finding uses ────────────────────────────────────────────────
+    /// <summary>The mark's id, which is its name everywhere else: a seam is reported as a pair of them and
+    /// <c>RL4</c> names the one that pinned nothing.</summary>
+    private string MarkId => mark?[MarkFields.Id]?.ToString() ?? "";
+
+    /// <summary>Why the last rename did not take — a name another mark already carries, or none at all.</summary>
+    private string? nameError;
+
+    /// <summary>Rename the selected mark. The id is the document's own key and the selection rides on it, so
+    /// the canvas performs the swap and answers what it refused rather than the panel writing a patch.</summary>
+    private async Task Rename(ChangeEventArgs e)
+    {
+        if (Handle is null || !editingSelection) return;
+        nameError = await Handle.InvokeAsync<string?>("renameMark", (e.Value?.ToString() ?? "").Trim());
+    }
+
+    // ── a line's band ──────────────────────────────────────────────────────────
+    /// <summary>How far the band reaches either side of the centerline — what a tread is measured against.</summary>
+    private double Radius => Num(MarkFields.Radius, 2);
+
+    /// <summary>Whether the line states a tread at all. Absent and present-at-zero are different statements —
+    /// no tread holds the whole band flat, a tread of zero holds none of it — so this asks whether the field
+    /// is there rather than what it says.</summary>
+    private bool HasTread => mark?[MarkFields.Tread] is JsonValue stated
+                             && double.TryParse(stated.ToString(), out _);
+
+    private double Tread => Num(MarkFields.Tread, Radius);
+    private double Batter => Num(MarkFields.Batter);
+
+    /// <summary>What the numbers leave, stated as the shoulder they make. A tread's whole effect is the band
+    /// it does <em>not</em> hold flat, and that width is what the grade between two passes is spent over.</summary>
+    private string TreadReadout
+    {
+        get
+        {
+            // Kept to the half rather than rounded: a tread is stated in halves, so a rounded shoulder would
+            // report a width the numbers above it do not add up to.
+            var shoulder = Math.Max(0, Radius - Tread);
+            var width = $"{shoulder:0.#} block{(Math.Abs(shoulder - 1) < 0.01 ? "" : "s")}";
+            return shoulder <= 0 ? "No shoulder — the whole band is held flat."
+                 : Batter > 0 ? $"{width} of shoulder either side, falling at {Batter:0}°."
+                 : $"{width} of shoulder either side, at whatever angle the passes leave it.";
+        }
+    }
+
+    /// <summary>Start or stop stating a tread. Starting takes half the band, which is a road with as much
+    /// shoulder as surface; stopping drops the batter with it, since a batter is the angle of a shoulder that
+    /// no longer exists.</summary>
+    private Task ToggleTread(ChangeEventArgs e)
+        => e.Value is true
+            ? Set(MarkFields.Tread, JsonValue.Create(Math.Round(Radius / 2, 1)))
+            : Remove(MarkFields.Tread, MarkFields.Batter);
+
+    private Task SetTread(double value)
+        => Set(MarkFields.Tread, JsonValue.Create(Math.Clamp(value, 0, Radius)));
+
+    // Zero is what an unstated batter means to the solver, so it is written by removing the field rather
+    // than by storing the number that stands for its absence.
+    private Task SetBatter(double value)
+        => value <= 0 ? Remove(MarkFields.Batter)
+                      : Set(MarkFields.Batter, JsonValue.Create(Math.Clamp(value, 1, 89)));
+
+    // ── an area's surface ──────────────────────────────────────────────────────
+    /// <summary>How many corners the drawn ring has — a tilted area states one height per one of them.</summary>
+    private int RingCount => mark?[MarkFields.Ring] is JsonArray ring ? ring.Count : 0;
+
+    /// <summary>Whether the ring states a height per corner. The test is the solver's: heights that do not
+    /// match the ring one for one are read as the single first height, so a document that half-states a tilt
+    /// shows the level form here and means the level form there.</summary>
+    private bool Tilted => HeightCount > 1 && HeightCount == RingCount;
+
+    /// <summary>Give the ring a height at every corner, all at the level it already holds — an author tilting
+    /// a pad means to bend the one they have, not to place a new one.</summary>
+    private Task TiltArea()
+    {
+        var heights = new JsonArray();
+        for (var i = 0; i < RingCount; i++) heights.Add(JsonValue.Create(Height(0)));
+        return Set(MarkFields.Height, heights);
+    }
+
+    private double Bevel => Num(MarkFields.Bevel);
+
+    private Task SetBevel(double value)
+        => value <= 0 ? Remove(MarkFields.Bevel) : Set(MarkFields.Bevel, JsonValue.Create(value));
 
     // ── a push ─────────────────────────────────────────────────────────────────
     private Task SetAmount(double value) => Set(PushFields.Amount, JsonValue.Create(value));
@@ -241,6 +340,11 @@ public partial class SketchReliefInspector
     private double RimHeight => Rim?[MarkFields.Height] is { } stated && double.TryParse(stated.ToString(), out var value)
         ? value : Base;
 
+    /// <summary>How many rings in from the outline the rim holds. One is the boundary cells themselves; more
+    /// is a coastal shelf, which is how a group gets flat ground to stand on at its own edge.</summary>
+    private double RimDepth => Rim?[MarkFields.Depth] is { } stated && double.TryParse(stated.ToString(), out var value)
+        ? value : 1;
+
     private async Task ToggleRim(ChangeEventArgs e)
     {
         if (Handle is null || groupId is null || relief is null) return;
@@ -267,14 +371,21 @@ public partial class SketchReliefInspector
         await SetRelief(ReliefFields.Marks, kept);
     }
 
-    private async Task SetRimHeight(double value)
+    private Task SetRimHeight(double value) => SetRim(MarkFields.Height, JsonValue.Create(value));
+
+    private Task SetRimDepth(double value)
+        => SetRim(MarkFields.Depth, JsonValue.Create((int)Math.Max(1, value)));
+
+    /// <summary>Write one of the rim's fields back into the group's own mark list, since that is where the rim
+    /// lives: it is a mark on the wire and a setting in the panel, and the list keeps its order.</summary>
+    private async Task SetRim(string field, JsonNode? value)
     {
         if (relief?[ReliefFields.Marks] is not JsonArray marks) return;
         var updated = new JsonArray();
         foreach (var entry in marks.OfType<JsonObject>())
         {
             var copy = (JsonObject)entry.DeepClone();
-            if (copy["kind"]?.GetValue<string>() == MarkKinds.Rim) copy[MarkFields.Height] = JsonValue.Create(value);
+            if (copy["kind"]?.GetValue<string>() == MarkKinds.Rim) copy[field] = value?.DeepClone();
             updated.Add(copy);
         }
         await SetRelief(ReliefFields.Marks, updated);
@@ -298,7 +409,7 @@ public partial class SketchReliefInspector
         [MarkKinds.Line] = ("spline", "Ridgeline",
             "A drawn line held at a height, and a band either side of it. Give it more than one height and it falls along its own length."),
         [MarkKinds.Area] = ("pentagon", "Bench",
-            "A drawn ring held flat — a floor, a plateau, the ground a building stands on."),
+            "A drawn ring the ground is held to — a floor, a plateau, or a shelf cut into a slope."),
         [MarkKinds.Scarp] = ("triangle", "Scarp",
             "A shelf on one side of a line and open ground on the other — the shelf is on the +z hand of the direction the line is drawn. The face is the drop; where the line stops is where the shelf can be crossed."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
@@ -314,13 +425,29 @@ public partial class SketchReliefInspector
 /// <summary>A mark's own fields (see <see cref="MarkKinds"/> for why these are constants).</summary>
 public static class MarkFields
 {
-    /// <summary>The height a mark states — a number, or one per vertex on a line that falls.</summary>
+    /// <summary>The height a mark states — a number, or one per vertex on a line or an area that tilts.</summary>
     public const string Height = "h";
     public const string At = "at";
+
+    /// <summary>The mark's own name, which is what every finding about it calls it.</summary>
+    public const string Id = "id";
 
     /// <summary>How far a point's or a line's height reaches from what it is drawn on. One field, because it
     /// is one quantity: a line's band is twice it, the same way a point's circle is.</summary>
     public const string Radius = "r";
+
+    /// <summary>How much of a line's band is flat. Absent holds the whole band, which is what a ridge wants;
+    /// stated, the rest of the band grades between the line's own passes instead of stepping between them.</summary>
+    public const string Tread = "tread";
+
+    /// <summary>How steeply that graded shoulder falls, in degrees. Absent takes whatever run the drawing
+    /// leaves.</summary>
+    public const string Batter = "batter";
+
+    /// <summary>How far inside an area's ring its height gives way to the ground around it — the tread of an
+    /// area, stated from the rim inward because that is where an area's edge is.</summary>
+    public const string Bevel = "bevel";
+
     public const string Points = "points";
     public const string Ring = "ring";
     public const string Depth = "depth";

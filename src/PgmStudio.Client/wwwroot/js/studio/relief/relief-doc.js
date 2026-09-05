@@ -309,8 +309,32 @@ export class ReliefDoc {
     const groupId = found.groupId;
     const marks = this.#byGroup.get(groupId).marks;
     const at = marks.findIndex(mark => mark.id === id);
-    marks[at] = { ...marks[at], ...patch, id, kind: marks[at].kind };
+    const merged = { ...marks[at], ...patch, id, kind: marks[at].kind };
+    // The same rule a push follows: a null or undefined in a patch states the field no longer, so the key
+    // goes rather than being written as a null. An absent `tread` holds the whole band flat and a stated
+    // zero holds none of it, so the difference between the two has to survive a save.
+    for (const [key, value] of Object.entries(patch)) if (value === undefined || value === null) delete merged[key];
+    marks[at] = merged;
     return { ...marks[at], groupId };
+  }
+
+  /**
+   * Rename a mark. The id is the document's key and the selection rides on it, so this is a move rather than
+   * a patch: refused where the name is empty or another statement already carries it, since a finding naming
+   * two marks the same names neither.
+   *
+   * Returns the complaint, or null where the rename took.
+   */
+  rename(id, next) {
+    const wanted = String(next ?? "").trim();
+    if (!wanted) return "a mark needs a name";
+    if (wanted === id) return null;
+    if (this.#allIds().includes(wanted)) return `'${wanted}' is already a mark on this map`;
+    const found = this.#locate(id);
+    if (!found) return "no such mark";
+    const at = found.list.findIndex(entry => entry.id === id);
+    found.list[at] = { ...found.list[at], id: wanted };
+    return null;
   }
 
   remove(id) {

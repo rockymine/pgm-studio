@@ -624,3 +624,59 @@ test("a mark is ghosted only on a group that mirrors", () => {
   paintReliefMarks(bare, [mark], { baseOf: () => 8 });
   assert.equal(bare.of("ring").length, 1);
 });
+
+// ── naming a mark, and un-stating a field ─────────────────────────────────────
+test("a null in a patch un-states a mark's field, so absent and zero stay different", () => {
+  // A line with no `tread` holds its whole band flat; one stating `tread: 0` holds none of it. The two are
+  // opposite statements, so stopping stating a tread has to remove the key rather than write a zero.
+  const doc = ReliefDoc.from({
+    i1: { marks: [{ kind: "line", id: "road", points: [[0, 0], [10, 0]], h: 5, r: 4, tread: 2, batter: 60 }] },
+  });
+  doc.update("road", { tread: null, batter: null });
+  const stored = doc.toJSON().i1.marks[0];
+  assert.equal("tread" in stored, false);
+  assert.equal("batter" in stored, false);
+  assert.equal(stored.r, 4);      // everything it did not name is untouched
+});
+
+test("a mark is renamed, and the name a finding uses is the one that moves", () => {
+  const doc = ReliefDoc.from({ i1: { marks: [{ kind: "point", id: "r1", at: [0, 0], h: 5 }] } });
+  assert.equal(doc.rename("r1", "summit"), null);
+  assert.equal(doc.toJSON().i1.marks[0].id, "summit");
+  assert.ok(doc.byId("summit"));
+  assert.equal(doc.byId("r1"), null);
+});
+
+test("a name another statement already carries is refused rather than merged", () => {
+  // Two marks under one name names neither, and a seam is reported as a pair of names.
+  const doc = ReliefDoc.from({
+    i1: { marks: [{ kind: "point", id: "summit", at: [0, 0], h: 5 },
+                  { kind: "point", id: "hollow", at: [9, 0], h: 2 }] },
+  });
+  assert.match(doc.rename("hollow", "summit"), /already/);
+  assert.equal(doc.toJSON().i1.marks[1].id, "hollow");
+  assert.match(doc.rename("hollow", "  "), /needs a name/);
+  assert.equal(doc.rename("hollow", "hollow"), null);   // renaming to itself is not a clash
+});
+
+test("renaming the selection follows it, so the panel keeps editing the mark it was on", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(4, 4, "relief:point");
+  const id = doc.marks[0].id;
+  controller.select(id);
+  assert.equal(controller.renameSelected("crag"), null);
+  assert.equal(controller.selectedId, "crag");
+  assert.ok(doc.byId("crag"));
+});
+
+test("a mark's name is never carried to the next mark of its kind", () => {
+  // Settings carry forward so an author can place six marks without configuring six; a name is the one thing
+  // that must not, since two marks under one name is exactly what rename refuses.
+  const { controller, doc } = tools();
+  controller.onMouseDown(4, 4, "relief:point");
+  controller.select(doc.marks[0].id);
+  controller.updateSelected({ id: "crag", h: 9, tread: null });
+  assert.equal(controller.settingsFor("point").id, "");
+  assert.equal("tread" in controller.settingsFor("point"), false);
+  assert.equal(controller.settingsFor("point").h, 9);
+});

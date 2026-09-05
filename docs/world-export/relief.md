@@ -192,9 +192,9 @@ Measured on a hillside falling 40 to 20, with a pad drawn across it: level and u
 `hill | shelf` at **6 blocks**; tilted, 2; tilted with a bevel of 5, **no seam at all** — the marks unchanged
 and overlapping exactly as much.
 
-**A point spreads over `r` and a line
-over `r` either side; an area pins every cell inside its drawn ring.
-What decides whether that reads as a bench or as a scar is the group's **reach**: the field decays toward the
+**An `area` mark states no radius, and its ring is what its extent is.** A point spreads over `r` and a line
+over `r` either side; an area pins every cell inside its drawn ring. What decides whether that reads as a
+bench or as a scar is the group's **reach**: the field decays toward the
 base over that many blocks outside the mark, and at `reach: 0` the marks decide the whole surface between them
 with no decay at all, so each mark meets its neighbour on a wall. That is the right answer for a quarry cut in
 benches and the wrong one for a hillside. `opus5-scarrow-delph` is the worked example of both — `camp-pad`,
@@ -228,7 +228,7 @@ wants a gentler seam states a narrower tread or a longer reach. (`batter` govern
 of one line, where the run is known when the mark is read; a seam's other side is another mark's, and how far
 away it is not known until the solver has both.)
 
-### 2.1 A push is not a constraint
+### 2.3 A push is not a constraint
 
 Every mark above is a **constraint**: the ground here *is* twelve, and the solver honours it exactly.
 Constraints are what a solver needs and not what a hand wants, and the tell is the point mark — stated as a
@@ -268,7 +268,7 @@ The room still **rides with the push** rather than being stranded under it, beca
 height off the finished surface — pushes included — before pinning it there. What is frozen is the room's
 flatness, not its elevation.
 
-### 2.2 A push's top is a field, not a number
+### 2.4 A push's top is a field, not a number
 
 A push that lifts its whole interior by one amount makes a plateau, and a plateau is a landform but not the
 common one. Three things an author reaches for next — a ridge whose crest falls along its length, a hollow
@@ -691,7 +691,7 @@ number stated before that terrain existed.
 
 **The height a room is seated at is read off the finished surface, and its flatness survives everything after
 it.** The seat is taken from the first solve, which has already had the pushes and the grain applied, so a room
-standing where a push lifts the ground comes up with it. The mark that then pins it is rigid (§2.1): the second
+standing where a push lifts the ground comes up with it. The mark that then pins it is rigid (§2.3): the second
 solve's push may not tilt what the seat levelled, and the grain never could. Without that the pin is only as
 firm as the last pass over it — on `opus5-hollowmarch` the `under-back` push, whose ring stops one block short
 of the back wool room and whose skirt reaches ten blocks further, tilted a room held at 18 across `23 22 22 21

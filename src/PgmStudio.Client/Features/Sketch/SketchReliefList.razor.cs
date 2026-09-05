@@ -22,7 +22,7 @@ public partial class SketchReliefList
     [Parameter] public string? StateJson { get; set; }
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
-    private sealed record Row(string Id, string Icon, string Label, string Where);
+    private sealed record Row(string Id, string Icon, string Label, string Where, string GroupId);
     private sealed record Group(string GroupId, string Base, List<Row> Marks);
 
     private List<Group> groups = [];
@@ -56,7 +56,7 @@ public partial class SketchReliefList
                 var groupId = mark.TryGetProperty("groupId", out var owner) ? owner.GetString() ?? "" : "";
                 if (!byGroup.TryGetValue(groupId, out var group))
                     byGroup[groupId] = group = new Group(groupId, groupId == inPlay ? inPlayBase ?? "—" : "—", []);
-                group.Marks.Add(RowOf(mark));
+                group.Marks.Add(RowOf(mark) with { GroupId = groupId });
             }
             groups = [.. byGroup.Values];
         }
@@ -71,13 +71,13 @@ public partial class SketchReliefList
         var id = mark.TryGetProperty("id", out var i) ? i.GetString() ?? "" : "";
         return kind switch
         {
-            MarkKinds.Point => new Row(id, "dot", $"spot at {Heights(mark)}", Cell(mark)),
-            MarkKinds.Line => new Row(id, "spline", $"ridgeline at {Heights(mark)}", Span(mark, "points")),
-            MarkKinds.Area => new Row(id, "pentagon", $"bench at {Heights(mark)}", Span(mark, "ring")),
-            MarkKinds.Scarp => new Row(id, "triangle", $"scarp {Drop(mark)}", Span(mark, "points")),
-            MarkKinds.Rim => new Row(id, "square-dashed", $"rim at {Heights(mark)}", "outline"),
-            MarkKinds.Push => new Row(id, "arrows-up-from-line", $"push {Lift(mark)}", Span(mark, "ring")),
-            _ => new Row(id, "shapes", kind, ""),
+            MarkKinds.Point => new Row(id, "dot", $"spot at {Heights(mark)}", Cell(mark), ""),
+            MarkKinds.Line => new Row(id, "spline", $"ridgeline at {Heights(mark)}", Span(mark, "points"), ""),
+            MarkKinds.Area => new Row(id, "pentagon", $"bench at {Heights(mark)}", Span(mark, "ring"), ""),
+            MarkKinds.Scarp => new Row(id, "triangle", $"scarp {Drop(mark)}", Span(mark, "points"), ""),
+            MarkKinds.Rim => new Row(id, "square-dashed", $"rim at {Heights(mark)}", "outline", ""),
+            MarkKinds.Push => new Row(id, "arrows-up-from-line", $"push {Lift(mark)}", Span(mark, "ring"), ""),
+            _ => new Row(id, "shapes", kind, "", ""),
         };
     }
 
@@ -126,8 +126,14 @@ public partial class SketchReliefList
         return count == 0 ? "" : $"{count} pts";
     }
 
-    private Task Select(string id)
-        => Handle is null ? Task.CompletedTask : Handle.InvokeVoidAsync("selectMark", id).AsTask();
+    /// <summary>Pick a mark, and the group stating it with it. A height means nothing without the base it is
+    /// read against, so reaching a mark has to reach the group whose base that is.</summary>
+    private async Task Select(Row row)
+    {
+        if (Handle is null) return;
+        if (row.GroupId.Length > 0) await Handle.InvokeVoidAsync("selectGroup", row.GroupId);
+        await Handle.InvokeVoidAsync("selectMark", row.Id);
+    }
 
     /// <summary>Pick the group a group heads. It is the unit a relief is solved over, so selecting it is how
     /// its base, grain and rim are reached — and picking one clears the mark selection, since the inspector's

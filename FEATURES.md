@@ -6544,6 +6544,25 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
   reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
+- **The Relief panel states the whole mark vocabulary, and reads back what it charges (`TS94`).** The solver
+  had grown five statements the editor could not make and four readings it could not show. A **Ridgeline** now
+  carries `tread` and `batter` behind one toggle — off holds the whole band flat, which is what a ridge wants;
+  on states how much of it is flat and how steeply the rest falls, with a readout of the shoulder those two
+  leave. A **Bench** states one height or one per ring corner, and a `bevel` that grades its edge into the
+  ground beside it. A **rim** states its depth as well as its height. And every mark carries a **name**, which
+  is what every finding about it calls it: it is the document's own key, so the rename runs through the canvas
+  and a name another statement already carries is refused with a sentence.
+  The readback answers the rest: `level` and `largestField` beside the range, the `seams` table naming the
+  pairs of marks that meet on a step with the coordinate to stand at, the marks that pinned nothing, and every
+  complaint the read raised — `RL1`–`RL5` — listed above the numbers they were drawn from. Two faults that
+  hid it: the `Measure` button crashed the render, because a `Busy` swap diffed past an `<i data-lucide>`
+  lucide had already detached (`Button` now keys the swap, which fixes every busy button carrying a glyph);
+  and an in-flight `getMarkSettings` could land after a selection and replace the selected mark's numbers with
+  an armed tool's defaults, so the panel showed one kind's fields under another kind's heading.
+  Measured in the editor on `relief-04-seam`: `hill | shelf` step 4 at (−40, −11) over 84 cells, 12 faces —
+  tilted to a height per corner and bevelled 5 from the panel, no seam, no face, 100% crossable. On
+  `relief-06-road-no-tread`, a tread of 2 typed into the panel takes `hill | road` from step 10 to step 2 and
+  48 faces to 32. (`tests/js/relief-doc.test.js`, `docs/tools/sketch.md` § Relief)
 - **The angle a mask paints by is a read (`WS60`).** `GET /map/{slug}/incline` answers how steeply the ground
   is inclined, cell by cell, as `text/plain` in the grid the heightmap already reads elevation in: a cell's
   glyph is the **tens** of its degrees, so `0` is under ten from level, `4` is forty to fifty and `8` is a
