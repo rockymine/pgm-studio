@@ -45,7 +45,8 @@ internal static class WriteSupport
 
 /// <summary>PATCH /api/map/{slug}/metadata — what a map is called, what it states and who wrote it. The
 /// operation is <see cref="MapMetadata"/>; this is the door to it.</summary>
-public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWithoutRequest<AppliedDto>
+public sealed class MetadataEndpoint(MapRepository repo, PgmDb db, MapArtifactStore artifacts)
+    : EndpointWithoutRequest<AppliedDto>
 {
     public override void Configure()
     {
@@ -58,7 +59,7 @@ public sealed class MetadataEndpoint(MapRepository repo, PgmDb db) : EndpointWit
     {
         if (await repo.OfRouteAsync(HttpContext, ct) is not { } map) return;
 
-        await MapMetadata.ApplyAsync(db, map.Id, await WriteSupport.ReadPayloadAsync(HttpContext, ct), ct);
+        await MapMetadata.ApplyAsync(db, artifacts, map.Id, await WriteSupport.ReadPayloadAsync(HttpContext, ct), ct);
         await Send.OkAsync(new AppliedDto(), ct);
     }
 }

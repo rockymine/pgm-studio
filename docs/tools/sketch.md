@@ -581,7 +581,13 @@ table below, dimming whatever cannot run on the current selection; `Ctrl`/`⌘`+
 ### Info
 
 Two steps. **Identity** is the map's display name and its authors, loaded from `GET /api/map/{slug}` and saved
-with `PATCH /api/map/{slug}/metadata`. **Settings** is the symmetry the whole board is built against: the mode
+with `PATCH /api/map/{slug}/metadata`. **An author named here is named in the map's intent too**, where the map
+holds one: the rows are what the map document is written from and `meta.authors` is what the *export* reads,
+since the observer platform's board is stamped from the intent. A panel writing one of the two would credit the
+map on its row and leave `EX6` saying it names nobody, with nothing in the interface able to settle it. The
+traffic already ran the other way — an intent write resolves its names into the rows — so this is the return
+leg, and the intent is patched as JSON rather than round-tripped through `MapIntent`, since a rename is not the
+moment to rewrite an intent through a model. **Settings** is the symmetry the whole board is built against: the mode
 — `mirror_x`, `mirror_z`, `rot_180` or `rot_90` — and the centre X and Z. There is no size to set; the map area
 grows to fit whatever is drawn. A freshly created sketch opens here (`?phase=info`); an existing one opens on
 Draw.

@@ -6544,6 +6544,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
   reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
+- **An author named in the panel is named in the intent too (`RP67`).** A map's authorship lived in two
+  stores with one-way traffic. `PUT /map/{slug}/intent` resolved `meta.authors` into the map's author rows;
+  `PATCH /map/{slug}/metadata` — the only thing the Sketch Info panel writes — wrote the rows and nothing
+  else. The **export reads the intent**, because the observer platform's board is stamped from it, so a map
+  credited through the interface was still told `EX6`: *"the map names no author, so the observer platform's
+  authors board is left off"*. There was no way to clear it from the studio at all. A metadata write now
+  projects the same people into the stored intent's `meta.authors` and `meta.contributors`, split by the role
+  each states, carrying the contribution and no uuid — an intent names a person and the export resolves the
+  name, which is why `AuthorIntent` has no field to put one in. The intent is patched as JSON rather than
+  round-tripped through `MapIntent`, so a key the model does not carry cannot be lost by a rename, and a map
+  holding no intent is left alone. (`docs/tools/sketch.md` § Info)
 - **Undo reaches every phase, not just Draw (`TS99`).** A history step is the whole `getState()` value and a
   restore is `load()`, so the document always came back correct — and only Draw ever showed it. `load` puts
   the shapes on the canvas and the restore re-announces the shape selection; the marks, the props and the
