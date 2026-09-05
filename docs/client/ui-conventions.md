@@ -122,6 +122,16 @@ block step of one, a group with no rim, a push whose corners agree. Two selects 
 explanatory paragraph each is thirty words to say that nothing is happening, and it is the first thing a
 reader learns to skip — which is what then hides the line that matters.
 
+**Undo restores the document; every phase reading a part of it has to be told.** A history step is the whole
+`getState()` value and a restore is `load()`, so the document comes back correct whichever phase is up — and
+only the Draw phase *shows* it, because `load` puts the shapes back on the canvas and the restore re-announces
+the shape selection. The marks, the props and the theme registry are rebuilt by the same call and then never
+announced, so their panels go on listing what the step undid and the server-drawn overlays go on showing the
+surface it was solved for. A restore therefore fires what each phase's own edits fire — `OnThemes`,
+`OnDressing`, `OnRelief`, the relief and paint refreshes — and drops the meshed board, which is a picture of a
+document no longer open. Rebuilding a document also clears its selection, so the mark and the prop are taken
+back where the step left them standing, the way the shape already was.
+
 **A control looks like a control, and a two-state one names both states.** A checkbox hidden behind a line of
 text styled like a readout is a control nobody presses: it sits in a column of readouts, in the readouts' own
 class, saying only the state it is already in. Two `Chip`s say it instead — the current state marked, the other

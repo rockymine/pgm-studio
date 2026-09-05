@@ -520,12 +520,32 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
 
   function restore(text) {
     let state; try { state = JSON.parse(text); } catch { return; }
+    // What was picked, in each of the three things that can be. Restoring the document rebuilds the mark and
+    // prop documents from scratch, and building one clears its selection — so each is taken back afterwards
+    // where the step left it standing.
     const wasSelected = canvas.selectedId;
+    const wasMark = canvas.reliefTools?.selectedId ?? null;
+    const wasProp = canvas.dressingTools?.selectedId ?? null;
     handle.load(state, true);
     // A shape that survived the step keeps its selection; one the step created is gone, so the selection
     // clears rather than naming nothing.
     if (wasSelected && canvas.getShape(wasSelected)) selectShape(wasSelected); else selectShape(null);
+    if (wasMark && canvas.relief.byId(wasMark)) canvas.reliefTools?.select(wasMark);
+    if (wasProp && canvas.dressing.byId?.(wasProp)) canvas.dressingTools?.select(wasProp);
     markDirty();
+
+    // A step replaces the WHOLE document, so every phase reading a part of it has to be told. `load` puts
+    // the shapes back on the canvas and `selectShape` re-announces the selection, which is the Draw phase
+    // entire — and is why undo has always worked there and nowhere else. The marks, the props and the theme
+    // registry are restored on the canvas by the same call and then never announced, so their panels go on
+    // listing what the step just undid, and the overlays drawn from the server go on showing the surface it
+    // was solved for. Each phase is told the way its own edits tell it.
+    fire("OnThemes", themesState());
+    fire("OnDressing", dressingState());
+    fire("OnRelief", reliefState());
+    syncRelief();                  // the statement moved, so the contours and the shading it produced have too
+    refreshPaint({ now: true });
+    dropIsoMesh();                 // and the meshed board is a picture of a document that is no longer open
   }
 
   const pushHistory = () => fire("OnHistory", history.canUndo, history.canRedo);
@@ -1178,7 +1198,8 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     "addLayer", "deleteLayer", "renameLayer", "setLayerBaseY",
     "setRoomStyle", "defineTheme", "renameTheme", "deleteTheme", "setThemeJson", "setMapTheme",
     "assignShape", "assignGroup",
-    "deleteProp", "updateProp", "deleteMark", "updateMark", "updateGroupRelief", "setPushAmount",
+    "deleteProp", "updateProp",
+    "deleteMark", "updateMark", "renameMark", "updateGroupRelief", "setPushAmount",
   ];
   for (const verb of MUTATORS) {
     const bare = handle[verb];

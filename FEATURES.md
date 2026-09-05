@@ -6544,6 +6544,17 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
   reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
+- **Undo reaches every phase, not just Draw (`TS99`).** A history step is the whole `getState()` value and a
+  restore is `load()`, so the document always came back correct — and only Draw ever showed it. `load` puts
+  the shapes on the canvas and the restore re-announces the shape selection; the marks, the props and the
+  theme registry are rebuilt by the same call and then announced to nobody, so the Relief, Dressing and Theme
+  panels went on listing what the step had just undone and the server-drawn overlays went on showing the
+  surface it was solved for. A restore now fires what each phase's own edits fire — `OnThemes`, `OnDressing`,
+  `OnRelief`, `syncRelief`, `refreshPaint` — and drops the iso mesh, which is a picture of a document that is
+  no longer open. Rebuilding a document clears its selection, so the selected **mark** and **prop** are taken
+  back where the step left them standing, the way the shape already was. And `renameMark` joins the mutator
+  list: a verb that changes the document and is not in it is a verb undo cannot reach.
+  (`docs/client/ui-conventions.md` § What a panel says)
 - **A mirrored copy samples the field it misses by a cell, and a two-state control looks like one
   (`TS98`).** Two faults an author found by taking a `rot_180` board to the isometric.
   **Pillars in the shape's own base height.** A relief-bearing group is mirrored by mirroring its *polygons*
