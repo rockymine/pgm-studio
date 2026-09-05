@@ -9,13 +9,8 @@
   <Section>
     @if (mark is null)
     {
-      <p class="section-desc">
-        Pick a tool and state something: click a <strong>spot height</strong>, or drag a
-        <strong>ridgeline</strong>, a <strong>bench</strong> or a <strong>scarp</strong>. A mark can be
-        dragged past the group's edge — it is clipped, not refused, which is how a hill sits in a corner with
-        no wasted ground behind it.
-      </p>
-      <p class="section-desc">@markCount stated on this map.</p>
+      <p class="section-desc">Pick a tool and state something.</p>
+      <p class="plan-readout">@markCount stated on this map.</p>
     }
     else
     {
@@ -48,8 +43,7 @@
             <NumberField Value="Num(MarkFields.Radius, 4)" ValueChanged="SetRadius" Min="0" />
           </ChildContent>
         </Field>
-        <p class="section-desc">A radius of zero pins one cell and reads as a spike; from about two up it
-          reads as a summit, which is the whole reason the radius exists.</p>
+        <p class="plan-readout">@PointReadout</p>
       }
       else if (kind == MarkKinds.Line)
       {
@@ -59,20 +53,17 @@
             <NumberField Value="Num(MarkFields.Radius, 2)" ValueChanged="SetRadius" Min="0" />
           </ChildContent>
         </Field>
-        <p class="section-desc">The band the line writes is twice this — the same reading a point mark's
-          radius has, reaching from a line instead of from a point.</p>
+        <p class="plan-readout">@LineReadout</p>
         <div class="section-header section-header--ruled"><h2 class="section-title">Heights along it</h2></div>
-        <p class="section-desc">One height holds the whole run. Add more and they interpolate between the
-          vertices, which is what makes a drawn ridge fall as it goes rather than sit level.</p>
         @for (var i = 0; i < HeightCount; i++)
         {
           var at = i;
-          <Field Label="@($"Point {at + 1}")">
+          <Field Label="@StationLabel(at, HeightCount)">
             <NumberField Value="Height(at)" ValueChanged="v => SetHeight(at, v)" />
           </Field>
         }
         <div class="detail-header-badges">
-          <Button Variant="ghost" OnClick="AddHeight">Add a point</Button>
+          <Button Variant="ghost" OnClick="AddHeight">Add a height</Button>
           @if (HeightCount > 1)
           {
             <Button Variant="ghost" OnClick="LevelHeights">Make it level</Button>
@@ -140,14 +131,12 @@
             <NumberField Value="Bevel" ValueChanged="SetBevel" Min="0" />
           </ChildContent>
         </Field>
-        <p class="section-desc">Level and unbevelled is a floor. A height per corner tilts it; a bevel grades
-          its edge into whatever is beside it, which is what stops the four corners of a ring leaving four
-          right angles in the ground.</p>
+        <p class="plan-readout">@AreaReadout</p>
       }
       else if (kind == MarkKinds.Scarp)
       {
         <Field Label="Shelf">
-          <LabelHint>(the +z hand of the drawn direction: south of a line drawn west to east)</LabelHint>
+          <LabelHint>(the +z hand of the line)</LabelHint>
           <ChildContent>
             <NumberField Value="Num(MarkFields.High, 11)" ValueChanged="SetHigh" />
           </ChildContent>
@@ -170,9 +159,7 @@
             <NumberField Value="Num(MarkFields.Band, 5)" ValueChanged="SetBand" Min="1" />
           </ChildContent>
         </Field>
-        <p class="section-desc">Narrow face, big drop is a cliff; wide face is a slope. The band
-          <strong>stops where the line stops</strong>, so the gaps either end are where the shelf can be
-          crossed — a line drawn short of the group's edge is a way through.</p>
+        <p class="plan-readout">@ScarpReadout</p>
       }
       else if (kind == MarkKinds.Push)
       {
@@ -197,17 +184,17 @@
         <Field Label="Roughness">
           <NumberField Value="Num(PushFields.Roughness, 0.3)" ValueChanged="SetRoughness" Min="0" Step="0.05" />
         </Field>
-        <p class="section-desc">A push <strong>moves</strong> the ground instead of stating a height, so two
-          over the same ground add. Crown is the one worth reaching for: at zero the ring gets a flat top,
-          and the middle it raises instead is the deepest point measured inward — so a round ring domes to a
-          <strong>point</strong> and a long one ridges to a <strong>line</strong>, from the same number.</p>
+        <p class="plan-readout">@PushReadout</p>
 
         @* Per-vertex lift. Only for a placed push: the numbers are one per corner of the ring that was drawn,
            so there is nothing to list until there is a ring. This is what makes a drawn ridge fall along its
            length instead of holding level. *@
         @if (editingSelection && amounts.Count > 0)
         {
-          <p class="section-desc">Lift at each corner — vary them and the ridge falls along its own length.</p>
+          @if (PushCornerReadout.Length > 0)
+          {
+            <p class="plan-readout">@PushCornerReadout</p>
+          }
           @for (var i = 0; i < amounts.Count; i++)
           {
             var at = i;
@@ -260,26 +247,19 @@
       <Field Label="Block step">
         <NumberField Value="ReliefNum(ReliefFields.Step, 1)" ValueChanged="SetStep" Min="1" Max="4" />
       </Field>
-      <p class="section-desc">A step of two reads as deliberate terracing — and it is the one knob here that
-        can break a map, because every riser becomes a two-block wall.</p>
+      @if (StepReadout.Length > 0)
+      {
+        <p class="plan-readout">@StepReadout</p>
+      }
       <Field Label="Meant to be">
-        <LabelHint>(what kind of ground this is)</LabelHint>
+        <LabelHint>(checked against the solve; shapes nothing)</LabelHint>
         <ChildContent>
-          <select class="field-input" value="@Landform" @onchange="SetLandform">
-            <option value="" selected="@(Landform.Length == 0)">not stated</option>
-            @foreach (var word in PgmStudio.Vocabulary.Landform.All)
-            {
-              <option value="@word" selected="@(Landform == word)">@word</option>
-            }
-          </select>
+          <Select Options="Landforms" Value="@Landform" ValueChanged="SetLandform" Placeholder="not stated" />
         </ChildContent>
       </Field>
-      <p class="section-desc">A claim the readback checks against the surface the marks actually solved, not a
-        setting that shapes anything.</p>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Grain</h2></div>
-      <p class="section-desc">The wobble added after the surface is solved — what stops it reading as
-        machined. It never overrides a mark: a stated height is a statement, not a suggestion.</p>
+      <p class="plan-readout">@GrainReadout</p>
       <Field Label="Amount">
         <LabelHint>(blocks)</LabelHint>
         <ChildContent>
@@ -297,9 +277,6 @@
       </Field>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Rim</h2></div>
-      <p class="section-desc">A height held all the way round the group's outline — what keeps a hill inside
-        the shape rather than running off its edge. A setting rather than a tool because there is nowhere to
-        place it: it holds the whole outline or none of it.</p>
       <Field Label="Hold the outline">
         <label class="ctrl-row" style="cursor:pointer">
           <input type="checkbox" class="control-input control-input--hidden" checked="@HasRim"
@@ -318,6 +295,7 @@
             <NumberField Value="RimDepth" ValueChanged="SetRimDepth" Min="1" />
           </ChildContent>
         </Field>
+        <p class="plan-readout">@RimReadout</p>
       }
     </Section>
   }

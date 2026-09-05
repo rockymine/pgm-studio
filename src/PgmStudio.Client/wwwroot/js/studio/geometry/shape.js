@@ -324,6 +324,17 @@ export function sampleBezierEdge(p0, c1, c2, p3) {
 }
 
 /** Centroid `[x,z]` of a closed ring (last point == first). */
+/** How far a point lies from a segment, clamped to the segment's own ends rather than to its infinite line.
+ *  Screen-space, and what a hover test against an edge asks: the two controllers that offer a midpoint insert
+ *  measure the same distance, so the ghost appears at the same reach in both. */
+export function distToSegment(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay;
+  const lenSq = dx * dx + dy * dy;
+  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
 export function ringCentroid(ring) {
   const n = ring.length - 1; // exclude the closing repeat
   let sumX = 0, sumZ = 0;

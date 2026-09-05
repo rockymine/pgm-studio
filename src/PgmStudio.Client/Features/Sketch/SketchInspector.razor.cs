@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
 
+using PgmStudio.Client.Components;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
@@ -56,11 +57,11 @@ public partial class SketchInspector
 
     // How a path's two long sides are drawn. Its finish — gravel, a cell fabric, any pattern at all — is a
     // theme assigned to the shape, so what is offered here is only the shape of the band.
-    private static readonly (string Key, string Label)[] StrokeEdges =
+    private static readonly SelectOption[] StrokeEdges =
     [
-        ("solid",   "Solid — one width the whole way"),
-        ("rough",   "Rough — the outline wanders"),
-        ("tapered", "Tapered — fat in the middle, thin at the ends"),
+        new("solid",   "Solid",   "One width the whole way."),
+        new("rough",   "Rough",   "The width wanders up to 45% either side, so the band reads organic."),
+        new("tapered", "Tapered", "Fat in the middle, thin at the ends."),
     ];
 
     // The author sets a width; the shape stores the half-width the band is offset by, so the two edges are
@@ -68,9 +69,9 @@ public partial class SketchInspector
     private Task WidthChanged(double width)
         => Shape is null ? Task.CompletedTask : OnSetStrokeBand.InvokeAsync((Shape.Id, width / 2, Shape.StrokeEdge, Shape.StrokeSeed));
 
-    private Task EdgeChanged(ChangeEventArgs e)
+    private Task EdgeChanged(string edge)
         => Shape is null ? Task.CompletedTask
-            : OnSetStrokeBand.InvokeAsync((Shape.Id, Shape.Radius, e.Value?.ToString() ?? "solid", Shape.StrokeSeed));
+            : OnSetStrokeBand.InvokeAsync((Shape.Id, Shape.Radius, edge.Length == 0 ? "solid" : edge, Shape.StrokeSeed));
 
     private Task SeedChanged(double seed)
         => Shape is null ? Task.CompletedTask
@@ -84,57 +85,69 @@ public partial class SketchInspector
     private Task FloorChanged(double v)
         => Shape is null ? Task.CompletedTask : OnSetHeight.InvokeAsync((Shape.Id, Shape.BaseHeight, v));
 
-    /// <summary>How a shape's top is decided once its group carries a relief (docs/world-export/relief.md §7). The
-    /// empty word is ordinary ground and is deliberately first: a shape is part of the landmass unless its
-    /// author says otherwise, and a default that made every shape a mesa would turn a drawn board into a
-    /// staircase of plates.</summary>
-    private static readonly (string Value, string Label)[] HeightModes =
+    /// <summary>How a shape's top is decided once its group carries a relief (docs/world-export/relief.md §7).
+    /// The words are the document's own, so what an author picks here and what the layout stores are one
+    /// vocabulary. Ground is first and is the default: a shape is part of the landmass unless its author says
+    /// otherwise, and a default that made every shape a mesa would turn a drawn board into a staircase of
+    /// plates.</summary>
+    private static readonly SelectOption[] HeightModes =
     [
-        ("", "ground — the relief decides it"),
-        ("level", "a mesa — a flat top at this height"),
-        ("raise", "a monolith — this far above the ground"),
-        ("sink", "a quarry — this far below the ground"),
+        new("",      "Ground", "Part of the landmass — the group's relief is what this shape's ground does."),
+        new("level", "Level",  "A mesa: a flat top at an absolute height, whatever the ground under it does, so its faces are cliffs."),
+        new("raise", "Raise",  "A monolith: this far above the middle of the ground it covers, so it keeps its prominence wherever it is dragged."),
+        new("sink",  "Sink",   "A quarry: this far below the middle of the ground it covers."),
     ];
 
-    private string HeightModeBlurb => Shape?.HeightMode switch
+    /// <summary>Where this shape's top actually lands, in its own numbers. A mode is a rule and a rule has to
+    /// be applied before it says anything; the number it works out to is the thing an author is checking.
+    /// Empty for ordinary ground, whose top the Floor and Height rows above already state.</summary>
+    private string HeightModeReadout => Shape?.HeightMode switch
     {
-        "level" => "Cuts a flat top straight through the field, whatever the ground under it was doing — so its faces are cliffs.",
-        "raise" => "Stands proud of the ground it covers, read at the middle of it, so it keeps its prominence wherever it is dragged.",
-        "sink" => "Cuts down into the ground it covers by the same reading — a quarry, a sunken arena, a pit.",
-        _ => "Part of the landmass: the group's relief is what this shape's ground does.",
+        "level" => $"Top cut flat at {Shape.Floor + Shape.BaseHeight}, whatever the ground under it does.",
+        "raise" => $"Stands {Shape.BaseHeight} above the middle of the ground it covers.",
+        "sink" => $"Cuts {Shape.BaseHeight} below the middle of the ground it covers.",
+        _ => "",
     };
 
     /// <summary>Whether a shape's ground joins the relief its group is solved over (docs/world-export/relief.md §11).
-    /// Inheriting is first and is the default: the group is the unit because a relief solved per shape leaves
+    /// Inherit is first and is the default: the group is the unit because a relief solved per shape leaves
     /// a seam wherever two of them meet and disagree about the height they share.</summary>
-    private static readonly (string Value, string Label)[] ReliefScopes =
+    private static readonly SelectOption[] ReliefScopes =
     [
-        ("", "yes — its ground is the group's ground"),
-        ("hold", "holds its own level, and the land meets it"),
-        ("exclude", "sits apart — the land ignores it"),
+        new("",        "Inherit", "Its ground is the group's ground — the relief rolls through it, which is what a shape drawn to make a landmass wants."),
+        new("hold",    "Hold",    "Flat at its own floor + height, with the surrounding surface solved knowing where it has to arrive — a walled town the valley runs up to."),
+        new("exclude", "Exclude", "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth."),
     ];
 
-    private string ReliefScopeBlurb => Shape?.ReliefScope switch
+    /// <summary>What this shape's scope works out to, in its own numbers. Empty for the default, which states
+    /// nothing about the shape that the group's own relief does not already say.</summary>
+    private string ReliefScopeReadout => Shape?.ReliefScope switch
     {
-        "hold" => "Flat at its own floor + height, and the surrounding surface is solved knowing where it has to arrive — a walled town the valley runs up to.",
-        "exclude" => "Out of the solve entirely, so the land is whatever that outline would have made at any height — a citadel on its own plinth.",
-        _ => "The group's relief rolls through it, which is what a shape drawn to make a landmass wants.",
+        "hold" => $"Held flat at {Shape.Floor + Shape.BaseHeight}; the land around it is solved to arrive there.",
+        "exclude" => "Out of the solve — the land is whatever the group would have made without it.",
+        _ => "",
     };
 
-    private Task ReliefScopeChanged(ChangeEventArgs e)
+    /// <summary>What the skirt does at the number it is set to. Zero is the one value worth a word, because a
+    /// sheer face is right for a built thing and wrong for a landform.</summary>
+    private string SkirtReadout => Shape is null || Shape.Skirt <= 0
+        ? "A sheer face — right for a built thing, wrong for a landform."
+        : $"Eases into the ground it meets over {Shape.Skirt} block{(Shape.Skirt == 1 ? "" : "s")}.";
+
+    private Task ReliefScopeChanged(string word)
         => Shape is null || Handle is null
             ? Task.CompletedTask
-            : Handle.InvokeVoidAsync("setReliefScope", Shape.Id, e.Value?.ToString() ?? "").AsTask();
+            : Handle.InvokeVoidAsync("setReliefScope", Shape.Id, word).AsTask();
 
     private Task SkirtChanged(double value)
         => Shape is null || Handle is null
             ? Task.CompletedTask
             : Handle.InvokeVoidAsync("setSkirt", Shape.Id, Math.Max(0, (int)Math.Round(value))).AsTask();
 
-    private Task HeightModeChanged(ChangeEventArgs e)
+    private Task HeightModeChanged(string word)
         => Shape is null || Handle is null
             ? Task.CompletedTask
-            : Handle.InvokeVoidAsync("setHeightMode", Shape.Id, e.Value?.ToString() ?? "").AsTask();
+            : Handle.InvokeVoidAsync("setHeightMode", Shape.Id, word).AsTask();
 
     private Task VertexHeightChanged(double v)
         => Shape is null || SelectedVertexIdx < 0 ? Task.CompletedTask

@@ -17,8 +17,7 @@
         <Button Variant="icon" Icon="x" Title="Close" OnClick="() => AddOpenChanged.InvokeAsync(false)" />
       </Actions>
       <ChildContent>
-        <p class="section-desc">Copying one in takes a snapshot. Copying in again under the same name replaces
-          it, which is how a theme edited in the library is brought up to date.</p>
+        <p class="section-desc">Copying one in takes a snapshot; the same name again replaces it.</p>
         @if (libraryThemes.Count == 0)
         {
           <p class="section-desc">The library has no themes yet.</p>
@@ -49,8 +48,7 @@
     <Section Title="In hand">
       <Actions><Badge Kind="neutral">@held</Badge></Actions>
       <ChildContent>
-        <p class="section-desc">Click a shape to paint it, Shift-click for the whole group, Alt-click to lift a
-          shape's theme into your hand. Esc puts this one down.</p>
+        <p class="section-desc">Click to paint · Shift-click the group · Alt-click to lift · Esc to put down</p>
         @if (preview is not null)
         {
           <div class="theme-section-figure">@((MarkupString)preview.Section)</div>
@@ -98,12 +96,12 @@
     @* Nothing is selected, so the column describes the board: what paints where nothing else reaches, and how
        much of the board is still falling through to it. *@
     <Section Title="Board defaults">
-      <p class="section-desc">The lowest layer — what paints every cell no shape claims.</p>
       <Field Label="Map default">
-        <select class="field-input field-input--slim" value="@MapTheme" @onchange="SetMapDefault">
-          <option value="">(unthemed — stone)</option>
-          @foreach (var id in Themes) { <option value="@id" @key="id">@id</option> }
-        </select>
+        <LabelHint>(the lowest layer — what paints a cell no shape claims)</LabelHint>
+        <ChildContent>
+          <Select Options="MapThemes" Value="@MapTheme" ValueChanged="SetMapDefault"
+                  Placeholder="(unthemed — stone)" />
+        </ChildContent>
       </Field>
       <p class="section-desc">@Coverage</p>
     </Section>
@@ -113,19 +111,14 @@
         <Button Variant="icon" Icon="library" Href="/library/houses" Title="Open the house library" />
       </Actions>
       <ChildContent>
-        <p class="section-desc">The finish every wool cage and every spawn cube is stamped with — never their
-          size. One shell each, because both are mirrored. Picking one takes a snapshot. <b>No building</b>
-          leaves the pad, the chests and the monuments on open ground with nothing over them.</p>
+        <p class="section-desc">The finish each is stamped with — never its size. One shell each, since both
+          are mirrored.</p>
         @foreach (var kind in RoomKindInfo.All)
         {
           <Field Label="@kind.Title" @key="kind.Id">
             <div class="lib-bind">
-              <select class="field-input field-input--slim" value="@RoomChoice(kind.Id)"
-                      @onchange="e => BindRoom(kind.Id, e)">
-                <option value="0">(the built-in shell)</option>
-                <option value="none">(no building)</option>
-                @foreach (var room in rooms) { <option value="@room.Id" @key="room.Id">@room.Name</option> }
-              </select>
+              <Select Options="RoomShells(kind.Id)" Value="@RoomChoice(kind.Id)"
+                      ValueChanged="choice => BindRoom(kind.Id, choice)" />
               @if (BoundRoom(kind.Id) is not null || IsOpenRoom(kind.Id))
               {
                 <Button Variant="icon" Icon="x" Title="Go back to the built-in shell"

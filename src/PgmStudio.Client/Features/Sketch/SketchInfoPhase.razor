@@ -34,15 +34,16 @@
       else
       {
         <Section Title="Symmetry">
-          <p class="section-desc">The mirror used for the live preview while you draw. The map area
-            itself grows to fit what you draw — there's no fixed size to set.</p>
           <Field Label="Mode">
-            <select class="field-input" value="@Mode" @onchange="OnModeChange">
-              <option value="mirror_x">Mirror X</option>
-              <option value="mirror_z">Mirror Z</option>
-              <option value="rot_180">Rotate 180°</option>
-              <option value="rot_90">Rotate 90°</option>
-            </select>
+            <LabelHint>(the mirror the preview draws; the board grows to fit)</LabelHint>
+            <ChildContent>
+              <select class="field-input" value="@Mode" @onchange="OnModeChange">
+                <option value="mirror_x">Mirror X</option>
+                <option value="mirror_z">Mirror Z</option>
+                <option value="rot_180">Rotate 180°</option>
+                <option value="rot_90">Rotate 90°</option>
+              </select>
+            </ChildContent>
           </Field>
           <Field Label="Centre X">
             <NumberField Value="CenterX" ValueChanged="OnCenterX" />

@@ -699,7 +699,7 @@ Five things are placed, and they divide into two kinds.
 | Tool | Kind | States |
 |---|---|---|
 | Spot height | `point` | a height at a place, over a radius |
-| Ridgeline | `line` | a traced line at one height, or one height per vertex, over a band either side — and, where the line comes back past itself, how much of that band is flat (`tread`) and how steeply the rest falls (`batter`) |
+| Ridgeline | `line` | a traced line at one height, or several spaced along its run, over a band either side — and, where the line comes back past itself, how much of that band is flat (`tread`) and how steeply the rest falls (`batter`) |
 | Bench | `area` | a closed ring held at one height, or at one per ring corner, with an optional `bevel` grading its edge into the ground around it |
 | Scarp | `scarp` | a traced line with a shelf above and ground below — `high`, `low`, the `face` it drops over and the `band` either side for the land to arrive through. The `high` side is the +z hand of the drawn direction: south of a line traced west to east, north of one traced east to west |
 | Push | `push` | a closed ring lifted by an `amount`, with `falloff`, `roughness`, `crown` and a seed |
@@ -718,6 +718,26 @@ array back to the single amount.
 
 A sixth mark, the **rim**, is not placed at all: it holds the group's whole outline, so it rides as a property
 of the group's relief — one height and a depth.
+
+**A line's heights are stations along its run, not its vertices.** `LineMark.HeightAt` reads the fraction of
+the line travelled and interpolates the array over it, so the count is the author's and has nothing to do with
+how many points the line was drawn with: a two-point line stating five heights bends five times along a
+straight run, and adding a height adds no point. The panel names them by where they land — *At the start*,
+*50% along*, *At the end* — because numbering them made the button beside them read as a promise to add a
+vertex, which it never was. A **scarp** states no array at all: `high` and `low` hold its whole run, since a
+scarp states a drop rather than a profile.
+
+**Points are added on the outline, the way they are in Draw.** With a mark selected, hovering near one of its
+edges offers a midpoint ghost, and the press that inserts the point **keeps hold of it** — it arrives under
+the cursor that asked for it and the same gesture places it, which is the draw stage's behaviour and the
+reason the gesture is one press rather than press, re-aim, press. Same reach, and the same `distToSegment`
+behind both. Before it, the only way to change the shape a mark was drawn as was to draw it again.
+
+**A phase that places its own things owns the selection while it is up.** Relief and Dressing keep a shape out
+of reach: a click picks the group, `selectGroup` does not drill to a sole member, and `Delete` removes the
+selected mark or prop rather than a shape. Without that, picking a single-shape group to reach its base
+selected the island underneath, and `Delete` took the ground the relief was being stated on. Theme is
+select-only too and is deliberately outside this — its inspector is about the selected shape.
 
 The document is keyed by group id and carries the group's own settings beside the two lists. This one states
 all six, and solves to a surface running 7 to 16:
@@ -745,8 +765,8 @@ all six, and solves to a surface running 7 to 16:
   } } }
 ```
 
-Two shapes of `h` are both correct: a point and a rim state one number, while a **line** states one per
-vertex along its run and an **area** one per ring corner — `"h": 9` and `"h": [12, 14, 11]` are each what an
+Two shapes of `h` are both correct: a point and a rim state one number, while a **line** states as many as
+it likes along its run and an **area** one per ring corner — `"h": 9` and `"h": [12, 14, 11]` are each what an
 author would write, and the format reads either. An area's heights tilt it only when there is one for every
 corner; any other count is read as the first, which is the same test the inspector shows the level form on. A push carries no `kind` on the wire, because the array it sits in says what it is; `amounts` states a
 lift per ring vertex and collapses back to the single `amount` when they all agree. And a mark that does not

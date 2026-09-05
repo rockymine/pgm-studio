@@ -22,7 +22,7 @@
 import { svgEl } from "../render/svg.js";
 import { renderTransformBox, gripSideX, gripSideZ } from "../render/canvas-chrome.js";
 import { toScreen } from "../geometry/transform.js";
-import { toBounds } from "../geometry/shape.js";
+import { toBounds, distToSegment } from "../geometry/shape.js";
 
 const VERTEX_R           = 4;   // a point of an outline, drawn as a disc the size of the insert ghost
 const GHOST_R            = 4;
@@ -36,14 +36,6 @@ const MIN_SPAN           = 1;   // blocks — an outline is never scaled thinner
 // wrap-around edge every closed ring has does not exist for it; `closedVertices` is what says so.
 const vertexEdited = (shape) => shape?.type === "polygon" || shape?.type === "lasso" || shape?.type === "polyline";
 const closedVertices = (shape) => shape?.type !== "polyline";
-
-function distToSegment(px, py, ax, ay, bx, by) {
-  const dx = bx - ax, dy = by - ay;
-  const lenSq = dx * dx + dy * dy;
-  if (lenSq === 0) return Math.hypot(px - ax, py - ay);
-  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
-}
 
 export class SketchEditController {
   #handlesLayer;

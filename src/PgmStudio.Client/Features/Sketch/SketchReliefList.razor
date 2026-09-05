@@ -8,8 +8,7 @@
 <Section Title="Stated">
   @if (groups.Count == 0)
   {
-    <p class="section-desc">Nothing stated yet. Pick a tool and click a <strong>spot height</strong>, or drag a
-      <strong>ridgeline</strong>, an <strong>area</strong> or a <strong>scarp</strong> inside a group.</p>
+    <p class="section-desc">Nothing stated yet. Pick a tool and state something inside a group.</p>
   }
   else
   {
@@ -20,7 +19,7 @@
            treatment the group tree gives its own rows, because it is the same kind of row. *@
         <div class="geo-row" @key="group.GroupId" @onclick="() => SelectGroup(group.GroupId)">
           <span class="geo-type-icon"><i data-lucide="layers"></i></span>
-          <span class="geo-label">@group.GroupId</span>
+          <span class="geo-label">@group.Name</span>
           <span class="list-tag">base @group.Base</span>
         </div>
         @foreach (var row in group.Marks)

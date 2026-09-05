@@ -23,7 +23,10 @@ public partial class SketchReliefList
     [Inject] public IJSRuntime JS { get; set; } = default!;
 
     private sealed record Row(string Id, string Icon, string Label, string Where, string GroupId);
-    private sealed record Group(string GroupId, string Base, List<Row> Marks);
+
+    /// <summary>One group's marks, headed by what the group is called rather than by the id the relief is
+    /// keyed on — the two are the same word only for a group nobody has named.</summary>
+    private sealed record Group(string GroupId, string Name, string Base, List<Row> Marks);
 
     private List<Group> groups = [];
     private string? selectedId;
@@ -50,12 +53,19 @@ public partial class SketchReliefList
             var inPlayBase = root.TryGetProperty("relief", out var relief) && relief.ValueKind == JsonValueKind.Object
                 && relief.TryGetProperty("base", out var baseValue) ? baseValue.GetRawText() : null;
 
+            var names = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (root.TryGetProperty("groupNames", out var named) && named.ValueKind == JsonValueKind.Object)
+                foreach (var entry in named.EnumerateObject())
+                    if (entry.Value.ValueKind == JsonValueKind.String)
+                        names[entry.Name] = entry.Value.GetString() ?? entry.Name;
+
             var byGroup = new Dictionary<string, Group>();
             foreach (var mark in marks.EnumerateArray())
             {
                 var groupId = mark.TryGetProperty("groupId", out var owner) ? owner.GetString() ?? "" : "";
                 if (!byGroup.TryGetValue(groupId, out var group))
-                    byGroup[groupId] = group = new Group(groupId, groupId == inPlay ? inPlayBase ?? "—" : "—", []);
+                    byGroup[groupId] = group = new Group(groupId, names.GetValueOrDefault(groupId, groupId),
+                        groupId == inPlay ? inPlayBase ?? "—" : "—", []);
                 group.Marks.Add(RowOf(mark) with { GroupId = groupId });
             }
             groups = [.. byGroup.Values];

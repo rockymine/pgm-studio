@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using PgmStudio.Client.Components;
 using PgmStudio.Vocabulary;
 
 namespace PgmStudio.Client.Features.Sketch;
@@ -43,7 +44,17 @@ public partial class SketchReliefInspector
                                     // can be read from it — every height in the panel is stated against it
     private string? groupError;    // what the bridge refused the last group edit with
 
-    private string GroupTitle => $"Group {groupName ?? groupId}";
+    /// <summary>What the group's own settings sit under. A group already called "Group 1" does not want the
+    /// word twice, and one called <c>i1</c> does — so the word is added only where the name does not carry
+    /// it.</summary>
+    private string GroupTitle
+    {
+        get
+        {
+            var name = groupName ?? groupId ?? "";
+            return name.StartsWith("group", StringComparison.OrdinalIgnoreCase) ? name : $"Group {name}";
+        }
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender) => await JS.InvokeVoidAsync("studio.icons");
 
@@ -264,8 +275,17 @@ public partial class SketchReliefInspector
         return Set(MarkFields.Height, heights);
     }
 
-    /// <summary>Add a point to the ridgeline's height profile, starting at the last one — an author adding a
-    /// point means to bend the line from where it already is, not to introduce a step.</summary>
+    /// <summary>Where one of a line's heights lands. They are spaced evenly along the run and have nothing to
+    /// do with the points the line was drawn with — a two-point line can state five heights — so they are
+    /// named by the position they hold rather than numbered as if they were vertices.</summary>
+    private static string StationLabel(int at, int count)
+        => count <= 1 ? "Height"
+         : at == 0 ? "At the start"
+         : at == count - 1 ? "At the end"
+         : $"{100.0 * at / (count - 1):0}% along";
+
+    /// <summary>Add a height to the profile, starting at the last one — an author adding one means to bend
+    /// the run from where it already is, not to introduce a step.</summary>
     private Task AddHeight()
     {
         var heights = new JsonArray();
@@ -322,11 +342,23 @@ public partial class SketchReliefInspector
     /// stating none. It shapes nothing — the readback measures the solved surface against it.</summary>
     private string Landform => relief?[ReliefFields.Landform]?.ToString() ?? "";
 
-    private Task SetLandform(ChangeEventArgs e)
-    {
-        var word = e.Value?.ToString() ?? "";
-        return SetRelief(ReliefFields.Landform, word.Length == 0 ? null : JsonValue.Create(word));
-    }
+    /// <summary>The four words a group can claim, each under what the vocabulary says it is. The notes are
+    /// the constants' own summaries rather than a second wording, so the word an author picks, the word the
+    /// document uses and the word <c>RL1</c> cites are one word with one meaning.</summary>
+    private static readonly SelectOption[] Landforms =
+    [
+        new(Vocabulary.Landform.Plain, "plain",
+            "Ground a player crosses without thinking about it."),
+        new(Vocabulary.Landform.Rolling, "rolling",
+            "Rises and falls enough to break a sight line and shape a route."),
+        new(Vocabulary.Landform.Hills, "hills",
+            "Real climbs — a route goes round or over, and the choice matters."),
+        new(Vocabulary.Landform.Mountain, "mountain",
+            "Ground the map is built against rather than on: a range, a rim, a wall of land."),
+    ];
+
+    private Task SetLandform(string word)
+        => SetRelief(ReliefFields.Landform, word.Length == 0 ? null : JsonValue.Create(word));
 
     // ── the rim ────────────────────────────────────────────────────────────────
     // The rim is a mark in the wire format and a setting in the interface, because it holds the group's whole
@@ -402,6 +434,159 @@ public partial class SketchReliefInspector
         => relief?[ReliefFields.Grain]?[field] is { } node && double.TryParse(node.ToString(), out var value)
             ? value : fallback;
 
+    // ── what the numbers work out to ───────────────────────────────────────────
+    // Each of these is a fact about the mark or the group as it stands. A knob doing nothing says nothing:
+    // the empty string renders no line at all, so a panel is quiet until an author has stated something.
+
+    /// <summary>A point's disc, in the width a player crosses. A radius under a cell is a spike, which is a
+    /// different thing from a summit and the only case worth naming.</summary>
+    private string PointReadout
+    {
+        get
+        {
+            var radius = Num(MarkFields.Radius, 4);
+            return radius < 1 ? "Pins one cell — a spike, not a summit."
+                              : $"Holds a disc {Span(radius * 2)} across.";
+        }
+    }
+
+    /// <summary>A line's band, and whether its heights fall along it. Both are read off the fields above, so
+    /// the line says what the drawing already decided rather than what a line mark is for.</summary>
+    private string LineReadout
+    {
+        get
+        {
+            var band = $"A band {Span(Radius * 2)} wide";
+            if (HeightCount < 2) return $"{band}, level its whole run.";
+            double first = Height(0), last = Height(HeightCount - 1);
+            return first.Equals(last) ? $"{band}, back at {Trim(first)} where it started."
+                                      : $"{band}, running {Trim(first)} to {Trim(last)}.";
+        }
+    }
+
+    /// <summary>An area's surface and its edge. The flat core is the number a bevel can eat: stated wider
+    /// than half the ring's narrow span there is nothing left holding the height the pad was drawn for.</summary>
+    private string AreaReadout
+    {
+        get
+        {
+            var surface = Tilted
+                ? $"Falls {Trim(CornerHigh)} to {Trim(CornerLow)} across its corners"
+                : $"Level at {Trim(Height(0))}";
+            if (Bevel <= 0) return $"{surface}, stated to its own outline — it meets its neighbour on a step.";
+            var core = RingSpan - 2 * Bevel;
+            return core <= 0
+                ? $"{surface}. The bevel is wider than the ring — nothing is left flat."
+                : $"{surface}. Edge grades over {Span(Bevel)}; {Trim(core)} of its {Span(RingSpan)} stays flat.";
+        }
+    }
+
+    /// <summary>What a scarp is actually choosing, which is the grade rather than the drop. One number spells
+    /// all three answers, so the reading says which of them this face gives.</summary>
+    private string ScarpReadout
+    {
+        get
+        {
+            double high = Num(MarkFields.High, 11), low = Num(MarkFields.Low, 5);
+            var face = Math.Max(1, Num(MarkFields.Face, 2));
+            var drop = Math.Abs(high - low);
+            var grade = drop / face;
+            // The three answers a grade gives, from the mark's own docstring: a ramp, a face a block gets a
+            // player up, and one that is only ever descended.
+            var crossing = grade <= 1 ? "walked up"
+                         : grade <= 2 ? "crossed by placing a block"
+                         : "only ever descended";
+            var points = mark?[MarkFields.Points] is JsonArray line ? line.Count : 0;
+            var run = points > 2 ? $" Held over all {points} points." : "";
+            return $"Drops {Trim(drop)} over a {Trim(face)}-block face: {grade:0.#} a block, {crossing}.{run}";
+        }
+    }
+
+    /// <summary>A push's two gradients, which are the two things it can disagree with itself about: the skirt
+    /// climbs <c>amount / falloff</c> and the crown <c>crown</c> over the distance to the shape's spine.</summary>
+    private string PushReadout
+    {
+        get
+        {
+            var amount = Num(PushFields.Amount, 5);
+            var falloff = Num(PushFields.Falloff, 10);
+            var crown = Num(PushFields.Crown, 2);
+            var verb = amount < 0 ? "Digs" : "Lifts";
+            var skirt = falloff <= 0
+                ? "a sheer edge at the ring"
+                : $"over {Span(falloff)} of skirt, {Math.Abs(amount) / falloff:0.#} a block";
+            var top = crown == 0 ? "flat on top"
+                    : crown > 0 ? $"domed {Span(crown)} at its spine"
+                    : $"dished {Span(-crown)} at its spine";
+            return $"{verb} {Span(Math.Abs(amount))}, {skirt} — {top}.";
+        }
+    }
+
+    /// <summary>Where the corners of a push's ring disagree. Nothing where they do not, since a uniform ring
+    /// is the single amount the row above already states.</summary>
+    private string PushCornerReadout => !VariesAlongRing ? ""
+        : $"Varies {Trim(amounts.Min())} to {Trim(amounts.Max())} around the ring.";
+
+    /// <summary>What a block step above one costs. At one there is nothing to say — every surface is quantised
+    /// to blocks — and above it every riser the ground makes is that tall, which is the one knob here that can
+    /// break a map.</summary>
+    private string StepReadout
+    {
+        get
+        {
+            var step = ReliefNum(ReliefFields.Step, 1);
+            return step <= 1 ? "" : $"Every riser the ground makes is {Span(step)} tall.";
+        }
+    }
+
+    /// <summary>What the grain adds. Off is worth saying, because a zero amplitude and no grain at all are the
+    /// same surface and an author who set one and got neither would have nowhere to look.</summary>
+    private string GrainReadout
+    {
+        get
+        {
+            var amount = GrainNum(GrainFields.Amplitude);
+            return amount <= 0 ? "Off — the surface is exactly what the marks solved."
+                 : $"Moves the solved surface up to {Span(amount)}, over features about "
+                   + $"{Span(GrainNum(GrainFields.Scale, 12))} across.";
+        }
+    }
+
+    /// <summary>How far in the rim reaches, once there is one. Its height is the row above; what a reader
+    /// cannot see is how much of the group's edge it flattens.</summary>
+    private string RimReadout => !HasRim ? ""
+        : $"Held at {Trim(RimHeight)}, {Span(RimDepth)} in from the outline.";
+
+    // ── reading the numbers a readout is built from ────────────────────────────
+    /// <summary>The narrower span of the ring's own box, which is what a bevel eats into from both sides.</summary>
+    private double RingSpan
+    {
+        get
+        {
+            if (mark?[MarkFields.Ring] is not JsonArray ring || ring.Count < 3) return 0;
+            var xs = new List<double>();
+            var zs = new List<double>();
+            foreach (var point in ring.OfType<JsonArray>().Where(point => point.Count >= 2))
+            {
+                if (double.TryParse(point[0]?.ToString(), out var x)) xs.Add(x);
+                if (double.TryParse(point[1]?.ToString(), out var z)) zs.Add(z);
+            }
+            return xs.Count == 0 || zs.Count == 0 ? 0
+                 : Math.Min(xs.Max() - xs.Min(), zs.Max() - zs.Min());
+        }
+    }
+
+    private double CornerLow => Enumerable.Range(0, HeightCount).Select(Height).Min();
+    private double CornerHigh => Enumerable.Range(0, HeightCount).Select(Height).Max();
+
+    /// <summary>A length in blocks, kept to the half a tread can be stated in and pluralised on the value it
+    /// actually shows.</summary>
+    private static string Span(double blocks)
+        => $"{blocks:0.#} block{(Math.Abs(blocks - 1) < 0.01 ? "" : "s")}";
+
+    /// <summary>A height with no trailing zero, since a mark states whole courses far more often than not.</summary>
+    private static string Trim(double height) => $"{height:0.#}";
+
     private static readonly Dictionary<string, (string Icon, string Title, string Blurb)> KindInfo = new()
     {
         [MarkKinds.Point] = ("dot", "Spot height",
@@ -411,11 +596,11 @@ public partial class SketchReliefInspector
         [MarkKinds.Area] = ("pentagon", "Bench",
             "A drawn ring the ground is held to — a floor, a plateau, or a shelf cut into a slope."),
         [MarkKinds.Scarp] = ("triangle", "Scarp",
-            "A shelf on one side of a line and open ground on the other — the shelf is on the +z hand of the direction the line is drawn. The face is the drop; where the line stops is where the shelf can be crossed."),
+            "A shelf on one side of a drawn line and open ground on the other, with the drop between them. One level each, the whole run — a scarp states a drop rather than a profile. The shelf takes the +z hand of the direction the line is drawn, and the band stops where the line stops."),
         [MarkKinds.Rim] = ("square-dashed", "Rim",
             "The group's whole outline, held at one height."),
         [MarkKinds.Push] = ("arrows-up-from-line", "Push",
-            "A drawn ring the ground is lifted inside, falling away outside it over the skirt. It moves the surface rather than stating a height, so two over the same ground add."),
+            "A drawn ring the ground is lifted inside, falling away over the skirt outside it. It moves the surface rather than stating a height, so two over the same ground add."),
     };
 
     private (string Icon, string Title, string Blurb) Info

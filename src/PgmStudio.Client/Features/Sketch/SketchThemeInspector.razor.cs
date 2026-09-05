@@ -164,12 +164,28 @@ public partial class SketchThemeInspector
         await OnChanged.InvokeAsync();
     }
 
-    private async Task SetMapDefault(ChangeEventArgs e)
+    private async Task SetMapDefault(string theme)
     {
         if (Handle is null) return;
-        await Handle.InvokeVoidAsync("setMapTheme", (string?)e.Value ?? "");
+        await Handle.InvokeVoidAsync("setMapTheme", theme);
         await OnChanged.InvokeAsync();
     }
+
+    /// <summary>The board's own themes as options. The map default is the lowest layer — what paints a cell
+    /// no shape claims — so the row standing for none says what falls through instead of naming nothing.</summary>
+    private IReadOnlyList<SelectOption> MapThemes =>
+        [.. Themes.Select(id => new SelectOption(id, id))];
+
+    /// <summary>One room kind's shells: the built-in, no building at all, and every style the library holds.
+    /// The two that are not a style carry what they do, since neither has a name that says it.</summary>
+    private IReadOnlyList<SelectOption> RoomShells(string kind) =>
+    [
+        new("0", "(the built-in shell)", "The plain shell the export builds when nothing else is bound."),
+        new(NoBuilding, "(no building)",
+            "Leaves the pad, the chests and the monuments on open ground with nothing over them."),
+        .. rooms.Select(room => new SelectOption(room.Id.ToString(), room.Name,
+            "Picking it takes a snapshot — the board holds the style, not a pointer at the library row.")),
+    ];
 
     private async Task ClearSelection()
     {
@@ -218,10 +234,10 @@ public partial class SketchThemeInspector
         StateHasChanged();
     }
 
-    private async Task BindRoom(string kind, ChangeEventArgs e)
+    private async Task BindRoom(string kind, string choice)
     {
-        if ((string?)e.Value == NoBuilding) { await OpenRoom(kind); return; }
-        if (!long.TryParse((string?)e.Value, out var id) || id == 0) { await ClearRoom(kind); return; }
+        if (choice == NoBuilding) { await OpenRoom(kind); return; }
+        if (!long.TryParse(choice, out var id) || id == 0) { await ClearRoom(kind); return; }
 
         // The snapshot is taken here: from now on the board holds the style, not a pointer at the row.
         var styleJson = await Library.DocumentAsync(LibraryKinds.Houses, id);

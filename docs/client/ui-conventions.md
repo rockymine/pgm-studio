@@ -93,6 +93,40 @@ which is the set the reader answers for.
 every shape kind must rasterize to ground, and every mark kind must read as a mark. Adding a word to a set
 without teaching a reader fails there rather than in a board that quietly lost a shape.
 
+## What a panel says, and where each kind of saying goes
+
+An inspector has four places to put a sentence and they are not interchangeable. Picking the wrong one is how
+a column that edits eleven numbers came to carry four hundred words about what those numbers mean.
+
+**An option is a name, and its sentence is its note.** A `<select>` row has to be read at the width of the
+control and scanned against its siblings, so what belongs there is the word — `Ground`, `Level`, `Raise`,
+`Sink` — and what a row *is* rides as its `Note`, which `Select` renders as the option's title. An option
+reading *"a monolith — this far above the ground"* makes the list a paragraph with a dropdown around it: it
+cannot be scanned, it cannot be compared, and the same sentence is usually repeated under the control anyway.
+
+**The word an option writes is the word the document uses.** `Inherit`, `Hold` and `Exclude` are what
+`Participation`, `relief_scope` and `docs/tools/sketch.md` all call them, so what an author picks can be
+grepped for in `docs/` and cited in a finding. A label invented for the picker — *"yes — its ground is the
+group's ground"* — is a third vocabulary for a thing that already had one, and it is the reason a reader
+cannot look up what they just chose.
+
+**Under a control goes what the numbers work out to, not what the control is for.** `Top at 8`; `Drops 12 over
+a 2-block face: 6 a block, only ever descended`; `Edge grades over 5 blocks; 6 of its 16 blocks stays flat`.
+A readout is short because a fact is short, it is always true because it is computed, and it changes when the
+author changes something, which is the only way a panel teaches a knob. A paragraph explaining what a bevel is
+does none of the three, and the argument for why the knob is shaped that way is a document's job — `docs/` is
+named for subjects so that there is somewhere to put it.
+
+**A control that is doing nothing says nothing.** A readout returns the empty string and renders no line: a
+block step of one, a group with no rim, a push whose corners agree. Two selects at their defaults with an
+explanatory paragraph each is thirty words to say that nothing is happening, and it is the first thing a
+reader learns to skip — which is what then hides the line that matters.
+
+**What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys
+· Shift+arrow = 16 blocks* is a keymap. *Nothing stated yet* is an empty state. *Turns with the building at
+every mirror image* is behaviour a reader cannot see and no number states. Everything else is a note, a
+`LabelHint`, or a readout.
+
 ## The API rules
 
 **Param-first, with a slot escape hatch.** A component takes typed params for the common case and a

@@ -6544,6 +6544,45 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
   reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
+- **A relief phase cannot reach the ground it is stating on, and a mark's shape can be changed (`TS96`).**
+  Five faults found by authoring a board with it. **`Delete` took the island.** The shape chord fired on any
+  `#selectedId`, and picking a single-shape group to reach its base selected that group's one member — so the
+  ground a relief was being stated on went, and only undo brought it back. A phase that places its own things
+  now owns the selection while it is up: a click picks the group, `selectGroup` does not drill to a sole
+  member, and `Delete` removes the selected mark or prop. Theme is select-only too and is deliberately
+  outside it, its inspector being about the selected shape.
+  **A mark could not gain a point.** The grips moved what a trace happened to leave and nothing added one, so
+  reshaping meant redrawing. Hovering near a selected mark's edge now offers the midpoint ghost the draw stage
+  has had, and the press that inserts keeps hold of the point — it arrives under the cursor that asked for it
+  and the same gesture places it, rather than dropping at the midpoint to be re-aimed and pressed again.
+  `distToSegment` moves to `geometry/shape.js` so both measure the same reach.
+  **Picking measured a circle round the anchor.** A line's reach was its farthest point plus its band, so a
+  press anywhere in that disc picked it and a press genuinely on the line lost to whichever mark had the
+  smaller disc; pushes were not searched at all. The test is the drawn geometry now — a band along the
+  polyline, the ground inside a ring, a push's skirt outside its own — and the tightest fit wins.
+  **The editor invented grain.** `defaultRelief` seeded every relief with 1.2 blocks of noise where
+  `ReliefGrainJson.Amplitude` defaults to 0 and the grain object is nullable, so a document that stated none
+  gained some the moment the editor touched it — noise an author could not trace to anything they had typed.
+  **And the heights lied about what they were.** A line's `h` entries are stations spaced along its run, not
+  its vertices, so a two-point line can state five: they are named *At the start*, *50% along*, *At the end*
+  now, and the button says **Add a height**, where *Add a point* had promised a vertex it never added.
+  Beside them: the group's settings are headed by its name rather than the id the relief is keyed on, and no
+  longer read `Group Group 1`. (`tests/js/relief-doc.test.js`, `docs/tools/sketch.md` § Relief)
+- **A Sketch panel names, and reads out (`TS95`).** The tool's five inspectors carried **1,102 words** of
+  explanatory prose and three dropdowns whose option text was the explanation — *"a monolith — this far above
+  the ground"*, *"yes — its ground is the group's ground"* — with the same sentence repeated in a paragraph
+  under the control. Three rules replace it, and they are written out in `docs/client/ui-conventions.md`.
+  **An option is a name and its sentence is its note**, which is what `Select` was built for and what these
+  three had never adopted. **The word it writes is the document's word** — `Ground · Level · Raise · Sink`,
+  `Inherit · Hold · Exclude`, the four `Landform` words under the vocabulary's own summaries — so what an
+  author picks can be grepped in `docs/` and cited in a finding, where the invented labels were a third
+  vocabulary for a thing that already had one. And **under a control goes what the numbers work out to**:
+  `Top at 8`, `Drops 12 over a 2-block face: 6 a block, only ever descended`, `A band 10 blocks wide, running
+  28 to 14`, `Edge grades over 5 blocks; 6 of its 16 blocks stays flat`, `Every riser the ground makes is 2
+  blocks tall`. A readout returns empty where the knob is doing nothing, so a block step of one, a group with
+  no rim and a push whose corners agree each render no line at all. 1,102 words become **312**, and the two
+  shape controls that used to spend thirty words saying nothing was happening now spend three.
+  (`docs/client/ui-conventions.md` § What a panel says, `docs/tools/sketch.md`)
 - **The Relief panel states the whole mark vocabulary, and reads back what it charges (`TS94`).** The solver
   had grown five statements the editor could not make and four readings it could not show. A **Ridgeline** now
   carries `tread` and `batter` behind one toggle — off holds the whole band flat, which is what a ridge wants;

@@ -11,12 +11,8 @@
   <Section>
     @if (prop is null)
     {
-      <p class="section-desc">
-        Pick a tool and place something: drag a <strong>route</strong>, an <strong>area</strong> or a
-        <strong>building</strong>'s footprint, click to drop a <strong>tree</strong> or a
-        <strong>boulder</strong>. Click a placed prop to change it.
-      </p>
-      <p class="section-desc">@propCount placed on this map.</p>
+      <p class="section-desc">Pick a tool and place something. Click a placed prop to change it.</p>
+      <p class="plan-readout">@propCount placed on this map.</p>
     }
     else
     {
@@ -62,9 +58,6 @@
                                           : "paint — anything may stand on it")</span>
           </label>
         </Field>
-        <p class="section-desc">The style below is the brush and says nothing about this: a gravel tongue over
-          a crag and a road between two spawns can be the same brush at the same width. Only a claiming stroke
-          is kept clear of, and a board where every stroke claims has nowhere left to plant.</p>
         <Field Label="Width (blocks)">
           <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />
         </Field>
@@ -87,9 +80,7 @@
                    @oninput="e => Set(PropFields.Coverage, JsonValue.Create(Share(e)))" /></ChildContent></Field>
         }
         <div class="section-header section-header--ruled"><h2 class="section-title">Paving</h2></div>
-        <p class="section-desc">What the band is laid with — a full material, so a road can be one block, a
-          cobbled fabric of several, or any pattern the theme offers. The style above shapes the band; this
-          decides what fills it.</p>
+        <p class="section-desc">The style shapes the band; this fills it.</p>
         @if (Material(PropFields.Pave) is { } pave)
         {
           <MaterialEditor Node="pave" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Pave)" />
@@ -132,8 +123,7 @@
           }
         </div>
         <div class="section-header section-header--ruled"><h2 class="section-title">Bank</h2></div>
-        <p class="section-desc">The bed floor and the beach — a full material, the same the shallows show
-          through and the shore meets the land with.</p>
+        <p class="section-desc">The bed floor and the beach.</p>
         @if (Material(PropFields.Bank) is { } bank)
         {
           <MaterialEditor Node="bank" Blocks="blocks" Styles="styles" OnChanged="() => MaterialChanged(PropFields.Bank)" />
@@ -171,10 +161,8 @@
         <div class="section-header section-header--ruled">
           <h2 class="section-title">@(kind == PropKinds.Tree ? "Which tree" : "Which rock")</h2>
         </div>
-        <p class="section-desc">
-          Picked from the library and named on the placement, so retuning the recipe retunes every
-          @(kind == PropKinds.Tree ? "tree" : "boulder") wearing it.
-        </p>
+        <p class="section-desc">Named on the placement, so retuning the recipe retunes every
+          @(kind == PropKinds.Tree ? "tree" : "boulder") wearing it.</p>
         <div class="prop-cards prop-cards--tall">
           @foreach (var recipe in recipes)
           {
@@ -199,8 +187,8 @@
       else if (kind == PropKinds.House)
       {
         <div class="section-header section-header--ruled"><h2 class="section-title">Shell</h2></div>
-        <p class="section-desc">The building is raised in a room style from the library. Picking one copies it
-          onto this building, so editing that library row later leaves what is already placed alone.</p>
+        <p class="section-desc">Picking one copies it onto this building, so a later library edit leaves it
+          alone.</p>
         <div class="prop-cards">
           @foreach (var shell in shells)
           {
@@ -218,9 +206,8 @@
         }
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Wings</h2></div>
-        <p class="section-desc">A building is one rectangle or several touching ones — an L, a T or a U —
-          stamped as a single shell under one roof. Shift-click a second building to pick both, then
-          <kbd>@JoinChord</kbd> to join them; the same chord on a joined building takes it apart again.</p>
+        <p class="section-desc">Shift-click a second building, then <kbd>@JoinChord</kbd> to join · the same
+          chord takes a joined one apart</p>
         <div class="panel-actions">
           <Button OnClick="Join" Disabled="@(!CanJoin)">
             <i data-lucide="@(Wings > 1 ? "ungroup" : "group")"></i> @JoinLabel
@@ -230,8 +217,8 @@
         </div>
 
         <div class="section-header section-header--ruled"><h2 class="section-title">Door</h2></div>
-        <p class="section-desc">Which wall the way in is cut through. It turns with the building at every
-          mirror image, so a pair never both open toward the same half of the map.</p>
+        <p class="section-desc">Turns with the building at every mirror image.</p>
+
         <div class="chip-row">
           <Chip Active="@(Text(PropFields.Front, string.Empty).Length == 0)" OnClick="() => Set(PropFields.Front, null)">
             A long side

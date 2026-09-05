@@ -35,20 +35,21 @@
         <Field Label="Floor (elevation)">
           <NumberField Value="Shape.Floor" ValueChanged="FloorChanged" Min="0" />
         </Field>
-        <p class="section-desc">Floor lifts the base; the top sits at floor + height.</p>
+        @if (string.IsNullOrEmpty(Shape.HeightMode))
+        {
+          <p class="plan-readout">Top at @(Shape.Floor + Shape.BaseHeight).</p>
+        }
 
         @* How the top is decided once the group carries a relief. Ordinary ground is the default and stays
            it: a shape drawn to make a landmass IS the landmass, and the relief inside it is what the ground
            does. The other three are for a shape meant to stand in the terrain rather than be it. *@
         <Field Label="Stands as">
-          <select class="field-input" value="@Shape.HeightMode" @onchange="HeightModeChanged">
-            @foreach (var (value, label) in HeightModes)
-            {
-              <option value="@value" selected="@(Shape.HeightMode == value)">@label</option>
-            }
-          </select>
+          <Select Options="HeightModes" Value="@Shape.HeightMode" ValueChanged="HeightModeChanged" />
         </Field>
-        <p class="section-desc">@HeightModeBlurb</p>
+        @if (HeightModeReadout.Length > 0)
+        {
+          <p class="plan-readout">@HeightModeReadout</p>
+        }
         @if (!string.IsNullOrEmpty(Shape.HeightMode))
         {
           <Field Label="Skirt">
@@ -57,8 +58,7 @@
               <NumberField Value="Shape.Skirt" ValueChanged="SkirtChanged" Min="0" />
             </ChildContent>
           </Field>
-          <p class="section-desc">Zero is a sheer face — right for a monolith, which is a built thing standing
-            on the ground. A few blocks sits a landform <strong>in</strong> the terrain instead of on it.</p>
+          <p class="plan-readout">@SkirtReadout</p>
         }
         else
         {
@@ -66,14 +66,12 @@
              standing out of the field already answers it, and a raise reads the ground under its own
              footprint to know where to stand. *@
           <Field Label="Takes part in relief">
-            <select class="field-input" value="@Shape.ReliefScope" @onchange="ReliefScopeChanged">
-              @foreach (var (value, label) in ReliefScopes)
-              {
-                <option value="@value" selected="@(Shape.ReliefScope == value)">@label</option>
-              }
-            </select>
+            <Select Options="ReliefScopes" Value="@Shape.ReliefScope" ValueChanged="ReliefScopeChanged" />
           </Field>
-          <p class="section-desc">@ReliefScopeBlurb</p>
+          @if (ReliefScopeReadout.Length > 0)
+          {
+            <p class="plan-readout">@ReliefScopeReadout</p>
+          }
         }
         <Field Label="Rotate (°)">
           <input @key="rotateNonce" class="field-input" type="number" step="15" placeholder="0" value="@rotateInput" @onchange="RotateChanged" />
@@ -85,21 +83,17 @@
             <NumberField Value="Shape.Radius * 2" ValueChanged="WidthChanged" Min="2" Step="2" />
           </Field>
           <Field Label="Edge">
-            <select class="field-input" value="@Shape.StrokeEdge" @onchange="EdgeChanged">
-              @foreach (var edge in StrokeEdges)
-              {
-                <option value="@edge.Key" selected="@(edge.Key == Shape.StrokeEdge)">@edge.Label</option>
-              }
-            </select>
+            <Select Options="StrokeEdges" Value="@Shape.StrokeEdge" ValueChanged="EdgeChanged" />
           </Field>
           @if (Shape.StrokeEdge == "rough")
           {
             <Field Label="Wander seed">
-              <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
+              <LabelHint>(the same seed wanders the same way on every export)</LabelHint>
+              <ChildContent>
+                <NumberField Value="Shape.StrokeSeed" ValueChanged="SeedChanged" Min="0" />
+              </ChildContent>
             </Field>
-            <p class="section-desc">The same seed always wanders the same way, so a map exports identically.</p>
           }
-          <p class="section-desc">Drag the points to move the route; the band follows. Its finish is a theme.</p>
         }
         @if (Shape.Type == "polygon" || Shape.Type == "lasso")
         {
@@ -115,9 +109,9 @@
             <Button Full OnClick="() => OnApplySlope.InvokeAsync()">
               <i data-lucide="move-3d"></i> Apply slope
             </Button>
-            <p class="section-desc">
-              Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through these @SlopeControls.Count points and steps
-              every other vertex onto it. Shift-click a marked vertex to unmark it.
+            <p class="plan-readout">
+              Fits a @(SlopeControls.Count == 2 ? "ramp" : "plane") through @SlopeControls.Count points · shift-click
+              a marked one to unmark it
             </p>
           }
           else if (SelectedVertexIdx >= 0)
@@ -135,7 +129,7 @@
         <Button Full Variant="danger" OnClick="() => OnDeleteShape.InvokeAsync(Shape.Id)">
           <i data-lucide="trash-2"></i> Delete
         </Button>
-        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")</p>
+        <p class="section-desc">Move: arrow keys · Shift+arrow = 16 blocks@(Shape.Type == "rectangle" ? " · P = to polygon" : "")@(Shape.Type == "polyline" ? " · drag the points to move the route" : "")</p>
       }
       else if (Group is not null)
       {

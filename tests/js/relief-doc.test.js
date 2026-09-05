@@ -680,3 +680,78 @@ test("a mark's name is never carried to the next mark of its kind", () => {
   assert.equal("tread" in controller.settingsFor("point"), false);
   assert.equal(controller.settingsFor("point").h, 9);
 });
+
+// ── adding a point to a mark's own outline ────────────────────────────────────
+test("a point goes into the middle of the edge the ghost is offered on", () => {
+  // The gesture the draw stage already had, on the outline a mark is drawn as: until it existed the grips
+  // could move the points a trace left and nothing could add one.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:line");
+  controller.onMouseMove(20, 0, "relief:line");
+  controller.onMouseUp();
+
+  const id = doc.marks[0].id;
+  controller.select(id);
+  const before = markPoints(doc.byId(id)).length;
+  assert.equal(controller.insertPoint(0), true);
+  const after = markPoints(doc.byId(id));
+  assert.equal(after.length, before + 1);
+  // It lands between the two it was asked for, and on whole blocks like every other placed point.
+  assert.deepEqual(after[1], [10, 0]);
+});
+
+test("a ring wraps and an open line does not, so the last edge exists for one only", () => {
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:area");
+  for (const [x, z] of [[10, 0], [10, 10], [0, 10]]) controller.onMouseMove(x, z, "relief:area");
+  controller.onMouseUp();
+
+  const id = doc.marks[0].id;
+  controller.select(id);
+  const count = markPoints(doc.byId(id)).length;
+  // The closing edge is the ring's last-to-first, which only a ring has.
+  assert.equal(controller.insertPoint(count - 1), true);
+  assert.equal(markPoints(doc.byId(id)).length, count + 1);
+});
+
+test("a heights array is not a point list — adding one leaves the drawn line alone", () => {
+  // The fault this pair exists to keep fixed: `h` is spaced along the run and has nothing to do with the
+  // vertices, so a two-point line stating five heights is a two-point line.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:line");
+  controller.onMouseMove(20, 0, "relief:line");
+  controller.onMouseUp();
+
+  const id = doc.marks[0].id;
+  controller.select(id);
+  controller.updateSelected({ h: [15, 20, 25] });
+  assert.equal(markPoints(doc.byId(id)).length, 2);
+  assert.deepEqual(doc.byId(id).h, [15, 20, 25]);
+});
+
+test("a relief states no grain until an author asks for one", () => {
+  // The client seeded every fresh relief with 1.2 blocks of noise, which the C# side never defaults to —
+  // ReliefGrainJson.Amplitude is 0 and the grain object itself is nullable.
+  const doc = new ReliefDoc();
+  const relief = doc.reliefOf("i1", 9);
+  assert.equal("grain" in relief, false);
+  assert.equal(relief.base, 9);
+});
+
+test("the press that inserts a point keeps hold of it", () => {
+  // One gesture, not two: the draw stage hands the new vertex to the press that asked for it, and a point
+  // dropped at the midpoint would have to be re-aimed and pressed again to go where it was wanted.
+  const { controller, doc } = tools();
+  controller.onMouseDown(0, 0, "relief:line");
+  controller.onMouseMove(20, 0, "relief:line");
+  controller.onMouseUp();
+
+  const id = doc.marks[0].id;
+  controller.select(id);
+  controller.insertPoint(0);
+  // The very next pointer move is the drag, and it moves the point that just arrived.
+  assert.equal(controller.onHandleMove(10, 9), true);
+  assert.deepEqual(markPoints(doc.byId(id)), [[0, 0], [10, 9], [20, 0]]);
+  controller.onHandleUp();
+  assert.equal(controller.onHandleMove(4, 4), false);
+});

@@ -261,9 +261,18 @@ export class SketchCanvas extends CanvasBase {
   // member as the selection so the inspector, Delete and the arrow-nudge all reach it — but the ladder stays
   // on the group rung, because the group's box and its lone member's ARE the same box and drawing both is
   // what put two anchors on every corner. Setter only — the click path fires the callback.
+  /** Whether the phase in front of the author places things of its own — marks or props. Those two own the
+   *  selection, the Delete chord and the inspector while they are up, so a shape must not be reachable
+   *  underneath them. */
+  get #placesOwnThings() { return this.#reliefOn || this.#dressingOn; }
+
   selectGroup(id) {
     this.#selectedGroupId = id ?? null;
-    this.#selectedId = this.#soleMemberOf(this.#selectedGroupId);
+    // A phase that places its own things has no use for a member selection, and a selected shape is what
+    // every shape-level chord acts on — which is how Delete reached the island a relief was being stated on.
+    // The drill to a sole member exists to put the Draw inspector's actions one click away; Theme keeps it,
+    // because its inspector is about the selected shape.
+    this.#selectedId = this.#placesOwnThings ? null : this.#soleMemberOf(this.#selectedGroupId);
     this.#setLevel("group");
   }
 
@@ -501,6 +510,16 @@ export class SketchCanvas extends CanvasBase {
       else if (e.shiftKey && group) this.#callbacks.onThemePaintGroup?.(group);
       else this.#callbacks.onThemePaint?.(shape);
       this.#callbacks.onShapeSelected?.(shape);
+      return;
+    }
+
+    // A phase that places its own things picks the group and stops there. Reaching a member would select a
+    // shape the phase cannot change and the chords can, and the group is the unit it is about anyway — a
+    // relief is solved over one, and its base, reach and step are what a click on the ground should reach.
+    if (this.#placesOwnThings) {
+      this.#enterScope(null);
+      this.#callbacks.onShapeSelected?.(null);
+      this.#callbacks.onGroupSelected?.(group ?? null);
       return;
     }
 
@@ -1109,9 +1128,20 @@ export class SketchCanvas extends CanvasBase {
       { id: "sketch.enter", keys: "enter", label: "Go one level deeper — into a group, then into a shape's points",
         group: "Canvas", when: () => live() && (this.#selectedId || this.#selectedGroupId),
         run: () => this.enterSelection() },
+      // Delete reaches whatever the phase in front of the author is editing. A relief phase leaves a shape
+      // selected — picking a single-member group selects its one member, which is what makes the Draw
+      // inspector reachable — so an ungated shape-delete takes the island out from under the marks being
+      // stated on it. Each phase answers for its own placed thing, and the shape chord stands down while one
+      // of them is up.
       { id: "sketch.delete", keys: ["delete", "backspace"], label: "Delete the selected shape",
-        group: "Canvas", when: () => live() && !!this.#selectedId,
+        group: "Canvas", when: () => live() && !this.#reliefOn && !this.#dressingOn && !!this.#selectedId,
         run: () => this.#callbacks.onShapeDeleted?.(this.#selectedId) },
+      { id: "relief.delete", keys: ["delete", "backspace"], label: "Delete the selected mark",
+        group: "Relief", when: () => live() && this.#reliefOn && !!this.#reliefTools?.selectedId,
+        run: () => this.#reliefTools?.deleteSelected() },
+      { id: "dressing.delete", keys: ["delete", "backspace"], label: "Delete the selected prop",
+        group: "Dressing", when: () => live() && this.#dressingOn && !!this.#dressing?.selectedId,
+        run: () => this.#dressing?.deleteSelected() },
       { id: "sketch.promote", keys: "shift+p", label: "Promote the shape to its own group",
         group: "Sketch", when: () => live() && !!this.#selectedId,
         run: () => this.#callbacks.onShapePromote?.(this.#selectedId) },

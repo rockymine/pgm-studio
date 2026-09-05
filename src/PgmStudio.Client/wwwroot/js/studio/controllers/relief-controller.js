@@ -27,10 +27,12 @@
  */
 
 import { paintMarkPreview, paintSpotGhost } from "../render/relief-render.js";
-import { defaultMark, defaultPush, isSpot, isRing, isPush, markAnchor, markPoints, markReach, pointsPatch,
+import { defaultMark, defaultPush, isSpot, isRing, isPush, markPoints, pointsPatch,
          translateMark, FALLBACK_BASE, PUSH_KIND } from "../relief/relief-doc.js";
 import { contourAt, markFromDrag } from "../relief/contour-drag.js";
 import { douglasPeucker, simplifyRing } from "../geometry/simplify.js";
+import { distToSegment } from "../geometry/shape.js";
+import { pointInRing } from "../geometry/polygon.js";
 import { svgEl, handleRectAttrs } from "../render/svg.js";
 import { toScreen } from "../geometry/transform.js";
 
@@ -54,6 +56,11 @@ const PICK_SLACK = 2;
 // Screen px. The point grips match the sketch editor's vertex handles, so a traced mark reads as the same
 // kind of editable thing a drawn polygon is.
 const POINT_HALF = 4;
+// Screen px: how near an edge the pointer has to come for the insert ghost to offer itself, and
+// how big that ghost is. Both are the draw stage's, since it is the same gesture on the same kind
+// of outline and an author should not have to learn it twice.
+const EDGE_THRESHOLD = 10;
+const GHOST_R = 4;
 
 export class ReliefController {
   #doc;
@@ -66,6 +73,8 @@ export class ReliefController {
   #drag = null;           // moving an already-placed mark
   #pointDrag = null;      // reshaping one: { id, idx }
   #contourDrag = null;    // moving a traced contour: { grabbed, fromX, fromZ, dx, dz }
+  #hoveredEdge = -1;      // the selected mark's edge the insert ghost is offering itself on
+  #ghostEl = null;        // that ghost, kept so a move repositions it rather than rebuilding it
   #selectedId = null;
   #settings = {};         // per-kind starting values for the next mark placed
   #groupAt;              // (bx, bz) → the id of the group covering this cell, or null
@@ -228,7 +237,94 @@ export class ReliefController {
       return false;
     }
     if (this.#cursor) { this.#cursor = null; this.#callbacks.onPreviewChanged?.(); }
+    // Nothing else wanted the pointer, so it is free to offer a point on the selected mark's own outline.
+    this.#offerInsert(bx, bz, activeTool);
     return false;
+  }
+
+  /**
+   * Show a midpoint ghost where the pointer is near an edge of the selected mark, and insert a point there
+   * when it is pressed — the draw stage's gesture, on the outline a mark is drawn as.
+   *
+   * A mark's points are the shape of what it states, and until now the only way to change that shape was to
+   * redraw the mark: the grips move the points a trace happened to leave and nothing adds one. The heights
+   * beside them are a different quantity and are spaced along the run, so adding a height cannot add a point
+   * and never could.
+   */
+  #offerInsert(bx, bz, activeTool) {
+    const mark = this.#selectedId && (!activeTool || activeTool === "select")
+      ? this.#doc.byId(this.#selectedId) : null;
+    const points = mark && !isSpot(mark) ? markPoints(mark) : [];
+    if (points.length < 2) { this.#clearGhost(); return; }
+
+    const view = this.#getViewport();
+    const at = toScreen(bx, bz, view);
+    // A ring wraps and an open line does not, so the last-to-first edge exists for one and not the other.
+    const edges = isRing(mark) || isPush(mark) ? points.length : points.length - 1;
+    let best = EDGE_THRESHOLD, index = -1, mx = 0, my = 0;
+    for (let i = 0; i < edges; i++) {
+      const j = (i + 1) % points.length;
+      const a = toScreen(points[i][0], points[i][1], view);
+      const b = toScreen(points[j][0], points[j][1], view);
+      const away = distToSegment(at.x, at.y, a.x, a.y, b.x, b.y);
+      if (away < best) { best = away; index = i; mx = (a.x + b.x) / 2; my = (a.y + b.y) / 2; }
+    }
+    if (index < 0) { this.#clearGhost(); return; }
+    this.#showGhost(mx, my, index);
+  }
+
+  #clearGhost() {
+    this.#hoveredEdge = -1;
+    if (this.#ghostEl) this.#ghostEl.style.display = "none";
+  }
+
+  #showGhost(sx, sy, edge) {
+    if (!this.#handlesLayer) return;
+    this.#hoveredEdge = edge;
+    if (!this.#ghostEl || !this.#ghostEl.isConnected) {
+      const el = svgEl("circle", {
+        r: String(GHOST_R), fill: "var(--bg-deep)", stroke: "var(--accent-light)", "stroke-width": "1.5",
+      });
+      el.style.cursor = "copy";
+      el.addEventListener("mousedown", (event) => {
+        if (event.button !== 0) return;
+        event.stopPropagation();   // the press adds a point rather than starting a pan or a re-pick
+        this.insertPoint(this.#hoveredEdge);
+      });
+      el.addEventListener("click", (event) => event.stopPropagation());
+      this.#handlesLayer.appendChild(el);
+      this.#ghostEl = el;
+    }
+    this.#ghostEl.setAttribute("cx", String(sx));
+    this.#ghostEl.setAttribute("cy", String(sy));
+    this.#ghostEl.style.display = "";
+  }
+
+  /**
+   * Put a point at the middle of one of the selected mark's edges, and leave it in the hand that pressed for
+   * it. Returns true if it went in.
+   *
+   * The press that inserts becomes the drag: the point arrives under the cursor that asked for it and the
+   * same gesture places it, which is what the draw stage's insert has always done. Dropping it at the
+   * midpoint instead would make one gesture into two — press to add, re-aim, press again to move — for a
+   * point whose whole purpose is to go somewhere the midpoint is not.
+   */
+  insertPoint(edge) {
+    const mark = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
+    if (!mark || edge < 0) return false;
+    const points = markPoints(mark).map(point => [...point]);
+    if (points.length < 2 || edge >= points.length) return false;
+    // A ring is cyclic, so inserting at index 0 splits the closing edge — the new point lands between the
+    // last and the first exactly as it does between any other pair.
+    const next = (edge + 1) % points.length;
+    points.splice(next, 0, [Math.round((points[edge][0] + points[next][0]) / 2),
+                            Math.round((points[edge][1] + points[next][1]) / 2)]);
+    this.#doc.update(mark.id, pointsPatch(mark, points));
+    this.#clearGhost();
+    this.beginPointDrag(mark.id, next);
+    this.refreshHandles();
+    this.#callbacks.onChanged?.();
+    return true;
   }
 
   /** Release — the drag's last point is the trace's last point, which is the whole interaction. */
@@ -306,6 +402,8 @@ export class ReliefController {
     const layer = this.#handlesLayer;
     if (!layer) return;
     while (layer.firstChild) layer.removeChild(layer.firstChild);
+    this.#ghostEl = null;
+    this.#hoveredEdge = -1;
     const mark = this.#selectedId ? this.#doc.byId(this.#selectedId) : null;
     if (!mark) return;
     markPoints(mark).forEach(([wx, wz], idx) => {
@@ -407,17 +505,68 @@ export class ReliefController {
     return Array.isArray(settings?.h) ? settings.h[0] : (settings?.h ?? 0);
   }
 
-  // The smallest mark under the cursor wins, so a spot height inside a broad area is still clickable.
+  /**
+   * The statement under the cursor, measured against the geometry it was drawn as rather than against a
+   * circle around it. A line is a band along a polyline and a bench is the ground inside a ring; a radius
+   * from the anchor covers both, plus everything in the corners a long mark never reaches — so a press
+   * anywhere in that circle picked the mark, and a press genuinely on the line lost to whichever other mark
+   * happened to have the smaller circle.
+   *
+   * The tightest fit wins, so a spot height inside a broad bench is still what a click on it reaches. Pushes
+   * are searched with the marks: they are picked up the same way and differ only in what they do.
+   */
   #hitTest(bx, bz) {
-    let best = null, bestReach = Infinity;
-    for (const mark of this.#doc.marks) {
-      if (!markPoints(mark).length) continue;
-      const [ax, az] = markAnchor(mark);
-      const reach = markReach(mark) + (isSpot(mark) ? PICK_SLACK : 0);
-      const distance = Math.hypot(bx - ax, bz - az);
-      if (distance <= reach && reach < bestReach) { best = mark; bestReach = reach; }
+    let best = null, bestFit = Infinity;
+    for (const mark of this.#doc.statements) {
+      const fit = this.#pickFit(mark, bx, bz);
+      if (fit !== null && fit < bestFit) { best = mark; bestFit = fit; }
     }
     return best;
+  }
+
+  /**
+   * How tightly a statement covers a point, or null where it does not cover it at all. The number is the
+   * reach the point was caught by, so comparing two is comparing how specific each mark's claim is.
+   */
+  #pickFit(mark, bx, bz) {
+    const points = markPoints(mark);
+    if (!points.length) return null;
+
+    if (isSpot(mark)) {
+      const reach = Math.max(2, mark.r ?? 4) + PICK_SLACK;
+      return Math.hypot(bx - points[0][0], bz - points[0][1]) <= reach ? reach : null;
+    }
+
+    // A ring's ground is what it states, so inside it counts — and so does the skirt a push moves outside its
+    // own outline, since a press on the slope should reach the push that made it.
+    if (isRing(mark) || isPush(mark)) {
+      const skirt = isPush(mark) ? Math.max(0, mark.falloff ?? 10) : 0;
+      if (points.length >= 3 && pointInRing(bx, bz, points)) return 0;
+      const away = this.#distToOutline(points, bx, bz, true);
+      const reach = skirt + PICK_SLACK;
+      return away <= reach ? reach : null;
+    }
+
+    // A line and a scarp are bands along an open polyline: the reach is half the face plus the band either
+    // side, which is the ground each of them actually states.
+    const band = mark.kind === "scarp"
+      ? Math.max(0.5, mark.face ?? 2) / 2 + Math.max(1, mark.band ?? 5)
+      : Math.max(0, mark.r ?? 2);
+    const reach = band + PICK_SLACK;
+    return this.#distToOutline(points, bx, bz, false) <= reach ? reach : null;
+  }
+
+  /** How far a point lies from a run of points, closing it back on itself where the run is a ring. */
+  #distToOutline(points, bx, bz, closed) {
+    if (points.length === 1) return Math.hypot(bx - points[0][0], bz - points[0][1]);
+    let nearest = Infinity;
+    const edges = closed ? points.length : points.length - 1;
+    for (let i = 0; i < edges; i++) {
+      const j = (i + 1) % points.length;
+      nearest = Math.min(nearest,
+        distToSegment(bx, bz, points[i][0], points[i][1], points[j][0], points[j][1]));
+    }
+    return nearest;
   }
 }
 

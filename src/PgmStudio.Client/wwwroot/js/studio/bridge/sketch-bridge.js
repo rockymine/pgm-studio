@@ -51,6 +51,7 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
   let mirrorVisible = true;
   let selectedGroupId = null; // panel group selection (drives arrow-move of the whole group)
   let reliefMode = false;      // the Relief phase is up: marks are drawn, edited, and reported to the host
+  let dressingMode = false;    // the Dressing phase is up: props are, and a shape is not reachable under them
   let view = "2d";             // "2d" | "iso" — the read-only isometric height preview (S6)
   let isoYaw = 30;
   // Terrain-paint theming (docs/world-export/terrain-painting.md TP10): a map-global registry + default; a shape's own override
@@ -199,9 +200,12 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     canvas.selectGroup(selectedGroupId);
     // A single-member group shows the shape inspector (its member) — set height / convert / op without
     // drilling; a multi-shape group shows the group inspector. Either way selectedGroupId stays set, so
-    // arrow-nudge (and later rotate) act on the whole group.
+    // arrow-nudge (and later rotate) act on the whole group. A phase placing things of its own drills to
+    // neither: the Draw actions are unavailable there, and a selected shape is what the shape-level chords
+    // reach.
     const isl = selectedGroupId ? groups.find(i => i.id === selectedGroupId) : null;
-    const single = isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
+    const placesOwnThings = reliefMode || dressingMode;
+    const single = !placesOwnThings && isl && isl.shapeIds.length === 1 ? isl.shapeIds[0] : null;
     fire("OnShapeSelected", single);
     fire("OnGroupSelected", single ? null : selectedGroupId);
     // In the Relief phase the group IS the unit being edited — its base, reach, step and grain are what the
@@ -680,6 +684,10 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
       amounts: selected && isPush(selected) ? pushAmounts(selected) : null,
       groupId,
       groupName: groupId ? (groupById(groupId)?.name ?? groupId) : null,
+      // What every group stating a mark is called, so the list heads each one the way the group tree does.
+      // A relief is keyed by group id and an id is not a name — `isl_1788640472266_0` heads a list of marks
+      // an author placed under "Group 1".
+      groupNames: Object.fromEntries(groups.map(group => [group.id, group.name ?? group.id])),
       // What the group's ground already stands at. The panel reads every stated height against it, and it
       // is what an untouched base is: a relief replaces the top of every column of its group, so a base
       // that differs from this moves the whole landmass.
@@ -961,7 +969,11 @@ export async function mount(svgEl, wrapEl, coordsEl, zoomEl, dimEl, dotnetRef, s
     // Placing is the canvas's; the bridge exposes reading the document, editing the selection, and the
     // per-kind settings a newly placed prop starts from.
     getDressing() { return dressingState(); },
-    setDressingMode(on) { canvas.setDressingMode(!!on); if (on) fire("OnDressing", dressingState()); },
+    setDressingMode(on) {
+      dressingMode = !!on;
+      canvas.setDressingMode(dressingMode);
+      if (dressingMode) fire("OnDressing", dressingState());
+    },
     selectProp(id) { canvas.dressingTools?.select(id || null); },
     deleteProp() { if (canvas.dressingTools?.deleteSelected()) afterDressingChange(); },
     /** Join the selected buildings, or take a joined one apart — the inspector button's half of `mod+g`, so

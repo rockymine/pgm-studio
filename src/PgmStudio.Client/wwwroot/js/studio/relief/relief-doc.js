@@ -50,7 +50,7 @@ export const FALLBACK_BASE = 4;
  *  already stands moves the whole landmass the moment the first mark lands. A reach of 0 means the marks
  *  decide the whole surface, which is what a single group wants. */
 export function defaultRelief(base = FALLBACK_BASE) {
-  return { base, reach: 0, step: 1, grain: { amplitude: 1.2, scale: 12, seed: 1 }, marks: [], pushes: [] };
+  return { base, reach: 0, step: 1, marks: [], pushes: [] };
 }
 
 /**

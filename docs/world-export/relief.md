@@ -60,7 +60,7 @@ Five kinds cover the vocabulary, and the first four differ only in the shape of 
 | Mark | Pins | Says |
 |---|---|---|
 | `point` | a disc of a given radius (`r`) | a summit, a hollow, a spot height |
-| `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex and a `tread` of it held flat (§2.1) | a ridge, a valley floor, a shoulder falling as it runs, a road switching back down a hill |
+| `line` | a band reaching `r` either side of a polyline, optionally with several heights spaced along its run and a `tread` of it held flat (§2.1) | a ridge, a valley floor, a shoulder falling as it runs, a road switching back down a hill |
 | `area` | every cell inside a ring, at one height or one per vertex, with an optional graded `bevel` inside its edge (§2.2) | a bench, a mesa top, a sunken floor, a shelf cut into a hillside |
 | `rim` | the footprint's own outer rings | where the land meets the void |
 | `scarp` | a band either side of a drawn line, at two heights, with the face between them left free | a break of slope — the mark that decides where players can go (§5) |
