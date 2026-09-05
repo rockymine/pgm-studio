@@ -69,7 +69,7 @@ public static class WaterLaneGenerator
     /// never fills, and an include with no region resolves a fragment that matches nothing.
     /// <para>Separate from <see cref="Apply"/> because the two halves live at different seams — the region is
     /// document state that persists, and the include list is assembled onto the <see cref="MapXml"/> at export
-    /// beside the rest of the CTW boilerplate (<see cref="CtwStandards"/>).</para>
+    /// beside the rest of the standard boilerplate (<see cref="MapStandards"/>).</para>
     /// </summary>
     public static void EnsureInclude(MapXml map)
     {

@@ -521,8 +521,9 @@ dressing happens after painting so it can read the finished surface rather than 
 in the wrong place is not a small mistake — it is a house painted as ground, or a tree planted through a
 monument.
 
-`MapXmlComposer` is the export path and not an optional wrapper: it applies `CtwStandards` (the keep, repair
-and remove rules derived from the spawn kit, hunger off, the kill-reward include), the ore and structure
+`MapXmlComposer` is the export path and not an optional wrapper: it applies `MapStandards` (the keep, repair
+and remove rules derived from the spawn kit and from what a destroy objective ever is, hunger off, the
+kill-reward include), the ore and structure
 renewables, and the reordering that puts the `not-build-area` rule last. Calling `XmlWriter` directly skips
 all of it (MG14).
 

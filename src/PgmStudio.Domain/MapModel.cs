@@ -323,7 +323,7 @@ public sealed class MapXml
     /// <summary>
     /// The <c>&lt;include id="…"/&gt;</c> ids the map pulls in, in document order. Both directions use this
     /// list: a parsed map records what it references, and a generated map states what it wants spliced (see
-    /// <c>CtwStandards</c>).
+    /// <c>MapStandards</c>).
     /// <para>An id is all we hold. PGM resolves a fragment out of <c>config.getIncludesDirectory()</c> — a
     /// server directory that ships with neither the map nor the corpus — so the body is unavailable and the
     /// rules it defines never enter the document analysed here. <c>MapValidity</c> warns for exactly
@@ -350,7 +350,7 @@ public sealed class MapXml
     /// </summary>
     public Dictionary<string, string> Constants = new(StringComparer.Ordinal);
 
-    // Standard CTW boilerplate (added to generated maps at export; see CtwStandards). Not round-tripped
+    // Standard boilerplate (added to generated maps at export; see MapStandards). Not round-tripped
     // from corpus maps, so these stay empty for parsed maps.
     public List<string> ItemKeep = [];        // materials kept on death
     public List<string> ItemRemove = [];      // materials removed on death (team-coloured armor)

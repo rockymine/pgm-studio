@@ -5,11 +5,11 @@ using PgmStudio.Pgm.Authoring;
 namespace PgmStudio.Pgm.Tests;
 
 /// <summary>
-/// The standard CTW boilerplate added to generated maps at export (<see cref="CtwStandards"/>): item/tool
+/// The standard boilerplate added to generated maps at export (<see cref="MapStandards"/>): item/tool
 /// rules derived from the spawn kit, the kill-reward include, and hunger off — and that the writer emits
 /// them as PGM elements.
 /// </summary>
-public sealed class CtwStandardsTests
+public sealed class MapStandardsTests
 {
     private static MapXml MapWithKit() => new()
     {
@@ -47,7 +47,7 @@ public sealed class CtwStandardsTests
     public async Task ItemKeep_is_the_non_armor_items_including_blocks()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
         await Assert.That(m.ItemKeep).Contains("iron sword");
         await Assert.That(m.ItemKeep).Contains("golden apple");
         await Assert.That(m.ItemKeep).Contains("arrow");
@@ -60,7 +60,7 @@ public sealed class CtwStandardsTests
     public async Task Build_blocks_are_kept_and_their_place_drops_suppressed()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
 
         // build blocks are kept on death (template), not dropped — only the armour is removed
         await Assert.That(m.ItemKeep).Contains("wood");
@@ -89,7 +89,7 @@ public sealed class CtwStandardsTests
     public async Task ToolRepair_is_only_the_tools_and_weapons()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
         foreach (var t in new[] { "iron sword", "bow", "iron pickaxe", "iron axe", "iron spade", "shears" })
             await Assert.That(m.ToolRepair).Contains(t);
         await Assert.That(m.ToolRepair).DoesNotContain("golden apple");
@@ -101,7 +101,7 @@ public sealed class CtwStandardsTests
     public async Task ItemRemove_is_the_armor()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
         await Assert.That(m.ItemRemove).Contains("leather helmet");
         await Assert.That(m.ItemRemove).Contains("chainmail leggings");
         await Assert.That(m.ItemRemove).DoesNotContain("iron sword");
@@ -113,7 +113,7 @@ public sealed class CtwStandardsTests
     {
         var m = MapWithKit();
         // surface palette: cobweb (30), tall grass (31), leaves (18), gravel (13), quartz (155, no drop)
-        CtwStandards.Apply(m, new HashSet<int> { 30, 31, 18, 13, 155 });
+        MapStandards.Apply(m, new HashSet<int> { 30, 31, 18, 13, 155 });
 
         await Assert.That(m.ItemRemove).Contains("leather helmet");   // armor still there
         await Assert.That(m.ItemRemove).Contains("string");           // cobweb
@@ -130,7 +130,7 @@ public sealed class CtwStandardsTests
     public async Task Adds_killreward_include_and_hunger_off()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
         await Assert.That(m.Includes).Contains("gapple-kill-reward");
         await Assert.That(m.HungerDepletion).IsEqualTo("off");
     }
@@ -139,7 +139,7 @@ public sealed class CtwStandardsTests
     public async Task Adds_a_block_kill_reward_from_the_kit_blocks()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
 
         await Assert.That(m.KillRewards.Count).IsEqualTo(1);
         var items = m.KillRewards[0].Items;
@@ -160,7 +160,7 @@ public sealed class CtwStandardsTests
     public async Task Writer_emits_the_elements_and_reparses()
     {
         var m = MapWithKit();
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
         var xml = XmlWriter.ToXml(m);
 
         await Assert.That(xml).Contains("<include id=\"gapple-kill-reward\"/>");
@@ -199,7 +199,7 @@ public sealed class CtwStandardsTests
             new ObjectiveMode { Id = "mode-glass", After = "20m", Material = "glass" },
         ];
 
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
 
         await Assert.That(m.ItemRemove).Contains("obsidian");        // what both objectives start as
         await Assert.That(m.ItemRemove).Contains("gold block");      // and what the ladder turns them into
@@ -216,7 +216,7 @@ public sealed class CtwStandardsTests
         var m = MapWithKit();
         m.Destroyables = [new Destroyable { Id = "d", Name = "M", Owner = "red", Materials = "stained clay:4" }];
 
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
 
         await Assert.That(m.ItemRemove).Contains("stained clay");
         await Assert.That(m.ItemRemove).DoesNotContain("stained clay:4");
@@ -229,7 +229,7 @@ public sealed class CtwStandardsTests
     {
         var m = MapWithKit();
 
-        CtwStandards.Apply(m);
+        MapStandards.Apply(m);
 
         await Assert.That(m.ItemRemove).DoesNotContain("obsidian");
     }

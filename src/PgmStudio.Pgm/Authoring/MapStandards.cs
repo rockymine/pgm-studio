@@ -3,16 +3,24 @@ using PgmStudio.Domain;
 namespace PgmStudio.Pgm.Authoring;
 
 /// <summary>
-/// The standard CTW boilerplate that nearly every corpus map carries but the intent generator doesn't
-/// author by hand: keep-on-death / drop-on-death item rules derived from the spawn kit, the shared
-/// golden-apple kill-reward include, and hunger depletion off. Applied to a generated map <b>at export</b>
-/// (not persisted), so corpus-map exports — which have their own hand-authored versions we don't
-/// round-trip — are left untouched.
+/// The standard boilerplate that nearly every corpus map carries but the intent generator doesn't author by
+/// hand: keep-on-death / drop-on-death item rules derived from the spawn kit, the shared golden-apple
+/// kill-reward include, hunger depletion off, and what a destroy objective drops. Applied to a generated map
+/// <b>at export</b> (not persisted), so corpus-map exports — which have their own hand-authored versions we
+/// don't round-trip — are left untouched.
+///
+/// <para><b>None of it is about what a map is played for.</b> A kit's armour is dropped and its loadout kept
+/// whether the map's goal is carried or broken, and hunger is off on all three; the one part that reads the
+/// objectives at all — <see cref="DestroyDrops"/> — reads them to answer a question every map is asked and
+/// most answer with nothing. So the standards are the map's, not the gamemode's, which is what the name
+/// says.</para>
+///
 /// <para>Derivation (grounded in the corpus, N=199): <b>itemkeep</b> = every non-armor kit item (keep your
 /// loadout + blocks + golden apple), <b>toolrepair</b> = the kit's tools/weapons, <b>itemremove</b> = the
-/// kit's armor (the kit re-applies team-coloured armor, so it's dropped rather than kept).</para>
+/// kit's armor (the kit re-applies team-coloured armor, so it's dropped rather than kept) plus the terrain's
+/// own drops and every material a destroy objective ever is.</para>
 /// </summary>
-public static class CtwStandards
+public static class MapStandards
 {
     /// <summary>The shared kill-reward include (golden apple on kill) defined on the server — present in
     /// ~97% of corpus maps.</summary>
@@ -58,7 +66,7 @@ public static class CtwStandards
     /// <inheritdoc cref="Apply(MapXml, IReadOnlySet{int}?)"/>
     public static void Apply(MapXml m) => Apply(m, null);
 
-    /// <summary>Add the standard CTW item/tool rules + kill-reward include + hunger-off to a generated map.
+    /// <summary>Add the standard item/tool rules + kill-reward include + hunger-off to a generated map.
     /// Replaces the lists, so re-applying is safe. When <paramref name="surfaceBlockIds"/> is supplied (the
     /// block ids present on the map's top surface), <c>itemremove</c> is <b>extended</b> with the terrain
     /// drops those blocks yield (on top of the kit armor).</summary>
@@ -101,7 +109,7 @@ public static class CtwStandards
             var drops = surfaceBlockIds.Where(SurfaceDrops.ContainsKey).SelectMany(id => SurfaceDrops[id]);
             m.ItemRemove = m.ItemRemove.Concat(drops).Distinct().ToList();
         }
-        m.ItemRemove = m.ItemRemove.Concat(ObjectiveDrops(m)).Distinct().ToList();
+        m.ItemRemove = m.ItemRemove.Concat(DestroyDrops(m)).Distinct().ToList();
         if (!m.Includes.Contains(KillRewardInclude)) m.Includes.Insert(0, KillRewardInclude);
         m.HungerDepletion = "off";
     }
@@ -120,7 +128,7 @@ public static class CtwStandards
     /// material their objectives ever are — the ladder's included, which is why this reads the modes and not
     /// just the starting block. <c>alpine_mining_ii</c> removes obsidian, beacon and coal block and states
     /// <c>repairable="false"</c> besides.</para></summary>
-    private static IEnumerable<string> ObjectiveDrops(MapXml m)
+    private static IEnumerable<string> DestroyDrops(MapXml m)
     {
         foreach (var destroyable in m.Destroyables)
             foreach (var material in destroyable.Materials.Split([';', ','], StringSplitOptions.RemoveEmptyEntries))

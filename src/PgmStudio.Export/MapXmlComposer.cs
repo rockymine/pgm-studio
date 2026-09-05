@@ -7,8 +7,8 @@ using Dict = Dictionary<string, object?>;
 
 /// <summary>
 /// Composes a PGM <c>map.xml</c> string from a map document: <c>Deserializer.FromDict</c> →
-/// <c>MapXml</c> → <c>XmlWriter.ToXml</c>. Intent-authored maps additionally get the standard CTW
-/// boilerplate (<see cref="CtwStandards"/>), spawn-ore renewables (<see cref="ResourceRenewables"/>), and
+/// <c>MapXml</c> → <c>XmlWriter.ToXml</c>. Intent-authored maps additionally get the standard
+/// boilerplate (<see cref="MapStandards"/>), spawn-ore renewables (<see cref="ResourceRenewables"/>), and
 /// the not-build-area void apply-rule ordered last. Shared by the XML and world-export endpoints.
 /// </summary>
 public static class MapXmlComposer
@@ -20,7 +20,7 @@ public static class MapXmlComposer
         var mx = Deserializer.FromDict(doc);
         if (isIntent)
         {
-            CtwStandards.Apply(mx, surfaceBlockIds);
+            MapStandards.Apply(mx, surfaceBlockIds);
             WaterLaneGenerator.EnsureInclude(mx);
             // Both renewable passes find ore living in a spawn and neither can see the other's, so the
             // spawns' block protection is stated once over the union — see SpawnOreProtection.

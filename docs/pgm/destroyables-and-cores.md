@@ -550,7 +550,7 @@ core has no `repairable` and a block placed back into its casing passes every ch
 It has to name the **ladder** as well as the starting block: an objective that becomes a gold block at 15m and
 glass at 20m drops those from then on. `alpine_mining_ii` removes obsidian, beacon and coal block — its start
 material and both of its rungs — and states `repairable="false"` besides. A generated map now writes the same
-list, derived from its own objectives and its own modes (`CtwStandards.ObjectiveDrops`), so the three cannot
+list, derived from its own objectives and its own modes (`MapStandards.DestroyDrops`), so the three cannot
 drift apart.
 
 **`completion` is the exception — it is parsed, stored and written**, defaulting to `1.0`. It is semantically
