@@ -193,6 +193,55 @@ public sealed class LineMarkTreadTests
             await Assert.That((cell, asked[cell])).IsEqualTo((cell, free[cell]));
     }
 
+    // ── the seam reading (WE33) ─────────────────────────────────────────────────────────────────────────
+
+    private static ReliefSpec Two(double tread = double.NaN) => new()
+    {
+        Base = 24, Reach = 0, Step = 1,
+        Marks = [new LineMark([[0, 12], [60, 12]], [33], 10) { Id = "crest" },
+                 new LineMark([[0, 28], [60, 28]], [24], 10, tread) { Id = "shelf" }],
+    };
+
+    /// <summary><b>A seam is a fact about the marks and is invisible in the surface.</b> Two bands that touch
+    /// put the whole difference between them in one cell, and the solved field reports that as a step, a face
+    /// and a barrier cell with no mark's name on any of it. The reading names the pair, the worst cell and how
+    /// far the boundary runs.</summary>
+    [Test]
+    public async Task A_seam_names_the_two_marks_that_built_it()
+    {
+        var reading = ReliefSolver.ReadMarks(Board(), Two());
+
+        var seam = reading.Seams.Single();
+        await Assert.That((seam.A, seam.B)).IsEqualTo(("crest", "shelf"));
+        await Assert.That(seam.Step).IsEqualTo(9);
+        await Assert.That(seam.Cells).IsGreaterThan(50);        // it runs the width of the board
+        await Assert.That(Board().Inside(seam.X, seam.Z)).IsTrue();
+    }
+
+    /// <summary>And it goes away when the ground arrives, which is what makes it a fault report rather than a
+    /// description of the arrangement: the two marks still overlap exactly as much, and the boundary between
+    /// their territories now falls inside the graded shoulder.</summary>
+    [Test]
+    public async Task A_seam_that_grades_is_not_reported()
+    {
+        var reading = ReliefSolver.ReadMarks(Board(), Two(tread: 2));
+        await Assert.That(reading.Seams.Where(seam => seam.Step > 1)).IsEmpty();
+    }
+
+    /// <summary>A mark that landed nowhere leaves nothing behind to notice, so the reading is the only thing
+    /// that can say it happened.</summary>
+    [Test]
+    public async Task A_mark_that_pins_nothing_is_named()
+    {
+        var reading = ReliefSolver.ReadMarks(Board(), new ReliefSpec
+        {
+            Base = 20, Marks = [new PointMark(30, 30, 26, 4) { Id = "knoll" },
+                                new PointMark(400, 400, 26, 4) { Id = "off-the-board" }],
+        });
+
+        await Assert.That(reading.Silent).IsEquivalentTo(new[] { "off-the-board" });
+    }
+
     [Test]
     public async Task The_far_side_of_a_bend_is_not_a_second_pass()
     {

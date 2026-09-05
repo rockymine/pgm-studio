@@ -233,7 +233,8 @@ public static class SketchRasterizer
     /// solve a whole layer too high.</para></summary>
     public static Dictionary<string, HeightField> ReliefFields(
         string layoutJson, Func<string, Footprint, double[]?>? warmStart = null,
-        Action<string, HeightField>? remember = null)
+        Action<string, HeightField>? remember = null,
+        Action<string, MarkReading>? marks = null)
     {
         var state = SketchLayout.Parse(layoutJson);
         if (state?.Relief is not { Count: > 0 } relief) return [];
@@ -249,7 +250,7 @@ public static class SketchRasterizer
 
             var shift = (int)Math.Round(layer.BaseY);
             foreach (var (groupId, field) in SolveRelief(RasterGroup(shapes), shapes, layer.Groups,
-                                                          relief, state.Setup?.MirrorMode, cx, cz, warmStart))
+                                                          relief, state.Setup?.MirrorMode, cx, cz, warmStart, marks))
             {
                 if (!fields.ContainsKey(groupId)) remember?.Invoke(groupId, field);
                 fields.TryAdd(groupId, shift == 0 ? field : new HeightField(field.Footprint,
@@ -593,7 +594,7 @@ public static class SketchRasterizer
     private static Dictionary<string, HeightField> SolveRelief(
         Dictionary<(int, int), (int Top, int Floor)> cells, List<SketchShape> shapes, List<SketchGroup> metas,
         Dictionary<string, SketchReliefJson>? relief, string? mirrorMode, double cx, double cz,
-        Func<string, Footprint, double[]?>? warmStart = null)
+        Func<string, Footprint, double[]?>? warmStart = null, Action<string, MarkReading>? marks = null)
     {
         var solved = new Dictionary<string, HeightField>();
         if (relief is not { Count: > 0 }) return solved;
@@ -655,7 +656,7 @@ public static class SketchRasterizer
                 // Either way the mark is rigid: what it pins is a floor, and the sculpting passes may not
                 // tilt a floor.
                 if (shape.HeightAuthored == true)
-                    held.Add(new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true });
+                    held.Add(new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true, Id = shape.Id ?? "" });
                 else seated.Add((shape, covered));
             }
 
@@ -680,13 +681,17 @@ public static class SketchRasterizer
                 {
                     var ring = RingOf(shape);
                     held.Add(SeatOf(shape, covered, field, footprint) is { } seat
-                        ? new AreaMark([.. ring], seat) { Rigid = true }
-                        : new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true });
+                        ? new AreaMark([.. ring], seat) { Rigid = true, Id = shape.Id ?? "" }
+                        : new AreaMark([.. ring], StatedTop(shape, ring)) { Rigid = true, Id = shape.Id ?? "" });
                 }
                 var reseated = stated.ToSpec(mirrorMode, cx, cz);
                 spec = reseated with { Marks = [.. reseated.Marks, .. held] };
                 field = ReliefSolver.Solve(footprint, spec, field.Continuous);
             }
+
+            // What the marks did to one another, off the same footprint and the same spec the field was
+            // solved from — a seam and a mark that landed nowhere are both invisible in the surface.
+            marks?.Invoke(groupId, ReliefSolver.ReadMarks(footprint, spec));
 
             solved[groupId] = field;
         }

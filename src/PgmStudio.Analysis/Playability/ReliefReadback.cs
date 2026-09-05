@@ -204,6 +204,28 @@ public static class ReliefReadback
         return findings;
     }
 
+    /// <summary>What the marks did to each other, as findings: a seam two of them meet on, and a mark that
+    /// landed nowhere. Separate from <see cref="Check(Result, string?, string)"/> because it reads the marks
+    /// rather than the surface — the two answer different questions about the same relief, and a seam is
+    /// exactly the thing the surface cannot attribute.</summary>
+    public static Findings Check(MarkReading marks, string island)
+    {
+        var findings = new List<Finding>();
+        foreach (var seam in marks.Seams.Where(seam => seam.Step > Walk.ScrambleStep))
+            findings.Add(new Finding(ReliefRules.MarksMeetOnAStep,
+                $"on island '{island}', '{seam.A}' and '{seam.B}' meet on a {seam.Step}-block step, worst at "
+                + $"({seam.X}, {seam.Z}) along {seam.Cells} cell(s) of boundary. Two marks pin their bands "
+                + "exactly, so where they touch the whole difference lands in one cell.",
+                Severity.Complaint, Subjects: [island, seam.A, seam.B]));
+
+        foreach (var id in marks.Silent)
+            findings.Add(new Finding(ReliefRules.MarkPinsNothing,
+                $"mark '{id}' pins no cell of island '{island}', so the surface is what it would have been "
+                + "without it.",
+                Severity.Complaint, Subjects: [island, id]));
+        return findings;
+    }
+
     /// <summary>The surface as one tier sees it: cells joined to their neighbours only where the step between
     /// them is within reach.</summary>
     private static Tier TierAt(string name, int maxStep, HeightField field, List<(int X, int Z)> land)

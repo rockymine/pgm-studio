@@ -6491,6 +6491,19 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   turns 2.5` the pitch is 6.4 against a 5.6-block fall and the bands overlap by 3.6 before any batter starts;
   redrawn at `r0 24, turns 2` with `tread: 2, batter: 65` the board goes from 1,006 barrier cells and a largest
   face of 282 to 684 and 112, and the largest face left is no longer the quarry.
+  (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.1)
+- **A seam names the two marks that built it (`WE33`).** A solved field reports a wall between two marks as
+  terrain — a step, a face, a barrier cell — with no mark's name on any of it, and neither mark looking wrong
+  on its own. `ReliefSolver.ReadMarks` walks the pinned ground carrying the id of whichever mark last claimed
+  each cell and reports where two of those territories meet on a drop: the pair, the worst cell, and how far
+  the boundary runs. It is one pin pass rather than a solve, because a seam is decided before the relaxation
+  runs. `POST …/sketch/relief/read` carries it per group as `seams`, worst first, and raises **`RL3`** where
+  one is taller than a scramble; the same pass answers **`RL4`**, a mark that pinned no cell at all. A mark
+  that grades into its neighbour has no seam to report, so the reading answers the fault and not the
+  arrangement — two marks may overlap as much as they like as long as the ground between them arrives.
+  Measured on `opus5-scarp-mask`: with the terrace's tread removed it names `crest | terrace, step 10 at
+  (7, −80), 43 cells` and `spine | terrace, step 9`, which is the wall that had to be found by eye in an
+  isometric; with the tread it names neither. `Mark.Id` carries the author's handle so the finding can say it.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2.0)
 - **A mark states some of its cells more firmly than others, so two bands that touch meet on a ramp
   (`WE101`).** A pin now carries a **weight** (`Pin`): full over the flat a mark guarantees, falling to nothing

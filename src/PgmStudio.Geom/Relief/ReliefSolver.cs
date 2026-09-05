@@ -22,6 +22,23 @@ public sealed class HeightField(Footprint footprint, double[] continuous, int[] 
     public HeightField WithBlocks(int[] blocks) => new(Footprint, Continuous, blocks);
 }
 
+/// <summary>One place two marks' ground meets, and how hard. <see cref="Step"/> is the worst height difference
+/// between a cell one mark last claimed and a neighbouring cell the other did, and <see cref="X"/>/<see
+/// cref="Z"/> is where that worst one is — a coordinate to stand at rather than a count. <see cref="Cells"/>
+/// is how far the boundary runs, which tells one crossing of two marks from a wall drawn the length of a
+/// board.</summary>
+public readonly record struct MarkSeam(string A, string B, int Step, int X, int Z, int Cells);
+
+/// <summary>What the marks of one relief did to each other, as against what the surface between them came out
+/// as: where two of them met on a step, and which of them pinned nothing at all. Both are faults a solved
+/// field cannot report — a seam reads back as terrain with no mark's name on it, and a mark that landed
+/// nowhere leaves no trace whatsoever.</summary>
+/// <param name="Seams">Every pair of marks whose ground touches with a step of more than one block, worst
+/// first.</param>
+/// <param name="Silent">The ids of marks that pinned no cell — placed off the footprint, or inside a shape
+/// that took itself out of the solve.</param>
+public sealed record MarkReading(IReadOnlyList<MarkSeam> Seams, IReadOnlyList<string> Silent);
+
 /// <summary>
 /// Solves a relief into a height field: the smoothest surface that satisfies the marks, then the pushes, the
 /// grain, the symmetry fold and the block step, in that order.
@@ -121,6 +138,77 @@ public static class ReliefSolver
             blocks[index] = (int)Math.Round((field[index] - spec.Base) / step) * step + baseBlock;
         }
         return new HeightField(footprint, field, blocks);
+    }
+
+    /// <summary>
+    /// What the marks did to one another, read off the pins alone — no relaxation, so it costs one pin pass
+    /// rather than a solve.
+    ///
+    /// <para><b>A seam is invisible in the solved field.</b> Two marks placed to describe one slope describe a
+    /// wall instead, and the wall reads back as terrain: a step, a face, a barrier cell, none of them
+    /// attributed to anything an author could go and change. This walks the pinned ground carrying the id of
+    /// whichever mark last claimed each cell, and reports where two of those territories meet on a drop,
+    /// naming the pair and the worst cell.</para>
+    ///
+    /// <para>A mark that grades into its neighbour has no seam to report: the boundary between the two
+    /// territories then falls inside the graded shoulder, where the step is a block or less. So the reading
+    /// answers the fault and not the arrangement — two marks may overlap as much as they like, as long as the
+    /// ground between them arrives.</para>
+    /// </summary>
+    public static MarkReading ReadMarks(Footprint footprint, ReliefSpec spec)
+    {
+        var height = new double[footprint.Cells];
+        var owner = new string?[height.Length];
+        var silent = new List<string>();
+
+        foreach (var mark in spec.Marks)
+        {
+            var landed = false;
+            foreach (var (cell, stated, weight) in mark.Pins(footprint))
+            {
+                if (!footprint.Inside(cell.X, cell.Z)) continue;
+                var index = footprint.Index(cell.X, cell.Z);
+                if (weight < 1 && owner[index] is null) continue;
+                height[index] = weight >= 1
+                    ? stated
+                    : height[index] + (stated - height[index]) * Math.Clamp(weight, 0, 1);
+                owner[index] = mark.Id;
+                landed = true;
+            }
+            if (!landed && mark.Id.Length > 0) silent.Add(mark.Id);
+        }
+
+        // Worst step per unordered pair, and how far the pair's boundary runs. Read over the four orthogonals:
+        // a diagonal neighbour is not a step a player meets.
+        var worst = new Dictionary<(string, string), (int Step, int X, int Z, int Cells)>();
+        foreach (var (x, z) in footprint.Land())
+        {
+            var index = footprint.Index(x, z);
+            if (owner[index] is not { Length: > 0 } mine) continue;
+            foreach (var (dx, dz) in Neighbours4)
+            {
+                if (!footprint.Inside(x + dx, z + dz)) continue;
+                var next = footprint.Index(x + dx, z + dz);
+                if (owner[next] is not { Length: > 0 } theirs || theirs == mine) continue;
+                // Every boundary is met from both sides; count it once, from the lower-named of the two.
+                if (string.CompareOrdinal(mine, theirs) > 0) continue;
+
+                var step = (int)Math.Round(Math.Abs(height[index] - height[next]));
+                var key = (mine, theirs);
+                var held = worst.GetValueOrDefault(key);
+                worst[key] = step > held.Step
+                    ? (step, x, z, held.Cells + 1)
+                    : held with { Cells = held.Cells + 1 };
+            }
+        }
+
+        return new MarkReading(
+            [.. worst.Where(pair => pair.Value.Step > Walk.FreeRise)
+                     .OrderByDescending(pair => pair.Value.Step)
+                     .Select(pair => new MarkSeam(pair.Key.Item1, pair.Key.Item2,
+                                                  pair.Value.Step, pair.Value.X, pair.Value.Z,
+                                                  pair.Value.Cells))],
+            silent);
     }
 
     /// <summary>The coordinate a cell's grain is drawn from and the cell its solved height is copied from:

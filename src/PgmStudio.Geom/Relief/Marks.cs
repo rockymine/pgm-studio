@@ -34,6 +34,11 @@ public abstract record Mark
     /// <summary>The cells this mark pins and the height it pins each to.</summary>
     public abstract IEnumerable<Pin> Pins(Footprint footprint);
 
+    /// <summary>The author's handle on this mark, for a finding that has to name it. Empty where the mark was
+    /// not authored by hand — a floor a held shape contributes has the shape's id instead, and a mark from
+    /// nowhere has nothing to be called.</summary>
+    public string Id { get; init; } = "";
+
     /// <summary>Whether the sculpting passes may move what this mark pinned. A mark states a height about
     /// the <em>ground</em>, and a push composes over ground — that is the whole difference between the two
     /// halves of the vocabulary. A built floor is not ground: a spawn or a wool room is a level rectangle

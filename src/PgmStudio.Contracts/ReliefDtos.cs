@@ -79,6 +79,10 @@ public sealed record ReliefReadDto(IReadOnlyList<ReliefGroupReadDto> Groups);
 /// <param name="Landform">What kind of ground the surface measures as — the range over the square root of the
 /// group's cells, which is elevation for the board's own size. Answered whether or not the group stated
 /// one; where it stated a different word the response carries an <c>RL1</c> complaint.</param>
+/// <param name="Seams">Where two of the group's marks meet on a step of more than one block, worst first —
+/// the reading that attributes a wall to the pair of statements that built it.</param>
+/// <param name="SilentMarks">Marks that pinned no cell at all, by id: placed off the group's ground, or over
+/// a shape that took itself out of the solve.</param>
 /// <param name="Smoothing">How many two-block scrambles the surface keeps per barrier taller than one. Above
 /// two the ground rolls, at or below one it steps, whatever its range: a quarry and a mountainside carry the
 /// same elevation and are not the same ground. <b>Null where the group has no barrier at all</b> — there is
@@ -95,7 +99,23 @@ public sealed record ReliefGroupReadDto(
     ReliefFordsDto AcrossZ,
     int SymmetryError,
     [property: WordSet(typeof(Landform))] string Landform = Vocabulary.Landform.Plain,
-    double? Smoothing = null);
+    double? Smoothing = null,
+    IReadOnlyList<ReliefSeamDto>? Seams = null,
+    IReadOnlyList<string>? SilentMarks = null);
+
+/// <summary>Where two of a group's marks meet on a step, named. A mark pins every cell in its band exactly, so
+/// two placed to describe one slope describe a wall instead — and the wall reads back through every other
+/// field here as terrain, a step and a face and a barrier cell, with no mark's name on any of it. This is the
+/// one reading that says which two marks to go and change (<c>RL3</c> where it is taller than a
+/// scramble).</summary>
+/// <param name="A">One of the pair, by mark id.</param>
+/// <param name="B">The other.</param>
+/// <param name="Step">The worst height difference across their boundary, in blocks.</param>
+/// <param name="X">Where that worst cell is, east–west — a coordinate to stand at rather than a count.</param>
+/// <param name="Z">The same, north–south.</param>
+/// <param name="Cells">How far the boundary runs, which tells one crossing of two marks from a wall drawn the
+/// length of a board.</param>
+public sealed record ReliefSeamDto(string A, string B, int Step, int X, int Z, int Cells);
 
 /// <summary>How a surface reads at one passability threshold: what share a player can cross, how many
 /// <b>places</b> that leaves, how much of the ground the largest holds, and how many <b>ledges</b> are

@@ -60,7 +60,7 @@ Five kinds cover the vocabulary, and the first four differ only in the shape of 
 | Mark | Pins | Says |
 |---|---|---|
 | `point` | a disc of a given radius (`r`) | a summit, a hollow, a spot height |
-| `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex and a `tread` of it held flat (§2.0) | a ridge, a valley floor, a shoulder falling as it runs, a road switching back down a hill |
+| `line` | a band reaching `r` either side of a polyline, optionally with a height per vertex and a `tread` of it held flat (§2.1) | a ridge, a valley floor, a shoulder falling as it runs, a road switching back down a hill |
 | `area` | every cell inside a ring | a bench, a mesa top, a sunken floor — a genuinely flat surface |
 | `rim` | the footprint's own outer rings | where the land meets the void |
 | `scarp` | a band either side of a drawn line, at two heights, with the face between them left free | a break of slope — the mark that decides where players can go (§5) |
@@ -75,7 +75,28 @@ without one, marks alone decide the whole surface, so a shape carrying a single 
 everywhere and simply runs off its own edge — which is usually what a group's interior wants, and never what
 a lake wants.
 
-### 2.0 A line that comes back past itself, and the tread that keeps it from being a cliff
+### 2.0 What the marks did to each other, which the surface cannot say
+
+A solved field reports a seam as terrain. Two marks placed to describe one slope describe a wall instead, and
+the wall arrives in the read-back as a step, a face and a barrier cell — none of them attributed to anything an
+author can go and change, and neither mark looking wrong on its own. `ReliefSolver.ReadMarks` answers the other
+question: it walks the pinned ground carrying the id of whichever mark last claimed each cell, and reports
+where two of those territories meet on a drop, naming the pair, the worst cell and how far the boundary runs.
+It costs one pin pass rather than a solve, because a seam is decided before the relaxation ever runs.
+
+`POST /map/{slug}/sketch/relief/read` carries it per group as `seams`, worst first, and raises **`RL3`** as a
+complaint where a seam is taller than a player can scramble. A mark that grades into its neighbour has no seam
+to report: the boundary between the two territories then falls inside the graded shoulder, where the step is a
+block or less. So the reading answers the *fault* and not the arrangement — two marks may overlap as much as
+they like as long as the ground between them arrives, and a `scarp`, which states a drop outright, is what a
+step the map is *for* is drawn with.
+
+The same pass answers **`RL4`**: a mark that pinned no cell at all, placed off its group's footprint or over
+ground a shape took out of the solve. A mark is clipped to the footprint rather than confined to it, so one
+placed past an edge is legal and useful — a summit whose centre sits off the board raises the corner — and this
+fires only where the overlap is empty, which is a statement that did nothing and left nothing behind to notice.
+
+### 2.1 A line that comes back past itself, and the tread that keeps it from being a cliff
 
 A line pins every cell in its band to the height of whichever pass of the line is **nearest**, which is the
 right answer for a ridge and the wrong one for a road. Draw a serpentine, a switchback or a spiral haul road

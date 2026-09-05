@@ -21,4 +21,19 @@ public static class ReliefRules
     /// <remarks>Smooth it: fewer, further-apart marks, a wider falloff on the pushes, or a relaxation pass between them. A relief whose steps are all barriers was not shaped, it was cut.</remarks>
     [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
     public const string NotSmoothed = "RL2";
+
+    /// <summary>Two marks' ground meets on a step taller than a player can scramble. A mark pins every cell in
+    /// its band exactly, so two placed to describe one slope describe a wall instead — and the wall reads back
+    /// as terrain, a step and a face and a barrier cell, with no mark's name on any of it. Neither mark looks
+    /// wrong on its own, which is why this has to be said rather than seen.</summary>
+    /// <remarks>State a `tread` on the later of the two, narrower than its `r`: the band past the tread then grades into whatever the earlier mark put there instead of ending on it. The shoulder's width sets the grade — the difference over the number of cells between the tread and the reach — so a gentler seam means a narrower tread or a longer reach. Where the step is what the map is for, a `scarp` states a drop outright and is not reported here.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
+    public const string MarksMeetOnAStep = "RL3";
+
+    /// <summary>A mark pinned no cell at all. It was placed off its group's footprint, or over ground a shape
+    /// took out of the solve, so the surface is the surface it would have been without it — and nothing else
+    /// says so, since a mark that did nothing leaves nothing behind to notice.</summary>
+    /// <remarks>Move it onto the group's own ground, or delete it. A mark is clipped to the footprint rather than confined to it, so one placed past an edge is legal and useful — a summit whose centre sits off the board raises the corner — and this fires only where the overlap is empty.</remarks>
+    [Rule(RuleCategory.Unsatisfiable, RuleConcern.Terrain)]
+    public const string MarkPinsNothing = "RL4";
 }

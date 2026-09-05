@@ -698,12 +698,16 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
 
         Dictionary<string, HeightField> fields;
         SketchLayout? state;
+        // What the marks did to one another, filled in as each group is solved. A seam is a fact about the
+        // statements rather than about the surface, so nothing downstream of the field can recover it.
+        var marks = new Dictionary<string, MarkReading>(StringComparer.Ordinal);
         try
         {
             state = SketchLayout.Parse(layoutJson);
             fields = SketchRasterizer.ReliefFields(layoutJson,
                 (group, footprint) => warm.WarmStart(map.Id, group, footprint),
-                (group, solved) => warm.Remember(map.Id, group, solved));
+                (group, solved) => warm.Remember(map.Id, group, solved),
+                (group, reading) => marks[group] = reading);
         }
         catch (Exception fault) when (fault is JsonException or ArgumentException
                                           or InvalidOperationException or FormatException
@@ -724,6 +728,8 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
         {
             var read = ReliefReadback.Read(entry.Value, mode, cx, cz);
             complaints.AddRange(ReliefReadback.Check(read, declared.GetValueOrDefault(entry.Key), entry.Key));
+            var reading = marks.GetValueOrDefault(entry.Key);
+            if (reading is not null) complaints.AddRange(ReliefReadback.Check(reading, entry.Key));
             return new ReliefGroupReadDto(
                 entry.Key, read.Cells, read.Low, read.High, read.Relief, read.Steps,
                 [.. read.Tiers.Select(t => new ReliefTierDto(
@@ -738,7 +744,10 @@ public sealed class SketchReliefReadEndpoint(MapRepository repo, ReliefPreviewCa
                 new ReliefFordsDto(read.AcrossZ.Rows, read.AcrossZ.OnFoot, read.AcrossZ.WithBlock, read.AcrossZ.Descended),
                 // A group with no barrier divides by nothing, and infinity is not a JSON number.
                 read.SymmetryError, read.Landform,
-                double.IsInfinity(read.Smoothing) ? null : read.Smoothing);
+                double.IsInfinity(read.Smoothing) ? null : read.Smoothing,
+                [.. (reading?.Seams ?? []).Take(12)
+                        .Select(seam => new ReliefSeamDto(seam.A, seam.B, seam.Step, seam.X, seam.Z, seam.Cells))],
+                reading?.Silent ?? []);
         }).ToList();
 
         Complaints.Add(HttpContext, complaints);

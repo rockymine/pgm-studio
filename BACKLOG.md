@@ -253,6 +253,42 @@ what is gathered here is the parked and dormant slices of the same surface.
   through the five fields the driver prints (`cells`, `low`, `high`, `relief`, `symErr`) of a response
   carrying twelve.*
 
+- [ ] **WE98 — A water prop's band stops at its radius, not at the bank.** A `water` prop fills its own
+  stated band, so where the channel is narrower than the ground it runs through the top course faces air on
+  both sides and the river reads as a trench with a stripe in it. The bank is a fact about the terrain and the
+  radius is a fact about the document, and nothing reconciles them. Fill to the contour instead: from the
+  prop's centreline outward to the first column whose surface stands above the stated level, capped by the
+  radius, so a wide reach fills wide and a narrow one narrows. `WaterProp` in `Minecraft/Dressing/Decorator.cs`;
+  `docs/world-export/decoration.md` § water.
+
+  *`opus5-corbel-scar`, section at x=0: two courses of air between the water's top course and both banks.
+  `DR-DRY` already counts them — 126 open columns — so the detection exists and the fill does not.*
+
+- [ ] **WE99 — A mask makes the relief field's own quantum visible, and there is no knob under a block.**
+  Relief snaps the surface to `step`, so at `step: 1` every contour is a one-block riser: an angle mask reads
+  27 degrees at each of their lips and nothing between, which is why a mask's first band has to end at 28 to
+  keep the open moor one material (`TP24`). That is a workaround for ground that is terraced by construction.
+  Either state what a sub-block surface would be — the relief solve is already continuous and only the write
+  is quantised — or say in `relief.md` that `step` is the width of the smallest landform the ground can have,
+  which is the fact an author is choosing and nothing says.
+
+  *`opus5-scarp-mask`: a first band ending at 27 stripes the whole board with contour shoulders; ending at 28
+  it is 68% clean moor. The 27 is Horn's gradient over a one-block step and is exact, not a tuning.*
+
+- [ ] **WE32 — A push has two gradients and the read-back reports neither.** A push climbs at `amount /
+  falloff` over its skirt and at `crown / half` from the ring's edge to its medial axis, and where those two
+  disagree the landform has a step at its own outline — a cliff with a hill on top of it, whatever its height.
+  `relief/read` reports the *face* — `faces` carries its facing, width, drop and whether it qualifies as a
+  cliff — but says nothing about which push made one, and neither gradient is ever stated, so an author
+  holding a step has no way back to the knob that cut it. Answer each push's two gradients, and lint where
+  they differ by more than about 2×: that ratio is the number an author is actually choosing.
+  `docs/world-export/relief.md` § the push.
+
+  *`opus5-thornfell`: `amounts 22–36 · falloff 12 · crown 16` sections as a vertical face; the same range at
+  `13–17 · falloff 10 · crown 12` — both gradients ≈1.7 — sections as a mountainside. Both read identically
+  through the five fields the driver prints (`cells`, `low`, `high`, `relief`, `symErr`) of a response
+  carrying twelve.*
+
 - [ ] **WE33 — A seam between two marks is reported as terrain, attributed to nothing.** A `tread` grades one
   out (`WE100`), but only where an author knew to state it: a seam still reads as a `steps` bucket and a face
   with no mark's name on it, so the thing to fix and the thing reported are two hops apart. Have the relief

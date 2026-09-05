@@ -157,14 +157,20 @@ public sealed class ReliefMarkJson
     /// mark is dropped rather than allowed to place terrain nobody asked for.</summary>
     public Mark? ToMark() => Kind switch
     {
-        MarkKinds.Point when At is { Length: >= 2 } at => new PointMark(at[0], at[1], FirstHeight, Radius),
+        MarkKinds.Point when At is { Length: >= 2 } at =>
+            new PointMark(at[0], at[1], FirstHeight, Radius) { Id = Named },
         MarkKinds.Line when Points is { Length: >= 2 } =>
-            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN, Batter),
-        MarkKinds.Area when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight),
-        MarkKinds.Rim => new RimMark(FirstHeight, Depth),
-        MarkKinds.Scarp when Points is { Length: >= 2 } points => new ScarpMark(points, High, Low, Face, Band),
+            new LineMark(Points, Heights ?? [0], Radius, Tread ?? double.NaN, Batter) { Id = Named },
+        MarkKinds.Area when Ring is { Length: >= 3 } ring => new AreaMark(ring, FirstHeight) { Id = Named },
+        MarkKinds.Rim => new RimMark(FirstHeight, Depth) { Id = Named },
+        MarkKinds.Scarp when Points is { Length: >= 2 } points =>
+            new ScarpMark(points, High, Low, Face, Band) { Id = Named },
         _ => null,
     };
+
+    /// <summary>What a finding calls this mark: its stated id, or its kind where the document gave none. A
+    /// seam between two marks has to name both of them, and "the line" is more use than nothing.</summary>
+    private string Named => Id is { Length: > 0 } stated ? stated : Kind ?? "";
 }
 
 /// <summary>A shape of ground lifted or lowered: the drawn ring, how far it lifts, and how its top and skirt
