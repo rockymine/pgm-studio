@@ -122,6 +122,13 @@ block step of one, a group with no rim, a push whose corners agree. Two selects 
 explanatory paragraph each is thirty words to say that nothing is happening, and it is the first thing a
 reader learns to skip — which is what then hides the line that matters.
 
+**A control looks like a control, and a two-state one names both states.** A checkbox hidden behind a line of
+text styled like a readout is a control nobody presses: it sits in a column of readouts, in the readouts' own
+class, saying only the state it is already in. Two `Chip`s say it instead — the current state marked, the other
+one visibly available — which is pressable, keyboard-reachable, and shows what the alternative is before it is
+chosen. The pattern it replaces (`control-input--hidden` under a `plan-readout` span) was in three panels and
+is in none.
+
 **What survives as prose is a keymap, an empty state, or a fact with nowhere else to live.** *Move: arrow keys
 · Shift+arrow = 16 blocks* is a keymap. *Nothing stated yet* is an empty state. *Turns with the building at
 every mirror image* is behaviour a reader cannot see and no number states. Everything else is a note, a

@@ -51,12 +51,14 @@
       @if (kind == PropKinds.Stroke)
       {
         <Field Label="What it is">
-          <label class="ctrl-row" style="cursor:pointer">
-            <input type="checkbox" class="control-input control-input--hidden" checked="@Flag(PropFields.ClaimsGround)"
-                   @onchange="e => Set(PropFields.ClaimsGround, JsonValue.Create(e.Value is true))" />
-            <span class="plan-readout">@(Flag(PropFields.ClaimsGround) ? "claims its ground — trees and boulders keep clear"
-                                          : "paint — anything may stand on it")</span>
-          </label>
+          <div class="filter-group-options">
+            <Chip Active="@(!Flag(PropFields.ClaimsGround))"
+                  OnClick="() => Set(PropFields.ClaimsGround, JsonValue.Create(false))"
+                  Title="Anything may stand on it">paint</Chip>
+            <Chip Active="@Flag(PropFields.ClaimsGround)"
+                  OnClick="() => Set(PropFields.ClaimsGround, JsonValue.Create(true))"
+                  Title="Trees and boulders keep clear of it">claims its ground</Chip>
+          </div>
         </Field>
         <Field Label="Width (blocks)">
           <NumberField Value="Num(PropFields.Radius, 3) * 2" ValueChanged="v => Set(PropFields.Radius, JsonValue.Create(Math.Max(1, v / 2)))" Min="2" Step="2" />

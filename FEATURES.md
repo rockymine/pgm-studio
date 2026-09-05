@@ -6544,6 +6544,22 @@ landed**, with the per-phase bodies the open work (TODO §Authoring). Contract: 
   where `crest` (r 18, h 33) and `terrace` (r 13, h 24) overlap: the transect read `33 33 33 DROP −9 24` and now
   reads `33 33 32 31 29 28 26 25 24`, worst step 2. Board-wide, 1,006 barrier cells become **480**.
   (`LineMarkTreadTests`, `docs/world-export/relief.md` §2)
+- **A mirrored copy samples the field it misses by a cell, and a two-state control looks like one
+  (`TS98`).** Two faults an author found by taking a `rot_180` board to the isometric.
+  **Pillars in the shape's own base height.** A relief-bearing group is mirrored by mirroring its *polygons*
+  and rasterizing those, then reading each image cell's height back through the inverse transform — and a
+  cell the field does not hold fell through to the shape's flat top. That fall-through is right for a
+  quarter-turn, whose whole image lies off the field; it is wrong for the cell-or-two an outline loses to
+  rounding, because mirroring a rasterization and rasterizing a mirror are not the same cell set. Such a cell
+  now takes the first of the eight around it the field holds. Measured on the board that found it — a polygon
+  with a bench cut to y 4–9 under a flat top of y 19 — six pillars standing 11 to 14 blocks over every
+  neighbour, at (0, −35), (1, −40), (2, −45), (3, −50), (31, 25) and (42, 34), and none after; the rot_180
+  match is unchanged at 10,048 of 10,050 columns.
+  **And the toggle read as text.** `Flat`, `Hold the outline`, a stroke's `What it is` and a core's `Casing`
+  were each a hidden checkbox behind a `plan-readout` span — the readouts' own class, in a column of
+  readouts, naming only the state it was already in. All four are two `Chip`s now: the state marked, the
+  alternative visibly there to press. (`docs/world-export/relief.md` §15,
+  `docs/client/ui-conventions.md` § What a panel says)
 - **The relief overlay is a shaded height map, and the panel names what a mark states (`TS97`).** Judging a
   surface meant switching to the isometric and back: contours say where the ground changes height and never
   which way, so reading a shape off them is counting labels. `POST …/sketch/relief?heights=true` now returns

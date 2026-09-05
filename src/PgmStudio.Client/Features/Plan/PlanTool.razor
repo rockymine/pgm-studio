@@ -577,11 +577,12 @@
                     </ChildContent>
                   </Field>
                   <Field Label="Casing">
-                    <label class="ctrl-row" style="cursor:pointer">
-                      <input type="checkbox" class="control-input control-input--hidden" checked="@CoreOpenTop"
-                             @onchange="@(e => SetMarkerField("openTop", e.Value is true ? true : null))" />
-                      <span class="plan-readout">@(CoreOpenTop ? "open — lava flush with the rim" : "capped over the lava")</span>
-                    </label>
+                    <div class="filter-group-options">
+                      <Chip Active="@(!CoreOpenTop)" OnClick="@(() => SetMarkerField("openTop", null))"
+                            Title="A lid over the lava">capped</Chip>
+                      <Chip Active="@CoreOpenTop" OnClick="@(() => SetMarkerField("openTop", true))"
+                            Title="Lava flush with the rim">open</Chip>
+                    </div>
                   </Field>
                   <p class="section-desc">@CoreCasingReadout</p>
                   <Field Label="Float">

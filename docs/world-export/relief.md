@@ -522,6 +522,17 @@ the relief read-back reporting `symmetryError 0` throughout, because what it mea
 than the four copies of it. `Symmetry.Inverse` names the axis that undoes a given one, and the rasterizer's
 mirrored read-back is where it is owed.
 
+**A miss of one cell is not that, and takes the nearest reading instead.** The copy is made by mirroring the
+group's *polygons* and rasterizing those, which is not the same cell set as mirroring the rasterization: a cell
+centre's image is not a cell centre, so the two disagree by a cell here and there along an outline. Such a cell
+is inside the image and one step outside the field, and letting it fall through to the shape's flat top leaves
+a **pillar standing in the shape's base height over ground the relief cut** — at the image's edge, one cell
+wide, in a board that is otherwise exactly symmetric. So a miss samples the eight cells around it and takes the
+first the field holds. A quarter-turn image is untouched by that, its whole footprint lying off the field with
+no neighbour in it either. Measured on a `rot_180` board whose polygon carries a bench cut to y 4–9 under a
+flat top of y 19: six such pillars at (0, −35), (1, −40), (2, −45), (3, −50), (31, 25) and (42, 34), each
+standing 11 to 14 blocks over every neighbour it had, and none after.
+
 And the fold is not finished when the solve is. Every pass that runs afterwards decides things by walking the
 map — a stair cut picks the cheapest riser it finds first, a carve follows a route from one end, a graded road
 smooths along its length — and a walk has a direction the symmetry does not preserve. The stair repair folds

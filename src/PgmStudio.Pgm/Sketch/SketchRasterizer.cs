@@ -402,10 +402,8 @@ public static class SketchRasterizer
                     if (field is not null)
                         foreach (var cell in copy.Keys.ToList())
                         {
-                            var source = MirrorCell(cell, back, cx, cz);
-                            if (!field.Has(source.Item1, source.Item2)) continue;
-                            copy[cell] = (Math.Max(copy[cell].Floor + 1, field.At(source.Item1, source.Item2)),
-                                          copy[cell].Floor);
+                            if (Sampled(field, MirrorCell(cell, back, cx, cz)) is not { } height) continue;
+                            copy[cell] = (Math.Max(copy[cell].Floor + 1, height), copy[cell].Floor);
                         }
                     // The image gets the same pass over it the primary got, and in the same order. An erected
                     // shape is settled against the ground under it, so reading its height back through the
@@ -417,6 +415,29 @@ public static class SketchRasterizer
             }
         }
         return cells;
+    }
+
+    /// <summary>
+    /// The field's height at a mirrored-back cell, or null where the field does not reach it at all.
+    ///
+    /// <para>The copy is made by mirroring the group's <b>polygons</b> and rasterizing those, which is not the
+    /// same cell set as mirroring the rasterization: a cell centre's image is not a cell centre, so the two
+    /// disagree by a cell here and there along an outline. A cell caught by that disagreement is inside the
+    /// image and one step outside the field, and reading nothing for it leaves it at the shape's own flat top
+    /// — a pillar standing over ground the relief cut, at the image's edge, in the shape's base height.</para>
+    ///
+    /// <para>So a miss falls back to the nearest of the eight cells around it. A quarter-turn image is
+    /// untouched by that: its whole footprint lies off the field, no neighbour is in it either, and the copy
+    /// keeps its shapes' flat heights exactly as before — one pair of teams playing a solved surface and the
+    /// other a table is a real limit, and it is not this one.</para>
+    /// </summary>
+    private static int? Sampled(HeightField field, (int X, int Z) source)
+    {
+        if (field.Has(source.X, source.Z)) return field.At(source.X, source.Z);
+        for (var dx = -1; dx <= 1; dx++)
+            for (var dz = -1; dz <= 1; dz++)
+                if (field.Has(source.X + dx, source.Z + dz)) return field.At(source.X + dx, source.Z + dz);
+        return null;
     }
 
     /// <summary>The three words a shape can use to say how its top is decided. Anything else — including a

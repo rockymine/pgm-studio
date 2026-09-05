@@ -75,13 +75,12 @@
            instead of stepping between them. *@
         <div class="section-header section-header--ruled"><h2 class="section-title">Across the band</h2></div>
         <Field Label="Flat">
-          <label class="ctrl-row" style="cursor:pointer">
-            <input type="checkbox" class="control-input control-input--hidden" checked="@HasTread"
-                   @onchange="ToggleTread" />
-            <span class="plan-readout">
-              @(HasTread ? "flat to a tread, then graded" : "the whole band is flat")
-            </span>
-          </label>
+          <div class="filter-group-options">
+            <Chip Active="@(!HasTread)" OnClick="() => ToggleTread(false)"
+                  Title="Every cell in the band takes the line's own height — what a ridge wants">the whole band</Chip>
+            <Chip Active="@HasTread" OnClick="() => ToggleTread(true)"
+                  Title="A flat tread either side, and the rest graded between the line's own passes">a tread, then graded</Chip>
+          </div>
         </Field>
         @if (HasTread)
         {
@@ -287,12 +286,13 @@
       </Field>
 
       <div class="section-header section-header--ruled"><h2 class="section-title">Rim</h2></div>
-      <Field Label="Hold the outline">
-        <label class="ctrl-row" style="cursor:pointer">
-          <input type="checkbox" class="control-input control-input--hidden" checked="@HasRim"
-                 @onchange="ToggleRim" />
-          <span class="plan-readout">@(HasRim ? "the outline is held" : "the land runs to the edge")</span>
-        </label>
+      <Field Label="The outline">
+        <div class="filter-group-options">
+          <Chip Active="@(!HasRim)" OnClick="() => ToggleRim(false)"
+                Title="Nothing is stated at the edge; the marks decide what the coast does">runs to the edge</Chip>
+          <Chip Active="@HasRim" OnClick="() => ToggleRim(true)"
+                Title="The whole outline is held at one height, which keeps a hill inside the shape">held at a height</Chip>
+        </div>
       </Field>
       @if (HasRim)
       {

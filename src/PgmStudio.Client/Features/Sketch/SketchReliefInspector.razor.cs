@@ -188,8 +188,8 @@ public partial class SketchReliefInspector
     /// <summary>Start or stop stating a tread. Starting takes half the band, which is a road with as much
     /// shoulder as surface; stopping drops the batter with it, since a batter is the angle of a shoulder that
     /// no longer exists.</summary>
-    private Task ToggleTread(ChangeEventArgs e)
-        => e.Value is true
+    private Task ToggleTread(bool on)
+        => on
             ? Set(MarkFields.Tread, JsonValue.Create(Math.Round(Radius / 2, 1)))
             : Remove(MarkFields.Tread, MarkFields.Batter);
 
@@ -422,7 +422,7 @@ public partial class SketchReliefInspector
     private double RimDepth => Rim?[MarkFields.Depth] is { } stated && double.TryParse(stated.ToString(), out var value)
         ? value : 1;
 
-    private async Task ToggleRim(ChangeEventArgs e)
+    private async Task ToggleRim(bool on)
     {
         if (Handle is null || groupId is null || relief is null) return;
         var marks = relief[ReliefFields.Marks] as JsonArray ?? [];
@@ -432,7 +432,7 @@ public partial class SketchReliefInspector
 
         // A rim goes on FIRST, so any mark stated later still wins the cells it covers. Written the other way
         // round, a rim would cut a doorway through both ends of every ridge that reaches the outline.
-        if (e.Value is true)
+        if (on)
         {
             var rim = new JsonObject
             {
